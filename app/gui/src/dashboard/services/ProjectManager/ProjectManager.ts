@@ -157,7 +157,14 @@ export class ProjectManager {
     if (cached) {
       return cached.data
     } else {
-      const promise = this.sendRequest<OpenProject>('project/open', fullParams)
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const enableProjectService = useFeatureFlag('enableProjectService')
+      let promise: Promise<OpenProject>
+      if (enableProjectService.value) {
+        promise = this.runProjectServiceCommandJson('project/open', fullParams)
+      } else {
+        promise = this.sendRequest<OpenProject>('project/open', fullParams)
+      }
       this.projects.set(fullParams.projectId, {
         state: backend.ProjectState.openInProgress,
         data: promise,
@@ -190,7 +197,13 @@ export class ProjectManager {
     }
     const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
     this.projects.delete(fullParams.projectId)
-    return this.sendRequest('project/close', fullParams)
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const enableProjectService = useFeatureFlag('enableProjectService')
+    if (enableProjectService.value) {
+      return this.runProjectServiceCommandJson('project/close', fullParams)
+    } else {
+      return this.sendRequest('project/close', fullParams)
+    }
   }
 
   /** Create a new project. */

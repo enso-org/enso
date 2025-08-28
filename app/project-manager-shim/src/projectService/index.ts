@@ -9,7 +9,13 @@ import * as crypto from 'node:crypto'
 import { UUID } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { Path } from 'enso-common/src/utilities/file'
-import { type Runner, EnsoRunner, findEnsoExecutable } from './ensoRunner.js'
+import {
+  type LanguageServerSockets,
+  type Runner,
+  type Socket,
+  EnsoRunner,
+  findEnsoExecutable,
+} from './ensoRunner.js'
 import * as nameValidation from './nameValidation.js'
 import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository.js'
 
@@ -18,23 +24,10 @@ import { type Project, type ProjectRepository, ProjectFileRepository } from './p
 // ==================
 
 export interface RunningLanguageServerInfo {
-  readonly engineVersion: string // SemVer format
   readonly sockets: LanguageServerSockets
   readonly projectName: string
   readonly projectNormalizedName: string
   readonly projectNamespace: string
-}
-
-export interface LanguageServerSockets {
-  readonly jsonSocket: Socket
-  readonly secureJsonSocket?: Socket
-  readonly binarySocket: Socket
-  readonly secureBinarySocket?: Socket
-}
-
-export interface Socket {
-  readonly host: string
-  readonly port: number
 }
 
 export interface CloudParams {
@@ -57,6 +50,15 @@ export interface CreateProject {
   readonly projectName: string
   readonly projectNormalizedName: string
   readonly projectPath: Path
+}
+
+/** The return value of the "open project" endpoint. */
+export interface OpenProject {
+  readonly languageServerJsonAddress: Socket
+  readonly languageServerBinaryAddress: Socket
+  readonly projectName: string
+  readonly projectNormalizedName: string
+  readonly projectNamespace: string
 }
 
 // =======================
@@ -134,9 +136,9 @@ export class ProjectService {
   }
 
   /** Deletes a user project. */
-  async deleteUserProject(_projectId: string, _projectsDirectory?: Path): Promise<void> {
-    // TODO: Implement deleteUserProject
-    throw new Error('deleteUserProject not implemented yet')
+  async deleteProject(_projectId: string, _projectsDirectory?: Path): Promise<void> {
+    // TODO: Implement deleteProject
+    throw new Error('deleteProject not implemented yet')
   }
 
   /** Renames a project. */
@@ -151,20 +153,56 @@ export class ProjectService {
 
   /** Opens a project and starts its language server. */
   async openProject(
-    _progressTracker: any,
-    _clientId: string,
-    _projectId: string,
-    _cloud?: CloudParams,
-    _projectsDirectory?: Path,
-  ): Promise<RunningLanguageServerInfo> {
-    // TODO: Implement openProject
-    throw new Error('openProject not implemented yet')
+    projectId: string,
+    projectsDirectory: Path,
+    cloud?: CloudParams,
+  ): Promise<OpenProject> {
+    this.logger.debug('Opening project', projectId)
+
+    // Get the project repository
+    const repo = this.getProjectRepository(projectsDirectory)
+
+    // Get the project from the repository
+    const project = await repo.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+
+    // Update the lastOpened timestamp
+    const openTime = toRfc3339(new Date())
+    const updatedProject = { ...project, lastOpened: openTime }
+    await repo.update(updatedProject)
+
+    // Prepare cloud environment variables if provided
+    const extraEnv: Array<[string, string]> = []
+    if (cloud) {
+      extraEnv.push(['ENSO_CLOUD_PROJECT_DIRECTORY_PATH', cloud.cloudProjectDirectoryPath])
+      extraEnv.push(['ENSO_CLOUD_PROJECT_ID', cloud.cloudProjectId])
+      extraEnv.push(['ENSO_CLOUD_PROJECT_SESSION_ID', cloud.cloudProjectSessionId])
+    }
+
+    // Start the language server
+    const sockets = await this.runner.openProject(
+      project.path,
+      projectId,
+      project.name,
+      extraEnv.length > 0 ? extraEnv : undefined,
+    )
+
+    // Return the OpenProject response
+    return {
+      languageServerJsonAddress: sockets.jsonSocket,
+      languageServerBinaryAddress: sockets.binarySocket,
+      projectName: project.name,
+      projectNormalizedName: nameValidation.normalizedName(project.name),
+      projectNamespace: project.namespace,
+    }
   }
 
   /** Closes a project and stops its language server. */
-  async closeProject(_clientId: string, _projectId: string): Promise<void> {
-    // TODO: Implement closeProject
-    throw new Error('closeProject not implemented yet')
+  async closeProject(projectId: string): Promise<void> {
+    this.logger.debug('Closing project', projectId)
+    await this.runner.closeProject(projectId)
   }
 
   /** Duplicates a user project. */

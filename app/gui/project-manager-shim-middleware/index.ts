@@ -25,6 +25,7 @@ import {
   ProjectState,
   stripProjectExtension,
   UnzipAssetsJobId,
+  UUID,
   VirtualParentsPath,
   type AnyAsset,
   type AssetId,
@@ -50,7 +51,7 @@ import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 import * as projectManagement from 'project-manager-shim'
 import { handleFilesystemCommand, toJSONRPCError, toJSONRPCResult } from 'project-manager-shim'
-import { ProjectService } from 'project-manager-shim/projectService'
+import { ProjectService, type CloudParams } from 'project-manager-shim/projectService'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 
 // =================
@@ -233,6 +234,52 @@ export class ProjectManagerShimMiddleware {
                 .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
                 .end(toJSONRPCError('project/create failed', err))
             })
+          break
+        }
+        case 'POST /api/project-service/project/open': {
+          interface Body {
+            readonly projectId: UUID
+            readonly projectsDirectory: Path
+            readonly cloud?: CloudParams
+          }
+          bodyJson<Body>(request)
+            .then(async (body) => {
+              const projectService = await this.getProjectService()
+              return projectService.openProject(body.projectId, body.projectsDirectory, body.cloud)
+            })
+            .then((result) => {
+              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(result))
+            })
+            .catch((err) => {
+              console.error(err)
+              response
+                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
+                .end(toJSONRPCError('project/open failed', err))
+            })
+          break
+        }
+        case 'POST /api/project-service/project/close': {
+          interface Body {
+            readonly projectId: UUID
+          }
+          bodyJson<Body>(request)
+            .then(async (body) => {
+              const projectService = await this.getProjectService()
+              return projectService.closeProject(body.projectId)
+            })
+            .then(() => {
+              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(null))
+            })
+            .catch((err) => {
+              console.error(err)
+              response
+                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
+                .end(toJSONRPCError('project/close failed', err))
+            })
+          break
+        }
+        default: {
+          console.error('Unknown middleware request:', requestPath)
           break
         }
       }

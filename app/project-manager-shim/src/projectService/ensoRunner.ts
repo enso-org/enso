@@ -14,10 +14,31 @@ export interface Runner {
     engineVersion?: string,
     projectTemplate?: string,
   ): Promise<void>
+  openProject(
+    projectPath: Path,
+    projectId: string,
+    projectName: string,
+    extraEnv?: Array<[string, string]>,
+  ): Promise<LanguageServerSockets>
+  closeProject(projectId: string): Promise<void>
+}
+
+export interface LanguageServerSockets {
+  readonly jsonSocket: Socket
+  readonly secureJsonSocket?: Socket
+  readonly binarySocket: Socket
+  readonly secureBinarySocket?: Socket
+}
+
+export interface Socket {
+  readonly host: string
+  readonly port: number
 }
 
 /** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
+  private runningProcesses: Map<string, childProcess.ChildProcess> = new Map()
+
   /** Creates a new EnsoRunner with the path to the Enso executable. */
   constructor(private ensoPath: Path) {}
 
@@ -25,7 +46,7 @@ export class EnsoRunner implements Runner {
   async createProject(
     projectPath: Path,
     name: string,
-    engineVersion?: string,
+    _engineVersion?: string,
     projectTemplate?: string,
   ): Promise<void> {
     if (!this.ensoPath) {
@@ -64,6 +85,210 @@ export class EnsoRunner implements Runner {
           reject(new Error(`Enso process exited with code ${code}. stderr: ${stderr}`))
         }
       })
+    })
+  }
+
+  /** Opens a project and starts its language server. */
+  async openProject(
+    projectPath: Path,
+    projectId: string,
+    _projectName: string,
+    extraEnv?: Array<[string, string]>,
+  ): Promise<LanguageServerSockets> {
+    if (!this.ensoPath) {
+      throw new Error('Enso executable not found')
+    }
+
+    // Generate a random root ID for this language server session
+    const rootId = crypto.randomUUID()
+
+    // Find available ports for the language server
+    const jsonPort = await this.findAvailablePort(30616)
+    const binaryPort = await this.findAvailablePort(30617)
+
+    // Create log file for this language server instance (overwrite if exists)
+    const logFileName = `language-server-${jsonPort}.log`
+    const logStream = fs.createWriteStream(logFileName, { flags: 'w' })
+    logStream.write(`=== Language Server Started at ${new Date().toISOString()} ===\n`)
+    logStream.write(`Project ID: ${projectId}\n`)
+    logStream.write(`Project Path: ${projectPath}\n`)
+    logStream.write(`JSON Port: ${jsonPort}\n`)
+    logStream.write(`Binary Port: ${binaryPort}\n`)
+    logStream.write(`===========================================\n\n`)
+
+    const args: string[] = [
+      '--server',
+      '--root-id',
+      rootId,
+      '--project-id',
+      projectId,
+      '--path',
+      projectPath,
+      '--interface',
+      '127.0.0.1',
+      '--rpc-port',
+      jsonPort.toString(),
+      '--data-port',
+      binaryPort.toString(),
+    ]
+
+    const env = { ...process.env }
+    if (extraEnv) {
+      for (const [key, value] of extraEnv) {
+        env[key] = value
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      const serverProcess = childProcess.spawn(this.ensoPath, args, {
+        env,
+        detached: false,
+      })
+
+      let stderr = ''
+      let resolved = false
+
+      // Health check function
+      const checkServerHealth = async (): Promise<boolean> => {
+        try {
+          const response = await fetch(`http://127.0.0.1:${jsonPort}/_health`)
+          logStream.write(`[HEALTH CHECK] Checking readiness at ${new Date().toISOString()}: ${response.status}\n`)
+          return response.ok
+        } catch {
+          return false
+        }
+      }
+
+      // Start polling for server readiness after initial delay
+      const startHealthCheck = () => {
+        const pollInterval = setInterval(async () => {
+          if (resolved) {
+            clearInterval(pollInterval)
+            return
+          }
+
+          const isReady = await checkServerHealth()
+          if (isReady) {
+            clearInterval(pollInterval)
+            resolved = true
+            logStream.write(`[HEALTH CHECK] Server is ready at ${new Date().toISOString()}\n`)
+            // Store the process for later cleanup
+            this.runningProcesses.set(projectId, serverProcess)
+            resolve({
+              jsonSocket: { host: '127.0.0.1', port: jsonPort },
+              binarySocket: { host: '127.0.0.1', port: binaryPort },
+            })
+          }
+        }, 250) // Poll every 250ms
+      }
+
+      // Start health check after initial delay
+      setTimeout(startHealthCheck, 250)
+
+      serverProcess.stdout.on('data', (data) => {
+        const dataStr = data.toString()
+        // Log stdout to file
+        logStream.write(`[STDOUT] ${dataStr}`)
+      })
+
+      serverProcess.stderr.on('data', (data) => {
+        const dataStr = data.toString()
+        stderr += dataStr
+
+        // Log stderr to file
+        logStream.write(`[STDERR] ${dataStr}`)
+      })
+
+      serverProcess.on('error', (error) => {
+        logStream.write(`[ERROR] ${error.message}\n`)
+        if (!resolved) {
+          reject(new Error(`Failed to start language server: ${error.message}`))
+        }
+      })
+
+      serverProcess.on('close', (code) => {
+        // Log process exit
+        logStream.write(`\n[PROCESS EXIT] Code: ${code} at ${new Date().toISOString()}\n`)
+        logStream.end()
+
+        // Remove from running processes when it closes
+        this.runningProcesses.delete(projectId)
+
+        if (!resolved) {
+          reject(new Error(`Language server process exited with code ${code}. stderr: ${stderr}`))
+        }
+      })
+
+      // Timeout after 30 seconds if server doesn't start
+      setTimeout(() => {
+        if (!resolved) {
+          serverProcess.kill('SIGKILL')
+          logStream.write(`[TIMEOUT] Language server startup timeout after 30 seconds\n`)
+          reject(new Error('Language server startup timeout'))
+        }
+      }, 30000)
+    })
+  }
+
+  /** Closes a project and stops its language server. */
+  async closeProject(projectId: string): Promise<void> {
+    const process = this.runningProcesses.get(projectId)
+
+    if (!process) {
+      // Project is not running or already closed
+      return
+    }
+
+    return new Promise((resolve) => {
+      // Set a timeout in case the process doesn't exit gracefully
+      const timeout = setTimeout(() => {
+        if (!process.killed) {
+          process.kill('SIGKILL')
+        }
+        this.runningProcesses.delete(projectId)
+        resolve()
+      }, 30000)
+
+      // Listen for the process to exit
+      process.on('exit', () => {
+        clearTimeout(timeout)
+        this.runningProcesses.delete(projectId)
+        resolve()
+      })
+
+      // Send line break to stdin to trigger graceful shutdown
+      if (process.stdin && !process.stdin.destroyed) {
+        process.stdin.write('\n')
+      } else {
+        // If stdin is not available, fall back to SIGTERM
+        process.kill('SIGTERM')
+      }
+    })
+  }
+
+  /** Finds an available port starting from the given port number. */
+  private async findAvailablePort(startPort: number): Promise<number> {
+    const net = await import('node:net')
+
+    return new Promise((resolve) => {
+      const tryPort = (port: number) => {
+        const server = net.createServer()
+
+        server.listen(port, '127.0.0.1')
+
+        server.on('listening', () => {
+          server.close(() => {
+            resolve(port)
+          })
+        })
+
+        server.on('error', () => {
+          // Port is in use, try the next one
+          tryPort(port + 1)
+        })
+      }
+
+      tryPort(startPort)
     })
   }
 }
