@@ -392,7 +392,11 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
     tag="ul"
     name="list"
     class="DraggableList"
-    :class="{ animate: dropInfo != null || draggedIndex != null, [`axis-${axis}`]: true, horizontalScroll }"
+    :class="{
+      animate: dropInfo != null || draggedIndex != null,
+      [`axis-${axis}`]: true,
+      horizontalScroll,
+    }"
     :css="dropInfo != null || draggedIndex != null"
     @pointerdown="
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
