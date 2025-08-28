@@ -28,12 +28,12 @@ public class TextLengthOperation implements UnaryOperation {
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getType() instanceof TextType(long maxLength, boolean fixedLength) && fixedLength) {
+    if (storage.getType() instanceof TextType textType && textType.fixedLength()) {
       // Create a constant.
       return StorageIterators.buildOverStorage(
           storage,
           Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator),
-          (builder, index, value) -> builder.appendLong(maxLength));
+          (builder, index, value) -> builder.appendLong(textType.maxLength()));
     }
 
     return StorageIterators.buildOverStorage(

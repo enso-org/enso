@@ -30,6 +30,11 @@ public final class TextType implements StorageType<String> {
     this.fixedLength = fixedLength;
   }
 
+  public long maxLength() { return maxLength; }
+
+  /** Returns if it is a fixed length string. */
+  public boolean fixedLength() { return fixedLength; }
+
   public boolean fits(String string) {
     if (string == null) {
       return true;
