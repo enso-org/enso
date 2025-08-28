@@ -223,10 +223,10 @@ object Dependencies {
   val awsJavaSdkV1Version     = "1.12.480"
   val awsJavaSdkV2Version     = "2.25.36"
   val icuVersion              = "73.1"
-  val poiOoxmlVersion         = "5.2.3"
+  val poiOoxmlVersion         = "5.4.1"
   val redshiftVersion         = "2.1.0.15"
   val univocityParsersVersion = "2.9.1"
-  val xmlbeansVersion         = "5.1.1"
+  val xmlbeansVersion         = "5.3.0"
   val tableauVersion          = "0.0.19691.r2d7e5bc8"
 
   // === ZIO ====================================================================
@@ -241,7 +241,7 @@ object Dependencies {
 
   // === Bouncy Castle ==========================================================
 
-  val bouncyCastleVersion = "1.78.1"
+  val bouncyCastleVersion = "1.80"
   val bouncyCastle = Seq(
     "org.bouncycastle" % "bcutil-jdk18on" % bouncyCastleVersion,
     "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleVersion,
