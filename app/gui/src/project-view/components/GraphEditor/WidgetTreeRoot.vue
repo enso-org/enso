@@ -13,7 +13,7 @@ import { computed, toRef, watch } from 'vue'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
 const props = defineProps<{
-  externalId?: string & ExternalId | undefined
+  externalId?: (string & ExternalId) | undefined
   input: WidgetInput
   rootElement?: Opt<HTMLElement>
   primaryApplication?: Opt<PrimaryApplication>
@@ -69,12 +69,12 @@ export const ICON_WIDTH = 16
 
 <template>
   <div
-      ref="treeRoot"
-      class="WidgetTreeRoot widgetRounded"
-      spellcheck="false"
-      v-on="layoutTransitions.events"
-    >
-      <NodeWidget :input="input" :updateCallback="updateCallback" />
+    ref="treeRoot"
+    class="WidgetTreeRoot widgetRounded"
+    spellcheck="false"
+    v-on="layoutTransitions.events"
+  >
+    <NodeWidget :input="input" :updateCallback="updateCallback" />
   </div>
 </template>
 

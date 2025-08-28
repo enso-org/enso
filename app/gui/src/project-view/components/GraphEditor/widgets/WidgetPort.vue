@@ -41,7 +41,8 @@ const isCurrentEdgeHoverTarget = computed(
   () =>
     graph.mouseEditedEdge?.source != null &&
     selection?.hoveredPort === portId.value &&
-    (tree.externalId == null || graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.externalId),
+    (tree.externalId == null ||
+      graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.externalId),
 )
 const isCurrentDisconnectedEdgeTarget = computed(
   () =>

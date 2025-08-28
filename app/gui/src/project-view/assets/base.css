@@ -146,7 +146,11 @@
   /** Default dropdown widget colors. */
   --dropdown-bg: var(--color-node-background);
   --dropdown-fg: var(--color-node-text);
-  --dropdown-item-hover-bg: color-mix(in oklab, var(--dropdown-bg) 50%, white 50%);
+  --dropdown-item-hover-bg: color-mix(
+    in oklab,
+    var(--dropdown-bg) 50%,
+    white 50%
+  );
   --dropdown-item-selected-bg: var(--color-port-connected);
 
   /**
