@@ -3,9 +3,9 @@ package org.enso.table.operations;
 import java.util.function.BiFunction;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
-import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Row;
 import org.enso.table.data.table.Table;
@@ -231,8 +231,6 @@ public class AddGroupNumber {
       Column column,
       int groupCount,
       boolean population,
-      long start,
-      long step,
       ProblemAggregator problemAggregator) {
       if (groupCount % 2 == 0) {
         throw new IllegalArgumentException("group_count must be odd");
@@ -243,7 +241,7 @@ public class AddGroupNumber {
 
       double mean = mean(column);
       double stddev = standardDeviation(column, mean, population);
-      var builder = Builder.getForLong(IntegerType.INT_64, numRows, problemAggregator);
+      var builder = Builder.getForText(TextType.VARIABLE_LENGTH, numRows);
 
       for (int row = 0; row < column.getSize(); ++row) {
         var x = column.getItem(row);
@@ -253,8 +251,8 @@ public class AddGroupNumber {
           builder.appendNulls(1);
         } else if (x instanceof Number n) {
           double d = n.doubleValue();
-          long groupNumber = calculateGroup(d, mean, stddev, groupCount, start, step);
-          builder.appendLong(groupNumber);
+          String label = calculateGroup(d, mean, stddev, groupCount);
+          builder.append(label);
         } else {
           throw new IllegalArgumentException("add_group_number: non-numeric value encountered in standard deviation column" + row);
         }
@@ -294,18 +292,31 @@ public class AddGroupNumber {
     return Math.sqrt(sumSquaredDiffs / denominator);
   }
 
-  private static long calculateGroup(double value, double mean, double stddev, int groupCount, long start, long step) {
-    if (stddev == 0.0) {
-      return start; // Assign to the first group if value stddev is zero
-    }
-    double zScore = (value - mean) / stddev;
-    long groupIndex = (long) Math.floor(zScore + 0.5);
-
+  private static String calculateGroup(double value, double mean, double stddev, int groupCount) {
     // Group numbers are centered around 0, and capped on either side by groupCount
     long maxPosGroup = (groupCount - 1) / 2;
+    long groupIndex = calculateGroupIndex(value, mean, stddev);
     groupIndex = Math.max(-maxPosGroup, Math.min(maxPosGroup, groupIndex));
+    double low = (double) groupIndex - 0.5;
+    double high = (double) groupIndex + 0.5;
+    return low + " to " + high;
+  }
 
-    return Math.addExact(start, Math.multiplyExact(step, groupIndex));
+  /**
+   * Returns a symmetric bin number:
+   *   (s = 1 standard deviation)
+   *   -2.5s .. -1.5s -> group -2
+   *   -1.5s .. -0.5s -> group -1
+   *   -0.5s ..  0.5s -> group  0
+   *    0.5s ..  1.5s -> group  1
+   *    1.5s ..  2.5s -> group  2
+   */
+  private static long calculateGroupIndex(double value, double mean, double stddev) {
+    if (stddev == 0.0) {
+      return 0; // Assign to the first group if value stddev is zero
+    }
+    double zScore = (value - mean) / stddev;
+    return (long) Math.floor(zScore + 0.5);
   }
 
   public static ColumnStorage<?> flaggedGroups(
