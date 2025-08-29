@@ -47,7 +47,7 @@ type Grouping_Method
        contain the values that differ the most from the standard deviation.
 
        Arguments
-    Standard_Deviation (on:(Text | Integer)=(Missing_Argument.throw "on")) (group_count:Integer=5) (population:Boolean=False)
+    Standard_Deviation (on:(Text | Integer)=(Missing_Argument.throw "on")) (grouping:Standard_Deviation_Grouping=(..By_Range 5)) (population:Boolean=False)
 
 ## Specifies the row representing a group.
 type Group_Row
@@ -68,6 +68,27 @@ type Predicate_Over
     ## The predicate is computed over a column value specified by index.
     Index index:Integer
 
+type Standard_Deviation_Grouping
+    ## Group rows by standard deviation the specified number of buckets, which must be odd.
+    By_Range (count:Integer=5)
+
+    ## Group rows into buckets with some or all the following names. The `count`
+       parameter specifies how many of these buckets to use, starting from
+       'Average' and growing outwards.
+
+           Extremely High
+           Very High
+           High
+           Above Average
+           Average
+           Below Average
+           Low
+           Very Low
+           Extremely Low
+
+       The specified number of buckets must be 3, 5, 7, or 9.
+    Named (count:Integer=5)
+
 ## ---
    private: true
    ---
@@ -77,3 +98,8 @@ Predicate_Over.from (that:Text) = Predicate_Over.Name that
    private: true
    ---
 Predicate_Over.from (that:Integer) = Predicate_Over.Index that
+
+## ---
+   private: true
+   ---
+Standard_Deviation_Grouping.from (that:Integer) = Standard_Deviation_Grouping.By_Range that

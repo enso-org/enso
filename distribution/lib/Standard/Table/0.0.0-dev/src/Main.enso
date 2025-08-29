@@ -40,6 +40,7 @@ export project.Fixed_Width.On_Empty_Field.On_Empty_Field
 export project.Generate_Rows_Range.Generate_Rows_Range
 
 export project.Grouping_Method.Grouping_Method
+export project.Grouping_Method.Standard_Deviation_Grouping
 
 export project.Headers.Headers
 

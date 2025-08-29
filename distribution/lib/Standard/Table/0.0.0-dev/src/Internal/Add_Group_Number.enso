@@ -8,6 +8,7 @@ import project.Column.Column
 import project.Errors.Not_Enough_Groups
 import project.Grouping_Method.Group_Row
 import project.Grouping_Method.Grouping_Method
+import project.Grouping_Method.Standard_Deviation_Grouping
 import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Java_Problems
@@ -38,10 +39,13 @@ add_group_number (table:Table) (grouping_method:Grouping_Method) (name:Text) (fr
                     ordering = _prepare_ordering table problem_builder order_by
                     result = AddGroupNumber.numberGroupsEqualSum table.row_count on_column.java_column group_count from step (ordering.at 0) (ordering.at 1) java_problem_aggregator
                     [result.storage, _warn_on_fewer_groups group_count result.actualGroupCount]
-            Grouping_Method.Standard_Deviation on group_count population ->
-                _illegal_if (group_count < 1) "group_count must be at least 1" <| Illegal_Argument.handle_java_exception <| _require_default_scale from step <|
+            Grouping_Method.Standard_Deviation on grouping population ->
+                _check_stddev_group_count grouping <| Illegal_Argument.handle_java_exception <| _require_default_scale from step <|
                     on_column = _column_must_exist on <| table.get on
-                    result = AddGroupNumber.numberGroupsStandardDeviation table.row_count on_column.java_column group_count population java_problem_aggregator
+                    named = case grouping of
+                        Standard_Deviation_Grouping.Named _ -> True
+                        Standard_Deviation_Grouping.By_Range _ -> False
+                    result = AddGroupNumber.numberGroupsStandardDeviation table.row_count on_column.java_column grouping.count named population java_problem_aggregator
                     [result, identity]
 
         new_storage = new_storage_pair.at 0
@@ -89,3 +93,12 @@ _warn_on_fewer_groups expected_group_count actual_group_count column =
 
 _require_default_scale from step ~cont =
     if from != 0 || step != 1 then Error.throw (Illegal_Argument.Error "'from' and 'step' parameters are not supported when using Standard_Deviation grouping method. They must be left to their default values of 0 and 1 (repsectively).") else cont
+
+_check_stddev_group_count grouping ~cont =
+    case grouping of
+        Standard_Deviation_Grouping.By_Range n ->
+            if n >= 1 then cont else
+                Error.throw (Illegal_Argument.Error "Standard deviation range must be at least 1.")
+        Standard_Deviation_Grouping.Named n ->
+            if n == 3 || n == 5 || n == 7 || n == 9 then cont else
+                Error.throw (Illegal_Argument.Error "Standard deviation named group count must be one of: 3, 5, 7, or 9.")
