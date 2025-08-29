@@ -154,12 +154,12 @@ public final class Cache<T, M> {
       TruffleFile metadataFile = getCacheMetadataPath(cacheRoot);
       TruffleFile parentPath = cacheDataFile.getParent();
 
+      memoryArena.close();
       if (writeBytesTo(cacheDataFile, bytesToWrite) && writeBytesTo(metadataFile, metadataBytes)) {
         logger.log(
             logLevel,
             "Written cache data [{0}] to [{1}] of size [{2}].",
             new Object[] {logName, toMaskedPath(parentPath).applyMasking(), bytesToWrite.length});
-        memoryArena.close();
         return true;
       } else {
         // Clean up after ourselves if it fails.
