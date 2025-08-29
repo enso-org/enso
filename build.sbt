@@ -4218,10 +4218,13 @@ lazy val `jvm-interop` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      // jvm-interop/test has to run with -ea enabled
-      // otherwise Truffle library support performs a lot of additional
-      // checks and they skew the message counts
-      // inConfig(Compile)(truffleRunOptionsSettings),
+      // jvm-interop/test has to run with -ea disabled form Truffle.
+      // Otherwise Truffle library performs a lot of additional
+      // checks and they skew the message counts. Thus enabling -ea
+      // only for Enso packages
+      inConfig(Compile)(
+        Seq(fork := true, javaOptions ++= Seq("-ea:org.enso.jvm..."))
+      ),
       autoScalaLibrary := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,

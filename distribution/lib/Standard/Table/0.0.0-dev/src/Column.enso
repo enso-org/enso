@@ -2500,7 +2500,7 @@ type Column
         - covariance: ..Covariance
         - pearson: ..Pearson
         - spearman: ..Spearman
-        - r sqaured: ..R_Squared
+        - r squared: ..R_Squared
        group: Standard.Base.Statistics
        icon: transform4
        ---
@@ -2537,7 +2537,7 @@ type Column
         - covariance: ..Covariance
         - pearson: ..Pearson
         - spearman: ..Spearman
-        - r sqaured: ..R_Squared
+        - r squared: ..R_Squared
        group: Standard.Base.Statistics
        icon: transform4
        ---
