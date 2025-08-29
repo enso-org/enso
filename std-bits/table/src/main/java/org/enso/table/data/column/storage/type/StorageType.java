@@ -134,16 +134,4 @@ TimeOfDayType*/ {
    * @return the storage as a typed storage.
    */
   ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
-
-  abstract class BaseStorageType {
-    private final char typeLetter;
-    private final int size;
-
-    protected BaseStorageType(char typeLetter, int size) {
-      assert typeLetter >= 'A' && typeLetter <= 'Z';
-      assert size >= 0;
-      this.typeLetter = typeLetter;
-      this.size = size;
-    }
-  }
 }
