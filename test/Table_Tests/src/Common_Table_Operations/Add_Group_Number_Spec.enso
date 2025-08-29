@@ -6,7 +6,7 @@ import Standard.Database.Dialects.Feature.Feature
 from Standard.Database.Errors import all
 
 from Standard.Table import all
-from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names
+from Standard.Table.Errors import Duplicate_Output_Column_Names, Missing_Input_Columns, Not_Enough_Groups
 
 from Standard.Test import all
 
@@ -164,6 +164,48 @@ add_group_number_specs suite_builder setup =
             t2 = t.add_group_number (..Unique on=['x', 'y']) "g" from=(max_long - 1)
             t2.should_fail_with Illegal_Argument
             t2.catch.to_display_text . should_contain "The row number has exceeded the 64-bit integer range"
+
+        group_builder.specify "should add group number by equal sums" <|
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]]]
+
+            g0 = t.add_group_number (..Equal_Sum "x" 3) "g"
+            g0.at 'g' . to_vector . should_equal [0, 0, 0, 0, 1, 1, 1, 2, 2]
+
+            g1 = t.add_group_number (..Equal_Sum "y" 3) "g"
+            g1.at 'g' . to_vector . should_equal [0, 0, 0, 1, 1, 1, 2, 2, 2]
+
+        group_builder.specify "should add group number by equal sum, with from and step" <|
+            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [5, 2, 3, 1, 4]]]
+
+            g1 = t.add_group_number (..Equal_Sum "y" 3) "g" from=10 step=3
+            g1.at 'g' . to_vector . should_equal [10, 13, 13, 16, 16]
+
+        group_builder.specify "should add group number by equal sums, with order_by" <|
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]]]
+
+            g0 = t.add_group_number (..Equal_Sum "x" 3 order_by="x") "g"
+            g0.at 'g' . to_vector . should_equal [0, 0, 1, 0, 0, 1, 2, 1, 0]
+
+            g1 = t.add_group_number (..Equal_Sum "x" 3 order_by="y") "g"
+            g1.at 'g' . to_vector . should_equal [0, 1, 1, 0, 2, 0, 0, 1, 1]
+
+        group_builder.specify "add group number by equal sums should work for Float" <|
+            t = table_builder [['x', [3.0, 4.0, 5.0, 4.0, 3.0, 5.0, 10.0, 4.0, 3.0]], ['y', [1.0, 2.0, 2.0, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0]]]
+
+            g0 = t.add_group_number (..Equal_Sum "x" 3) "g"
+            g0.at 'g' . to_vector . should_equal [0, 0, 0, 0, 1, 1, 1, 2, 2]
+
+        group_builder.specify "should report a warning if not enough groups are generated" <|
+            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [4, 4, 4, 4, 4]]]
+
+            g0 = t.add_group_number (..Equal_Sum "x" 3) "g"
+            g0.at 'g' . to_vector . should_equal [0, 0, 0, 1, 1]
+            Problems.expect_warning Not_Enough_Groups g0
+
+        group_builder.specify "should report an error if the sum column does not exist" <|
+            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [5, 2, 3, 1, 4]]]
+
+            t.add_group_number (..Equal_Sum "q" 3) "g" . should_fail_with Illegal_Argument
 
     suite_builder.group prefix+"Table.add_group_number (common)" group_builder->
         group_builder.specify "should default the column name to 'Group'" <|

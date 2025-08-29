@@ -1194,3 +1194,22 @@ type Fixed_Width_Line_Too_Long
     to_js_object : JS_Object
     to_js_object self =
         JS_Object.from_pairs [["type", "Fixed_Width_Line_Too_Long"], ["sourceLineNumber", self.sourceLineNumber], ["maxLineLength", self.maxLineLength]]
+
+## Fewer groups were generated than requested.
+type Not_Enough_Groups
+    ## ---
+       private: true
+       ---
+
+       ## Arguments
+        - `expected_count`: The number of groups requested.
+        - `actual_count`: The actual number of groups.
+    Error (expected_count : Integer) (actual_count : Integer)
+
+    ## ---
+       private: true
+       ---
+       Pretty prints the duplicate output column names error.
+    to_display_text : Text
+    to_display_text self =
+        "Expected " + self.expected_count.to_text + " groups, but only " + self.actual_count.to_text + " were generated."
