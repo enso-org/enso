@@ -266,6 +266,7 @@ public final class Cache<T, M> {
             "Cache file {0} mmapped with {1} size",
             new Object[] {file, file.length()});
         try (var chan = FileChannel.open(file.toPath())) {
+          assert memoryArena.scope().isAlive();
           var memSegment = chan.map(MapMode.READ_ONLY, 0, file.length(), memoryArena);
           blobBytes = memSegment.asByteBuffer();
         } catch (IOException e) {
