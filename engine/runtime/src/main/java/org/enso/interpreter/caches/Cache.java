@@ -190,7 +190,7 @@ public final class Cache<T, M> {
                 + "] to ["
                 + toMaskedPath(parentPath).applyMasking()
                 + "].");
-        recordCacheEvent(() -> new CacheEvent.Save(logName, bytesToWrite.length));
+        recordCacheEvent(() -> new CacheEvent.Save(spi.entryName(), bytesToWrite.length));
         memoryArena.close();
         return true;
       } else {
@@ -302,11 +302,11 @@ public final class Cache<T, M> {
           throw e;
         }
         recordCacheEvent(
-            () -> new CacheEvent.MmapLoad(logName, (int) file.length(), file.getPath()));
+            () -> new CacheEvent.MmapLoad(spi.entryName(), (int) file.length(), file.getPath()));
       } else {
         blobBytes = ByteBuffer.wrap(dataPath.readAllBytes());
         recordCacheEvent(
-            () -> new CacheEvent.FileLoad(logName, (int) file.length(), file.getPath()));
+            () -> new CacheEvent.FileLoad(spi.entryName(), (int) file.length(), file.getPath()));
       }
       boolean blobDigestValid =
           !needsDataDigestVerification
@@ -322,7 +322,7 @@ public final class Cache<T, M> {
                 Level.FINEST,
                 "Loaded cache for {0} with {1} bytes in {2} ms",
                 new Object[] {logName, blobBytes.limit(), took});
-            recordCacheEvent(() -> new CacheEvent.Deserialize(logName));
+            recordCacheEvent(() -> new CacheEvent.Deserialize(spi.entryName()));
             return cachedObject;
           } else {
             invalidateCache(cacheRoot, logger);
