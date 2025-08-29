@@ -19,7 +19,7 @@ import project.Data.Vector.Vector
     - covariance: ..Covariance
     - pearson: ..Pearson
     - spearman: ..Spearman
-    - r sqaured: ..R_Squared
+    - r squared: ..R_Squared
    group: Statistics
    icon: transform4
    ---
@@ -61,7 +61,7 @@ Vector.compute_bulk self statistics:Vector=[..Count, ..Sum] =
     - covariance: ..Covariance
     - pearson: ..Pearson
     - spearman: ..Spearman
-    - r sqaured: ..R_Squared
+    - r squared: ..R_Squared
    group: Statistics
    icon: math
    ---
