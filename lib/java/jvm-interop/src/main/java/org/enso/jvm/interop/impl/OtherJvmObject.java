@@ -301,8 +301,8 @@ final class OtherJvmObject implements TruffleObject {
       case TruffleObject foreign -> {
         var iop = InteropLibrary.getUncached();
         var mask = OtherInteropType.findType(foreign);
-        if (OtherInteropType.isNull(mask)) {
-          yield new OtherJvmObject(null, 0, mask);
+        if (isHostNull(mask, foreign)) {
+            yield new OtherJvmObject(null, 0, mask);
         }
         var meta = OtherInteropType.isMetaObject(mask);
         var id = registerObject.apply(foreign, meta);
@@ -325,6 +325,20 @@ final class OtherJvmObject implements TruffleObject {
 
   final boolean assertChannel(Channel ch) {
     return ch == channel;
+  }
+
+  private static boolean isHostNull(short mask, Object foreign) {
+    var iop = InteropLibrary.getUncached();
+    if (OtherInteropType.isNull(mask)) {
+      try {
+        if (iop.hasLanguage(foreign) && iop.getLanguage(foreign).getSimpleName().equals("HostLanguage")) {
+          return true;
+        }
+      } catch (UnsupportedMessageException ex) {
+        // not a host language null
+      }
+    }
+    return false;
   }
 
   private static final class Ref extends WeakReference<OtherJvmObject> {
