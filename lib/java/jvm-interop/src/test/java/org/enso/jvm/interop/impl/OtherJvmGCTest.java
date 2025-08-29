@@ -8,6 +8,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
@@ -188,6 +190,7 @@ public class OtherJvmGCTest {
   }
 
   private static void assertGC(String msg, boolean expectGC, Supplier<?> ref, Runnable flush) {
+    List<byte[]> alloc = new ArrayList<>();
     for (var i = 1; i < Integer.MAX_VALUE / 2; i *= 2) {
       if (isNull(ref)) {
         break;
@@ -199,9 +202,10 @@ public class OtherJvmGCTest {
       if (globalFlush != null) {
         globalFlush.run();
       }
+      alloc.add(new byte[i]);
     }
     if (expectGC) {
-      assertNull(msg + " ref still alive", ref.get());
+      assertNull(msg + " ref still alive " + alloc, ref.get());
     } else {
       assertNotNull(msg + " ref has been cleaned", ref.get());
     }
