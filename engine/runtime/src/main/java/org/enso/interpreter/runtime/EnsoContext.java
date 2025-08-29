@@ -532,15 +532,15 @@ public final class EnsoContext {
    */
   @TruffleBoundary
   public void addToClassPath(TruffleFile file) {
-        var path = new File(file.toUri()).getAbsoluteFile();
-        if (!path.exists()) {
-          throw new IllegalStateException("File not found " + path);
-        }
-      try {
-          polyglotJava.addToClassPath(path);
-      } catch (InteropException ex) {
-          throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
-      }
+    var path = new File(file.toUri()).getAbsoluteFile();
+    if (!path.exists()) {
+      throw new IllegalStateException("File not found " + path);
+    }
+    try {
+        polyglotJava.addToClassPath(path);
+    } catch (InteropException ex) {
+        throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
+    }
   }
 
   /**
