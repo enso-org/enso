@@ -1,7 +1,6 @@
 package org.enso.table.operations;
 
 import java.util.function.BiFunction;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
@@ -134,9 +133,11 @@ public class AddGroupNumber {
       int[] directions,
       ProblemAggregator problemAggregator) {
     var visitorFactory =
-        new EqualSumRowVisitorFactory(start, step, numRows, sumColumn, groupCount, problemAggregator);
-    var storage = GroupingOrderingVisitor.visit(
-        new Column[0], orderingColumns, directions, problemAggregator, visitorFactory, numRows);
+        new EqualSumRowVisitorFactory(
+            start, step, numRows, sumColumn, groupCount, problemAggregator);
+    var storage =
+        GroupingOrderingVisitor.visit(
+            new Column[0], orderingColumns, directions, problemAggregator, visitorFactory, numRows);
     long actualGroupCount = visitorFactory.getHighestGroupIndex() + 1;
     return new EqualSumResult(storage, actualGroupCount);
   }
@@ -170,8 +171,7 @@ public class AddGroupNumber {
       columnTotal = sum();
       targetGroupSum = columnTotal / numgroups;
 
-      innerAggregator =
-          new ColumnAggregatedProblemAggregator(problemAggregator);
+      innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
     }
 
     @Override
@@ -204,13 +204,14 @@ public class AddGroupNumber {
         highestGroupIndex = groupIndex;
       } else {
         innerAggregator.reportColumnAggregatedProblem(
-          new IllegalArgumentError("Equal_Sum", "Non-numeric value encountered in sum column", row));
+            new IllegalArgumentError(
+                "Equal_Sum", "Non-numeric value encountered in sum column", row));
       }
     }
 
     public long getHighestGroupIndex() {
       return highestGroupIndex;
-    } 
+    }
 
     // This ignores non-numeric values, which will be reported in visit().
     private double sum() {

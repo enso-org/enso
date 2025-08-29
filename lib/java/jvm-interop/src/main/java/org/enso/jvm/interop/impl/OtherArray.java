@@ -8,9 +8,9 @@ import com.oracle.truffle.api.library.ExportMessage;
 
 @ExportLibrary(InteropLibrary.class)
 final class OtherArray implements TruffleObject {
-  private final OtherJvmObject[] arr;
+  private final TruffleObject[] arr;
 
-  OtherArray(OtherJvmObject... arr) {
+  OtherArray(TruffleObject... arr) {
     this.arr = arr;
   }
 
@@ -30,7 +30,7 @@ final class OtherArray implements TruffleObject {
   }
 
   @ExportMessage
-  OtherJvmObject readArrayElement(long index) throws InvalidArrayIndexException {
+  TruffleObject readArrayElement(long index) throws InvalidArrayIndexException {
     if (!isArrayElementReadable(index)) {
       throw InvalidArrayIndexException.create(index);
     }

@@ -99,8 +99,11 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     var node = ReflectionLibrary.getUncached();
     var prev = t.getConfig().enter(t.isMaster(), node);
     try {
-      var receiver = t.getConfig().findObject(id);
-      assert receiver instanceof TruffleObject;
+      var receiver = t.getConfig().findObject(id());
+      if (receiver == null) {
+        throw new NullPointerException(
+            "No object for " + id() + " message: " + message() + " args: " + args());
+      }
       if (message == IS_IDENTICAL) {
         args.set(1, InteropLibrary.getUncached());
       }
@@ -512,6 +515,19 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       } else {
         return Optional.empty();
       }
+    }
+  }
+
+  /**
+   * Sent from the other JVM to report that it no longer keeps reference to object with ID {@code
+   * id}.
+   */
+  @Persistable(id = 81907)
+  public static record GC(long id) implements Function<Channel<OtherJvmPool>, Void> {
+    @Override
+    public Void apply(Channel<OtherJvmPool> t) {
+      t.getConfig().gc(id);
+      return null;
     }
   }
 }

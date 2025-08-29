@@ -9,6 +9,9 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -69,6 +72,9 @@ final class OtherJvmObject implements TruffleObject {
     this.channel = channel;
     this.id = id;
     this.mask = mask;
+    if (channel != null && !OtherInteropType.isMetaObject(mask)) {
+      Ref.registerGCable(this);
+    }
   }
 
   long id() {
@@ -202,6 +208,7 @@ final class OtherJvmObject implements TruffleObject {
   private OtherJvmResult<?, ?> executeMessage(OtherJvmMessage msg, Message message, Object[] args) {
     var reply = channel.execute(OtherJvmResult.class, msg);
     channel.getConfig().profileMessage(message, args);
+    Ref.flushQueue();
     return reply;
   }
 
@@ -244,7 +251,9 @@ final class OtherJvmObject implements TruffleObject {
       Function<OtherJvmObject, OtherJvmObject> findCached) {
     return switch (obj) {
       case OtherJvmObject other -> {
-        if (other.id() < 0) {
+        if (other.id() == 0) {
+          yield OtherNull.NULL;
+        } else if (other.id() < 0) {
           // the other object with negative number came back
           // it is our own object
           var ourOwn = findObject.apply(-other.id());
@@ -285,6 +294,9 @@ final class OtherJvmObject implements TruffleObject {
           }
         }
         var mask = OtherInteropType.findType(foreign);
+        if (OtherInteropType.isNull(mask)) {
+          yield new OtherJvmObject(null, 0, mask);
+        }
         var meta = OtherInteropType.isMetaObject(mask);
         var id = registerObject.apply(foreign, meta);
         // our own truffle objects send to the other side should
@@ -306,5 +318,42 @@ final class OtherJvmObject implements TruffleObject {
 
   final boolean assertChannel(Channel ch) {
     return ch == channel;
+  }
+
+  private static final class Ref extends WeakReference<OtherJvmObject> {
+    private static final ReferenceQueue<? super OtherJvmObject> ALIVE = new ReferenceQueue<>();
+    private static final List<Ref> KEEP = new ArrayList<>();
+
+    private final long id;
+    private final Channel<OtherJvmPool> channel;
+
+    Ref(OtherJvmObject referent) {
+      super(referent, ALIVE);
+      this.id = referent.id();
+      this.channel = referent.channel;
+      assert this.channel != null;
+    }
+
+    @Override
+    public String toString() {
+      return "Ref{" + "id=" + id + '}';
+    }
+
+    private static synchronized void registerGCable(OtherJvmObject other) {
+      KEEP.add(new Ref(other));
+    }
+
+    static void flushQueue() {
+      while (true) {
+        var r = (Ref) ALIVE.poll();
+        if (r == null) {
+          break;
+        }
+        r.channel.execute(Void.class, new OtherJvmMessage.GC(r.id));
+        synchronized (Ref.class) {
+          KEEP.remove(r);
+        }
+      }
+    }
   }
 }
