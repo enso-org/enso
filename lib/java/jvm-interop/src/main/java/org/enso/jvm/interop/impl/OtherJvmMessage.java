@@ -27,20 +27,23 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
 
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
-    var lib = ReflectionLibrary.getUncached();
-    var prev = t.getConfig().enter(t.isMaster(), lib);
+    var node = ReflectionLibrary.getUncached();
+    var prev = t.getConfig().enter(t.isMaster(), node);
     try {
-      var receiver = t.getConfig().findObject(id);
-      assert receiver instanceof TruffleObject;
+      var receiver = t.getConfig().findObject(id());
+      if (receiver == null) {
+        throw new NullPointerException(
+            "No object for " + id() + " message: " + message() + " args: " + args());
+      }
       if (message == IS_IDENTICAL) {
         args.set(1, InteropLibrary.getUncached());
       }
-      var res = lib.send(receiver, message, args.toArray());
+      var res = node.send(receiver, message, args.toArray());
       return new ReturnValue<>(res);
     } catch (Exception ex) {
       return ThrowException.create(ex);
     } finally {
-      t.getConfig().leave(t.isMaster(), lib, prev);
+      t.getConfig().leave(t.isMaster(), node, prev);
     }
   }
 
@@ -157,6 +160,19 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     @Override
     public Void apply(Channel<OtherJvmPool> t) {
       t.getConfig().findLibraries(t.isMaster(), callback);
+      return null;
+    }
+  }
+
+  /**
+   * Sent from the other JVM to report that it no longer keeps reference to object with ID {@code
+   * id}.
+   */
+  @Persistable(id = 81911)
+  public static record GC(long id) implements Function<Channel<OtherJvmPool>, Void> {
+    @Override
+    public Void apply(Channel<OtherJvmPool> t) {
+      t.getConfig().gc(id);
       return null;
     }
   }
