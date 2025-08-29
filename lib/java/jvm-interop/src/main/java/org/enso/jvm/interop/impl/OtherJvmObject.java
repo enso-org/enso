@@ -72,6 +72,9 @@ final class OtherJvmObject implements TruffleObject {
     this.channel = channel;
     this.id = id;
     this.mask = mask;
+    if (channel != null && !OtherInteropType.isMetaObject(mask)) {
+      Ref.registerGCable(this);
+    }
   }
 
   long id() {
@@ -205,7 +208,7 @@ final class OtherJvmObject implements TruffleObject {
   private OtherJvmResult<?, ?> executeMessage(OtherJvmMessage msg, Message message, Object[] args) {
     var reply = channel.execute(OtherJvmResult.class, msg);
     channel.getConfig().profileMessage(message, args);
-    Ref.flushQueue(channel);
+    Ref.flushQueue();
     return reply;
   }
 
@@ -220,7 +223,6 @@ final class OtherJvmObject implements TruffleObject {
     if (OtherInteropType.isMetaObject(toBind.mask)) {
       return findCached.apply(other);
     } else {
-      Ref.registerGCable(other);
       return other;
     }
   }
@@ -323,10 +325,13 @@ final class OtherJvmObject implements TruffleObject {
     private static final List<Ref> KEEP = new ArrayList<>();
 
     private final long id;
+    private final Channel<OtherJvmPool> channel;
 
     Ref(OtherJvmObject referent) {
       super(referent, ALIVE);
       this.id = referent.id();
+      this.channel = referent.channel;
+      assert this.channel != null;
     }
 
     @Override
@@ -338,13 +343,13 @@ final class OtherJvmObject implements TruffleObject {
       KEEP.add(new Ref(other));
     }
 
-    static void flushQueue(Channel<OtherJvmPool> channel) {
+    static void flushQueue() {
       while (true) {
         var r = (Ref) ALIVE.poll();
         if (r == null) {
           break;
         }
-        channel.execute(Void.class, new OtherJvmMessage.GC(r.id));
+        r.channel.execute(Void.class, new OtherJvmMessage.GC(r.id));
         synchronized (Ref.class) {
           KEEP.remove(r);
         }

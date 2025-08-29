@@ -71,7 +71,19 @@ public final class OtherJvmPool extends Channel.Config {
 
   final synchronized void gc(long id) {
     var prev = objectsById.remove(id);
-    assert prev != null : "Each id is removed only once, but " + id;
+    assert prev != null : dumpIds("Each id is removed only once, but " + id);
+  }
+
+  private String dumpIds(String msg) {
+    var sb = new StringBuilder();
+    sb.append(msg);
+    for (var e : objectsById.entrySet()) {
+      sb.append("\n  " + e.getKey() + " => " + e.getValue());
+    }
+    for (var e : objectsToId.entrySet()) {
+      sb.append("\n  " + e.getKey() + " #" + e.getValue());
+    }
+    return sb.toString();
   }
 
   private final synchronized OtherJvmObject findCached(OtherJvmObject withId) {
