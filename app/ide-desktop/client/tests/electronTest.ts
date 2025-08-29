@@ -104,7 +104,9 @@ export async function loginAsTestUser(page: Page) {
   await page.getByRole('button', { name: TEXT.accept }).click()
 }
 
-/* Create new project */
+/**
+ * The funcion creates a new Enso project
+ */
 export async function createNewProject(page: Page) {
   const newProjectTab = page.getByRole('button', { name: 'New Project', exact: true })
 
@@ -117,7 +119,9 @@ export async function createNewProject(page: Page) {
   await expect(tableViz).toContainText('Welcome To Enso!')
 }
 
-/* Prevent staying in a welcome project */
+/**
+ * If welcome project is to be opened, this function takes you back to your dashboard
+ */
 export async function closeWelcome(page: Page) {
   const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
   await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
