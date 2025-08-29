@@ -27,13 +27,13 @@ import type { ComponentProps } from 'vue-component-type-helpers'
 import type { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
 import WidgetTreeRoot from '../../WidgetTreeRoot.vue'
 
-const props = defineProps<{
+const { definition, updateCallback, portIdBase } = defineProps<{
   root: Opt<HTMLElement>
   definition: ArgumentDefinition<ConcreteRefs>
   updateCallback: UpdateHandler
   portIdBase: PortId
 }>()
-const { definition, updateCallback, portIdBase } = props
+
 const emit = defineEmits<{
   rename: [value: Ast.Owned<Ast.MutableExpression>]
   updateType: [value: Ast.Owned<Ast.MutableExpression>]
@@ -43,7 +43,7 @@ type TreeProps = ComponentProps<typeof WidgetTreeRoot>
 const openedProject = useCurrentProject().ref
 
 function defaultWidget(ast: Ast.Token | Ast.Ast): TreeProps {
-  return { input: WidgetInput.FromAst(ast), updateCallback: props.updateCallback }
+  return { input: WidgetInput.FromAst(ast), updateCallback }
 }
 
 function patternWidget(pattern: Ast.Expression): TreeProps {

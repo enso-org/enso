@@ -276,7 +276,8 @@ function updateItemBounds() {
 function getDropIndex(info: DropHoverInfo, bounds: (Range | undefined)[]): number {
   const pos = info.position
   const insertIndex = bounds.findIndex(
-    (range) => range != null && (range.from + range.to) / 2 > pos[props.axis],
+    (range, i) =>
+      i !== draggedIndex.value && range != null && (range.from + range.to) / 2 > pos[props.axis],
   )
   return insertIndex >= 0 ? insertIndex : bounds.length
 }
@@ -292,7 +293,13 @@ function areaOnDrop(e: DragEvent) {
   e.stopImmediatePropagation()
 
   if (draggedIndex.value != null) {
-    emit('reorder', draggedIndex.value, index)
+    // draggedIndex works as if the dragged element was still part of the collection.
+    // We have to offset it when the element is dragged past its original position.
+    const newIndex =
+      draggedIndex.value != null && index >= draggedIndex.value + 1 ? index - 1 : index
+    if (draggedIndex.value != newIndex) {
+      emit('reorder', draggedIndex.value, newIndex)
+    }
   } else {
     const payload = e.dataTransfer?.getData(mimeType.value)
     if (payload) emit('dropInsert', index, payload)

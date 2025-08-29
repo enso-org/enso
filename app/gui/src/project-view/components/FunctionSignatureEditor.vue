@@ -138,12 +138,9 @@ function handleUpdateDefault(
   doEdit((ast) => ast.setArgumentDefault(index, typeExpr))
 }
 
-/** Make a unique ID for each argument row. It is also used to reactively update the list when the view when the argument AST changes. */
+/** Stable identifier for each argument, keeps unaffected widgets from rerendering. */
 function makeArgRowId(arg: Ast.ArgumentDefinition<Ast.ConcreteRefs>) {
-  const id = arg.pattern.node.id
-  const defaultValueId = arg.defaultValue?.expression?.node.id ?? 'none'
-  const typeId = arg.type?.type?.node.id ?? 'none'
-  return `${id}:${defaultValueId}:${typeId}`
+  return arg.pattern.node.externalId
 }
 </script>
 
@@ -156,13 +153,11 @@ function makeArgRowId(arg: Ast.ArgumentDefinition<Ast.ConcreteRefs>) {
       </FormRow>
       <FormRow inline>
         <template #label>Icon</template>
-        <!-- TODO: handle allowChoice to make item selection dropdown -->
+        <!-- TODO: handle WidgetIcon's allowChoice to make icon selection dropdown -->
         <WidgetTreeRoot class="widgetPill" v-bind="funcIconInput" />
       </FormRow>
       <FormRow>
         <template #label>Arguments (Name : Type = Default)</template>
-        <!-- TODO: inline arg list and delete WidgetFunctionDef -->
-        <!-- <WidgetTreeRoot class="widgetPill" v-bind="funcArgsInput" /> -->
         <DraggableList
           axis="y"
           showHandles
