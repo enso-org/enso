@@ -46,7 +46,12 @@ type Grouping_Method
        the standard deviation. The set of groups is scaled just enough to
        contain the values that differ the most from the standard deviation.
 
-       Arguments
+       ## Arguments
+        - `on`: The column whose values should be used to determine group
+          assignment. Must be a numeric column.
+        - `grouping`: Specifies how many groups to create, and whether to use
+          named groupings or not. See `Standard_Deviation_Grouping` for details.
+        - `population`: If `True`, the population standard deviation is used.
     Standard_Deviation (on:(Text | Integer)=(Missing_Argument.throw "on")) (grouping:Standard_Deviation_Grouping=(..By_Range 5)) (population:Boolean=False)
 
 ## Specifies the row representing a group.
