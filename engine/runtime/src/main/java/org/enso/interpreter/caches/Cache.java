@@ -157,11 +157,8 @@ public final class Cache<T, M> {
       if (writeBytesTo(cacheDataFile, bytesToWrite) && writeBytesTo(metadataFile, metadataBytes)) {
         logger.log(
             logLevel,
-            "Written cache data ["
-                + logName
-                + "] to ["
-                + toMaskedPath(parentPath).applyMasking()
-                + "].");
+            "Written cache data [{0}] to [{1}] of size [{2}].",
+            new Object[] {logName, toMaskedPath(parentPath).applyMasking(), bytesToWrite.length});
         memoryArena.close();
         return true;
       } else {
@@ -204,7 +201,7 @@ public final class Cache<T, M> {
                       logLevel,
                       "Using cache for ["
                           + logName
-                          + " at location ["
+                          + "] at location ["
                           + toMaskedPath(roots.globalCacheRoot()).applyMasking()
                           + "].");
                   return Optional.of(globalCache);
@@ -215,7 +212,7 @@ public final class Cache<T, M> {
                         logLevel,
                         "Using cache for ["
                             + logName
-                            + " at location ["
+                            + "] at location ["
                             + toMaskedPath(roots.localCacheRoot()).applyMasking()
                             + "].");
                     return Optional.of(localCache);
@@ -264,7 +261,10 @@ public final class Cache<T, M> {
       ByteBuffer blobBytes;
       var threeMbs = 3 * 1024 * 1024;
       if (file.exists() && file.length() > threeMbs) {
-        logger.log(Level.FINEST, "Cache file " + file + " mmapped with " + file.length() + " size");
+        logger.log(
+            Level.FINEST,
+            "Cache file {0} mmapped with {1} size",
+            new Object[] {file, file.length()});
         try (var chan = FileChannel.open(file.toPath())) {
           var memSegment = chan.map(MapMode.READ_ONLY, 0, file.length(), memoryArena);
           blobBytes = memSegment.asByteBuffer();
