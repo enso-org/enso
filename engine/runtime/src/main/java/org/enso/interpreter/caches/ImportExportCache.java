@@ -37,7 +37,7 @@ public final class ImportExportCache
   public static Cache<ImportExportCache.CachedBindings, ImportExportCache.Metadata> create(
       LibraryName libraryName) {
     var impl = new ImportExportCache(libraryName);
-    return Cache.create(impl, Level.FINEST, libraryName.toString(), false, true);
+    return Cache.create(impl, Level.FINEST, libraryName.toString(), false, false);
   }
 
   @Override
