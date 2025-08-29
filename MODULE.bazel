@@ -14,11 +14,11 @@ bazel_dep(
 ### JavaScript ecosystem ###
 ############################
 
-bazel_dep(name = "aspect_rules_js", version = "2.1.2")
-bazel_dep(name = "aspect_rules_ts", version = "3.3.2")
+bazel_dep(name = "aspect_rules_js", version = "2.5.0")
+bazel_dep(name = "aspect_rules_ts", version = "3.7.0")
 bazel_dep(name = "rules_nodejs", version = "6.3.2")
-bazel_dep(name = "aspect_bazel_lib", version = "2.10.0")
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "aspect_bazel_lib", version = "2.14.0")
+bazel_dep(name = "bazel_skylib", version = "1.8.1")
 
 ## Node.js
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")

@@ -152,10 +152,12 @@ case object DemandAnalysis extends IRPass {
     function: Function
   ): Function =
     function match {
-      case lam @ Function.Lambda(args, body, _, _, _, _) =>
-        lam.copy(
-          arguments = args.map(analyseDefinitionArgument),
-          body = analyseExpression(
+      case lam: Function.Lambda =>
+        val args = lam.arguments()
+        val body = lam.body()
+        lam.copyWithArgumentsAndBody(
+          args.map(analyseDefinitionArgument),
+          analyseExpression(
             body,
             isInsideCallArgument = false
           )

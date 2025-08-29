@@ -13,6 +13,7 @@ import org.enso.compiler.core.ir.{
   Name
 }
 import org.enso.compiler.pass.MiniIRPass
+import org.enso.persist.Persistance
 
 class LambdaShorthandToLambdaMini(
   protected val freshNameSupply: FreshNameSupply,
@@ -75,23 +76,27 @@ class LambdaShorthandToLambdaMini(
       case blank: Name.Blank if !shouldSkipBlanks =>
         val newName = freshNameSupply.newName()
 
-        new Function.Lambda(
-          List(
-            DefinitionArgument.Specified
-              .builder()
-              .name(
-                Name.Literal(
-                  newName.name,
-                  isMethod = false,
-                  null
+        Function.Lambda
+          .builder()
+          .arguments(
+            List(
+              DefinitionArgument.Specified
+                .builder()
+                .name(
+                  Name.Literal(
+                    newName.name,
+                    isMethod = false,
+                    null
+                  )
                 )
-              )
-              .suspended(false)
-              .build()
-          ),
-          newName,
-          blank.location.orNull
-        )
+                .suspended(false)
+                .build(
+                )
+            )
+          )
+          .bodyReference(Persistance.Reference.of(newName, true))
+          .location(blank.location.orNull)
+          .build()
       case _ => name
     }
   }
@@ -148,33 +153,43 @@ class LambdaShorthandToLambdaMini(
         // arg
         val appResult =
           actualDefArgs.foldRight(processedApp: Expression)((arg, body) =>
-            new Function.Lambda(List(arg), body, null)
+            Function.Lambda
+              .builder()
+              .arguments(List(arg))
+              .bodyReference(Persistance.Reference.of(body))
+              .build()
           )
 
         // If the function is shorthand, do the same
         val resultExpr = if (functionIsShorthand) {
-          new Function.Lambda(
-            List(
-              DefinitionArgument.Specified
-                .builder()
-                .name(
-                  Name
-                    .Literal(
-                      updatedName.get,
-                      isMethod = false,
-                      p.function.location.orNull
-                    )
-                )
-                .build()
-            ),
-            appResult,
-            null
-          )
+          Function.Lambda
+            .builder()
+            .arguments(
+              List(
+                DefinitionArgument.Specified
+                  .builder()
+                  .name(
+                    Name
+                      .Literal(
+                        updatedName.get,
+                        isMethod = false,
+                        p.function.location.orNull
+                      )
+                  )
+                  .build()
+              )
+            )
+            .bodyReference(Persistance.Reference.of(appResult, true))
+            .build()
         } else appResult
 
         resultExpr match {
-          case lam: Function.Lambda => lam.copy(location = p.location)
-          case result               => result
+          case lam: Function.Lambda =>
+            Function.Lambda
+              .builder(lam)
+              .location(p.identifiedLocation())
+              .build()
+          case result => result
         }
 
       case vector: Application.Sequence =>
@@ -201,7 +216,12 @@ class LambdaShorthandToLambdaMini(
             .name(bindingName)
             .suspended(false)
             .build();
-          new Function.Lambda(List(defArg), body, locWithoutId.orNull)
+          Function.Lambda
+            .builder()
+            .bodyReference(Persistance.Reference.of(body, true))
+            .arguments(List(defArg))
+            .location(locWithoutId.orNull)
+            .build()
         }
 
       case _: Operator =>
@@ -337,12 +357,14 @@ class LambdaShorthandToLambdaMini(
           caseExpr.isNested
         )
 
-        new Function.Lambda(
-          caseExpr,
-          List(lambdaArg),
-          newCaseExpr,
-          caseExpr.location.orNull
-        )
+        Function.Lambda
+          .builder()
+          .bodyReference(Persistance.Reference.of(newCaseExpr, true))
+          .arguments(List(lambdaArg))
+          .canBeTCO(true)
+          .passData(caseExpr.passData().duplicate())
+          .location(caseExpr.location.orNull)
+          .build()
 
       case _ => caseExpr
     }

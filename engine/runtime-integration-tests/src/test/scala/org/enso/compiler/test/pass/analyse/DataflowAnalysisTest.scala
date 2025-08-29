@@ -311,9 +311,11 @@ class DataflowAnalysisTest extends CompilerTest {
       ir.bindings.head.asInstanceOf[definition.Method]
     val fn = method.body.asInstanceOf[Function.Lambda]
     val fnArgThis =
-      fn.arguments.head.asInstanceOf[DefinitionArgument.Specified]
-    val fnArgA = fn.arguments(1).asInstanceOf[DefinitionArgument.Specified]
-    val fnArgB = fn.arguments(2).asInstanceOf[DefinitionArgument.Specified]
+      fn.arguments().head.asInstanceOf[DefinitionArgument.Specified]
+    val fnArgA =
+      fn.arguments().apply(1).asInstanceOf[DefinitionArgument.Specified]
+    val fnArgB =
+      fn.arguments().apply(2).asInstanceOf[DefinitionArgument.Specified]
     val fnBody = fn.body.asInstanceOf[Expression.Block]
 
     // The `IO.println` expression
@@ -947,9 +949,9 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val fn = ir.asInstanceOf[Function.Lambda]
       val fnArgX =
-        fn.arguments.head.asInstanceOf[DefinitionArgument.Specified]
+        fn.arguments().head.asInstanceOf[DefinitionArgument.Specified]
       val fnArgY =
-        fn.arguments(1).asInstanceOf[DefinitionArgument.Specified]
+        fn.arguments().apply(1).asInstanceOf[DefinitionArgument.Specified]
       val fnBody = fn.body.asInstanceOf[Application.Prefix]
       val plusFn = fnBody.function.asInstanceOf[Name.Literal]
       val plusArgX =
@@ -1552,7 +1554,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val fnArgThis =
       lambda.arguments.head.asInstanceOf[DefinitionArgument.Specified]
     val fnArgValue =
-      lambda.arguments(1).asInstanceOf[DefinitionArgument.Specified]
+      lambda.arguments().apply(1).asInstanceOf[DefinitionArgument.Specified]
     val fnBody = lambda.body.asInstanceOf[Expression.Block]
 
     // The `Foo` application
@@ -1561,7 +1563,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val fooArg1     = fooExpr.arguments.head.asInstanceOf[CallArgument.Specified]
     val fooArg1Expr = fooArg1.value.asInstanceOf[Name]
     val fooArg2 =
-      fooExpr.arguments.apply(1).asInstanceOf[CallArgument.Specified]
+      fooExpr.arguments().apply(1).asInstanceOf[CallArgument.Specified]
     val fooArg2Expr = fooArg2.value.asInstanceOf[Literal.Number]
 
     // The global symbols

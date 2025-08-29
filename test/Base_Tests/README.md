@@ -24,25 +24,6 @@ You can stop the server via Ctrl-C.
 See [the server's documentation](../../tools/http-test-helper/README.md) for
 more information.
 
-## Cloud tests
-
-By default, a subset of cloud tests runs whenever the
-`ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set, using a mock of parts
-of the cloud logic running on the helper server.
-
-To run a full set of cloud tests against a real deployment, you need to set the
-following 3 environment variables:
-
-- `ENSO_CLOUD_API_URL` to point to the root of the cloud API,
-- `ENSO_CLOUD_CREDENTIALS_FILE` to be a path to a file containing the
-  credentials to use, e.g. `~/.enso/credentials`,
-- `ENSO_RUN_REAL_CLOUD_TEST=1` to tell the test suite to run against a real
-  cloud deployment.
-
-Note that some cloud tests (e.g. testing secrets in HTTP requests) still require
-the `ENSO_HTTP_TEST_HTTPBIN_URL` setup, even if running against a real cloud
-deployment.
-
 ### Testing audit log batching
 
 Currently, we only have a manual scenario for testing that log messages are

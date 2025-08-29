@@ -299,16 +299,18 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): Function = {
     function match {
-      case lam @ Function.Lambda(arguments, body, _, _, _, _) =>
-        val bodyDep = asStatic(body)
-        val lamDep  = asStatic(lam)
+      case lam: Function.Lambda =>
+        val body      = lam.body()
+        val arguments = lam.arguments()
+        val bodyDep   = asStatic(body)
+        val lamDep    = asStatic(lam)
         info.dependents.updateAt(bodyDep, Set(lamDep))
         info.dependencies.updateAt(lamDep, Set(bodyDep))
 
         lam
-          .copy(
-            arguments = arguments.map(analyseDefinitionArgument(_, info)),
-            body      = analyseExpression(body, info)
+          .copyWithArgumentsAndBody(
+            arguments.map(analyseDefinitionArgument(_, info)),
+            analyseExpression(body, info)
           )
           .updateMetadata(new MetadataPair(this, info))
       case _: Function.Binding =>

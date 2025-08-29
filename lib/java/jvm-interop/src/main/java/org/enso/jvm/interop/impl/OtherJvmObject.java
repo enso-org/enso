@@ -11,6 +11,7 @@ import com.oracle.truffle.api.library.ReflectionLibrary;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
@@ -87,6 +88,18 @@ final class OtherJvmObject implements TruffleObject {
         if (id() == other.id()) {
           return true;
         } else {
+          if (OtherInteropType.isMetaObject(mask)) {
+            if (OtherInteropType.isMetaObject(other.mask)) {
+              // two meta objects currently must have the same name
+              return Objects.equals(metaQualifiedName, other.metaQualifiedName);
+            } else {
+              return false;
+            }
+          } else {
+            if (OtherInteropType.isMetaObject(other.mask)) {
+              return false;
+            }
+          }
           // fall thru but without the library
           args[1] = null;
         }
