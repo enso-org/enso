@@ -572,7 +572,15 @@ impl RunContext {
     fn bench_sbt_task(&self) -> Option<String> {
         match &self.config.execute_benchmarks {
             None => None,
-            Some(benchs) => benchs.sbt_task(),
+            Some(benchs) => {
+                if self.config.check_enso_benchmarks {
+                    // Make sure that if dry-run benchmarks are requested, we run both runtime
+                    // and stdlib benchmarks.
+                    Some("runtime-benchmarks/bench; std-benchmarks/bench".to_string())
+                } else {
+                    benchs.sbt_task()
+                }
+            }
         }
     }
 
