@@ -137,6 +137,11 @@ export async function closeWelcome(page: Page) {
  * @returns Locator for the newest project
  */
 export async function getNewestProject(page: Page): Promise<Locator> {
+  // Returning back to the data catalog
+  const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
+  await expect(dataCatalogTab).toBeVisible()
+  await dataCatalogTab.click()
+
   const projects = await page
     .getByTestId('drive-view')
     .getByText(/New Project \d+/)

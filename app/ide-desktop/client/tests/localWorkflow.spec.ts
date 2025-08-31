@@ -31,11 +31,6 @@ test('Project Duplicate', async ({ page }) => {
   await closeWelcome(page)
   await createNewProject(page)
 
-  // Returning back to the data catalog
-  const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
-  await expect(dataCatalogTab).toBeVisible()
-  await dataCatalogTab.click()
-
   // Finding all of the 'New projects'
   const newest = await getNewestProject(page)
   await newest.click()

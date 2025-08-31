@@ -22,11 +22,6 @@ test.skip('Session logs', async ({ page }) => {
   // Executing
   await page.getByLabel('Write All').click()
 
-  // Returning back to the data catalog
-  const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
-  await expect(dataCatalogTab).toBeVisible()
-  await dataCatalogTab.click()
-
   // Finding all of the 'New projects'
   const newest = await getNewestProject(page)
   await newest.click()
@@ -87,11 +82,6 @@ test('Cloud Project Duplicate', async ({ page }) => {
   await page.getByRole('button', { name: 'Cloud', exact: true }).click()
 
   await createNewProject(page)
-
-  // Returning back to the data catalog
-  const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
-  await expect(dataCatalogTab).toBeVisible()
-  await dataCatalogTab.click()
 
   // Finding all of the 'New projects'
   const newest = await getNewestProject(page)
