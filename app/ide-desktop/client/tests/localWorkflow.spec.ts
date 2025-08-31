@@ -3,7 +3,14 @@
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
 import { type Page, expect } from 'playwright/test'
-import { CONTROL_KEY, closeWelcome, createNewProject, getNewestProject, loginAsTestUser, test } from './electronTest'
+import {
+  CONTROL_KEY,
+  closeWelcome,
+  createNewProject,
+  getNewestProject,
+  loginAsTestUser,
+  test,
+} from './electronTest'
 
 const startTimestamp = Date.now()
 let screenshotIndex = 0

@@ -9,9 +9,9 @@ import {
   _electron,
   test as base,
   expect,
+  Locator,
   type ElectronApplication,
   type Page,
-  Locator,
 } from 'playwright/test'
 
 const LOADING_TIMEOUT = 10000

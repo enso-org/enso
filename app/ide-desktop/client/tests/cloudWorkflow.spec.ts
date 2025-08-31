@@ -1,7 +1,13 @@
 /** @file A series of tests designed for testing GUI behavior in Cloud. */
 
 import { expect } from 'playwright/test'
-import { closeWelcome, createNewProject, getNewestProject, loginAsTestUser, test } from './electronTest'
+import {
+  closeWelcome,
+  createNewProject,
+  getNewestProject,
+  loginAsTestUser,
+  test,
+} from './electronTest'
 
 // A test controlling if project session logs aren't empty. Currently skipped due to unconsistency of session logs
 test.skip('Session logs', async ({ page }) => {
@@ -57,16 +63,16 @@ test('Remove Member', async ({ page }) => {
 
   const count = await rows.count()
   if (count >= 2) {
-  const secondRow = rows.nth(3)
-  const email = await secondRow.getByRole('cell').first().innerText()
+    const secondRow = rows.nth(3)
+    const email = await secondRow.getByRole('cell').first().innerText()
 
-  const cells = await secondRow.getByRole('cell').allInnerTexts()
-  console.log('Cells in row:', cells)
-  
-  // Click the remove button
-  await secondRow.getByText('Remove').click()
+    const cells = await secondRow.getByRole('cell').allInnerTexts()
+    console.log('Cells in row:', cells)
 
-  await expect(page.getByText(email)).not.toBeVisible()
+    // Click the remove button
+    await secondRow.getByText('Remove').click()
+
+    await expect(page.getByText(email)).not.toBeVisible()
   } else {
     console.log('Couldn’t find enough members in your organization.')
   }
