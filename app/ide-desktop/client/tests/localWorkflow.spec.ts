@@ -33,7 +33,6 @@ test('Project Duplicate', async ({ page }) => {
 
   // Finding all of the 'New projects'
   const newest = await getNewestProject(page)
-  await newest.click()
   await newest.click({ button: 'right' })
 
   // Try to duplicate the new project
