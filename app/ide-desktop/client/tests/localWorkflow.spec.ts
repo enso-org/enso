@@ -3,7 +3,7 @@
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
 import { type Page, expect } from 'playwright/test'
-import { CONTROL_KEY, closeWelcome, createNewProject, loginAsTestUser, test } from './electronTest'
+import { CONTROL_KEY, closeWelcome, createNewProject, getNewestProject, loginAsTestUser, test } from './electronTest'
 
 const startTimestamp = Date.now()
 let screenshotIndex = 0
@@ -30,21 +30,8 @@ test('Project Duplicate', async ({ page }) => {
   await dataCatalogTab.click()
 
   // Finding all of the 'New projects'
-  const projects = await page
-    .getByTestId('drive-view')
-    .getByText(/New Project \d+/)
-    .all()
-
-  const numbered = await Promise.all(
-    projects.map(async (p) => {
-      const text = await p.innerText()
-      const num = parseInt(text.replace('New Project ', ''), 10)
-      return { locator: p, num }
-    }),
-  )
-
-  // Pick the one with the highest number
-  const newest = numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
+  const newest = await getNewestProject(page)
+  await newest.click()
   await newest.click({ button: 'right' })
 
   // Try to duplicate the new project

@@ -11,6 +11,7 @@ import {
   expect,
   type ElectronApplication,
   type Page,
+  Locator,
 } from 'playwright/test'
 
 const LOADING_TIMEOUT = 10000
@@ -128,4 +129,26 @@ export async function closeWelcome(page: Page) {
   if (await welcomeProjectTab.isVisible()) {
     await page.getByRole('tab', { name: 'Data Catalog' }).click()
   }
+}
+
+/**
+ * Finds the "newest" project (highest numbered "New Project N") in the user dasboard.
+ * @param page - The Playwright Page instance
+ * @returns Locator for the newest project
+ */
+export async function getNewestProject(page: Page): Promise<Locator> {
+  const projects = await page
+    .getByTestId('drive-view')
+    .getByText(/New Project \d+/)
+    .all()
+
+  const numbered = await Promise.all(
+    projects.map(async (p) => {
+      const text = await p.innerText()
+      const num = parseInt(text.replace('New Project ', ''), 10)
+      return { locator: p, num }
+    }),
+  )
+
+  return numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
 }

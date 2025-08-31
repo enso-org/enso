@@ -1,7 +1,7 @@
 /** @file A series of tests designed for testing GUI behavior in Cloud. */
 
 import { expect } from 'playwright/test'
-import { closeWelcome, createNewProject, loginAsTestUser, test } from './electronTest'
+import { closeWelcome, createNewProject, getNewestProject, loginAsTestUser, test } from './electronTest'
 
 // A test controlling if project session logs aren't empty. Currently skipped due to unconsistency of session logs
 test.skip('Session logs', async ({ page }) => {
@@ -22,30 +22,13 @@ test.skip('Session logs', async ({ page }) => {
   await dataCatalogTab.click()
 
   // Finding all of the 'New projects'
-  const projects = await page
-    .getByTestId('drive-view')
-    .getByText(/New Project \d+/)
-    .all()
-  const numbered = await Promise.all(
-    projects.map(async (p) => {
-      const text = await p.innerText()
-      const num = parseInt(text.replace('New Project ', ''), 10)
-      return { locator: p, num }
-    }),
-  )
-  const newest = numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
+  const newest = await getNewestProject(page)
   await newest.click()
 
   await page.getByLabel('Sessions').click()
 
-  // Navigating into the last log
-  try {
-    const firstRow = page.locator('div.flex.flex-row.gap-4.rounded-2xl.p-2').first()
-    const showLogsButton = firstRow.getByRole('button', { name: /show logs/i })
-    await showLogsButton.click()
-  } catch {
-    console.log('No session logs available')
-  }
+  // Clicking the last log
+  await page.getByRole('button', { name: /show logs/i }).click()
 
   await expect(page.getByText('Starting Language Server')).toBeVisible()
 })
@@ -61,6 +44,7 @@ test('Remove Member', async ({ page }) => {
 
   await expect(page.getByText('Settings for')).toBeVisible()
 
+  // This try catch is necessary, because this test can't assert removing a member, if the user isn't a part of an organisation.
   try {
     await page.getByRole('button', { name: 'Members', exact: true }).click()
   } catch {
@@ -68,17 +52,21 @@ test('Remove Member', async ({ page }) => {
     return
   }
 
-  const rows = page.locator('table tbody tr')
+  const rows = page.getByRole('row')
   await rows.first().waitFor()
 
   const count = await rows.count()
   if (count >= 2) {
-    const secondRow = rows.nth(1)
-    const email = await secondRow.locator('td span').first().innerText()
+  const secondRow = rows.nth(3)
+  const email = await secondRow.getByRole('cell').first().innerText()
 
-    await secondRow.getByRole('button', { name: 'Remove' }).click()
+  const cells = await secondRow.getByRole('cell').allInnerTexts()
+  console.log('Cells in row:', cells)
+  
+  // Click the remove button
+  await secondRow.getByText('Remove').click()
 
-    await expect(page.getByText(email)).not.toBeVisible()
+  await expect(page.getByText(email)).not.toBeVisible()
   } else {
     console.log('Couldn’t find enough members in your organization.')
   }
@@ -100,18 +88,8 @@ test('Cloud Project Duplicate', async ({ page }) => {
   await dataCatalogTab.click()
 
   // Finding all of the 'New projects'
-  const projects = await page
-    .getByTestId('drive-view')
-    .getByText(/New Project \d+/)
-    .all()
-  const numbered = await Promise.all(
-    projects.map(async (p) => {
-      const text = await p.innerText()
-      const num = parseInt(text.replace('New Project ', ''), 10)
-      return { locator: p, num }
-    }),
-  )
-  const newest = numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
+  const newest = await getNewestProject(page)
+  await newest.click()
   await newest.click({ button: 'right' })
 
   // Try to duplicate the new project
