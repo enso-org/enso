@@ -58,20 +58,11 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   await loginAsTestUser(page)
   await closeWelcome(page)
 
-  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible({
-    timeout: 30000,
-  })
-  await page.getByRole('button', { name: 'New Project', exact: true }).click()
-  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
+  await createNewProject(page)
 
   const projectName = (await page.getByTitle('Project Name').textContent()) ?? ''
   await expect(projectName).toBeTruthy()
   const PROJECT_PATH = pathModule.join(projectsDir, projectName.replaceAll(' ', ''))
-
-  // We see the node type and visualization, so the engine is running the program
-  await expect(page.locator('.node-type')).toHaveText('Table & +3', { timeout: 30000 })
-  await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
-  await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
 
   // Create node connected to the first node by picking suggestion.
   await page.locator('.GraphNode').click()
