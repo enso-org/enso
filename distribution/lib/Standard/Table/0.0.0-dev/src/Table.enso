@@ -19,6 +19,7 @@ from Standard.Base.Widget_Helpers import make_any_selector, make_data_cleanse_ve
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
 import project.Column.Column
+import project.Column_Name.Column_Name
 import project.Column_Ref.Column_Ref
 import project.Columns_To_Add.Columns_To_Add
 import project.Columns_To_Keep.Columns_To_Keep
@@ -753,8 +754,8 @@ type Table
        In other words, `..Text` will match any text column, regardless of its
        length or being fixed or variable length. Similarly, `..Integer` will
        match any integer column, regardless of its size.
-    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    remove_columns self (columns : Vector | Text | Integer | Regex | By_Type = [self.columns.first.name]) case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Output_Columns | Missing_Input_Columns =
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True add_column_name=True)
+    remove_columns self (columns : Vector | Text | Integer | Regex | By_Type | Column_Name = [self.columns.first.name]) case_sensitivity:Case_Sensitivity=..Default error_on_missing_columns:Boolean=False on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Output_Columns | Missing_Input_Columns =
         self.implementation.remove_columns self.underlying columns case_sensitivity error_on_missing_columns on_problems
 
     ## ---

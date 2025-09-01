@@ -6,6 +6,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
 import project.Column.Column
+import project.Column_Name.Column_Name
 import project.Expression.Expression
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
@@ -117,8 +118,8 @@ type Table_Column_Helper
           operation. By default, a warning is issued, but the operation proceeds.
           If set to `Report_Error`, the operation fails with a dataflow error. If
           set to `Ignore`, the operation proceeds without errors or warnings.
-    remove_columns : Text | Integer | Regex | Vector (Integer | Text | Regex) -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Vector
-    remove_columns self (selectors:(Text | Integer | Regex | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
+    remove_columns : Text | Integer | Regex | Vector (Integer | Text | Regex | Column_Name) -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Vector
+    remove_columns self (selectors:(Text | Integer | Regex | Vector | Column_Name)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selectors case_sensitivity False problem_builder
         selected_names = Dictionary.from_vector (selection.map column-> [column.name, True])
@@ -200,15 +201,18 @@ type Table_Column_Helper
           same as in the input table.
         - `problem_builder`: Encapsulates the aggregation of encountered
           problems.
-    select_columns_helper : Text | Integer | Regex | By_Type | Vector (Integer | Text | Regex | By_Type) -> Case_Sensitivity -> Boolean -> Problem_Builder -> Vector
-    select_columns_helper self (selectors:(Text | Integer | Regex | By_Type | Vector)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (problem_builder:Problem_Builder) =
-        resolve_selector selector:(Text | Integer | Regex | By_Type) =
+    select_columns_helper : Text | Integer | Regex | By_Type | Vector (Integer | Text | Regex | By_Type | Column_Name) -> Case_Sensitivity -> Boolean -> Problem_Builder -> Vector
+    select_columns_helper self (selectors:(Text | Integer | Regex | By_Type | Vector | Column_Name)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (problem_builder:Problem_Builder) =
+        resolve_selector selector:(Text | Integer | Regex | By_Type | Column_Name) =
             case selector of
                 ix : Integer -> if is_index_valid self.columns.length ix then [self.columns.at ix] else
                     problem_builder.report_oob_indices [ix]
                     []
                 _ : By_Type -> self.columns.filter column->
                     column.should_be_selected_by_type selector.type
+                Column_Name.Name_Starts_With value -> self.columns.filter column->(column.name.starts_with value)
+                Column_Name.Name_Ends_With value -> self.columns.filter column->(column.name.ends_with value)
+                Column_Name.Name_Contains value -> self.columns.filter column->(column.name.contains value)
                 _ ->
                     matches = match_columns selector case_sensitivity self.columns
                     if matches.is_empty then problem_builder.report_missing_input_columns [selector]

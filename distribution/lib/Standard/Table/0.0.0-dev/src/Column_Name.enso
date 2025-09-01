@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+## Specifies a column name matching strategy.
+type Column_Name
+    ## Columns are matched that start with value
+    Name_Starts_With value:Text
+
+    ## Columns are matched that end with value
+    Name_Ends_With value:Text
+
+    ## Columns are matched that contain value
+    Name_Contains value:Text
+ 

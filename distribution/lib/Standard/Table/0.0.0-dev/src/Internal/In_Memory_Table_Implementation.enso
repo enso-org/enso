@@ -22,6 +22,7 @@ from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, ta
 import project.Aggregate_Column.Aggregate_Column
 import project.Blank_Selector.Blank_Selector
 import project.Column.Column
+import project.Column_Name.Column_Name
 import project.Column_Ref.Column_Ref
 import project.Columns_To_Add.Columns_To_Add
 import project.Columns_To_Keep.Columns_To_Keep
@@ -150,7 +151,7 @@ type In_Memory_Table_Implementation
         result = Table.new new_columns
         Warning.attach (Deprecated.Warning "Standard.Table.Table.Table" "select_columns_by_type" "Deprecated: use `select_columns` with a `By_Type` instead.") result
 
-    remove_columns (this_table : Table & In_Memory_Table) (columns : Vector | Text | Integer | Regex | By_Type) case_sensitivity:Case_Sensitivity error_on_missing_columns:Boolean on_problems:Problem_Behavior =
+    remove_columns (this_table : Table & In_Memory_Table) (columns : Vector | Text | Integer | Regex | By_Type | Column_Name) case_sensitivity:Case_Sensitivity error_on_missing_columns:Boolean on_problems:Problem_Behavior =
         new_columns = this_table.columns_helper.remove_columns columns case_sensitivity error_on_missing_columns=error_on_missing_columns on_problems=on_problems
         Table.new new_columns
 
