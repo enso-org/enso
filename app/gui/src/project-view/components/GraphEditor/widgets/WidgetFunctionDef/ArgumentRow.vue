@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { EnsoExpression } from '@/components/GraphEditor/widgets/WidgetEnsoExpression.vue'
 import {
   type ArgumentDefaultKind,
@@ -26,6 +25,7 @@ import { proxyRefs } from '@/util/reactivity'
 import { computed, useTemplateRef } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
+import WidgetTreeRoot from '../../WidgetTreeRoot.vue'
 
 const { definition, updateCallback, portIdBase } = defineProps<{
   root: Opt<HTMLElement>
@@ -33,19 +33,20 @@ const { definition, updateCallback, portIdBase } = defineProps<{
   updateCallback: UpdateHandler
   portIdBase: PortId
 }>()
+
 const emit = defineEmits<{
   rename: [value: Ast.Owned<Ast.MutableExpression>]
   updateType: [value: Ast.Owned<Ast.MutableExpression>]
   updateDefault: [value: Ast.Owned<Ast.MutableExpression> | undefined]
 }>()
-type WidgetProps = ComponentProps<typeof NodeWidget>
+type TreeProps = ComponentProps<typeof WidgetTreeRoot>
 const openedProject = useCurrentProject().ref
 
-function defaultWidget(ast: Ast.Token | Ast.Ast): WidgetProps {
-  return { input: WidgetInput.FromAst(ast) }
+function defaultWidget(ast: Ast.Token | Ast.Ast): TreeProps {
+  return { input: WidgetInput.FromAst(ast), updateCallback }
 }
 
-function patternWidget(pattern: Ast.Expression): WidgetProps {
+function patternWidget(pattern: Ast.Expression): TreeProps {
   return {
     input: {
       portId: pattern.id,
@@ -67,14 +68,14 @@ function patternWidget(pattern: Ast.Expression): WidgetProps {
 
 function mkWidget<T extends Ast.Ast | Ast.Token>(
   child: () => Ast.NodeChild<T> | undefined,
-  toProps: (ast: T) => WidgetProps = defaultWidget,
+  toProps: (ast: T) => TreeProps = defaultWidget,
 ) {
   return computed(() => mapOrUndefined(child()?.node, toProps))
 }
 
 const nodeSuspension = mkWidget(() => definition.suspension)
 const nodePattern = mkWidget(() => definition.pattern, patternWidget)
-const nodeType = computed((): WidgetProps => {
+const nodeType = computed((): TreeProps => {
   const ty = definition.type?.type?.node
   const syntheticId = syntheticPortId(portIdBase, 'type')
   return {
@@ -109,7 +110,7 @@ function resolveType(typeExpr: Ast.Ast) {
 }
 
 const nodeDefaultPortId = computed(() => syntheticPortId(portIdBase, 'defaultExpr'))
-const nodeDefault = computed((): WidgetProps | undefined => {
+const nodeDefault = computed((): TreeProps | undefined => {
   if (defaultKind.value !== 'explicit') return
 
   let expr = Ast.unwrapGroups(definition.defaultValue?.expression?.node)
@@ -185,11 +186,11 @@ const defaultEntries = [
 </script>
 
 <template>
-  <div class="ArgumentRow pad-right">
-    <NodeWidget v-if="nodeSuspension" v-bind="nodeSuspension" />
-    <NodeWidget v-if="nodePattern" v-bind="nodePattern" />
+  <div class="ArgumentRow">
+    <WidgetTreeRoot v-if="nodeSuspension" v-bind="nodeSuspension" />
+    <WidgetTreeRoot v-if="nodePattern" v-bind="nodePattern" />
     <span class="tokenText">&nbsp;:&nbsp;</span>
-    <NodeWidget v-bind="nodeType" />
+    <WidgetTreeRoot v-bind="nodeType" />
     <span class="tokenText">&nbsp;=&nbsp;</span>
     <div
       ref="defaultValueRoot"
@@ -213,7 +214,7 @@ const defaultEntries = [
       />
       <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>
     </div>
-    <NodeWidget
+    <WidgetTreeRoot
       v-if="nodeDefault"
       v-bind="nodeDefault"
       class="pad-left"

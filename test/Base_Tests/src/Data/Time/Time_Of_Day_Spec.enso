@@ -7,7 +7,7 @@ import Standard.Base.Runtime.Debug
 
 from Standard.Test import all
 
-
+polyglot java import java.util.Locale as Java_Locale
 polyglot java import java.time.LocalTime
 polyglot java import java.time.format.DateTimeFormatter
 
@@ -291,10 +291,15 @@ java_time hour minute=0 second=0 nanoOfSecond=0 =
     Panic.catch Any (LocalTime.of hour minute second nanoOfSecond) (err -> Error.throw (Time_Error.Error <| err.payload.getMessage))
 
 java_parse time_text pattern=Nothing =
-    Panic.catch Any handler=(err -> Error.throw (Time_Error.Error err.payload.getMessage)) <|
+    throw_time_error err =
+        te = Time_Error.Error err.payload.to_text
+        Error.throw te
+    Panic.catch Any handler=throw_time_error <|
         if pattern.is_nothing then LocalTime.parse time_text else
-            formatter = DateTimeFormatter.ofPattern pattern
-            LocalTime.parse time_text (formatter.withLocale Locale.default.java_locale)
+            base = DateTimeFormatter.ofPattern pattern
+            locale = Java_Locale.ENGLISH
+            formatter = base.withLocale locale
+            LocalTime.parse time_text formatter
 
 python_time hour minute=0 second=0 nanoOfSecond=0 =
     Panic.catch Any (python_time_impl hour minute second nanoOfSecond) err->

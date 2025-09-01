@@ -143,6 +143,16 @@
     );
   }
 
+  /** Default dropdown widget colors. */
+  --dropdown-bg: var(--color-node-background);
+  --dropdown-fg: var(--color-node-text);
+  --dropdown-item-hover-bg: color-mix(
+    in oklab,
+    var(--dropdown-bg) 50%,
+    white 50%
+  );
+  --dropdown-item-selected-bg: var(--color-port-connected);
+
   /**
    * How long the component evaluation progress bar takes to advance to each intermediate position. This is a long timer
    * because the next update will never be right away due to batching.
@@ -154,6 +164,58 @@
    * avoid the impression that the dependent components begin evaluating before this component finishes.
    */
   --progress-animation-final-duration: 0.1s;
+}
+
+.widgetPill {
+  background-color: var(--color-widget);
+  min-width: var(--node-port-height);
+  min-height: var(--node-port-height);
+  border-radius: var(--node-port-border-radius);
+  box-shadow: var(--node-port-shadow);
+  transition:
+    background-color,
+    color,
+    opacity 0.2s ease;
+
+  &:focus,
+  &:has(:focus):not(:has(.widgetPill :focus)) {
+    outline: none;
+    background-color: var(--color-widget-focus);
+  }
+}
+
+/* Scrollbar style definitions for textual visualizations which need support for scrolling.
+ *
+ * The 11px width/height (depending on scrollbar orientation)
+ * is set so that it resembles macOS default scrollbar.
+ */
+.scrollable {
+  scrollbar-color: rgba(190 190 190 / 50%) transparent;
+  &::-webkit-scrollbar {
+    -webkit-appearance: none;
+  }
+  &::-webkit-scrollbar-track {
+    -webkit-box-shadow: none;
+    background: transparent;
+  }
+  &::-webkit-scrollbar:vertical {
+    width: 11px;
+  }
+  &::-webkit-scrollbar:horizontal {
+    height: 11px;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+    border: 1px solid rgba(220, 220, 220, 0.5);
+    background-color: rgba(190, 190, 190, 0.5);
+  }
+  &::-webkit-scrollbar-corner {
+    background: rgba(0, 0, 0, 0);
+  }
+  &::-webkit-scrollbar-button {
+    height: 8px;
+    width: 8px;
+  }
 }
 
 /*********************************
