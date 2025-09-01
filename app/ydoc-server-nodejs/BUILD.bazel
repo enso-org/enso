@@ -23,7 +23,7 @@ npm_package(
 )
 
 js_binary(
-    name = "esbuild-bin",
+    name = "esbuild_bin",
     data = [
         "package.json",
         ":tsconfig",
@@ -37,16 +37,16 @@ js_run_binary(
     args = ["build"],
     chdir = package_name(),
     out_dirs = ["dist"],
-    tool = ":esbuild-bin",
+    tool = ":esbuild_bin",
 )
 
 directory_path(
-    name = "server-bin",
+    name = "server_bin",
     directory = ":esbuild",
     path = "main.mjs",
 )
 
 js_binary(
     name = "server",
-    entry_point = ":server-bin",
+    entry_point = ":server_bin",
 )

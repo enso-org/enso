@@ -105,7 +105,8 @@ class RecomputeContextCmd(
           new ExecuteJob(
             request.contextId,
             stack.toList,
-            request.executionEnvironment
+            request.executionEnvironment,
+            "recompute context"
           )
         )
       } yield ()
@@ -181,7 +182,10 @@ object RecomputeContextCmd {
                 .fold(Set(expressionId))(_ + expressionId)
             builder += CacheInvalidation(
               CacheInvalidation.StackSelector.All,
-              CacheInvalidation.Command.InvalidateKeys(dependents)
+              CacheInvalidation.Command.InvalidateKeys(
+                dependents,
+                "invalidate dependends of " + expressionId
+              )
             )
           }
       }
@@ -203,7 +207,7 @@ object RecomputeContextCmd {
               .keySet()
               .forEach(builder.addOne)
           }
-      case CacheInvalidation.Command.InvalidateKeys(expressionIds) =>
+      case CacheInvalidation.Command.InvalidateKeys(expressionIds, _) =>
         builder ++= expressionIds
       case _ =>
     }

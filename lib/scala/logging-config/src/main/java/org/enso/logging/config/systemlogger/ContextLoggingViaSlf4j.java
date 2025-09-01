@@ -8,12 +8,10 @@ import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
 import org.enso.logging.config.LoggerSetup;
 import org.graalvm.polyglot.Context;
-import org.openide.util.lookup.ServiceProvider;
 
 /**
  * Provides implementation of the {@link ContextLoggingConfigurator} for the `engine-common` module.
  */
-@ServiceProvider(service = ContextLoggingConfigurator.class)
 public final class ContextLoggingViaSlf4j extends ContextLoggingConfigurator {
   public ContextLoggingViaSlf4j() {}
 

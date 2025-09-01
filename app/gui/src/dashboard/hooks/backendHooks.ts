@@ -41,8 +41,7 @@ import {
 } from 'enso-common/src/backendQuery'
 import { z } from 'zod'
 
-export const SHORT_CACHE_TIME_MS = 5_000
-const PROJECT_EXECUTIONS_STALE_TIME_MS = 60_000
+const PROJECT_EXECUTIONS_STALE_TIME = 60_000
 
 export function backendQueryOptions<Method extends BackendQueryMethod>(
   backend: Backend,
@@ -247,8 +246,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
   return {
     meta: { persist: false },
-    staleTime: SHORT_CACHE_TIME_MS,
-    queryKey: ((): QueryKey => [
+    queryKey: [
       backend.type,
       'listDirectory',
       parentId,
@@ -261,7 +259,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         recentProjects: category.type === 'recent',
         infinite,
       },
-    ])(),
+    ],
     ...(refetchInterval != null ? { refetchInterval } : {}),
     queryFn: async (
       _context,
@@ -638,7 +636,7 @@ export function listProjectExecutionsQueryOptions(
   return queryOptions({
     ...backendQueryOptions(backend, 'listProjectExecutions', [id, title]),
     select: (executions) => [...executions].reverse(),
-    staleTime: PROJECT_EXECUTIONS_STALE_TIME_MS,
+    staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })
 }
 
@@ -650,6 +648,6 @@ export function getProjectExecutionDetailsQueryOptions(
 ) {
   return queryOptions({
     ...backendQueryOptions(backend, 'getProjectExecutionDetails', [id, title]),
-    staleTime: PROJECT_EXECUTIONS_STALE_TIME_MS,
+    staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })
 }

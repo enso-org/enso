@@ -322,14 +322,14 @@ trait Editions {
         value.engineVersion
           .map(semverEncoder.encode)
           .foreach(n => elements.add((Fields.EngineVersion, n)))
-        if (value.libraries.nonEmpty)
+        if (value.repositories.nonEmpty)
           elements.add(
             (
               Fields.Repositories,
               repositoriesEncoder.encode(value.repositories.values.toSeq)
             )
           )
-        if (value.repositories.nonEmpty)
+        if (value.libraries.nonEmpty)
           elements.add(
             (
               Fields.Libraries,

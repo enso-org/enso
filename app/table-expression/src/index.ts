@@ -1,17 +1,21 @@
 import { LanguageSupport, LRLanguage } from '@codemirror/language'
-import { completions } from './autocomplete'
+import { type MethodCompletionInfo, useCompletions } from './autocomplete'
 import { parser } from './generated/parser'
 import { highlight } from './highlight'
 
-const lang = LRLanguage.define({
-  name: 'table-expression',
-  parser: parser.configure({ props: [highlight] }),
-  languageData: {
-    autocomplete: completions,
-  },
-})
+export type { MethodCompletionInfo }
+export interface TableExpressionOptions {
+  methods?: () => MethodCompletionInfo[]
+}
 
 /** @returns A CodeMirror extension supporting the Enso Table Expression DSL. */
-export function tableExpression(): LanguageSupport {
+export function tableExpression({ methods }: TableExpressionOptions): LanguageSupport {
+  const lang = LRLanguage.define({
+    name: 'table-expression',
+    parser: parser.configure({ props: [highlight] }),
+    languageData: {
+      autocomplete: useCompletions(methods),
+    },
+  })
   return new LanguageSupport(lang, [])
 }

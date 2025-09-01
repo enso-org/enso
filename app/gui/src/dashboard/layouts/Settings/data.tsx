@@ -15,7 +15,7 @@ import type Backend from '#/services/Backend'
 import {
   EmailAddress,
   HttpsUrl,
-  isUserOnPlanWithOrganization,
+  isUserOnPlanWithMultipleSeats,
   Path,
   Plan,
   type OrganizationInfo,
@@ -248,7 +248,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.organization,
     icon: 'people_settings',
     organizationOnly: true,
-    visible: ({ user }) => isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithMultipleSeats(user),
     sections: [
       {
         nameId: 'organizationSettingsSection',
@@ -456,7 +456,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.members,
     icon: 'people',
     organizationOnly: true,
-    visible: ({ user }) => isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithMultipleSeats(user) && user.isOrganizationAdmin,
     feature: 'inviteUser',
     sections: [
       {
@@ -471,7 +471,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.userGroups,
     icon: 'people_settings',
     organizationOnly: true,
-    visible: ({ user }) => isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithMultipleSeats(user) && user.isOrganizationAdmin,
     feature: 'userGroups',
     sections: [
       {
@@ -515,7 +515,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
     settingsTab: SettingsTabType.activityLog,
     icon: 'log',
     organizationOnly: true,
-    visible: ({ user }) => isUserOnPlanWithOrganization(user),
+    visible: ({ user }) => isUserOnPlanWithMultipleSeats(user),
     sections: [
       {
         nameId: 'activityLogSettingsSection',

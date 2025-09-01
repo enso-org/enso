@@ -1,6 +1,8 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
 npm_link_all_packages()
 
@@ -18,4 +20,40 @@ write_source_files(
         "//app/gui:write_icon_metadata",
         "//app/table-expression:write_parser_codegen",
     ],
+)
+
+##################
+### Buildifier ###
+##################
+
+buildifier(
+    name = "lint_bazel_files",
+    exclude_patterns = [
+        "./app/gui/.env.bazel",
+    ],
+    lint_mode = "warn",
+    mode = "diff",
+)
+
+buildifier(
+    name = "format_bazel_files",
+    exclude_patterns = [
+        "./app/gui/.env.bazel",
+    ],
+    lint_mode = "fix",
+    mode = "fix",
+)
+
+###########################
+### Engine distribution ###
+###########################
+
+# This is a test rule just to check if sbt was installed correctly.
+# Without addditional configuration, it will fail to start, but at least we run sbt.
+run_sbt(
+    name = "sbt_version",
+    srcs = [],
+    args = ["--version"],
+    out_dir = "sbt_version",
+    visibility = ["//visibility:public"],
 )

@@ -7,7 +7,7 @@ import * as locate from './locate'
 import { edgesFromNode, edgesToNode } from './locate'
 import { mockSuggestion } from './suggestionUpdates'
 
-const MAIN_FILE_NODES = 12
+const MAIN_FILE_NODES = 13
 const EDGE_PARTS = 2
 
 const COLLAPSE_SHORTCUT = `${CONTROL_KEY}+G`
@@ -73,27 +73,139 @@ test('Using breadcrumbs to navigate', async ({ page }) => {
   await expectInsideFunc1(page)
 })
 
+function grabNode(page: Page, binding: string) {
+  // Widgets may "steal" clicks, so we always click at icon.
+  return locate.graphNodeByBinding(page, binding).locator('.grab-handle')
+}
+
+test.describe('Collapsing nodes with multiple inputs', () => {
+  interface RelativePos {
+    relativeTo?: string
+    x: number
+    y: number
+  }
+
+  function moveNode(page: Page, binding: string, relativePos: RelativePos) {
+    return grabNode(page, binding).dragTo(grabNode(page, relativePos.relativeTo ?? binding), {
+      force: true,
+      targetPosition: relativePos,
+    })
+  }
+
+  interface InputsPlacementTestCase {
+    positions: { binding: string; relativePos: RelativePos }[]
+    expectedOrder: string[]
+    description: string
+  }
+
+  const inputPlacementTestCases: InputsPlacementTestCase[] = [
+    // Default placement, five, ten and twenty are positioned vertically top-to-bottom.
+    {
+      description: 'Default placement',
+      positions: [],
+      expectedOrder: ['five', 'ten', 'twenty'],
+    },
+    // If horizontal position is the same, vertical position determines the order.
+    // `ten` is moved up so it's on top of `five`.
+    {
+      description: 'Vertical alignment',
+      positions: [{ binding: 'ten', relativePos: { x: 0, y: -160 } }],
+      expectedOrder: ['ten', 'five', 'twenty'],
+    },
+    // Horizontal position determines the order when vertical position is similar.
+    // `ten` is moved to the right of `five`, `twenty` is moved to the left of `five`.
+    {
+      description: 'Horizontal alignment',
+      positions: [
+        { binding: 'ten', relativePos: { relativeTo: 'five', x: 160, y: 0 } },
+        { binding: 'twenty', relativePos: { relativeTo: 'five', x: -160, y: 0 } },
+      ],
+      expectedOrder: ['twenty', 'five', 'ten'],
+    },
+    // Horizontal position determines the order even when vertical position is different.
+    // `ten` is moved to the left, `five` is moved to the right.
+    {
+      description: 'Left-to-right positioning with different vertical position',
+      positions: [
+        { binding: 'ten', relativePos: { relativeTo: 'five', x: -160, y: 0 } },
+        { binding: 'five', relativePos: { x: 160, y: 0 } },
+      ],
+      expectedOrder: ['ten', 'twenty', 'five'],
+    },
+  ]
+
+  inputPlacementTestCases.forEach((testCase) => {
+    test(`${testCase.description}`, async ({ page }) => {
+      await actions.goToGraph(page)
+      const initialNodesCount = await locate.graphNode(page).count()
+      await mockUserDefinedFunctionInfo(page, 'final', 'func1')
+
+      for (const { binding, relativePos } of testCase.positions) {
+        await moveNode(page, binding, relativePos)
+      }
+
+      // Reset selection
+      await page.mouse.click(250, 300)
+      await expect(locate.graphNode(page).locator('.selected')).toHaveCount(0)
+
+      await grabNode(page, 'sum').click({ modifiers: ['Shift'] })
+      await grabNode(page, 'prod').click({ modifiers: ['Shift'] })
+
+      await page.getByTestId('action:components.collapse').click()
+      await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 1)
+      await mockUserDefinedFunctionInfo(page, 'prod', 'user_defined_component')
+      const collapsedNode = locate.graphNodeByBinding(page, 'prod')
+      await expect(collapsedNode.locator('.WidgetApplication.prefix > .WidgetPort')).toHaveText(
+        'Main.user_defined_component',
+      )
+
+      // Enter collapsed node
+      await locate.graphNodeIcon(collapsedNode).dblclick()
+      await expect(locate.graphNode(page)).toHaveCount(6)
+      await expect(locate.inputNode(page)).toHaveCount(3)
+
+      // Check input nodes are positioned in the correct order
+      await expectInputNodesInOrder(page, testCase.expectedOrder)
+    })
+  })
+})
+
+async function expectInputNodesInOrder(page: Page, expectedOrder: string[]) {
+  const inputNodes = await locate.inputNode(page).all()
+  const inputNodePositions = await Promise.all(
+    inputNodes.map(async (node) => {
+      const nodeText = (await node.locator('.WidgetToken').allTextContents())[0]
+      const bbox = await node.boundingBox()
+      expect(nodeText).toBeDefined()
+      expect(bbox).toBeDefined()
+      return { text: nodeText!, bbox: bbox! }
+    }),
+  )
+  // Check that all input nodes have the same y coordinate
+  expect(inputNodePositions.length).toBe(expectedOrder.length)
+  const yCoords = inputNodePositions.map((pos) => pos.bbox.y)
+  expect(new Set(yCoords).size).toBe(1)
+  // Check that nodes are arranged left-to-right in the expected order
+  const actualOrder = inputNodePositions
+    .slice()
+    .sort((a, b) => a.bbox.x - b.bbox.x)
+    .map((pos) => pos.text)
+
+  expect(actualOrder).toEqual(expectedOrder)
+}
+
 test('Collapsing nodes', async ({ page }) => {
   await actions.goToGraph(page)
   const initialNodesCount = await locate.graphNode(page).count()
   await mockUserDefinedFunctionInfo(page, 'final', 'func1')
 
-  // Widgets may "steal" clicks, so we always click at icon.
-  await locate
-    .graphNodeByBinding(page, 'prod')
-    .locator('.grab-handle')
-    .click({ modifiers: ['Shift'] })
-  await locate
-    .graphNodeByBinding(page, 'sum')
-    .locator('.grab-handle')
-    .click({ modifiers: ['Shift'] })
-  await locate
-    .graphNodeByBinding(page, 'ten')
-    .locator('.grab-handle')
-    .click({ modifiers: ['Shift'] })
+  await grabNode(page, 'prod').click({ modifiers: ['Shift'] })
+  await grabNode(page, 'sum').click({ modifiers: ['Shift'] })
+  await grabNode(page, 'ten').click({ modifiers: ['Shift'] })
+  await grabNode(page, 'twenty').click({ modifiers: ['Shift'] })
 
   await page.getByTestId('action:components.collapse').click()
-  await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 2)
+  await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 3)
   await mockUserDefinedFunctionInfo(page, 'prod', 'user_defined_component')
   await mockSuggestion(page, {
     type: 'method',
@@ -113,23 +225,17 @@ test('Collapsing nodes', async ({ page }) => {
   await expect(collapsedNode.locator('.WidgetTopLevelArgument')).toHaveText('five')
 
   await locate.graphNodeIcon(collapsedNode).dblclick()
-  await expect(locate.graphNode(page)).toHaveCount(5)
+  await expect(locate.graphNode(page)).toHaveCount(6)
   await expect(locate.inputNode(page)).toHaveCount(1)
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
   await expect(locate.graphNodeByBinding(page, 'sum')).toExist()
   await expect(locate.graphNodeByBinding(page, 'prod')).toExist()
-  await locate
-    .graphNodeByBinding(page, 'ten')
-    .locator('.grab-handle')
-    .click({ modifiers: ['Shift'] })
-  await locate
-    .graphNodeByBinding(page, 'sum')
-    .locator('.grab-handle')
-    .click({ modifiers: ['Shift'] })
+  await grabNode(page, 'ten').click({ modifiers: ['Shift'] })
+  await grabNode(page, 'sum').click({ modifiers: ['Shift'] })
   // Wait till node is selected.
   await expect(locate.graphNodeByBinding(page, 'sum').and(page.locator('.selected'))).toHaveCount(1)
   await page.keyboard.press(COLLAPSE_SHORTCUT)
-  await expect(locate.graphNode(page)).toHaveCount(4)
+  await expect(locate.graphNode(page)).toHaveCount(5)
   await expect(locate.inputNode(page)).toHaveCount(1)
 
   const secondCollapsedNode = locate.graphNodeByBinding(page, 'sum')
@@ -138,25 +244,20 @@ test('Collapsing nodes', async ({ page }) => {
     '.',
     'user_defined_component1',
     'five',
+    'twenty',
   ])
   await mockUserDefinedFunctionInfo(page, 'sum', 'user_defined_component1')
   await secondCollapsedNode.dblclick()
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
-  await expect(locate.graphNode(page)).toHaveCount(4)
+  await expect(locate.graphNode(page)).toHaveCount(5)
 })
 
 test('Display message when User Defined Component ceases to exist', async ({ page }) => {
   await actions.goToGraph(page)
 
   const initialNodesCount = await locate.graphNode(page).count()
-  await locate
-    .graphNodeByBinding(page, 'prod')
-    .locator('.grab-handle')
-    .click({ modifiers: ['Shift'] })
-  await locate
-    .graphNodeByBinding(page, 'sum')
-    .locator('.grab-handle')
-    .click({ modifiers: ['Shift'] })
+  await grabNode(page, 'prod').click({ modifiers: ['Shift'] })
+  await grabNode(page, 'sum').click({ modifiers: ['Shift'] })
   await page.getByTestId('action:components.collapse').click()
   await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 1)
   await mockUserDefinedFunctionInfo(page, 'prod', 'user_defined_component')
@@ -221,10 +322,7 @@ test('Output node is not collapsed', async ({ page }) => {
   await enterToFunc2(page)
 
   await locate.outputNode(page).click({ modifiers: ['Shift'] })
-  await locate
-    .graphNodeByBinding(page, 'r')
-    .locator('.grab-handle')
-    .click({ modifiers: ['Shift'] })
+  await grabNode(page, 'r').click({ modifiers: ['Shift'] })
 
   await page.getByTestId('action:components.collapse').click()
   await expect(locate.graphNodeByBinding(page, 'r').locator('.WidgetToken')).toHaveText([
@@ -240,10 +338,7 @@ test('Input node is not collapsed', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
 
-  await locate
-    .graphNodeByBinding(page, 'r')
-    .locator('.grab-handle')
-    .click({ modifiers: ['Shift'] })
+  await grabNode(page, 'r').click({ modifiers: ['Shift'] })
   await locate.inputNode(page).click({ modifiers: ['Shift'] })
 
   await page.getByTestId('action:components.collapse').click()
@@ -303,6 +398,8 @@ async function expectInsideMain(page: Page) {
 }
 
 async function expectInsideFunc1(page: Page) {
+  // The mouse is often in output port area, making our checks fooled by the edge ghost.
+  await page.mouse.move(0, 0)
   await actions.expectNodePositionsInitialized(page, -88)
   await expect(locate.graphNode(page)).toHaveCount(4)
   await expect(locate.inputNode(page)).toHaveCount(1)
@@ -314,9 +411,9 @@ async function expectInsideFunc1(page: Page) {
 }
 
 async function expectInsideFunc2(page: Page) {
-  await actions.expectNodePositionsInitialized(page, -88)
   // The mouse is often in input's output port area, making our checks fooled by the edge ghost.
   await page.mouse.move(0, 0)
+  await actions.expectNodePositionsInitialized(page, -88)
   await expect(locate.graphNode(page)).toHaveCount(3)
   await expect(locate.inputNode(page)).toHaveCount(1)
   await expect(locate.graphNodeByBinding(page, 'r')).toExist()

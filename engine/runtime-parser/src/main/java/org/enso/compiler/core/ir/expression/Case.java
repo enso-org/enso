@@ -49,18 +49,15 @@ public interface Case extends Expression {
     }
 
     public Expr copy(Expression scrutinee, List<Branch> branches, boolean isNested) {
-      return copy(
-          diagnostics(), passData(), identifiedLocation(), id, scrutinee, branches, isNested);
+      return new Builder(this).scrutinee(scrutinee).branches(branches).isNested(isNested).build();
     }
 
     public Expr copy(Expression scrutinee, List<Branch> branches) {
-      return copy(
-          diagnostics(), passData(), identifiedLocation(), id, scrutinee, branches, isNested());
+      return new Builder(this).scrutinee(scrutinee).branches(branches).build();
     }
 
     public Expr copy(List<Branch> branches) {
-      return copy(
-          diagnostics(), passData(), identifiedLocation(), id, scrutinee(), branches, isNested());
+      return new Builder(this).branches(branches).build();
     }
 
     @Override
@@ -91,19 +88,15 @@ public interface Case extends Expression {
     }
 
     public Branch copy(Pattern pattern, Expression expression, boolean terminalBranch) {
-      return copy(
-          diagnostics(), passData(), identifiedLocation(), id, pattern, expression, terminalBranch);
+      return new Builder(this)
+          .pattern(pattern)
+          .expression(expression)
+          .terminalBranch(terminalBranch)
+          .build();
     }
 
     public Branch copy(Expression expression, IdentifiedLocation identifiedLocation) {
-      return copy(
-          diagnostics(),
-          passData(),
-          identifiedLocation,
-          id,
-          pattern(),
-          expression,
-          terminalBranch());
+      return new Builder(this).expression(expression).location(identifiedLocation).build();
     }
 
     public UUID id() {

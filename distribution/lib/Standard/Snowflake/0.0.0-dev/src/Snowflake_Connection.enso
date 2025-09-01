@@ -86,7 +86,7 @@ type Snowflake_Connection
        Returns the list of warehouses for the connection.
     warehouses : Vector Text
     warehouses self =
-        self.connection.read_single_column "show warehouses" "name"
+        self.connection.read_text_column "show warehouses" "name"
 
     ## ---
        icon: metadata
@@ -94,7 +94,7 @@ type Snowflake_Connection
        Returns the name of the current warehouse.
     warehouse : Text
     warehouse self =
-        vector = self.connection.read_single_column "SELECT current_warehouse() as name" "name"
+        vector = self.connection.read_text_column "SELECT current_warehouse() as name" "name"
         vector.first
 
     ## ---
@@ -144,7 +144,7 @@ type Snowflake_Connection
        (or catalog).
     schemas : Vector Text
     schemas self =
-        self.connection.read_single_column "show schemas in database" "name"
+        self.connection.read_text_column "show schemas in database" "name"
 
     ## ---
        icon: metadata
