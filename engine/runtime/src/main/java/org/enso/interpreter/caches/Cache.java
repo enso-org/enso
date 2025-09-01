@@ -67,13 +67,14 @@ public final class Cache<T, M> {
       Level logLevel,
       String logName,
       boolean needsSourceDigestVerification,
-      boolean needsDataDigestVerification) {
+      boolean needsDataDigestVerification,
+      Arena memoryArena) {
     this.spi = spi;
     this.logLevel = logLevel;
     this.logName = logName;
     this.needsDataDigestVerification = needsDataDigestVerification;
     this.needsSourceDigestVerification = needsSourceDigestVerification;
-    this.memoryArena = Arena.ofShared();
+    this.memoryArena = memoryArena;
   }
 
   /**
@@ -95,7 +96,18 @@ public final class Cache<T, M> {
       boolean needsSourceDigestVerification,
       boolean needsDataDigestVerification) {
     return new Cache<>(
-        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification);
+        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification, Arena.ofShared());
+  }
+
+  static <T, M> Cache<T, M> create(
+      Spi<T, M> spi,
+      Level logLevel,
+      String logName,
+      boolean needsSourceDigestVerification,
+      boolean needsDataDigestVerification,
+      Arena memoryArena) {
+    return new Cache<>(
+        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification, memoryArena);
   }
 
   /**

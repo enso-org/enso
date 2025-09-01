@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.IOException;
+import java.lang.foreign.Arena;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,18 +59,18 @@ public final class CacheTests {
   }
 
   @Test
-  public void cacheCannotBeLoadedViaSameInstance_AfterSave() throws IOException {
-    var cacheRoots = createCacheRoots();
+  public void memoryArenaIsClosed_AfterCacheSave() throws IOException {
     var ensoCtx = ctx.ensoContext();
+    var cacheRoots = createCacheRoots();
     var spi = new CacheSpi(cacheRoots);
-    var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
+    var memoryArena = Arena.ofConfined();
+    var cache = Cache.create(spi, Level.FINE, "testCache", false, false, memoryArena);
     var ret = cache.save(new CachedData(), ensoCtx, false);
     assertThat("was saved", ret, is(notNullValue()));
-    var loaded = cache.load(ensoCtx);
     assertThat(
-        "cache should be closed - unable to load after save via the same instance",
-        loaded.isEmpty(),
-        is(true));
+        "Memory arena is closed after cache save",
+        memoryArena.scope().isAlive(),
+        is(false));
   }
 
   @Test
