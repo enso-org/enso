@@ -1,5 +1,6 @@
 package org.enso.jvm.interop.impl;
 
+import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -15,6 +16,7 @@ import org.graalvm.polyglot.HostAccess;
 @ExportLibrary(value = InteropLibrary.class)
 final class OtherJvmLoader extends URLClassLoader implements TruffleObject {
   final Context ctx;
+  private TruffleObject findLibraries;
   private Object value;
 
   OtherJvmLoader() {
@@ -26,12 +28,33 @@ final class OtherJvmLoader extends URLClassLoader implements TruffleObject {
             .build();
   }
 
-  void addToClassPath(String file) {
+  final void addToClassPath(String file) {
     try {
       addURL(new File(file).toURI().toURL());
     } catch (MalformedURLException ex) {
       ex.printStackTrace();
     }
+  }
+
+  final void findLibraries(TruffleObject obj) {
+    this.findLibraries = obj;
+  }
+
+  @Override
+  protected String findLibrary(String libName) {
+    if (this.findLibraries != null) {
+      try {
+        var iop = InteropLibrary.getUncached();
+        var mayBePath = iop.execute(this.findLibraries, libName);
+        if (iop.isString(mayBePath)) {
+          return iop.asString(mayBePath);
+        }
+      } catch (InteropException ex) {
+        var logger = System.getLogger("org.enso.jvm.interop");
+        logger.log(System.Logger.Level.WARNING, ex);
+      }
+    }
+    return null;
   }
 
   final TruffleObject loadClassObject(String className) throws ClassNotFoundException {

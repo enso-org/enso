@@ -10,7 +10,7 @@ import { ExternalId } from 'ydoc-shared/yjsModel'
 export const [provideWidgetTree, injectWidgetTree] = createContextStore(
   'Widget tree',
   (
-    externalId: Ref<ExternalId>,
+    externalId: Ref<ExternalId | undefined>,
     rootElement: Ref<Opt<HTMLElement>>,
     conditionalPorts: Ref<Set<Ast.AstId> | undefined>,
     extended: Ref<boolean>,

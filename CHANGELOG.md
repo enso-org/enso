@@ -111,6 +111,7 @@
 - [Add prototype `find_group_number` function to Table][13487]
 - [Add support for custom and empty line endings to the fixed-width file format]
   [13554]
+- [In-memory table `add_group_number` supports `Equal_Sum`.][13819]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -128,6 +129,7 @@
 [13475]: https://github.com/enso-org/enso/pull/13475
 [13487]: https://github.com/enso-org/enso/pull/13487
 [13554]: https://github.com/enso-org/enso/pull/13554
+[13819]: https://github.com/enso-org/enso/pull/13819
 
 #### Enso Language & Runtime
 

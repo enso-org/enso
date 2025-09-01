@@ -1,7 +1,13 @@
 package org.enso.jvm.interop.impl;
 
-final class OtherJvmException extends RuntimeException {
+import com.oracle.truffle.api.exception.AbstractTruffleException;
+
+final class OtherJvmException extends AbstractTruffleException {
   OtherJvmException(String message) {
     super(message);
+  }
+
+  OtherJvmException(Throwable toWrap) {
+    super(toWrap.getMessage(), toWrap, UNLIMITED_STACK_TRACE, null);
   }
 }

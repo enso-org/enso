@@ -25,6 +25,8 @@ import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.FilterNode;
 import org.openide.nodes.Node;
+import org.openide.nodes.NodeNotFoundException;
+import org.openide.nodes.NodeOp;
 import org.openide.util.Exceptions;
 import org.openide.util.ImageUtilities;
 import org.openide.util.Lookup;
@@ -54,7 +56,7 @@ public final class EnsoYamlProject implements Project {
       new EnsoActionProvider(this)
     );
   }
-  
+
   final FileObject getRoot() {
     return root;
   }
@@ -177,11 +179,44 @@ public final class EnsoYamlProject implements Project {
 
     @Override
     public Node findPath(Node node, Object o) {
-      if (o instanceof String path) {
-        return org.openide.nodes.NodeOp.findChild(node, path);
-      } else {
-        return null;
-      }
+        return switch (o) {
+            case String path -> NodeOp.findChild(node, path);
+            case FileObject fileToFind -> {
+                if (FileUtil.isArchiveArtifact(fileToFind)) {
+                    var jar = FileUtil.getArchiveFile(fileToFind);
+                    if (jar != null) {
+                        fileToFind = jar;
+                    }
+                }
+
+                for (var rootNode : node.getChildren().getNodes(true)) {
+                    var rootFile = rootNode.getLookup().lookup(FileObject.class);
+                    if (rootFile == null) {
+                        continue;
+                    }
+                    if (rootFile.equals(fileToFind)) {
+                        yield rootNode;
+                    }
+                    if (FileUtil.isParentOf(rootFile, fileToFind)) {
+                        var path = FileUtil.getRelativePath(rootFile, fileToFind).split("/");
+                        Node subNode;
+                        try {
+                            subNode = NodeOp.findPath(rootNode, path);
+                        } catch (NodeNotFoundException ex) {
+                            subNode = ex.getClosestNode();
+                            for (var ssn :ex.getClosestNode().getChildren().getNodes(true)) {
+                                if (fileToFind.equals(ssn.getLookup().lookup(FileObject.class))) {
+                                    subNode = ssn;
+                                }
+                            }
+                        }
+                        yield subNode;
+                    }
+                }
+                yield null;
+            }
+            default -> null;
+        };
     }
   }
 

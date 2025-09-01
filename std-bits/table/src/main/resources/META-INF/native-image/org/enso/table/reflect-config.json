@@ -503,6 +503,19 @@
         ]
     },
     {
+        "name": "org.enso.table.operations.AddGroupNumber$EqualSumResult",
+        "methods": [
+            {
+                "name": "storage",
+                "parameterTypes": []
+            },
+            {
+                "name": "actualGroupCount",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
         "name": "org.enso.table.parsing.BooleanParser"
     },
     {

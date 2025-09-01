@@ -182,18 +182,3 @@ export async function createNewComponent(page: Page) {
 
   await page.keyboard.press('Enter')
 }
-
-/**
- * Returns the amount of elements visible to the user
- */
-export async function countVisibleElements(locator: Locator) {
-  const elements = await locator.elementHandles();
-  let count = 0;
-  for (const el of elements) {
-    const box = await el.boundingBox();
-    if (box && box.height > 0 && box.width > 0) {
-      count++;
-    }
-  }
-  return count;
-}
