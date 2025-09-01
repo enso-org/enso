@@ -405,6 +405,9 @@ public final class Cache<T, M> {
                 invalidateCache(roots.globalCacheRoot, logger);
                 invalidateCache(roots.localCacheRoot, logger);
               });
+      if (memoryArena.scope().isAlive()) {
+        memoryArena.close();
+      }
     }
   }
 
