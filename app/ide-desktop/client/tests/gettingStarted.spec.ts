@@ -1,7 +1,7 @@
 /** @file A series of tests designed for testing 'Getting Started with Enso Analytics'. */
 
 import { expect } from 'playwright/test'
-import { createNewComponent, loginAsTestUser, test, visualizeData, createNewProject, closeWelcome, countVisibleElements} from './electronTest'
+import { createNewComponent, loginAsTestUser, test, visualizeData, createNewProject, closeWelcome} from './electronTest'
 
 // First excercise in Enso Analytics 101
 test('Exercise 1', async ({ page }) => {
