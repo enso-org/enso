@@ -1,8 +1,11 @@
 package org.enso.interpreter.caches;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.IOException;
@@ -90,7 +93,7 @@ public final class CacheTests {
   }
 
   @Test
-  public void byteBufferIsClosed_AfterCacheIsSaved() throws IOException {
+  public void byteBufferIsClosed_AfterCacheIsInvalidated() throws IOException {
     var ensoCtx = ctx.ensoContext();
     var cacheRoots = createCacheRoots();
     var bigData = randomBytes(10 * 1024 * 1024);
@@ -102,8 +105,13 @@ public final class CacheTests {
     assertThat("was loaded", loaded.isPresent(), is(true));
 
     cache.invalidate(ensoCtx);
-    assertThat(
-        "byte buffer got in deserialize is invalid", deserializeBuffer.hasRemaining(), is(false));
+
+    try {
+      deserializeBuffer.get();
+      fail("Expected IllegalStateException - cannot read from byte buffer anymore");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), containsString("closed"));
+    }
   }
 
   @Test
