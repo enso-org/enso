@@ -90,7 +90,7 @@ public class BenchmarksRunner {
             .measurementIterations(1)
             .warmupIterations(0)
             .shouldFailOnError(true)
-            .forks(1);
+            .forks(0);
     includes.forEach(optsBuilder::include);
     var opts = optsBuilder.build();
     var runner = createRunner(opts);
