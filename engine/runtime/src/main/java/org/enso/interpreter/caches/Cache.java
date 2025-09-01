@@ -73,7 +73,7 @@ public final class Cache<T, M> {
     this.logName = logName;
     this.needsDataDigestVerification = needsDataDigestVerification;
     this.needsSourceDigestVerification = needsSourceDigestVerification;
-    this.memoryArena = Arena.ofConfined();
+    this.memoryArena = Arena.ofShared();
   }
 
   /**
