@@ -96,7 +96,12 @@ public final class Cache<T, M> {
       boolean needsSourceDigestVerification,
       boolean needsDataDigestVerification) {
     return new Cache<>(
-        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification, Arena.ofShared());
+        spi,
+        logLevel,
+        logName,
+        needsSourceDigestVerification,
+        needsDataDigestVerification,
+        Arena.ofShared());
   }
 
   static <T, M> Cache<T, M> create(
@@ -107,7 +112,12 @@ public final class Cache<T, M> {
       boolean needsDataDigestVerification,
       Arena memoryArena) {
     return new Cache<>(
-        spi, logLevel, logName, needsSourceDigestVerification, needsDataDigestVerification, memoryArena);
+        spi,
+        logLevel,
+        logName,
+        needsSourceDigestVerification,
+        needsDataDigestVerification,
+        memoryArena);
   }
 
   /**

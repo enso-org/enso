@@ -1,7 +1,6 @@
 package org.enso.interpreter.caches;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -11,20 +10,13 @@ import com.oracle.truffle.api.TruffleLogger;
 import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import java.util.Random;
-import java.util.logging.Handler;
 import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.caches.Cache.Roots;
 import org.enso.interpreter.caches.Cache.Spi;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextUtils;
-import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -70,10 +62,7 @@ public final class CacheTests {
     var cache = Cache.create(spi, Level.FINE, "testCache", false, false, memoryArena);
     var ret = cache.save(new CachedData(), ensoCtx, false);
     assertThat("was saved", ret, is(notNullValue()));
-    assertThat(
-        "Memory arena is closed after cache save",
-        memoryArena.scope().isAlive(),
-        is(false));
+    assertThat("Memory arena is closed after cache save", memoryArena.scope().isAlive(), is(false));
   }
 
   @Test
@@ -84,7 +73,7 @@ public final class CacheTests {
         cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
     // Saving only data and no metadata
     try (var os = localCacheFile.newOutputStream()) {
-      os.write(new byte[] { 42 });
+      os.write(new byte[] {42});
     }
     var spi = new CacheSpi(cacheRoots);
     var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
@@ -182,7 +171,7 @@ public final class CacheTests {
     return bytes;
   }
 
-  private static final class CachedData{}
+  private static final class CachedData {}
 
   private static final class Metadata {}
 
@@ -207,7 +196,7 @@ public final class CacheTests {
 
     @Override
     public byte[] serialize(EnsoContext context, CachedData entry) {
-      return new byte[]{ 42 };
+      return new byte[] {42};
     }
 
     @Override
