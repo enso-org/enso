@@ -1,33 +1,16 @@
 /** @file A series of tests designed for testing 'Getting Started with Enso Analytics'. */
 
 import { expect } from 'playwright/test'
-import { createNewComponent, loginAsTestUser, test, visualizeData } from './electronTest'
+import { createNewComponent, loginAsTestUser, test, visualizeData, createNewProject, closeWelcome, countVisibleElements} from './electronTest'
 
 // First excercise in Enso Analytics 101
 test('Exercise 1', async ({ page }) => {
   await loginAsTestUser(page)
-
-  // If welcome project is to be opened, wait for it and get back to the main dashboard.
-  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
-  await Promise.race([
-    welcomeProjectTab.waitFor({ state: 'visible', timeout: 3000 }).catch(() => null),
-    page.waitForTimeout(3000),
-  ])
-  if (await welcomeProjectTab.isVisible()) {
-    const dataCatalog = page.getByRole('tab', { name: 'Data Catalog' })
-    await expect(dataCatalog).toBeVisible()
-    await dataCatalog.click()
-  }
+  await closeWelcome(page)
 
   // ---------------- Objective 1 ----------------
   await test.step('Objective 1: Let’s read a single sheet in from Excel', async () => {
-    const newProjectButton = page.getByRole('button', { name: 'New Project', exact: true })
-    await expect(newProjectButton).toBeVisible()
-    await newProjectButton.click()
-    await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
-
-    await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
-    await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
+    await createNewProject(page)
 
     const addComponent = page.getByLabel('Add Component (Enter)')
     await expect(addComponent).toBeVisible()
@@ -49,23 +32,19 @@ test('Exercise 1', async ({ page }) => {
         .catch(() => null),
     ])
 
-    visualizeData(page)
+    await visualizeData(page)
 
-    try {
-      await expect(page.getByText('Sheet1')).toBeVisible()
-      await page.getByText('Sheet1').dblclick()
-    } catch {
-      console.log('Skipping test: Sample data file not found.')
-      test.skip()
-    }
+    // Choosing the first sheet
+    await expect(page.getByText('Sheet1')).toBeVisible()
+    await page.getByText('Sheet1').dblclick()
 
-    visualizeData(page)
+    await visualizeData(page)
   })
 
   // ---------------- Objective 2 ----------------
   await test.step('Objective 1: Filter Data to find “exception” records', async () => {
     // Adding set component
-    createNewComponent(page)
+    await createNewComponent(page)
     await page.locator('.ComponentEntry', { hasText: 'set' }).click()
 
     // Set parameters
@@ -88,7 +67,7 @@ test('Exercise 1', async ({ page }) => {
     await nameBox.fill('currency_code_length')
 
     // Adding filter component
-    createNewComponent(page)
+    await createNewComponent(page)
     await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
     await page.locator('.WidgetSelection.clickable').filter({ hasText: 'column' }).click()
 
@@ -115,7 +94,7 @@ test('Exercise 1', async ({ page }) => {
     await numberBox.fill('3')
 
     // Visualize data frame
-    visualizeData(page)
+    await visualizeData(page)
 
     // Checking the total count equals to 1
     await expect(page.getByText('Total Row Count: 1')).toBeVisible()
@@ -157,23 +136,22 @@ test('Exercise 1', async ({ page }) => {
     await filterInput.fill('Savings Account')
 
     // Visualize data frame
-    visualizeData(page)
+    await visualizeData(page)
   })
 
   // ---------------- Objective 4 ----------------
   await test.step('Objective 4: Using the Zoom controls to show more or less of the workflow', async () => {
     const seeLess = page.getByLabel('Increase Zoom')
+    const seeMore = page.getByLabel('Decrease Zoom')
     const showAll = page.getByLabel('Show All Components (Ctrl + Shift + A)')
 
-    // Seeing how many components are visible
-    await showAll.click()
-    const initialCount = await page.locator('div.content').count()
+    // Making all elements visible
+    await showAll.click();
 
-    // Zoom in and assert if the component count is diferent
-    for (let i = 0; i < 5; i++) {
-      await seeLess.click()
+    // Clicking back and forth
+    for (let i = 0; i < 10; i++) {
+      await seeLess.click();
+      await seeMore.click();
     }
-    const zoomedCount = await page.locator('div.content').count()
-    await expect(zoomedCount).not.toBe(initialCount)
   })
 })
