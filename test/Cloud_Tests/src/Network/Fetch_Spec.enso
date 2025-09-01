@@ -15,10 +15,10 @@ from Standard.Table import all
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
-import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
-import project.Util
+import enso_dev.Table_Tests.Util
+from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
 
 polyglot java import java.io.File as Java_File
 polyglot java import java.lang.IllegalArgumentException

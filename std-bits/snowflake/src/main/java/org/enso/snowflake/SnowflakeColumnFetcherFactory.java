@@ -3,12 +3,13 @@ package org.enso.snowflake;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalTime;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import org.enso.database.fetchers.BaseColumnFetcher;
 import org.enso.database.fetchers.ColumnFetcher;
 import org.enso.database.fetchers.ColumnFetcherFactory;
 import org.enso.database.fetchers.GenericColumnFetcher;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -19,9 +20,21 @@ public class SnowflakeColumnFetcherFactory
     extends ColumnFetcherFactory.DefaultColumnFetcherFactory {
   public static final ColumnFetcherFactory INSTANCE = new SnowflakeColumnFetcherFactory();
 
-  private static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.S[ XX][ XXXXX]";
   private static final DateTimeFormatter DATE_TIME_FORMATTER =
-      DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
+      new DateTimeFormatterBuilder()
+          .parseCaseInsensitive()
+          .append(DateTimeFormatter.ISO_LOCAL_DATE)
+          .appendLiteral(' ')
+          .append(DateTimeFormatter.ISO_LOCAL_TIME)
+          .optionalStart()
+          .appendLiteral(' ')
+          .appendOffset("+HHMM", "+0000")
+          .optionalEnd()
+          .optionalStart()
+          .appendLiteral(' ')
+          .appendOffset("+HH:MM:ss", "Z")
+          .optionalEnd()
+          .toFormatter();
 
   private static final class SnowflakeIntegerFetcher extends BaseColumnFetcher {
     SnowflakeIntegerFetcher(int index, String name) {
@@ -67,7 +80,7 @@ public class SnowflakeColumnFetcherFactory
               timestampString.length() > 10 && timestampString.charAt(10) == 'T'
                   ? timestampString.substring(0, 10) + ' ' + timestampString.substring(11)
                   : timestampString;
-          return ZonedDateTime.parse(normalised, DATE_TIME_FORMATTER);
+          return Core_Date_Utils.parseZonedDateTime(normalised, DATE_TIME_FORMATTER);
         }
       };
       case BigIntegerType bit -> new SnowflakeIntegerFetcher(colIndex, columnName);

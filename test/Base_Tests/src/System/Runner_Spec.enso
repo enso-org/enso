@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Test import all
 
-from project.Utils import create_tmp_dir, enso_run, create_new_project
+from project.Enso_Bin_Utils import create_tmp_dir, enso_run, create_new_project
 
 polyglot java import java.lang.System as J_System
 
