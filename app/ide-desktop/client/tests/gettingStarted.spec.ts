@@ -1,7 +1,14 @@
 /** @file A series of tests designed for testing 'Getting Started with Enso Analytics'. */
 
 import { expect } from 'playwright/test'
-import { createNewComponent, loginAsTestUser, test, visualizeData, createNewProject, closeWelcome} from './electronTest'
+import {
+  closeWelcome,
+  createNewComponent,
+  createNewProject,
+  loginAsTestUser,
+  test,
+  visualizeData,
+} from './electronTest'
 
 // First excercise in Enso Analytics 101
 test('Exercise 1', async ({ page }) => {
@@ -146,12 +153,12 @@ test('Exercise 1', async ({ page }) => {
     const showAll = page.getByLabel('Show All Components (Ctrl + Shift + A)')
 
     // Making all elements visible
-    await showAll.click();
+    await showAll.click()
 
     // Clicking back and forth
     for (let i = 0; i < 10; i++) {
-      await seeLess.click();
-      await seeMore.click();
+      await seeLess.click()
+      await seeMore.click()
     }
   })
 })
