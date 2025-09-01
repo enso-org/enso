@@ -176,7 +176,7 @@ public final class CacheTests {
     }
   }
 
-  private static byte[] randomBytes(int size) {
+  private byte[] randomBytes(int size) {
     byte[] bytes = new byte[size];
     random.nextBytes(bytes);
     return bytes;
