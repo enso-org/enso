@@ -121,6 +121,26 @@ public final class CacheTests {
     assertThat("byte buffer is still readable", deserializeBuffer.hasRemaining(), is(true));
   }
 
+  @Test
+  public void byteBufferIsReadonly() throws IOException {
+    var ensoCtx = ctx.ensoContext();
+    var cacheRoots = createCacheRoots();
+    var bigData = randomBytes(10 * 1024 * 1024);
+    saveToLocalRoot(bigData, cacheRoots);
+    var spi = new CacheSpi(cacheRoots);
+    var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
+    var loaded = cache.load(ensoCtx);
+    assertThat("was loaded", loaded.isPresent(), is(true));
+
+    var deserializeBuffer = spi.deserializeBuffer;
+    try {
+      deserializeBuffer.put((byte) 42);
+      fail("Expected ReadOnlyBufferException");
+    } catch (java.nio.ReadOnlyBufferException e) {
+      // expected
+    }
+  }
+
   private Roots createCacheRoots() throws IOException {
     var cacheRootDirPath = tempFolder.newFolder("cacheRoot").toPath();
     var localCacheDir = cacheRootDirPath.resolve("local");
