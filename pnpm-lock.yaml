@@ -54,6 +54,9 @@ importers:
       '@bazel/bazelisk':
         specifier: ^1.22.1
         version: 1.25.0
+      playwright:
+        specifier: 'catalog:'
+        version: 1.50.1
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -6080,6 +6083,7 @@ packages:
 
   modern-isomorphic-ws@1.0.5:
     resolution: {integrity: sha512-cgJzdkn1//XyYJsFZkjPYKN21CXeG+KC38Q5uFwTnbUwG3pmmsUDS9a5RRJ6lFnjsnEbUKx+rIXjxX/uCUFYvQ==}
+    deprecated: Starting with version 22.4.0, Node.js includes a WebSocket client API without an experimental flag
     peerDependencies:
       '@types/ws': '*'
       ws: ^8.18.0

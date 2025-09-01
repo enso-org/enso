@@ -102,3 +102,36 @@ export async function loginAsTestUser(page: Page) {
 
   await page.getByRole('button', { name: TEXT.accept }).click()
 }
+
+/**
+ * Simple function for creating new components
+ */
+export async function createNewComponent(page: Page) {
+  // Create new component
+  const moreButton = page.getByTestId('more-button').getByRole('button', { name: 'More' }).last()
+  await expect(moreButton).toBeVisible()
+  await moreButton.click()
+
+  await page.keyboard.press('Enter')
+}
+
+/**
+ * Simple function for creating new components
+ */
+export async function deleteComponent(page: Page) {
+  // Delete last component
+  const moreButton = page.getByTestId('more-button').getByRole('button', { name: 'More' }).last()
+  await expect(moreButton).toBeVisible()
+  await moreButton.click()
+
+  await page.keyboard.press('Delete')
+}
+
+/**
+ * Visualizing data frames
+ */
+export async function visualizeData(page: Page) {
+  const showViz = page.getByLabel('Show visualization (Space)')
+  await expect(showViz).toBeVisible()
+  await showViz.click()
+}

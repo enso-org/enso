@@ -1,8 +1,13 @@
 /** @file A series of tests designed for testing 'Getting Started with Enso Analytics'. */
 
 import { expect } from 'playwright/test'
-import { loginAsTestUser, test } from './electronTest'
-
+import {
+  createNewComponent,
+  deleteComponent,
+  loginAsTestUser,
+  test,
+  visualizeData,
+} from './electronTest'
 
 // First excercise in Enso Analytics 101
 test('Exercise 1', async ({ page }) => {
@@ -45,33 +50,32 @@ test('Exercise 1', async ({ page }) => {
   // Wait for the file to be resolved or error message
   await Promise.race([
     page.getByLabel('Show visualization (Space)').waitFor({ state: 'visible', timeout: 5000 }),
-    page.getByText(/file not found/i).waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
+    page
+      .getByText(/file not found/i)
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .catch(() => null),
   ])
 
-  // Visualize
-  const showViz = page.getByLabel('Show visualization (Space)')
-  await expect(showViz).toBeVisible()
-  await showViz.click()
+  // Visualize data frame
+  visualizeData(page)
 
-  try{
+  try {
     await expect(page.getByText('Sheet1')).toBeVisible()
     await page.getByText('Sheet1').dblclick()
-  }
-  catch{
+  } catch {
     console.log('Skipping test: Sample data file not found.')
     test.skip()
   }
 
-  // Work with the newly opened sheet
-  await expect(showViz).toBeVisible()
-  await showViz.click()
+  // Visualize data frame
+  visualizeData(page)
 
-  await page.locator('button:has(svg use[href*="3_dot_menu"])').getByRole('button', { name: 'More' }).click();
-  await page.keyboard.press('Enter')
-
-  // Set parameters
+  // Objective 2
+  // Adding set component
+  createNewComponent(page)
   await page.locator('.ComponentEntry', { hasText: 'set' }).click()
 
+  // Set parameters
   await page.locator('.WidgetSelection.clickable').filter({ hasText: 'value' }).click()
   await page.getByRole('button', { name: '<Simple Expression>', exact: true }).click()
 
@@ -90,11 +94,8 @@ test('Exercise 1', async ({ page }) => {
   await expect(nameBox).toBeVisible()
   await nameBox.fill('currency_code_length')
 
-  // Filtering dataframe
-  await page.locator('button:has(svg use[href*="3_dot_menu"])').getByRole('button', { name: 'More' }).click();
-
-  await page.keyboard.press('Enter')
-
+  // Adding filter component
+  createNewComponent(page)
   await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
   await page.locator('.WidgetSelection.clickable').filter({ hasText: 'column' }).click()
 
@@ -120,19 +121,22 @@ test('Exercise 1', async ({ page }) => {
   await expect(numberBox).toBeVisible()
   await numberBox.fill('3')
 
-  // Visualize and check output
-  await expect(showViz).toBeVisible()
-  await showViz.click()
+  // Visualize data frame
+  visualizeData(page)
 
   // Checking the total count equals to 1
   await expect(page.getByText('Total Row Count: 1')).toBeVisible()
 
-// Objective number 3
-  // Hover over the set
-  await page.hover('div.content:has-text("set")');
+  // Delete the filter component, to make it easier for objective 3
+  await page.getByText('filter').first().click()
+  deleteComponent(page)
 
-  // Filtering dataframe
-  await page.locator('button:has(svg use[href*="3_dot_menu"])').getByRole('button', { name: 'More' }).click();
+  // Objective 3
+  // Locating specifically set component and adding filter component
+  const cont = page.locator('div:nth-child(4) > .ContextMenuTrigger > .content')
+  const moreButton = cont.getByTestId('more-button').getByRole('button', { name: 'More' })
+  await expect(moreButton).toBeVisible()
+  await moreButton.click()
   await page.keyboard.press('Enter')
 
   await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
@@ -144,7 +148,7 @@ test('Exercise 1', async ({ page }) => {
   await expect(option2).toBeVisible()
   await option2.click()
 
-  // Choosing the right filter
+  // Choosing the right parameters
   const filterContainer2 = page.locator('.WidgetArgumentName.primary', { hasText: 'filter' })
   const filter2 = filterContainer2.locator('span.widgetApplyPadding', { hasText: /^filter$/ })
   await expect(filter2).toBeVisible()
@@ -156,11 +160,33 @@ test('Exercise 1', async ({ page }) => {
   await page.getByRole('button', { name: '<Text Value>' }).click()
 
   // Set the actual filtered number value
-  const textBox = page.locator('input.WidgetNumber')
+  const textBox = page.getByText('“”')
   await expect(textBox).toBeVisible()
   await textBox.fill('Savings Account')
 
-  // Visualize it
-  await expect(showViz).toBeVisible()
-  await showViz.click()
+  // Visualize data frame
+  visualizeData(page)
+
+  // Objective 4
+  const seeMore = page.getByLabel('Decrease Zoom')
+  const seeLess = page.getByLabel('Increase Zoom')
+  const showAll = page.getByLabel('Show All Components (Ctrl + Shift + A)')
+
+  // Seeing how many components are visible
+  await showAll.click()
+  const initialCount = await page.locator('div.content').count()
+
+  // Zoom in and assert if the component count is diferent
+  for (let i = 0; i < 5; i++) {
+    await seeLess.click()
+  }
+  const zoomedCount = await page.locator('div.content').count()
+  await expect(zoomedCount).not.toBe(initialCount)
+
+  // Zoom out and assert if the component count is back to the start
+  for (let i = 0; i < 5; i++) {
+    await seeMore.click()
+  }
+  const finalCount = await page.locator('div.content').count()
+  await expect(finalCount).toBe(initialCount)
 })
