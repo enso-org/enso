@@ -1605,6 +1605,9 @@ public class Main {
         if (javaExecutable != null) {
           launchJvm(originalCwdOrNull, line, props, component, javaExecutable);
           return;
+        } else {
+          throw exitFail("Cannot find java executable to run in JVM mode. JVM mode " +
+              "was enforced either by `--jvm` option or by project configuration.");
         }
       }
     }
