@@ -3,6 +3,7 @@ import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
+import { mockVisualizationDataUpdate } from './visualizationUpdates'
 
 class DropDownLocator {
   readonly rootWidget: Locator
@@ -295,6 +296,51 @@ async function dataReadNodeWithMethodCallInfo(page: Page): Promise<Locator> {
   })
   return locate.graphNodeByBinding(page, 'data')
 }
+
+test('Dynamic configuration overrides static drop-down', async ({ page }) => {
+  await actions.goToGraph(page)
+  const node = await dataReadNodeWithMethodCallInfo(page)
+  const topLevelArgs = node.locator('.WidgetTopLevelArgument')
+  await node.click()
+  await expect(topLevelArgs).toHaveCount(3)
+  await expect(
+    topLevelArgs.filter({ has: page.getByText('format') }).locator('.WidgetSelection'),
+  ).not.toBeVisible()
+
+  // Provide dynamic configuration for `format` arg
+  await mockVisualizationDataUpdate(page, 'Standard.Visualization.Widgets.get_widget_json', [
+    [
+      'format',
+      {
+        type: 'Widget',
+        constructor: 'Single_Choice',
+        label: null,
+        values: [
+          {
+            type: 'Choice',
+            constructor: 'Option',
+            value: '..Csv',
+            label: 'Csv',
+            parameters: [],
+          },
+          {
+            type: 'Choice',
+            constructor: 'Option',
+            value: '..Excel',
+            label: 'Excel',
+            parameters: [],
+          },
+        ],
+        display: { type: 'Display', constructor: 'Always' },
+      },
+    ],
+  ])
+
+  const formatArg = topLevelArgs.filter({ has: page.getByText('format') })
+  const formatDropdown = new DropDownLocator(formatArg)
+  await formatArg.click()
+  await formatDropdown.expectVisibleWithOptions(['Csv', 'Excel'])
+})
 
 test('Selection widgets in Data.read node', async ({ page }) => {
   await actions.goToGraph(page)
