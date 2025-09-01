@@ -184,8 +184,9 @@ type Generic_JDBC_Connection
        ```
     execute self (sql : Text = (Missing_Argument.throw "sql")) -> Integer =
         when_output_enabled_ <|
-            self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
-                stmt.executeUpdate
+            handle_sql_errors <|
+                self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
+                    stmt.executeUpdate
 
     ## ---
        aliases: [import, load]
@@ -225,12 +226,13 @@ type Generic_JDBC_Connection
             Rows_To_Read.First_With_Warning n -> n+1
             Rows_To_Read.All_Rows -> -1
 
-        self.jdbc_connection.with_prepared_statement resolved_sql Statement_Setter.default stmt->
-            rs = stmt.executeQuery
-            materialised = result_set_to_table rs row_limit=rows_read
-            table = limit.attach_warning materialised
-            SQL_Warning_Helper.process_warnings stmt <|
-                table
+        handle_sql_errors <|
+            self.jdbc_connection.with_prepared_statement resolved_sql Statement_Setter.default stmt->
+                rs = stmt.executeQuery
+                materialised = result_set_to_table rs row_limit=rows_read
+                table = limit.attach_warning materialised
+                SQL_Warning_Helper.process_warnings stmt <|
+                    table
 
     ## ---
        aliases: [catalog schema database table]
