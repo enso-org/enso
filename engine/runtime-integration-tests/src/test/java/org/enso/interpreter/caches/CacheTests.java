@@ -118,7 +118,8 @@ public final class CacheTests {
     assertThat("was loaded", loaded.isPresent(), is(true));
 
     var deserializeBuffer = spi.deserializeBuffer;
-    assertThat("byte buffer is still readable", deserializeBuffer.hasRemaining(), is(true));
+    var firstByte = deserializeBuffer.get();
+    assertThat("byte buffer is still readable", firstByte, is(bigData[0]));
   }
 
   @Test
