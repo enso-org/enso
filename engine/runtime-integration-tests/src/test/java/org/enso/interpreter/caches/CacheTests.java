@@ -30,7 +30,7 @@ public final class CacheTests {
 
   @Rule public final TemporaryFolder tempFolder = new TemporaryFolder();
   @Rule public final ContextUtils ctx = ContextUtils.createDefault();
-  private static final Random random = new Random(42);
+  private final Random random = new Random(42);
 
   @Test
   public void cacheCanBeSaved_ToLocalCacheRoot() throws IOException {
