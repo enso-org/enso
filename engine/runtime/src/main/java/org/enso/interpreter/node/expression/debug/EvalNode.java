@@ -96,7 +96,15 @@ public abstract class EvalNode extends BaseNode {
     }
     ClosureRootNode framedNode =
         ClosureRootNode.build(
-            context.getLanguage(), localScope, moduleScope, expr, null, "<eval>", false, false);
+            context.getLanguage(),
+            localScope,
+            moduleScope,
+            expr,
+            null,
+            null,
+            "<eval>",
+            false,
+            false);
     return framedNode.getCallTarget();
   }
 

@@ -1,6 +1,6 @@
 package org.enso.interpreter.runtime
 
-import com.oracle.truffle.api.source.{Source, SourceSection}
+import com.oracle.truffle.api.source.Source
 import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.common.{
   BuildScopeFromModuleAlgorithm,
@@ -22,6 +22,7 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Literal,
+  Location,
   Module,
   Name,
   Pattern,
@@ -298,7 +299,8 @@ private[runtime] class IrToTruffle(
                 expressionProcessor.scope,
                 scopeBuilder.asModuleScope(),
                 () => bodyBuilder.bodyNode(),
-                makeSection(scopeBuilder.getModule, conversion.location),
+                makeSource(scopeBuilder.getModule),
+                makeLocation(conversion.location),
                 toType,
                 conversion.methodName.name
               )
@@ -516,7 +518,8 @@ private[runtime] class IrToTruffle(
             expressionProcessor.scope,
             scopeBuilder.asModuleScope(),
             expressionNode,
-            makeSection(scopeBuilder.getModule, annotation.location),
+            makeSource(scopeBuilder.getModule),
+            makeLocation(annotation.location),
             closureName,
             true,
             false
@@ -525,7 +528,8 @@ private[runtime] class IrToTruffle(
         }
 
         AtomConstructor.newInitializationBuilder(
-          makeSection(scopeBuilder.getModule, atomDefn.location),
+          makeSource(scopeBuilder.getModule),
+          makeLocation(atomDefn.location),
           localScope,
           assignments.toArray,
           reads.toArray,
@@ -627,7 +631,8 @@ private[runtime] class IrToTruffle(
           () => bodyBuilder.argsExpr._1(0),
           () => bodyBuilder.argsExpr._1(1),
           () => bodyBuilder.argsExpr._2,
-          makeSection(scopeBuilder.getModule, methodDef.location),
+          makeSource(scopeBuilder.getModule),
+          makeLocation(methodDef.location),
           cons,
           methodDef.methodName.name
         )
@@ -637,7 +642,8 @@ private[runtime] class IrToTruffle(
           expressionProcessor.scope,
           scopeBuilder.asModuleScope(),
           () => bodyBuilder.bodyNode(),
-          makeSection(scopeBuilder.getModule, methodDef.location),
+          makeSource(scopeBuilder.getModule),
+          makeLocation(methodDef.location),
           cons,
           methodDef.methodName.name
         )
@@ -689,10 +695,8 @@ private[runtime] class IrToTruffle(
               expressionProcessor.scope,
               scopeBuilder.asModuleScope(),
               expressionNode,
-              makeSection(
-                scopeBuilder.getModule,
-                annotation.location
-              ),
+              makeSource(scopeBuilder.getModule),
+              makeLocation(annotation.location),
               closureName,
               true,
               false
@@ -859,20 +863,27 @@ private[runtime] class IrToTruffle(
     * @param location the location to turn into a section
     * @return the source section corresponding to `location`
     */
-  private def makeSection(
-    module: org.enso.interpreter.runtime.Module,
+  private def makeSource(
+    module: org.enso.interpreter.runtime.Module
+  ): Supplier[Source] = { () =>
+    {
+      val m = module
+      if (m.isModuleSource(source)) {
+        module.getSource()
+      } else {
+        source
+      }
+    }
+  }
+
+  private def makeLocation(
     location: Option[IdentifiedLocation]
-  ): SourceSection = {
-    location
-      .map(loc => {
-        val m = module
-        if (m.isModuleSource(source)) {
-          module.createSection(loc.start, loc.length)
-        } else {
-          source.createSection(loc.start, loc.length)
-        }
-      })
-      .getOrElse(source.createUnavailableSection())
+  ): Location = {
+    if (location.isDefined) {
+      location.get.location
+    } else {
+      null
+    }
   }
 
   private def getTailStatus(
@@ -1296,7 +1307,8 @@ private[runtime] class IrToTruffle(
           childScope,
           scopeBuilder.asModuleScope(),
           blockNode,
-          makeSection(scopeBuilder.getModule, block.location),
+          makeSource(scopeBuilder.getModule),
+          makeLocation(block.location),
           currentVarName,
           false,
           false
@@ -2244,7 +2256,8 @@ private[runtime] class IrToTruffle(
         scope,
         scopeBuilder.asModuleScope(),
         bodyBuilder.bodyNode(),
-        makeSection(scopeBuilder.getModule, location),
+        makeSource(scopeBuilder.getModule),
+        makeLocation(location),
         scopeName,
         false,
         binding
@@ -2437,7 +2450,7 @@ private[runtime] class IrToTruffle(
               s"${scopeName}<arg-${name.map(_.name).getOrElse(String.valueOf(position))}>"
 
             val section = value.location
-              .map(loc => source.createSection(loc.start, loc.length))
+              .map(loc => loc.location)
               .orNull
 
             val closureRootNode = ClosureRootNode.build(
@@ -2445,6 +2458,7 @@ private[runtime] class IrToTruffle(
               childScope,
               scopeBuilder.asModuleScope(),
               argumentExpression,
+              () => source,
               section,
               displayName,
               subjectToInstrumentation,
@@ -2531,10 +2545,8 @@ private[runtime] class IrToTruffle(
               scope,
               scopeBuilder.asModuleScope(),
               defaultExpression,
-              makeSection(
-                scopeBuilder.getModule,
-                arg.defaultValue.get.location()
-              ),
+              makeSource(scopeBuilder.getModule),
+              makeLocation(arg.defaultValue.get.location()),
               s"<default::$scopeName::${arg.name.showCode()}>",
               false,
               false
