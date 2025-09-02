@@ -480,6 +480,7 @@ class Compiler(
       runErrorHandling(requiredModules)
 
       val requiredModulesWithScope = requiredModules.map { module =>
+        val moduleScopeBuilder = module.getScopeBuilder()
         if (
           !module
             .getCompilationStage()
@@ -487,18 +488,9 @@ class Compiler(
               CompilationStage.AFTER_RUNTIME_STUBS
             )
         ) {
-          val moduleScopeBuilder = module.getScopeBuilder()
           context.runStubsGenerator(module, moduleScopeBuilder)
-          context.updateModule(
-            module,
-            { u =>
-              u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
-            }
-          )
-          (module, moduleScopeBuilder)
-        } else {
-          (module, module.getScopeBuilder)
         }
+        (module, moduleScopeBuilder)
       }
 
       requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>

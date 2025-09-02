@@ -530,7 +530,8 @@ class ContextRegistryTest extends BaseServerTest with ReportLogsOnFailure {
                   `contextId`,
                   Some(
                     Api.InvalidatedExpressions.Expressions(
-                      Vector(`expressionId`)
+                      Vector(`expressionId`),
+                      "<ignored>"
                     )
                   ),
                   None,

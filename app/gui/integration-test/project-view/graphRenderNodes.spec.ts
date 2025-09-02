@@ -11,7 +11,7 @@ test('graph can open and render nodes', async ({ page }) => {
 
   // check simple node's content (without input widgets)
   const sumNode = locate.graphNodeByBinding(page, 'sum')
-  await expect(sumNode.locator('.WidgetToken')).toHaveText(['five', '+', 'ten'])
+  await expect(sumNode.locator('.WidgetToken')).toHaveText(['five', '+', 'ten', '+', 'twenty'])
 
   // check documented node's content
   const finalNode = locate.graphNodeByBinding(page, 'final')

@@ -61,6 +61,15 @@ export function Dialog(props: DialogProps) {
       className={({ isEntering, isExiting }) =>
         DIALOG_OVERLAY_STYLES({ isEntering, isExiting, blockInteractions: !isDismissable })
       }
+      ref={(element) => {
+        if (element) {
+          element.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') {
+              event.stopPropagation()
+            }
+          })
+        }
+      }}
       isDismissable={isDismissable}
       isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       UNSTABLE_portalContainer={root}

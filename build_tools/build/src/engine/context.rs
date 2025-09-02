@@ -425,6 +425,7 @@ impl RunContext {
         let benchmark_command = Sbt::sequential_tasks(build_and_execute_benchmark_task);
         if !benchmark_command.is_empty() {
             debug!("Running benchmarks.");
+            env::ENSO_TEST_JUNIT_DIR.remove();
             sbt.call_arg(benchmark_command).await?;
         } else {
             debug!("No SBT tasks to run.");

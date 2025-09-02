@@ -9,7 +9,6 @@ import { Popover } from '#/components/Dialog'
 import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
-import { SHORT_CACHE_TIME_MS } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
@@ -24,6 +23,7 @@ import { NetworkError } from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useRightPanelData, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { NetworkError as OtherNetworkError } from 'enso-common/src/services/Backend'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
@@ -68,9 +68,12 @@ export function DriveBarNavigation() {
         : undefined,
       ),
     meta: { persist: false },
-    staleTime: SHORT_CACHE_TIME_MS,
     retry: (count, error) => {
-      if (error instanceof AssetDoesNotExistError || error instanceof NetworkError) {
+      if (
+        error instanceof AssetDoesNotExistError ||
+        error instanceof NetworkError ||
+        error instanceof OtherNetworkError
+      ) {
         if (currentDirectoryId === currentDirectoryIdRef.current) {
           setDriveLocation(null, null)
         }

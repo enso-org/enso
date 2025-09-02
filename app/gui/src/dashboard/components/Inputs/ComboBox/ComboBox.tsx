@@ -76,6 +76,8 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
    * Convert an item to a unique text id, if the default text format returned by
    * `children` is not guaranteed (or not supposed) to be unique.
    */
+  readonly toKey?: (item: FieldValues<Schema>[TFieldName]) => string
+  /** Convert an item to a text value for filtering and typeahead. */
   readonly toTextValue?: (item: FieldValues<Schema>[TFieldName]) => string
   /** Convert an item to the tooltip to be shown, if different from the item itself. */
   readonly toTooltip?: (item: FieldValues<Schema>[TFieldName]) => string
@@ -117,6 +119,7 @@ export const ComboBox = forwardRef(function ComboBox<
     size,
     rounded,
     children,
+    toKey,
     toTextValue,
     toTooltip,
     noResetButton = false,
@@ -131,7 +134,7 @@ export const ComboBox = forwardRef(function ComboBox<
     items.map((item) => {
       const childrenEl = children(item)
       const textValue =
-        toTextValue?.(item) ??
+        toKey?.(item) ??
         (typeof childrenEl === 'string' ? childrenEl
         : typeof item === 'string' ? item
         : null)
@@ -224,18 +227,19 @@ export const ComboBox = forwardRef(function ComboBox<
                     (typeof childrenEl === 'string' ? childrenEl
                     : typeof fieldValue === 'string' ? fieldValue
                     : null)
+                  const key =
+                    toKey?.(fieldValue) ??
+                    (typeof childrenEl === 'string' ? childrenEl
+                    : typeof fieldValue === 'string' ? fieldValue
+                    : null)
                   invariant(
-                    textValue != null,
+                    textValue != null && key != null,
                     'Every element in a `ComboBox` must have a string representation',
                   )
                   const tooltip = toTooltip?.(fieldValue) ?? textValue
 
                   return (
-                    <ListBoxItem
-                      id={textValue}
-                      textValue={textValue}
-                      className={styles.listBoxItem()}
-                    >
+                    <ListBoxItem id={key} textValue={textValue} className={styles.listBoxItem()}>
                       {typeof childrenEl === 'string' ?
                         <Text
                           truncate="1"

@@ -20,9 +20,9 @@ import org.enso.compiler.core.CompilerError;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
+import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /**
@@ -141,7 +141,8 @@ final class BuiltinsRegistry {
                   meth.isAutoRegister ? (!meth.isStatic() ? type : type.getEigentype()) : null;
               if (tpe != null) {
                 Optional<BuiltinFunction> fun = meth.toFunction(language, false);
-                fun.ifPresent(f -> scope.registerMethod(tpe, key, f.getFunction()));
+                fun.ifPresent(
+                    f -> scope.registerMethod(tpe, key, CachingSupplier.forValue(f.getFunction())));
               }
             });
       }

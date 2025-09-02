@@ -86,6 +86,7 @@ function NotificationTrayDialogInner(props: NotificationTrayDialogProps) {
 
   return (
     <GridList
+      aria-label={getText('notifications')}
       selectionMode="none"
       items={computedNotifications}
       renderEmptyState={() => (

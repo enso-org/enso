@@ -38,14 +38,14 @@ trait MiniPassTest extends CompilerTest with WithIRDumper {
       val ctx = createContext()
       processModuleWithMiniPass(code, ctx)
     }
-    if (compareIR) {
-      CompilerTests.assertIR("Should be the same", megaIr, miniIr)
-    }
     withClue("Mega pass module spec execution") {
       testSpec(megaIr)
     }
     withClue("Mini pass module spec execution") {
       testSpec(miniIr)
+    }
+    if (compareIR) {
+      CompilerTests.assertIR("Should be the same", megaIr, miniIr)
     }
   }
 

@@ -166,7 +166,6 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
     showDeveloperIds && {
       action: 'copyId',
       color: 'accent',
-      label: getText('copyAllIdsShortcut'),
       doAction: () => {
         void goToDrive()
         copyMutation.mutate(selectedAssets.map((asset) => asset.id).join('\n'))
@@ -177,7 +176,6 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   const pasteAllMenuEntry = defineMenuEntry(
     hasPasteData && {
       action: 'paste',
-      label: getText('pasteAllShortcut'),
       doAction: () => {
         void goToDrive()
         const selected = selectedAssets[0]
@@ -199,7 +197,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
           copyIdsMenuEntry,
           {
             action: 'undelete',
-            label: getText('restoreAllFromTrashShortcut'),
+            label: getText('restoreFromTrashShortcut'),
             doAction: () => {
               void goToDrive()
               void restoreAssets({
@@ -210,7 +208,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
           },
           {
             action: 'delete',
-            label: getText('deleteAllForeverShortcut'),
+            label: getText('deleteForeverShortcut'),
             doAction: () => {
               void goToDrive()
               const asset = selectedAssets[0]
@@ -237,7 +235,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
         copyIdsMenuEntry,
         selectedAssets.length !== 0 && {
           action: 'delete',
-          label: isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut'),
+          label: isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut'),
           doAction: () => {
             void goToDrive()
             doDeleteAll()
@@ -248,7 +246,6 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
             isUnderPaywall: !canUploadToCloud,
             action: 'uploadToCloud',
             feature: 'uploadToCloud',
-            label: getText('uploadAllToCloudShortcut'),
             doAction: () => {
               void goToDrive()
               void uploadFilesToCloudCallback()
@@ -257,7 +254,6 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
         selectedAssets.length !== 0 &&
           canDownloadAllProjectsToLocal && {
             action: 'downloadToLocal',
-            label: getText('downloadAllToLocalShortcut'),
             doAction: () => {
               void goToDrive()
               void downloadFilesToLocalCallback()
@@ -270,11 +266,9 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
             void exportArchive()
           },
         },
-        selectedAssets.length !== 0 &&
-          isCloud && { action: 'copy', label: getText('copyAllShortcut'), doAction: doCopy },
+        selectedAssets.length !== 0 && isCloud && { action: 'copy', doAction: doCopy },
         selectedAssets.length !== 0 && {
           action: 'cut',
-          label: getText('cutAllShortcut'),
           doAction: () => {
             void goToDrive()
             doCut()

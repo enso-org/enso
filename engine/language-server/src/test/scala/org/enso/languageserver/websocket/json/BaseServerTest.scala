@@ -448,8 +448,9 @@ abstract class BaseServerTest
     if (initializeProjectPackage) {
       PackageManager.Default.create(
         config.projectContentRoot.file,
-        name    = "TestProject",
-        edition = customEdition
+        name            = "TestProject",
+        edition         = customEdition,
+        keepDevVersions = true
       )
     }
   }

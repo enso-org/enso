@@ -1,8 +1,6 @@
 import { InteractionHandler } from '@/providers/interactionHandler'
 import { PortId } from '@/providers/portInfo'
 import { WidgetEditHandler, WidgetInstanceId } from '@/providers/widgetRegistry/editHandler'
-import { useCurrentEdit } from '@/providers/widgetTree'
-import { proxyRefs } from '@/util/reactivity'
 import { CellPosition } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { nextTick } from 'vue'
@@ -52,7 +50,7 @@ function fixture() {
       () => 'port' as PortId,
       () => undefined,
       hooks,
-      proxyRefs(useCurrentEdit()),
+      undefined,
       interactionHandler,
     ),
   )

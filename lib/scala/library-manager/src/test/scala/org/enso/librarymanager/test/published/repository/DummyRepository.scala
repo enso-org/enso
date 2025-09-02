@@ -97,7 +97,7 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
       namespace = lib.libraryName.namespace,
       version   = lib.version.toString()
     )
-    pkg.save()
+    pkg.save(true)
     pkg
   }
 

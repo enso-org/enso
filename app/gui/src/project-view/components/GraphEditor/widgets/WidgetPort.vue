@@ -41,7 +41,8 @@ const isCurrentEdgeHoverTarget = computed(
   () =>
     graph.mouseEditedEdge?.source != null &&
     selection?.hoveredPort === portId.value &&
-    graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.externalId,
+    (tree.externalId == null ||
+      graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.externalId),
 )
 const isCurrentDisconnectedEdgeTarget = computed(
   () =>
@@ -83,7 +84,7 @@ providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 watchEffect(
   (onCleanup) => {
     const externalId = tree.externalId
-    if (!graph.db.isNodeId(externalId)) return
+    if (externalId == null || !graph.db.isNodeId(externalId)) return
     const id = portId.value
     const instance = new PortViewInstance(portRect, externalId, props.updateCallback)
     graph.addPortInstance(id, instance)

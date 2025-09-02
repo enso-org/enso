@@ -55,15 +55,18 @@ class LocalLibraryProviderSpec extends AnyWordSpec with Matchers with Inside {
       }
     }
 
-    "Library with polyglot/java directory found in JVM mode, but not in AOT mode" in {
+    "Library with polyglot/java directory found in JVM mode" in {
       val checkJvm = new DefaultLocalLibraryProvider(libraryPath, false)
       val found    = checkJvm.findLibrary(LibraryName("dev2", "Lib_With_Poly"))
       found.isDefined shouldEqual true
       found.orNull.location shouldEqual primaryPath.resolve("Lib_With_Poly")
+    }
 
-      val checkAot = new DefaultLocalLibraryProvider(libraryPath, true)
-      val notFound = checkAot.findLibrary(LibraryName("dev2", "Lib_With_Poly"))
-      notFound shouldEqual None
+    "Library with polyglot/java directory found in AOT mode as well" in {
+      val checkJvm = new DefaultLocalLibraryProvider(libraryPath, true)
+      val found    = checkJvm.findLibrary(LibraryName("dev2", "Lib_With_Poly"))
+      found.isDefined shouldEqual true
+      found.orNull.location shouldEqual primaryPath.resolve("Lib_With_Poly")
     }
   }
 }

@@ -16,8 +16,10 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import org.enso.compiler.core.ir.Function.Binding;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.Error;
+import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.junit.Test;
 import scala.jdk.javaapi.CollectionConverters;
@@ -1511,6 +1513,19 @@ public class EnsoParserTest {
     var location = typeAscription.location().get().location();
     assertEquals(14, location.start());
     assertEquals(20, location.end());
+  }
+
+  @Test
+  public void testSugaredTypeBodyHasLocation() {
+    var code = """
+        type My_Type
+            f self = self
+        """;
+    var ir = compile(code);
+    expectNoErrorsInIr(ir);
+    var sugaredType = (Definition.SugaredType) ir.bindings().head();
+    var funcBinding = (Binding) sugaredType.body().head();
+    assertThat(funcBinding.location().isDefined(), is(true));
   }
 
   private static void parseTest(String code) {

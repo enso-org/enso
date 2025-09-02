@@ -488,10 +488,14 @@ object DistributionPackage {
       .orElse(findArg("--compile"))
   }
 
+  /** @param projManagerCmdLine Options for the java process.
+    * @param args Args for the project manager.
+    * @return
+    */
   def runProjectManagerPackage(
     engineRoot: File,
     distributionRoot: File,
-    projectManagerJar: File,
+    projManagerCmdLine: Seq[String],
     args: Seq[String],
     log: Logger
   ): Boolean = {
@@ -509,11 +513,10 @@ object DistributionPackage {
           "java"
         )
       log.info(
-        s"Cannot find $enso, trying to execute $java -jar $projectManagerJar with ${args.mkString(" ")}"
+        s"Cannot find $enso, trying to execute via JVM with ${args.mkString(" ")}"
       )
       all.add(java.getPath())
-      all.add("-jar")
-      all.add(projectManagerJar.getPath())
+      all.addAll(projManagerCmdLine.asJava)
     }
     all.addAll(args.asJava)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
