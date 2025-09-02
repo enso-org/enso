@@ -200,7 +200,7 @@ final class EnsoPolyglotJava {
    * @param file the file to register
    */
   @CompilerDirectives.TruffleBoundary
-  private final synchronized void addToClassPath(File file) throws InteropException {
+  private final void addToClassPath(File file) throws InteropException {
     acquireLock();
     try {
       if (polyglotJava == this) {
