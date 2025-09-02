@@ -282,12 +282,12 @@ export async function handleFilesystemCommand(
       case '--filesystem-write-path': {
         const filePath = cliArguments[1]
         if (filePath != null) {
-          await new Promise((resolve, reject) => {
+          await new Promise<void>((resolve, reject) => {
             request
               .pipe(fsSync.createWriteStream(filePath), {
                 end: true,
               })
-              .on('close', resolve)
+              .on('close', () => resolve())
               .on('error', reject)
           })
           result = toJSONRPCResult(null)

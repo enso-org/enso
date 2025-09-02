@@ -22,7 +22,7 @@
     "lint": "eslint . --cache --max-warnings=0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.4",
+    "@types/node": "catalog:",
     "@types/tar": "^6.1.13",
     "typescript": "catalog:",
     "vitest": "catalog:"
