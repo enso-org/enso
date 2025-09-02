@@ -8,10 +8,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.apache.commons.lang3.StringUtils;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.DefinedEntity;
 import org.enso.compiler.data.BindingsMap.ModuleReference;
@@ -97,31 +97,16 @@ public final class ImportExportCache
 
   @Override
   @SuppressWarnings("unchecked")
-  public Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
-    return context
-        .getPackageRepository()
-        .getPackageForLibraryJava(libraryName)
-        .map(
-            pkg -> {
-              TruffleFile bindingsCacheRoot =
-                  pkg.getBindingsCacheRootForPackage(BuildVersion.ensoVersion());
-              var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
-              var distribution = context.getDistributionManager();
-              var pathSegments =
-                  new String[] {
-                    pkg.namespace(),
-                    pkg.normalizedName(),
-                    pkg.getConfig().version(),
-                    BuildVersion.ensoVersion(),
-                    libraryName.namespace()
-                  };
-              var path =
-                  distribution.LocallyInstalledDirectories()
-                      .irCacheDirectory()
-                      .resolve(StringUtils.join(pathSegments, "/"));
-              var globalCacheRoot = context.getTruffleFile(path.toFile());
-              return new Cache.Roots(localCacheRoot, globalCacheRoot);
-            });
+  public Iterable<TruffleFile> getCacheRoots(EnsoContext context) {
+    var pkg = context.getPackageRepository().getPackageForLibraryJava(libraryName);
+
+    if (pkg.isPresent()) {
+      TruffleFile bindingsCacheRoot =
+          pkg.get().getBindingsCacheRootForPackage(BuildVersion.ensoVersion());
+      var perUserRoot = bindingsCacheRoot.resolve(libraryName.namespace());
+      return Collections.singletonList(perUserRoot);
+    }
+    return Collections.emptyList();
   }
 
   @Override
