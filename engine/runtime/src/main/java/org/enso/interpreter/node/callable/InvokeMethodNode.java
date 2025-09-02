@@ -532,7 +532,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared @Cached AppendWarningNode appendWarningNode,
       @Cached HashMapSizeNode mapSizeNode,
       @Cached HashMapInsertAllNode mapInsertAllNode) {
-    Object[] args = new Object[argExecutors.length];
+    var args = new Object[argExecutors.length];
     boolean anyWarnings = false;
     var accumulatedWarnings = EnsoHashMap.empty();
     for (int i = 0; i < argExecutors.length; i++) {
@@ -559,7 +559,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         args[i] = r;
       }
     }
-    Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
+    var res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
     if (anyWarnings) {
       anyWarningsProfile.enter();
       res = appendWarningNode.executeAppend(null, res, accumulatedWarnings);

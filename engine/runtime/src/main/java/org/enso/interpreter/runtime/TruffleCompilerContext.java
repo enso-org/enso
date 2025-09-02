@@ -160,7 +160,7 @@ final class TruffleCompilerContext implements CompilerContext {
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
     var sb = TruffleCompilerModuleScopeBuilder.fromCompilerModuleScopeBuilder(scopeBuilder);
-    new IrToTruffle(context, m.getSource(), sb, config).run(module.getIr());
+    new IrToTruffle(context, m.getPackage(), m.getSource(), sb, config).run(module.getIr());
   }
 
   // module related

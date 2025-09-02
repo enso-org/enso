@@ -17,7 +17,7 @@ function editHandlerTree(
   widgets: string[],
   interactionHandler: InteractionHandler,
   createInteraction: (name: PortId) => WidgetEditHooks & Record<string, Mock>,
-  widgetTree: CurrentEdit,
+  currentEditCtx: CurrentEdit | undefined,
 ): HandlerMap {
   const handlers: HandlerMap = new Map()
   for (const id of widgets) {
@@ -32,7 +32,7 @@ function editHandlerTree(
       () => portId,
       () => (parent ? handlers.get(parent)?.handler : undefined),
       interaction,
-      widgetTree,
+      currentEditCtx,
       interactionHandler,
     )
     handlers.set(id, { handler: handler.value, interaction })
@@ -52,7 +52,7 @@ test.each`
   'Edit interaction propagation starting from $edited in $widgets tree',
   ({ widgets, edited, expectedPropagation }) => {
     const interactionHandler = new InteractionHandler()
-    const widgetTree = proxyRefs(useCurrentEdit())
+    const currentEditCtx = proxyRefs(useCurrentEdit())
     const handlers = editHandlerTree(
       widgets,
       interactionHandler,
@@ -62,7 +62,7 @@ test.each`
         end: vi.fn(),
         cancel: vi.fn(),
       }),
-      widgetTree,
+      currentEditCtx,
     )
     const expectedPropagationSet = new Set(expectedPropagation)
     const checkCallbackCall = (callback: string, ...args: any[]) => {
@@ -80,7 +80,7 @@ test.each`
     assert(editedHandler != null)
 
     editedHandler.handler.start()
-    expect(widgetTree.currentEdit).toBe(editedHandler.handler)
+    expect(currentEditCtx.currentEdit).toBe(editedHandler.handler)
     checkCallbackCall('start', edited)
     const handlersActive = [...handlers]
       .filter(([_id, { handler }]) => handler.isActive())
@@ -94,27 +94,27 @@ test.each`
       const endedHandler = handlers.get(ended)?.handler
 
       editedHandler.handler.start()
-      expect(widgetTree.currentEdit).toBe(editedHandler.handler)
+      expect(currentEditCtx.currentEdit).toBe(editedHandler.handler)
       expect(editedHandler.handler.isActive()).toBeTruthy()
       endedHandler?.end()
-      expect(widgetTree.currentEdit).toBeUndefined()
+      expect(currentEditCtx.currentEdit).toBeUndefined()
       checkCallbackCall('end', ended)
       expect(editedHandler.handler.isActive()).toBeFalsy()
 
       editedHandler.handler.start()
-      expect(widgetTree.currentEdit).toBe(editedHandler.handler)
+      expect(currentEditCtx.currentEdit).toBe(editedHandler.handler)
       expect(editedHandler.handler.isActive()).toBeTruthy()
       endedHandler?.cancel()
-      expect(widgetTree.currentEdit).toBeUndefined()
+      expect(currentEditCtx.currentEdit).toBeUndefined()
       checkCallbackCall('cancel')
       expect(editedHandler.handler.isActive()).toBeFalsy()
     }
 
     editedHandler.handler.start()
-    expect(widgetTree.currentEdit).toBe(editedHandler.handler)
+    expect(currentEditCtx.currentEdit).toBe(editedHandler.handler)
     expect(editedHandler.handler.isActive()).toBeTruthy()
     interactionHandler.setCurrent(undefined)
-    expect(widgetTree.currentEdit).toBeUndefined()
+    expect(currentEditCtx.currentEdit).toBeUndefined()
     checkCallbackCall('end', undefined)
     expect(editedHandler.handler.isActive()).toBeFalsy()
   },
@@ -133,7 +133,6 @@ test.each`
   ({ widgets, edited, propagatingHandlers, nonPropagatingHandlers, expectedHandlerCalls }) => {
     const event = new MouseEvent('pointerdown') as PointerEvent
     const interactionHandler = new InteractionHandler()
-    const widgetTree = proxyRefs(useCurrentEdit())
 
     const propagatingHandlersSet = new Set(propagatingHandlers)
     const nonPropagatingHandlersSet = new Set(nonPropagatingHandlers)
@@ -157,7 +156,7 @@ test.each`
             }),
           }
         : {},
-      widgetTree,
+      undefined,
     )
     handlers.get(edited)?.handler.start()
     interactionHandler.handlePointerDown(event)

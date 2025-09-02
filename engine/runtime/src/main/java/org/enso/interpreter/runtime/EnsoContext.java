@@ -25,7 +25,6 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -82,12 +81,6 @@ public final class EnsoContext {
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
   private final boolean isStaticAnalysisEnabled;
-  private final boolean isHostClassLoading;
-  private final boolean isGuestClassLoading;
-  /**
-   * Right now there is just a single polyglot Java system.
-   */
-  private EnsoPolyglotJava polyglotJava;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -147,26 +140,10 @@ public final class EnsoContext {
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
     if (isPrivateCheckDisabled && !isIrCachingDisabled) {
       throw new IllegalStateException(
-          "Both private check is disabled and IR caching is enabled. " +
-           "Either keep private check enabled or disable IR caching."
-      );
+          "Both private check is disabled and IR caching is enabled. "
+              + "Either keep private check enabled or disable IR caching.");
     }
     this.isStaticAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
-    {
-        var classLoading = getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY);
-        this.isHostClassLoading =
-        switch (classLoading) {
-            case "hosted", "all" -> true;
-            case "guest" -> false;
-            case null, default -> throw new IllegalStateException(classLoading);
-        };
-        this.isGuestClassLoading = switch (classLoading) {
-            case "guest", "all" -> true;
-            case "hosted" -> false;
-            case null, default -> throw new IllegalStateException(classLoading);
-        };
-         this.polyglotJava = new EnsoPolyglotJava(environment, isHostClassLoading, isGuestClassLoading);
-    }
     this.globalExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
@@ -247,7 +224,7 @@ public final class EnsoContext {
   }
 
   private com.oracle.truffle.api.nodes.LanguageInfo findEpbLanguage() {
-      return environment.getInternalLanguages().get("epb");
+    return environment.getInternalLanguages().get("epb");
   }
 
   /** Checks if the working directory is as expected and reports a warning if not. */
@@ -349,7 +326,7 @@ public final class EnsoContext {
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
     packageRepository.shutdown();
     topScope = null;
-    polyglotJava.close();
+    EnsoPolyglotJava.close(this);
     EnsoParser.freeAll();
   }
 
@@ -528,19 +505,41 @@ public final class EnsoContext {
   /**
    * Modifies the classpath to use to lookup {@code polyglot java} imports.
    *
+   * @param who who requests the addition
    * @param file the file to register
    */
   @TruffleBoundary
-  public void addToClassPath(TruffleFile file) {
+  public void addToClassPath(Package<?> who, TruffleFile file) {
+    assert who != null;
     var path = new File(file.toUri()).getAbsoluteFile();
     if (!path.exists()) {
       throw new IllegalStateException("File not found " + path);
     }
     try {
-        polyglotJava.addToClassPath(path);
+      EnsoPolyglotJava.addToClassPath(this, who, path);
     } catch (InteropException ex) {
-        throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
+      throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
     }
+  }
+
+  /**
+   * Checks whether the object is host Java object.
+   *
+   * @param obj the object to check
+   * @return true if {@code obj} is host object and call to {@link #asHostObject} will succeed
+   */
+  public boolean isHostObject(Object obj) {
+    return environment.isHostObject(obj);
+  }
+
+  /**
+   * Converts an interop object into underlying Java representation.
+   *
+   * @param obj object that {@link #isJavaPolyglotObject}
+   * @return underlying object
+   */
+  public Object asHostObject(Object obj) {
+    return environment.asHostObject(obj);
   }
 
   /**
@@ -551,7 +550,7 @@ public final class EnsoContext {
    * @return {@code true} or {@code false}
    */
   public boolean isJavaPolyglotObject(Object obj) {
-    return environment.isHostObject(obj);
+    return isHostObject(obj) || EnsoPolyglotJava.find(this, true).isOtherObject(obj);
   }
 
   /**
@@ -561,17 +560,7 @@ public final class EnsoContext {
    * @return {@code true} or {@code false}
    */
   public boolean isJavaPolyglotFunction(Object obj) {
-    return environment.isHostFunction(obj);
-  }
-
-  /**
-   * Converts an interop object into underlying Java representation.
-   *
-   * @param obj object that {@link #isJavaPolyglotObject}
-   * @return underlying object
-   */
-  public Object asJavaPolyglotObject(Object obj) {
-    return environment.asHostObject(obj);
+    return environment.isHostFunction(obj) || EnsoPolyglotJava.find(this, true).isOtherObject(obj);
   }
 
   /**
@@ -605,54 +594,23 @@ public final class EnsoContext {
     return false;
   }
 
-  interface ClassLookup {
-    Object loadClass(String name) throws ClassNotFoundException, InteropException;
-
-    static Object lookupJavaClass(
-        String className, ClassLookup fn, Collection<? super Exception> collectExceptions) {
-      var binaryName = new StringBuilder(className);
-      for (; ; ) {
-        var fqn = binaryName.toString();
-        try {
-          var hostSymbol = fn.loadClass(fqn);
-          if (hostSymbol != null) {
-            return hostSymbol;
-          }
-        } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
-          collectExceptions.add(ex);
-        }
-        var at = fqn.lastIndexOf('.');
-        if (at < 0) {
-          break;
-        }
-        binaryName.setCharAt(at, '$');
-      }
-      return null;
-    }
-  }
-
   /**
    * Tries to lookup a Java class (host symbol in Truffle terminology) by its fully qualified name.
    * This method also tries to lookup inner classes. More specifically, if the provided name
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class
    * is looked up by iterating the members of the outer class via Truffle's interop protocol.
    *
+   * @param who the package that requests the loading
    * @param className Fully qualified class name, can also be nested static inner class.
    * @return If the java class is found, return it, otherwise return {@link DataflowError}.
    */
   @TruffleBoundary
-  public TruffleObject lookupJavaClass(String className) {
+  public TruffleObject lookupJavaClass(Package<?> who, String className) {
     var collectedExceptions = new ArrayList<Exception>();
-    var hostSymbol =
-        ClassLookup.lookupJavaClass(
-            className, // name to search for
-            (fqn) -> {
-                return polyglotJava.loadClass(fqn);
-            }, // pluggable polyglot searches
-            collectedExceptions // collect exceptions
-            );
-    if (hostSymbol instanceof TruffleObject) {
-      return (TruffleObject) hostSymbol;
+    var polyglotJava = EnsoPolyglotJava.find(this, who);
+    var hostSymbol = polyglotJava.lookupJavaClass(className, collectedExceptions);
+    if (hostSymbol instanceof TruffleObject obj) {
+      return obj;
     }
     var level = Level.WARNING;
     for (var ex : collectedExceptions) {
@@ -762,6 +720,10 @@ public final class EnsoContext {
    */
   public boolean isInteractiveMode() {
     return getOption(RuntimeOptions.INTERACTIVE_MODE_KEY);
+  }
+
+  final String getHostClassLoading() {
+    return getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY);
   }
 
   /**

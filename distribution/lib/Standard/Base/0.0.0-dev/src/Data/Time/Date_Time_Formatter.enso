@@ -23,9 +23,6 @@ polyglot java import org.enso.base.time.FormatterCacheKey
 polyglot java import org.enso.base.time.FormatterKind
 
 type Date_Time_Formatter
-    ## ---
-       private: true
-       ---
     Value (underlying : EnsoDateTimeFormatter) (~deferred_parsing_warnings = [])
 
     ## ---
@@ -212,8 +209,7 @@ type Date_Time_Formatter
           pattern. If not specified, defaults to `Locale.default`. If passing a
           `DateTimeFormatter` instance and this argument is set, it will
           overwrite the original locale of that formatter.
-    from_java : Text | DateTimeFormatter -> Locale | Nothing -> Date_Time_Formatter ! Illegal_Argument
-    from_java pattern locale:(Locale | Nothing)=Nothing = case pattern of
+    from_java pattern:(Text | DateTimeFormatter) locale:(Locale | Nothing)=Nothing = case pattern of
         java_formatter : DateTimeFormatter ->
             amended_formatter = case locale of
                 Nothing -> java_formatter
@@ -279,6 +275,15 @@ type Date_Time_Formatter
     iso_date : Date_Time_Formatter
     iso_date =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_DATE "iso_date")
+
+    ## ---
+       icon: convert
+       ---
+       The ISO date formatter that formats or parses the ordinal date
+       without an offset, such as '2012-337'.
+
+    iso_ordinal_date -> Date_Time_Formatter =
+        Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_ORDINAL_DATE "iso_ordinal_date")
 
     ## ---
        icon: convert

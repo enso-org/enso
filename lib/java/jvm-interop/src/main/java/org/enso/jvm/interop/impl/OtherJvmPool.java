@@ -143,6 +143,10 @@ public final class OtherJvmPool extends Channel.Config {
     loader(master).addToClassPath(file);
   }
 
+  void findLibraries(boolean master, TruffleObject file) {
+    loader(master).findLibraries(file);
+  }
+
   final TruffleObject loadClassObject(boolean master, String className)
       throws ClassNotFoundException {
     var clazz = loader(master).loadClassObject(className);

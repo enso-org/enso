@@ -65,7 +65,6 @@ export function deleteAssetsMutationOptions(backend: Backend) {
         [backend.type, 'listAssetVersions'],
       ],
       awaitInvalidates: true,
-      refetchType: 'all',
     },
   })
 }
@@ -138,7 +137,6 @@ export function restoreAssetsMutationOptions(backend: Backend) {
         [backend.type, 'getAssetDetails'],
       ],
       awaitInvalidates: true,
-      refetchType: 'all',
     },
   })
 }
@@ -214,7 +212,6 @@ export function copyAssetsMutationOptions(backend: Backend) {
         [backend.type, 'getAssetDetails'],
       ],
       awaitInvalidates: true,
-      refetchType: 'all',
     },
   })
 }

@@ -42,9 +42,8 @@ export default function FilePathInput(props: FilePathInputProps) {
   const fileBrowserStyles = {
     '--file-browser-min-width': '280px',
     '--z-index-file-browser': fileBrowserZIndex,
-    '--selection-submenu-color': 'black',
-    '--selection-submenu-background-color': 'var(--color-dashboard-background)',
     '--file-browser-background-color': 'var(--color-dashboard-background)',
+    '--file-browser-text-color': 'black',
     '--file-browser-corner-radius': 'var(--input-corner-radius)',
     '--file-browser-top-bar-color': 'var(--color-primary)',
   } as CSSProperties
