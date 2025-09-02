@@ -9,6 +9,8 @@ module org.enso.pkg {
   requires org.enso.scala.wrapper;
   requires org.yaml.snakeyaml;
 
+  requires static org.graalvm.nativeimage;
+
   exports org.enso.pkg;
   exports org.enso.pkg.validation;
   exports org.enso.filesystem;

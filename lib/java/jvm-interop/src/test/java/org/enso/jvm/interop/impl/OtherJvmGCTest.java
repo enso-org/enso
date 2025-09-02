@@ -165,7 +165,7 @@ public class OtherJvmGCTest {
 
   private static Value loadOtherJvmClass(String name) throws Exception {
     var msg = new OtherJvmMessage.LoadClass(name);
-    var raw = CHANNEL.execute(OtherJvmResult.class, msg).value();
+    var raw = CHANNEL.execute(OtherJvmResult.class, msg).value(null);
     if (raw instanceof OtherJvmObject other) {
       assertTrue(other.assertChannel(CHANNEL));
     }

@@ -10,7 +10,12 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.function.Consumer;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.jvm.channel.Channel;
@@ -83,6 +88,10 @@ public class OtherJvmObjectTest {
     return bigReal;
   }
 
+  public static Object wrap(String txt) {
+    return new MockString(txt);
+  }
+
   @Test
   public void wrapArray() throws Exception {
     var testClassValue = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
@@ -141,6 +150,36 @@ public class OtherJvmObjectTest {
   }
 
   @Test
+  public void parsingWithGoodArguments() throws Exception {
+    var longClass1 = ctx.asValue(java.lang.Long.class).getMember("static");
+    var longClass2 = loadOtherJvmClass(java.lang.Long.class.getName());
+
+    var valid1 = longClass1.invokeMember("parseLong", "42");
+    var valid2 = longClass2.invokeMember("parseLong", "42");
+    assertEquals(42L, valid1.asLong());
+    assertEquals(42L, valid2.asLong());
+  }
+
+  @Test
+  public void parsingWithWrongArguments() throws Exception {
+    var longClass1 = ctx.asValue(java.lang.Long.class).getMember("static");
+    var longClass2 = loadOtherJvmClass(java.lang.Long.class.getName());
+
+    try {
+      var valid1 = longClass1.invokeMember("parseLong", 42.0);
+      fail("Expecting failure: " + valid1);
+    } catch (IllegalArgumentException e) {
+      // OK
+    }
+    try {
+      var valid2 = longClass2.invokeMember("parseLong", 42.0);
+      fail("Expecting failure: " + valid2);
+    } catch (IllegalArgumentException e) {
+      // OK
+    }
+  }
+
+  @Test
   public void unsupportedOperation() throws Exception {
     var shortClass1 = ctx.asValue(java.lang.Short.class).getMember("static");
     try {
@@ -161,11 +200,10 @@ public class OtherJvmObjectTest {
   }
 
   @Test
-  public void classNotFoundError() {
-    var msg = new OtherJvmMessage.LoadClass("java.lang.unknown.Clazz");
+  public void classNotFoundError() throws Exception {
     try {
-      var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
-      fail("Should yield an exception: " + shortRaw);
+      var raw = loadOtherJvmClass("java.lang.unknown.Clazz");
+      fail("Should yield an exception: " + raw);
     } catch (ClassNotFoundException ex) {
       assertThat(ex.getMessage(), StringContains.containsString("java.lang.unknown.Clazz"));
     }
@@ -214,11 +252,15 @@ public class OtherJvmObjectTest {
   private static final Object IDENTICAL = new MockObject();
 
   public static Object otherJvmInstances(int kind) {
-    if (kind == 0) {
-      return IDENTICAL;
-    } else {
-      return new MockObject();
-    }
+    return switch (kind) {
+      case 0 -> IDENTICAL;
+      case 1 -> new MockObject();
+      case 2 -> Duration.ofSeconds(42);
+      case 3 -> new int[20];
+      case 4 -> "Hello";
+      case 5 -> "Hello".repeat(100000);
+      default -> null;
+    };
   }
 
   @Test
@@ -245,6 +287,111 @@ public class OtherJvmObjectTest {
     var other1 = otherClass.invokeMember("otherJvmInstances", 1);
     var other2 = otherClass.invokeMember("otherJvmInstances", 1);
     assertNotEquals(other1, other2);
+  }
+
+  @Test
+  public void languageCheck() throws Exception {
+    var iop = InteropLibrary.getUncached();
+
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = ctx.unwrapValue(localClass.invokeMember("otherJvmInstances", 1));
+    assertTrue("it has language", iop.hasLanguage(local1));
+    assertEquals("HostLanguage", iop.getLanguage(local1).getSimpleName());
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = ctx.unwrapValue(otherClass.invokeMember("otherJvmInstances", 1));
+    assertTrue("it has language", iop.hasLanguage(other1));
+    assertEquals("OtherLanguage", iop.getLanguage(other1).getSimpleName());
+  }
+
+  @Test
+  public void isDuration() throws Exception {
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = localClass.invokeMember("otherJvmInstances", 2);
+    assertTrue("Recognized as duration", local1.isDuration());
+    var ld = local1.asDuration();
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("otherJvmInstances", 2);
+    assertTrue("Recognized as duration", other1.isDuration());
+    var od = other1.asDuration();
+
+    assertEquals(ld, od);
+  }
+
+  @Test
+  public void isStringShort() throws Exception {
+    checkString(4);
+  }
+
+  @Test
+  public void isStringLong() throws Exception {
+    checkString(5);
+  }
+
+  private void checkString(int kind) throws Exception {
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = localClass.invokeMember("otherJvmInstances", kind);
+    assertTrue("Recognized as string", local1.isString());
+    var ld = local1.asString();
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("otherJvmInstances", kind);
+    assertTrue("Recognized as string", other1.isString());
+    var od = other1.asString();
+
+    assertEquals(ld, od);
+  }
+
+  @Test
+  public void checkStringLikeIdentity() throws Exception {
+    var hello = "Hello World!";
+
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = localClass.invokeMember("wrap", hello);
+    assertTrue("Recognized as string", local1.isString());
+    var ld = local1.asString();
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("wrap", hello);
+    assertTrue("Recognized as string", other1.isString());
+    var od = other1.asString();
+
+    assertEquals(ld, od);
+    assertEquals(hello, ld);
+    assertEquals(hello, od);
+
+    var lr = ctx.unwrapValue(local1);
+    var or = ctx.unwrapValue(other1);
+    assertFalse(lr instanceof String);
+    assertFalse(or instanceof String);
+  }
+
+  @Test
+  public void arrayIndexOutOfBounds() throws Exception {
+    var localClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    var local1 = localClass.invokeMember("otherJvmInstances", 3);
+    assertTrue("Recognized as duration", local1.hasArrayElements());
+    assertEquals(20, local1.getArraySize());
+    try {
+      var res = local1.getArrayElement(200);
+      fail("Expecting a failure: " + res);
+    } catch (ArrayIndexOutOfBoundsException ex) {
+      assertThat(
+          ex.getMessage(), StringContains.containsString("Invalid array index 200 for array"));
+    }
+
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    var other1 = otherClass.invokeMember("otherJvmInstances", 3);
+    assertTrue("Recognized as duration", other1.hasArrayElements());
+    assertEquals(20, other1.getArraySize());
+    try {
+      var res = other1.getArrayElement(200);
+      fail("Expecting a failure: " + res);
+    } catch (ArrayIndexOutOfBoundsException ex) {
+      assertThat(
+          ex.getMessage(), StringContains.containsString("Invalid array index 200 for array"));
+    }
   }
 
   public static void callback(Consumer<Object> cb, Object value) {
@@ -311,12 +458,12 @@ public class OtherJvmObjectTest {
 
   private static Value loadOtherJvmClass(String name) throws Exception {
     var msg = new OtherJvmMessage.LoadClass(name);
-    var shortRaw = CHANNEL.execute(OtherJvmResult.class, msg).value();
-    if (shortRaw instanceof OtherJvmObject other) {
+    var raw = CHANNEL.execute(OtherJvmResult.class, msg).value(null);
+    if (raw instanceof OtherJvmObject other) {
       assertTrue(other.assertChannel(CHANNEL));
     }
-    var shortValue = ctx.asValue(shortRaw);
-    return shortValue;
+    var value = ctx.asValue(raw);
+    return value;
   }
 
   private static void assertOtherJvmObject(String msg, Value value) {
@@ -325,5 +472,24 @@ public class OtherJvmObjectTest {
       return;
     }
     fail(msg + " but got: " + unwrap);
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static class MockString implements TruffleObject {
+    private final String txt;
+
+    private MockString(String txt) {
+      this.txt = txt;
+    }
+
+    @ExportMessage
+    boolean isString() {
+      return true;
+    }
+
+    @ExportMessage
+    String asString() {
+      return txt;
+    }
   }
 }

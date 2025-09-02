@@ -732,12 +732,15 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq(
-      "io.circe"          %% "circe-core"       % circeVersion     % "provided",
-      "org.yaml"           % "snakeyaml"        % snakeyamlVersion % "provided",
-      "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
+      "org.graalvm.sdk"    % "nativeimage"      % graalMavenPackagesVersion % "provided",
+      "io.circe"          %% "circe-core"       % circeVersion              % "provided",
+      "org.yaml"           % "snakeyaml"        % snakeyamlVersion          % "provided",
+      "org.scalatest"     %% "scalatest"        % scalatestVersion          % Test,
       "org.apache.commons" % "commons-compress" % commonsCompressVersion
     ),
     Compile / moduleDependencies ++= Seq(
+      "org.graalvm.sdk"    % "word"             % graalMavenPackagesVersion,
+      "org.graalvm.sdk"    % "nativeimage"      % graalMavenPackagesVersion,
       "org.apache.commons" % "commons-compress" % commonsCompressVersion,
       "org.yaml"           % "snakeyaml"        % snakeyamlVersion
     ),
@@ -3824,26 +3827,8 @@ lazy val `engine-runner` = project
       core ++ stdLibsJars ++ extraNITestLibs.value
     },
     extraNITestLibs := Def.taskDyn {
-      if (GraalVM.EnsoLauncher.test) Def.task {
-        val baseHelpers =
-          (`enso-test-java-helpers` / Compile / packageBin).value
-            .getAbsolutePath()
-        val snowHelpers =
-          (`snowflake-test-java-helpers` / Compile / packageBin).value
-            .getAbsolutePath()
-        if (GraalVM.EnsoLauncher.fast) {
-          Seq(baseHelpers)
-        } else {
-          Seq(
-            baseHelpers,
-            snowHelpers
-          )
-        }
-      }
-      else {
-        Def.task {
-          Seq[String]()
-        }
+      Def.task {
+        Seq[String]()
       }
     }.value,
     buildSmallJdk := {

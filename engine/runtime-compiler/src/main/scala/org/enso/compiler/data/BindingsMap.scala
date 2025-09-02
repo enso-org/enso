@@ -59,7 +59,7 @@ final class BindingsMap private (initial: BindingsMapBase.State)
     def ensureConvertedToConcrete(
       state: BindingsMapBase.State
     ): BindingsMapBase.State = {
-      toConcrete(state, repo, repo.getModuleMap).flatMap { s =>
+      val opt = toConcrete(state, repo, repo.getModuleMap).flatMap { s =>
         val cm = s.currentModule
         val es = s.exportedSymbols
         val ri = s.resolvedImports
@@ -71,7 +71,12 @@ final class BindingsMap private (initial: BindingsMapBase.State)
             es
           )
         )
-      }.get
+      }
+      if (opt.isEmpty) {
+        throw new java.io.IOException("Cannot deserialize " + this)
+      } else {
+        opt.get
+      }
     }
     // lazily update state
     this.updateState(ensureConvertedToConcrete, true)
