@@ -9,7 +9,7 @@ import type { QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { Extension } from '@codemirror/state'
 import { tableExpression, type MethodCompletionInfo } from 'lezer-enso-table-expr'
-import { computed, toRef, toValue, watch, type Ref } from 'vue'
+import { computed, toRef, toValue, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 
 export interface TableExpressionExtensionOptions {
