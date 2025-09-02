@@ -1,8 +1,7 @@
 package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.storage.type.StorageType;
-
 import java.util.concurrent.atomic.AtomicLong;
+import org.enso.table.data.column.storage.type.StorageType;
 
 /** An abstract representation of a Storage providing a single uniqueKey implementation . */
 public abstract class Storage<T> implements ColumnStorage<T> {
@@ -22,12 +21,11 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     return uniqueKey;
   }
 
-
   @Override
   public StorageType<T> getType() {
     // The cast is safe because the typeChar and size are taken from the storageType.
     @SuppressWarnings("unchecked")
-    var output = (StorageType<T>)StorageType.fromTypeCharAndLength(typeChar, size);
+    var output = (StorageType<T>) StorageType.fromTypeCharAndLength(typeChar, size);
     return output;
   }
 }

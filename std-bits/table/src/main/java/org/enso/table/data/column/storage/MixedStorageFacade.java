@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 /**
  * Wraps a storage of any type and alters its reported storage to be of type AnyObject.

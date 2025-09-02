@@ -4,7 +4,6 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.StorageType;
 
 public class MaskedStorage<T> extends Storage<T> {
   private final ColumnStorage<T> parent;

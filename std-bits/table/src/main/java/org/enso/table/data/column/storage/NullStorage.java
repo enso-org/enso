@@ -3,7 +3,6 @@ package org.enso.table.data.column.storage;
 import java.util.Iterator;
 import java.util.stream.LongStream;
 import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 /** A specialized storage that can be used by columns that contain only null values. */
 public class NullStorage extends Storage<Void> {

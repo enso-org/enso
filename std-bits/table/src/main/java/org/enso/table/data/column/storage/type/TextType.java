@@ -1,12 +1,11 @@
 package org.enso.table.data.column.storage.type;
 
+import java.util.Objects;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
-
-import java.util.Objects;
 
 public final class TextType implements StorageType<String> {
   public static final TextType VARIABLE_LENGTH = new TextType(-1, false);

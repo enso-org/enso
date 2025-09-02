@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
 import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
