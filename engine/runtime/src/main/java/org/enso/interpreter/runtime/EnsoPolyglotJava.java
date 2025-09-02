@@ -163,7 +163,8 @@ final class EnsoPolyglotJava {
       }
       polyglotJava = createPolyglotJava(ctx);
       while (!pendingPath.isEmpty()) {
-        addToClassPath(pendingPath.remove(0));
+        InteropLibrary.getUncached()
+            .invokeMember(polyglotJava, "addPath", pendingPath.remove(0).toString());
       }
       try {
         InteropLibrary.getUncached()
