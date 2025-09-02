@@ -44,9 +44,19 @@ export const Dialog = Object.assign(
 
     return (
       <aria.ModalOverlay
-        ref={ref}
         className={({ isEntering, isExiting }) =>
           DIALOG_OVERLAY_STYLES({ isEntering, isExiting, blockInteractions: !isDismissable })
+        }
+        ref={(element) =>
+          mergeRefs(ref, (el) => {
+            if (el) {
+              el.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape') {
+                  event.stopPropagation()
+                }
+              })
+            }
+          })(element)
         }
         isDismissable={isDismissable}
         isKeyboardDismissDisabled={isKeyboardDismissDisabled}

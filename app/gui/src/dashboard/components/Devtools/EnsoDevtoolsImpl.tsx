@@ -19,6 +19,8 @@ import { safeJsonParse } from '#/utilities/safeJsonParse'
 import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
   DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
+  DEFAULT_GET_LOG_EVENTS_PAGE_SIZE,
+  DEFAULT_LIST_DIRECTORY_PAGE_SIZE,
   FEATURE_FLAGS_SCHEMA,
 } from '$/providers/featureFlags'
 import { useLocalStorage, useText } from '$/providers/react'
@@ -81,6 +83,8 @@ export function EnsoDevStatus() {
     enableAdvancedProjectExecutionOptions,
     overrideProfilePicture,
     multiplyUserList,
+    listDirectoryPageSize,
+    getLogEventsPageSize,
     fileChunkUploadPoolSize,
     unsafeDarkTheme,
   } = useFeatureFlags()
@@ -111,6 +115,8 @@ export function EnsoDevStatus() {
     multiplyUserList ||
     enableMultitabs ||
     enableAdvancedProjectExecutionOptions ||
+    listDirectoryPageSize !== DEFAULT_LIST_DIRECTORY_PAGE_SIZE ||
+    getLogEventsPageSize !== DEFAULT_GET_LOG_EVENTS_PAGE_SIZE ||
     fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE ||
     unsafeDarkTheme
   if (!isOverridden) return null
@@ -219,6 +225,24 @@ export function EnsoDevStatus() {
             }}
           >
             {getText('advancedProjectExecutionOptionsEnabled')}
+          </DeveloperOverrideEntry>
+        )}
+        {listDirectoryPageSize !== DEFAULT_LIST_DIRECTORY_PAGE_SIZE && (
+          <DeveloperOverrideEntry
+            reset={() => {
+              setFeatureFlag('listDirectoryPageSize', DEFAULT_LIST_DIRECTORY_PAGE_SIZE)
+            }}
+          >
+            {getText('willFetchUpToXAssetsPerPage', listDirectoryPageSize)}
+          </DeveloperOverrideEntry>
+        )}
+        {getLogEventsPageSize !== DEFAULT_GET_LOG_EVENTS_PAGE_SIZE && (
+          <DeveloperOverrideEntry
+            reset={() => {
+              setFeatureFlag('getLogEventsPageSize', DEFAULT_GET_LOG_EVENTS_PAGE_SIZE)
+            }}
+          >
+            {getText('willFetchUpToXLogEntriesPerPage', getLogEventsPageSize)}
           </DeveloperOverrideEntry>
         )}
         {fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE && (
@@ -478,6 +502,28 @@ export function EnsoDevtools() {
                   description="Enable Advanced Project Excecution Options"
                   onChange={(value) => {
                     setFeatureFlag('enableAdvancedProjectExecutionOptions', value)
+                  }}
+                />
+                <Input
+                  form={form}
+                  type="number"
+                  inputMode="numeric"
+                  name="listDirectoryPageSize"
+                  label={getText('ensoDevtoolsFeatureFlags.listDirectoryPageSize')}
+                  description={getText('ensoDevtoolsFeatureFlags.listDirectoryPageSizeDescription')}
+                  onChange={(event) => {
+                    setFeatureFlag('listDirectoryPageSize', event.target.valueAsNumber)
+                  }}
+                />
+                <Input
+                  form={form}
+                  type="number"
+                  inputMode="numeric"
+                  name="getLogEventsPageSize"
+                  label={getText('ensoDevtoolsFeatureFlags.getLogEventsPageSize')}
+                  description={getText('ensoDevtoolsFeatureFlags.getLogEventsPageSizeDescription')}
+                  onChange={(event) => {
+                    setFeatureFlag('getLogEventsPageSize', event.target.valueAsNumber)
                   }}
                 />
                 <Input

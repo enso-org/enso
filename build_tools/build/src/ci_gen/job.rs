@@ -967,6 +967,14 @@ rm dist/backend/project-manager.tar"
                     prepare_packaging_steps(target.0, step, PackagingTarget::Development);
                 steps.append(&mut packaging_steps);
 
+                let upload_ide = step::upload_artifact("Upload ide")
+                    .with_custom_argument("name", format!("ide-{}", target.0))
+                    .with_custom_argument(
+                        "path",
+                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                    );
+                steps.push(upload_ide);
+
                 const TEST_COMMAND: &str = "corepack pnpm -r --filter enso ide-integration-test";
                 let test_step = match target.0 {
                     OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
@@ -989,14 +997,6 @@ rm dist/backend/project-manager.tar"
                         "ENSO_TEST_USER_PASSWORD",
                     );
                 steps.push(test_step);
-
-                let upload_ide = step::upload_artifact("Upload ide")
-                    .with_custom_argument("name", format!("ide-{}", target.0))
-                    .with_custom_argument(
-                        "path",
-                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
-                    );
-                steps.push(upload_ide);
 
                 // After the E2E tests run, they create a credentials file in user home directory.
                 // If that file is not cleaned up, future runs of our tests may randomly get

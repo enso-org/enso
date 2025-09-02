@@ -9,7 +9,6 @@ import org.slf4j.IMarkerFactory;
 import org.slf4j.spi.MDCAdapter;
 import org.slf4j.spi.SLF4JServiceProvider;
 
-@org.openide.util.lookup.ServiceProvider(service = SLF4JServiceProvider.class)
 public class TestLogProvider implements SLF4JServiceProvider {
 
   private static final SLF4JServiceProvider underlying = new LogbackServiceProvider();

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useWidgetRegistry } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import type { UpdateHandler, WidgetModule } from '@/providers/widgetRegistry'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import {
@@ -29,7 +29,7 @@ const props = defineProps<{
 }>()
 defineOptions({ inheritAttrs: false })
 
-const registry = useWidgetRegistry()
+const currentProject = useCurrentProject()
 const parentUsageInfo = injectWidgetUsageInfo(true)
 
 const usageKey = computed(() => usageKeyForInput(props.input))
@@ -40,7 +40,8 @@ const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest ===
 
 const selectedWidget = shallowRef<WidgetModule<WidgetInput> | undefined>()
 const updateSelection = withCtx(() => {
-  selectedWidget.value = registry.select(
+  const registry = currentProject.ref.value?.widgetRegistry
+  selectedWidget.value = registry?.select(
     {
       input: props.input,
       nesting: nesting.value,

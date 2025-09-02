@@ -75,7 +75,10 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                                                 return null;
                                               }));
                           CacheInvalidation.invalidateAll(stack);
-                          ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
+                          ctx.jobProcessor()
+                              .run(
+                                  ExecuteJob.apply(
+                                      contextId, stack.toList(), "set execution env cmd"));
                           reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
                           return null;
                         });

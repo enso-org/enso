@@ -10,6 +10,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import javax.swing.Action;
 import javax.swing.event.ChangeListener;
+import org.enso.tools.enso4igv.enso.EnsoActionProvider;
 import org.netbeans.api.project.Project;
 import org.netbeans.api.project.ProjectManager;
 import org.netbeans.api.project.ProjectUtils;
@@ -27,6 +28,7 @@ import org.openide.nodes.ChildFactory;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
 import org.openide.util.Lookup;
+import org.openide.util.Utilities;
 import org.openide.util.lookup.Lookups;
 
 final class EnsoRootProject implements Project {
@@ -41,7 +43,8 @@ final class EnsoRootProject implements Project {
     this.lkp = Lookups.fixed(
             this,
             new LogicalView(),
-            new Subprojects()
+            new Subprojects(),
+            new BuiltDistributionEnsoBin()
     );
   }
 
@@ -84,16 +87,17 @@ final class EnsoRootProject implements Project {
     @Override
     public Set<? extends Project> getSubprojects() {
       var found = new TreeSet<Project>(this);
-      searchForProjects(getProjectDirectory(), found, 4);
+      searchForProjects(getProjectDirectory(), found, 5);
       return found;
     }
 
     private static void searchForProjects(FileObject fo, Collection<Project> found, int depth) {
-      if (fo.getName().startsWith("bazel")) {
+      if (fo.getName().contains("bazel")) {
           return;
       }
       if (fo.isFolder() && depth > 0) {
-        if (EnsoProjectFactory.isProjectCheck(fo) == 1) {
+        var type = EnsoProjectFactory.isProjectCheck(fo);
+        if (type == 1 || type == 3) {
           try {
             var p = ProjectManager.getDefault().findProject(fo);
             if (p != null) {
@@ -128,10 +132,9 @@ final class EnsoRootProject implements Project {
     @Override
     public Result getContainedProjects() {
       var result = new Result(getSubprojects(), false);
-      System.err.println("get contained fop: " + result.getProjects());
       return result;
     }
-    
+
     private final class Factory extends ChildFactory<FileObject>  {
       private final String[] prepend;
       private final FileObject under;
@@ -140,7 +143,7 @@ final class EnsoRootProject implements Project {
         this.prepend = prepend;
         this.under = under;
       }
-        
+
       @Override
       protected boolean createKeys(List<FileObject> list) {
         for (String fileName : prepend) {
@@ -183,7 +186,7 @@ final class EnsoRootProject implements Project {
             node.setName(key.getNameExt());
             return node;
           } else {
-            return DataObject.find(key).getNodeDelegate();
+            return DataObject.find(key).getNodeDelegate().cloneNode();
           }
         } catch (DataObjectNotFoundException ex) {
           return null;
@@ -192,13 +195,13 @@ final class EnsoRootProject implements Project {
     }
 
   }
-  
+
   private static class ContainerNode extends AbstractNode {
     ContainerNode(Children ch, Lookup l) {
       super(ch, l);
-      setIconBaseWithExtension("org/enso/tools/enso4igv/enso.svg");
+      setIconBaseWithExtension("org/enso/tools/enso4igv/enso-duke.svg");
     }
-      
+
     @Override
     public String getHtmlDisplayName() {
       return null;
@@ -206,7 +209,7 @@ final class EnsoRootProject implements Project {
 
     @Override
     public Action[] getActions(boolean context) {
-      return CommonProjectActions.forType("ensosbtprj"); // NOI18N
+      return CommonProjectActions.forType(EnsoJavaActions.ID);
     }
   }
 
@@ -218,6 +221,38 @@ final class EnsoRootProject implements Project {
       this.project = p;
       setName(p.getProjectDirectory().getNameExt());
       setDisplayName(ProjectUtils.getInformation(project).getDisplayName());
+    }
+  }
+
+  private final class BuiltDistributionEnsoBin implements EnsoActionProvider.EnsoExecutableProvider {
+    @Override
+    public FileObject getEnsoBin() {
+      var bd = getProjectDirectory().getFileObject("built-distribution");
+      var eed = findChild(bd, "enso-engine-");
+      var ed = findChild(eed, "enso-");
+      var bin = findChild(ed, "bin");
+      if (Utilities.isWindows()) {
+        var exe = bin.getFileObject("enso.exe");
+        if (exe != null) {
+          return exe;
+        } else {
+          return bin.getFileObject("enso.bat");
+        }
+      } else {
+        return bin.getFileObject("enso");
+      }
+    }
+
+    private FileObject findChild(FileObject dir, String prefix) {
+      if (dir == null) {
+        return null;
+      }
+      for (var ch : dir.getChildren()) {
+        if (ch.getNameExt().startsWith(prefix)) {
+          return ch;
+        }
+      }
+      return null;
     }
   }
 }
