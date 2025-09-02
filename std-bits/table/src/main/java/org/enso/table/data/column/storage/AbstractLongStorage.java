@@ -3,24 +3,24 @@ package org.enso.table.data.column.storage;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.iterators.LongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 
 public abstract class AbstractLongStorage extends Storage<Long> implements ColumnLongStorage {
   private final long size;
-  private final IntegerType type;
 
   protected AbstractLongStorage(long size, IntegerType type) {
+    super(type);
     this.size = size;
-    this.type = type;
+  }
+
+  @Override
+  public IntegerType getType() {
+    return (IntegerType)super.getType();
   }
 
   @Override
   public final long getSize() {
     return size;
-  }
-
-  @Override
-  public IntegerType getType() {
-    return type;
   }
 
   @Override

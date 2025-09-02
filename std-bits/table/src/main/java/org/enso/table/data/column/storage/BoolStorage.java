@@ -15,6 +15,7 @@ public final class BoolStorage extends Storage<Boolean>
   private final boolean negated;
 
   public BoolStorage(BitSet values, BitSet isNothing, int size, boolean negated) {
+    super(BooleanType.INSTANCE);
     this.values = values;
     this.isNothing = isNothing;
     this.size = size;
@@ -29,11 +30,6 @@ public final class BoolStorage extends Storage<Boolean>
   @Override
   public Boolean getItemBoxed(long idx) {
     return isNothing(idx) ? null : getItemAsBoolean(idx);
-  }
-
-  @Override
-  public StorageType<Boolean> getType() {
-    return BooleanType.INSTANCE;
   }
 
   @Override

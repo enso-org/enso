@@ -4,6 +4,7 @@ import java.util.BitSet;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
@@ -19,9 +20,15 @@ public final class DoubleStorage extends Storage<Double>
    *     Nothing.
    */
   public DoubleStorage(double[] data, int size, BitSet isNothing) {
+    super(FloatType.FLOAT_64);
     this.data = data;
     this.isNothing = isNothing;
     this.size = size;
+  }
+
+  @Override
+  public FloatType getType() {
+    return (FloatType)super.getType();
   }
 
   @Override
@@ -45,11 +52,6 @@ public final class DoubleStorage extends Storage<Double>
       throw new ValueIsNothingException(index);
     }
     return data[Math.toIntExact(index)];
-  }
-
-  @Override
-  public FloatType getType() {
-    return FloatType.FLOAT_64;
   }
 
   @Override

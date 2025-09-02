@@ -14,17 +14,13 @@ public class MixedStorageFacade extends Storage<Object>
   private final Storage<?> underlyingStorage;
 
   public MixedStorageFacade(ColumnStorage<?> storage) {
+    super(AnyObjectType.INSTANCE);
     underlyingStorage = (Storage<?>) storage;
   }
 
   @Override
   public long getSize() {
     return underlyingStorage.getSize();
-  }
-
-  @Override
-  public StorageType<Object> getType() {
-    return AnyObjectType.INSTANCE;
   }
 
   public ColumnStorage<?> getInferredStorage() {

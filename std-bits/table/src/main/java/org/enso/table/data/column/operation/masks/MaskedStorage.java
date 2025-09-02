@@ -11,6 +11,7 @@ public class MaskedStorage<T> extends Storage<T> {
   private final IndexMapper indexMapper;
 
   MaskedStorage(ColumnStorage<T> parent, IndexMapper indexMapper) {
+    super(parent.getType());
     this.parent = parent;
     this.indexMapper = indexMapper;
   }
@@ -33,11 +34,6 @@ public class MaskedStorage<T> extends Storage<T> {
   @Override
   public long getSize() {
     return indexMapper.size();
-  }
-
-  @Override
-  public StorageType<T> getType() {
-    return parent.getType();
   }
 
   @Override

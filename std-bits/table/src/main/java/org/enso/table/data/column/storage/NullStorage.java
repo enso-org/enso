@@ -10,17 +10,13 @@ public class NullStorage extends Storage<Void> {
   private final long size;
 
   public NullStorage(long size) {
+    super(NullType.INSTANCE);
     this.size = size;
   }
 
   @Override
   public long getSize() {
     return size;
-  }
-
-  @Override
-  public StorageType<Void> getType() {
-    return NullType.INSTANCE;
   }
 
   @Override
