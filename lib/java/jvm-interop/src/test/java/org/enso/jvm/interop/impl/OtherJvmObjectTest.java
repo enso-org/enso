@@ -14,6 +14,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.lang.foreign.MemorySegment;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -506,7 +507,7 @@ public class OtherJvmObjectTest {
     assertEquals('l', seq.byteAt(3));
     assertEquals('o', seq.byteAt(4));
 
-    var buf = bufValue.as(ByteBuffer.class);
+    var buf = asByteBuffer(bufValue);
     assertEquals('H', buf.get(0));
     assertEquals('e', buf.get(1));
     assertEquals('l', buf.get(2));
@@ -515,6 +516,27 @@ public class OtherJvmObjectTest {
     buf.put(0, "Ahoj!".getBytes());
 
     assertEquals("Ahoj!", withBuffer.invokeMember("toText").asString());
+  }
+
+  /**
+   * Converting a buffer-like value to {@link ByteBuffer} is tricky. Simple {@link
+   * Value#as(java.lang.Class)} works only for {@code HostObject}. To convert "guest value" we need
+   * to do something special. Let's rely on special <em>native pointer</em> support provided by the
+   * other JVM for direct {@link ByteBuffer}.
+   *
+   * @param value the value to convert to {@link ByteBuffer}
+   * @return instance of {@link ByteBuffer} to use in this JVM
+   */
+  private static ByteBuffer asByteBuffer(Value value) throws Exception {
+    assertTrue("The value is buffer-like", value.hasBufferElements());
+    try {
+      return value.as(ByteBuffer.class);
+    } catch (ClassCastException ex) {
+      assertTrue("Direct buffer should support native address", value.isNativePointer());
+      var address = value.asNativePointer();
+      var seg = MemorySegment.ofAddress(address).reinterpret(value.getBufferSize());
+      return seg.asByteBuffer();
+    }
   }
 
   private static Value loadOtherJvmClass(String name) throws Exception {
