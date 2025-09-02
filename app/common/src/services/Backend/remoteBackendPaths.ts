@@ -50,6 +50,8 @@ export const DECLINE_INVITATION_PATH = 'invitations'
 export const CREATE_PERMISSION_PATH = 'permissions'
 /** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */
 export const LIST_DIRECTORY_PATH = 'directories'
+/** Relative HTTP path to the "search directory" endpoint of the Cloud backend API. */
+export const SEARCH_DIRECTORY_PATH = 'directories/search'
 /** Relative HTTP path to the "create directory" endpoint of the Cloud backend API. */
 export const CREATE_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */

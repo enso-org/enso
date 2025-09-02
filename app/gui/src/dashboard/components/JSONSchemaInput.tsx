@@ -1,8 +1,9 @@
 /** @file A dynamic wizard for creating an arbitrary type of Datalink. */
 import { Input } from '#/components/aria'
-import Autocomplete from '#/components/Autocomplete'
 import { Button } from '#/components/Button'
 import { Checkbox } from '#/components/Checkbox'
+import { Form } from '#/components/Form'
+import { ComboBox } from '#/components/Inputs/ComboBox'
 import { Dropdown } from '#/components/Inputs/Dropdown'
 import FocusRing from '#/components/styled/FocusRing'
 import { Text } from '#/components/Text'
@@ -10,7 +11,7 @@ import { backendQueryOptions } from '#/hooks/backendHooks'
 import { constantValueOfSchema, getSchemaName, lookupDef } from '#/utilities/jsonSchema'
 import { asObject, singletonObjectOrNull } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { useBackends, useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
 import { Fragment, type JSX, useState } from 'react'
 import { twJoin } from 'tailwind-merge'
@@ -39,13 +40,11 @@ export interface JSONSchemaInputProps {
 export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { dropdownTitle, readOnly = false, defs, schema, path, getValidator } = props
   const { noBorder = false, isAbsent = false, value, onChange } = props
+  const { user } = useFullUserSession()
   // The functionality for inputting `enso-secret`s SHOULD be injected using a plugin,
   // but it is more convenient to avoid having plugin infrastructure.
   const { remoteBackend } = useBackends()
   const { getText } = useText()
-  const [autocompleteText, setAutocompleteText] = useState(() =>
-    typeof value === 'string' ? value : null,
-  )
   const [selectedChildIndex, setSelectedChildIndex] = useState<number>(0)
   const noChildBorder = dropdownTitle != null
   const isSecret =
@@ -56,7 +55,15 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
   const { data: secrets } = useQuery(
     backendQueryOptions(remoteBackend, 'listSecrets', [], { enabled: isSecret }),
   )
-  const autocompleteItems = isSecret ? (secrets?.map((secret) => secret.path) ?? null) : null
+  const userPathPrefix = `enso://Users/${user.name}/`
+  const secretAutocompleteItems =
+    secrets ?
+      secrets.map((secret) =>
+        secret.path.startsWith(userPathPrefix) ?
+          secret.path.replace(userPathPrefix, 'enso://~/')
+        : secret.path,
+      )
+    : null
   const isInvalid = !isAbsent && !getValidator(path)(value)
   const validationErrorClassName =
     isInvalid ? 'border border-danger focus:border-danger focus:outline-danger' : undefined
@@ -81,30 +88,36 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
       switch (schema.type) {
         case 'string': {
           if ('format' in schema && schema.format === 'enso-secret') {
-            const isValid = typeof value === 'string' && value !== ''
             children.push(
               <div className="flex flex-col">
-                <div
-                  className={twMerge(
-                    'w-full rounded-default border-0.5 border-primary/20 outline-offset-2 transition-[border-color,outline] duration-200 focus:border-primary/50 focus:outline focus:outline-2 focus:outline-offset-0 focus:outline-primary',
-                    validationErrorClassName,
-                  )}
+                <Form
+                  schema={(z) => z.object({ path: z.string() })}
+                  defaultValues={{
+                    path:
+                      typeof value === 'string' ?
+                        value.startsWith(userPathPrefix) ?
+                          value.replace(userPathPrefix, 'enso://~/')
+                        : value
+                      : '',
+                  }}
+                  onChange={(_key, newValue) => {
+                    if (newValue !== value) {
+                      onChange(newValue)
+                    }
+                  }}
                 >
-                  <Autocomplete
-                    items={autocompleteItems ?? []}
-                    itemToKey={(item) => item}
-                    placeholder={getText('enterSecretPath')}
-                    matches={(item, text) => item.toLowerCase().includes(text.toLowerCase())}
-                    values={isValid ? [value] : []}
-                    setValues={(values) => {
-                      onChange(values[0] ?? '')
-                    }}
-                    text={autocompleteText}
-                    setText={setAutocompleteText}
-                  >
-                    {(item) => item}
-                  </Autocomplete>
-                </div>
+                  {(form) => (
+                    <ComboBox
+                      form={form}
+                      name="path"
+                      items={secretAutocompleteItems ?? []}
+                      placeholder={getText('enterSecretPath')}
+                      className={twMerge('rounded-2xl', validationErrorClassName)}
+                    >
+                      {(item) => item}
+                    </ComboBox>
+                  )}
+                </Form>
                 {...errors}
               </div>,
               ...errors,

@@ -16,6 +16,7 @@ import project.Error.Error
 import project.Errors.Deprecated.Deprecated
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
+import project.Meta.Type
 import project.Nothing.Nothing
 import project.Runtime.Source_Location.Source_Location
 import project.Warning.Warning
@@ -174,6 +175,8 @@ Any.to_js_object self =
         _ : Meta.Constructor ->
             type_name = self.to Meta.Type . qualified_name . split '.' . at -2
             JS_Object.from_pairs [["type", type_name], ["constructor", m.name]]
+        _ : Type ->
+            JS_Object.from_pairs [["type", Meta.type_of self . to_text]]
         _ -> Error.throw ("Cannot convert " + self.to_text + " to JSON")
 
 ## ---

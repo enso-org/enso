@@ -14,8 +14,8 @@ import org.enso.compiler.core.ir.Module;
  * IR#mapExpressions(Function)}. Hence, the additional method {@link #transformModule(Module)}.
  *
  * <p>In the first, <b>prepare</b> phase, the compiler traverses from the root to the leaves and
- * calls the {@link #prepare(Expression)} method on the mini pass. During this phase, the mini pass
- * can gather information about the current IR element, but not modify it.
+ * calls the {@link #prepare(IR, Expression)} method on the mini pass. During this phase, the mini
+ * pass can gather information about the current IR element, but not modify it.
  *
  * <p>In the second, <b>transform</b> phase, the compiler returns from the leaves to the root and
  * calls the {@link #transformExpression(Expression)} method on the mini pass. During this phase,
@@ -25,13 +25,13 @@ import org.enso.compiler.core.ir.Module;
  * <p>For each IR element:
  *
  * <ol>
- *   <li>The {@link #prepare(Expression)} method is called to prepare the pass for the current IR
- *       element. This method is called when the {@link org.enso.compiler.Compiler} traverses the IR
- *       tree from top to bottom. This is useful for mini passes that need to build some information
- *       about the current IR element before transforming it. The mini pass must not modify the IR
- *       element neither attach any metadata to it in this method. By returning {@code null} from
- *       this method, the mini pass signals to the compiler that it wishes to not process the
- *       subtree of the current IR element.
+ *   <li>The {@link #prepare(IR, Expression)} method is called to prepare the pass for the current
+ *       IR element. This method is called when the {@link org.enso.compiler.Compiler} traverses the
+ *       IR tree from top to bottom. This is useful for mini passes that need to build some
+ *       information about the current IR element before transforming it. The mini pass must not
+ *       modify the IR element neither attach any metadata to it in this method. By returning {@code
+ *       null} from this method, the mini pass signals to the compiler that it wishes to not process
+ *       the subtree of the current IR element.
  *   <li>The {@link #transformExpression(Expression)} method is called to transform the current IR
  *       element. This method is called when the {@link org.enso.compiler.Compiler} traverses the
  *       element from bottom to top. All the children of the current IR element are already

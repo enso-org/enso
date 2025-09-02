@@ -3,6 +3,7 @@ package org.enso.common;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Handler;
@@ -51,7 +52,7 @@ public final class ContextFactory {
   private boolean enableAutoParallelism;
   private String executionEnvironment;
   private String checkForWarnings;
-  private String pythonHome;
+  private String pythonResourceDir;
   private int warningsLimit = 100;
   private java.util.Map<String, String> options = new HashMap<>();
   private String runtimerServerKey;
@@ -169,8 +170,14 @@ public final class ContextFactory {
     return this;
   }
 
-  public ContextFactory pythonHome(String pythonHome) {
-    this.pythonHome = pythonHome;
+  /**
+   * Path to the Python resources directory. The directory must exist and must contain subdirectory
+   * {@code python-home}.
+   *
+   * <p>See {@link Engine#copyResources(Path, String...)}.
+   */
+  public ContextFactory pythonResourceDir(String resourceDir) {
+    this.pythonResourceDir = resourceDir;
     return this;
   }
 
@@ -193,8 +200,8 @@ public final class ContextFactory {
         engineOptions.put(runtimerServerKey, "true");
       }
     }
-    if (pythonHome != null) {
-      options.put("python.PythonHome", pythonHome);
+    if (pythonResourceDir != null) {
+      System.setProperty("polyglot.engine.resourcePath.python", pythonResourceDir);
     }
     var builder =
         Context.newBuilder()

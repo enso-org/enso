@@ -23,6 +23,10 @@ export function listDirectoryArgs(params: ToValue<Directory | undefined>) {
             filterBy: null,
             labels: null,
             recentProjects: false,
+            from: null,
+            pageSize: null,
+            sortDirection: null,
+            sortExpression: null,
           },
           paramsValue.title,
         ]

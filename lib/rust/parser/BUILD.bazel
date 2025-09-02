@@ -1,18 +1,27 @@
+load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_library")
 
 rust_library(
-    name = "enso-parser",
+    name = "enso_parser",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
     edition = "2021",
     proc_macro_deps = all_crate_deps(proc_macro = True) + [
-        "//lib/rust/parser/src/syntax/tree/visitor:enso-parser-syntax-tree-visitor",
-        "//lib/rust/parser/macros:enso-parser-macros",
+        "//lib/rust/parser/src/syntax/tree/visitor:enso_parser_syntax_tree_visitor",
+        "//lib/rust/parser/macros:enso_parser_macros",
     ],
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
-        "//lib/rust/prelude:enso-prelude",
-        "//lib/rust/reflect:enso-reflect",
+        "//lib/rust/prelude:enso_prelude",
+        "//lib/rust/reflect:enso_reflect",
     ],
+)
+
+run_binary(
+    name = "generate_java",
+    args = ["$(@)"],
+    out_dirs = ["target/src_managed/main/org/enso/syntax2"],
+    tool = "//lib/rust/parser/generate-java:enso_parser_generate_java",
+    visibility = ["//visibility:public"],
 )

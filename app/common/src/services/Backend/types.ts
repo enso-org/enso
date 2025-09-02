@@ -161,6 +161,10 @@ export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
 export type EnsoPathValue = newtype.Newtype<string, 'EnsoPathValue'>
 export const EnsoPathValue = newtype.newtypeConstructor<EnsoPathValue>()
 
+/** A pagination token for an arbitrary endpoint. */
+export type PaginationToken = newtype.Newtype<string, 'PaginationToken'>
+export const PaginationToken = newtype.newtypeConstructor<PaginationToken>()
+
 /** User settings for a Snowflake credential. */
 export interface SnowflakeCredentialInput {
   readonly type: 'Snowflake'

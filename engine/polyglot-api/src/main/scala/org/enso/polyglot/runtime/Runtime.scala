@@ -231,9 +231,10 @@ object Runtime {
       /** An object representing invalidation of a list of expressions.
         *
         * @param value a list of expressions to invalidate.
+        * @param reason human-readable explanation for invalidation
         */
       @named("expressions")
-      case class Expressions(value: Vector[ExpressionId])
+      case class Expressions(value: Vector[ExpressionId], reason: String)
           extends InvalidatedExpressions
     }
 
