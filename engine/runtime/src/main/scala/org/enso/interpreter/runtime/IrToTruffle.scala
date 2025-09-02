@@ -127,7 +127,7 @@ import scala.jdk.OptionConverters._
 private[runtime] class IrToTruffle(
   val context: EnsoContext,
   val pkg: org.enso.pkg.Package[_],
-  val source: Source,
+  private val sourceSupplier: Supplier[Source],
   val scopeBuilder: TruffleCompilerModuleScopeBuilder,
   val compilerConfig: CompilerConfig
 ) {
@@ -135,18 +135,20 @@ private[runtime] class IrToTruffle(
     Builtins.get(context)
   }
 
+  lazy val source = sourceSupplier.get
+
   val language: EnsoLanguage = context.getLanguage
 
   def this(
     context: EnsoContext,
     pkg: org.enso.pkg.Package[_],
-    source: Source,
+    sourceSupplier: Supplier[Source],
     mod: CompilerContext.Module,
     compilerConfig: CompilerConfig
   ) = this(
     context,
     pkg,
-    source,
+    sourceSupplier,
     TruffleCompilerModuleScopeBuilder.fromCompilerModule(mod),
     compilerConfig
   )

@@ -30,6 +30,18 @@ public final class CachingSupplier<T> implements Supplier<T> {
     }
   }
 
+  public static <V> CachingSupplier<V> from(java.util.concurrent.Callable<V> c) {
+    Supplier<V> supply =
+        () -> {
+          try {
+            return c.call();
+          } catch (Exception ex) {
+            throw raise(RuntimeException.class, ex);
+          }
+        };
+    return wrap(supply);
+  }
+
   public static <V> CachingSupplier<V> forValue(V value) {
     return new CachingSupplier<>(value);
   }
@@ -77,5 +89,10 @@ public final class CachingSupplier<T> implements Supplier<T> {
   @SuppressWarnings("unchecked")
   public static <V> Supplier<V> nullSupplier() {
     return EMPTY;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T extends Exception> T raise(Class<T> type, Exception ex) throws T {
+    throw (T) ex;
   }
 }

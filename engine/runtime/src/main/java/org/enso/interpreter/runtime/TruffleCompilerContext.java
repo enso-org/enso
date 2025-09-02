@@ -50,6 +50,7 @@ import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.caches.SuggestionsCache;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -160,7 +161,8 @@ final class TruffleCompilerContext implements CompilerContext {
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
     var sb = TruffleCompilerModuleScopeBuilder.fromCompilerModuleScopeBuilder(scopeBuilder);
-    new IrToTruffle(context, m.getPackage(), m.getSource(), sb, config).run(module.getIr());
+    var ss = CachingSupplier.from(m::getSource);
+    new IrToTruffle(context, m.getPackage(), ss, sb, config).run(module.getIr());
   }
 
   // module related
