@@ -223,7 +223,7 @@ run_sbt(
 )
 
 run_enso(
-    name = "run_enso_version",
+    name = "run_enso_test",
     distribution = ":sbt_build_engine_distribution",
-    run_args = ["--version"]
+    src = "//test/Base_Tests:maybe_spec",
 )

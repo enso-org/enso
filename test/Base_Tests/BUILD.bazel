@@ -1,0 +1,7 @@
+
+filegroup(
+    name = "maybe_spec",
+    srcs = ["src/Data/Maybe_Spec.enso"],
+    visibility = ["//visibility:public"],
+)
+
