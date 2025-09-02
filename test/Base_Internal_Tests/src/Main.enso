@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import all
 
+import project.Data.Locale_Spec
 import project.Input_Output_Spec
 import project.Instrumentor_Spec
 import project.Cloud_Credentials_Spec
@@ -21,6 +22,7 @@ main filter=Nothing =
         Input_Output_Spec.add_specs suite_builder
         Instrumentor_Spec.add_specs suite_builder
         Github_Annotations_Spec.add_specs suite_builder
+        Locale_Spec.add_specs suite_builder
         Meta_Helpers_Spec.add_specs suite_builder
         Any_Intersection_Spec.add_specs suite_builder
 

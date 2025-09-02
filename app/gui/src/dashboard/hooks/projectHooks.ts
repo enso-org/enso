@@ -60,19 +60,41 @@ function useSetProjectAsset() {
     ) => {
       const listDirectoryQuery = queryClient
         .getQueryCache()
-        .find<readonly backendModule.AnyAsset<backendModule.AssetType>[] | undefined>({
-          queryKey: [backendType, 'listDirectory', parentId],
+        .find<backendModule.ListDirectoryResponseBody | undefined>({
+          queryKey: [backendType, 'listDirectory', parentId, { infinite: false }],
           exact: false,
         })
 
       if (listDirectoryQuery?.state.data) {
-        listDirectoryQuery.setData(
-          listDirectoryQuery.state.data.map((child) =>
+        listDirectoryQuery.setData({
+          ...listDirectoryQuery.state.data,
+          assets: listDirectoryQuery.state.data.assets.map((child) =>
             child.id === assetId && child.type === backendModule.AssetType.project ?
               transform(child)
             : child,
           ),
-        )
+        })
+      }
+
+      const listDirectoryInfiniteQuery = queryClient
+        .getQueryCache()
+        .find<reactQuery.InfiniteData<backendModule.ListDirectoryResponseBody> | undefined>({
+          queryKey: [backendType, 'listDirectory', parentId, { infinite: true }],
+          exact: false,
+        })
+
+      if (listDirectoryInfiniteQuery?.state.data) {
+        listDirectoryInfiniteQuery.setData({
+          ...listDirectoryInfiniteQuery.state.data,
+          pages: listDirectoryInfiniteQuery.state.data.pages.map((page) => ({
+            ...page,
+            assets: page.assets.map((child) =>
+              child.id === assetId && child.type === backendModule.AssetType.project ?
+                transform(child)
+              : child,
+            ),
+          })),
+        })
       }
     },
   )
@@ -263,12 +285,12 @@ export function useOpenProjectMutation() {
         projectState: { ...asset.projectState, type: backendModule.ProjectState.openInProgress },
       }))
     },
-    onSuccess: async (_, { title, hybrid, suppressHybridProjectOpen = false }) => {
+    onSuccess: async (_data, { title, hybrid, suppressHybridProjectOpen = false }) => {
       if (hybrid && !suppressHybridProjectOpen) {
         await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
       }
     },
-    onError: async (_, { type, parentId }) => {
+    onError: async (_error, { type, parentId }) => {
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
     onSettled: async () => {
@@ -528,10 +550,14 @@ function useOpenHybridProject() {
 
         let project
         for (const parentId of [localProject.parentId, localProject.projectRootId]) {
-          const assets = await localBackend.listDirectory({
-            parentId,
+          const { assets } = await localBackend.listDirectory({
+            parentId: parentId,
             filterBy: null,
             labels: null,
+            sortExpression: null,
+            sortDirection: null,
+            from: null,
+            pageSize: null,
             recentProjects: false,
           })
           project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)

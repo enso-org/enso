@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IRKind;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.core.ir.expression.ApplicationPrefixGen.Builder;
 import org.enso.runtime.parser.dsl.GenerateFields;
 import org.enso.runtime.parser.dsl.GenerateIR;
 import org.enso.runtime.parser.dsl.IRChild;
@@ -35,36 +36,15 @@ public interface Application extends Expression {
     }
 
     public Prefix copy(Expression function, List<CallArgument> arguments) {
-      return copy(
-          diagnostics(),
-          passData(),
-          identifiedLocation(),
-          id,
-          function,
-          arguments,
-          hasDefaultsSuspended());
+      return new Builder(this).function(function).arguments(arguments).build();
     }
 
     public Prefix copyWithArguments(List<CallArgument> arguments) {
-      return copy(
-          diagnostics(),
-          passData(),
-          identifiedLocation(),
-          id,
-          function(),
-          arguments,
-          hasDefaultsSuspended());
+      return new Builder(this).arguments(arguments).build();
     }
 
     public Prefix copyWithFunction(Expression function) {
-      return copy(
-          diagnostics(),
-          passData(),
-          identifiedLocation(),
-          id,
-          function,
-          arguments(),
-          hasDefaultsSuspended());
+      return new Builder(this).function(function).build();
     }
 
     @Override
@@ -103,7 +83,7 @@ public interface Application extends Expression {
     }
 
     public Force copyWithTarget(Expression target) {
-      return copy(diagnostics(), passData(), identifiedLocation(), id, target);
+      return new Builder(this).target(target).build();
     }
   }
 
@@ -156,7 +136,7 @@ public interface Application extends Expression {
     }
 
     public Typeset copyWithExpression(Option<Expression> expression) {
-      return copy(diagnostics(), passData(), identifiedLocation(), id, expression);
+      return new Builder(this).expression(expression).build();
     }
   }
 
@@ -188,7 +168,7 @@ public interface Application extends Expression {
     }
 
     public Sequence copyWithItems(List<Expression> items) {
-      return copy(diagnostics(), passData(), identifiedLocation(), id, items);
+      return new Builder(this).items(items).build();
     }
   }
 }

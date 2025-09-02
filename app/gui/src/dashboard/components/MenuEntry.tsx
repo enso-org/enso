@@ -30,56 +30,10 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
 })
 
 /** Get {@link text.TextId} for given shortcut action. */
-// All entries are intentionally hard-coded so that `Ctrl+F` will work.
 // eslint-disable-next-line react-refresh/only-export-components
-export const ACTION_TO_TEXT_ID: Readonly<
-  Record<
-    inputBindings.DashboardBindingKey,
-    Extract<text.TextId, `${inputBindings.DashboardBindingKey}Shortcut`>
-  >
-> = {
-  settings: 'settingsShortcut',
-  open: 'openShortcut',
-  run: 'runShortcut',
-  close: 'closeShortcut',
-  uploadToCloud: 'uploadToCloudShortcut',
-  downloadToLocal: 'downloadToLocalShortcut',
-  exportArchive: 'exportArchiveShortcut',
-  rename: 'renameShortcut',
-  edit: 'editShortcut',
-  delete: 'deleteShortcut',
-  undelete: 'undeleteShortcut',
-  share: 'shareShortcut',
-  label: 'labelShortcut',
-  duplicate: 'duplicateShortcut',
-  copy: 'copyShortcut',
-  copyAsPath: 'copyAsPathShortcut',
-  cut: 'cutShortcut',
-  paste: 'pasteShortcut',
-  download: 'downloadShortcut',
-  uploadFiles: 'uploadFilesShortcut',
-  newProject: 'newProjectShortcut',
-  newFolder: 'newFolderShortcut',
-  newDatalink: 'newDatalinkShortcut',
-  newSecret: 'newSecretShortcut',
-  newCredential: 'newCredentialShortcut',
-  useInNewProject: 'useInNewProjectShortcut',
-  closeModal: 'closeModalShortcut',
-  cancelEditName: 'cancelEditNameShortcut',
-  signOut: 'signOutShortcut',
-  downloadApp: 'downloadAppShortcut',
-  cancelCut: 'cancelCutShortcut',
-  selectAdditional: 'selectAdditionalShortcut',
-  selectRange: 'selectRangeShortcut',
-  selectAdditionalRange: 'selectAdditionalRangeShortcut',
-  goBack: 'goBackShortcut',
-  goForward: 'goForwardShortcut',
-  upgradePlan: 'upgradePlanShortcut',
-  aboutThisApp: 'aboutThisAppShortcut',
-  openInFileBrowser: 'openInFileBrowserShortcut',
-  ensoDevtools: 'ensoDevtoolsShortcut',
-  copyId: 'copyIdShortcut',
-} satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
+export function actionToTextId(action: inputBindings.DashboardBindingKey): text.TextId {
+  return `${action}Shortcut`
+}
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
@@ -122,17 +76,12 @@ export default function MenuEntry(props: MenuEntryProps) {
   const info = inputBindings.metadata[action]
   const buttonRef = React.useRef<HTMLButtonElement>(null)
 
-  const labelTextId: text.TextId = (() => {
-    if (action === 'openInFileBrowser') {
-      return (
-        detect.isOnMacOS() ? 'openInFileBrowserShortcutMacOs'
-        : detect.isOnWindows() ? 'openInFileBrowserShortcutWindows'
-        : 'openInFileBrowserShortcut'
-      )
-    } else {
-      return ACTION_TO_TEXT_ID[action]
-    }
-  })()
+  const labelTextId: text.TextId =
+    action === 'openInFileBrowser' ?
+      detect.isOnMacOS() ? 'openInFileBrowserShortcutMacOs'
+      : detect.isOnWindows() ? 'openInFileBrowserShortcutWindows'
+      : 'openInFileBrowserShortcut'
+    : actionToTextId(action)
 
   const { tooltip, targetProps } = useVisualTooltip({
     isDisabled: tooltipValue == null,
