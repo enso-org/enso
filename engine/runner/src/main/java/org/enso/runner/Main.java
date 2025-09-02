@@ -1277,17 +1277,26 @@ public class Main {
    * @return `true` if caching should be enabled, `false`, otherwise
    */
   private boolean shouldEnableIrCaches(CommandLine line) {
-    // Temporarily, enabling static analysis disables IR caches.
     if (line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION)) {
       if (line.hasOption(IR_CACHES_OPTION)) {
         throw exitFail(
-            "Currently --"
+          ""
                 + ENABLE_STATIC_ANALYSIS_OPTION
                 + " requires IR caches to be disabled, so --"
                 + IR_CACHES_OPTION
                 + " option cannot be used in combination with this flag.");
       }
-
+      return false;
+    }
+    if (line.hasOption(DISABLE_PRIVATE_CHECK_OPTION)) {
+      if (line.hasOption(IR_CACHES_OPTION)) {
+        throw exitFail(
+            ""
+                + DISABLE_PRIVATE_CHECK_OPTION
+                + " requires IR caches to be disabled, so --"
+                + IR_CACHES_OPTION
+                + " option cannot be used in combination with this flag.");
+      }
       return false;
     }
 

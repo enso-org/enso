@@ -566,6 +566,11 @@ public final class Module extends EnsoObject {
     return name;
   }
 
+  /**
+   * Package (e.g. project/library) associated with the module, if any.
+   *
+   * @return {@code null} or package associated with the module
+   */
   public Package<TruffleFile> getPackage() {
     return pkg;
   }

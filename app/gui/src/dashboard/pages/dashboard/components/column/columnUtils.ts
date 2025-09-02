@@ -2,7 +2,6 @@
 import type { SvgUseIcon } from '#/components/types'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
-import type * as text from 'enso-common/src/text'
 
 /** Column type. */
 export enum Column {
@@ -14,9 +13,6 @@ export enum Column {
   accessedByProjects = 'accessedByProjects',
   accessedData = 'accessedData',
 }
-
-/** Columns that can be used as a sort column. */
-export type SortableColumn = Column.modified | Column.name
 
 export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
   Column.name,
@@ -38,16 +34,6 @@ export const COLUMN_ICONS: Readonly<Record<Column, SvgUseIcon | (string & {})>> 
   [Column.path]: 'folder',
 }
 
-export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, text.TextId>> = {
-  [Column.name]: 'nameColumnShow',
-  [Column.modified]: 'modifiedColumnShow',
-  [Column.sharedWith]: 'sharedWithColumnShow',
-  [Column.labels]: 'labelsColumnShow',
-  [Column.accessedByProjects]: 'accessedByProjectsColumnShow',
-  [Column.accessedData]: 'accessedDataColumnShow',
-  [Column.path]: 'pathColumnShow',
-} satisfies { [C in Column]: `${C}ColumnShow` }
-
 const COLUMN_CSS_CLASSES =
   'text-left bg-clip-padding last:border-r-0 last:rounded-r-full last:w-full'
 const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x py max-w-96 ${COLUMN_CSS_CLASSES}`
@@ -65,36 +51,22 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
 
 /** Return the full list of columns given the relevant current state. */
 export function getColumnList(
-  user: backend.User,
+  userPlan: backend.Plan,
   backendType: backend.BackendType,
   category: Category,
+  isSearching: boolean,
 ): readonly Column[] {
   const isCloud = backendType === backend.BackendType.remote
-  const isEnterprise = user.plan === backend.Plan.enterprise
-
+  const isEnterprise = userPlan === backend.Plan.enterprise
   const isTrash = category.type === 'trash'
   const isRecent = category.type === 'recent'
   const isRoot = category.type === 'cloud'
 
-  const sharedWithColumn = () => {
-    if (isTrash) return false
-    if (isRecent) return false
-    if (isRoot) return false
-    return isCloud && isEnterprise && Column.sharedWith
-  }
-
-  const pathColumn = () => {
-    if (isTrash) return Column.path
-    if (isRecent) return Column.path
-
-    return false
-  }
-
   const columns = [
     Column.name,
     Column.modified,
-    sharedWithColumn(),
-    pathColumn(),
+    !isTrash && !isRecent && !isRoot && isCloud && isEnterprise && Column.sharedWith,
+    (isTrash || isRecent || isSearching) && Column.path,
     isCloud && Column.labels,
     // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1525
     // Bring back these columns when they are ready for use again.

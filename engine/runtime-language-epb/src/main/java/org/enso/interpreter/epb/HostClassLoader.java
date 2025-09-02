@@ -118,9 +118,10 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
   protected String findLibrary(String libname) {
     if (findLibraries != null) {
       try {
-        var res = InteropLibrary.getUncached().execute(findLibraries, libname);
-        if (res instanceof String s) {
-          return s;
+        var iop = InteropLibrary.getUncached();
+        var res = iop.execute(findLibraries, libname);
+        if (iop.isString(res)) {
+          return iop.asString(res);
         }
       } catch (InteropException ex) {
         logger.log(Logger.Level.WARNING, "Cannot find " + libname, ex);
