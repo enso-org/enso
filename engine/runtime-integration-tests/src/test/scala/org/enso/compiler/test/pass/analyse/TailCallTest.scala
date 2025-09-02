@@ -19,6 +19,7 @@ import org.enso.compiler.pass.{
 }
 import org.enso.compiler.test.MiniPassTest
 import org.enso.compiler.context.LocalScope
+import org.enso.compiler.core.ir.module.scope.definition.Method
 
 class TailCallTest extends MiniPassTest {
   override def testName: String = "Tail call"
@@ -361,6 +362,131 @@ class TailCallTest extends MiniPassTest {
               .getMetadata(TailCall.INSTANCE) shouldEqual None
           })
         }
+      )
+    }
+
+    "no warning when annotated in tail branch" in {
+      val code =
+        """
+          |func x =
+          |    case x of
+          |        Cons_1 -> x
+          |        Cons_2 -> @Tail_Call func x
+          |""".stripMargin
+
+      assertInlineCompilation(
+        code,
+        () => mkTailContext,
+        ir => {
+          val caseExpr = ir
+            .asInstanceOf[Expression.Binding]
+            .expression
+            .asInstanceOf[Function.Lambda]
+            .body()
+            .asInstanceOf[Expression.Block]
+            .returnValue
+            .asInstanceOf[Expression.Block]
+            .returnValue
+            .asInstanceOf[Case.Expr]
+          val caseBranch = caseExpr.branches.apply(1)
+          val branchExpression =
+            caseBranch.expression.asInstanceOf[Application.Prefix]
+
+          branchExpression.getMetadata(TailCall.INSTANCE) shouldEqual Some(
+            TailPosition.Tail
+          )
+          branchExpression.function.diagnosticsList
+            .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
+        },
+        compareIR = true
+      )
+    }
+
+    "all Function.Lambda should be marked as canBeTCO" in {
+      val code =
+        """
+          |type List
+          |    Nil
+          |    Cons x xs
+          |
+          |    fold self init f =
+          |        go acc list = case list of
+          |            Nil -> acc
+          |            Cons h t -> @Tail_Call go (f acc h) t
+          |        res = go init self
+          |        res
+          |""".stripMargin
+
+      assertModuleCompilation(
+        code,
+        () => mkModuleContext,
+        ir => {
+          val lambdas = ir.preorder().collect { case lam: Function.Lambda =>
+            lam
+          }
+          lambdas.zipWithIndex.foreach { case (lam, idx) =>
+            withClue(s"Function.Lambda ${idx} should be marked as canBeTCO") {
+              lam.canBeTCO shouldBe true
+            }
+          }
+        },
+        compareIR = true
+      )
+    }
+
+    "no warning when annotated in nested tail branch" in {
+      val code =
+        """
+          |type List
+          |    Nil
+          |    Cons x xs
+          |
+          |    fold self init f =
+          |        go acc list = case list of
+          |            Nil -> acc
+          |            Cons h t -> @Tail_Call go (f acc h) t
+          |        res = go init self
+          |        res
+          |""".stripMargin
+
+      assertModuleCompilation(
+        code,
+        () => mkModuleContext,
+        ir => {
+          val foldMethod = ir.bindings
+            .apply(1)
+            .asInstanceOf[Method.Explicit]
+          val goMethod = foldMethod.body
+            .asInstanceOf[Function.Lambda]
+            .body()
+            .asInstanceOf[Expression.Block]
+            .expressions
+            .head
+            .asInstanceOf[Expression.Binding]
+            .expression
+            .asInstanceOf[Function.Lambda]
+          goMethod.canBeTCO shouldBe true
+          val caseExpr = goMethod
+            .body()
+            .asInstanceOf[Expression.Block]
+            .returnValue
+            .asInstanceOf[Case.Expr]
+          val caseBranch = caseExpr
+            .branches()
+            .apply(1)
+          caseBranch.terminalBranch() shouldBe true
+          val exprAnnotatedWithTail = caseBranch
+            .expression()
+            .asInstanceOf[Application.Prefix]
+
+          withClue(
+            "No warning on `@Tail_Call go (f acc h) t` in the tail branch"
+          ) {
+            exprAnnotatedWithTail.diagnosticsList
+              .count(_.isInstanceOf[Warning.WrongTco]) shouldEqual 0
+          }
+        },
+        compareIR = true
       )
     }
   }

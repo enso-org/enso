@@ -23,6 +23,7 @@ import { NetworkError } from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useRightPanelData, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { NetworkError as OtherNetworkError } from 'enso-common/src/services/Backend'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
@@ -68,7 +69,11 @@ export function DriveBarNavigation() {
       ),
     meta: { persist: false },
     retry: (count, error) => {
-      if (error instanceof AssetDoesNotExistError || error instanceof NetworkError) {
+      if (
+        error instanceof AssetDoesNotExistError ||
+        error instanceof NetworkError ||
+        error instanceof OtherNetworkError
+      ) {
         if (currentDirectoryId === currentDirectoryIdRef.current) {
           setDriveLocation(null, null)
         }

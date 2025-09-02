@@ -669,9 +669,9 @@ case object AliasAnalysis extends IRPass {
     function match {
       case lambda: Function.Lambda =>
         val lc = lambda
-          .copy(
-            arguments = analyseArgumentDefs(lambda.arguments, currentScope),
-            body = analyseExpression(
+          .copyWithArgumentsAndBody(
+            analyseArgumentDefs(lambda.arguments, currentScope),
+            analyseExpression(
               lambda.body,
               currentScope
             )

@@ -1,9 +1,16 @@
-/** @file A test for basic flow of the application: open project and see if nodes appear. */
+/** @file A series of tests designed for testing GUI behavior in Local workflow. */
 
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
 import { type Page, expect } from 'playwright/test'
-import { CONTROL_KEY, loginAsTestUser, test } from './electronTest'
+import {
+  CONTROL_KEY,
+  closeWelcome,
+  createNewProject,
+  getNewestProject,
+  loginAsTestUser,
+  test,
+} from './electronTest'
 
 const startTimestamp = Date.now()
 let screenshotIndex = 0
@@ -18,34 +25,38 @@ async function writeToFocusedComponentBrowser(page: Page, content: string): Prom
   await input.fill(content)
 }
 
+// A test checking duplication of projects
+test('Project Duplicate', async ({ page }) => {
+  await loginAsTestUser(page)
+  await closeWelcome(page)
+  await createNewProject(page)
+
+  // Finding all of the 'New projects'
+  const newest = await getNewestProject(page)
+  await newest.click({ button: 'right' })
+
+  // Try to duplicate the new project
+  const duplicateButton = page.getByRole('button', { name: 'Duplicate' })
+  await expect(duplicateButton).toBeVisible()
+  await duplicateButton.click()
+
+  // Checking if the duplication was successful
+  await expect(page.getByText('New Project 1 (copy)')).toBeVisible()
+})
+
+// A test for basic flow of the application: open project and see if nodes appear.
 test('Local Workflow', async ({ page, app, projectsDir }) => {
   const OUTPUT_FILE = 'output.txt'
   const TEXT_TO_WRITE = 'Some text'
 
   await loginAsTestUser(page)
+  await closeWelcome(page)
 
-  // If welcome project is to be opened, wait for it.
-  // If none for 3 seconds, we just move on.
-  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
-  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
-  if (await welcomeProjectTab.isVisible()) {
-    await page.getByRole('tab', { name: 'Data Catalog' }).click()
-  }
-
-  await expect(page.getByRole('button', { name: 'New Project', exact: true })).toBeVisible({
-    timeout: 30000,
-  })
-  await page.getByRole('button', { name: 'New Project', exact: true }).click()
-  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
+  await createNewProject(page)
 
   const projectName = (await page.getByTitle('Project Name').textContent()) ?? ''
   await expect(projectName).toBeTruthy()
   const PROJECT_PATH = pathModule.join(projectsDir, projectName.replaceAll(' ', ''))
-
-  // We see the node type and visualization, so the engine is running the program
-  await expect(page.locator('.node-type')).toHaveText('Table & +3', { timeout: 30000 })
-  await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
-  await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
 
   // Create node connected to the first node by picking suggestion.
   await page.locator('.GraphNode').click()
@@ -121,6 +132,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
 
   expect(await fs.readdir(PROJECT_PATH)).not.toContain(OUTPUT_FILE)
   await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
+
   // Press `Write once` button.
   await writeNode.locator('.More').click()
   await writeNode.getByTestId('action:component.recompute').click()

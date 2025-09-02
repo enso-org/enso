@@ -82,7 +82,7 @@ export function iconOfNode(node: NodeId, graphDb: GraphDb) {
  */
 export function useDisplayedIcon(
   graphDb: GraphDb,
-  externalId: ToValue<ExternalId>,
+  externalId: ToValue<ExternalId | undefined>,
   baseIcon: ToValue<AnyIcon>,
 ): {
   displayedIcon: ComputedRef<AnyWidgetIcon>

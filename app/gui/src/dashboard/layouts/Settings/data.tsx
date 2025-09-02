@@ -3,7 +3,7 @@ import ComputerIcon from '#/assets/computer.svg'
 import { Button } from '#/components/Button'
 import type { TSchema } from '#/components/Form'
 import type { ComboBoxProps } from '#/components/Inputs/ComboBox'
-import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
+import { actionToTextId } from '#/components/MenuEntry'
 import { Text } from '#/components/Text'
 import type { SvgUseIcon } from '#/components/types'
 import { BINDINGS } from '#/configurations/inputBindings'
@@ -499,7 +499,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                 if (v.rebindable === false) {
                   return []
                 } else {
-                  return [ACTION_TO_TEXT_ID[k]]
+                  return [actionToTextId(k)]
                 }
               })
               return rebindableBindings.map((binding) => context.getText(binding))

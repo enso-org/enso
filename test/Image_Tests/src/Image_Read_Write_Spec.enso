@@ -7,9 +7,9 @@ from Standard.Image import Image, Read_Flag, Write_Flag
 
 from Standard.Test import all
 
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
-from enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import create_local_datalink_to
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+from enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import create_local_datalink_to
 
 polyglot java import java.lang.System as Java_System
 

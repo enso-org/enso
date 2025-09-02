@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
-from Standard.Base.Data.Ordering import Comparable, Ordering
 
 import project.Errors.No_Such_Column
 import project.Internal.Widget_Helpers

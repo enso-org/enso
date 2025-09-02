@@ -8,7 +8,6 @@ import project.IO.Data_Link_Formats_Spec
 import project.IO.Delimited_Read_Spec
 import project.IO.Delimited_Write_Spec
 import project.IO.Excel_Spec
-import project.IO.Fetch_Spec
 import project.IO.Formats_Spec
 import project.IO.Json_Spec
 import project.IO.Read_Many_Spec
@@ -21,7 +20,6 @@ add_specs suite_builder =
     Excel_Spec.add_specs suite_builder
     Formats_Spec.add_specs suite_builder
     Data_Link_Formats_Spec.add_specs suite_builder
-    Fetch_Spec.add_specs suite_builder
     Json_Spec.add_specs suite_builder
     Read_Many_Spec.add_specs suite_builder
 

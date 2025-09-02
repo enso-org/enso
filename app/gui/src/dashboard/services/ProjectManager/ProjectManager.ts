@@ -139,6 +139,10 @@ export class ProjectManager {
 
   /** Get the state of a project given its path. */
   async getProject(projectPath: Path) {
+    const existingProjectId = this.projectIds.get(projectPath)
+    if (existingProjectId) {
+      return this.projects.get(existingProjectId)
+    }
     await this.listDirectory(Path(getFolderPath(projectPath)))
     const projectId = this.projectIds.get(projectPath)
     invariant(projectId, `Unknown project id for project '${projectPath}'.`)
@@ -296,7 +300,10 @@ export class ProjectManager {
   }
 
   /** List directories, projects and files in the given folder. */
-  async listDirectory(parentPath: Path | null): Promise<readonly FileSystemEntry[]> {
+  async listDirectory(
+    parentPath: Path | null,
+    recursive = false,
+  ): Promise<readonly FileSystemEntry[]> {
     /** The type of the response body of this endpoint. */
     interface ResponseBody {
       readonly entries: FileSystemEntry[]
@@ -304,7 +311,7 @@ export class ProjectManager {
     parentPath ??= this.rootDirectory
     const response = await this.runStandaloneCommandJson<ResponseBody>(
       null,
-      'filesystem-list',
+      recursive ? 'filesystem-list-recursive' : 'filesystem-list',
       parentPath,
     )
     const result = response.entries

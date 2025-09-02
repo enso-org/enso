@@ -1,10 +1,10 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks.*
+import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers.*
+import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
@@ -13,8 +13,8 @@ import src.main.scala.licenses.{
   SBTDistributionComponent
 }
 
-import scala.sys.process.*
-import Dependencies.*
+import scala.sys.process._
+import Dependencies._
 import JarExtractor.{
   CopyToOutputJar,
   LinuxAMD64,
@@ -188,9 +188,6 @@ ThisBuild / javacOptions ++= Seq(
 )
 
 ThisBuild / javaOptions ++= Seq(
-  // Needed for migration from JDK 21 to JDK 24
-  // See https://github.com/oracle/graal/blob/master/sdk/CHANGELOG.md#version-2420
-  "--enable-native-access=org.graalvm.truffle",
   // Truffle calls terminally deprecated methods from sun.misc.Unsafe in JDK24.
   // This removes the warnings at runtime.
   // TODO: Remove this until JDK 26
@@ -329,6 +326,7 @@ lazy val enso = (project in file("."))
     `profiling-utils`,
     `project-manager`,
     `python-extract`,
+    `python-resource-provider`,
     `refactoring-utils`,
     runtime,
     `runtime-and-langs`,
@@ -516,8 +514,9 @@ lazy val componentModulesPaths =
     (`scala-libs-wrapper` / Compile / exportedModuleBin).value,
     (`fansi-wrapper` / Compile / exportedModuleBin).value,
     (`edition-updater` / Compile / exportedModuleBin).value,
+    (`process-utils` / Compile / exportedModuleBin).value,
     (`profiling-utils` / Compile / exportedModuleBin).value,
-    (`process-utils` / Compile / exportedModuleBin).value
+    (`python-resource-provider` / Compile / exportedModuleBin).value
   )
   ourMods ++ thirdPartyModFiles
 }
@@ -733,12 +732,15 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq(
-      "io.circe"          %% "circe-core"       % circeVersion     % "provided",
-      "org.yaml"           % "snakeyaml"        % snakeyamlVersion % "provided",
-      "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
+      "org.graalvm.sdk"    % "nativeimage"      % graalMavenPackagesVersion % "provided",
+      "io.circe"          %% "circe-core"       % circeVersion              % "provided",
+      "org.yaml"           % "snakeyaml"        % snakeyamlVersion          % "provided",
+      "org.scalatest"     %% "scalatest"        % scalatestVersion          % Test,
       "org.apache.commons" % "commons-compress" % commonsCompressVersion
     ),
     Compile / moduleDependencies ++= Seq(
+      "org.graalvm.sdk"    % "word"             % graalMavenPackagesVersion,
+      "org.graalvm.sdk"    % "nativeimage"      % graalMavenPackagesVersion,
       "org.apache.commons" % "commons-compress" % commonsCompressVersion,
       "org.yaml"           % "snakeyaml"        % snakeyamlVersion
     ),
@@ -765,6 +767,7 @@ lazy val `python-extract` = project
       "org.graalvm.python" % "python-resources" % graalMavenPackagesVersion
     ),
     Compile / run / mainClass := Some("org.enso.pyextract.PythonExtract"),
+    Compile / run / javaOptions ++= Seq("--enable-native-access=ALL-UNNAMED"),
     Compile / run / fork := true,
     extractPythonResources := {
       val outDir          = target.value / "python-resources"
@@ -792,6 +795,20 @@ lazy val `python-extract` = project
       val outDir = target.value / "python-resources"
       IO.delete(outDir)
     }
+  )
+
+lazy val `python-resource-provider` = project
+  .in(file("engine/python-resource-provider"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    frgaalJavaCompilerSetting,
+    libraryDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion
+    ),
+    Compile / moduleDependencies ++= Seq(
+      "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion,
+      "org.graalvm.sdk"     % "word"        % graalMavenPackagesVersion
+    )
   )
 
 lazy val `akka-native` = project
@@ -2708,6 +2725,7 @@ lazy val runtime = (project in file("engine/runtime"))
       (`runtime-parser` / Compile / exportedModule).value,
       (`runtime-suggestions` / Compile / exportedModule).value,
       (`polyglot-api` / Compile / exportedModule).value,
+      (`python-resource-provider` / Compile / exportedModule).value,
       (`common-polyglot-core-utils` / Compile / exportedModule).value,
       (`pkg` / Compile / exportedModule).value,
       (`cli` / Compile / exportedModule).value,
@@ -2755,6 +2773,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`runtime-compiler`)
   .dependsOn(`runtime-suggestions`)
   .dependsOn(`connected-lock-manager`)
+  .dependsOn(`python-resource-provider`)
   .dependsOn(testkit % Test)
 
 lazy val `runtime-and-langs` = (project in file("engine/runtime-and-langs"))
@@ -3266,7 +3285,9 @@ lazy val `runtime-compiler` =
         "com.typesafe"         % "config"                  % typesafeConfigVersion     % Test,
         "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % Test,
         "org.hamcrest"         % "hamcrest-all"            % hamcrestVersion           % Test,
-        "com.google.jimfs"     % "jimfs"                   % jimFsVersion              % Test
+        "com.google.jimfs"     % "jimfs"                   % jimFsVersion              % Test,
+        "org.mockito"          % "mockito-core"            % mockitoJavaVersion        % Test,
+        "org.mockito"          % "mockito-junit-jupiter"   % mockitoJavaVersion        % Test
       ),
       libraryDependencies ++= logbackPkg.map(_ % Test),
       Compile / moduleDependencies ++= slf4jApi ++ Seq(
@@ -3806,26 +3827,8 @@ lazy val `engine-runner` = project
       core ++ stdLibsJars ++ extraNITestLibs.value
     },
     extraNITestLibs := Def.taskDyn {
-      if (GraalVM.EnsoLauncher.test) Def.task {
-        val baseHelpers =
-          (`enso-test-java-helpers` / Compile / packageBin).value
-            .getAbsolutePath()
-        val snowHelpers =
-          (`snowflake-test-java-helpers` / Compile / packageBin).value
-            .getAbsolutePath()
-        if (GraalVM.EnsoLauncher.fast) {
-          Seq(baseHelpers)
-        } else {
-          Seq(
-            baseHelpers,
-            snowHelpers
-          )
-        }
-      }
-      else {
-        Def.task {
-          Seq[String]()
-        }
+      Def.task {
+        Seq[String]()
       }
     }.value,
     buildSmallJdk := {
@@ -4200,10 +4203,13 @@ lazy val `jvm-interop` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      // jvm-interop/test has to run with -ea enabled
-      // otherwise Truffle library support performs a lot of additional
-      // checks and they skew the message counts
-      // inConfig(Compile)(truffleRunOptionsSettings),
+      // jvm-interop/test has to run with -ea disabled form Truffle.
+      // Otherwise Truffle library performs a lot of additional
+      // checks and they skew the message counts. Thus enabling -ea
+      // only for Enso packages
+      inConfig(Compile)(
+        Seq(fork := true, javaOptions ++= Seq("-ea:org.enso.jvm..."))
+      ),
       autoScalaLibrary := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
@@ -4634,7 +4640,9 @@ lazy val `edition-updater` = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     ),
     Compile / internalModuleDependencies := Seq(
+      (`cli` / Compile / exportedModule).value,
       (`distribution-manager` / Compile / exportedModule).value,
+      (`downloader` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value
     )
   )
@@ -4899,7 +4907,8 @@ lazy val `std-base` = project
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot"       % "polyglot"         % graalMavenPackagesVersion,
-      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion
+      "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
+      "org.slf4j"                  % "slf4j-api"        % slf4jVersion
     ),
     Compile / packageBin := {
       val result = (Compile / packageBin).value

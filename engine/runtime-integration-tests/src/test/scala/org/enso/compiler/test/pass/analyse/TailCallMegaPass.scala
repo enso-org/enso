@@ -33,6 +33,7 @@ import org.enso.compiler.pass.analyse.TailCall
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
+import org.enso.persist.Persistance.Reference
 
 /** Original implementation of [[org.enso.compiler.pass.analyse.TailCall]].
   * Now server as the test verification of the new [[org.enso.compiler.pass.analyse.TailCallMini]].
@@ -456,11 +457,15 @@ case object TailCallMegaPass extends IRPass {
     val markAsTail = (!canBeTCO && isInTailPosition) || canBeTCO
 
     val resultFunction = function match {
-      case lambda @ Function.Lambda(args, body, _, _, _, _) =>
-        lambda.copy(
-          arguments = args.map(analyseDefArgument),
-          body      = analyseExpression(body, isInTailPosition = markAsTail)
-        )
+      case lambda: Function.Lambda =>
+        val newArgs = lambda.arguments().map(analyseDefArgument)
+        val newBody =
+          analyseExpression(lambda.body(), isInTailPosition = markAsTail)
+        Function.Lambda
+          .builder(lambda)
+          .arguments(newArgs)
+          .bodyReference(Reference.of(newBody))
+          .build()
       case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during tail call analysis."

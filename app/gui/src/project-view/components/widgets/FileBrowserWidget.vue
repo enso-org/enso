@@ -88,7 +88,7 @@ type AssetExists = { exists: true; type: AssetType } | { exists: false }
 async function assetExists(name: string): Promise<AssetExists> {
   const currentDir = currentDirectory.value
   if (currentDir == null) return { exists: false }
-  const content = await listDirectory(currentDir)
+  const content = (await listDirectory(currentDir))?.assets
   const asset = content?.find((asset) => asset.title === name)
   if (!asset) return { exists: false }
   return { exists: true, type: asset.type }
@@ -97,8 +97,8 @@ async function assetExists(name: string): Promise<AssetExists> {
 // Prefetch directories to avoid lag when the user navigates, but only if we don't already have
 // stale data. When the user opens a directory with stale data, it will refresh and the animation
 // will show what files have changed since they last viewed.
-watch(data, (assets) => {
-  for (const asset of assets ?? [])
+watch(data, (response) => {
+  for (const asset of response?.assets ?? [])
     if (assetIsDirectory(asset)) ensureQueryData('listDirectory', listDirectoryArgs(asset))
 })
 
@@ -229,7 +229,7 @@ registerHandlers({
         ref="browserContent"
         :key="currentDirectory?.id ?? 'root'"
         class="browserContents"
-        :assets="data ?? []"
+        :assets="data?.assets ?? []"
         :chosenFilename="highlightedFilename"
         :targetType="type ?? 'file'"
         :matchesFilter="fileExtensionFilter.matches"
@@ -257,13 +257,22 @@ registerHandlers({
 .FileBrowserWidgetWrapper {
   --z-index: var(--z-index-file-browser, 0);
   --z-index-selection-submenu: calc(var(--z-index) - 1);
+  --background-color: var(--file-browser-background-color, var(--color-panel-accent));
+  --dropdown-bg: var(--background-color);
+  --dropdown-fg: var(--file-browser-text-color, white);
+  --dropdown-item-hover-bg: color-mix(in oklab, var(--dropdown-bg) 70%, white 30%);
+  --dropdown-item-selected-bg: color-mix(
+    in oklab,
+    var(--dropdown-bg) 80%,
+    var(--color-node-background) 20%
+  );
 }
 
 .FileBrowserWidget {
   --border-width: 2px;
   --border-radius-inner: calc(var(--radius-default) - var(--border-width));
-  background-color: var(--file-browser-background-color, var(--color-panel-accent));
   --corner-radius: var(--file-browser-corner-radius, var(--radius-default));
+  background-color: var(--background-color);
   padding: var(--border-width);
   border-radius: 0 0 var(--corner-radius) var(--corner-radius);
   min-width: var(--file-browser-min-width, 400px);

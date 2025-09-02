@@ -62,7 +62,7 @@ function ProjectLogsModalInternal(props: ProjectLogsModalProps) {
   const editorRef = useRef<Monaco>()
 
   const logsPages = useInfiniteQuery({
-    queryKey: ['projectLogs', { projectSessionId, projectTitle }],
+    queryKey: ['projectLogs', { projectSessionId, projectTitle, infinite: true }],
     queryFn: ({ pageParam }) =>
       backend.getProjectSessionLogs(projectSessionId, { scrollId: pageParam }, projectTitle),
     initialPageParam: ((): string | null => null)(),
