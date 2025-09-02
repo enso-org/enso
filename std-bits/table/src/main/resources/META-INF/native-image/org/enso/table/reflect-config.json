@@ -508,7 +508,7 @@
             {
                 "name": "storage",
                 "parameterTypes": []
-            }
+            },
             {
                 "name": "actualGroupCount",
                 "parameterTypes": []
