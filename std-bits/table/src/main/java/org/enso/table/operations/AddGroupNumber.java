@@ -233,32 +233,33 @@ public class AddGroupNumber {
       boolean named,
       boolean population,
       ProblemAggregator problemAggregator) {
-      if (groupCount % 2 == 0) {
-        throw new IllegalArgumentException("group_count must be odd");
+    if (groupCount % 2 == 0) {
+      throw new IllegalArgumentException("group_count must be odd");
+    }
+
+    var innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+
+    double mean = mean(column);
+    double stddev = standardDeviation(column, mean, population);
+    var builder = Builder.getForText(TextType.VARIABLE_LENGTH, numRows);
+
+    for (int row = 0; row < column.getSize(); ++row) {
+      var x = column.getItem(row);
+      if (x == null) {
+        innerAggregator.reportColumnAggregatedProblem(
+            new IllegalArgumentError(
+                "Standard_Deviation", "Null value encountered in standard deviation column", row));
+        builder.appendNulls(1);
+      } else if (x instanceof Number n) {
+        double d = n.doubleValue();
+        String label = calculateGroup(d, named, mean, stddev, groupCount);
+        builder.append(label);
+      } else {
+        throw new IllegalArgumentException(
+            "add_group_number: non-numeric value encountered in standard deviation column" + row);
       }
-
-      var innerAggregator =
-          new ColumnAggregatedProblemAggregator(problemAggregator);
-
-      double mean = mean(column);
-      double stddev = standardDeviation(column, mean, population);
-      var builder = Builder.getForText(TextType.VARIABLE_LENGTH, numRows);
-
-      for (int row = 0; row < column.getSize(); ++row) {
-        var x = column.getItem(row);
-        if (x == null) {
-          innerAggregator.reportColumnAggregatedProblem(
-            new IllegalArgumentError("Standard_Deviation", "Null value encountered in standard deviation column", row));
-          builder.appendNulls(1);
-        } else if (x instanceof Number n) {
-          double d = n.doubleValue();
-          String label = calculateGroup(d, named, mean, stddev, groupCount);
-          builder.append(label);
-        } else {
-          throw new IllegalArgumentException("add_group_number: non-numeric value encountered in standard deviation column" + row);
-        }
-      }
-      return builder.seal();
+    }
+    return builder.seal();
   }
 
   private static double mean(Column column) {
@@ -293,23 +294,25 @@ public class AddGroupNumber {
     return Math.sqrt(sumSquaredDiffs / denominator);
   }
 
-  private final static String[] namedLabels = new String[] {
-    "Extremely High",
-    "Very High",
-    "High",
-    "Above Average",
-    "Average",
-    "Below Average",
-    "Low",
-    "Very Low",
-    "Extremely Low"
-  };
+  private static final String[] namedLabels =
+      new String[] {
+        "Extremely High",
+        "Very High",
+        "High",
+        "Above Average",
+        "Average",
+        "Below Average",
+        "Low",
+        "Very Low",
+        "Extremely Low"
+      };
 
-  private static String calculateGroup(double value, boolean named, double mean, double stddev, int groupCount) {
+  private static String calculateGroup(
+      double value, boolean named, double mean, double stddev, int groupCount) {
     long groupIndex = calculateCappedGroupIndex(value, mean, stddev, groupCount);
     if (named) {
       long labelIndex = groupIndex + ((namedLabels.length - 1) / 2);
-      return namedLabels[(int)labelIndex];
+      return namedLabels[(int) labelIndex];
     } else {
       double low = (double) groupIndex - 0.5;
       double high = (double) groupIndex + 0.5;
@@ -317,7 +320,8 @@ public class AddGroupNumber {
     }
   }
 
-  private static long calculateCappedGroupIndex(double value, double mean, double stddev, int groupCount) {
+  private static long calculateCappedGroupIndex(
+      double value, double mean, double stddev, int groupCount) {
     // Group numbers are centered around 0, and capped on either side by groupCount
     long maxPosGroup = (groupCount - 1) / 2;
     long groupIndex = calculateGroupIndex(value, mean, stddev);
@@ -325,13 +329,8 @@ public class AddGroupNumber {
   }
 
   /**
-   * Returns a symmetric bin number:
-   *   (s = 1 standard deviation)
-   *   -2.5s .. -1.5s -> group -2
-   *   -1.5s .. -0.5s -> group -1
-   *   -0.5s ..  0.5s -> group  0
-   *    0.5s ..  1.5s -> group  1
-   *    1.5s ..  2.5s -> group  2
+   * Returns a symmetric bin number: (s = 1 standard deviation) -2.5s .. -1.5s -> group -2 -1.5s ..
+   * -0.5s -> group -1 -0.5s .. 0.5s -> group 0 0.5s .. 1.5s -> group 1 1.5s .. 2.5s -> group 2
    */
   private static long calculateGroupIndex(double value, double mean, double stddev) {
     if (stddev == 0.0) {
