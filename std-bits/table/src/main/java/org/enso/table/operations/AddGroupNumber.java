@@ -232,32 +232,33 @@ public class AddGroupNumber {
       int groupCount,
       boolean population,
       ProblemAggregator problemAggregator) {
-      if (groupCount % 2 == 0) {
-        throw new IllegalArgumentException("group_count must be odd");
+    if (groupCount % 2 == 0) {
+      throw new IllegalArgumentException("group_count must be odd");
+    }
+
+    var innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+
+    double mean = mean(column);
+    double stddev = standardDeviation(column, mean, population);
+    var builder = Builder.getForText(TextType.VARIABLE_LENGTH, numRows);
+
+    for (int row = 0; row < column.getSize(); ++row) {
+      var x = column.getItem(row);
+      if (x == null) {
+        innerAggregator.reportColumnAggregatedProblem(
+            new IllegalArgumentError(
+                "Standard_Deviation", "Null value encountered in standard deviation column", row));
+        builder.appendNulls(1);
+      } else if (x instanceof Number n) {
+        double d = n.doubleValue();
+        String label = calculateGroup(d, mean, stddev, groupCount);
+        builder.append(label);
+      } else {
+        throw new IllegalArgumentException(
+            "add_group_number: non-numeric value encountered in standard deviation column" + row);
       }
-
-      var innerAggregator =
-          new ColumnAggregatedProblemAggregator(problemAggregator);
-
-      double mean = mean(column);
-      double stddev = standardDeviation(column, mean, population);
-      var builder = Builder.getForText(TextType.VARIABLE_LENGTH, numRows);
-
-      for (int row = 0; row < column.getSize(); ++row) {
-        var x = column.getItem(row);
-        if (x == null) {
-          innerAggregator.reportColumnAggregatedProblem(
-            new IllegalArgumentError("Standard_Deviation", "Null value encountered in standard deviation column", row));
-          builder.appendNulls(1);
-        } else if (x instanceof Number n) {
-          double d = n.doubleValue();
-          String label = calculateGroup(d, mean, stddev, groupCount);
-          builder.append(label);
-        } else {
-          throw new IllegalArgumentException("add_group_number: non-numeric value encountered in standard deviation column" + row);
-        }
-      }
-      return builder.seal();
+    }
+    return builder.seal();
   }
 
   private static double mean(Column column) {
@@ -303,13 +304,8 @@ public class AddGroupNumber {
   }
 
   /**
-   * Returns a symmetric bin number:
-   *   (s = 1 standard deviation)
-   *   -2.5s .. -1.5s -> group -2
-   *   -1.5s .. -0.5s -> group -1
-   *   -0.5s ..  0.5s -> group  0
-   *    0.5s ..  1.5s -> group  1
-   *    1.5s ..  2.5s -> group  2
+   * Returns a symmetric bin number: (s = 1 standard deviation) -2.5s .. -1.5s -> group -2 -1.5s ..
+   * -0.5s -> group -1 -0.5s .. 0.5s -> group 0 0.5s .. 1.5s -> group 1 1.5s .. 2.5s -> group 2
    */
   private static long calculateGroupIndex(double value, double mean, double stddev) {
     if (stddev == 0.0) {
