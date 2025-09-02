@@ -113,6 +113,7 @@
   [13554]
 - [Implement `Text_Column` for in-memnory backend.][13769]
 - [Implement `Text_Column.to_case` for in-memnory backend.][13769]
+- [In-memory table `add_group_number` supports `Equal_Sum`.][13819]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -131,6 +132,7 @@
 [13487]: https://github.com/enso-org/enso/pull/13487
 [13554]: https://github.com/enso-org/enso/pull/13554
 [13769]: https://github.com/enso-org/enso/pull/13769
+[13819]: https://github.com/enso-org/enso/pull/13819
 
 #### Enso Language & Runtime
 

@@ -36,11 +36,13 @@ public final class RuntimeOptions {
       OptionDescriptor.newBuilder(ENABLE_STATIC_ANALYSIS_KEY, ENABLE_STATIC_ANALYSIS).build();
 
   public static final String HOST_CLASS_LOADING = optionName("classLoading");
-  public static final OptionKey<String> HOST_CLASS_LOADING_KEY = new OptionKey<>("hosted");
+  public static final String HOST_CLASS_LOADING_HOSTED = "hosted";
+  public static final OptionKey<String> HOST_CLASS_LOADING_KEY =
+      new OptionKey<>(HOST_CLASS_LOADING_HOSTED);
   private static final OptionDescriptor HOST_CLASS_LOADING_DESCRIPTOR =
       OptionDescriptor.newBuilder(HOST_CLASS_LOADING_KEY, HOST_CLASS_LOADING)
           .help("Controls the way Enso runtime resolves polyglot java import statements")
-          .usageSyntax("Possible values are <hosted|service|all>")
+          .usageSyntax("Expecting comma separated list of `[<namespace>.<name>:]?hosted|guest`")
           .category(OptionCategory.INTERNAL)
           .build();
 

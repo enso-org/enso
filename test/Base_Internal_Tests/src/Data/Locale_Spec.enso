@@ -3,17 +3,7 @@ from Standard.Base import all
 from Standard.Base.Metadata.Choice import Option
 from Standard.Test import all
 
-
-polyglot java import java.util.Locale as JavaLocale
-
-with_locale locale ~test =
-    default_locale = JavaLocale.getDefault
-    JavaLocale.setDefault locale.java_locale
-    result = Panic.catch Any test caught_panic->
-        JavaLocale.setDefault default_locale
-        Panic.throw caught_panic
-    JavaLocale.setDefault default_locale
-    result
+private with_locale locale ~test = Locale.with_locale locale test
 
 add_specs suite_builder =
   suite_builder.group "Locale" group_builder->

@@ -222,6 +222,22 @@
         "recordedRepoMappingEntries": []
       }
     },
+    "//toolchains:tar/extensions.bzl%tar_toolchain": {
+      "general": {
+        "bzlTransitiveDigest": "zaB1i+QbFHKAtb8fdIPYDrVMuvv47NruofNSwyBYoGQ=",
+        "usagesDigest": "as88kBc5XKKjvtBjgA9K4U2bY8597uhSgRX22NpzMGY=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "tar_toolchain": {
+            "repoRuleId": "@@//toolchains:tar/extensions.bzl%tar_toolchain_repo_rule",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "//toolchains/flatc:extensions.bzl%flatc_toolchain": {
       "general": {
         "bzlTransitiveDigest": "6cagZe2Aug65lEk85Zmk0Tz1cRIKoMDKRczklUPfYtM=",
