@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleSafepoint;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -17,6 +18,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
@@ -36,6 +38,7 @@ final class EnsoPolyglotJava {
   private final boolean isHostClassLoading;
   private final List<File> pendingPath = new ArrayList<>();
   private Object polyglotJava = this;
+  private Semaphore lock = new Semaphore(1, true);
 
   private EnsoPolyglotJava(EnsoContext ctx, boolean isHostClassLoading) {
     this.ctx = ctx;
@@ -152,21 +155,26 @@ final class EnsoPolyglotJava {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private synchronized Object findPolyglotJava() throws InteropException {
-    if (polyglotJava != this) {
-      return polyglotJava;
-    }
-    polyglotJava = createPolyglotJava(ctx);
-    while (!pendingPath.isEmpty()) {
-      addToClassPath(pendingPath.remove(0));
-    }
+  private Object findPolyglotJava() throws InteropException {
+    acquireLock();
     try {
-      InteropLibrary.getUncached()
-          .invokeMember(polyglotJava, "findLibraries", new LibraryResolver());
-    } catch (InteropException ex) {
-      logger.log(Level.WARNING, "Cannot register findLibraries", ex);
+      if (polyglotJava != this) {
+        return polyglotJava;
+      }
+      polyglotJava = createPolyglotJava(ctx);
+      while (!pendingPath.isEmpty()) {
+        addToClassPath(pendingPath.remove(0));
+      }
+      try {
+        InteropLibrary.getUncached()
+            .invokeMember(polyglotJava, "findLibraries", new LibraryResolver());
+      } catch (InteropException ex) {
+        logger.log(Level.WARNING, "Cannot register findLibraries", ex);
+      }
+      return polyglotJava;
+    } finally {
+      lock.release();
     }
-    return polyglotJava;
   }
 
   /**
@@ -180,6 +188,12 @@ final class EnsoPolyglotJava {
     data.guest.addToClassPath(path);
   }
 
+  private void acquireLock() {
+    while (!lock.tryAcquire()) {
+      TruffleSafepoint.poll(null);
+    }
+  }
+
   /**
    * Modifies the classpath to use to lookup {@code polyglot java} imports.
    *
@@ -187,23 +201,33 @@ final class EnsoPolyglotJava {
    */
   @CompilerDirectives.TruffleBoundary
   private final synchronized void addToClassPath(File file) throws InteropException {
-    if (polyglotJava == this) {
-      pendingPath.add(file);
-    } else {
-      InteropLibrary.getUncached().invokeMember(polyglotJava, "addPath", file.toString());
+    acquireLock();
+    try {
+      if (polyglotJava == this) {
+        pendingPath.add(file);
+      } else {
+        InteropLibrary.getUncached().invokeMember(polyglotJava, "addPath", file.toString());
+      }
+    } finally {
+      lock.release();
     }
   }
 
-  private final synchronized void close() {
-    if (polyglotJava instanceof TruffleObject closeJava) {
-      polyglotJava = null;
-      try {
-        InteropLibrary.getUncached().invokeMember(closeJava, "close");
-      } catch (InteropException ex) {
-        logger.log(Level.WARNING, "Cannot close " + closeJava, ex);
+  private final void close() {
+    acquireLock();
+    try {
+      if (polyglotJava instanceof TruffleObject closeJava) {
+        polyglotJava = null;
+        try {
+          InteropLibrary.getUncached().invokeMember(closeJava, "close");
+        } catch (InteropException ex) {
+          logger.log(Level.WARNING, "Cannot close " + closeJava, ex);
+        }
+      } else {
+        polyglotJava = null;
       }
-    } else {
-      polyglotJava = null;
+    } finally {
+      lock.release();
     }
   }
 
