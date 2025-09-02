@@ -169,7 +169,7 @@ export function Dashboard(props: DashboardProps) {
   }, [openProjectLocally])
 
   const inputBindingHandlers = React.useMemo(() => {
-    const hasOrganization = backendModule.isUserOnPlanWithOrganization(user)
+    const hasOrganization = backendModule.isUserOnPlanWithMultipleSeats(user)
 
     return inputBindings.defineHandlers({
       // We want to handle the back and forward buttons in electron the same way as in the browser.
