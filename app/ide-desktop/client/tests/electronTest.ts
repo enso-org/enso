@@ -93,6 +93,11 @@ export async function loginAsTestUser(page: Page) {
   await page.getByRole('textbox', { name: 'password' }).fill(process.env.ENSO_TEST_USER_PASSWORD)
   await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
+  await expect(
+    page
+      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
+      .getByText(TEXT.licenseAgreementCheckbox),
+  ).toBeVisible({ timeout: 60000 })
   await page
     .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
     .getByText(TEXT.licenseAgreementCheckbox)
@@ -156,4 +161,24 @@ export async function getNewestProject(page: Page): Promise<Locator> {
   )
 
   return numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
+}
+
+/**
+ * Clicking the eye button and making visualization visible
+ */
+export async function visualizeData(page: Page) {
+  const showViz = page.getByLabel('Show visualization (Space)')
+  await expect(showViz).toBeVisible({ timeout: 5000 })
+  await showViz.click()
+}
+
+/**
+ * Creating new component tied to the last created one
+ */
+export async function createNewComponent(page: Page) {
+  const moreButton = page.getByTestId('more-button').getByRole('button', { name: 'More' }).last()
+  await expect(moreButton).toBeVisible()
+  await moreButton.click()
+
+  await page.keyboard.press('Enter')
 }
