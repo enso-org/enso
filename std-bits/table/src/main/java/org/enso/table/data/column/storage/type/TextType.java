@@ -6,6 +6,8 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
+import java.util.Objects;
+
 public final class TextType implements StorageType<String> {
   public static final TextType VARIABLE_LENGTH = new TextType(-1, false);
 
@@ -172,5 +174,17 @@ public final class TextType implements StorageType<String> {
       return output;
     }
     throw new IllegalArgumentException("Storage is not of TextType");
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    TextType textType = (TextType) o;
+    return maxLength == textType.maxLength && fixedLength == textType.fixedLength;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(maxLength, fixedLength);
   }
 }
