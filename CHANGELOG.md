@@ -8,6 +8,7 @@
 - [Autocompletion for Column methods in table expressions][13797]
 - [Autocompletion for Column names in table expressions][13848]
 - [Removal of --no-global-cache option][13909]
+- [Autocompletion for table expression builtin functions in table expressions][13914]
 
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
@@ -15,6 +16,7 @@
 [13797]: https://github.com/enso-org/enso/pull/13797
 [13848]: https://github.com/enso-org/enso/pull/13848
 [13909]: https://github.com/enso-org/enso/pull/13909
+[13914]: https://github.com/enso-org/enso/pull/13914
 
 # Next Release
 
