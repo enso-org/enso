@@ -108,8 +108,8 @@ public final class SuggestionsCache
     } else {
       var bindingsCacheRoot =
           pkg.get().getSuggestionsCacheRootForPackage(BuildVersion.ensoVersion());
-      var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
-      return Collections.singletonList(localCacheRoot);
+      var distributionRoot = bindingsCacheRoot.resolve(libraryName.namespace());
+      return Collections.singletonList(distributionRoot);
     }
   }
 
