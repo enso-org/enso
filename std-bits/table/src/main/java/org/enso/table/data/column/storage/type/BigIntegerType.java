@@ -13,6 +13,11 @@ public final class BigIntegerType implements StorageType<BigInteger>, NumericTyp
   private BigIntegerType() {}
 
   @Override
+  public char typeChar() {
+    return 'E';
+  }
+
+  @Override
   public boolean isNumeric() {
     return true;
   }

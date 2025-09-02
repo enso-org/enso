@@ -13,6 +13,11 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
   private BigDecimalType() {}
 
   @Override
+  public char typeChar() {
+    return 'D';
+  }
+
+  @Override
   public boolean isNumeric() {
     return true;
   }

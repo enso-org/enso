@@ -10,6 +10,11 @@ public final class NullType implements StorageType<Void> {
   private NullType() {}
 
   @Override
+  public char typeChar() {
+    return 'N';
+  }
+
+  @Override
   public boolean isNumeric() {
     return true;
   }

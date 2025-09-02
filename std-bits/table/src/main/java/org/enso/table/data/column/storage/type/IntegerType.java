@@ -20,6 +20,16 @@ public final class IntegerType implements StorageType<Long>, NumericType {
     this.bits = bits;
   }
 
+  @Override
+  public char typeChar() {
+    return 'I';
+  }
+
+  @Override
+  public long size() {
+    return bits().toInteger();
+  }
+
   /** Returns the number of bits of this integer type. */
   public Bits bits() {
     return bits;

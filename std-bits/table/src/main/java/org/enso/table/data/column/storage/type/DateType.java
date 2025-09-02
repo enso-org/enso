@@ -13,6 +13,11 @@ public final class DateType implements StorageType<LocalDate> {
   private DateType() {}
 
   @Override
+  public char typeChar() {
+    return 'X';
+  }
+
+  @Override
   public boolean hasDate() {
     return true;
   }

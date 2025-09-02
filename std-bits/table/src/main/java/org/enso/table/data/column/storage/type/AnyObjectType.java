@@ -12,6 +12,11 @@ public final class AnyObjectType implements StorageType<Object> {
   private AnyObjectType() {}
 
   @Override
+  public char typeChar() {
+    return 'A';
+  }
+
+  @Override
   public boolean isOfType(StorageType<?> other) {
     return other instanceof AnyObjectType;
   }

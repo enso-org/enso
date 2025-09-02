@@ -4,10 +4,10 @@ import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class TextLengthOperation implements UnaryOperation {
   public static final String NAME = "text_length";

@@ -12,6 +12,11 @@ public final class BooleanType implements StorageType<Boolean> {
   private BooleanType() {}
 
   @Override
+  public char typeChar() {
+    return 'B';
+  }
+
+  @Override
   public boolean isOfType(StorageType<?> other) {
     return other instanceof BooleanType;
   }

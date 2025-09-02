@@ -17,7 +17,13 @@ public final class DateTimeType implements StorageType<ZonedDateTime> {
     this.hasTimeZone = hasTimeZone;
   }
 
-  /** Returns true if the DateTimeType includes timezone information.
+  @Override
+  public char typeChar() {
+    return hasTimeZone ? 'Z' : 'Y';
+  }
+
+  /**
+   * Returns true if the DateTimeType includes timezone information.
    *
    * @return true if the DateTimeType includes timezone information.
    */

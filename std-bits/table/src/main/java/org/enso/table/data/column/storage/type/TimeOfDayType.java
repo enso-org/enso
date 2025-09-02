@@ -13,6 +13,11 @@ public final class TimeOfDayType implements StorageType<LocalTime> {
   private TimeOfDayType() {}
 
   @Override
+  public char typeChar() {
+    return 'W';
+  }
+
+  @Override
   public boolean hasTime() {
     return true;
   }

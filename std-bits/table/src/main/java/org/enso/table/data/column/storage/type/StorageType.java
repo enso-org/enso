@@ -134,4 +134,47 @@ TimeOfDayType*/ {
    * @return the storage as a typed storage.
    */
   ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
+
+  static StorageType<?> fromTypeCharAndLength(char typeChar, long size) {
+    return switch (typeChar) {
+      case 'A' -> AnyObjectType.INSTANCE;
+      case 'B' -> BooleanType.INSTANCE;
+      case 'D' -> BigDecimalType.INSTANCE;
+      case 'E' -> BigIntegerType.INSTANCE;
+      case 'F' -> {
+        if (size != 64) {
+          throw new IllegalArgumentException("Unknown float size: " + size);
+        }
+        yield FloatType.FLOAT_64;
+      }
+      case 'I' -> switch ((int) size) {
+        case 8 -> IntegerType.INT_8;
+        case 16 -> IntegerType.INT_16;
+        case 32 -> IntegerType.INT_32;
+        case 64 -> IntegerType.INT_64;
+        default -> throw new IllegalArgumentException("Unknown integer size: " + size);
+      };
+      case 'N' -> NullType.INSTANCE;
+      case 'S' -> size == -1 ? TextType.VARIABLE_LENGTH : TextType.variableLengthWithLimit(size);
+      case 'T' -> TextType.fixedLength(size);
+      case 'W' -> TimeOfDayType.INSTANCE;
+      case 'X' -> DateType.INSTANCE;
+      case 'Y' -> DateTimeType.INSTANCE_NO_TZ;
+      case 'Z' -> DateTimeType.INSTANCE;
+      default -> throw new IllegalArgumentException("Unknown type char: " + typeChar);
+    };
+  }
+
+  /**
+   * @return a character representing the type, used for serialization.
+   */
+  char typeChar();
+
+  /**
+   * @return the maximum length of the type if applicable, or -1 if not applicable (e.g. for
+   *     variable-length)
+   */
+  default long size() {
+    return -1;
+  }
 }
