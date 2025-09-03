@@ -1,5 +1,6 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -115,6 +116,7 @@ public abstract class EnsoRootNode extends RootNode {
 
   static final int NO_SOURCE = -1;
 
+  @TruffleBoundary
   static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
     if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
       var src = rootNode.source == null ? null : rootNode.source.get();

@@ -460,6 +460,7 @@ public final class Module extends EnsoObject {
    * @param s source to check
    * @return {@code true} if the source has been created for this module
    */
+  @TruffleBoundary
   public final boolean isModuleSource(Source s) {
     return allSources.containsKey(s);
   }
