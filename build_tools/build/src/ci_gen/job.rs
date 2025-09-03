@@ -25,6 +25,7 @@ use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::RunnerLabel;
+use ide_ci::actions::workflow::definition::Shell;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
@@ -975,13 +976,13 @@ rm dist/backend/project-manager.tar"
                         format!("dist/ide/enso-*.{}", target.0.package_extension()),
                     );
                 steps.push(upload_ide);
-                
+
                 let test_prepare_step = shell("\
                     mkdir -p app/ide-desktop/client/playwright/.auth && \
                     touch app/ide-desktop/client/playwright/.auth/user.json && \
                     chmod 600 app/ide-desktop/client/playwright/.auth/user.json && \
                     echo \"{\\\"user\\\": \\\"$ENSO_TEST_USER\\\",\\\"password\\\":\\\"$ENSO_TEST_USER_PASSWORD\\\"}\" >> app/ide-desktop/client/playwright/.auth/user.json\
-                    ").with_secret_exposed_as(
+                    ").with_shell(Shell::Bash).with_secret_exposed_as(
                         secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
                         "ENSO_TEST_USER",
                     )
@@ -1007,7 +1008,7 @@ rm dist/backend/project-manager.tar"
                 let test_step = test_step
                     .with_env("DEBUG", "pw:browser log:")
                     .with_name("Run Package Tests");
-                    
+
                 steps.push(test_step);
 
                 let upload_test_traces_step = Step {
@@ -1034,7 +1035,7 @@ rm dist/backend/project-manager.tar"
                     ..shell(format!("rm -f {cloud_credentials_path}"))
                     .with_name("Remove Credentials File")
                 };
-                    
+
                 steps.push(cleanup_credentials_step);
 
                 steps
