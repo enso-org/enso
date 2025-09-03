@@ -289,7 +289,7 @@ export async function handleFilesystemCommand(
       case '--filesystem-write-path': {
         const filePath = cliArguments[1]
         if (filePath == null) break
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
           request
             .pipe(fsSync.createWriteStream(filePath), {
               end: true,
