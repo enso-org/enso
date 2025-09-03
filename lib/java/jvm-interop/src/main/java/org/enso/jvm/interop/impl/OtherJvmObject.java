@@ -161,9 +161,6 @@ final class OtherJvmObject implements TruffleObject {
       if (message == HAS_HASH_ENTRIES) {
         return OtherInteropType.hasHashEntries(mask);
       }
-      if (message == HAS_ARRAY_ELEMENTS) {
-        return OtherInteropType.hasArrayElements(mask);
-      }
       if (message == HAS_BUFFER_ELEMENTS) {
         return OtherInteropType.hasBufferElements(mask);
       }
