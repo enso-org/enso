@@ -119,9 +119,6 @@ public abstract class EnsoRootNode extends RootNode {
   @TruffleBoundary
   static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
     if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
-      if (rootNode.sourceStartIndex == NO_SOURCE) {
-        return null;
-      }
       var src = rootNode.source == null ? null : rootNode.source.get();
       var module = rootNode.getModuleScope().getModule();
       var ownedByModule = module.isModuleSource(src);
