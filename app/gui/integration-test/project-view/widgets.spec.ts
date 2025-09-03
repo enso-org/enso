@@ -3,7 +3,7 @@ import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
-import { mockVisualizationDataUpdate } from './visualizationUpdates'
+import { mockVisualizationDataUpdate, resetMockWidgetConfigurations } from './visualizationUpdates'
 
 class DropDownLocator {
   readonly rootWidget: Locator
@@ -299,12 +299,11 @@ async function dataReadNodeWithMethodCallInfo(page: Page): Promise<Locator> {
 
 test('Dynamic configuration overrides static drop-down', async ({ page }) => {
   await actions.goToGraph(page)
+  await resetMockWidgetConfigurations(page)
   const node = await dataReadNodeWithMethodCallInfo(page)
   const topLevelArgs = node.locator('.WidgetTopLevelArgument')
   await node.click()
   await expect(topLevelArgs).toHaveCount(3)
-  // Reset dynamic configuration for `read` method.
-  await mockVisualizationDataUpdate(page, '.read', null)
   await expect(
     topLevelArgs.filter({ has: page.getByText('format') }).locator('.WidgetSelection'),
   ).not.toBeVisible()

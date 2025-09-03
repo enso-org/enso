@@ -221,13 +221,78 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
     ]),
   }
 
-function mockWidgetConfiguration(method: string | undefined) {
-  switch (method) {
-    case '.read':
-      return encodeJSON([
-        [
-          'path',
-          {
+const mockWidgetConfigurations: Map<string, Uint8Array> = new Map([
+  [
+    '.read',
+    encodeJSON([
+      [
+        'path',
+        {
+          type: 'Widget',
+          constructor: 'Single_Choice',
+          label: null,
+          values: [
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: '"File 1"',
+              label: 'File 1',
+              parameters: [],
+            },
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: '"File 2"',
+              label: 'File 2',
+              parameters: [],
+            },
+          ],
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ]),
+  ],
+  [
+    '.select_columns',
+    encodeJSON([
+      [
+        'columns',
+        {
+          type: 'Widget',
+          constructor: 'Multiple_Choice',
+          label: null,
+          values: [
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: "'Column A'",
+              label: 'Column A',
+              parameters: [],
+            },
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: "'Column B'",
+              label: 'Column B',
+              parameters: [],
+            },
+          ],
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ]),
+  ],
+  [
+    '.aggregate',
+    encodeJSON([
+      [
+        'columns',
+        {
+          type: 'Widget',
+          constructor: 'Vector_Editor',
+          /* eslint-disable camelcase */
+          item_default: 'Aggregate_Column.Group_By',
+          item_editor: {
             type: 'Widget',
             constructor: 'Single_Choice',
             label: null,
@@ -235,148 +300,95 @@ function mockWidgetConfiguration(method: string | undefined) {
               {
                 type: 'Choice',
                 constructor: 'Option',
-                value: '"File 1"',
-                label: 'File 1',
+                value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
+                label: null,
+                parameters: [
+                  [
+                    'column',
+                    {
+                      type: 'Widget',
+                      constructor: 'Single_Choice',
+                      label: null,
+                      values: [
+                        {
+                          type: 'Choice',
+                          constructor: 'Option',
+                          value: '"column 1"',
+                          label: 'column 1',
+                          parameters: [],
+                        },
+                        {
+                          type: 'Choice',
+                          constructor: 'Option',
+                          value: '"column 2"',
+                          label: 'column 2',
+                          parameters: [],
+                        },
+                      ],
+                      display: { type: 'Display', constructor: 'Always' },
+                    },
+                  ],
+                ],
+              },
+              {
+                type: 'Choice',
+                constructor: 'Option',
+                value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
+                label: null,
                 parameters: [],
               },
               {
                 type: 'Choice',
                 constructor: 'Option',
-                value: '"File 2"',
-                label: 'File 2',
-                parameters: [],
+                value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
+                label: null,
+                parameters: [
+                  [
+                    'columns',
+                    {
+                      type: 'Widget',
+                      constructor: 'Single_Choice',
+                      label: null,
+                      values: [
+                        {
+                          type: 'Choice',
+                          constructor: 'Option',
+                          value: '"column 1"',
+                          label: 'column 1',
+                          parameters: [],
+                        },
+                        {
+                          type: 'Choice',
+                          constructor: 'Option',
+                          value: '"column 2"',
+                          label: 'column 2',
+                          parameters: [],
+                        },
+                      ],
+                      display: { type: 'Display', constructor: 'Always' },
+                    },
+                  ],
+                ],
               },
             ],
             display: { type: 'Display', constructor: 'Always' },
           },
-        ],
-      ])
-    case '.select_columns':
-      return encodeJSON([
-        [
-          'columns',
-          {
-            type: 'Widget',
-            constructor: 'Multiple_Choice',
-            label: null,
-            values: [
-              {
-                type: 'Choice',
-                constructor: 'Option',
-                value: "'Column A'",
-                label: 'Column A',
-                parameters: [],
-              },
-              {
-                type: 'Choice',
-                constructor: 'Option',
-                value: "'Column B'",
-                label: 'Column B',
-                parameters: [],
-              },
-            ],
-            display: { type: 'Display', constructor: 'Always' },
-          },
-        ],
-      ])
-    case '.aggregate':
-      return encodeJSON([
-        [
-          'columns',
-          {
-            type: 'Widget',
-            constructor: 'Vector_Editor',
-            /* eslint-disable camelcase */
-            item_default: 'Aggregate_Column.Group_By',
-            item_editor: {
-              type: 'Widget',
-              constructor: 'Single_Choice',
-              label: null,
-              values: [
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
-                  label: null,
-                  parameters: [
-                    [
-                      'column',
-                      {
-                        type: 'Widget',
-                        constructor: 'Single_Choice',
-                        label: null,
-                        values: [
-                          {
-                            type: 'Choice',
-                            constructor: 'Option',
-                            value: '"column 1"',
-                            label: 'column 1',
-                            parameters: [],
-                          },
-                          {
-                            type: 'Choice',
-                            constructor: 'Option',
-                            value: '"column 2"',
-                            label: 'column 2',
-                            parameters: [],
-                          },
-                        ],
-                        display: { type: 'Display', constructor: 'Always' },
-                      },
-                    ],
-                  ],
-                },
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
-                  label: null,
-                  parameters: [],
-                },
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
-                  label: null,
-                  parameters: [
-                    [
-                      'columns',
-                      {
-                        type: 'Widget',
-                        constructor: 'Single_Choice',
-                        label: null,
-                        values: [
-                          {
-                            type: 'Choice',
-                            constructor: 'Option',
-                            value: '"column 1"',
-                            label: 'column 1',
-                            parameters: [],
-                          },
-                          {
-                            type: 'Choice',
-                            constructor: 'Option',
-                            value: '"column 2"',
-                            label: 'column 2',
-                            parameters: [],
-                          },
-                        ],
-                        display: { type: 'Display', constructor: 'Always' },
-                      },
-                    ],
-                  ],
-                },
-              ],
-              display: { type: 'Display', constructor: 'Always' },
-            },
-            /* eslint-enable camelcase */
-            display: { type: 'Display', constructor: 'Always' },
-          },
-        ],
-      ])
-    default:
-      return null
-  }
+          /* eslint-enable camelcase */
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ]),
+  ],
+])
+
+function resetMockWidgetConfigurations() {
+  mockWidgetConfigurations.clear()
+}
+;(window as any)._resetMockWidgetConfigurations = resetMockWidgetConfigurations
+
+function mockWidgetConfiguration(method: string | undefined) {
+  if (!method) return null
+  return mockWidgetConfigurations.get(method) ?? null
 }
 
 function createMessageId(builder: Builder) {
