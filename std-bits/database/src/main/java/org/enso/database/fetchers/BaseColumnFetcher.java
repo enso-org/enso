@@ -3,8 +3,6 @@ package org.enso.database.fetchers;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
 
-import java.util.Map;
-
 public abstract class BaseColumnFetcher implements ColumnFetcher {
   protected static final int DEFAULT_SIZE = 1024;
 
@@ -45,7 +43,7 @@ public abstract class BaseColumnFetcher implements ColumnFetcher {
       value = timestampValue.toLocalDateTime();
     }
 
-    return  value;
+    return value;
   }
 
   @Override
