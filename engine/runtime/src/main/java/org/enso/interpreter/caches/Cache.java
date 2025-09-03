@@ -14,6 +14,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.logger.masking.MaskedPath;
@@ -43,7 +44,14 @@ public final class Cache<T, M> {
    */
   private final boolean needsSourceDigestVerification;
 
-  private final Arena memoryArena;
+  /**
+   * Large cache files will be {@link FileChannel#map(MapMode, long, long, Arena) mmapped} using a
+   * newly created arena via this supplier. Whenever a cache is loaded or saved, the previous arena
+   * will be closed, which will invalidate all byte buffers associated with that arena.
+   */
+  private final Supplier<Arena> memoryArenaSupplier;
+
+  private Arena memoryArena;
 
   /**
    * Flag indicating if the de-serialization process should compute the hash of the stored cache and
@@ -68,13 +76,13 @@ public final class Cache<T, M> {
       String logName,
       boolean needsSourceDigestVerification,
       boolean needsDataDigestVerification,
-      Arena memoryArena) {
+      Supplier<Arena> memoryArenaSupplier) {
     this.spi = spi;
     this.logLevel = logLevel;
     this.logName = logName;
     this.needsDataDigestVerification = needsDataDigestVerification;
     this.needsSourceDigestVerification = needsSourceDigestVerification;
-    this.memoryArena = memoryArena;
+    this.memoryArenaSupplier = memoryArenaSupplier;
   }
 
   /**
@@ -101,7 +109,7 @@ public final class Cache<T, M> {
         logName,
         needsSourceDigestVerification,
         needsDataDigestVerification,
-        Arena.ofShared());
+        Arena::ofShared);
   }
 
   static <T, M> Cache<T, M> create(
@@ -110,14 +118,14 @@ public final class Cache<T, M> {
       String logName,
       boolean needsSourceDigestVerification,
       boolean needsDataDigestVerification,
-      Arena memoryArena) {
+      Supplier<Arena> memoryArenaSupplier) {
     return new Cache<>(
         spi,
         logLevel,
         logName,
         needsSourceDigestVerification,
         needsDataDigestVerification,
-        memoryArena);
+        memoryArenaSupplier);
   }
 
   /**
@@ -176,7 +184,7 @@ public final class Cache<T, M> {
       TruffleFile metadataFile = getCacheMetadataPath(cacheRoot);
       TruffleFile parentPath = cacheDataFile.getParent();
 
-      memoryArena.close();
+      closeMemoryArena();
       if (writeBytesTo(cacheDataFile, bytesToWrite) && writeBytesTo(metadataFile, metadataBytes)) {
         logger.log(
             logLevel,
@@ -287,6 +295,8 @@ public final class Cache<T, M> {
             Level.FINEST,
             "Cache file {0} mmapped with {1} size",
             new Object[] {file, file.length()});
+        closeMemoryArena();
+        memoryArena = memoryArenaSupplier.get();
         try (var chan = FileChannel.open(file.toPath())) {
           assert memoryArena.scope().isAlive();
           var memSegment = chan.map(MapMode.READ_ONLY, 0, file.length(), memoryArena);
@@ -333,6 +343,16 @@ public final class Cache<T, M> {
           "Could not load the cache metadata at ["
               + toMaskedPath(metadataPath).applyMasking()
               + "].");
+    }
+  }
+
+  /**
+   * Close any previous arena and creates a new one. Closing the previous arena invalidates all byte
+   * buffers associated with it.
+   */
+  private void closeMemoryArena() {
+    if (memoryArena != null && memoryArena.scope().isAlive()) {
+      memoryArena.close();
     }
   }
 
@@ -427,9 +447,7 @@ public final class Cache<T, M> {
                 invalidateCache(roots.globalCacheRoot, logger);
                 invalidateCache(roots.localCacheRoot, logger);
               });
-      if (memoryArena.scope().isAlive()) {
-        memoryArena.close();
-      }
+      closeMemoryArena();
     }
   }
 

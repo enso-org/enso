@@ -12,6 +12,8 @@ import java.lang.foreign.Arena;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.interpreter.caches.Cache.Roots;
 import org.enso.interpreter.caches.Cache.Spi;
@@ -58,11 +60,24 @@ public final class CacheTests {
     var ensoCtx = ctx.ensoContext();
     var cacheRoots = createCacheRoots();
     var spi = new CacheSpi(cacheRoots);
-    var memoryArena = Arena.ofConfined();
-    var cache = Cache.create(spi, Level.FINE, "testCache", false, false, memoryArena);
+    var bigData = randomBytes(10 * 1024 * 1024);
+    saveToLocalRoot(bigData, cacheRoots);
+
+    var memoryArena = new AtomicReference<Arena>();
+    Supplier<Arena> arenaSupplier =
+        () -> {
+          memoryArena.set(Arena.ofConfined());
+          return memoryArena.get();
+        };
+    var cache = Cache.create(spi, Level.FINE, "testCache", false, false, arenaSupplier);
+    var loaded = cache.load(ensoCtx);
+    assertThat("was loaded", loaded.isPresent(), is(true));
+    assertThat("New arena was created", memoryArena.get(), is(notNullValue()));
+
     var ret = cache.save(new CachedData(), ensoCtx, false);
     assertThat("was saved", ret, is(notNullValue()));
-    assertThat("Memory arena is closed after cache save", memoryArena.scope().isAlive(), is(false));
+    assertThat(
+        "Memory arena is closed after cache save", memoryArena.get().scope().isAlive(), is(false));
   }
 
   @Test
