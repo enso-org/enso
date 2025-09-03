@@ -28,12 +28,7 @@ public final class FloatType implements StorageType<Double>, NumericType {
 
   @Override
   public long size() {
-    return switch (bits) {
-      case BITS_8 -> 8;
-      case BITS_16 -> 16;
-      case BITS_32 -> 32;
-      case BITS_64 -> 64;
-    };
+    return Bits.toInteger(bits);
   }
 
   /** Returns the number of bits of this integer type. */

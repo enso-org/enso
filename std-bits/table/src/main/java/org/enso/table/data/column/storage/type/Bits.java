@@ -16,8 +16,8 @@ public enum Bits {
     this.size = size;
   }
 
-  public int toInteger() {
-    return this.size;
+  public static int toInteger(Bits bits) {
+    return bits.size;
   }
 
   public static Bits fromInteger(int size) {

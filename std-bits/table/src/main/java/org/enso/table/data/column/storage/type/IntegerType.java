@@ -27,12 +27,7 @@ public final class IntegerType implements StorageType<Long>, NumericType {
 
   @Override
   public long size() {
-    return switch (bits) {
-      case BITS_8 -> 8;
-      case BITS_16 -> 16;
-      case BITS_32 -> 32;
-      case BITS_64 -> 64;
-    };
+    return Bits.toInteger(bits);
   }
 
   /** Returns the number of bits of this integer type. */
@@ -87,7 +82,7 @@ public final class IntegerType implements StorageType<Long>, NumericType {
    * number of bits.
    */
   public boolean fits(IntegerType otherType) {
-    return bits.toInteger() >= otherType.bits.toInteger();
+    return size() >= otherType.size();
   }
 
   public static IntegerType smallestFitting(long value, boolean allow8bit) {
@@ -102,7 +97,7 @@ public final class IntegerType implements StorageType<Long>, NumericType {
    * two).
    */
   public static IntegerType commonType(IntegerType type1, IntegerType type2) {
-    return type1.bits.toInteger() >= type2.bits.toInteger() ? type1 : type2;
+    return type1.size() >= type2.size() ? type1 : type2;
   }
 
   @Override
