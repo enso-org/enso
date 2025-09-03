@@ -50,7 +50,7 @@ public abstract class EnsoRootNode extends RootNode {
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;
-    this.source = CachingSupplier.wrap(sourceSupplier);
+    this.source = sourceSupplier == null ? null : CachingSupplier.wrap(sourceSupplier);
     this.sourceStartIndex = location == null ? NO_SOURCE : location.start();
     this.sourceLength = location == null ? NO_SOURCE : location.length();
   }
