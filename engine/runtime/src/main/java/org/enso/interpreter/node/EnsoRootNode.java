@@ -124,7 +124,8 @@ public abstract class EnsoRootNode extends RootNode {
       }
       var src = rootNode.source == null ? null : rootNode.source.get();
       var module = rootNode.getModuleScope().getModule();
-      if (src == null || module.isModuleSource(src)) {
+      var ownedByModule = module.isModuleSource(src);
+      if (src == null || ownedByModule) {
         // ask the module for a (patched) section
         return module.createSection(sourceStartIndex, sourceLength);
       } else {
