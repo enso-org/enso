@@ -2,10 +2,11 @@ from Standard.Base import all
 
 from Standard.Test import Bench
 
+from project.Utils import find_enso_bin
+
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
 
-from enso_dev.Base_Tests.Enso_Bin_Utils import enso_bin
 
 type Data
     Value ~enso_bin:File ~std_base:File
@@ -33,7 +34,7 @@ collect_benches = Bench.build builder->
 
 
     data =
-        Data.Value (File.new enso_bin) (find_lib enso_bin "Base")
+        Data.Value find_enso_bin (find_lib find_enso_bin "Base")
 
     builder.group "Compile" options group_builder->
         group_builder.specify "Compile_Standard_Base" <|
