@@ -3,7 +3,7 @@
     nixpkgs.url = github:nixos/nixpkgs/nixpkgs-unstable;
     fenix.url = github:nix-community/fenix;
     fenix.inputs.nixpkgs.follows = "nixpkgs";
-    nixpkgs2.url = "github:nixos/nixpkgs?rev=2854768f67f4c914d99d3bd214daeb00dfd8d0fd";
+    nixpkgs2.url = "github:nixos/nixpkgs?rev=0feb4cf3d7931133c4e8e7a558e8153f13fe6b6a";
   };
   outputs = { self, nixpkgs, nixpkgs2, fenix }:
     let
@@ -52,7 +52,7 @@
           pkgs.mkShell rec {
             buildInputs = with pkgs; [
               # === Bazel ===
-              (pkgs2.bazel_7.overrideAttrs (self: super: {
+              (pkgs2.bazel_8.overrideAttrs (self: super: {
                 patches = super.patches ++ [
                   (substituteAll {
                     src = ./nix/patches/bazel_actions_path.patch;
