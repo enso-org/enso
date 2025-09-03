@@ -7,7 +7,6 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
 import java.util.Objects;
-
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
