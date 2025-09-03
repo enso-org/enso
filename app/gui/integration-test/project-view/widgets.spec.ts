@@ -8,6 +8,7 @@ import { mockVisualizationDataUpdate, resetMockWidgetConfigurations } from './vi
 class DropDownLocator {
   readonly rootWidget: Locator
   readonly dropDown: Locator
+  readonly dropDownAnyState: Locator
   readonly items: Locator
   readonly selectedItems: Locator
 
@@ -17,6 +18,7 @@ class DropDownLocator {
     // There can be only one open dropdown at a time on a page. We have to filter out the ones that
     // still have leaving animation running.
     this.dropDown = page.locator('.DropdownWidget:not([data-transitioning])')
+    this.dropDownAnyState = page.locator('.DropdownWidget')
     this.items = this.dropDown.locator('.item')
     this.selectedItems = this.dropDown.locator('.item.selected')
   }
@@ -39,7 +41,7 @@ class DropDownLocator {
   }
 
   async expectNotVisible(): Promise<void> {
-    await expect(this.dropDown).toBeHidden()
+    await expect(this.dropDownAnyState).toBeHidden()
   }
 
   async clickOption(option: string): Promise<void> {
