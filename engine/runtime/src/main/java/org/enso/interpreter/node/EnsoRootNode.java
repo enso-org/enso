@@ -119,17 +119,16 @@ public abstract class EnsoRootNode extends RootNode {
   @TruffleBoundary
   static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
     if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
+      if (rootNode.sourceStartIndex == NO_SOURCE) {
+        return null;
+      }
       var src = rootNode.source == null ? null : rootNode.source.get();
-      if (src == null || !rootNode.moduleScope.getModule().isModuleSource(src)) {
-        if (rootNode.sourceStartIndex == NO_SOURCE) {
-          return null;
-        } else {
-          return rootNode
-              .getModuleScope()
-              .getModule()
-              .createSection(sourceStartIndex, sourceLength);
-        }
+      var module = rootNode.getModuleScope().getModule();
+      if (src == null || module.isModuleSource(src)) {
+        // ask the module for a (patched) section
+        return module.createSection(sourceStartIndex, sourceLength);
       } else {
+        // ask the source itself
         return src.createSection(sourceStartIndex, sourceLength);
       }
     }
