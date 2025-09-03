@@ -120,10 +120,7 @@ public abstract class EnsoRootNode extends RootNode {
   static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
     if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
       var src = rootNode.source == null ? null : rootNode.source.get();
-      if (rootNode.moduleScope.getModule().isModuleSource(src)) {
-        src = null;
-      }
-      if (src == null) {
+      if (src == null || !rootNode.moduleScope.getModule().isModuleSource(src)) {
         if (rootNode.sourceStartIndex == NO_SOURCE) {
           return null;
         } else {
