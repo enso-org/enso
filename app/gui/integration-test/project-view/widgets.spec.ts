@@ -303,12 +303,14 @@ test('Dynamic configuration overrides static drop-down', async ({ page }) => {
   const topLevelArgs = node.locator('.WidgetTopLevelArgument')
   await node.click()
   await expect(topLevelArgs).toHaveCount(3)
+  // Reset dynamic configuration for `read` method.
+  await mockVisualizationDataUpdate(page, '.read', null)
   await expect(
     topLevelArgs.filter({ has: page.getByText('format') }).locator('.WidgetSelection'),
   ).not.toBeVisible()
 
   // Provide dynamic configuration for `format` arg
-  await mockVisualizationDataUpdate(page, 'Standard.Visualization.Widgets.get_widget_json', [
+  await mockVisualizationDataUpdate(page, '.read', [
     [
       'format',
       {
