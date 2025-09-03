@@ -3,6 +3,8 @@ package org.enso.database.fetchers;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
 
+import java.util.Map;
+
 public abstract class BaseColumnFetcher implements ColumnFetcher {
   protected static final int DEFAULT_SIZE = 1024;
 
@@ -32,7 +34,18 @@ public abstract class BaseColumnFetcher implements ColumnFetcher {
 
   @Override
   public Object getValue(java.sql.ResultSet resultSet) throws java.sql.SQLException {
-    return resultSet.getObject(index());
+    var value = resultSet.getObject(index());
+
+    // Convert SQL date/time types to Java 8+ time types
+    if (value instanceof java.sql.Date dataValue) {
+      value = dataValue.toLocalDate();
+    } else if (value instanceof java.sql.Time timeValue) {
+      value = timeValue.toLocalTime();
+    } else if (value instanceof java.sql.Timestamp timestampValue) {
+      value = timestampValue.toLocalDateTime();
+    }
+
+    return  value;
   }
 
   @Override
