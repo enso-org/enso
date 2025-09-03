@@ -12,6 +12,8 @@
   expressions][13914]
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
+- [Autocompletion for table expression builtin functions in table][13914]
+- [Autocompletion for table expression operators and operands][13917]
 
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
@@ -20,6 +22,7 @@
 [13848]: https://github.com/enso-org/enso/pull/13848
 [13909]: https://github.com/enso-org/enso/pull/13909
 [13914]: https://github.com/enso-org/enso/pull/13914
+[13917]: https://github.com/enso-org/enso/pull/13917
 
 # Next Release
 
