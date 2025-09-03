@@ -25,7 +25,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public StorageType<T> getType() {
     // The cast is safe because the typeChar and size are taken from the storageType.
     @SuppressWarnings("unchecked")
-    var output = (StorageType<T>) StorageType.fromTypeCharAndLength(typeChar, size);
+    var output = (StorageType<T>) StorageType.fromTypeCharAndSize(typeChar, size);
     return output;
   }
 }

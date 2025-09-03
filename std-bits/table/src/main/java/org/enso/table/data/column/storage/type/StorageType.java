@@ -16,18 +16,18 @@ import org.enso.table.problems.ProblemAggregator;
  * Represents an underlying internal storage type that can be mapped to the Value Type that is
  * exposed to users.
  */
-public /*sealed*/ interface StorageType<T>
-/*permits AnyObjectType,
-BigDecimalType,
-BigIntegerType,
-BooleanType,
-DateTimeType,
-DateType,
-FloatType,
-IntegerType,
-NullType,
-TextType,
-TimeOfDayType*/ {
+public sealed interface StorageType<T>
+    permits AnyObjectType,
+        BigDecimalType,
+        BigIntegerType,
+        BooleanType,
+        DateTimeType,
+        DateType,
+        FloatType,
+        IntegerType,
+        NullType,
+        TextType,
+        TimeOfDayType {
   /**
    * @param item the item whose type is to be determined.
    * @param options specifies details on how the precise type should be determined
@@ -135,7 +135,7 @@ TimeOfDayType*/ {
    */
   ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
 
-  static StorageType<?> fromTypeCharAndLength(char typeChar, long size) {
+  static StorageType<?> fromTypeCharAndSize(char typeChar, long size) {
     return switch (typeChar) {
       case 'A' -> AnyObjectType.INSTANCE;
       case 'B' -> BooleanType.INSTANCE;
