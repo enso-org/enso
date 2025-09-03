@@ -113,6 +113,23 @@ export type WidgetConfiguration =
   | FunctionCall
   | OneOfFunctionCalls
   | SomeOfFunctionCalls
+  | PendingConfiguration
+
+/**
+ * Sometimes it takes time to receive the configuration, but we still want to know that it is expected.
+ * This configuration is not provided by the engine directly, but is derived from existing argument annotations.
+ */
+export interface PendingConfiguration {
+  kind: 'Pending'
+}
+
+/** Helper for creating a pending configuration record. */
+export function pending(): WidgetConfiguration & WithDisplay {
+  return {
+    kind: 'Pending',
+    display: DisplayMode.Always,
+  }
+}
 
 export interface VectorEditor {
   kind: 'Vector_Editor'

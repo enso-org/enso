@@ -1,7 +1,9 @@
 import type { WidgetInput } from '@/providers/widgetRegistry'
 import {
   argsWidgetConfigurationSchema,
+  FunctionCall,
   functionCallConfiguration,
+  pending,
 } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
@@ -91,6 +93,13 @@ export function useWidgetFunctionCallInfo(
     return null
   })
 
+  const annotatedArguments = computed(() => {
+    const info = methodCallInfo.value
+    if (!info) return null
+    if (!entryIsAnnotatable(info.suggestion)) return null
+    return info.suggestion.annotations
+  })
+
   const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
     const args = ArgumentApplication.collectArgumentNamesAndUuids(
       interpreted.value,
@@ -100,8 +109,8 @@ export function useWidgetFunctionCallInfo(
     const info = methodCallInfo.value
     if (!info) return null
     if (!entryIsAnnotatable(info.suggestion)) return null
-    const annotatedArgs = info.suggestion.annotations
-    if (!annotatedArgs.length) return null
+    const annotatedArgs = annotatedArguments.value
+    if (!annotatedArgs?.length) return null
     const name = info.suggestion.name
     const positionalArgumentsExpressions = [
       `.${name}`,
@@ -177,7 +186,12 @@ export function useWidgetFunctionCallInfo(
     } else if (data != null && !data.ok) {
       data.error.log('Cannot load dynamic configuration')
     }
-    return inheritedConfig.value
+    const parameters: FunctionCall['parameters'] = inheritedConfig.value?.parameters ?? new Map()
+    annotatedArguments.value?.forEach((name) => parameters.set(name, pending()))
+    return {
+      kind: 'FunctionCall',
+      parameters,
+    } satisfies FunctionCall
   })
 
   const application = computed(() => {
