@@ -9,7 +9,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.enso.compiler.data.BindingsMap;
