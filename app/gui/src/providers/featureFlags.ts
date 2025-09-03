@@ -87,7 +87,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         }) {
           const newFeatureFlags = { ...newState.featureFlags }
           for (const [k, v] of unsafeEntries(flags)) {
-            if (!(k in newFeatureFlags) && v !== undefined) {
+            if (v !== undefined) {
               unsafeWriteValue(newFeatureFlags, k, v)
             }
           }
