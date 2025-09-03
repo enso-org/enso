@@ -51,6 +51,7 @@ public class CastOperation {
       case BigIntegerType bigIntegerType -> new ToBigIntegerConverter();
       case BigDecimalType bigDecimalType -> new ToBigDecimalConverter();
       case NullType nullType -> throw new IllegalArgumentException("Cannot cast to Null type.");
+      default -> fromStorageType(StorageType.fromTypeCharAndSize(storageType.typeChar(), storageType.size()));
     };
   }
 

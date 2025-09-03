@@ -106,6 +106,7 @@ public interface Builder {
           case BigIntegerType t -> getForBigInteger(size, problemAggregator);
           case NullType t -> new NullBuilder();
           case null -> getInferredBuilder(size, problemAggregator);
+          default -> getForType(StorageType.fromTypeCharAndSize(type.typeChar(), type.size()), size, problemAggregator);
         };
 
     assert Objects.equals(builder.getType(), type);
