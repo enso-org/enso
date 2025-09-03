@@ -88,7 +88,7 @@ type AssetExists = { exists: true; type: AssetType } | { exists: false }
 async function assetExists(name: string): Promise<AssetExists> {
   const currentDir = currentDirectory.value
   if (currentDir == null) return { exists: false }
-  const content = await listDirectory(currentDir)
+  const content = (await listDirectory(currentDir))?.assets
   const asset = content?.find((asset) => asset.title === name)
   if (!asset) return { exists: false }
   return { exists: true, type: asset.type }
@@ -97,8 +97,8 @@ async function assetExists(name: string): Promise<AssetExists> {
 // Prefetch directories to avoid lag when the user navigates, but only if we don't already have
 // stale data. When the user opens a directory with stale data, it will refresh and the animation
 // will show what files have changed since they last viewed.
-watch(data, (assets) => {
-  for (const asset of assets ?? [])
+watch(data, (response) => {
+  for (const asset of response?.assets ?? [])
     if (assetIsDirectory(asset)) ensureQueryData('listDirectory', listDirectoryArgs(asset))
 })
 
@@ -229,7 +229,7 @@ registerHandlers({
         ref="browserContent"
         :key="currentDirectory?.id ?? 'root'"
         class="browserContents"
-        :assets="data ?? []"
+        :assets="data?.assets ?? []"
         :chosenFilename="highlightedFilename"
         :targetType="type ?? 'file'"
         :matchesFilter="fileExtensionFilter.matches"

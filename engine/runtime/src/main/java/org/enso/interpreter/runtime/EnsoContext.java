@@ -700,15 +700,6 @@ public final class EnsoContext {
     return getOption(RuntimeOptions.ENABLE_PROGRESS_REPORT_KEY);
   }
 
-  /**
-   * Checks whether global caches are to be used.
-   *
-   * @return true if so
-   */
-  public boolean isUseGlobalCache() {
-    return getOption(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
-  }
-
   public boolean isAssertionsEnabled() {
     return assertionsEnabled;
   }

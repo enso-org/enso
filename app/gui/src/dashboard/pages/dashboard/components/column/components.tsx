@@ -241,21 +241,17 @@ export function PlaceholderColumn() {
 }
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
-interface SharedWithColumnStateProp
-  extends Pick<AssetColumnProps['state'], 'backend' | 'category'> {
-  readonly setQuery: AssetColumnProps['state']['setQuery'] | null
-}
+interface SharedWithColumnStateProp extends Pick<AssetColumnProps['state'], 'category'> {}
 
 /** Props for a {@link SharedWithColumn}. */
 interface SharedWithColumnPropsInternal extends Pick<AssetColumnProps, 'item'> {
-  readonly isReadonly?: boolean
   readonly state: SharedWithColumnStateProp
 }
 
 /** A column listing the users with which this asset is shared. */
 export function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, state } = props
-  const { category, setQuery } = state
+  const { category } = state
 
   const assetPermissions = item.permissions ?? []
 
@@ -265,24 +261,7 @@ export function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         assetPermissions.filter((permission) => permission.permission === PermissionAction.own)
       : assetPermissions
       ).map((other, idx) => (
-        <PermissionDisplay
-          key={getAssetPermissionId(other) + idx}
-          action={other.permission}
-          onPress={
-            setQuery == null ? null : (
-              (event) => {
-                setQuery((oldQuery) =>
-                  oldQuery.withToggled(
-                    'owners',
-                    'negativeOwners',
-                    getAssetPermissionName(other),
-                    event.shiftKey,
-                  ),
-                )
-              }
-            )
-          }
-        >
+        <PermissionDisplay key={getAssetPermissionId(other) + idx} action={other.permission}>
           {getAssetPermissionName(other)}
         </PermissionDisplay>
       ))}

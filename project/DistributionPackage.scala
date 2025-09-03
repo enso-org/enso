@@ -286,7 +286,6 @@ object DistributionPackage {
         val command = Seq(
           fileToExecute.getAbsolutePath,
           "--no-compile-dependencies",
-          "--no-global-cache",
           "--compile",
           path.getAbsolutePath
         )

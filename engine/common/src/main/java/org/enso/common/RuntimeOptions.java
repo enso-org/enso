@@ -149,12 +149,6 @@ public final class RuntimeOptions {
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY, WAIT_FOR_PENDING_SERIALIZATION_JOBS)
           .build();
 
-  public static final String USE_GLOBAL_IR_CACHE_LOCATION = optionName("useGlobalIrCacheLocation");
-  public static final OptionKey<Boolean> USE_GLOBAL_IR_CACHE_LOCATION_KEY = new OptionKey<>(true);
-  public static final OptionDescriptor USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR =
-      OptionDescriptor.newBuilder(USE_GLOBAL_IR_CACHE_LOCATION_KEY, USE_GLOBAL_IR_CACHE_LOCATION)
-          .build();
-
   public static final String ENABLE_EXECUTION_TIMER = optionName("enableExecutionTimer");
 
   /* Enables timer that counts down the execution time of expressions. */
@@ -201,7 +195,6 @@ public final class RuntimeOptions {
               DISABLE_IR_CACHES_DESCRIPTOR,
               PREINITIALIZE_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,
-              USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR,
               ENABLE_EXECUTION_TIMER_DESCRIPTOR,
               WARNINGS_LIMIT_DESCRIPTOR));
 
