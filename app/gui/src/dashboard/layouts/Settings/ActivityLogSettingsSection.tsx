@@ -13,9 +13,10 @@ import { backendQueryOptions } from '#/hooks/backendHooks'
 import type Backend from '#/services/Backend'
 import type { EmailAddress } from '#/services/Backend'
 import { type AuditLogEvent } from '#/services/Backend'
-import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
+import { iconIdFor, nextSortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { getLocalTimeZone, today, ZonedDateTime } from '@internationalized/date'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { MINUTE_MS, toReadableIsoString, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
@@ -30,8 +31,6 @@ import {
   SELECTABLE_LAMBDA_KINDS,
 } from './lambdaKinds'
 
-const GET_LOG_EVENTS_DEFAULT_PAGE_SIZE = 100
-
 /** Create the schema for this form. */
 function createActivityLogSchema() {
   return z.object({
@@ -39,7 +38,6 @@ function createActivityLogSchema() {
     type: z.string().optional(),
     startDate: z.instanceof(ZonedDateTime).optional(),
     endDate: z.instanceof(ZonedDateTime).optional(),
-    pageSize: z.number().int(),
   })
 }
 
@@ -64,23 +62,23 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const users = [...usersRaw].sort((a, b) => a.name.localeCompare(b.name))
   const allEmails = users.map((user) => user.email)
   const usersByEmail = new Map(users.map((user) => [user.email, user]))
-  const isDescending = sortInfo?.direction === SortDirection.descending
+  const isDescending = sortInfo?.direction === 'descending'
 
+  const scrollerRef = React.useRef<HTMLDivElement | null>(null)
   const lambdaKindsByName = new Map(
     SELECTABLE_LAMBDA_KINDS.map((kind) => [getText(EVENT_TYPE_NAME_ID[kind]), kind]),
   )
   const endpointNames = [...lambdaKindsByName.keys()].sort((a, b) => a.localeCompare(b))
 
+  const pageSize = useFeatureFlag('getLogEventsPageSize')
   const form = Form.useForm({
     schema: createActivityLogSchema(),
-    defaultValues: { pageSize: GET_LOG_EVENTS_DEFAULT_PAGE_SIZE },
   })
   const typeRaw = form.watch('type')
   const lambdaKind = typeRaw != null ? lambdaKindsByName.get(typeRaw) : null
   const userEmail = form.watch('userEmail')
   const startDate = form.watch('startDate')
   const endDate = form.watch('endDate')
-  const pageSize = form.watch('pageSize')
   const maxDate = today(getLocalTimeZone())
 
   const getLogEventsArgs = [
@@ -92,7 +90,9 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       pageSize,
     },
   ] satisfies Parameters<typeof backend.getLogEvents>
-  const getLogEventsOptions = backendQueryOptions(backend, 'getLogEvents', getLogEventsArgs)
+  const getLogEventsOptions = backendQueryOptions(backend, 'getLogEvents', getLogEventsArgs, {
+    queryKey: [{ infinite: true }],
+  })
   const logsPages = useInfiniteQuery({
     queryKey: getLogEventsOptions.queryKey,
     queryFn: ({ pageParam }) => backend.getLogEvents({ from: pageParam, ...getLogEventsArgs[0] }),
@@ -103,7 +103,16 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
     meta: { persist: false },
   })
   const logs = logsPages.data?.pages.flat()
-  const isFetching = logsPages.isFetching
+  const fetchNextLogsPage = logsPages.fetchNextPage
+  const isFetching = logsPages.isLoading || logsPages.isFetchingNextPage
+
+  React.useEffect(() => {
+    const scrollerEl = scrollerRef.current
+    if (!scrollerEl) return
+    if (scrollerEl.scrollTop + scrollerEl.clientHeight >= scrollerEl.scrollHeight) {
+      void fetchNextLogsPage()
+    }
+  }, [fetchNextLogsPage, logsPages.data?.pages])
 
   const sortedLogs = (() => {
     const filteredLogs = logs?.filter((log) => {
@@ -118,7 +127,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       return filteredLogs
     } else {
       let compare: (a: AuditLogEvent, b: AuditLogEvent) => number
-      const multiplier = sortInfo.direction === SortDirection.ascending ? 1 : -1
+      const multiplier = sortInfo.direction === 'ascending' ? 1 : -1
       switch (sortInfo.field) {
         case ActivityLogSortableColumn.type: {
           compare = (a, b) => {
@@ -238,14 +247,13 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
         </div>
       </Form>
       <Scroller
+        ref={scrollerRef}
         scrollbar
         orientation="vertical"
         className="min-h-0 flex-1"
         shadowStartClassName="top-8"
         onScroll={(event) => {
-          if (isFetching) {
-            return
-          }
+          if (isFetching) return
           const element = event.currentTarget
           if (element.scrollTop + element.clientHeight >= element.scrollHeight) {
             void logsPages.fetchNextPage()
@@ -284,7 +292,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.type ?
                         nextSortDirection(sortInfo.direction)
-                      : SortDirection.ascending
+                      : 'ascending'
                     if (nextDirection == null) {
                       setSortInfo(null)
                     } else {
@@ -326,7 +334,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.user ?
                         nextSortDirection(sortInfo.direction)
-                      : SortDirection.ascending
+                      : 'ascending'
                     if (nextDirection == null) {
                       setSortInfo(null)
                     } else {
@@ -369,7 +377,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     const nextDirection =
                       sortInfo?.field === ActivityLogSortableColumn.timestamp ?
                         nextSortDirection(sortInfo.direction)
-                      : SortDirection.ascending
+                      : 'ascending'
                     if (nextDirection == null) {
                       setSortInfo(null)
                     } else {

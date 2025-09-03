@@ -140,13 +140,13 @@ type ResumableWidgetEdits = Map<WidgetInstanceId, ResumeCallback | undefined>
 export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements Interaction {
   /** TODO: Add docs */
   constructor(
-    private readonly widgetTree: CurrentEdit,
+    private readonly currentEditCtx: CurrentEdit | undefined,
     private readonly interactionHandler: InteractionHandler,
   ) {
     super(undefined, {
       start: () => {
         this.interactionHandler.setCurrent(this)
-        this.widgetTree.setCurrentEditRoot(this)
+        this.currentEditCtx?.setCurrentEditRoot(this)
       },
       end: () => this.interactionHandler.ended(this),
       cancel: () => this.interactionHandler.ended(this),
@@ -226,10 +226,10 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     readonly portId: PortId,
     parent: WidgetEditHandlerParent | undefined,
     hooks: WidgetEditHooks,
-    widgetTree: CurrentEdit,
+    currentEditCtx: CurrentEdit | undefined,
     interactionHandler: InteractionHandler,
   ) {
-    super(parent ?? new WidgetEditHandlerRoot(widgetTree, interactionHandler), hooks)
+    super(parent ?? new WidgetEditHandlerRoot(currentEditCtx, interactionHandler), hooks)
   }
 
   /** Create {@link WidgetEditHandler} from widget props. Convenience version of {@link NewFromPort}. */
@@ -237,7 +237,7 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     props: { widgetTypeId: WidgetTypeId; input: WidgetInput },
     myInteraction: WidgetEditHooks,
   ): ShallowRef<WidgetEditHandler> {
-    const widgetTree = injectWidgetTree()
+    const widgetTree = injectWidgetTree(true)
     const interactionHandler = injectInteractionHandler()
     const portId = computed(() => props.input.portId)
     const parent = computed(() => props.input.editHandler)
@@ -264,7 +264,7 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     parent: WatchSource<WidgetEditHandlerParent | undefined>,
     myInteraction: WidgetEditHooks,
   ): ShallowRef<WidgetEditHandler> {
-    const widgetTree = injectWidgetTree()
+    const widgetTree = injectWidgetTree(true)
     const interactionHandler = injectInteractionHandler()
     const instanceId = newWidgetInstanceId()
     return WidgetEditHandler.NewRaw(
@@ -283,7 +283,7 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     portId: WatchSource<PortId>,
     parent: WatchSource<WidgetEditHandlerParent | undefined>,
     myInteraction: WidgetEditHooks,
-    widgetTree: CurrentEdit,
+    currentEditCtx: CurrentEdit | undefined,
     interactionHandler: InteractionHandler,
   ): ShallowRef<WidgetEditHandler> {
     const currentHandler = shallowRef<WidgetEditHandler>(null!) // Ref is immediately assigned in watch below.
@@ -294,7 +294,7 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
           newPortId,
           newParent,
           myInteraction,
-          widgetTree,
+          currentEditCtx,
           interactionHandler,
         )
         currentHandler.value = editHandler
