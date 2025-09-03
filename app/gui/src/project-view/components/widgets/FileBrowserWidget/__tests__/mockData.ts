@@ -1,5 +1,5 @@
-import { AnyAsset, AssetType } from '#/services/Backend'
-import type { Directory } from '../pathBrowsing'
+import { AnyAsset, AssetType, ListDirectoryResponseBody } from '#/services/Backend'
+import { Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
 
 interface MockAssetSpec {
   type: AssetType
@@ -109,6 +109,9 @@ function buildAssetTree(assetSpecs: Map<string, MockAssetSpec>) {
 export const MOCK_FS: Map<string, AnyAsset> = buildAssetTree(ASSET_SPECS)
 
 /** Mock implementation of `listDirectory` */
-export function mockListDirectory(dir: Directory): Promise<readonly AnyAsset[]> {
-  return Promise.resolve(ASSET_SPECS.get(dir.id)!.contents.map((id) => MOCK_FS.get(id)!))
+export function mockListDirectory(dir: Directory): Promise<ListDirectoryResponseBody> {
+  return Promise.resolve({
+    assets: ASSET_SPECS.get(dir.id)!.contents.map((id) => MOCK_FS.get(id)!),
+    paginationToken: null,
+  })
 }

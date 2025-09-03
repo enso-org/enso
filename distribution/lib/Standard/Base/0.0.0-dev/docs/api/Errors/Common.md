@@ -82,6 +82,7 @@
     - method_name self -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type Not_Found
+    - to_display_text self -> Standard.Base.Any.Any
 - type Not_Invokable
     - Error target:Standard.Base.Any.Any cause:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
