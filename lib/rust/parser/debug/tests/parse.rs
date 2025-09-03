@@ -874,7 +874,7 @@ fn type_signatures() {
     test_block!("val : Bool\nval",
         @r#"(BodyBlock #((TypeSignatureDeclaration ((Ident val) ":" (Ident Bool))) (ExpressionStatement () (Ident val))))"#);
     test_block!("val : Bool",
-        @r#"(BodyBlock #((TypeAnnotated (Ident val) ":" (Ident Bool))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (TypeAnnotated (Ident val) ":" (Ident Bool)))))"#);
     test_module!("val : Bool\nval = True",
         @r#"(BodyBlock #((Function () #() ((Ident val) ":" (Ident Bool)) () (Ident val) #() () (Ident True))))"#);
     test_module!("val : Bool\n\nval = True",
@@ -1524,6 +1524,15 @@ fn invalid_unspaced_operator_sequence() {
     expect_multiple_operator_error("x =-");
     expect_multiple_operator_error("=- y");
     expect_multiple_operator_error("=-");
+}
+
+#[test]
+fn function_expression_in_statement_context() {
+    expect_invalid_node("main =\n    +x\n    x");
+    expect_invalid_node("main =\n    \\x -> x\n    x");
+    expect_invalid_node("main =\n    _ x\n    x");
+    // Catch a common error; See: https://github.com/enso-org/enso/issues/11203
+    expect_invalid_node("main =\n    x +\n        1 +\n        2");
 }
 
 #[test]

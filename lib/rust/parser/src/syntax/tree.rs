@@ -78,7 +78,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A sequence of lines introduced by a line ending in an operator.
         BodyBlock {
-            /// The lines of the block.
+            /// The liness of the block.
             pub statements: Vec<block::Line<'s>>,
         },
         /// A sequence of lines comprising the arguments of a function call.
@@ -908,6 +908,7 @@ pub const WARNINGS: [&str; WarningId::NUM_WARNINGS as usize] =
 #[derive(Debug, Clone)]
 #[allow(missing_docs)] // See associated messages defined below.
 pub enum SyntaxError {
+    ArgDefUnexpectedOp,
     ArgDefUnexpectedOpInParenClause,
     ArgDefSpuriousParens,
     ArgDefExpectedPattern,
@@ -923,6 +924,8 @@ pub enum SyntaxError {
     StmtUnexpectedAssignmentInModuleBody,
     StmtUnexpectedPrivateSubject,
     StmtUnexpectedPrivateContext,
+    StmtUnexpectedFunctionExpression,
+    StmtUnexpectedFunctionExpressionOprSection,
     TypeBodyUnexpectedPrivateUsage,
     TypeDefExpectedTypeName,
     ExprUnexpectedAssignment,
@@ -938,6 +941,7 @@ pub enum SyntaxError {
     DocumentationUnexpectedNonInitial,
     AnnotationUnexpectedInExpression,
     AnnotationExpectedDefinition,
+    Internal,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
@@ -945,6 +949,7 @@ impl From<SyntaxError> for Cow<'static, str> {
         use SyntaxError::*;
         (match error {
             AnnotationOpMustBeAppliedToIdent => "The annotation operator must be applied to an identifier",
+            ArgDefUnexpectedOp => "Unexpected operator in argument definition clause",
             ArgDefUnexpectedOpInParenClause => "Unexpected operator in parenthesized argument definition clause",
             ArgDefSpuriousParens => "Invalid parentheses in argument definition",
             ArgDefExpectedPattern => "Expected identifier or wildcard in argument binding",
@@ -962,6 +967,8 @@ impl From<SyntaxError> for Cow<'static, str> {
             StmtUnexpectedPrivateSubject =>
                 "The `private` keyword cannot be applied to this type of symbol",
             StmtUnexpectedPrivateContext => "The `private` keyword is not expected in this context",
+            StmtUnexpectedFunctionExpression => "This expression would define an unused function",
+            StmtUnexpectedFunctionExpressionOprSection => "This expression would define an unused function; if you would like to create an operator block, each indented line must begin with an operator followed by a space",
             TypeBodyUnexpectedPrivateUsage =>
                 "In a type definition, the `private` keyword can only be applied to a constructor or function definition",
             TypeDefExpectedTypeName => "Expected type identifier in type declaration",
@@ -979,6 +986,7 @@ impl From<SyntaxError> for Cow<'static, str> {
                 "A function annotation is only allowed in statement context, not in an expression",
             AnnotationExpectedDefinition =>
                 "A function annotation must be followed by a function definition or constructor definition",
+            Internal => "BUG: An internal error occurred parsing this expression",
         })
         .into()
     }

@@ -29,6 +29,8 @@
   expressions][13914]
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
+- [A function expression is no longer allowed in statement context, where it
+  would not be usable][13920]
 
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
@@ -37,6 +39,7 @@
 [13848]: https://github.com/enso-org/enso/pull/13848
 [13909]: https://github.com/enso-org/enso/pull/13909
 [13914]: https://github.com/enso-org/enso/pull/13914
+[13920]: https://github.com/enso-org/enso/pull/13920
 
 # Enso 2025.2
 
