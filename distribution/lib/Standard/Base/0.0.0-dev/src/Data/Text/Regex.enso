@@ -157,13 +157,6 @@ type Regex
 
        ## Arguments
         - `input`: The text to match the pattern described by `self` against.
-
-       ## Remarks
-
-       ### UTF 16 Span
-       Note that this method uses the UTF 16 span of the match, and so may
-       split graphemes. If you want the text of a whole grapheme, use
-       `match input . span . text` to get the grapheme-based text.
     find : Text -> Text | Nothing | Type_Error
     find self (input : Text) =
        match_to_group_maybe <| self.match input
@@ -179,13 +172,6 @@ type Regex
 
        ## Arguments
         - `input`: The text to match the pattern described by `self` against.
-
-       ## Remarks
-
-       ### UTF 16 Span
-       Note that this method uses the UTF 16 span of the match, and so may
-       split graphemes. If you want the text of a whole grapheme, use
-       `match_all input . map m->m.span.text` to get the grapheme-based text.
     find_all : Text -> Vector Text ! Type_Error
     find_all self (input : Text) =
        self.match_all input . map match_to_group_maybe
@@ -272,14 +258,6 @@ type Regex
              Regex.compile '(\S+)(?:\s+|$)' . tokenize 'Hello Big\r\nWide\tWorld\nGoodbye!'
                  == ['Hello','Big','Wide','World','Goodbye!']
        ```
-
-       ## Remarks
-
-       ### UTF 16 Span
-       Note that this method uses the UTF 16 span of the match, and so may
-       split graphemes. If you want to tokenize based on grapheme-spans, then
-       you can use the `match_all` method and extract the text from each match
-       using the `span` method.
     tokenize : Text -> Vector Text
     tokenize self input:Text =
         pattern_is_empty = self.pattern == ''
@@ -565,7 +543,7 @@ build_tokenization_output_from_match pattern match =
         # Reconstruct `Spans` from the synthesized `Ranges`, and concatenate.
         text_all = case spans.at 0 of Utf_16_Span.Value _ text -> text
         top_level_spans = top_level_ranges.map range-> Utf_16_Span.Value range text_all
-        top_level_spans.map (.text) . join
+        top_level_spans.map (.extended_text) . join
 
 ## An error that is emitted when there is no such group in the match for the
    provided `id`.
