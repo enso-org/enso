@@ -1,5 +1,7 @@
-# Rule for running a Python resource extraction tool.
-# See /lib/java/python-extract directory.
+"""
+Rule for running a Python resource extraction tool.
+See `/lib/java/python-extract` directory and `python-extract` task inside `build.sbt`.
+"""
 
 def _extract_python_resources_impl(ctx):
     output_dir = ctx.actions.declare_directory(ctx.attr.out_dir)

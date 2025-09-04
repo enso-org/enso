@@ -1,3 +1,7 @@
+"""
+Provides patterns for `*.enso` files within standard libraries.
+"""
+
 STDLIB_NAMES = [
     "AWS",
     "Base",
@@ -19,7 +23,11 @@ STDLIB_NAMES = [
 ]
 
 def stdlib_source_patterns():
-    """Returns the glob patterns for all the standard libraries."""
+    """Returns the glob patterns for all the standard libraries.
+
+    Returns:
+      Array of glob patterns for standard library sources.
+    """
     glob_patterns = []
     for lib_name in STDLIB_NAMES:
         glob_patterns += [
