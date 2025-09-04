@@ -10,8 +10,8 @@ from Standard.Snowflake.Connection.Key_Pair_Credentials import generate_alter_us
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 
 from project.Snowflake_Spec import get_configured_connection_details
 

@@ -32,7 +32,7 @@ import project.Common_Table_Operations
 from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
 import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
 import enso_dev.Table_Tests

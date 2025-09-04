@@ -16,7 +16,7 @@ abstract class GetFieldBaseNode extends EnsoRootNode {
   protected final ModuleScope moduleScope;
 
   GetFieldBaseNode(EnsoLanguage language, Type type, String fieldName, ModuleScope moduleScope) {
-    super(language, LocalScope.empty(), moduleScope, fieldName, null);
+    super(language, LocalScope.empty(), moduleScope, fieldName, null, null);
     this.type = type;
     this.fieldName = fieldName;
     this.moduleScope = moduleScope;

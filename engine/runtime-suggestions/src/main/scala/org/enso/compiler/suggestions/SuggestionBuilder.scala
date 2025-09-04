@@ -121,11 +121,16 @@ final class SuggestionBuilder[A: IndexedSource](
           case m @ definition.Method
                 .Explicit(
                   Name.MethodReference(typePtr, methodName, _, _),
-                  Function.Lambda(args, body, _, _, _, _),
+                  lambda,
                   _,
                   _,
                   _
-                ) if !m.isStaticWrapperForInstanceMethod && !m.isPrivate =>
+                )
+              if lambda.isInstanceOf[Function.Lambda]
+              && !m.isStaticWrapperForInstanceMethod
+              && !m.isPrivate =>
+            val args          = lambda.asInstanceOf[Function.Lambda].arguments()
+            val body          = lambda.asInstanceOf[Function.Lambda].body()
             val typeSignature = ir.getMetadata(TypeSignatures)
             val annotations   = ir.getMetadata(GenericAnnotations)
             val (selfTypeOpt, isStatic) = typePtr match {
@@ -164,10 +169,14 @@ final class SuggestionBuilder[A: IndexedSource](
                 .Conversion(
                   Name.MethodReference(typePtr, _, _, _),
                   _,
-                  Function.Lambda(args, body, _, _, _, _),
+                  lambda,
                   _,
                   _
-                ) if !conversionMeth.isPrivate =>
+                )
+              if lambda
+                .isInstanceOf[Function.Lambda] && !conversionMeth.isPrivate =>
+            val body = lambda.asInstanceOf[Function.Lambda].body()
+            val args = lambda.asInstanceOf[Function.Lambda].arguments()
             val selfType = typePtr.flatMap { typePointer =>
               typePointer
                 .getMetadata(
@@ -187,10 +196,16 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case Expression.Binding(
                 name,
-                Function.Lambda(args, body, _, _, _, _),
+                lambda,
                 _,
                 _
-              ) if name.location.isDefined =>
+              )
+              if lambda
+                .isInstanceOf[Function.Lambda] && name.location.isDefined =>
+            val body = lambda.asInstanceOf[Function.Lambda].body()
+            val args = lambda
+              .asInstanceOf[Function.Lambda]
+              .arguments()
             val typeSignature = ir.getMetadata(TypeSignatures)
             val function = buildFunction(
               body.getExternalId,

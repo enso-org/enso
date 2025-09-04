@@ -3,9 +3,11 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.Module
+import org.enso.compiler.core.ir.Function.Lambda
+import org.enso.compiler.core.ir.{DefinitionArgument, Module}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
+import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.Type
 import org.enso.compiler.pass.resolve.MethodDefinitions
@@ -180,4 +182,35 @@ class MethodDefinitionsTest extends CompilerTest {
       )
     }
   }
+
+  "Method definitions pass" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    "Attach ascribedType to DefinitionArgument of static method" in {
+      val ir =
+        """
+          |type My_Type
+          |    Value x
+          |    f self = self
+          |""".stripMargin.preprocessModule.analyse
+      val staticMethod = ir.bindings.find { binding =>
+        binding match {
+          case m: Method.Explicit if m.isStatic => true
+          case _                                => false
+        }
+      }
+      staticMethod.isDefined shouldBe true
+      val method = staticMethod.get.asInstanceOf[Method.Explicit]
+      method.isStatic shouldBe true
+      val lambdaArg = method.body
+        .asInstanceOf[Lambda]
+        .body
+        .asInstanceOf[Lambda]
+        .arguments
+        .head
+        .asInstanceOf[DefinitionArgument.Specified]
+      lambdaArg.ascribedType().isDefined shouldBe true
+    }
+  }
+
 }

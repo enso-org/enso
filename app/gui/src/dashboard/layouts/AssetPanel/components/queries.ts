@@ -6,9 +6,6 @@ import type { AssetId, DatalinkId, FileId, ProjectId, S3ObjectVersionId } from '
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { splitFileContents } from 'ydoc-shared/ensoFile'
 
-/** The interval at which the asset versions are refreshed. */
-const REFRESH_INTERVAL = 3000 // 3 seconds
-
 /** Options for {@link assetVersionsQueryOptions}. */
 export interface AssetVersionsQueryOptions {
   readonly assetId: DatalinkId | FileId | ProjectId
@@ -22,9 +19,7 @@ export function assetVersionsQueryOptions(options: AssetVersionsQueryOptions) {
 
   return backendQueryOptions(backend, 'listAssetVersions', [assetId], {
     enabled,
-    refetchIntervalInBackground: true,
     refetchOnWindowFocus: 'always',
-    refetchInterval: REFRESH_INTERVAL,
   })
 }
 
@@ -62,7 +57,6 @@ export function versionContentQueryOptions(params: FetchVersionContentOptions) {
       const [, { versionId, projectId }] = queryKey
       return params.backend.getMainFileContent(projectId, versionId)
     },
-    refetchInterval: REFRESH_INTERVAL,
     select: (data) => (params.metadata === true ? data : omitMetadata(data)),
   })
 }

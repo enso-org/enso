@@ -16,7 +16,6 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import project.Data.Data_Spec
-import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 ## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
 File.should_equal self other = Frame_Hider.hide <|
@@ -391,37 +390,6 @@ add_specs suite_builder =
             Panic.with_finalizer expected_file.delete_if_exists <|
                 f.read_text . should_equal txt
                 Data.read "abc/def.txt" . should_equal txt
-
-        cloud_setup = Cloud_Tests_Setup.prepare
-        with_temporary_cloud_root ~action =
-            subdir = (Enso_File.home / ("my_test_CWD-" + Random.uuid.take 5)).create_directory
-            subdir.should_succeed
-            cleanup =
-                Enso_User.flush_caches
-                subdir.delete recursive=True
-            Panic.with_finalizer cleanup <|
-                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_DIRECTORY_PATH" subdir.path <|
-                    # Flush caches to ensure fresh dir is used
-                    Enso_User.flush_caches
-                    Test.with_clue "(running with ENSO_CLOUD_PROJECT_DIRECTORY_PATH set to "+subdir.path+") " <|
-                        action
-
-        group_builder.specify "will resolve relative paths as Cloud paths if running in the Cloud" pending=cloud_setup.real_cloud_pending <|
-            with_temporary_cloud_root <|
-                root = File.new "."
-                root.should_be_a Enso_File
-                root.should_equal Enso_File.current_working_directory
-
-                f = File.new "abc/def.txt"
-                f.should_be_a Enso_File
-                f.should_equal (Enso_File.current_working_directory / "abc" / "def.txt")
-
-                # Data.read should be consistent too
-                txt = "test-content"+Random.uuid
-                (File.new "abc").create_directory . should_succeed
-                txt.write f . should_succeed
-                Panic.with_finalizer f.delete_if_exists <|
-                    Data.read "abc/def.txt" . should_equal txt
 
         group_builder.specify "will resolve empty path to the current working directory" <|
             File.new "" . should_equal File.current_directory

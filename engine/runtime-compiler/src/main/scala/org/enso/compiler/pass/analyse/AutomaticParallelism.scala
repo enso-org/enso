@@ -556,9 +556,9 @@ object AutomaticParallelism extends IRPass {
   )(fn: Expression.Block => Expression.Block): Expression =
     expr match {
       case fun: Function.Binding =>
-        fun.copy(body = withBodyBlock(fun.body)(fn))
+        fun.copyWithBody(withBodyBlock(fun.body)(fn))
       case fun: Function.Lambda =>
-        fun.copy(body = withBodyBlock(fun.body)(fn))
+        fun.copyWithBody(withBodyBlock(fun.body)(fn))
       case block: Expression.Block if block.expressions.nonEmpty =>
         fn(block)
       case _ => expr

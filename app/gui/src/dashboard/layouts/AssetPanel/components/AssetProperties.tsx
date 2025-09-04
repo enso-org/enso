@@ -52,7 +52,6 @@ export function AssetProperties() {
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
   const { getText } = useText()
-  const isReadonly = category?.type === 'trash'
 
   if (category?.backend !== BackendType.remote) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
@@ -68,7 +67,6 @@ export function AssetProperties() {
         key={focusedAsset.id}
         backend={remoteBackend}
         item={focusedAsset}
-        isReadonly={isReadonly}
         category={category}
       />
     </ErrorBoundary>
@@ -79,13 +77,12 @@ export function AssetProperties() {
 export interface AssetPropertiesInternalProps {
   readonly backend: Backend
   readonly category: Category
-  readonly isReadonly: boolean
   readonly item: AnyAsset
 }
 
 /** Display and modify the properties of an asset. */
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
-  const { backend, item, category, isReadonly = false } = props
+  const { backend, item, category } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
   const rightPanel = useRightPanelData()
   const spotlightOn = useVueValue(
@@ -246,11 +243,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                     <Text className="inline-block">{getText('sharedWith')}</Text>
                   </td>
                   <td className="flex w-full gap-1 p-0">
-                    <SharedWithColumn
-                      isReadonly={isReadonly}
-                      item={item}
-                      state={{ backend, category, setQuery: () => {} }}
-                    />
+                    <SharedWithColumn item={item} state={{ category }} />
                   </td>
                 </tr>
               )}

@@ -10,9 +10,9 @@ import { extractIdFromDirectoryId, organizationIdToDirectoryId } from '#/service
 import { delay } from '#/utilities/async'
 import * as download from '#/utilities/download'
 import * as objects from '#/utilities/object'
+import { getFileName, getFolderPath } from '#/utilities/path'
 import * as detect from 'enso-common/src/detect'
 import * as remoteBackendPaths from 'enso-common/src/services/Backend/remoteBackendPaths'
-import { getFileName, getFolderPath } from 'enso-common/src/utilities/file'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
@@ -341,20 +341,23 @@ export default class RemoteBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
     title: string,
-  ): Promise<readonly backend.AnyAsset[]> {
-    const path = remoteBackendPaths.LIST_DIRECTORY_PATH
+  ): Promise<backend.ListDirectoryResponseBody> {
+    const paramsString = new URLSearchParams(
+      query.recentProjects ?
+        [['recent_projects', String(true)]]
+      : [
+          ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+          ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+          ...(query.from != null ? [['from', query.from]] : []),
+          ...(query.pageSize != null ? [['page_size', String(query.pageSize)]] : []),
+          ...(query.labels?.map((label) => ['label', label]) ?? []),
+          ...(query.sortExpression != null ? [['sort_expression', query.sortExpression]] : []),
+          ...(query.sortDirection != null ? [['sort_direction', query.sortDirection]] : []),
+          ...(query.labels != null ? query.labels.map((label) => ['label', label]) : []),
+        ],
+    ).toString()
     const response = await this.get<backend.ListDirectoryResponseBody>(
-      path +
-        '?' +
-        new URLSearchParams(
-          query.recentProjects ?
-            [['recent_projects', String(true)]]
-          : [
-              ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
-              ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
-              ...(query.labels != null ? query.labels.map((label) => ['label', label]) : []),
-            ],
-        ).toString(),
+      `${remoteBackendPaths.LIST_DIRECTORY_PATH}?${paramsString}`,
     )
     if (!response.ok) {
       if (query.parentId != null) {
@@ -363,23 +366,44 @@ export default class RemoteBackend extends Backend {
         return await this.throw(response, 'listRootFolderBackendError')
       }
     } else {
-      const ret = (await response.json()).assets
-        .map((asset) =>
-          objects.merge(asset, {
-            type: backend.getAssetTypeFromId(asset.id),
-            // `Users` and `Teams` folders are virtual, so their children incorrectly have
-            // the organization root id as their parent id.
-            parentId: query.parentId ?? asset.parentId,
-          }),
-        )
-        .map((asset) =>
-          objects.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
-          }),
-        )
-        .map((asset) => this.dynamicAssetUser(asset))
-        .sort(backend.compareAssets)
-      return ret
+      const responseBody = await response.json()
+      return {
+        ...responseBody,
+        assets: this.listDirectoryResponseToAssetList(responseBody.assets, query.parentId),
+      }
+    }
+  }
+
+  /**
+   * Search for assets in a directory.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async searchDirectory(
+    query: backend.SearchDirectoryRequestParams,
+  ): Promise<backend.ListDirectoryResponseBody> {
+    const paramsString = new URLSearchParams([
+      ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+      ...(query.query != null ? [['query', query.query]] : []),
+      ...(query.title != null ? [['title', query.title]] : []),
+      ...(query.description != null ? [['description', query.description]] : []),
+      ...(query.type != null ? [['type', query.type]] : []),
+      ...(query.extension != null ? [['extension', query.extension]] : []),
+      ...(query.labels?.map((label) => ['label', label]) ?? []),
+      ...(query.sortExpression != null ? [['sort_expression', query.sortExpression]] : []),
+      ...(query.sortDirection != null ? [['sort_direction', query.sortDirection]] : []),
+      ...(query.from != null ? [['from', query.from]] : []),
+      ...(query.pageSize != null ? [['pageSize', String(query.pageSize)]] : []),
+    ]).toString()
+    const path = `${remoteBackendPaths.SEARCH_DIRECTORY_PATH}?${paramsString}`
+    const response = await this.get<backend.ListDirectoryResponseBody>(path)
+    if (!response.ok) {
+      return await this.throw(response, 'searchFolderBackendError')
+    } else {
+      const responseBody = await response.json()
+      return {
+        ...responseBody,
+        assets: this.listDirectoryResponseToAssetList(responseBody.assets, query.parentId),
+      }
     }
   }
 
@@ -1464,29 +1488,19 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Replaces the `user` of all permissions for the current user on an asset, so that they always
-   * return the up-to-date user.
-   */
-  private dynamicAssetUser<Asset extends backend.AnyAsset>(asset: Asset) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this
-    let foundSelfPermission = (() => false)()
-    const permissions = asset.permissions?.map((permission) => {
-      if (!('user' in permission) || permission.user.userId !== this.user?.userId) {
-        return permission
-      } else {
-        foundSelfPermission = true
-        return {
-          ...permission,
-          /** Return a dynamic reference to the current user. */
-          get user() {
-            return self.user
-          },
-        }
-      }
-    })
-    return !foundSelfPermission ? asset : { ...asset, permissions }
+  /** Convert a {@link ListDirectoryResponseBody} to an array of {@link backend.AnyAsset}. */
+  private listDirectoryResponseToAssetList(
+    assets: readonly backend.AnyAsset[],
+    parentId: backend.DirectoryId | null,
+  ): readonly backend.AnyAsset[] {
+    return assets.map((asset) =>
+      objects.merge(asset, {
+        type: backend.getAssetTypeFromId(asset.id),
+        // `Users` and `Teams` folders are virtual, so their children incorrectly have
+        // the organization root id as their parent id.
+        parentId: parentId ?? asset.parentId,
+      }),
+    )
   }
 }
 
