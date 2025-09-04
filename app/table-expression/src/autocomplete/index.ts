@@ -6,6 +6,7 @@ import { completionTypeAt, type NameCompletion } from './completionType'
 export interface MethodCompletionInfo {
   name: string
   description?: string | undefined
+  args: boolean
 }
 
 interface StringCompletion extends Completion {
@@ -14,21 +15,25 @@ interface StringCompletion extends Completion {
 
 function getMethodOptions(infos: MethodCompletionInfo[]) {
   const methods: StringCompletion[] = []
+  const methodsWithParen: StringCompletion[] = []
   const binaryOperators: Completion[] = []
-  for (const { name, description } of infos) {
+  for (const { name, description, args } of infos) {
     if (/^[a-z]/.test(name)) {
-      methods.push({
+      const baseCompletion = {
         label: name,
         type: 'method',
         ...(description ? { detail: description } : {}),
         apply: name,
-      })
+      }
+      methods.push(baseCompletion)
+      methodsWithParen.push({ ...baseCompletion, apply: name + (args ? '(' : '()') })
     } else {
       binaryOperators.push({ label: name, type: 'operator' })
     }
   }
   return {
     methods,
+    methodsWithParen,
     binaryOperators,
   }
 }
@@ -36,7 +41,6 @@ function getMethodOptions(infos: MethodCompletionInfo[]) {
 function applyMapper(f: (s: string) => string): (completion: StringCompletion) => StringCompletion {
   return (completion) => ({ ...completion, apply: f(completion.apply) })
 }
-const openParenAfter = applyMapper((s) => `${s}(`)
 const closeBracketAfter = applyMapper((s) => `${s}]`)
 const encloseBrackets = applyMapper((s) => `[${s}]`)
 
@@ -46,7 +50,6 @@ export function useCompletions(
   columns: (() => string[]) | undefined,
 ) {
   const methodOptions = computed(() => getMethodOptions(methods?.() ?? []))
-  const methodsWithParen = computed(() => methodOptions.value.methods.map(openParenAfter))
   const columnOptions = computed(() =>
     Array.from(columns?.() ?? [], (column) => ({
       label: column,
@@ -57,7 +60,7 @@ export function useCompletions(
   )
   const columnsWithBracket = computed(() => columnOptions.value.map(closeBracketAfter))
   const valueOptions = computed(() => [
-    ...methodsWithParen.value,
+    ...methodOptions.value.methodsWithParen,
     ...columnOptions.value.map(encloseBrackets),
   ])
 
@@ -69,7 +72,10 @@ export function useCompletions(
       : completion.type === 'functionName' ?
         nameCompletions(
           completion,
-          () => (completion.insertDelim ? methodsWithParen.value : methodOptions.value.methods),
+          () =>
+            completion.insertDelim ?
+              methodOptions.value.methodsWithParen
+            : methodOptions.value.methods,
           context,
         )
       : completion.type === 'columnName' ?

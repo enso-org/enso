@@ -9,7 +9,7 @@ import type { QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { Extension } from '@codemirror/state'
 import { tableExpression, type MethodCompletionInfo } from 'lezer-enso-table-expr'
-import { computed, toValue, type Ref } from 'vue'
+import { computed, toRef, toValue, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 
 export interface TableExpressionExtensionOptions {
@@ -22,13 +22,20 @@ export interface TableExpressionExtensionOptions {
 export function useTableExpressionExtension(
   options: TableExpressionExtensionOptions,
 ): Readonly<Ref<Extension>> {
-  const { projectNames, suggestionDb } = options
+  const { projectNames } = options
   const project = toValue(options.project)
+  const suggestionDb = toRef(options.suggestionDb)
 
+  const columnMethodEntries = computed(() =>
+    [...(suggestionDb.value?.selectableMethods(COLUMN_TYPE) ?? [])].filter(
+      (method) => !EXCLUDED_COLUMN_METHODS.has(method.name),
+    ),
+  )
+  const staticMethodEntries = computed(() => [
+    ...(suggestionDb.value?.typeMethods(EXPRESSION_STATICS_TYPE) ?? []),
+  ])
   const methodInfos = computed(() =>
-    [...(toValue(suggestionDb)?.selectableMethods(COLUMN_TYPE) ?? [])]
-      .filter((method) => !EXCLUDED_METHODS.has(method.name))
-      .map(methodInfoFromEntry),
+    [...columnMethodEntries.value, ...staticMethodEntries.value].map(methodInfoFromEntry),
   )
 
   const columns =
@@ -45,14 +52,20 @@ const COLUMN_TYPE = ProjectPath.create(
   'Column.Column' as QualifiedName,
 )
 
+const EXPRESSION_STATICS_TYPE = ProjectPath.create(
+  'Standard.Table' as QualifiedName,
+  'Internal.Expression_Statics.Expression_Statics' as QualifiedName,
+)
+
 function methodInfoFromEntry(entry: MethodSuggestionEntry): MethodCompletionInfo {
   return {
     name: entry.name,
     description: entry.documentationSummary,
+    args: entry.arguments.length > 0,
   }
 }
 
-const EXCLUDED_METHODS = new Set([
+const EXCLUDED_COLUMN_METHODS = new Set([
   ///// Syntactic methods /////
   // These methods are used to implement special syntaxes in the expression language. Some cannot
   // syntactically be used as methods; others could legally be used, but the dedicated syntax is

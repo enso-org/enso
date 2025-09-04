@@ -75,11 +75,7 @@ const placeholder = computed(() =>
 const textInputConfig = computed(() =>
   props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig : undefined,
 )
-const extensions = useLanguageSupport(() => textInputConfig.value?.syntax, {
-  project: () => currentProject.value?.store,
-  projectNames: () => currentProject.value?.names,
-  suggestionDb: () => currentProject.value?.suggestionDb.entries,
-})
+const extensions = useLanguageSupport(() => textInputConfig.value?.syntax)
 
 function isTextMultiline(text: string) {
   return !!text.match(/[\r\n]/)
