@@ -1032,8 +1032,9 @@ rm dist/backend/project-manager.tar"
                 let cloud_credentials_path = "$HOME/.enso/credentials";
                 let cleanup_credentials_step = Step {
                     r#if: Some("always()".into()),
+                    name: Some("Remove Credentials File".into()),
+                    shell: Some(Shell::Bash),
                     ..shell(format!("rm -f {cloud_credentials_path}"))
-                    .with_name("Remove Credentials File")
                 };
 
                 steps.push(cleanup_credentials_step);
