@@ -53,7 +53,7 @@ type Column
         - If some values in `items` do not match the `value_type`, an
           `Invalid_Value_Type` error is raised.
         - With the default `value_type` of `Auto`, no errors should occur.
-    from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column | Any ! Invalid_Value_Type =
+    from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column & Any ! Invalid_Value_Type =
         In_Memory_Column.from_vector name items value_type
 
     ## ---
@@ -66,7 +66,7 @@ type Column
         - `name`: The name of the column to create.
         - `item`: The element to repeat in the column.
         - `repeats`: The number of times to repeat the element.
-    from_repeated_item name:Text item:Any repeats:Integer -> Column | Any =
+    from_repeated_item name:Text item:Any repeats:Integer -> Column & Any =
         In_Memory_Column.from_repeated_item name item repeats
 
     ## ---
@@ -158,7 +158,7 @@ type Column
         - If this operation results in comparing floating-point values for
           equality which is not recommended, a `Floating_Point_Equality` warning
           is attached to the result.
-    == self (other : Column | Any) -> Column | Any =
+    == self (other : Column | Any) -> Column & Any =
         self.implementation.equals self other
 
     ## ---
@@ -176,7 +176,7 @@ type Column
           `self` and `other`.
         - `locale`: The locale to use for the case-insensitive comparison.
     @locale Locale.default_widget
-    equals_ignore_case self (other : Column | Any) locale:Locale=Locale.default -> Column | Any =
+    equals_ignore_case self (other : Column | Any) locale:Locale=Locale.default -> Column & Any =
         self.implementation.equals_ignore_case self other locale
 
     ## ---
@@ -216,7 +216,7 @@ type Column
         - If this operation results in comparing floating-point values for
           equality which is not recommended, a `Floating_Point_Equality` warning
           is attached to the result.
-    != self (other : Column | Any) -> Column | Any =
+    != self (other : Column | Any) -> Column & Any =
         self.implementation.not_equals self other
 
     ## ---
@@ -251,7 +251,7 @@ type Column
 
              example_geq = Examples.integer_column >= 1
        ```
-    >= self (other : Column | Any) -> Column | Any =
+    >= self (other : Column | Any) -> Column & Any =
         self.implementation.greater_than_eq self other
 
     ## ---
@@ -286,7 +286,7 @@ type Column
 
              example_leq = Examples.integer_column <= 1
        ```
-    <= self (other : Column | Any) -> Column | Any =
+    <= self (other : Column | Any) -> Column & Any =
         self.implementation.less_than_eq self other
 
     ## ---
@@ -321,7 +321,7 @@ type Column
 
              example_gt = Examples.integer_column > 1
        ```
-    > self (other : Column | Any) -> Column | Any =
+    > self (other : Column | Any) -> Column & Any =
         self.implementation.greater_than self other
 
     ## ---
@@ -356,7 +356,7 @@ type Column
 
              example_lt = Examples.integer_column < 1
        ```
-    < self (other : Column | Any) -> Column | Any =
+    < self (other : Column | Any) -> Column & Any =
         self.implementation.less_than self other
 
     ## ---
@@ -375,7 +375,7 @@ type Column
         - `upper`: The upper bound to compare elements of `self` against. If
           `upper` is a column, the comparison is performed pairwise between
           corresponding elements of `self` and `upper`.
-    between self (lower : Column | Any) (upper : Column | Any) -> Column | Any =
+    between self (lower : Column | Any) (upper : Column | Any) -> Column & Any =
         self.implementation.between self lower upper
 
     ## ---
@@ -420,7 +420,7 @@ type Column
        `Arithmetic_Overflow` warning. The behaviour in Database backends is not
        specified and will depend on the particular database - it may cause a hard
        error, the value may be truncated or wrap-around etc.
-    + self (other : Column | Any) -> Column | Any =
+    + self (other : Column | Any) -> Column & Any =
         self.implementation.add self other
 
     ## ---
@@ -466,7 +466,7 @@ type Column
        `Arithmetic_Overflow` warning. The behaviour in Database backends is not
        specified and will depend on the particular database - it may cause a hard
        error, the value may be truncated or wrap-around etc.
-    - self (other : Column | Any) -> Column | Any =
+    - self (other : Column | Any) -> Column & Any =
         self.implementation.minus self other
 
     ## ---
@@ -510,7 +510,7 @@ type Column
        `Arithmetic_Overflow` warning. The behaviour in Database backends is not
        specified and will depend on the particular database - it may cause a hard
        error, the value may be truncated or wrap-around etc.
-    * self (other : Column | Any) -> Column | Any =
+    * self (other : Column | Any) -> Column & Any =
         self.implementation.multiply self other
 
     ## ---
@@ -559,7 +559,7 @@ type Column
        `Arithmetic_Overflow` warning. The behaviour in Database backends is not
        specified and will depend on the particular database - it may cause a hard
        error, the value may be truncated or wrap-around etc.
-    / self (other : Column | Any) -> Column | Any =
+    / self (other : Column | Any) -> Column & Any =
         self.implementation.divide self other
 
     ## ---
@@ -597,7 +597,7 @@ type Column
        ## Errors
         - If division by zero occurs, an `Arithmetic_Error` warning is attached
           to the result.
-    % self (other : Column | Any) -> Column | Any =
+    % self (other : Column | Any) -> Column & Any =
         self.implementation.modulus self other
 
     ## ---
@@ -641,7 +641,7 @@ type Column
        `Arithmetic_Overflow` warning. The behaviour in Database backends is not
        specified and will depend on the particular database - it may cause a hard
        error, the value may be truncated or wrap-around etc.
-    ^ self (other : Column | Any) -> Column | Any =
+    ^ self (other : Column | Any) -> Column & Any =
         self.implementation.power self other
 
     ## ---
@@ -676,7 +676,7 @@ type Column
 
              example_and = Examples.bool_column_1 && True
        ```
-    && self (other : Column | Any) -> Column | Any =
+    && self (other : Column | Any) -> Column & Any =
         self.implementation.and self other
 
     ## ---
@@ -712,7 +712,7 @@ type Column
 
              example_or = Examples.bool_column_1 || True
        ```
-    || self (other : Column | Any) -> Column | Any =
+    || self (other : Column | Any) -> Column & Any =
         self.implementation.or self other
 
     ## ---
@@ -730,7 +730,7 @@ type Column
 
              example_not = Examples.bool_column_1.not
        ```
-    not self -> Column | Any =
+    not self -> Column & Any =
         self.implementation.not self
 
     ## ---
@@ -753,7 +753,7 @@ type Column
 
              example_if = Examples.bool_column_1.iif 1 0
        ```
-    iif self (when_true : Column | Any) (when_false : Column | Any) -> Column | Any =
+    iif self (when_true : Column | Any) (when_false : Column | Any) -> Column & Any =
         self.implementation.iif self when_true when_false
 
     ## ---
@@ -771,7 +771,7 @@ type Column
        ### Create a column of the value 42
 
          column.const 42
-    const self value:Any -> Column | Any =
+    const self value:Any -> Column & Any =
         self.to_table.make_constant_column value
 
     ## ---
@@ -835,7 +835,7 @@ type Column
        ### Return type in Database
        In databases, the return type of this operation depends on the particular
        database backend.
-    round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column | Any ! Illegal_Argument | Invalid_Value_Type =
+    round self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column & Any ! Illegal_Argument | Invalid_Value_Type =
         self.implementation.round self decimal_places rounding_mode
 
     ## ---
@@ -868,7 +868,7 @@ type Column
        ### NaN/Inf
        If a `NaN` or `Inf` value is passed to `truncate`, it immediately returns
        the same value.
-    truncate self -> Column | Any ! Invalid_Value_Type =
+    truncate self -> Column & Any ! Invalid_Value_Type =
         self.implementation.truncate self
 
     ## ---
@@ -891,7 +891,7 @@ type Column
        ### NaN/Inf
        If a `NaN` or `Inf` value is passed to `ceil`, it immediately returns the
        same value.
-    ceil self -> Column | Any ! Invalid_Value_Type =
+    ceil self -> Column & Any ! Invalid_Value_Type =
         self.implementation.ceil self
 
     ## ---
@@ -914,7 +914,7 @@ type Column
        ### NaN/Inf
        If a `NaN` or `Inf` value is passed to `floor`, it immediately returns the
        same value.
-    floor self -> Column | Any ! Invalid_Value_Type =
+    floor self -> Column & Any ! Invalid_Value_Type =
         self.implementation.floor self
 
     ## ---
@@ -935,7 +935,7 @@ type Column
 
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
        ```
-    coalesce self (values : Any | Vector Any) -> Column | Any =
+    coalesce self (values : Any | Vector Any) -> Column & Any =
         self.implementation.coalesce self values
 
     ## ---
@@ -962,7 +962,7 @@ type Column
        ### SQLite NULL handling
        In SQLite, if any of the values is NULL, the result is NULL.
        In all other backends the NULL values are ignored.
-    min self (values : Any | Vector Any) -> Column | Any =
+    min self (values : Any | Vector Any) -> Column & Any =
         self.implementation.min self values
 
     ## ---
@@ -989,7 +989,7 @@ type Column
        ### SQLite NULL handling
        In SQLite, if any of the values is NULL, the result is NULL.
        In all other backends the NULL values are ignored.
-    max self (values : Any | Vector Any) -> Column | Any =
+    max self (values : Any | Vector Any) -> Column & Any =
         self.implementation.max self values
 
     ## ---
@@ -1007,7 +1007,7 @@ type Column
 
              example_is_nothing = Examples.decimal_column.is_nothing
        ```
-    is_nothing self -> Column | Any =
+    is_nothing self -> Column & Any =
         self.implementation.is_nothing_implementation self
 
     ## ---
@@ -1016,7 +1016,7 @@ type Column
        ---
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
-    is_nan self -> Column | Any =
+    is_nan self -> Column & Any =
         self.implementation.is_nan self
 
     ## ---
@@ -1026,7 +1026,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
-    is_infinite self -> Column | Any =
+    is_infinite self -> Column & Any =
         self.implementation.is_infinite self
 
     ## ---
@@ -1036,7 +1036,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a non-infinite, non-NaN floating point value. This is
        only applicable to double columns.
-    is_finite self -> Column | Any =
+    is_finite self -> Column & Any =
         self.implementation.is_finite self
 
     ## ---
@@ -1044,7 +1044,7 @@ type Column
        ---
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
-    is_empty self -> Column | Any =
+    is_empty self -> Column & Any =
         self.implementation.is_empty self
 
     ## ---
@@ -1062,7 +1062,7 @@ type Column
 
              example_is_present = Examples.decimal_column.is_present
        ```
-    is_present self -> Column | Any =
+    is_present self -> Column & Any =
         self.implementation.is_present self
 
     ## ---
@@ -1079,7 +1079,7 @@ type Column
 
        ### Blank values
        Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    is_blank self treat_nans_as_blank:Boolean=False -> Column | Any =
+    is_blank self treat_nans_as_blank:Boolean=False -> Column & Any =
         self.implementation.is_blank self treat_nans_as_blank
 
     ## ---
@@ -1107,7 +1107,7 @@ type Column
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
        ```
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
-    fill_nothing self (default : Column | Previous_Value | Any) -> Column | Any =
+    fill_nothing self (default : Column | Previous_Value | Any) -> Column & Any =
         self.implementation.fill_nothing self default
 
     ## ---
@@ -1134,7 +1134,7 @@ type Column
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
        ```
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
-    fill_empty self (default : Column | Previous_Value | Any) -> Column | Any =
+    fill_empty self (default : Column | Previous_Value | Any) -> Column & Any =
         self.implementation.fill_empty self default
 
     ## ---
@@ -1177,7 +1177,7 @@ type Column
 
              example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
        ```
-    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column | Any =
+    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column & Any =
         self.implementation.starts_with self other case_sensitivity
 
     ## ---
@@ -1211,7 +1211,7 @@ type Column
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
        ```
-    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column | Any =
+    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column & Any =
         self.implementation.ends_with self other case_sensitivity
 
     ## ---
@@ -1231,7 +1231,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_length
        ```
-    text_length self -> Column | Any =
+    text_length self -> Column & Any =
         self.implementation.text_length self
 
     ## ---
@@ -1251,7 +1251,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_left 5
        ```
-    text_left self (n : Column | Integer) -> Column | Any =
+    text_left self (n : Column | Integer) -> Column & Any =
         self.implementation.text_left self n
 
     ## ---
@@ -1271,7 +1271,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_right 5
        ```
-    text_right self (n : Column | Integer) -> Column | Any =
+    text_right self (n : Column | Integer) -> Column & Any =
         self.implementation.text_right self n
 
     ## ---
@@ -1306,7 +1306,7 @@ type Column
 
              example_contains = Examples.text_column_1.contains "hell"
        ```
-    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column | Any =
+    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column & Any =
         self.implementation.contains self other case_sensitivity
 
     ## ---
@@ -1330,7 +1330,7 @@ type Column
 
              example_contains = Examples.text_column_1.like "F%."
        ```
-    like self (pattern : Column | Text | Any) -> Column | Any =
+    like self (pattern : Column | Text | Any) -> Column & Any =
         self.implementation.like self pattern
 
     ## ---
@@ -1352,7 +1352,7 @@ type Column
 
              example_contains = Examples.text_column_1.regex_match (regex "A.*M")
        ```
-    regex_match self (pattern : Column | Text | Regex) -> Column | Any =
+    regex_match self (pattern : Column | Text | Regex) -> Column & Any =
         self.implementation.regex_match self pattern
 
     ## ---
@@ -1367,7 +1367,7 @@ type Column
           function trims both ends of the input.
         - `what`: A `Text` (or text `Column`) containing characters that should
           be removed. By default, all whitespace is removed.
-    trim self where:Location=..Both (what : Text | Column = '') -> Column | Any =
+    trim self where:Location=..Both (what : Text | Column = '') -> Column & Any =
         self.implementation.trim self where what
 
     ## ---
@@ -1450,7 +1450,7 @@ type Column
        +----------------+------------+----------+--------+
     @term make_regex_text_widget
     @new_text (Text_Input display=..Always)
-    text_replace self (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column | Any =
+    text_replace self (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column & Any =
         self.implementation.text_replace self term new_text case_sensitivity only_first
 
     ## ---
@@ -1484,7 +1484,7 @@ type Column
              column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
        ```
     @remove make_data_cleanse_vector_selector
-    text_cleanse self (remove : Vector Named_Pattern) -> Column | Any =
+    text_cleanse self (remove : Vector Named_Pattern) -> Column & Any =
         self.implementation.text_cleanse self remove
 
     ## ---
@@ -1494,7 +1494,7 @@ type Column
        Gets the year as a number from the date stored in the column.
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    year self -> Column | Any ! Invalid_Value_Type =
+    year self -> Column & Any ! Invalid_Value_Type =
         self.implementation.year self
 
     ## ---
@@ -1504,7 +1504,7 @@ type Column
        Gets the month as a number (1-12) from the date stored in the column.
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    month self -> Column | Any ! Invalid_Value_Type =
+    month self -> Column & Any ! Invalid_Value_Type =
         self.implementation.month self
 
     ## ---
@@ -1515,7 +1515,7 @@ type Column
        column.
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day self -> Column | Any ! Invalid_Value_Type =
+    day self -> Column & Any ! Invalid_Value_Type =
         self.implementation.day self
 
     ## ---
@@ -1526,7 +1526,7 @@ type Column
        column.
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day_of_year self -> Column | Any ! Invalid_Value_Type =
+    day_of_year self -> Column & Any ! Invalid_Value_Type =
         self.implementation.day_of_year self
 
     ## ---
@@ -1538,7 +1538,7 @@ type Column
        Monday is 1, Tuesday is 2, ..., Sunday is 7.
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day_of_week self -> Column | Any ! Invalid_Value_Type =
+    day_of_week self -> Column & Any ! Invalid_Value_Type =
         self.implementation.day_of_week self
 
     ## ---
@@ -1548,7 +1548,7 @@ type Column
        Gets the hour as a number (0-23) from the time stored in the column.
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    hour self -> Column | Any ! Invalid_Value_Type =
+    hour self -> Column & Any ! Invalid_Value_Type =
         self.implementation.hour self
 
     ## ---
@@ -1558,7 +1558,7 @@ type Column
        Gets the minute as a number (0-59) from the time stored in the column.
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    minute self -> Column | Any ! Invalid_Value_Type =
+    minute self -> Column & Any ! Invalid_Value_Type =
         self.implementation.minute self
 
     ## ---
@@ -1568,7 +1568,7 @@ type Column
        Gets the second as an integer (0-60) from the time stored in the column.
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    second self -> Column | Any ! Invalid_Value_Type =
+    second self -> Column & Any ! Invalid_Value_Type =
         self.implementation.second self
 
     ## ---
@@ -1578,7 +1578,7 @@ type Column
        Gets the date part of the date/time value.
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_part self (period : Date_Period | Time_Period = ..Day) -> Column | Any ! Invalid_Value_Type | Illegal_Argument =
+    date_part self (period : Date_Period | Time_Period = ..Day) -> Column & Any ! Invalid_Value_Type | Illegal_Argument =
         self.implementation.date_part self period
 
     ## ---
@@ -1607,7 +1607,7 @@ type Column
        differences in time calculations between backends, especially around
        unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_diff self (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = ..Day) -> Column | Any ! Invalid_Value_Type | Illegal_Argument =
+    date_diff self (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = ..Day) -> Column & Any ! Invalid_Value_Type | Illegal_Argument =
         self.implementation.date_diff self end period
 
     ## ---
@@ -1633,7 +1633,7 @@ type Column
        differences in time calculations between backends, especially around
        unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_add self (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period self) -> Column | Any ! Invalid_Value_Type | Illegal_Argument =
+    date_add self (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period self) -> Column & Any ! Invalid_Value_Type | Illegal_Argument =
         self.implementation.date_add self amount period
 
     ## ---
@@ -1656,7 +1656,7 @@ type Column
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
        ```
-    is_in self (vector : Vector | Column | Array) -> Column | Any =
+    is_in self (vector : Vector | Column | Array) -> Column & Any =
         self.implementation.is_in self vector
 
     ## ---
@@ -1741,7 +1741,7 @@ type Column
          bracket.
     @type Widget_Helpers.parse_type_selector
     @format Widget_Helpers.make_format_chooser_for_parse
-    parse self (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column | Any =
+    parse self (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column & Any =
         self.implementation.parse self type format on_problems
 
     ## ---
@@ -1828,7 +1828,7 @@ type Column
        false, separated by a `|`.
     @locale Locale.default_widget
     @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
-    format self (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column | Any ! Illegal_Argument =
+    format self (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column & Any ! Illegal_Argument =
         self.implementation.format self format locale
 
     ## ---
@@ -1880,7 +1880,7 @@ type Column
        The `parse` method should be used to convert text values into other types.
        Due to this, a Mixed column containing values `[2, "3"]` will actually be
        converted into `[2, Nothing]` when casting to Integer type.
-    cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column | Any ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
+    cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column & Any ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
         self.implementation.cast self value_type on_problems
 
     ## ---
@@ -1916,7 +1916,7 @@ type Column
        - Otherwise, if a text column is variable length, but all text elements
          are no longer than 255 characters, the column will get a max length of
          255. Otherwise, the column size limit will stay unchanged.
-    auto_cast self shrink_types:Boolean=False -> Column | Any =
+    auto_cast self shrink_types:Boolean=False -> Column & Any =
         self.implementation.auto_cast self shrink_types
 
     ## ---
@@ -1953,7 +1953,7 @@ type Column
        - Otherwise, if a text column is variable length, but all text elements
          are no longer than 255 characters, the column will get a max length of
          255. Otherwise, the column size limit will stay unchanged.
-    auto_value_type self shrink_types:Boolean=False -> Column | Any =
+    auto_value_type self shrink_types:Boolean=False -> Column & Any =
         Warning.attach (Deprecated.Warning "Standard.Table.Column.Column" "auto_value_type" "Deprecated: `auto_value_type` has been replaced by `auto_cast`.") <|
             self.auto_cast shrink_types
 
@@ -1988,7 +1988,7 @@ type Column
           error is propagated.
         - If an invocation of the `function` returns a value with warnings, these
           warnings are attached to the overall result.
-    map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column | Any ! Invalid_Value_Type =
+    map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column & Any ! Invalid_Value_Type =
         self.implementation.map self function skip_nothing expected_value_type
 
     ## ---
@@ -2060,7 +2060,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
        ```
-    rename self name:Text -> Column | Any ! Illegal_Argument =
+    rename self name:Text -> Column & Any ! Illegal_Argument =
         self.implementation.rename self name
 
     ## ---
@@ -2191,7 +2191,7 @@ type Column
           it will return all rows for in-memory columns, but in Database it will
           read up to 1000 rows and warn if there are more.
     @max_rows Rows_To_Read.default_widget
-    read self (max_rows : Rows_To_Read = default_row_limit_for_read self) -> Column | Any =
+    read self (max_rows : Rows_To_Read = default_row_limit_for_read self) -> Column & Any =
         self.implementation.read self max_rows
 
     ## ---
@@ -2331,7 +2331,7 @@ type Column
                  my_compare a b = Ordering.compare a.abs b.abs
                  Examples.decimal_column.sort by=my_compare
        ```
-    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column | Any =
+    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column & Any =
         self.implementation.sort self order missing_last by
 
     ## ---
@@ -2371,7 +2371,7 @@ type Column
         - If the range is out of bounds, an `Index_Out_Of_Bounds` error is
           raised.
     @range (self-> Index_Sub_Range.default_widget self.length)
-    take self (range : Index_Sub_Range | Range | Integer = ..First) -> Column | Any =
+    take self (range : Index_Sub_Range | Range | Integer = ..First) -> Column & Any =
         self.implementation.take self range
 
     ## ---
@@ -2385,14 +2385,14 @@ type Column
        ## Arguments
         - `range`: The selection of rows from the table to remove.
     @range (self-> Index_Sub_Range.default_widget self.length)
-    drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Column | Any =
+    drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Column & Any =
         self.implementation.drop self range
 
     ## ---
        private: true
        ---
        Returns a column with a continuous sub-range of rows taken.
-    slice : Integer -> Integer -> Column | Any
+    slice : Integer -> Integer -> Column & Any
     slice self start end =
         self.implementation.slice self start end
 
@@ -2449,7 +2449,7 @@ type Column
 
              example_reverse = Examples.integer_column.reverse
        ```
-    reverse self -> Column | Any =
+    reverse self -> Column & Any =
         self.implementation.reverse self
 
     ## ---
@@ -2467,7 +2467,7 @@ type Column
 
              example_duplicate_count = Examples.integer_column.duplicate_count
        ```
-    duplicate_count self -> Column | Any =
+    duplicate_count self -> Column & Any =
         self.implementation.duplicate_count self
 
     ## ---
@@ -2546,7 +2546,7 @@ type Column
        ## Arguments
         - `statistic`: Statistic to calculate.
         - `name`: Name of the new column.
-    running self statistic:Statistic=..Count (name : Text = statistic.to_text+" "+self.name) -> Column | Any =
+    running self statistic:Statistic=..Count (name : Text = statistic.to_text+" "+self.name) -> Column & Any =
         self.implementation.running self statistic name
 
     ## ---
@@ -2572,7 +2572,7 @@ type Column
           bottom reappear at the other end. So no values get lost they are just
           rotated.
     @n (self-> Numeric_Input minimum=0-self.length maximum=self.length)
-    offset self n:Integer=-1 fill_with:Fill_With=..Nothing -> Column | Any =
+    offset self n:Integer=-1 fill_with:Fill_With=..Nothing -> Column & Any =
         self.implementation.offset self n fill_with
 
 ## ---

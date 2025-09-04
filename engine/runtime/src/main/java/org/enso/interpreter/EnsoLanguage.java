@@ -304,7 +304,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
               new IrToTruffle(
                   context,
                   module.getPackage(),
-                  request.getSource(),
+                  request::getSource,
                   mod,
                   redirectConfigWithStrictErrors);
           exprNode = toTruffle.runInline(ir, sco, "<inline_source>");

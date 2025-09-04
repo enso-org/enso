@@ -10,8 +10,10 @@ import com.ibm.icu.text.StringSearch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.enso.base.text.Case;
 import org.enso.base.text.CaseFoldedString;
 import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
@@ -747,5 +749,28 @@ public class Text_Utils {
   /** Pretty prints the string, escaping special characters. */
   public static String pretty_print(String str) {
     return Core_Text_Utils.prettyPrint(str);
+  }
+
+  public static Function<String, String> caseOptionToConverter(
+      Case caseOption, final Locale locale) {
+    final Locale localeOrDefault = locale == null ? Locale.getDefault() : locale;
+
+    return switch (caseOption) {
+      case LOWER -> s -> UCharacter.toLowerCase(locale, s);
+      case UPPER -> s -> UCharacter.toUpperCase(locale, s);
+      case TITLE -> s -> UCharacter.toTitleCase(locale, s, null);
+    };
+  }
+
+  public static String toCase(String s, Case caseOption, Locale locale) {
+    if (locale == null) {
+      locale = Locale.getDefault();
+    }
+
+    return switch (caseOption) {
+      case LOWER -> UCharacter.toLowerCase(locale, s);
+      case UPPER -> UCharacter.toUpperCase(locale, s);
+      case TITLE -> UCharacter.toTitleCase(locale, s, null);
+    };
   }
 }
