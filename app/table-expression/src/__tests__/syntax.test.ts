@@ -126,6 +126,10 @@ test.each([
     expected: ['Expression', ['Date', ['⚠', ''], ['⚠', '']]],
   },
   {
+    code: '[',
+    expected: ['Expression', ['Column', ['OpenBracket', '['], ['⚠', '']]],
+  },
+  {
     code: 'not',
     expected: ['Expression', ['PrefixOpApp', ['ArithOp', ['NOT', 'not']], ['⚠', '']]],
   },
