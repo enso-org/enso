@@ -3,6 +3,7 @@
  * method information and the rules of the syntax.
  */
 import type { Completion } from '@codemirror/autocomplete'
+import { record } from 'enso-common/src/utilities/data/object'
 import { computed } from 'vue'
 
 /** Completion information for a method. */
@@ -49,12 +50,7 @@ const BUILTIN_PREFIX_OPS = [
     type: 'keyword',
   },
 ]
-function kv<T extends object>(obj: T): T {
-  return Object.assign(Object.create(null), obj)
-}
-function record<K extends string | number | symbol, V>(obj: Record<K, V>): Record<K, V> {
-  return kv(obj)
-}
+
 /** Method names to treat as operators. */
 const OP_METHODS = record<
   string,
