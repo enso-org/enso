@@ -624,6 +624,7 @@ function updateVisualization(preprocessor: string, data: unknown) {
       const exprId = visualizationExprIds.get(id)
       const vizData = encodeJSON(data)
       sendVizUpdate(id, config.executionContextId, exprId, vizData)
+      mockWidgetConfigurations.set(preprocessor, vizData)
     }
   }
 }
