@@ -280,7 +280,7 @@ export function functionCallConfiguration(
 ): FunctionCall {
   const parametersMap = new Map(inherited?.parameters)
   for (const [name, param] of parameters) {
-    parametersMap.set(name, parametersMap.get(name) ?? param)
+    if (param) parametersMap.set(name, param)
   }
   return {
     kind: 'FunctionCall',
