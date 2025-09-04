@@ -19,7 +19,6 @@ function isAllowedNameCharacter(char: string): boolean {
  */
 export function normalizedName(name: string): string {
   let starting: string
-
   if (
     name.length === 0 ||
     name
@@ -33,10 +32,8 @@ export function normalizedName(name: string): string {
   } else {
     starting = name
   }
-
   // Capitalize first letter
   const startingWithUppercase = starting.charAt(0).toUpperCase() + starting.slice(1)
-
   // Filter to only alphanumeric characters
   const onlyAlphanumeric = startingWithUppercase.split('').filter(isAllowedNameCharacter).join('')
 
@@ -53,8 +50,7 @@ export function validateName(name: string): InvalidNameError | string {
     return { type: 'Empty' }
   }
 
-  const firstChar = name.charAt(0)
-  if (!/^[A-Z]/.test(firstChar)) {
+  if (!/^[A-Z]/.test(name)) {
     return { type: 'ShouldStartWithCapitalLetter' }
   }
 

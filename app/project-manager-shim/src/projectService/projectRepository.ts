@@ -36,8 +36,8 @@ export interface ProjectRepository {
   moveToTrash(projectId: string): Promise<boolean>
   rename(projectId: string, name: string): Promise<void>
   findById(projectId: string): Promise<Project | null>
-  find(predicate: (project: Project) => boolean): Promise<Project[]>
-  getAll(): Promise<Project[]>
+  find(predicate: (project: Project) => boolean): Promise<readonly Project[]>
+  getAll(): Promise<readonly Project[]>
   moveProject(projectId: string, newName: string): Promise<Path>
   copyProject(project: Project, newName: string, newMetadata: ProjectMetadata): Promise<Project>
   getPackageName(projectId: string): Promise<string>
@@ -96,7 +96,7 @@ export class ProjectFileRepository implements ProjectRepository {
   async delete(projectId: string): Promise<void> {
     const project = await this.findById(projectId)
     if (!project) {
-      throw new Error(`Project not found: ${projectId}`)
+      throw new Error(`Project '${projectId}' not found`)
     }
     await fs.rm(project.path, { recursive: true, force: true })
   }
@@ -105,7 +105,7 @@ export class ProjectFileRepository implements ProjectRepository {
   async moveToTrash(projectId: string): Promise<boolean> {
     const project = await this.findById(projectId)
     if (!project) {
-      throw new Error(`Project not found: ${projectId}`)
+      throw new Error(`Project '${projectId}' not found`)
     }
 
     // TODO: Simple implementation: move to a .trash directory
@@ -120,7 +120,7 @@ export class ProjectFileRepository implements ProjectRepository {
   async rename(projectId: string, name: string): Promise<void> {
     const project = await this.findById(projectId)
     if (!project) {
-      throw new Error(`Project not found: ${projectId}`)
+      throw new Error(`Project '${projectId}' not found`)
     }
     await this.renamePackage(project.path, name)
   }
@@ -132,22 +132,22 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Finds projects matching a predicate. */
-  async find(predicate: (project: Project) => boolean): Promise<Project[]> {
+  async find(predicate: (project: Project) => boolean): Promise<readonly Project[]> {
     const projects = await this.getAll()
     return projects.filter(predicate)
   }
 
   /** Gets all projects. */
-  async getAll(): Promise<Project[]> {
+  async getAll(): Promise<readonly Project[]> {
     try {
       const entries = await fs.readdir(this.projectsPath, { withFileTypes: true })
       const directories = entries.filter((e) => e.isDirectory() && !e.name.startsWith('.'))
 
-      const projects: (Project | null)[] = await Promise.all(
+      const projects: readonly (Project | null)[] = await Promise.all(
         directories.map((dir) => this.tryLoadProject(Path(path.join(this.projectsPath, dir.name)))),
       )
 
-      const validProjects = projects.filter((p): p is Project => p !== null)
+      const validProjects = projects.filter((p) => p !== null)
       return this.resolveClashingIds(validProjects)
     } catch (error) {
       if ((error as any).code === 'ENOENT') {
@@ -161,7 +161,7 @@ export class ProjectFileRepository implements ProjectRepository {
   async moveProject(projectId: string, newName: string): Promise<Path> {
     const project = await this.findById(projectId)
     if (!project) {
-      throw new Error(`Project not found: ${projectId}`)
+      throw new Error(`Project '${projectId}' not found`)
     }
 
     const normalizedName = nameValidation.normalizedName(newName)
@@ -206,7 +206,7 @@ export class ProjectFileRepository implements ProjectRepository {
   async getPackageName(projectId: string): Promise<string> {
     const project = await this.findById(projectId)
     if (!project) {
-      throw new Error(`Project not found: ${projectId}`)
+      throw new Error(`Project '${projectId}' not found`)
     }
 
     const packagePath = path.join(project.path, PACKAGE_METADATA_RELATIVE_PATH)
@@ -219,7 +219,7 @@ export class ProjectFileRepository implements ProjectRepository {
   async getPackageNamespace(projectId: string): Promise<string> {
     const project = await this.findById(projectId)
     if (!project) {
-      throw new Error(`Project not found: ${projectId}`)
+      throw new Error(`Project '${projectId}' not found`)
     }
 
     const packagePath = path.join(project.path, PACKAGE_METADATA_RELATIVE_PATH)
@@ -263,9 +263,7 @@ export class ProjectFileRepository implements ProjectRepository {
         return null
       }
 
-      // Get directory creation time
       const stats = await fs.stat(directory)
-
       return {
         id: metadata.id as UUID,
         name: pkg.name,
@@ -300,7 +298,7 @@ export class ProjectFileRepository implements ProjectRepository {
       )
       try {
         await fs.access(candidatePath)
-        suffix++
+        suffix += 1
       } catch {
         return Path(candidatePath)
       }
