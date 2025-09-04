@@ -74,6 +74,7 @@ SRCS = STDLIB_SOURCES + [
     "engine/launcher/src/**",
     "engine/polyglot-api/src/**",
     "engine/polyglot-api-macros/src/**",
+    "engine/python-resource-provider/src/**",
     "engine/runner/src/**",
     "engine/runner-common/src/**",
     "engine/runtime/src/**",
