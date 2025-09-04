@@ -321,10 +321,13 @@ function useGetSiblings() {
             backend,
             parentId,
             category: cloudHomeCategory,
+            labels: null,
+            sortExpression: null,
+            sortDirection: null,
             refetchInterval: null,
           }),
         )
-      : []
+      : null
     const deletedAssets =
       cloudTrashCategory ?
         await queryClient.fetchQuery(
@@ -332,11 +335,14 @@ function useGetSiblings() {
             backend,
             parentId,
             category: cloudTrashCategory,
+            labels: null,
+            sortExpression: null,
+            sortDirection: null,
             refetchInterval: null,
           }),
         )
-      : []
-    return [...nonDeletedAssets, ...deletedAssets] as const
+      : null
+    return [...(nonDeletedAssets?.assets ?? []), ...(deletedAssets?.assets ?? [])] as const
   })
 }
 

@@ -38,6 +38,7 @@ import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
+import org.enso.interpreter.node.expression.builtin.debug.DebugEvalNode;
 import org.enso.interpreter.runtime.builtin.BuiltinFunction;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -455,11 +456,14 @@ public final class Module extends EnsoObject {
   }
 
   /**
-   * Check whether given source has ever been associated with this module.
+   * Check whether given source has ever been associated with this module. For example {@link
+   * DebugEvalNode} likes to create sources in a context of some module, but those are not
+   * associated with the module itself.
    *
    * @param s source to check
    * @return {@code true} if the source has been created for this module
    */
+  @TruffleBoundary
   public final boolean isModuleSource(Source s) {
     return allSources.containsKey(s);
   }

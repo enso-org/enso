@@ -363,6 +363,7 @@ export class Server {
             await this.httpDownloadProject(request, response, params, [projectId as ProjectId])
             break
           }
+          logger.error(`Unknown Cloud middleware request:`, route.pathname)
           const content = JSON.stringify({
             type: 'error',
             error: `Unknown endpoint '${route.pathname}'`,

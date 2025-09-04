@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import Bench
 
-from enso_dev.Base_Tests.Enso_Bin_Utils import enso_bin
+from project.Utils import find_enso_bin
 
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
@@ -41,7 +41,7 @@ collect_benches = Bench.build builder->
     options = Bench.options . set_warmup (Bench.phase_conf 2 5) . set_measure (Bench.phase_conf 3 5)
 
     data =
-        Data.Value (File.new enso_bin) (find_sibling "Empty_World.enso") (find_sibling "Hello_World.enso") (find_sibling "Import_World.enso")
+        Data.Value find_enso_bin (find_sibling "Empty_World.enso") (find_sibling "Hello_World.enso") (find_sibling "Import_World.enso")
 
     [["Native_Image_Startup", False], ["Startup", True]].each \entry->
         group_name = entry.first

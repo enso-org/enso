@@ -117,7 +117,7 @@ private class DefaultPackageRepository(
     collection.mutable.LinkedHashMap(builtinsName -> ComponentGroups.empty)
   }
 
-  /** The mapping between the library and its cached bindings, if already laoded. */
+  /** The mapping between the library and its cached bindings, if already loaded. */
   private val loadedLibraryBindings: collection.mutable.Map[
     LibraryName,
     Option[ImportExportCache.CachedBindings]
