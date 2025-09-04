@@ -22,6 +22,7 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** Node running Enso expressions passed to it as strings. */
 @NodeInfo(shortName = "Eval", description = "Evaluates code passed to it as string")
@@ -85,7 +86,9 @@ public abstract class EvalNode extends BaseNode {
 
     var sco = newInlineContext.localScope().getOrElse(LocalScope::empty);
     var mod = newInlineContext.getModule();
-    var toTruffle = new IrToTruffle(context, mod.getPackage(), src, mod, compiler.getConfig());
+    var toTruffle =
+        new IrToTruffle(
+            context, mod.getPackage(), CachingSupplier.forValue(src), mod, compiler.getConfig());
     var expr = toTruffle.runInline(ir, sco, "<inline_source>");
 
     if (shouldCaptureResultScope) {
@@ -93,7 +96,15 @@ public abstract class EvalNode extends BaseNode {
     }
     ClosureRootNode framedNode =
         ClosureRootNode.build(
-            context.getLanguage(), localScope, moduleScope, expr, null, "<eval>", false, false);
+            context.getLanguage(),
+            localScope,
+            moduleScope,
+            expr,
+            null,
+            null,
+            "<eval>",
+            false,
+            false);
     return framedNode.getCallTarget();
   }
 

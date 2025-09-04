@@ -203,7 +203,6 @@ public final class TopLevelScope extends EnsoObject {
     @CompilerDirectives.TruffleBoundary
     private static Object compile(Object[] arguments, EnsoContext context)
         throws UnsupportedTypeException, ArityException {
-      boolean useGlobalCache = context.isUseGlobalCache();
       boolean shouldCompileDependencies;
       scala.Option<String> generateDocs;
       switch (arguments.length) {
@@ -224,7 +223,7 @@ public final class TopLevelScope extends EnsoObject {
       try {
         return context
             .getCompiler()
-            .compile(shouldCompileDependencies, shouldWriteCache, useGlobalCache, generateDocs)
+            .compile(shouldCompileDependencies, shouldWriteCache, generateDocs)
             .get();
       } catch (InterruptedException e) {
         throw new RuntimeException(e);

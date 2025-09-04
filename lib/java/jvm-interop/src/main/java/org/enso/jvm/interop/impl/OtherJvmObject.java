@@ -55,6 +55,8 @@ final class OtherJvmObject implements TruffleObject {
       Message.resolve(InteropLibrary.class, "hasArrayElements");
   private static final Message HAS_HASH_ENTRIES =
       Message.resolve(InteropLibrary.class, "hasHashEntries");
+  private static final Message HAS_BUFFER_ELEMENTS =
+      Message.resolve(InteropLibrary.class, "hasBufferElements");
 
   private static final Message IS_DATE = Message.resolve(InteropLibrary.class, "isDate");
   private static final Message IS_TIME = Message.resolve(InteropLibrary.class, "isTime");
@@ -159,8 +161,8 @@ final class OtherJvmObject implements TruffleObject {
       if (message == HAS_HASH_ENTRIES) {
         return OtherInteropType.hasHashEntries(mask);
       }
-      if (message == HAS_ARRAY_ELEMENTS) {
-        return OtherInteropType.hasArrayElements(mask);
+      if (message == HAS_BUFFER_ELEMENTS) {
+        return OtherInteropType.hasBufferElements(mask);
       }
       if (message == IS_TIME) {
         return OtherInteropType.isTime(mask);

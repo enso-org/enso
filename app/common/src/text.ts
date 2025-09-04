@@ -175,6 +175,8 @@ interface PlaceholderOverrides {
   readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
   readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
   readonly deleteUserConfirmation: [userUsername: string, userEmail: string]
+  readonly willFetchUpToXAssetsPerPage: [assetsPerPage: number]
+  readonly willFetchUpToXLogEntriesPerPage: [logEntriesPerPage: number]
   readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
 
   readonly xDaysLeftInTrial: [daysLeft: number]

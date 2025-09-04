@@ -6,11 +6,13 @@
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [The documentation panel opens to the scroll position at last close][13647]
 - [Autocompletion for Column methods in table expressions][13797]
+- [Removal of --no-global-cache option][13909]
 
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13647]: https://github.com/enso-org/enso/pull/13647
 [13797]: https://github.com/enso-org/enso/pull/13797
+[13909]: https://github.com/enso-org/enso/pull/13909
 
 # Next Release
 
