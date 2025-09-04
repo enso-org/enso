@@ -4,7 +4,9 @@ import java.util.function.BiFunction;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
+import org.enso.table.data.column.operation.NumericColumnAdapter;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
@@ -243,40 +245,41 @@ public class AddGroupNumber {
       Column column,
       boolean population,
       ProblemAggregator problemAggregator) {
+    ColumnDoubleStorage storage = (ColumnDoubleStorage) NumericColumnAdapter.DoubleColumnAdapter.INSTANCE.asTypedStorage(column.getStorage());
+
     var innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
 
-    var stdDevResult = standardDeviation(column, population);
+    var stdDevResult = standardDeviation(storage, population);
     double mean = stdDevResult.mean();
     double stddev = stdDevResult.stddev();
     var builder = Builder.getForText(TextType.VARIABLE_LENGTH, numRows);
 
-    for (int row = 0; row < column.getSize(); ++row) {
-      var x = column.getItem(row);
-      if (x == null) {
-        innerAggregator.reportColumnAggregatedProblem(
-            new IllegalArgumentError(
-                "Standard_Deviation", "Null value encountered in standard deviation column", row));
-        builder.appendNulls(1);
-      } else if (x instanceof Number n) {
-        double d = n.doubleValue();
+    var iter = storage.iteratorWithIndex();
+    while (iter.moveNext()) {
+      if (!iter.isNothing()) {
+        double d = iter.getItemAsDouble();
         String label = calculateGroup(d, mean, stddev);
         builder.append(label);
-      } else {
-        throw new IllegalArgumentException(
-            "add_group_number: non-numeric value encountered in standard deviation column" + row);
-      }
-    }
+       } else {
+        innerAggregator.reportColumnAggregatedProblem(
+            new IllegalArgumentError(
+                "Standard_Deviation", "Null value encountered in standard deviation column", iter.getIndex()));
+        builder.appendNulls(1);
+       }
+     }
+
     return builder.seal();
   }
 
-  private static StdDevResult standardDeviation(Column column, boolean population) {
+  private static StdDevResult standardDeviation(ColumnDoubleStorage storage, boolean population) {
     double sumValues = 0.0;
     double sumSquares = 0.0;
     long count = 0;
-    for (int row = 0; row < column.getSize(); ++row) {
-      var x = column.getItem(row);
-      if (x != null && x instanceof Number n) {
-        double d = n.doubleValue();
+
+    var iter = storage.iteratorWithIndex();
+    while (iter.moveNext()) {
+      if (!iter.isNothing()) {
+        double d = iter.getItemAsDouble();
         sumValues += d;
         sumSquares += d * d;
         count++;
