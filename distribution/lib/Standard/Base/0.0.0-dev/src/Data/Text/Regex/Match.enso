@@ -231,9 +231,14 @@ type Match
        "ab((c)|(d))".find "abc" In this case, the group id for "(d)", which is 3,
        is a valid group id and (Regex.lookup_group 3) will return 3. If the
        caller tries to get group 3, Match.text will return the default value.
+
+       ### UTF 16 Span
+       Note that this method uses the UTF 16 span of the match, and so may
+       split graphemes. If you want the text of a whole grapheme, use
+       `Match.span` to get the grapheme span, and then get the text from that
     text : Integer | Text -> Any -> Text ! No_Such_Group
     text self group=0 ~default=Nothing =
-        result = self.span group Nothing
+        result = self.utf_16_span group Nothing
         if result.is_nothing then default else result.text
 
     ## ---
