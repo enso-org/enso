@@ -18,21 +18,20 @@ def _run_enso_impl(ctx):
         """.format(
             dist = dist_dir,
             args = " ".join(ctx.attr.run_args),
-            src_file = src_file
+            src_file = src_file,
         ),
         is_executable = True,
     )
 
     # This specifies that this rule depends on `distribution` and `src` attributes.
     all_runfiles = ctx.runfiles(
-        files = distribution.to_list() + [ctx.file.src]
+        files = distribution.to_list() + [ctx.file.src],
     )
 
     return [DefaultInfo(
         executable = binary,
         runfiles = all_runfiles,
     )]
-
 
 run_enso = rule(
     implementation = _run_enso_impl,
@@ -43,7 +42,7 @@ run_enso = rule(
         ),
         "run_args": attr.string_list(
             doc = "Additional arguments to the Enso binary",
-            default = []
+            default = [],
         ),
         "src": attr.label(
             allow_single_file = True,

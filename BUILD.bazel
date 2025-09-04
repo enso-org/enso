@@ -2,8 +2,8 @@ load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 load("//:bazel_scripts/run_engine_distribution.bzl", "run_enso")
+load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
 npm_link_all_packages()
@@ -225,6 +225,6 @@ run_sbt(
 # This is just a sanity check that runs equivalent of `enso --run test/Base_Tests/**/Maybe_Spec.enso`.
 run_enso(
     name = "run_enso_test",
-    distribution = ":sbt_build_engine_distribution",
     src = "//test/Base_Tests:maybe_spec",
+    distribution = ":sbt_build_engine_distribution",
 )

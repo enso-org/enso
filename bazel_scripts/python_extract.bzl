@@ -11,7 +11,6 @@ def _extract_python_resources_impl(ctx):
     )
     return [DefaultInfo(files = depset([output_dir]))]
 
-
 extract_python_resources = rule(
     implementation = _extract_python_resources_impl,
     attrs = {
@@ -20,11 +19,11 @@ extract_python_resources = rule(
             cfg = "exec",
             allow_files = True,
             default = Label("//lib/java/python-extract:python_extract"),
-            doc = "Label for the target that builds python_extract JAR"
+            doc = "Label for the target that builds python_extract JAR",
         ),
         "out_dir": attr.string(
             mandatory = True,
-            doc = "Name of the output directory, in which Python resources will be extracted"
+            doc = "Name of the output directory, in which Python resources will be extracted",
         ),
     },
 )
