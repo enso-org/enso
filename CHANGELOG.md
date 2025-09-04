@@ -8,7 +8,8 @@
 - [Autocompletion for Column methods in table expressions][13797]
 - [Autocompletion for Column names in table expressions][13848]
 - [Removal of --no-global-cache option][13909]
-- [Autocompletion for table expression builtin functions in table expressions][13914]
+- [Autocompletion for table expression builtin functions in table
+  expressions][13914]
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
 
