@@ -226,18 +226,23 @@ class RuntimeManagementTest extends InterpreterTest {
 
       val main = getMain(code)
 
-      def runMain(): java.util.concurrent.CompletableFuture[org.graalvm.polyglot.Value] =
+      def runMain()
+        : java.util.concurrent.CompletableFuture[org.graalvm.polyglot.Value] =
         langCtx.getThreadManager.submit(() => {
           main.execute()
         })
 
       def runTest(): Unit = {
-        val futures       = 0.until(parallelism).map(_ => runMain())
-        val combinedFuture = java.util.concurrent.CompletableFuture.allOf(futures: _*).thenApply(_ => {
-          futures.map(_.get(10, java.util.concurrent.TimeUnit.SECONDS).asInt())
-        })
-        val result = combinedFuture.get(20, java.util.concurrent.TimeUnit.SECONDS)
-        result should equal (List(21, 21, 21, 21, 21))
+        val futures = 0.until(parallelism).map(_ => runMain())
+        val combinedFuture = java.util.concurrent.CompletableFuture
+          .allOf(futures: _*)
+          .thenApply(_ => {
+            futures
+              .map(_.get(10, java.util.concurrent.TimeUnit.SECONDS).asInt())
+          })
+        val result =
+          combinedFuture.get(20, java.util.concurrent.TimeUnit.SECONDS)
+        result should equal(List(21, 21, 21, 21, 21))
         futures.forall(_.isDone) shouldBe true
       }
 
