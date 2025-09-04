@@ -50,6 +50,28 @@ public final class MethodResolutionTest {
   }
 
   @Test
+  public void resolveStaticMethod_OverriddenFromAny() {
+    var myTypeVal =
+        ctxRule.evalModule(
+            """
+        from Standard.Base import Any
+
+        type My_Type
+            to_display_text self = "42"
+
+        main = My_Type
+        """);
+    var myType = unwrapType(myTypeVal);
+    var symbol = UnresolvedSymbol.build("to_display_text", myType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(myType, symbol);
+    assertThat("to_display_text method is found", func, is(notNullValue()));
+    assertThat(
+        "Resolve from My_Type, and not from Any",
+        func.getName(),
+        is("My_Type.to_display_text"));
+  }
+
+  @Test
   public void resolveInstanceMethodFromMyType() {
     var myTypeVal =
         ctxRule.evalModule(
