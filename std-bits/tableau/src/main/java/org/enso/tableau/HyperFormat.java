@@ -134,8 +134,7 @@ public class HyperFormat {
           if (jnaPath != null) {
             // Use URI to correctly handle spaces and other encoded characters.
             System.setProperty(
-                "jna.boot.library.path",
-                Path.of(jnaPath.toURI()).getParent().toString());
+                "jna.boot.library.path", Path.of(jnaPath.toURI()).getParent().toString());
           }
           process = new HyperProcess(HYPER_PATH, Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU);
         } catch (Throwable ioe) {
