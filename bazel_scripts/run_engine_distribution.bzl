@@ -23,7 +23,7 @@ def _run_enso_impl(ctx):
             echo "Error: Could not find enso binary in {dist}"
             exit 1
         fi
-        exec java -version
+        java -version
         #exec $PWD/$binary_path {args} --run {src_file}
         """.format(
             dist = dist_dir,
