@@ -3,7 +3,7 @@ import type { ToValue } from '@/util/reactivity'
 import { acceptCompletion, autocompletion, startCompletion } from '@codemirror/autocomplete'
 import { Prec, type Extension } from '@codemirror/state'
 import { keymap, ViewPlugin, type PluginValue, type ViewUpdate } from '@codemirror/view'
-import { computed, toValue, type Ref } from 'vue'
+import { computed, toValue, type Ref, shallowRef } from 'vue'
 import { mapOr, type Opt } from 'ydoc-shared/util/data/opt'
 
 const NULL_EXTENSION: Extension = []
@@ -53,7 +53,7 @@ const completionBindings = keymap.of([
 /** @returns a reactive syntax support extension for the specified language. */
 export function useLanguageSupport(syntax: ToValue<Opt<string>>): Readonly<Ref<Extension>> {
   const languageExtension = useLanguageSupportExtensions(true)
-  if (!languageExtension) return computed(() => NULL_EXTENSION)
+  if (!languageExtension) return shallowRef(NULL_EXTENSION)
   /** Language support for a known syntax. */
   const languageExt = computed((): Extension | undefined =>
     mapOr(toValue(syntax), undefined, languageExtension),
