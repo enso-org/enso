@@ -186,7 +186,7 @@ export function useWidgetFunctionCallInfo(
     } else if (data != null && !data.ok) {
       data.error.log('Cannot load dynamic configuration')
     }
-    const parameters: FunctionCall['parameters'] = inheritedConfig.value?.parameters ?? new Map()
+    const parameters: FunctionCall['parameters'] = new Map(inheritedConfig.value?.parameters ?? [])
     annotatedArguments.value?.forEach((name) => {
       if (parameters.get(name) == null) parameters.set(name, pending())
     })
