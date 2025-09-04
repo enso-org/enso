@@ -72,4 +72,4 @@ jobs:
           path: ${{ steps.get_bazel_output.outputs.location }}
           if-no-files-found: error
       - name: Execute simple Enso test
-        run: bazel run --verbose_failures //:run_enso_test
+        run: bazel run --toolchain_resolution_debug='@bazel_tools//tools/jdk:toolchain_type' --verbose_failures //:run_enso_test

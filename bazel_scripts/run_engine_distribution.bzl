@@ -9,8 +9,9 @@ def _run_enso_impl(ctx):
     binary = ctx.actions.declare_file(ctx.label.name + ".sh")
     dist_dir = distribution.to_list()[0].path
     src_file = ctx.file.src.path
-    java_runtime = ctx.attr._java_runtime
-    java_home = java_runtime[java_common.JavaRuntimeInfo].java_home
+    java_toolchain_type = ctx.toolchains["@bazel_tools//tools/jdk:toolchain_type"]
+    java_home = java_toolchain_type.java.java_runtime.java_home
+    print("Using Java toolchain:", java_home)
 
     ctx.actions.write(
         output = binary,
@@ -46,7 +47,7 @@ def _run_enso_impl(ctx):
 run_enso = rule(
     implementation = _run_enso_impl,
     toolchains = [
-        "@bazel_tools//tools/jdk:runtime_toolchain_type",
+        "@bazel_tools//tools/jdk:toolchain_type",
     ],
     attrs = {
         "distribution": attr.label(
@@ -61,7 +62,6 @@ run_enso = rule(
             allow_single_file = True,
             doc = "Source file to be --run",
         ),
-        "_java_runtime": attr.label(default = Label("@bazel_tools//tools/jdk:current_java_runtime")),
     },
     executable = True,
 )
