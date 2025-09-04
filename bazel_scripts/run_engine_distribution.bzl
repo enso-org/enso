@@ -1,14 +1,20 @@
 # Rule that runs Enso engine distribution
 
+load("@rules_java//java/common:java_common.bzl", "java_common")
+
 def _run_enso_impl(ctx):
     distribution = ctx.attr.distribution[DefaultInfo].files
     binary = ctx.actions.declare_file(ctx.label.name + ".sh")
     dist_dir = distribution.to_list()[0].path
     src_file = ctx.file.src.path
+    java_runtime = ctx.attr._java_runtime
+    java_home = java_runtime[java_common.JavaRuntimeInfo].java_home
 
     ctx.actions.write(
         output = binary,
         content = """#!/bin/bash
+        export JAVA_HOME="{java_home}"
+        export PATH="$JAVA_HOME/bin:$PATH"
         binary_path=built-distribution/enso-engine-*/enso-*/bin/enso
         if [ ! -f $binary_path ]; then
             echo "Error: Could not find enso binary in {dist}"
@@ -19,6 +25,7 @@ def _run_enso_impl(ctx):
             dist = dist_dir,
             args = " ".join(ctx.attr.run_args),
             src_file = src_file,
+            java_home = java_home,
         ),
         is_executable = True,
     )
@@ -35,6 +42,9 @@ def _run_enso_impl(ctx):
 
 run_enso = rule(
     implementation = _run_enso_impl,
+    toolchains = [
+        "@bazel_tools//tools/jdk:runtime_toolchain_type",
+    ],
     attrs = {
         "distribution": attr.label(
             mandatory = True,
@@ -48,6 +58,7 @@ run_enso = rule(
             allow_single_file = True,
             doc = "Source file to be --run",
         ),
+        "_java_runtime": attr.label(default = Label("@bazel_tools//tools/jdk:current_java_runtime")),
     },
     executable = True,
 )
