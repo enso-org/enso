@@ -1,6 +1,7 @@
 package org.enso.table.operations;
 
 import java.util.function.BiFunction;
+
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -226,16 +227,20 @@ public class AddGroupNumber {
     }
   }
 
+  static private final int STANDARD_DEVIATION_GROUP_COUNT = 5;
+  static private final String[] STANDARD_DEVIATION_GROUP_LABELS = {
+    "Low (-2.5 to -1.5 sd)",
+    "Below Average (-1.5 to -0.5 sd)",
+    "Average (-0.5 to 0.5 sd)",
+    "Above Average (0.5 to 1.5 sd)",
+    "High (1.5 to 2.5 sd)"
+  };
+
   public static ColumnStorage<?> numberGroupsStandardDeviation(
       long numRows,
       Column column,
-      int groupCount,
       boolean population,
       ProblemAggregator problemAggregator) {
-    if (groupCount % 2 == 0) {
-      throw new IllegalArgumentException("group_count must be odd");
-    }
-
     var innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
 
     double mean = mean(column);
@@ -251,7 +256,7 @@ public class AddGroupNumber {
         builder.appendNulls(1);
       } else if (x instanceof Number n) {
         double d = n.doubleValue();
-        String label = calculateGroup(d, mean, stddev, groupCount);
+        String label = calculateGroup(d, mean, stddev);
         builder.append(label);
       } else {
         throw new IllegalArgumentException(
@@ -293,14 +298,12 @@ public class AddGroupNumber {
     return Math.sqrt(sumSquaredDiffs / denominator);
   }
 
-  private static String calculateGroup(double value, double mean, double stddev, int groupCount) {
-    // Group numbers are centered around 0, and capped on either side by groupCount
-    long maxPosGroup = (groupCount - 1) / 2;
+  private static String calculateGroup(double value, double mean, double stddev) {
+    // Group numbers are centered around 0, and capped on either side by the group count.
+    long maxPosGroup = (STANDARD_DEVIATION_GROUP_COUNT - 1) / 2;
     long groupIndex = calculateGroupIndex(value, mean, stddev);
     groupIndex = Math.max(-maxPosGroup, Math.min(maxPosGroup, groupIndex));
-    double low = (double) groupIndex - 0.5;
-    double high = (double) groupIndex + 0.5;
-    return low + " to " + high;
+    return STANDARD_DEVIATION_GROUP_LABELS[(int) (groupIndex + maxPosGroup)];
   }
 
   /**

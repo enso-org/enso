@@ -47,7 +47,11 @@ type Grouping_Method
        contain the values that differ the most from the standard deviation.
 
        Arguments
-    Standard_Deviation (on:(Text | Integer)=(Missing_Argument.throw "on")) (group_count:Integer=5) (population:Boolean=False)
+       - on: The column whose values should be summed to determine group
+         assignment. Must be a numeric column.
+       - population: Whether to compute the population standard deviation
+         (True) or the sample standard deviation (False). Defaults to False.
+    Standard_Deviation (on:(Text | Integer)=(Missing_Argument.throw "on")) (population:Boolean=False)
 
 ## Specifies the row representing a group.
 type Group_Row
