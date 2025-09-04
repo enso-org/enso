@@ -33,7 +33,7 @@ export function useTableExpressionExtension(
 
   const columns =
     project ?
-      useTableColumns({ project, projectNames, expressionId: useTableContext(true) })
+      useTableColumns({ project, projectNames, expressionId: useTableContext(true)?.externalId })
     : undefined
   return computed(() =>
     tableExpression({ methods: () => methodInfos.value, columns: () => columns?.value ?? [] }),

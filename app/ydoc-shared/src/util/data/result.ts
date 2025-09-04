@@ -60,8 +60,11 @@ export function unwrap<T, E>(result: Result<T, E>): T {
   else throw result.error
 }
 
-/** Unwraps the {@link Result} value. If the result is error, an alternative is returned. */
-export function unwrapOr<T, A>(result: Result<T> | null | undefined, alternative: A): T | A {
+/**
+ * Unwraps the {@link Result} value. If the result is absent or is an error value, an alternative is
+ * returned.
+ */
+export function unwrapOr<T, A>(result: Opt<Result<T>>, alternative: A): T | A {
   return result?.ok ? result.value : alternative
 }
 
