@@ -65,11 +65,11 @@ public class SerdeCompilerTest {
           .filter((m) -> !m.isSynthetic())
           .foreach(
               (m) -> {
-                var future = compiler.context().serializeModule(compiler, m, true, true);
+                var future = compiler.context().serializeModule(compiler, m, true);
                 futures.add(future);
                 return null;
               });
-      futures.add(compiler.compile(false, true, true, scala.Option.empty()));
+      futures.add(compiler.compile(false, true, scala.Option.empty()));
       for (var f : futures) {
         var persisted = f.get(10, TimeUnit.SECONDS);
         assertEquals("Fib_Test library has been fully persisted", true, persisted);

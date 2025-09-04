@@ -4,11 +4,9 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
 import java.util.function.Consumer;
 import org.enso.logger.ObservedMessage;
-import org.openide.util.lookup.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.event.Level;
 
-@ServiceProvider(service = ObservedMessage.Service.class)
 public final class LogbackObservingImpl extends ObservedMessage.Service {
 
   @Override

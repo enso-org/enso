@@ -45,7 +45,7 @@ export const getFilterType = (valueType: string, usingMultiFilter: boolean) => {
     return 'agNumberColumnFilter'
   } else if (valueType === 'Char') {
     return usingMultiFilter ? 'agMultiColumnFilter' : 'agTextColumnFilter'
-  } else if (valueType === 'Date_Time' || valueType === 'Time_Of_Day') {
+  } else if (valueType === 'Date_Time' || valueType === 'Time_Of_Day' || valueType === 'Mixed') {
     return null
   } else {
     return 'agSetColumnFilter'

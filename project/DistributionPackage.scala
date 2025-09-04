@@ -286,7 +286,6 @@ object DistributionPackage {
         val command = Seq(
           fileToExecute.getAbsolutePath,
           "--no-compile-dependencies",
-          "--no-global-cache",
           "--compile",
           path.getAbsolutePath
         )
@@ -493,10 +492,14 @@ object DistributionPackage {
       .orElse(findArg("--compile"))
   }
 
+  /** @param projManagerCmdLine Options for the java process.
+    * @param args Args for the project manager.
+    * @return
+    */
   def runProjectManagerPackage(
     engineRoot: File,
     distributionRoot: File,
-    projectManagerJar: File,
+    projManagerCmdLine: Seq[String],
     args: Seq[String],
     log: Logger
   ): Boolean = {
@@ -514,11 +517,10 @@ object DistributionPackage {
           "java"
         )
       log.info(
-        s"Cannot find $enso, trying to execute $java -jar $projectManagerJar with ${args.mkString(" ")}"
+        s"Cannot find $enso, trying to execute via JVM with ${args.mkString(" ")}"
       )
       all.add(java.getPath())
-      all.add("-jar")
-      all.add(projectManagerJar.getPath())
+      all.addAll(projManagerCmdLine.asJava)
     }
     all.addAll(args.asJava)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
@@ -577,11 +579,19 @@ object DistributionPackage {
       for (libName <- (sourceRoot / prefix).list()) {
         val targetPackageRoot =
           destinationRoot / prefix / libName / targetVersion
-        copyDirectoryIncremental(
-          source      = sourceRoot / prefix / libName / sourceVersion,
+        val libSourceDir = sourceRoot / prefix / libName / sourceVersion
+        val copied = copyDirectoryIncremental(
+          source      = libSourceDir,
           destination = targetPackageRoot,
           cache       = cacheFactory.make(s"$prefix.$libName")
         )
+        val bindingsDir = targetPackageRoot / ".enso" / "cache" / "bindings"
+        if (copied && bindingsDir.exists()) {
+          log.info(
+            s"Clearing cached bindings for $prefix.$libName, because library sources were changed."
+          )
+          IO.delete(bindingsDir)
+        }
         fixLibraryManifest(targetPackageRoot, targetVersion, log)
         existingLibraries.append((prefix, libName))
       }

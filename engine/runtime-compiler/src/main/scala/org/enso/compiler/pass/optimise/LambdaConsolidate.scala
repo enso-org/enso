@@ -1,7 +1,6 @@
 package org.enso.compiler.pass.optimise
 
 import scala.jdk.CollectionConverters._
-
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{CompilerError, IR, Identifier}
@@ -31,6 +30,7 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
+import org.enso.persist.Persistance
 
 import java.util.UUID
 
@@ -140,8 +140,8 @@ case object LambdaConsolidate extends IRPass {
     freshNameSupply: FreshNameSupply
   ): Function = {
     function match {
-      case lam @ Function.Lambda(_, body, _, _, _, _) =>
-        val chainedLambdas = lam :: gatherChainedLambdas(body)
+      case lam: Function.Lambda =>
+        val chainedLambdas = lam :: gatherChainedLambdas(lam.body())
         val chainedArgList =
           chainedLambdas.foldLeft(List[DefinitionArgument]())(
             _ ::: _.arguments
@@ -177,22 +177,23 @@ case object LambdaConsolidate extends IRPass {
 
         val newLocation = chainedLambdas.head.location match {
           case Some(location) =>
-            Some(
-              new IdentifiedLocation(
-                location.start,
-                chainedLambdas.last.location.getOrElse(location).location.end,
-                location.uuid
-              )
+            new IdentifiedLocation(
+              location.start,
+              chainedLambdas.last.location.getOrElse(location).location.end,
+              location.uuid
             )
-          case None => None
+          case None => null
         }
 
-        lam.copy(
-          arguments = consolidatedArgs,
-          body      = runExpression(newBody, inlineContext),
-          location  = newLocation,
-          canBeTCO  = chainedLambdas.last.canBeTCO
-        )
+        Function.Lambda
+          .builder(lam)
+          .arguments(consolidatedArgs)
+          .bodyReference(
+            Persistance.Reference.of(runExpression(newBody, inlineContext))
+          )
+          .location(newLocation)
+          .canBeTCO(chainedLambdas.last.canBeTCO)
+          .build()
       case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during lambda consolidation."
@@ -256,8 +257,8 @@ case object LambdaConsolidate extends IRPass {
       case Expression.Block(expressions, lam: Function.Lambda, _, _, _)
           if expressions.isEmpty =>
         lam :: gatherChainedLambdas(lam.body)
-      case l @ Function.Lambda(_, body, _, _, _, _) =>
-        l :: gatherChainedLambdas(body)
+      case l: Function.Lambda =>
+        l :: gatherChainedLambdas(l.body())
       case _ => List()
     }
   }

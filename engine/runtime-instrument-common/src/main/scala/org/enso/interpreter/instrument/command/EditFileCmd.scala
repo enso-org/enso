@@ -42,7 +42,17 @@ class EditFileCmd(request: Api.EditFileNotification)
               )
             ctx.state.pendingEdits.enqueue(request.path, edits)
             request.idMap.foreach { idMap =>
-              ctx.state.pendingEdits.updateIdMap(request.path, idMap)
+              {
+                logger.trace(
+                  "IdMap update: {}",
+                  idMap.values
+                    .map(v =>
+                      "(" + v._2 + " -> " + v._1.start + ":" + v._1.end + ")"
+                    )
+                    .mkString(",")
+                )
+                ctx.state.pendingEdits.updateIdMap(request.path, idMap)
+              }
             }
             if (request.execute) {
               ctx.jobControlPlane.abortAllJobs("edit file")
@@ -67,7 +77,7 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx.contextManager.getAllContexts
       .collect {
         case (contextId, stack) if stack.nonEmpty =>
-          ExecuteJob(contextId, stack.toList)
+          ExecuteJob(contextId, stack.toList, "edit file cmd")
       }
   }
 

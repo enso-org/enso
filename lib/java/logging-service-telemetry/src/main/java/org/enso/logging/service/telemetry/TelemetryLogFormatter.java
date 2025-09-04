@@ -7,8 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.enso.logging.service.ApiMessage;
-import org.enso.logging.service.LogMessage;
+import org.enso.logging.service.common.ApiMessage;
+import org.enso.logging.service.common.LogMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

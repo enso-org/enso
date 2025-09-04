@@ -131,7 +131,6 @@ public class HelloWorldCacheTest {
                         disablePrivateCheck ? "true" : "false")
                     .option(
                         RuntimeOptions.DISABLE_IR_CACHES, disablePrivateCheck ? "true" : "false")
-                    .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
                     .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
         .withProjectRoot(projRoot);
   }

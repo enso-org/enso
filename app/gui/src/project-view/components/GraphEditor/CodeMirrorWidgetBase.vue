@@ -18,7 +18,7 @@ const props = defineProps<{
   /**
    * Additional extensions to provide to codemirror editor. Usually useful for language definition.
    */
-  extensions?: Extension[]
+  extensions?: Extension
   /**
    * If provided, the element with class `cm-content` will also have the given `data-testid`.
    * Warning: Not reactive - Set only once during setup.
@@ -138,8 +138,10 @@ defineExpose({
     @keydown.up.stop
     @keydown.down.stop
     @click.stop
+    @wheel.stop.passive
   />
 </template>
+
 <style scoped>
 /*noinspection CssUnusedSymbol*/
 .CodeMirrorWidgetBase :deep(.cm-content) {

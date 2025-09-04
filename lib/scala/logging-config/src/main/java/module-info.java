@@ -8,7 +8,6 @@ module org.enso.logging.config {
   requires org.enso.logging.utils;
   requires org.enso.engine.common;
   requires static org.graalvm.polyglot;
-  requires static org.openide.util.lookup.RELEASE180;
 
   exports org.enso.logging.config;
 

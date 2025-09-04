@@ -19,7 +19,6 @@ use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::shell;
-use ide_ci::actions::workflow::definition::step::Argument;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
@@ -968,6 +967,14 @@ rm dist/backend/project-manager.tar"
                     prepare_packaging_steps(target.0, step, PackagingTarget::Development);
                 steps.append(&mut packaging_steps);
 
+                let upload_ide = step::upload_artifact("Upload ide")
+                    .with_custom_argument("name", format!("ide-{}", target.0))
+                    .with_custom_argument(
+                        "path",
+                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                    );
+                steps.push(upload_ide);
+
                 const TEST_COMMAND: &str = "corepack pnpm -r --filter enso ide-integration-test";
                 let test_step = match target.0 {
                     OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
@@ -990,27 +997,6 @@ rm dist/backend/project-manager.tar"
                         "ENSO_TEST_USER_PASSWORD",
                     );
                 steps.push(test_step);
-
-                let upload_test_traces_step = Step {
-                    r#if: Some("failure()".into()),
-                    name: Some("Upload Test Traces".into()),
-                    uses: Some("actions/upload-artifact@v4".into()),
-                    with: Some(Argument::Other(BTreeMap::from_iter([
-                        ("name".into(), format!("test-traces-{}-{}", target.0, target.1).into()),
-                        ("path".into(), "app/ide-desktop/client/test-traces".into()),
-                        ("compression-level".into(), 0.into()), // The traces are in zip already.
-                    ]))),
-                    ..Default::default()
-                };
-                steps.push(upload_test_traces_step);
-
-                let upload_ide = step::upload_artifact("Upload ide")
-                    .with_custom_argument("name", format!("ide-{}", target.0))
-                    .with_custom_argument(
-                        "path",
-                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
-                    );
-                steps.push(upload_ide);
 
                 // After the E2E tests run, they create a credentials file in user home directory.
                 // If that file is not cleaned up, future runs of our tests may randomly get

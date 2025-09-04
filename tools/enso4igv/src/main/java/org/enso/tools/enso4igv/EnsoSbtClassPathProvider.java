@@ -2,14 +2,8 @@ package org.enso.tools.enso4igv;
 
 import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Icon;
@@ -21,7 +15,6 @@ import org.netbeans.api.java.queries.SourceForBinaryQuery;
 import org.netbeans.api.project.SourceGroup;
 import org.netbeans.api.project.Sources;
 import org.netbeans.spi.java.classpath.ClassPathProvider;
-import org.netbeans.spi.java.classpath.support.ClassPathSupport;
 import org.netbeans.spi.java.project.support.ProjectPlatform;
 import org.netbeans.spi.java.queries.BinaryForSourceQueryImplementation2;
 import org.netbeans.spi.java.queries.CompilerOptionsQueryImplementation;
@@ -32,358 +25,364 @@ import org.netbeans.spi.project.ui.ProjectOpenedHook;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.filesystems.URLMapper;
-import org.openide.util.Exceptions;
 import org.openide.util.ImageUtilities;
 
 final class EnsoSbtClassPathProvider extends ProjectOpenedHook
-implements ClassPathProvider, SourceLevelQueryImplementation2, CompilerOptionsQueryImplementation,
-Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSources>, SourceForBinaryQueryImplementation2 {
-    private static final Logger LOG = Logger.getLogger(EnsoSources.class.getName());
-    private static final String BOOT = "classpath/boot";
-    private static final String SOURCE = "classpath/source";
-    private static final String COMPILE = "classpath/compile";
-    private static final String MODULES_COMPILE = "modules/compile";
-    private final EnsoSbtProject project;
-    private final SourceGroup[] sources;
+  implements ClassPathProvider, SourceLevelQueryImplementation2, CompilerOptionsQueryImplementation,
+  Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSources>, SourceForBinaryQueryImplementation2 {
 
-    EnsoSbtClassPathProvider(EnsoSbtProject prj) {
-        this.project = prj;
-        this.sources = computeSbtClassPath(prj);
+  private static final Logger LOG = Logger.getLogger(EnsoSources.class.getName());
+  private static final String BOOT = "classpath/boot";
+  private static final String SOURCE = "classpath/source";
+  private static final String COMPILE = "classpath/compile";
+  private static final String MODULES_COMPILE = "modules/compile";
+  private final EnsoSbtProject project;
+  private final SourceGroup[] sources;
+
+  EnsoSbtClassPathProvider(EnsoSbtProject prj) {
+    this.project = prj;
+    this.sources = computeSbtClassPath(prj);
+  }
+
+  @Override
+  public ClassPath findClassPath(FileObject file, String type) {
+    var res = findClassPathImpl(file, type);
+    LOG.log(Level.FINE, "findClassPath{0} for {1}  yields {2}", new Object[]{type, file, res});
+    return res;
+  }
+
+  private ClassPath findClassPathImpl(FileObject file, String type) {
+    for (var g : sources) {
+      if (g instanceof EnsoSources i && i.controlsSource(file)) {
+        var cp = switch (type) {
+          case SOURCE ->
+            i.srcCp;
+          case COMPILE ->
+            i.cp;
+          case MODULES_COMPILE ->
+            i.moduleCp;
+          case BOOT ->
+            i.platform.getBootstrapLibraries();
+          default ->
+            null;
+        };
+        return cp;
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public void projectOpened() {
+    for (var g : sources) {
+      if (g instanceof EnsoSources i) {
+        GlobalPathRegistry.getDefault().register(COMPILE, new ClassPath[]{i.cp});
+        GlobalPathRegistry.getDefault().register(SOURCE, new ClassPath[]{i.srcCp});
+      }
+    }
+  }
+
+  @Override
+  public void projectClosed() {
+    for (var g : sources) {
+      if (g instanceof EnsoSources i) {
+        GlobalPathRegistry.getDefault().unregister(COMPILE, new ClassPath[]{i.cp});
+        GlobalPathRegistry.getDefault().unregister(SOURCE, new ClassPath[]{i.srcCp});
+      }
+    }
+  }
+
+  private static SourceGroup[] computeSbtClassPath(EnsoSbtProject prj) {
+    class ConstructSourceGroupsFromDotEnsoSourceFiles extends DotEnsoSourceFiles {
+
+      ConstructSourceGroupsFromDotEnsoSourceFiles(FileObject projectDirectory) {
+        super(projectDirectory);
+      }
+
+      @Override
+      protected EnsoSources createSourceGroup(ClassPath cp, ClassPath moduleCp, ClassPath srcCp, String platformPath, FileObject outputDir, String source, List<String> options) {
+        var platform = JavaPlatform.getDefault();
+        if (platformPath != null) {
+          var javaHomeFile = new File(platformPath);
+          var javaHomeFo = FileUtil.toFileObject(javaHomeFile);
+          if (javaHomeFo != null) {
+            platform = ProjectPlatform.forProject(prj, javaHomeFo, javaHomeFile.getName(), "j2se");
+          }
+        }
+        return new EnsoSbtClassPathProvider.EnsoSources(cp, moduleCp, srcCp, platform, outputDir, source, options);
+      }
+
+    }
+    var dotEnsoSourceFiles = new ConstructSourceGroupsFromDotEnsoSourceFiles(prj.getProjectDirectory());
+    return dotEnsoSourceFiles.getSourceGroups();
+  }
+
+  private static FileObject findProjectFileObject(EnsoSbtProject prj, String path) {
+    if (path == null) {
+      return null;
+    }
+    if (path.startsWith("./")) {
+      return prj.getProjectDirectory().getFileObject(path.substring(2));
+    } else {
+      return FileUtil.toFileObject(new File(path));
+    }
+  }
+
+  @Override
+  public SourceLevelQueryImplementation2.Result getSourceLevel(FileObject fo) {
+    for (var g : sources) {
+      if (g instanceof EnsoSources i && i.controlsSource(fo)) {
+        return new SourceLevelQueryImplementation2.Result() {
+          @Override
+          public String getSourceLevel() {
+            return i.source;
+          }
+
+          @Override
+          public void addChangeListener(ChangeListener cl) {
+          }
+
+          @Override
+          public void removeChangeListener(ChangeListener cl) {
+          }
+        };
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public CompilerOptionsQueryImplementation.Result getOptions(FileObject fo) {
+    for (var g : sources) {
+      if (g instanceof EnsoSources i && i.controlsSource(fo)) {
+        return new CompilerOptionsQueryImplementation.Result() {
+          @Override
+          public List<? extends String> getArguments() {
+            return i.options;
+          }
+
+          @Override
+          public void addChangeListener(ChangeListener cl) {
+          }
+
+          @Override
+          public void removeChangeListener(ChangeListener cl) {
+          }
+        };
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public SourceGroup[] getSourceGroups(String type) {
+    if (Sources.TYPE_GENERIC.equals(type)) {
+      var dir = project.getProjectDirectory();
+      var displayname = FileUtil.getFileDisplayName(dir);
+      var icon = ImageUtilities.loadImageIcon("org/enso/tools/enso4igv/enso-duke.svg", true);
+      var genericGroup = GenericSources.group(project, dir, dir.getNameExt(), displayname, icon, icon);
+      return new SourceGroup[]{genericGroup};
+    }
+    return sources;
+  }
+
+  @Override
+  public void addChangeListener(ChangeListener cl) {
+  }
+
+  @Override
+  public void removeChangeListener(ChangeListener cl) {
+  }
+
+  @Override
+  public EnsoSources findBinaryRoots2(URL url) {
+    var fo = URLMapper.findFileObject(url);
+    for (var g : sources) {
+      if (g instanceof EnsoSources i && (i.outputsTo(fo) || i.controlsSource(fo))) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public URL[] computeRoots(EnsoSources result) {
+    if (result.output != null) {
+      return new URL[]{result.output.toURL()};
+    } else {
+      return new URL[0];
+    }
+  }
+
+  @Override
+  public boolean computePreferBinaries(EnsoSources result) {
+    return true;
+  }
+
+  @Override
+  public void computeChangeListener(EnsoSources result, boolean bln, ChangeListener cl) {
+  }
+
+  @Override
+  public SourceForBinaryQueryImplementation2.Result findSourceRoots2(URL url) {
+    var fo = URLMapper.findFileObject(url);
+    if (fo == null) {
+      return null;
+    }
+    for (var g : sources) {
+      if (g instanceof EnsoSources i && (i.outputsTo(fo) || i.controlsSource(fo))) {
+        return new SourceForBinaryQueryImplementation2.Result() {
+          @Override
+          public boolean preferSources() {
+            return false;
+          }
+
+          @Override
+          public FileObject[] getRoots() {
+            return i.getRoots();
+          }
+
+          @Override
+          public void addChangeListener(ChangeListener l) {
+          }
+
+          @Override
+          public void removeChangeListener(ChangeListener l) {
+          }
+        };
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public SourceForBinaryQuery.Result findSourceRoots(URL binaryRoot) {
+    return findSourceRoots2(binaryRoot);
+  }
+
+  static final class EnsoSources implements SourceGroup {
+    private final ClassPath cp;
+    private final ClassPath moduleCp;
+    private final ClassPath srcCp;
+    private final JavaPlatform platform;
+    private final FileObject output;
+    private final String source;
+    private final List<String> options;
+
+    private EnsoSources(
+      ClassPath cp,
+      ClassPath moduleCp,
+      ClassPath srcCp,
+      JavaPlatform platform,
+      FileObject output,
+      String source,
+      List<String> options
+    ) {
+      this.cp = cp;
+      this.moduleCp = moduleCp;
+      this.srcCp = srcCp;
+      this.platform = platform;
+      this.output = output;
+      this.source = source;
+      this.options = options;
     }
 
     @Override
-    public ClassPath findClassPath(FileObject file, String type) {
-        var res = findClassPathImpl(file, type);
-        LOG.log(Level.FINE, "findClassPath{0} for {1}  yields {2}", new Object[]{type, file, res});
-        return res;
+    public FileObject getRootFolder() {
+      var arr = srcCp.getRoots();
+      if (arr.length == 0) {
+        LOG.log(Level.SEVERE, "Source classpath is empty for {0}", this);
+        return output;
+      }
+      return arr[0];
     }
 
-    private ClassPath findClassPathImpl(FileObject file, String type) {
-        for (var g : sources) {
-            if (g instanceof EnsoSources i && i.controlsSource(file)) {
-                var cp = switch (type) {
-                    case SOURCE -> i.srcCp;
-                    case COMPILE -> i.cp;
-                    case MODULES_COMPILE -> i.moduleCp;
-                    case BOOT -> i.platform.getBootstrapLibraries();
-                    default -> null;
-                };
-                return cp;
-            }
-        }
-        return null;
+    private FileObject[] getRoots() {
+      return srcCp.getRoots();
     }
 
     @Override
-    public void projectOpened() {
-        for (var g : sources) {
-            if (g instanceof EnsoSources i) {
-                GlobalPathRegistry.getDefault().register(COMPILE, new ClassPath[] { i.cp });
-                GlobalPathRegistry.getDefault().register(SOURCE, new ClassPath[] { i.srcCp });
-            }
-        }
+    public String getName() {
+      return getRootFolder().getParent().getNameExt();
     }
 
     @Override
-    public void projectClosed() {
-        for (var g : sources) {
-            if (g instanceof EnsoSources i) {
-                GlobalPathRegistry.getDefault().unregister(COMPILE, new ClassPath[] { i.cp });
-                GlobalPathRegistry.getDefault().unregister(SOURCE, new ClassPath[] { i.srcCp });
-            }
-        }
-    }
-
-    private static SourceGroup[] computeSbtClassPath(EnsoSbtProject prj) {
-        class ConstructSourceGroupsFromDotEnsoSourceFiles extends DotEnsoSourceFiles {
-            ConstructSourceGroupsFromDotEnsoSourceFiles(FileObject projectDirectory) {
-                super(projectDirectory);
-            }
-
-            @Override
-            protected EnsoSources createSourceGroup(ClassPath cp, ClassPath moduleCp, ClassPath srcCp, String platformPath, FileObject outputDir, String source, List<String> options) {
-                var platform = JavaPlatform.getDefault();
-                if (platformPath != null) {
-                    var javaHomeFile = new File(platformPath);
-                    var javaHomeFo = FileUtil.toFileObject(javaHomeFile);
-                    if (javaHomeFo != null) {
-                      platform = ProjectPlatform.forProject(prj, javaHomeFo, javaHomeFile.getName(), "j2se");
-                    }
-                }
-                return new EnsoSbtClassPathProvider.EnsoSources(cp, moduleCp, srcCp, platform, outputDir, source, options);
-            }
-
-        }
-        var dotEnsoSourceFiles = new ConstructSourceGroupsFromDotEnsoSourceFiles(prj.getProjectDirectory());
-        return dotEnsoSourceFiles.getSourceGroups();
-    }
-
-    private static FileObject findProjectFileObject(EnsoSbtProject prj, String path) {
-        if (path == null) {
-            return null;
-        }
-        if (path.startsWith("./")) {
-            return prj.getProjectDirectory().getFileObject(path.substring(2));
-        } else {
-            return FileUtil.toFileObject(new File(path));
-        }
+    public String getDisplayName() {
+      return "Java " + source + " " + getName();
     }
 
     @Override
-    public SourceLevelQueryImplementation2.Result getSourceLevel(FileObject fo) {
-        for (var g : sources) {
-            if (g instanceof EnsoSources i && i.controlsSource(fo)) {
-                return new SourceLevelQueryImplementation2.Result() {
-                    @Override
-                    public String getSourceLevel() {
-                        return i.source;
-                    }
-
-                    @Override
-                    public void addChangeListener(ChangeListener cl) {
-                    }
-
-                    @Override
-                    public void removeChangeListener(ChangeListener cl) {
-                    }
-                };
-            }
-        }
-        return null;
+    public Icon getIcon(boolean bln) {
+      return null;
     }
 
     @Override
-    public CompilerOptionsQueryImplementation.Result getOptions(FileObject fo) {
-        for (var g : sources) {
-            if (g instanceof EnsoSources i && i.controlsSource(fo)) {
-                return new CompilerOptionsQueryImplementation.Result() {
-                    @Override
-                    public List<? extends String> getArguments() {
-                        return i.options;
-                    }
-
-                    @Override
-                    public void addChangeListener(ChangeListener cl) {
-                    }
-
-                    @Override
-                    public void removeChangeListener(ChangeListener cl) {
-                    }
-                };
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public SourceGroup[] getSourceGroups(String type) {
-        if (Sources.TYPE_GENERIC.equals(type)) {
-            var dir = project.getProjectDirectory();
-            var displayname = FileUtil.getFileDisplayName(dir);
-            var icon = ImageUtilities.loadImageIcon("org/enso/tools/enso4igv/enso.svg", true);
-            var genericGroup = GenericSources.group(project, dir, dir.getNameExt(), displayname, icon, icon);
-            return new SourceGroup[] { genericGroup};
-        }
-        return sources;
-    }
-
-    @Override
-    public void addChangeListener(ChangeListener cl) {
-    }
-
-    @Override
-    public void removeChangeListener(ChangeListener cl) {
-    }
-
-    @Override
-    public EnsoSources findBinaryRoots2(URL url) {
-        var fo = URLMapper.findFileObject(url);
-        for (var g : sources) {
-            if (g instanceof EnsoSources i && (i.outputsTo(fo) || i.controlsSource(fo))) {
-                return i;
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public URL[] computeRoots(EnsoSources result) {
-        if (result.output != null) {
-            return new URL[] { result.output.toURL() };
-        } else {
-            return new URL[0];
-        }
-    }
-
-    @Override
-    public boolean computePreferBinaries(EnsoSources result) {
+    public boolean contains(FileObject fo) {
+      if (getRootFolder().equals(fo)) {
         return true;
+      }
+      return FileUtil.isParentOf(getRootFolder(), fo);
     }
 
     @Override
-    public void computeChangeListener(EnsoSources result, boolean bln, ChangeListener cl) {
+    public void addPropertyChangeListener(PropertyChangeListener pl) {
     }
 
     @Override
-    public SourceForBinaryQueryImplementation2.Result findSourceRoots2(URL url) {
-        var fo = URLMapper.findFileObject(url);
-        if (fo == null) {
-            return null;
-        }
-        for (var g : sources) {
-            if (g instanceof EnsoSources i && (i.outputsTo(fo) || i.controlsSource(fo))) {
-                return new SourceForBinaryQueryImplementation2.Result() {
-                    @Override
-                    public boolean preferSources() {
-                        return false;
-                    }
+    public void removePropertyChangeListener(PropertyChangeListener pl) {
+    }
 
-                    @Override
-                    public FileObject[] getRoots() {
-                        return i.getRoots();
-                    }
+    private boolean controlsSource(FileObject fo) {
+      return contains(fo) || srcCp.contains(fo);
+    }
 
-                    @Override
-                    public void addChangeListener(ChangeListener l) {
-                    }
+    private boolean outputsTo(FileObject fo) {
+      if (fo == null || output == null) {
+        return false;
+      }
+      if (fo.equals(output)) {
+        return true;
+      }
+      return FileUtil.isParentOf(output, fo);
+    }
 
-                    @Override
-                    public void removeChangeListener(ChangeListener l) {
-                    }
-                };
-            }
-        }
-        return null;
+    public String toString() {
+      return "EnsoSources[name=" + getName() + ",root=" + getRootFolder() + ",output=" + output + "]";
+    }
+  }
+
+  record OtherEnsoSources(String kind, FileObject root) implements SourceGroup {
+    @Override
+    public FileObject getRootFolder() {
+      return root;
     }
 
     @Override
-    public SourceForBinaryQuery.Result findSourceRoots(URL binaryRoot) {
-      return findSourceRoots2(binaryRoot);
+    public String getName() {
+      return kind + "/" + root.getNameExt();
     }
 
-    static final class EnsoSources implements SourceGroup {
-        private final ClassPath cp;
-        private final ClassPath moduleCp;
-        private final ClassPath srcCp;
-        private final JavaPlatform platform;
-        private final FileObject output;
-        private final String source;
-        private final List<String> options;
-
-        private EnsoSources(
-            ClassPath cp,
-            ClassPath moduleCp,
-            ClassPath srcCp,
-            JavaPlatform platform,
-            FileObject output,
-            String source,
-            List<String> options
-        ) {
-            this.cp = cp;
-            this.moduleCp = moduleCp;
-            this.srcCp = srcCp;
-            this.platform = platform;
-            this.output = output;
-            this.source = source;
-            this.options = options;
-        }
-
-        @Override
-        public FileObject getRootFolder() {
-            var arr = srcCp.getRoots();
-            if (arr.length == 0) {
-                LOG.log(Level.SEVERE, "Source classpath is empty for {0}", this);
-                return output;
-            }
-            return arr[0];
-        }
-
-        private FileObject[] getRoots() {
-            return srcCp.getRoots();
-        }
-
-        @Override
-        public String getName() {
-            return getRootFolder().getParent().getNameExt();
-        }
-
-        @Override
-        public String getDisplayName() {
-            return "Java " + source + " " + getName();
-        }
-
-        @Override
-        public Icon getIcon(boolean bln) {
-            return null;
-        }
-
-        @Override
-        public boolean contains(FileObject fo) {
-            if (getRootFolder().equals(fo)) {
-                return true;
-            }
-            return FileUtil.isParentOf(getRootFolder(), fo);
-        }
-
-        @Override
-        public void addPropertyChangeListener(PropertyChangeListener pl) {
-        }
-
-        @Override
-        public void removePropertyChangeListener(PropertyChangeListener pl) {
-        }
-
-        private boolean controlsSource(FileObject fo) {
-            return contains(fo) || srcCp.contains(fo);
-        }
-
-        private boolean outputsTo(FileObject fo) {
-            if (fo == null || output == null) {
-                return false;
-            }
-            if (fo.equals(output)) {
-                return true;
-            }
-            return FileUtil.isParentOf(output, fo);
-        }
-
-        public String toString() {
-            return "EnsoSources[name=" + getName() + ",root=" + getRootFolder() + ",output=" + output + "]";
-        }
+    @Override
+    public String getDisplayName() {
+      return getName();
     }
 
-    record OtherEnsoSources(String kind, FileObject root) implements SourceGroup {
-        @Override
-        public FileObject getRootFolder() {
-            return root;
-        }
-
-        @Override
-        public String getName() {
-            return kind + "/" + root.getNameExt();
-        }
-
-        @Override
-        public String getDisplayName() {
-            return getName();
-        }
-
-        @Override
-        public Icon getIcon(boolean bln) {
-            return null;
-        }
-
-        @Override
-        public boolean contains(FileObject fo) {
-            return FileUtil.isParentOf(root, fo);
-        }
-
-        @Override
-        public void addPropertyChangeListener(PropertyChangeListener pl) {
-        }
-
-        @Override
-        public void removePropertyChangeListener(PropertyChangeListener pl) {
-        }
+    @Override
+    public Icon getIcon(boolean bln) {
+      return null;
     }
+
+    @Override
+    public boolean contains(FileObject fo) {
+      return FileUtil.isParentOf(root, fo);
+    }
+
+    @Override
+    public void addPropertyChangeListener(PropertyChangeListener pl) {
+    }
+
+    @Override
+    public void removePropertyChangeListener(PropertyChangeListener pl) {
+    }
+  }
 }

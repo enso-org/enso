@@ -349,12 +349,18 @@ public final class TailCall implements MiniPassFactory {
             expr.branches()
                 .foreach(
                     b -> {
+                      tailCandidates.put(b, true);
                       tailCandidates.put(b.expression(), true);
                       return null;
                     });
           }
         }
-        default -> throw new CompilerError("Unexpected case branch.");
+        case Case.Branch branch -> {
+          if (isInTailPos) {
+            tailCandidates.put(branch.expression(), true);
+          }
+        }
+        default -> throw new CompilerError("Unexpected value: " + caseExpr);
       }
     }
 
@@ -378,7 +384,7 @@ public final class TailCall implements MiniPassFactory {
     private void collectTailCandicateFunction(
         Function function, java.util.Map<IR, Boolean> tailCandidates) {
       var canBeTCO = function.canBeTCO();
-      var markAsTail = (!canBeTCO && isInTailPos) || canBeTCO;
+      var markAsTail = canBeTCO || isInTailPos;
       switch (function) {
         case Function.Lambda l -> {
           if (markAsTail) {

@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.List;
-import java.util.function.Function;
 import org.enso.example.TestClass;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
@@ -134,12 +133,14 @@ public abstract class JavaInteropTest {
   public void testCaseOnFunctionalInterface() {
     var code =
         """
-        from Standard.Base import IO
         polyglot java import org.enso.example.TestClass
         polyglot java import org.enso.example.TestClass.FnIntrfc
 
         check x y=42 = case x of
           call:FnIntrfc -> call.perform y
+          "alien" -> TestClass.alien
+          "real" -> TestClass.real
+          "subclass" -> TestClass.subclass
           _ -> "no"
 
         main = check
@@ -148,11 +149,12 @@ public abstract class JavaInteropTest {
 
     assertEquals("'no'", check.execute("Not FnIntrfc").toString());
 
-    Function<Object, Object> alien = (x) -> x;
+    var alien = check.execute("alien"); // Function<Object, Object> alien = (x) -> x;
+
     assertEquals(
         "Function isn't the right Java interface", "'no'", check.execute(alien).toString());
 
-    TestClass.FnIntrfc real = (x) -> x;
+    var real = check.execute("real"); // TestClass.FnIntrfc real = (x) -> x;
     assertEquals(
         "FnIntrfc is the right interface", "'good'", check.execute(real, "good").toString());
 
@@ -169,7 +171,7 @@ public abstract class JavaInteropTest {
         "'no'",
         check.execute(atom).toString());
 
-    TestClass.FnIntrfc subclass = new TestClass.FnIntrfcSubclass();
+    var subclass = check.execute("subclass"); // new TestClass.FnIntrfcSubclass();
     assertEquals(
         "FnIntrfcSubclass implements the right interface",
         "'subclass'",

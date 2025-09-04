@@ -517,7 +517,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
-      context.receiveNIgnoreExpressionUpdates(3) should contain allOf (
+      context.receiveNIgnoreExpressionUpdates(2) should contain allOf (
         Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
         context.executionComplete(contextId)
       )
@@ -530,7 +530,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             contextId,
             Some(
               Api.InvalidatedExpressions.Expressions(
-                Vector(context.Main.idMainX)
+                Vector(context.Main.idMainX),
+                ""
               )
             ),
             None,
@@ -1559,7 +1560,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             contextId,
             Some(
               Api.InvalidatedExpressions.Expressions(
-                Vector(context.Main.idMainX)
+                Vector(context.Main.idMainX),
+                ""
               )
             ),
             None,
@@ -5672,7 +5674,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // Includes a warning about unused variable
-      val editFileResponse = context.receiveNIgnoreExpressionUpdates(3)
+      val editFileResponse = context.receiveNIgnoreExpressionUpdates(2)
       editFileResponse should contain(
         context.executionComplete(contextId)
       )

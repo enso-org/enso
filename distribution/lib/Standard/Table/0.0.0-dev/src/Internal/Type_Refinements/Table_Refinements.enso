@@ -7,6 +7,7 @@ import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Value_Type_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Refined_Types.Text_Column.Text_Column
 import project.Table.Table
 import project.Value_Type.Value_Type
 from project.Internal.Type_Refinements.Single_Column_Table_Conversions import all
@@ -21,6 +22,7 @@ refine_table (table : Table & In_Memory_Table) =
             Value_Type.Byte -> _refine_numeric_column table column
             Value_Type.Float _ -> _refine_numeric_column table column
             Value_Type.Decimal _ _ -> _refine_numeric_column table column
+            Value_Type.Char _ _ -> _refine_text_column table column
             _ -> _refine_other_column table column
 
 private _refine_numeric_column (table : In_Memory_Table) (column : Column & In_Memory_Column) -> Table & In_Memory_Table & Column & In_Memory_Column & Numeric_Column = case column.length of
@@ -31,11 +33,16 @@ private _refine_numeric_column (table : In_Memory_Table) (column : Column & In_M
         _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Numeric_Column
     _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Numeric_Column
 
+private _refine_text_column (table : In_Memory_Table) (column : Column & In_Memory_Column) -> Table & In_Memory_Table & Column & In_Memory_Column & Text_Column = case column.length of
+    1 -> case column.at 0 of
+        _ : Text -> table : Table & In_Memory_Table & Column & In_Memory_Column & Text_Column & Text
+        _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Text_Column
+    _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Text_Column
+
 private _refine_other_column (table : In_Memory_Table) (column : Column & In_Memory_Column) -> Table & In_Memory_Table & Column & In_Memory_Column =
     ## We treat a column as single value if it contains a single not-nothing value.
     first_value = if column.length == 1 then column.at 0 else Nothing
     case first_value of
-        _ : Text -> (table : Table & In_Memory_Table & Column & In_Memory_Column & Text)
         _ : Boolean -> (table : Table & In_Memory_Table & Column & In_Memory_Column & Boolean)
         _ : Date -> (table : Table & In_Memory_Table & Column & In_Memory_Column & Date)
         _ : Time_Of_Day -> (table : Table & In_Memory_Table & Column & In_Memory_Column & Time_Of_Day)

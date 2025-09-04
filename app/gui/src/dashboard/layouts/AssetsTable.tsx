@@ -5,18 +5,23 @@ import { Button } from '#/components/Button'
 import type { ContextMenuApi } from '#/components/ContextMenu'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
+import { Scroller } from '#/components/Scroller'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
+import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { Text } from '#/components/Text'
+import { UserWithPopover } from '#/components/UserWithPopover'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
 import { useAutoScroll } from '#/hooks/autoScrollHooks'
 import {
   backendMutationOptions,
   backendQueryOptions,
   listDirectoryQueryOptions,
+  searchDirectoryQueryOptions,
   useListDirectoryRefetchInterval,
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { usePaste } from '#/hooks/cutAndPasteHooks'
+import { useDerivedDebouncedState } from '#/hooks/debounceCallbackHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
@@ -34,12 +39,10 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import AssetIcon from '#/pages/dashboard/components/AssetIcon'
 import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
 import { AssetRow } from '#/pages/dashboard/components/AssetRow'
-import type { SortableColumn } from '#/pages/dashboard/components/column/columnUtils'
 import {
   Column,
   COLUMN_CSS_CLASS,
   COLUMN_ICONS,
-  COLUMN_SHOW_TEXT_ID,
   DEFAULT_ENABLED_COLUMNS,
   getColumnList,
 } from '#/pages/dashboard/components/column/columnUtils'
@@ -59,24 +62,29 @@ import {
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import type { AssetId, DirectoryId, ProjectId } from '#/services/Backend'
+import type {
+  AssetId,
+  AssetSortExpression,
+  DirectoryId,
+  PaginationToken,
+  ProjectId,
+} from '#/services/Backend'
 import {
   AssetType,
   BackendType,
-  getAssetPermissionName,
   IS_OPENING_OR_OPENED,
   isAssetCredential,
   isDirectoryId,
+  LabelName,
   type AnyAsset,
 } from '#/services/Backend'
-import type { AssetQueryKey } from '#/utilities/AssetQuery'
+import { userGroupIdToDirectoryId, userIdToDirectoryId } from '#/services/RemoteBackend/ids'
 import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
 import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
 import { fileExtension } from '#/utilities/fileInfo'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
@@ -90,7 +98,8 @@ import {
 } from '$/providers/react'
 import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
 import { useLaunchedProjects } from '$/providers/react/container'
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import {
   Children,
   cloneElement,
@@ -103,6 +112,7 @@ import {
   useState,
   type Dispatch,
   type DragEvent,
+  type HTMLAttributes,
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
@@ -113,12 +123,7 @@ import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 import * as z from 'zod'
 import type { AssetsDataTransferPayload } from './Drive/Categories/transferBetweenCategoriesHooks'
-import {
-  SUGGESTIONS_FOR_HAS,
-  SUGGESTIONS_FOR_NEGATIVE_TYPE,
-  SUGGESTIONS_FOR_NO,
-  SUGGESTIONS_FOR_TYPE,
-} from './Drive/suggestionsConstants'
+import { SUGGESTIONS_FOR_TYPE } from './Drive/suggestionsConstants'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -150,8 +155,8 @@ export interface AssetsTableState {
   readonly currentDirectoryId: DirectoryId
   readonly scrollContainerRef: RefObject<HTMLElement>
   readonly category: Category
-  readonly sortInfo: SortInfo<SortableColumn> | null
-  readonly setSortInfo: (sortInfo: SortInfo<SortableColumn> | null) => void
+  readonly sortInfo: SortInfo<AssetSortExpression> | null
+  readonly setSortInfo: (sortInfo: SortInfo<AssetSortExpression> | null) => void
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly hideColumn: (column: Column) => void
@@ -194,14 +199,22 @@ function AssetsTable(props: AssetsTableProps) {
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
   const rightPanel = useRightPanelData()
 
-  const columns = getColumnList(user, backend.type, category).filter((column) =>
-    enabledColumns.has(column),
-  )
-  const hiddenColumns = getColumnList(user, backend.type, category).filter(
-    (column) => !enabledColumns.has(column),
+  const allowedColumns = useMemo(
+    () => getColumnList(user.plan, backend.type, category, query.query !== ''),
+    [user.plan, backend.type, category, query.query],
   )
 
-  const [sortInfo, setSortInfo] = useState<SortInfo<SortableColumn> | null>(null)
+  const columns = useMemo(
+    () => allowedColumns.filter((column) => enabledColumns.has(column)),
+    [allowedColumns, enabledColumns],
+  )
+
+  const hiddenColumns = useMemo(
+    () => allowedColumns.filter((column) => !enabledColumns.has(column)),
+    [allowedColumns, enabledColumns],
+  )
+
+  const [sortInfo, setSortInfo] = useState<SortInfo<AssetSortExpression> | null>(null)
   const driveStore = useDriveStore()
   const setNewestFolderId = useSetNewestFolderId()
   const setSelectedAssets = useSetSelectedAssets()
@@ -234,18 +247,75 @@ function AssetsTable(props: AssetsTableProps) {
     { unsafeEnableTransition: true },
   )
 
-  const { queryDirectoryId, currentDirectoryId } = useDirectoryIds({
+  const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
+  const { data: userGroups } = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
+
+  const { queryDirectoryId: queryDirectoryIdRaw, currentDirectoryId } = useDirectoryIds({
     category,
   })
+  const ownerLower = query.owners[0]?.toLowerCase()
+  const queryDirectoryId = (() => {
+    if (ownerLower == null) {
+      return queryDirectoryIdRaw
+    }
+    const userId = users?.find((otherUser) =>
+      otherUser.name.toLowerCase().includes(ownerLower),
+    )?.userId
+    if (userId != null) {
+      return userIdToDirectoryId(userId)
+    }
+    const userGroupId = userGroups?.find((userGroup) =>
+      userGroup.groupName.toLowerCase().includes(ownerLower),
+    )?.id
+    if (userGroupId != null) {
+      return userGroupIdToDirectoryId(userGroupId)
+    }
+    return queryDirectoryIdRaw
+  })()
   const queryDirectoryIdRef = useSyncRef(queryDirectoryId)
   const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
-  const { data: assets = [] } = useSuspenseQuery({
-    ...listDirectoryQueryOptions({
-      backend,
-      parentId: queryDirectoryId,
-      category,
-      refetchInterval: listDirectoryRefetchInterval,
-    }),
+  const debouncedQueryDelayMs = useFeatureFlag('dataCatalogQueryDebounceDelay')
+  const debouncedQuery = useDerivedDebouncedState(query, debouncedQueryDelayMs)
+  const directoryQueryOptions =
+    debouncedQuery.query === '' ?
+      listDirectoryQueryOptions({
+        infinite: true,
+        backend,
+        parentId: queryDirectoryId,
+        category,
+        refetchInterval: listDirectoryRefetchInterval,
+        labels: debouncedQuery.labels.length !== 0 ? debouncedQuery.labels.map(LabelName) : null,
+        sortExpression: sortInfo?.field ?? null,
+        sortDirection: sortInfo?.direction ?? null,
+      })
+    : searchDirectoryQueryOptions({
+        infinite: true,
+        backend,
+        parentId: queryDirectoryId,
+        // The `query` parameter is not supported.
+        query: null,
+        title:
+          debouncedQuery.keywords[0] != null ?
+            debouncedQuery.keywords.join(' ')
+          : (debouncedQuery.names[0] ?? null),
+        extension: debouncedQuery.extensions[0] ?? null,
+        description: debouncedQuery.descriptions[0] ?? null,
+        type: debouncedQuery.types[0] ?? null,
+        labels: debouncedQuery.labels.length !== 0 ? debouncedQuery.labels.map(LabelName) : null,
+        sortExpression: sortInfo?.field ?? null,
+        sortDirection: sortInfo?.direction ?? null,
+      })
+  const pageSize = useFeatureFlag('listDirectoryPageSize')
+  const assetsPages = useInfiniteQuery({
+    ...directoryQueryOptions,
+    queryKey: directoryQueryOptions.queryKey,
+    queryFn: (context) =>
+      directoryQueryOptions.queryFn(context, {
+        from: context.pageParam,
+        pageSize,
+      }),
+    initialPageParam: ((): PaginationToken | null => null)(),
+    getNextPageParam: (lastPage) => lastPage.paginationToken,
     retry: () => {
       if (queryDirectoryId === queryDirectoryIdRef.current) {
         setDriveLocation(null, category.id)
@@ -253,19 +323,29 @@ function AssetsTable(props: AssetsTableProps) {
       return false
     },
   })
-
-  const { visibleItems } = useAssetsTableItems({
-    parentId: currentDirectoryId,
-    assets,
-    sortInfo,
-    query,
-  })
+  const assets = useMemo(
+    () => assetsPages.data?.pages.flatMap((page) => page.assets) ?? [],
+    [assetsPages.data?.pages],
+  )
+  const fetchNextAssetPage = assetsPages.fetchNextPage
+  const isFetching = assetsPages.isLoading || assetsPages.isFetchingNextPage
 
   const isCloud = backend.type === BackendType.remote
   const rootRef = useRef<HTMLDivElement | null>(null)
-  const mainDropzoneRef = useRef<HTMLButtonElement | null>(null)
-  const headerRowRef = useRef<HTMLTableRowElement>(null)
+  const scrollerRef = useRef<HTMLDivElement | null>(null)
   const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
+
+  useEffect(() => {
+    const scrollerEl = scrollerRef.current
+    if (!scrollerEl) return
+    const tableEl = scrollerEl.children[0]
+    if (!tableEl) return
+    if (scrollerEl.scrollTop + scrollerEl.clientHeight >= tableEl.scrollHeight) {
+      void fetchNextAssetPage()
+    }
+  }, [fetchNextAssetPage, assetsPages.data?.pages])
+
+  useAssetsTableItems({ parentId: currentDirectoryId, assets })
 
   useEffect(() => {
     setNewestFolderId(null)
@@ -311,19 +391,15 @@ function AssetsTable(props: AssetsTableProps) {
   )
 
   useEffect(() => {
-    const nodeToSuggestion = (
-      node: AnyAsset,
-      key: AssetQueryKey = 'names',
-    ): assetSearchBar.Suggestion => ({
-      key: node.id,
-      render: () => `${key === 'names' ? '' : '-:'}${node.title}`,
-      addToQuery: (oldQuery) => oldQuery.addToLastTerm({ [key]: [node.title] }),
-      deleteFromQuery: (oldQuery) => oldQuery.deleteFromLastTerm({ [key]: [node.title] }),
-    })
-
-    const allVisible = (negative = false) => {
-      return assets.map((node) => nodeToSuggestion(node, negative ? 'negativeNames' : 'names'))
-    }
+    const allVisible = () =>
+      assets.map(
+        (node): assetSearchBar.Suggestion => ({
+          key: node.id,
+          render: () => node.title,
+          addToQuery: (oldQuery) => oldQuery.add('names', [node.title]),
+          deleteFromQuery: (oldQuery) => oldQuery.delete('names', [node.title]),
+        }),
+      )
 
     const terms = AssetQuery.terms(query.query)
     const term = terms.find((otherTerm) => otherTerm.values.length === 0) ?? terms[terms.length - 1]
@@ -333,38 +409,19 @@ function AssetsTable(props: AssetsTableProps) {
     if (termValues.length !== 0) {
       setSuggestions(shouldOmitNames ? [] : allVisible())
     } else {
-      const negative = term?.tag?.startsWith('-') ?? false
       switch (term?.tag ?? null) {
         case null:
         case '':
-        case '-':
-        case 'name':
-        case '-name': {
-          setSuggestions(allVisible(negative))
-          break
-        }
-        case 'no':
-        case '-has': {
-          setSuggestions(isCloud ? SUGGESTIONS_FOR_NO : [])
-          break
-        }
-        case 'has':
-        case '-no': {
-          setSuggestions(isCloud ? SUGGESTIONS_FOR_HAS : [])
+        case 'name': {
+          setSuggestions(allVisible())
           break
         }
         case 'type': {
           setSuggestions(SUGGESTIONS_FOR_TYPE)
           break
         }
-        case '-type': {
-          setSuggestions(SUGGESTIONS_FOR_NEGATIVE_TYPE)
-          break
-        }
         case 'ext':
-        case '-ext':
-        case 'extension':
-        case '-extension': {
+        case 'extension': {
           const extensions = assets
             .filter((node) => node.type === AssetType.file)
             .map((node) => fileExtension(node.title))
@@ -373,26 +430,15 @@ function AssetsTable(props: AssetsTableProps) {
               new Set(extensions),
               (extension): assetSearchBar.Suggestion => ({
                 key: extension,
-                render: () =>
-                  AssetQuery.termToString({
-                    tag: `${negative ? '-' : ''}extension`,
-                    values: [extension],
-                  }),
-                addToQuery: (oldQuery) =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeExtensions: [extension] } : { extensions: [extension] },
-                  ),
-                deleteFromQuery: (oldQuery) =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeExtensions: [extension] } : { extensions: [extension] },
-                  ),
+                render: () => AssetQuery.termToString({ tag: 'extension', values: [extension] }),
+                addToQuery: (oldQuery) => oldQuery.add('extensions', [extension]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('extensions', [extension]),
               }),
             ),
           )
           break
         }
-        case 'modified':
-        case '-modified': {
+        case 'modified': {
           const modifieds = assets.map((node) => {
             const date = new Date(node.modifiedAt)
             return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
@@ -404,54 +450,17 @@ function AssetsTable(props: AssetsTableProps) {
                 key: modified,
                 render: () =>
                   AssetQuery.termToString({
-                    tag: `${negative ? '-' : ''}modified`,
+                    tag: 'modified',
                     values: [modified],
                   }),
-                addToQuery: (oldQuery) =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeModifieds: [modified] } : { modifieds: [modified] },
-                  ),
-                deleteFromQuery: (oldQuery) =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeModifieds: [modified] } : { modifieds: [modified] },
-                  ),
+                addToQuery: (oldQuery) => oldQuery.add('modifieds', [modified]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('modifieds', [modified]),
               }),
             ),
           )
           break
         }
-        case 'owner':
-        case '-owner': {
-          const owners = assets.flatMap((asset) =>
-            (asset.permissions ?? [])
-              .filter((permission) => permission.permission === PermissionAction.own)
-              .map(getAssetPermissionName),
-          )
-          setSuggestions(
-            Array.from(
-              new Set(owners),
-              (owner): assetSearchBar.Suggestion => ({
-                key: owner,
-                render: () =>
-                  AssetQuery.termToString({
-                    tag: `${negative ? '-' : ''}owner`,
-                    values: [owner],
-                  }),
-                addToQuery: (oldQuery) =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeOwners: [owner] } : { owners: [owner] },
-                  ),
-                deleteFromQuery: (oldQuery) =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeOwners: [owner] } : { owners: [owner] },
-                  ),
-              }),
-            ),
-          )
-          break
-        }
-        case 'label':
-        case '-label': {
+        case 'label': {
           setSuggestions(
             (labels ?? []).map(
               (label): assetSearchBar.Suggestion => ({
@@ -461,17 +470,33 @@ function AssetsTable(props: AssetsTableProps) {
                     {label.value}
                   </Label>
                 ),
-                addToQuery: (oldQuery) =>
-                  oldQuery.addToLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] },
-                  ),
-                deleteFromQuery: (oldQuery) =>
-                  oldQuery.deleteFromLastTerm(
-                    negative ? { negativeLabels: [label.value] } : { labels: [label.value] },
-                  ),
+                addToQuery: (oldQuery) => oldQuery.add('labels', [label.value]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('labels', [label.value]),
               }),
             ),
           )
+          break
+        }
+        case 'owner': {
+          setSuggestions([
+            ...(users ?? []).map(
+              (otherUser): assetSearchBar.Suggestion => ({
+                key: otherUser.userId,
+                render: () => <UserWithPopover user={otherUser} />,
+                addToQuery: (oldQuery) => oldQuery.add('owners', [otherUser.name]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('owners', [otherUser.name]),
+              }),
+            ),
+            ...(userGroups ?? []).map(
+              (userGroup): assetSearchBar.Suggestion => ({
+                key: userGroup.id,
+                render: () =>
+                  AssetQuery.termToString({ tag: 'owner', values: [userGroup.groupName] }),
+                addToQuery: (oldQuery) => oldQuery.add('owners', [userGroup.groupName]),
+                deleteFromQuery: (oldQuery) => oldQuery.delete('owners', [userGroup.groupName]),
+              }),
+            ),
+          ])
           break
         }
         default: {
@@ -480,7 +505,7 @@ function AssetsTable(props: AssetsTableProps) {
         }
       }
     }
-  }, [isCloud, query, labels, setSuggestions, assets])
+  }, [isCloud, query, labels, setSuggestions, assets, users, userGroups])
 
   useEffect(
     () =>
@@ -564,7 +589,7 @@ function AssetsTable(props: AssetsTableProps) {
     }
     const { selectedAssets } = driveStore.getState()
     const prevIndex = mostRecentlySelectedIndexRef.current
-    const item = prevIndex == null ? null : visibleItems[prevIndex]
+    const item = prevIndex == null ? null : assets[prevIndex]
     if (selectedAssets.length === 1 && item != null) {
       switch (event.key) {
         case 'Enter':
@@ -655,7 +680,7 @@ function AssetsTable(props: AssetsTableProps) {
         const index =
           event.key === 'ArrowUp' ?
             Math.max(0, oldIndex - 1)
-          : Math.min(visibleItems.length - 1, oldIndex + 1)
+          : Math.min(assets.length - 1, oldIndex + 1)
         setMostRecentlySelectedIndex(index, true)
         if (event.shiftKey) {
           event.preventDefault()
@@ -666,7 +691,7 @@ function AssetsTable(props: AssetsTableProps) {
           }
           const startIndex = Math.min(index, selectionStartIndexRef.current)
           const endIndex = Math.max(index, selectionStartIndexRef.current) + 1
-          const selection = visibleItems.slice(startIndex, endIndex)
+          const selection = assets.slice(startIndex, endIndex)
           setSelectedAssets(selection)
         } else if (event.ctrlKey) {
           event.preventDefault()
@@ -675,7 +700,7 @@ function AssetsTable(props: AssetsTableProps) {
         } else if (index !== prevIndex) {
           event.preventDefault()
           event.stopPropagation()
-          const newItem = visibleItems[index]
+          const newItem = assets[index]
           if (newItem != null) {
             setSelectedAssets([newItem])
           }
@@ -938,7 +963,7 @@ function AssetsTable(props: AssetsTableProps) {
         if (range == null) {
           setVisuallySelectedKeys(null)
         } else {
-          const otherAssets = visibleItems.slice(range.start, range.end).map((node) => node)
+          const otherAssets = assets.slice(range.start, range.end).map((node) => node)
           setVisuallySelectedKeys(
             new Set(calculateNewSelection(event, otherAssets, () => []).map((asset) => asset.id)),
           )
@@ -953,7 +978,7 @@ function AssetsTable(props: AssetsTableProps) {
     onMouseEvent(event)
     const range = dragSelectionRangeRef.current
     if (range != null) {
-      const otherAssets = visibleItems.slice(range.start, range.end).map((node) => node)
+      const otherAssets = assets.slice(range.start, range.end).map((node) => node)
       setSelectedAssets(calculateNewSelection(event, otherAssets, () => []))
     }
     setVisuallySelectedKeys(null)
@@ -971,7 +996,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const onRowClick = useEventCallback(({ asset }: AssetRowInnerProps, event: ReactMouseEvent) => {
     event.stopPropagation()
-    const newIndex = visibleItems.findIndex((otherAset) => otherAset.id === asset.id)
+    const newIndex = assets.findIndex((otherAset) => otherAset.id === asset.id)
     const getRange = () => {
       if (mostRecentlySelectedIndexRef.current == null) {
         return [asset]
@@ -980,7 +1005,7 @@ function AssetsTable(props: AssetsTableProps) {
         const index2 = newIndex
         const startIndex = Math.min(index1, index2)
         const endIndex = Math.max(index1, index2) + 1
-        return visibleItems.slice(startIndex, endIndex)
+        return assets.slice(startIndex, endIndex)
       }
     }
     setSelectedAssets(calculateNewSelection(event, [asset], getRange))
@@ -991,7 +1016,7 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const selectRow = useEventCallback((asset: AnyAsset) => {
-    setMostRecentlySelectedIndex(visibleItems.findIndex((otherAsset) => otherAsset.id === asset.id))
+    setMostRecentlySelectedIndex(assets.findIndex((otherAsset) => otherAsset.id === asset.id))
     selectionStartIndexRef.current = null
     setSelectedAssets([asset])
   })
@@ -1005,9 +1030,7 @@ function AssetsTable(props: AssetsTableProps) {
       let newSelectedKeys = driveStore.getState().selectedIds
 
       if (!newSelectedKeys.has(asset.id)) {
-        setMostRecentlySelectedIndex(
-          visibleItems.findIndex((otherAsset) => otherAsset.id === asset.id),
-        )
+        setMostRecentlySelectedIndex(assets.findIndex((otherAsset) => otherAsset.id === asset.id))
         selectionStartIndexRef.current = null
         newSelectedKeys = new Set([asset.id])
         setSelectedAssets([asset])
@@ -1100,73 +1123,85 @@ function AssetsTable(props: AssetsTableProps) {
     },
   )
 
-  const headerRow = (
-    <tr ref={headerRowRef} className="rounded-none text-sm font-semibold">
-      {[...columns].map((column) => {
-        // The spread on the line above is required for React Compiler to compile this component.
-        // This is a React component, even though it does not contain JSX.
-        const Heading = COLUMN_HEADING[column]
-
-        return (
-          <th key={column} className={COLUMN_CSS_CLASS[column]}>
-            <Heading
-              sortInfo={state.sortInfo}
-              hideColumn={state.hideColumn}
-              setSortInfo={state.setSortInfo}
-              category={state.category}
-            />
-          </th>
-        )
-      })}
-    </tr>
-  )
-
-  const itemRows = visibleItems.map((item) => {
-    const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
-    const isOpenedOnTheBackend =
-      item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
-    return (
-      <AssetRow
-        key={item.id + item.virtualParentsPath}
-        isPlaceholder={false}
-        isOpened={isOpenedByYou || isOpenedOnTheBackend}
-        columns={columns}
-        id={item.id}
-        type={item.type}
-        parentId={item.parentId}
-        state={state}
-        item={item}
-        isKeyboardSelected={
-          keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
-        }
-        grabKeyboardFocus={grabRowKeyboardFocus}
-        onClick={onRowClick}
-        select={selectRow}
-        labels={labels ?? []}
-        onDragStart={onRowDragStart}
-        onDragEnd={endAutoScroll}
-        onDrop={onRowDrop}
-        renameAsset={doRenameAsset}
-        closeProject={closeProjectMutationCallback}
-        openProject={doOpenProject}
-      />
-    )
-  })
-
   const specialEmptyText =
     query.query !== '' ? getText('noFilesMatchTheCurrentFilters')
     : currentDirectoryId !== category.homeDirectoryId ? getText('thisFolderIsEmpty')
     : null
 
   const table = (
-    <div className="flex flex-none flex-col">
-      <table className="isolate table-fixed border-collapse rounded-rows">
+    <Scroller
+      ref={scrollerRef}
+      scrollbar
+      fullSize
+      orientation="vertical"
+      className="h-full flex-1"
+      shadowStartClassName="top-8"
+      onScroll={(event) => {
+        if (isFetching) return
+        const element = event.currentTarget
+        const tableEl = element.children[0]
+        if (!tableEl) return
+        if (element.scrollTop + element.clientHeight >= tableEl.scrollHeight) {
+          void assetsPages.fetchNextPage()
+        }
+      }}
+    >
+      {/* The `max-w-[calc(100cqw_-_0.5rem)]` is necessary otherwise it shifts slightly
+       * when scrolling horizontally. */}
+      <table className="isolate max-w-[calc(100cqw_-_0.5rem)] table-fixed border-collapse rounded-rows">
         <thead className="sticky top-0 isolate z-1 bg-dashboard before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard">
-          {headerRow}
+          <tr className="rounded-none text-sm font-semibold">
+            {[...columns].map((column) => {
+              // The spread on the line above is required for React Compiler to compile this component.
+              // This is a React component, even though it does not contain JSX.
+              const Heading = COLUMN_HEADING[column]
+
+              return (
+                <th key={column} className={COLUMN_CSS_CLASS[column]}>
+                  <Heading
+                    sortInfo={state.sortInfo}
+                    hideColumn={state.hideColumn}
+                    setSortInfo={state.setSortInfo}
+                    category={state.category}
+                  />
+                </th>
+              )
+            })}
+          </tr>
         </thead>
 
         <tbody ref={bodyRef} className="isolate">
-          {itemRows}
+          {assets.map((item) => {
+            const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
+            const isOpenedOnTheBackend =
+              item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
+            return (
+              <AssetRow
+                key={item.id + item.virtualParentsPath}
+                isPlaceholder={false}
+                isOpened={isOpenedByYou || isOpenedOnTheBackend}
+                columns={columns}
+                id={item.id}
+                type={item.type}
+                parentId={item.parentId}
+                state={state}
+                item={item}
+                isKeyboardSelected={
+                  keyboardSelectedIndex != null && item === assets[keyboardSelectedIndex]
+                }
+                grabKeyboardFocus={grabRowKeyboardFocus}
+                onClick={onRowClick}
+                select={selectRow}
+                labels={labels ?? []}
+                onDragStart={onRowDragStart}
+                onDragEnd={endAutoScroll}
+                onDrop={onRowDrop}
+                renameAsset={doRenameAsset}
+                closeProject={closeProjectMutationCallback}
+                openProject={doOpenProject}
+              />
+            )
+          })}
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="h-table-row bg-transparent">
               <Text className="px-cell-x placeholder" disableLineHeightCompensation>
@@ -1178,12 +1213,22 @@ function AssetsTable(props: AssetsTableProps) {
               </Text>
             </td>
           </tr>
+          {isFetching && (
+            <tr className="h-row">
+              <td colSpan={columns.length} className="rounded-full bg-transparent">
+                <div className="flex justify-center">
+                  <StatelessSpinner size={32} phase="loading-medium" />
+                </div>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
-
       <AssetsTableAssetsUnselector asChild>
         <div
           data-testid="root-directory-dropzone"
+          // The `max-w-[calc(100cqw_-_0.5rem)]` is necessary otherwise it shifts slightly
+          // when scrolling horizontally.
           className={twMerge(
             'sticky left-1 grid max-w-[calc(100cqw_-_0.5rem)] grow place-items-center pb-40 pt-20',
             (category.type === 'recent' || category.type === 'trash') && 'hidden',
@@ -1207,7 +1252,6 @@ function AssetsTable(props: AssetsTableProps) {
             <Button
               size="custom"
               variant="custom"
-              ref={mainDropzoneRef}
               icon={DropFilesImage}
               className="rounded-2xl"
               contentClassName="h-[186px] flex flex-col items-center gap-3 text-primary/30 transition-colors duration-200 hover:text-primary/50"
@@ -1217,7 +1261,7 @@ function AssetsTable(props: AssetsTableProps) {
           </FileTrigger>
         </div>
       </AssetsTableAssetsUnselector>
-    </div>
+    </Scroller>
   )
 
   if (!isCloud && didLoadingProjectManagerFail) {
@@ -1260,7 +1304,7 @@ function AssetsTable(props: AssetsTableProps) {
         <IsolateLayout className="isolate h-full w-full" useRAF>
           <div
             tabIndex={-1}
-            className="h-full w-full flex-1 scroll-p-24 overflow-auto scroll-smooth container-size"
+            className="h-full w-full flex-1 container-size"
             onKeyDown={onKeyDown}
             onBlur={(event) => {
               if (
@@ -1277,15 +1321,8 @@ function AssetsTable(props: AssetsTableProps) {
               }
             }}
           >
-            <SelectionBrush
-              targetRef={rootRef}
-              onDrag={onSelectionDrag}
-              onDragEnd={onSelectionDragEnd}
-              onDragCancel={onSelectionDragCancel}
-              preventDrag={preventSelection}
-            />
             <div
-              className="flex h-max min-h-full w-max min-w-full flex-col"
+              className="flex h-full w-full min-w-full flex-col"
               onContextMenu={(event) => {
                 if (
                   event.target instanceof HTMLElement &&
@@ -1305,11 +1342,17 @@ function AssetsTable(props: AssetsTableProps) {
                 }}
               >
                 {table}
-                <AssetsTableAssetsUnselector />
               </div>
             </div>
           </div>
         </IsolateLayout>
+        <SelectionBrush
+          targetRef={rootRef}
+          onDrag={onSelectionDrag}
+          onDragEnd={onSelectionDragEnd}
+          onDragCancel={onSelectionDragCancel}
+          preventDrag={preventSelection}
+        />
       </div>
     </BindingFocusScopeContext.Provider>
   )
@@ -1344,7 +1387,7 @@ const HiddenColumn = memo(function HiddenColumn(props: HiddenColumnProps) {
       variant="icon"
       key={column}
       icon={COLUMN_ICONS[column]}
-      aria-label={getText(COLUMN_SHOW_TEXT_ID[column])}
+      aria-label={getText(`${column}ColumnName`)}
       onPress={onPress}
       className="opacity-50"
     />
@@ -1385,8 +1428,8 @@ export function AssetsTableAssetsUnselector(props: AssetsTableAssetsUnselectorPr
 
     return cloneElement(
       onlyChild,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any, no-restricted-syntax
-      mergeProps<any>()(onlyChild.props as any, { onPointerDown }),
+      // eslint-disable-next-line no-restricted-syntax
+      mergeProps<HTMLAttributes<HTMLElement>>()(onlyChild.props as never, { onPointerDown }),
     )
   }
 

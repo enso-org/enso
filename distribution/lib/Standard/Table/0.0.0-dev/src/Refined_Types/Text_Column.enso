@@ -1,0 +1,24 @@
+from Standard.Base import all
+
+import project.Column.Column
+
+## A column that contains text values.
+type Text_Column
+    private Value column operations_implementation
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each character of each element to the specified case.
+
+       ## Examples
+       ### Convert the values in a column to uppercase.
+
+       ```
+             import Standard.Examples
+
+             example_to_case = Examples.text_column_1.to_case ..Upper
+       ```
+    to_case self case_option:Case=..Lower locale:Locale=Locale.default -> Column & Text_Column =
+        self.operations_implementation.to_case self.column case_option locale

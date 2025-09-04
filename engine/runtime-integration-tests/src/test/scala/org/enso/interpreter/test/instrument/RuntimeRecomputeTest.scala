@@ -265,7 +265,8 @@ class RuntimeRecomputeTest
         Api.RecomputeContextRequest(
           contextId,
           Some(
-            Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainZ))
+            Api.InvalidatedExpressions
+              .Expressions(Vector(context.Main.idMainZ), "")
           ),
           None,
           Seq()
@@ -830,7 +831,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.Expressions(Vector(idIn))),
+          Some(Api.InvalidatedExpressions.Expressions(Vector(idIn), "")),
           None,
           Seq(
             Api.ExpressionConfig(idOut, Some(Api.ExecutionEnvironment.Live()))

@@ -9,6 +9,7 @@ import project.Internal.In_Memory_Column_Implementation.naming_helper
 import project.Value_Type.Value_Type
 
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
+polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
 
 type In_Memory_Numeric_Column_Implementation
@@ -21,3 +22,10 @@ type In_Memory_Numeric_Column_Implementation
         Value_Type.expect_numeric column <|
             new_name = naming_helper.function_name "signum" [column]
             apply_unary_operation column SignumOperation.INSTANCE new_name
+
+type In_Memory_Text_Column_Implementation
+    to_case (column : Column & In_Memory_Column) case_option:Case=..Lower locale:Locale=Locale.default =
+        Value_Type.expect_text column <|
+            new_name = naming_helper.function_name "to_case" [column, case_option.to_text]
+            operation = CaseOperation.new case_option.to_java locale.java_locale
+            apply_unary_operation column operation new_name
