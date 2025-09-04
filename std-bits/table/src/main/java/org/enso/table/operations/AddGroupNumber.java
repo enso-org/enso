@@ -236,6 +236,8 @@ public class AddGroupNumber {
     "High (1.5 to 2.5 sd)"
   };
 
+  private record StdDevResult(double mean, double stddev) {}
+
   public static ColumnStorage<?> numberGroupsStandardDeviation(
       long numRows,
       Column column,
@@ -243,8 +245,9 @@ public class AddGroupNumber {
       ProblemAggregator problemAggregator) {
     var innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
 
-    double mean = mean(column);
-    double stddev = standardDeviation(column, mean, population);
+    var stdDevResult = standardDeviation(column, population);
+    double mean = stdDevResult.mean();
+    double stddev = stdDevResult.stddev();
     var builder = Builder.getForText(TextType.VARIABLE_LENGTH, numRows);
 
     for (int row = 0; row < column.getSize(); ++row) {
@@ -266,36 +269,32 @@ public class AddGroupNumber {
     return builder.seal();
   }
 
-  private static double mean(Column column) {
-    double sum = 0.0;
-    long count = 0;
-    for (int row = 0; row < column.getSize(); ++row) {
-      var x = column.getItem(row);
-      if (x != null && x instanceof Number n) {
-        sum += n.doubleValue();
-        count++;
-      }
-    }
-    return count == 0 ? 0.0 : sum / count;
-  }
-
-  private static double standardDeviation(Column column, double mean, boolean population) {
-    double sumSquaredDiffs = 0.0;
+  private static StdDevResult standardDeviation(Column column, boolean population) {
+    double sumValues = 0.0;
+    double sumSquares = 0.0;
     long count = 0;
     for (int row = 0; row < column.getSize(); ++row) {
       var x = column.getItem(row);
       if (x != null && x instanceof Number n) {
         double d = n.doubleValue();
-        double diff = d - mean;
-        sumSquaredDiffs += diff * diff;
+        sumValues += d;
+        sumSquares += d * d;
         count++;
       }
     }
+    if (count == 0) {
+      return new StdDevResult(0.0, 0.0);
+    }
+
+    double mean = sumValues / count;
+    double sumSquaredDiffs = sumSquares - (2 * mean * sumValues) + (count * mean * mean);
+
     long denominator = population ? count : count - 1;
     if (denominator == 0) {
-      return 0.0;
+      return new StdDevResult(mean, 0.0);
     }
-    return Math.sqrt(sumSquaredDiffs / denominator);
+    double standardDeviation = Math.sqrt(sumSquaredDiffs / denominator);
+    return new StdDevResult(mean, standardDeviation);
   }
 
   private static String calculateGroup(double value, double mean, double stddev) {
