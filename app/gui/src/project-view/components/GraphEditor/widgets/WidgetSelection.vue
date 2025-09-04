@@ -247,9 +247,8 @@ export const widgetDefinition = defineWidget(
     score: (props) =>
       // We don’t want to show the dropdown until the dynamic config is received
       // to avoid showing stale dropdown items. Custom dropdown items should be displayed without delay, though.
-      props.input.dynamicConfig?.kind === 'Pending' && props.input[CustomDropdownItemsKey] == null ?
-        Score.Mismatch
-      : props.input[CustomDropdownItemsKey] != null ? Score.Perfect
+      props.input[CustomDropdownItemsKey] != null ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'Pending' ? Score.Mismatch
       : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
       : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
         // TODO[ao] here, instead of checking for existing dynamic config, we should rather return
