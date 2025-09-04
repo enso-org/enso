@@ -273,6 +273,9 @@ export type ArgsWidgetConfiguration = z.infer<typeof argsWidgetConfigurationSche
 /**
  * Create {@link WidgetConfiguration} object from parameters received from the engine, possibly
  * applying those to an inherited config received from parent widget.
+ *
+ * Inherited config has a priority, as we expect parent widget has more information available
+ * and can provide better configuration for its children.
  */
 export function functionCallConfiguration(
   parameters: ArgumentWidgetConfiguration[],
@@ -280,7 +283,8 @@ export function functionCallConfiguration(
 ): FunctionCall {
   const parametersMap = new Map(inherited?.parameters)
   for (const [name, param] of parameters) {
-    if (param) parametersMap.set(name, param)
+    // Merge with inherited parameters, inherited ones have priority.
+    if (param && !parametersMap.has(name)) parametersMap.set(name, param)
   }
   return {
     kind: 'FunctionCall',

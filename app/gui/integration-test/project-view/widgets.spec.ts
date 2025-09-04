@@ -433,8 +433,9 @@ test.describe('Dynamic configuration updates', () => {
   })
 
   /**
-   * Some widgets inherit their configuration from a parent widget. When new configuration arrives,
-   * it should override the inherited configuration. We using `aggregated` node to test this.
+   * Some widgets inherit their configuration from a parent widget.
+   * Inherited config has a priority even if newer configuration for the child expression arrives.
+   * We are using `aggregated` node to test this.
    */
   test('Inherited configuration', async ({ page }) => {
     const node = locate.graphNodeByBinding(page, 'aggregated')
@@ -448,7 +449,7 @@ test.describe('Dynamic configuration updates', () => {
     })
     await node.click()
     await expect(node.locator('.WidgetTopLevelArgument')).toHaveCount(4)
-    // Initial configuration.
+    // Top-level configuration, including configuration for child widgets.
     await mockVisualizationDataUpdate(page, '.aggregate', [
       [
         'columns',
@@ -528,6 +529,8 @@ test.describe('Dynamic configuration updates', () => {
     await firstItemDropdown.expectVisibleWithOptions(['column 1', 'column 2'])
 
     // Provide dynamic configuration for `column` argument of `Aggregate_Column.Group_By`.
+    // It shouldn’t affect the selectable variants of the dropdown, because parent
+    // config has a priority.
     await mockVisualizationDataUpdate(page, '.Group_By', [
       [
         'column',
@@ -555,7 +558,56 @@ test.describe('Dynamic configuration updates', () => {
         },
       ],
     ])
-    await firstItemDropdown.expectVisibleWithOptions(['column 3', 'column 4'])
+    await firstItemDropdown.expectVisibleWithOptions(['column 1', 'column 2'])
+
+    // Update parent configuration
+    await mockVisualizationDataUpdate(page, '.aggregate', [
+      [
+        'columns',
+        {
+          type: 'Widget',
+          constructor: 'Single_Choice',
+          label: null,
+          values: [
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
+              label: 'Group By',
+              parameters: [
+                [
+                  'column',
+                  {
+                    type: 'Widget',
+                    constructor: 'Single_Choice',
+                    label: null,
+                    values: [
+                      {
+                        type: 'Choice',
+                        constructor: 'Option',
+                        value: '"column 5"',
+                        label: 'column 5',
+                        parameters: [],
+                      },
+                      {
+                        type: 'Choice',
+                        constructor: 'Option',
+                        value: '"column 6"',
+                        label: 'column 6',
+                        parameters: [],
+                      },
+                    ],
+                    display: { type: 'Display', constructor: 'Always' },
+                  },
+                ],
+              ],
+            },
+          ],
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ])
+    await firstItemDropdown.expectVisibleWithOptions(['column 5', 'column 6'])
   })
 })
 
