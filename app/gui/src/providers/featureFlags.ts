@@ -15,7 +15,10 @@ import { persist } from 'zustand/middleware'
 
 const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
 export const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
+export const DEFAULT_GET_LOG_EVENTS_PAGE_SIZE = 100
+export const DEFAULT_LIST_DIRECTORY_PAGE_SIZE = 100
 export const DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE = 5
+export const DEFAULT_DATA_CATALOG_QUERY_DEBOUNCE_DELAY_MS = 500
 
 export const FEATURE_FLAGS_SCHEMA = z.object({
   enableDeepLinks: z.boolean(),
@@ -31,6 +34,9 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   multiplyUserList: z.boolean(),
   disableAnimations: z.boolean(),
   fileChunkUploadPoolSize: z.number().int().min(1),
+  getLogEventsPageSize: z.number().int().min(1),
+  listDirectoryPageSize: z.number().int().min(1),
+  dataCatalogQueryDebounceDelay: z.number().int().min(0),
   unsafeDarkTheme: z.boolean(),
 })
 
@@ -66,6 +72,9 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         multiplyUserList: false,
         disableAnimations: false,
         fileChunkUploadPoolSize: DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
+        getLogEventsPageSize: DEFAULT_GET_LOG_EVENTS_PAGE_SIZE,
+        listDirectoryPageSize: DEFAULT_LIST_DIRECTORY_PAGE_SIZE,
+        dataCatalogQueryDebounceDelay: DEFAULT_DATA_CATALOG_QUERY_DEBOUNCE_DELAY_MS,
         unsafeDarkTheme: false,
       },
       setFeatureFlag: (key, value) => {

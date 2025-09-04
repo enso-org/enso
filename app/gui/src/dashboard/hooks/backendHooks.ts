@@ -1,26 +1,4 @@
 /** @file Hooks for interacting with the backend. */
-import {
-  queryOptions,
-  useMutationState,
-  useQueryClient,
-  type DefaultError,
-  type Mutation,
-  type MutationKey,
-  type QueryClient,
-  type QueryKey,
-  type UnusedSkipTokenOptions,
-  type UseMutationOptions,
-  type UseQueryOptions,
-} from '@tanstack/react-query'
-
-import {
-  backendQueryOptions as backendQueryOptionsBase,
-  INVALIDATE_ALL_QUERIES,
-  INVALIDATION_MAP,
-  type BackendMutationMethod,
-  type BackendQueryMethod,
-} from 'enso-common/src/backendQuery'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
@@ -41,6 +19,26 @@ import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { flagsStore } from '$/providers/featureFlags'
 import { useBackends, useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import {
+  queryOptions,
+  useMutationState,
+  useQueryClient,
+  type DefaultError,
+  type Mutation,
+  type MutationKey,
+  type QueryClient,
+  type QueryKey,
+  type UnusedSkipTokenOptions,
+  type UseMutationOptions,
+  type UseQueryOptions,
+} from '@tanstack/react-query'
+import {
+  backendQueryOptions as backendQueryOptionsBase,
+  INVALIDATE_ALL_QUERIES,
+  INVALIDATION_MAP,
+  type BackendMutationMethod,
+  type BackendQueryMethod,
+} from 'enso-common/src/backendQuery'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
@@ -218,11 +216,15 @@ export interface ListDirectoryQueryOptions {
   readonly filterBy?: FilterBy | null | undefined
   readonly parentId: DirectoryId | null
   readonly category: Category
+  readonly labels: readonly backendModule.LabelName[] | null
+  readonly sortExpression: backendModule.AssetSortExpression | null
+  readonly sortDirection: backendModule.AssetSortDirection | null
   /**
    * When using React, use {@link useListDirectoryRefetchInterval} to get the correct value.
    * `undefined` is intentionally excluded as this value should be explicitly given.
    */
   readonly refetchInterval: number | null
+  readonly infinite?: boolean
 }
 
 /** Build a query options object to fetch the children of a directory. */
@@ -232,31 +234,49 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
     parentId,
     category,
     refetchInterval,
+    labels,
+    sortExpression,
+    sortDirection,
     filterBy = CATEGORY_TO_FILTER_BY[category.type],
+    infinite = false,
   } = options
   const rootPath = 'rootPath' in category ? category.rootPath : undefined
-  return queryOptions({
+  return {
+    meta: { persist: false },
     queryKey: [
       backend.type,
       'listDirectory',
       parentId,
       {
         rootPath,
-        labels: null,
+        labels,
+        sortExpression,
+        sortDirection,
         filterBy,
         recentProjects: category.type === 'recent',
+        infinite,
       },
-    ] as const,
+    ],
     ...(refetchInterval != null ? { refetchInterval } : {}),
-    queryFn: async () => {
+    queryFn: async (
+      _context,
+      { from, pageSize }: Pick<backendModule.ListDirectoryRequestParams, 'from' | 'pageSize'> = {
+        from: null,
+        pageSize: null,
+      },
+    ) => {
       try {
         return await backend.listDirectory(
           {
             parentId,
             rootPath,
+            labels,
+            sortExpression,
+            sortDirection,
             filterBy,
-            labels: null,
             recentProjects: category.type === 'recent',
+            from,
+            pageSize,
           },
           parentId ?? '(unknown)',
         )
@@ -268,7 +288,40 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         }
       }
     },
-  })
+  } satisfies UnusedSkipTokenOptions<backendModule.ListDirectoryResponseBody>
+}
+
+/** Options for {@link searchDirectoryQueryOptions}. */
+export interface SearchDirectoryQueryOptions {
+  readonly backend: Backend
+  readonly parentId: DirectoryId | null
+  readonly query: string | null
+  readonly title: string | null
+  readonly description: string | null
+  readonly type: string | null
+  readonly extension: string | null
+  readonly labels: readonly backendModule.LabelName[] | null
+  readonly sortExpression: backendModule.AssetSortExpression | null
+  readonly sortDirection: backendModule.AssetSortDirection | null
+  readonly infinite?: boolean
+}
+
+/** Build a query options object to fetch the children of a directory. */
+export function searchDirectoryQueryOptions(options: SearchDirectoryQueryOptions) {
+  const { backend, infinite = false, ...rest } = options
+  return {
+    // Even though the default stale time is 0, we want to ensure that the query is not cached.
+    staleTime: 0,
+    meta: { persist: false },
+    queryKey: ((): QueryKey => [backend.type, 'searchDirectory', { ...rest, infinite }])(),
+    queryFn: (
+      _context,
+      { from, pageSize }: Pick<backendModule.SearchDirectoryRequestParams, 'from' | 'pageSize'> = {
+        from: null,
+        pageSize: null,
+      },
+    ) => backend.searchDirectory({ ...rest, from, pageSize }),
+  } satisfies UnusedSkipTokenOptions<backendModule.ListDirectoryResponseBody>
 }
 
 /** Options for {@link unsafe_assetFromCacheQueryOptions}. */
@@ -377,17 +430,23 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
 export function useEnsureListDirectory(backend: Backend, category: Category) {
   const queryClient = useQueryClient()
   return useEventCallback(async (parentId: DirectoryId) => {
-    return await queryClient.ensureQueryData(
-      backendQueryOptions(backend, 'listDirectory', [
-        {
-          parentId,
-          labels: null,
-          filterBy: CATEGORY_TO_FILTER_BY[category.type],
-          recentProjects: category.type === 'recent',
-        },
-        '(unknown)',
-      ]),
-    )
+    return (
+      await queryClient.ensureQueryData(
+        backendQueryOptions(backend, 'listDirectory', [
+          {
+            parentId,
+            labels: null,
+            filterBy: CATEGORY_TO_FILTER_BY[category.type],
+            recentProjects: category.type === 'recent',
+            sortExpression: null,
+            sortDirection: null,
+            from: null,
+            pageSize: null,
+          },
+          '(unknown)',
+        ]),
+      )
+    ).assets
   })
 }
 

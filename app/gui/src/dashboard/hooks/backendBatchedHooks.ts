@@ -362,23 +362,27 @@ export async function getAllTrashedItems(
   queryClient: QueryClient,
   backend: Backend,
   category: TrashCategory,
-) {
-  return await queryClient.ensureQueryData(
-    backendQueryOptions(backend, 'listDirectory', [
-      {
-        parentId: category.homeDirectoryId,
-        labels: null,
-        filterBy: FilterBy.trashed,
-        recentProjects: false,
-      },
-      '(unknown)',
-    ]),
-  )
+): Promise<readonly AnyAsset[]> {
+  return (
+    await queryClient.ensureQueryData(
+      backendQueryOptions(backend, 'listDirectory', [
+        {
+          parentId: category.homeDirectoryId,
+          labels: null,
+          filterBy: FilterBy.trashed,
+          recentProjects: false,
+          from: null,
+          pageSize: null,
+          sortExpression: null,
+          sortDirection: null,
+        },
+        '(unknown)',
+      ]),
+    )
+  ).assets
 }
 
-/**
- * Options for the "download" mutation.
- */
+/** Options for the "download" mutation. */
 export interface DownloadAssetsMutationOptions {
   readonly ids: readonly Pick<AnyAsset, 'id' | 'title'>[]
   readonly targetDirectoryId: DirectoryId | null

@@ -12,7 +12,6 @@ import Label from '#/pages/dashboard/components/Label'
 import * as modalProvider from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import type { Label as BackendLabel } from '#/services/Backend'
-import * as array from '#/utilities/array'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
@@ -67,9 +66,7 @@ export const searchbarSuggestionsStore = createStore<{
   },
 }))
 
-/**
- * Sets the suggestions.
- */
+/** Sets the suggestions. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useSetSuggestions() {
   return useStore(searchbarSuggestionsStore, (state) => state.setSuggestions, {
@@ -80,22 +77,6 @@ export function useSetSuggestions() {
 /** Tags (`name:`, `modified:`, etc.) */
 function Tags(props: InternalTagsProps) {
   const { isCloud, querySource, query, setQuery } = props
-  const [isShiftPressed, setIsShiftPressed] = React.useState(false)
-
-  React.useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      setIsShiftPressed(event.shiftKey)
-    }
-    const onKeyUp = (event: KeyboardEvent) => {
-      setIsShiftPressed(event.shiftKey)
-    }
-    document.addEventListener('keydown', onKeyDown)
-    document.addEventListener('keyup', onKeyUp)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      document.removeEventListener('keyup', onKeyUp)
-    }
-  }, [])
 
   return (
     <div
@@ -104,7 +85,7 @@ function Tags(props: InternalTagsProps) {
     >
       {(isCloud ? AssetQuery.tagNames : AssetQuery.localTagNames).flatMap((entry) => {
         const [key, tag] = entry
-        return tag == null || isShiftPressed !== tag.startsWith('-') ?
+        return tag == null ?
             []
           : [
               <FocusRing key={key}>
@@ -114,7 +95,7 @@ function Tags(props: InternalTagsProps) {
                   className="min-w-12"
                   onPress={() => {
                     unsafeWriteValue(querySource, 'current', QuerySource.internal)
-                    setQuery(query.add({ [key]: [[]] }))
+                    setQuery(query.add(key, ['']))
                   }}
                 >
                   {tag + ':'}
@@ -135,7 +116,7 @@ export interface AssetSearchBarProps {
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
-function AssetSearchBar(props: AssetSearchBarProps) {
+export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSearchBarProps) {
   const { backend, isCloud, query, setQuery } = props
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
@@ -371,7 +352,7 @@ function AssetSearchBar(props: AssetSearchBarProps) {
       </aria.Label>
     </div>
   )
-}
+})
 
 /** Props for a {@link AssetSearchBarInput}. */
 interface AssetSearchBarInputProps {
@@ -383,10 +364,7 @@ interface AssetSearchBarInputProps {
   readonly searchInputOnKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void
 }
 
-/**
- * Renders the search field.
- */
-
+/** Search field. */
 const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
   props: AssetSearchBarInputProps,
 ) {
@@ -429,9 +407,7 @@ const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
   )
 })
 
-/**
- * Props for a {@link AssetSearchBarPopover}.
- */
+/** Props for a {@link AssetSearchBarPopover}. */
 interface AssetSearchBarPopoverProps {
   readonly areSuggestionsVisible: boolean
   readonly isCloud: boolean
@@ -445,9 +421,7 @@ interface AssetSearchBarPopoverProps {
   readonly backend: Backend | null
 }
 
-/**
- * Renders the popover containing suggestions.
- */
+/** Renders the popover containing suggestions. */
 const AssetSearchBarPopover = React.memo(function AssetSearchBarPopover(
   props: AssetSearchBarPopoverProps,
 ) {
@@ -493,10 +467,9 @@ const AssetSearchBarPopover = React.memo(function AssetSearchBarPopover(
                 {/* Asset labels */}
                 <Labels
                   isCloud={isCloud}
+                  querySource={querySource}
                   query={query}
                   setQuery={setQuery}
-                  querySource={querySource}
-                  baseQuery={baseQuery}
                   backend={backend}
                 />
                 {/* Suggestions */}
@@ -526,9 +499,7 @@ const AssetSearchBarPopover = React.memo(function AssetSearchBarPopover(
   )
 })
 
-/**
- * Props for a {@link SuggestionRenderer}.
- */
+/** Props for a {@link SuggestionRenderer}. */
 interface SuggestionRendererProps {
   readonly index: number
   readonly suggestion: Suggestion
@@ -542,9 +513,7 @@ interface SuggestionRendererProps {
   readonly setAreSuggestionsVisible: (value: boolean) => void
 }
 
-/**
- * Renders a suggestion.
- */
+/** Renders a suggestion. */
 const SuggestionRenderer = React.memo(function SuggestionRenderer(props: SuggestionRendererProps) {
   const {
     index,
@@ -607,63 +576,43 @@ interface LabelsProps {
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly backend: Backend | null
   readonly querySource: React.MutableRefObject<QuerySource>
-  readonly baseQuery: React.MutableRefObject<AssetQuery>
 }
 
 /** Renders labels. */
 const Labels = React.memo(function Labels(props: LabelsProps) {
-  const { isCloud, query, setQuery, backend, querySource, baseQuery } = props
+  const { isCloud, query, setQuery, backend, querySource } = props
 
   const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
 
-  const labelOnPress = useEventCallback(
-    (event: aria.PressEvent | React.MouseEvent<HTMLButtonElement>, label?: BackendLabel) => {
-      if (label == null) {
-        return
-      }
-      unsafeWriteValue(querySource, 'current', QuerySource.internal)
-      setQuery((oldQuery) => {
-        const newQuery = oldQuery.withToggled(
-          'labels',
-          'negativeLabels',
-          label.value,
-          event.shiftKey,
-        )
-        unsafeWriteValue(baseQuery, 'current', newQuery)
-        return newQuery
-      })
-    },
-  )
+  const toggleLabel = useEventCallback((label?: BackendLabel) => {
+    if (label == null) {
+      return
+    }
+    unsafeWriteValue(querySource, 'current', QuerySource.internal)
+    setQuery(query.withToggled('labels', label.value))
+  })
+
+  if (!isCloud || labels.length === 0) {
+    return null
+  }
 
   return (
-    <>
-      {isCloud && labels.length !== 0 && (
-        <div data-testid="asset-search-labels" className="pointer-events-auto flex gap-2 px-1.5">
-          {[...labels]
-            .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
-            .map((label) => {
-              const negated = query.negativeLabels.some((term) =>
-                array.shallowEqual(term, [label.value]),
-              )
-              return (
-                <Label
-                  key={label.id}
-                  color={label.color}
-                  label={label}
-                  active={
-                    negated || query.labels.some((term) => array.shallowEqual(term, [label.value]))
-                  }
-                  negated={negated}
-                  onPress={labelOnPress}
-                >
-                  {label.value}
-                </Label>
-              )
-            })}
-        </div>
-      )}
-    </>
+    <div data-testid="asset-search-labels" className="pointer-events-auto flex gap-2 px-1.5">
+      {[...labels]
+        .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
+        .map((label) => {
+          return (
+            <Label
+              key={label.id}
+              color={label.color}
+              label={label}
+              active={query.labels.some((term) => term === label.value)}
+              onPress={toggleLabel}
+            >
+              {label.value}
+            </Label>
+          )
+        })}
+    </div>
   )
 })
-
-export default React.memo(AssetSearchBar)

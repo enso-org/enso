@@ -19,7 +19,6 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
   public Void runImpl(RuntimeContext ctx) {
     var ensoContext = ctx.executionService().getContext();
     var compiler = ensoContext.getCompiler();
-    boolean useGlobalCacheLocations = ensoContext.isUseGlobalCache();
     ctx.locking()
         .withWriteCompilationLock(
             this.getClass(),
@@ -33,11 +32,7 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                             : "Attempt to serialize the module that needs compilation: " + module;
                         compiler
                             .context()
-                            .serializeModule(
-                                compiler,
-                                module.asCompilerModule(),
-                                useGlobalCacheLocations,
-                                false);
+                            .serializeModule(compiler, module.asCompilerModule(), false);
                       });
               return null;
             });
