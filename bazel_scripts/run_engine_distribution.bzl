@@ -1,4 +1,6 @@
-# Rule that runs Enso engine distribution
+"""
+Simple rule that runs Enso distribution via a shell script.
+"""
 
 load("@rules_java//java/common:java_common.bzl", "java_common")
 
