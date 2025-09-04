@@ -51,7 +51,8 @@ public class Text_Utils {
     BreakIterator iter = BreakIterator.getCharacterInstance();
     iter.setText(string);
     int start = from == 0 ? 0 : (iter.isBoundary(from) ? from : iter.preceding(from));
-    int end = to >= string.length() ? string.length() : (iter.isBoundary(to) ? to : iter.following(to));
+    int end =
+        to >= string.length() ? string.length() : (iter.isBoundary(to) ? to : iter.following(to));
     return string.substring(start, end);
   }
 
