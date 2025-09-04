@@ -92,6 +92,13 @@
               export PATH=$SHIMS_PATH:$HOME/.cargo/bin:$PATH
               export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath buildInputs}:$LD_LIBRARY_PATH"
 
+              # pnpm 'shim'
+              cat <<'END' > $SHIMS_PATH/nix-pnpm
+              #!/usr/bin/env sh
+              sed -i 's#"postinstall": "bazel#"postinstall": "/nix/store/ihsnnply1aczxyljqqlv9rww38n7gngn-bazel-8.2.1/bin/bazel#' $(git rev-parse --show-toplevel)/package.json; pnpm "$@"; sed -i 's#"postinstall": "/nix/store/ihsnnply1aczxyljqqlv9rww38n7gngn-bazel-8.2.1/bin/bazel#"postinstall": "bazel#' $(git rev-parse --show-toplevel)/package.json
+              END
+              chmod +x $SHIMS_PATH/nix-pnpm
+
               # `rustup` shim
               mkdir -p $SHIMS_PATH
               cat <<END > $SHIMS_PATH/rustup
