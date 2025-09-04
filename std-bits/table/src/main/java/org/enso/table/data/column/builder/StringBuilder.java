@@ -1,7 +1,6 @@
 package org.enso.table.data.column.builder;
 
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
@@ -64,6 +63,6 @@ final class StringBuilder extends TypedBuilder<String> {
 
   @Override
   protected ColumnStorage<String> doSeal() {
-    return new StringStorage(data, type);
+    return new TypedStorage<>(type, data);
   }
 }

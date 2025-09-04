@@ -16,7 +16,7 @@ public final class ConstantNode extends EnsoRootNode {
    * @param constant the value to return.
    */
   public ConstantNode(EnsoLanguage language, ModuleScope moduleScope, Object constant) {
-    super(language, LocalScope.empty(), moduleScope, constant.toString(), null);
+    super(language, LocalScope.empty(), moduleScope, constant.toString(), null, null);
     this.constant = constant;
   }
 
