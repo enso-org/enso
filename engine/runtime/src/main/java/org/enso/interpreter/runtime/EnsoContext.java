@@ -177,7 +177,7 @@ public final class EnsoContext {
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
     if (getOption(RuntimeOptions.CHECK_CWD_KEY)) {
-        checkWorkingDirectory(projectRoot);
+      checkWorkingDirectory(projectRoot);
     }
     Optional<Package<TruffleFile>> projectPackage =
         projectRoot.map(
@@ -239,7 +239,8 @@ public final class EnsoContext {
         if (!cwd.isSameFile(parent)) {
           var maskedCwd = MaskedPath$.MODULE$.apply(Path.of(cwd.toString()));
           var maskedPath = MaskedPath$.MODULE$.apply(Path.of(parent.toString()));
-          var templ = "Initializing with unexpected working directory (%s). "
+          var templ =
+              "Initializing with unexpected working directory (%s). "
                   + "This may lead to improper relative paths resolution by `File.new`. "
                   + "Change working directory to %s and the engine again.";
           var msg = templ.formatted(maskedCwd, maskedPath);
