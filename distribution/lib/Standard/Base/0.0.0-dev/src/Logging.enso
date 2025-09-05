@@ -151,4 +151,4 @@ private log_impl logger ~message level args =
 ## Resource closing has to be static
 private close_progress resource =
     if resource.closed.get.not then
-        log_impl self.logger "ADVANCE {}+{}" Log_Level.Finest [resource.handle, resource.max]
+        log_impl resource.logger "ADVANCE {}+{}" Log_Level.Finest [resource.handle, resource.max]
