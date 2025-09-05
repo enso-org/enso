@@ -1,3 +1,7 @@
+import project.Data.Text.Text
+
+polyglot java import org.enso.base.text.Case as Java_Case
+
 ## Specifies the casing options for text conversion.
 type Case
     ## All letters in lower case.
@@ -8,3 +12,21 @@ type Case
 
     ## First letter of each word in upper case, rest in lower case.
     Title
+
+    ## ---
+       private: true
+       ---
+       Convert Case to a Java enum.
+    to_java : Java_Case
+    to_java self -> Java_Case = case self of
+        Case.Lower -> Java_Case.LOWER
+        Case.Upper -> Java_Case.UPPER
+        Case.Title -> Java_Case.TITLE
+
+    ## ---
+       private: true
+       ---
+    to_text self -> Text = case self of
+        Case.Lower -> "Lowercase"
+        Case.Upper -> "Uppercase"
+        Case.Title -> "Title Case"

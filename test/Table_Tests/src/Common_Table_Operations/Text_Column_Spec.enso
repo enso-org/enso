@@ -1,0 +1,55 @@
+from Standard.Base import all
+import Standard.Base.Errors.Unimplemented.Unimplemented
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+
+import Standard.Database.Dialects.Feature.Feature
+
+from Standard.Test import all
+
+import project.Common_Table_Operations.Util
+from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
+
+type Lazy_Ref
+    Value ~get
+
+main filter=Nothing = run_default_backend add_specs filter
+
+add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Column_Operations then (add_text_columns_specs suite_builder setup)
+
+add_text_columns_specs suite_builder setup =
+    prefix = setup.prefix
+    build_sorted_table = Util.build_sorted_table setup
+
+    db_pending = if setup.is_database then "Cot implemented for database backends" else Nothing
+
+    suite_builder.group prefix+"Text_Column" group_builder->
+        text_column = Lazy_Ref.Value <| build_sorted_table [["X", ["asdf", "ZXcv fFFf", "qwER gGgG", "XOMT"]]] . at "X"
+
+        group_builder.specify "a text column can be cast to Text_Column" <|
+            column = text_column.get
+            column.value_type.is_text . should_be_true
+            check_column_refinements column x->
+                (x:Text_Column)
+
+        group_builder.specify "to_case works" pending=db_pending <|
+            column = text_column.get
+            column.to_case ..Upper . to_vector . should_equal ["ASDF", "ZXCV FFFF", "QWER GGGG", "XOMT"]
+            column.to_case ..Lower . to_vector . should_equal ["asdf", "zxcv ffff", "qwer gggg", "xomt"]
+            column.to_case ..Title . to_vector . should_equal ["Asdf", "Zxcv Ffff", "Qwer Gggg", "Xomt"]
+
+        group_builder.specify "to_case respects locale" pending=db_pending <|
+            c = build_sorted_table [['x', ['i', 'a', 'b']]] . at 'x'
+            c.to_case Case.Upper (Locale.new "tr") . to_vector . should_equal ["İ", 'A', 'B']
+
+        group_builder.specify "to_case column names are correct" pending=db_pending <|
+            column = text_column.get
+            column.to_case ..Upper . name . should_equal "to_case([X], 'Uppercase')"
+
+        if setup.is_database then
+            group_builder.specify "to_case not implemented for database backend" <|
+                column = text_column.get
+                Test.expect_panic Unimplemented <|
+                    column.to_case ..Upper

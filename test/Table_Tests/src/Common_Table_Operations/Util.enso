@@ -92,3 +92,13 @@ is_float_or_decimal ~column = case column.value_type of
     Value_Type.Float _ -> Nothing
     Value_Type.Decimal _ _ -> Nothing
     other -> Test.fail "Expected "+column.name+" to be a float or decimal, but got "+other.to_display_text
+
+## ---
+   private: true
+   ---
+check_column_refinements column check =
+    Test.with_clue "(regular column) " <| check column
+    # Sort is needed in DB for take to work
+    Test.with_clue "(1-value column) " <| check (column.sort.take 1)
+    Test.with_clue "(1-column table as column) " <| check (column.to_table)
+    Test.with_clue "(1-value 1-column table as column) " <| check (column.sort.to_table.take 1)

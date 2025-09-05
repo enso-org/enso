@@ -1,11 +1,11 @@
 package org.enso.base.cache;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.enso.base.Environment_Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LRUCacheSettings {
-  private static final Logger logger = Logger.getLogger(LRUCacheSettings.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(LRUCacheSettings.class);
 
   private static final String MAX_FILE_SIZE_ENV_VAR = "ENSO_LIB_HTTP_CACHE_MAX_FILE_SIZE_MB";
   private static final String TOTAL_CACHE_SIZE_ENV_VAR =
@@ -70,8 +70,7 @@ public class LRUCacheSettings {
       double maxFileSizeMegs = Double.parseDouble(maxFileSizeSpec);
       return (long) (maxFileSizeMegs * 1024 * 1024);
     } catch (NumberFormatException e) {
-      logger.log(
-          Level.WARNING,
+      LOGGER.warn(
           "Unable to parse environment variable "
               + MAX_FILE_SIZE_ENV_VAR
               + ": {}, falling back to default",
@@ -91,8 +90,7 @@ public class LRUCacheSettings {
     try {
       return TotalCacheLimit.parse(totalCacheLimitSpec);
     } catch (IllegalArgumentException e) {
-      logger.log(
-          Level.WARNING,
+      LOGGER.warn(
           "Unable to parse environment variable "
               + TOTAL_CACHE_SIZE_ENV_VAR
               + ": {}, falling back to default",
