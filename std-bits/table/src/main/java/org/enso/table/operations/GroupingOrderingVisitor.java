@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.LongStream;
-
 import org.enso.base.ProgressReporter;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.Builder;
@@ -95,7 +94,8 @@ class NoGroupingNoOrderingRunning extends GroupingOrderingVisitor {
   @Override
   public void visitImpl(RowVisitorFactory runningStatistic, long numRows) {
     var it = runningStatistic.getNewRowVisitor();
-    try (var progressReporter = ProgressReporter.createWithStep("running", numRows, StorageIterators.PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("running", numRows, StorageIterators.PROGRESS_STEP)) {
       for (long i = 0; i < numRows; i++) {
         it.visit(i);
         progressReporter.advance();

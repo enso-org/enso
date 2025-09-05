@@ -1,7 +1,6 @@
 package org.enso.table.operations;
 
 import java.util.function.BiFunction;
-
 import org.enso.base.ProgressReporter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
@@ -240,7 +239,9 @@ public class AddGroupNumber {
       return builder.seal();
     }
 
-    try (var progressReporter = ProgressReporter.createWithStep("find_group_number", table.rowCount(), StorageIterators.PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "find_group_number", table.rowCount(), StorageIterators.PROGRESS_STEP)) {
       var currentRow = new Row(table, 0);
       var newRow = new Row(table, 0);
 

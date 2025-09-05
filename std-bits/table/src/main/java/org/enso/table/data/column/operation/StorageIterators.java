@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation;
 
 import java.util.function.LongFunction;
-
 import org.enso.base.ProgressReporter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
@@ -68,7 +67,9 @@ public class StorageIterators {
 
   public static <S> boolean forEachOverStorage(
       ColumnStorage<S> source, boolean includeNothing, ForEachOperation<S> operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("buildObjectOverStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "buildObjectOverStorage", source.getSize(), PROGRESS_STEP)) {
       long idx = 0;
       for (S item : source) {
         if (includeNothing || item != null) {
@@ -85,7 +86,9 @@ public class StorageIterators {
 
   public static boolean forEachOverLongStorage(
       ColumnLongStorage source, boolean includeNothing, ForEachLongOperation operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("forEachOverLongStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "forEachOverLongStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (includeNothing && iterator.isNothing()) {
@@ -105,7 +108,9 @@ public class StorageIterators {
 
   public static boolean forEachOverDoubleStorage(
       ColumnDoubleStorage source, boolean includeNothing, ForEachDoubleOperation operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("forEachOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "forEachOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (includeNothing && iterator.isNothing()) {
@@ -125,7 +130,9 @@ public class StorageIterators {
 
   public static boolean forEachOverBooleanStorage(
       ColumnBooleanStorage source, boolean includeNothing, ForEachBooleanOperation operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("forEachOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "forEachOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (includeNothing && iterator.isNothing()) {
@@ -159,7 +166,9 @@ public class StorageIterators {
       boolean preserveNothing,
       Builder builder,
       BuildObjectOperation<S> operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("buildObjectOverStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "buildObjectOverStorage", source.getSize(), PROGRESS_STEP)) {
       long idx = 0;
       for (S item : source) {
         if (preserveNothing && item == null) {
@@ -181,7 +190,8 @@ public class StorageIterators {
       Builder builder,
       DoubleBuildObjectOperation operation) {
     try (var progressReporter =
-        ProgressReporter.createWithStep("buildObjectOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
+        ProgressReporter.createWithStep(
+            "buildObjectOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
@@ -236,7 +246,8 @@ public class StorageIterators {
    */
   public static <B extends BuilderForType<T>, S, T> ColumnStorage<T> buildOverStorage(
       ColumnStorage<S> source, B builder, BuildOperation<B, S> operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("buildOverStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("buildOverStorage", source.getSize(), PROGRESS_STEP)) {
       long idx = 0;
       for (S item : source) {
         if (item == null) {
@@ -271,7 +282,8 @@ public class StorageIterators {
     if (preserveNothing) {
       return buildOverStorage(source, builder, operation);
     }
-    try (var progressReporter = ProgressReporter.createWithStep("buildOverStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("buildOverStorage", source.getSize(), PROGRESS_STEP)) {
       long idx = 0;
       for (S item : source) {
         operation.apply(builder, idx, item);
@@ -297,7 +309,8 @@ public class StorageIterators {
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverLongStorage(
       ColumnLongStorage source, B builder, LongBuildOperation<B> operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("buildOverLongStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("buildOverLongStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
@@ -333,7 +346,8 @@ public class StorageIterators {
     if (preserveNothing) {
       return buildOverLongStorage(source, builder, operation);
     }
-    try (var progressReporter = ProgressReporter.createWithStep("buildOverLongStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("buildOverLongStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
@@ -362,7 +376,9 @@ public class StorageIterators {
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverDoubleStorage(
       ColumnDoubleStorage source, B builder, DoubleBuildOperation<B> operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("buildOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "buildOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
@@ -398,7 +414,9 @@ public class StorageIterators {
     if (preserveNothing) {
       return buildOverDoubleStorage(source, builder, operation);
     }
-    try (var progressReporter = ProgressReporter.createWithStep("buildOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "buildOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
@@ -427,7 +445,9 @@ public class StorageIterators {
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverBooleanStorage(
       ColumnBooleanStorage source, B builder, BooleanBuildOperation<B> operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("buildOverBooleanStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "buildOverBooleanStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
@@ -463,7 +483,9 @@ public class StorageIterators {
     if (preserveNothing) {
       return buildOverBooleanStorage(source, builder, operation);
     }
-    try (var progressReporter = ProgressReporter.createWithStep("buildOverBooleanStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "buildOverBooleanStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
@@ -511,7 +533,8 @@ public class StorageIterators {
    */
   public static <S, T> ColumnStorage<T> mapOverStorage(
       ColumnStorage<S> source, BuilderForType<T> builder, MapOperation<S, T> operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("mapOverStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("mapOverStorage", source.getSize(), PROGRESS_STEP)) {
       long idx = 0;
       for (S item : source) {
         if (item == null) {
@@ -548,7 +571,8 @@ public class StorageIterators {
     if (preserveNothing) {
       return mapOverStorage(source, builder, operation);
     }
-    try (var progressReporter = ProgressReporter.createWithStep("mapOverStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("mapOverStorage", source.getSize(), PROGRESS_STEP)) {
       long idx = 0;
       for (S item : source) {
         var result = operation.apply(idx, item);
@@ -573,7 +597,8 @@ public class StorageIterators {
    */
   public static <T> ColumnStorage<T> mapOverLongStorage(
       ColumnLongStorage source, BuilderForType<T> builder, LongMapOperation<T> operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("mapOverLongStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("mapOverLongStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
@@ -608,7 +633,8 @@ public class StorageIterators {
     if (preserveNothing) {
       return mapOverLongStorage(source, builder, operation);
     }
-    try (var progressReporter = ProgressReporter.createWithStep("mapOverLongStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("mapOverLongStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         var result =
@@ -635,7 +661,8 @@ public class StorageIterators {
    */
   public static <T> ColumnStorage<T> mapOverDoubleStorage(
       ColumnDoubleStorage source, BuilderForType<T> builder, DoubleMapOperation<T> operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("mapOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("mapOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
@@ -670,7 +697,8 @@ public class StorageIterators {
     if (preserveNothing) {
       return mapOverDoubleStorage(source, builder, operation);
     }
-    try (var progressReporter = ProgressReporter.createWithStep("mapOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("mapOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         var result =
@@ -697,7 +725,8 @@ public class StorageIterators {
    */
   public static <T> ColumnStorage<T> mapOverBooleanStorage(
       ColumnBooleanStorage source, BuilderForType<T> builder, BooleanMapOperation<T> operation) {
-    try (var progressReporter = ProgressReporter.createWithStep("mapOverBooleanStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("mapOverBooleanStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (iterator.isNothing()) {
@@ -732,7 +761,8 @@ public class StorageIterators {
     if (preserveNothing) {
       return mapOverBooleanStorage(source, builder, operation);
     }
-    try (var progressReporter = ProgressReporter.createWithStep("mapOverBooleanStorage", source.getSize(), PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("mapOverBooleanStorage", source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         var result =
@@ -806,7 +836,8 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    try (var progressReporter = ProgressReporter.createWithStep("zipOverStorages", size, PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("zipOverStorages", size, PROGRESS_STEP)) {
       for (long idx = 0; idx < size; idx++) {
         R value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
         S value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
@@ -848,7 +879,8 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    try (var progressReporter = ProgressReporter.createWithStep("zipOverStorages", size, PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("zipOverStorages", size, PROGRESS_STEP)) {
       for (long idx = 0; idx < size; idx++) {
         R value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
         S value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
@@ -888,7 +920,8 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    try (var progressReporter = ProgressReporter.createWithStep("zipOverLongStorages", size, PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("zipOverLongStorages", size, PROGRESS_STEP)) {
       for (long idx = 0; idx < size; idx++) {
         var value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
         var value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
@@ -932,7 +965,8 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    try (var progressReporter = ProgressReporter.createWithStep("zipOverLongDoubleStorages", size, PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("zipOverLongDoubleStorages", size, PROGRESS_STEP)) {
       for (long idx = 0; idx < size; idx++) {
         var value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
         var value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
@@ -976,7 +1010,8 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    try (var progressReporter = ProgressReporter.createWithStep("zipOverLongDoubleStorages", size, PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("zipOverLongDoubleStorages", size, PROGRESS_STEP)) {
       for (long idx = 0; idx < size; idx++) {
         var value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
         var value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
@@ -1020,7 +1055,8 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    try (var progressReporter = ProgressReporter.createWithStep("zipOverLongDoubleStorages", size, PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("zipOverLongDoubleStorages", size, PROGRESS_STEP)) {
       for (long idx = 0; idx < size; idx++) {
         var value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
         var value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;
@@ -1064,7 +1100,8 @@ public class StorageIterators {
     long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
-    try (var progressReporter = ProgressReporter.createWithStep("zipOverLongDoubleStorages", size, PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep("zipOverLongDoubleStorages", size, PROGRESS_STEP)) {
       for (long idx = 0; idx < size; idx++) {
         var value1 = idx < source1.getSize() ? source1.getItemBoxed(idx) : null;
         var value2 = idx < source2.getSize() ? source2.getItemBoxed(idx) : null;

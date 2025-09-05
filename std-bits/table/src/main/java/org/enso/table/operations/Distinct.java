@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
 import org.enso.base.ProgressReporter;
 import org.enso.base.arrays.LongArrayList;
 import org.enso.base.text.TextFoldingStrategy;
@@ -25,7 +24,9 @@ public class Distinct {
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
-    try (var progressReporter = ProgressReporter.createWithStep("buildDistinctRowsMask", tableSize, StorageIterators.PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "buildDistinctRowsMask", tableSize, StorageIterators.PROGRESS_STEP)) {
       var groupingProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
 
       ColumnStorage<?>[] storage =
@@ -58,7 +59,9 @@ public class Distinct {
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
-    try (var progressReporter = ProgressReporter.createWithStep("buildDuplicatesRowsMask", tableSize, StorageIterators.PROGRESS_STEP)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "buildDuplicatesRowsMask", tableSize, StorageIterators.PROGRESS_STEP)) {
       var groupingProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
 
       ColumnStorage<?>[] storage =
