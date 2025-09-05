@@ -426,18 +426,24 @@ object DistributionPackage {
     log.debug("fileToRun: " + fileToRun)
     log.debug("projectPath: " + projectPath)
 
-    val disablePrivateCheck =
-      EnsoProjects
-        .Project(None, projectPath, fileToRun.toPath)
-        .usesPrivateAccess
-    val adjustedCwd = cwd.orElse(Some(new File(projectPath).getParentFile))
+    val disablePrivateCheck = Option(fileToRun)
+      .map { toRun =>
+        val prj = EnsoProjects.Project(None, projectPath, toRun.toPath)
+        prj.usesPrivateAccess
+      }
+      .getOrElse(false)
+    val adjustedCwd = cwd.orElse {
+      Option(projectPath).map(new File(_).getParentFile)
+    }
 
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
-    all.set(atIndex + 1, fileToRun.getPath)
+    if (fileToRun != null) {
+      all.set(atIndex + 1, fileToRun.getPath)
+    }
     val p =
       adjustArgsAndStart(log, all, "JAVA_TOOL_OPTIONS", pb, cwd = adjustedCwd)
     val exitCode = p.waitFor()
