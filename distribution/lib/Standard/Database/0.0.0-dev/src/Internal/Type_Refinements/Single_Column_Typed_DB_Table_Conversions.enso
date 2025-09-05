@@ -6,6 +6,7 @@ private
 from Standard.Base import all
 
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
+import Standard.Table.Refined_Types.Text_Column.Text_Column
 
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
@@ -15,3 +16,7 @@ from project.Internal.Type_Refinements.Typed_DB_Column_Conversions import all
 ## This conversion is internal and should never be exported.
 Numeric_Column.from (that : DB_Table) =
     Numeric_Column.from (DB_Column.from that)
+
+## This conversion is internal and should never be exported.
+Text_Column.from (that : DB_Table) =
+    Text_Column.from (DB_Column.from that)

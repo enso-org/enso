@@ -233,8 +233,8 @@ type Match
        caller tries to get group 3, Match.text will return the default value.
     text : Integer | Text -> Any -> Text ! No_Such_Group
     text self group=0 ~default=Nothing =
-        result = self.span group Nothing
-        if result.is_nothing then default else result.text
+        result = self.utf_16_span group Nothing
+        if result.is_nothing then default else result.extended_text
 
     ## ---
        group: Metadata

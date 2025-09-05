@@ -8,13 +8,21 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Internal.Type_Refinements.Typed_Column_Helpers
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
+import Standard.Table.Refined_Types.Text_Column.Text_Column
 from Standard.Table import Column
 
 import project.DB_Column.DB_Column
 import project.Internal.Type_Refinements.Typed_DB_Column_Implementations.DB_Numeric_Column_Implementation
+import project.Internal.Type_Refinements.Typed_DB_Column_Implementations.DB_Text_Column_Implementation
 
 ## This conversion is internal and should never be exported.
 Numeric_Column.from (that : DB_Column) =
     if (that:Column).inferred_precise_value_type.is_numeric.not then
         Panic.throw (Illegal_Argument.Error "Numeric_Column conversion called on a DB_Column that is not numeric. This is a bug in Database library.")
     Typed_Column_Helpers.make_numeric_column that DB_Numeric_Column_Implementation
+
+## This conversion is internal and should never be exported.
+Text_Column.from (that : DB_Column) =
+    if (that:Column).inferred_precise_value_type.is_text.not then
+        Panic.throw (Illegal_Argument.Error "Text_Column conversion called on a DB_Column that is not text. This is a bug in Database library.")
+    Typed_Column_Helpers.make_text_column that DB_Text_Column_Implementation
