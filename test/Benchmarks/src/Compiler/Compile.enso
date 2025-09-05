@@ -12,7 +12,7 @@ type Data
     Value ~enso_bin:File ~std_base:File
 
     bench_compile_base self extra_params=[] =
-        self.startup ["--no-compile-dependencies", "--log-level", "debug", "--no-global-cache", "--compile", self.std_base.to_text]+extra_params
+        self.startup ["--no-compile-dependencies", "--log-level", "debug", "--compile", self.std_base.to_text]+extra_params
 
     startup self  args =
         cache_dir = self.std_base / ".enso" / "cache"

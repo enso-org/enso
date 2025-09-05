@@ -48,7 +48,6 @@ public final class ContextFactory {
   private boolean treatWarningsAsErrors = false;
   private boolean strictErrors;
   private boolean disableLinting;
-  private boolean useGlobalIrCacheLocation = true;
   private boolean enableAutoParallelism;
   private String executionEnvironment;
   private String checkForWarnings;
@@ -135,11 +134,6 @@ public final class ContextFactory {
     return this;
   }
 
-  public ContextFactory useGlobalIrCacheLocation(boolean useGlobalIrCacheLocation) {
-    this.useGlobalIrCacheLocation = useGlobalIrCacheLocation;
-    return this;
-  }
-
   public ContextFactory enableAutoParallelism(boolean enableAutoParallelism) {
     this.enableAutoParallelism = enableAutoParallelism;
     return this;
@@ -211,9 +205,6 @@ public final class ContextFactory {
             .option(RuntimeOptions.STRICT_ERRORS, Boolean.toString(strictErrors))
             .option(RuntimeOptions.DISABLE_LINTING, Boolean.toString(disableLinting))
             .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
-            .option(
-                RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION,
-                Boolean.toString(useGlobalIrCacheLocation))
             .option(RuntimeOptions.DISABLE_IR_CACHES, Boolean.toString(!enableIrCaches))
             .option(RuntimeOptions.DISABLE_PRIVATE_CHECK, Boolean.toString(disablePrivateCheck))
             .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, Boolean.toString(enableStaticAnalysis))

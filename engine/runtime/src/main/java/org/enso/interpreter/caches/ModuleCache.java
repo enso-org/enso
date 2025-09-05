@@ -1,5 +1,6 @@
 package org.enso.interpreter.caches;
 
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.ByteArrayInputStream;
@@ -11,11 +12,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.apache.commons.lang3.StringUtils;
 import org.enso.common.CompilationStage;
-import org.enso.common.MethodNames;
 import org.enso.compiler.core.ir.Module;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.version.BuildVersion;
@@ -108,51 +109,29 @@ public final class ModuleCache
   }
 
   @Override
-  public Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
+  public Iterable<TruffleFile> getCacheRoots(EnsoContext context) {
     if (module != context.getBuiltins().getModule()) {
-      return context
-          .getPackageOf(module.getSourceFile())
-          .map(
-              pkg -> {
-                var irCacheRoot = pkg.getIrCacheRootForPackage(BuildVersion.ensoVersion());
-                var qualName = module.getName();
-                var localCacheRoot = irCacheRoot.resolve(qualName.path().mkString("/"));
-
-                var distribution = context.getDistributionManager();
-                var pathSegmentsJava = new ArrayList<String>();
-                pathSegmentsJava.addAll(
-                    Arrays.asList(
-                        pkg.namespace(),
-                        pkg.normalizedName(),
-                        pkg.getConfig().version(),
-                        BuildVersion.ensoVersion()));
-                pathSegmentsJava.addAll(qualName.pathAsJava());
-                var path =
-                    distribution.LocallyInstalledDirectories()
-                        .irCacheDirectory()
-                        .resolve(StringUtils.join(pathSegmentsJava, "/"));
-                var globalCacheRoot = context.getTruffleFile(path.toFile());
-
-                return new Cache.Roots(localCacheRoot, globalCacheRoot);
-              });
-    } else {
-      var distribution = context.getDistributionManager();
-      var pathSegmentsJava = new ArrayList<String>();
-      pathSegmentsJava.addAll(
-          Arrays.asList(
-              MethodNames.Builtins.NAMESPACE,
-              MethodNames.Builtins.PACKAGE_NAME,
-              BuildVersion.ensoVersion(),
-              BuildVersion.ensoVersion()));
-      pathSegmentsJava.addAll(module.getName().pathAsJava());
-      var path =
-          distribution.LocallyInstalledDirectories()
-              .irCacheDirectory()
-              .resolve(StringUtils.join(pathSegmentsJava, "/"));
-      var globalCacheRoot = context.getTruffleFile(path.toFile());
-
-      return Optional.of(new Cache.Roots(globalCacheRoot, globalCacheRoot));
+      var pkg = context.getPackageOf(module.getSourceFile());
+      if (pkg.isPresent()) {
+        var qualName = module.getName();
+        var distribution = context.getDistributionManager();
+        var pathSegmentsJava = new ArrayList<String>();
+        pathSegmentsJava.addAll(
+            Arrays.asList(
+                pkg.get().namespace(),
+                pkg.get().normalizedName(),
+                pkg.get().getConfig().version(),
+                BuildVersion.ensoVersion()));
+        pathSegmentsJava.addAll(qualName.pathAsJava());
+        var path =
+            distribution.LocallyInstalledDirectories()
+                .irCacheDirectory()
+                .resolve(StringUtils.join(pathSegmentsJava, "/"));
+        var perUser = context.getTruffleFile(path.toFile());
+        return Collections.singletonList(perUser);
+      }
     }
+    return Collections.emptyList();
   }
 
   @Override

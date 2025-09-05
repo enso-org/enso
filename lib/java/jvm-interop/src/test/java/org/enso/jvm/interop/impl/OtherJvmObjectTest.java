@@ -14,7 +14,9 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.lang.foreign.MemorySegment;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.function.Consumer;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -23,6 +25,7 @@ import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.io.ByteSequence;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
@@ -454,6 +457,86 @@ public class OtherJvmObjectTest {
               var rawClass2 = (OtherJvmObject) ctx.unwrapValue(clazz2);
               assertSame("Represented by the same truffle object", rawClass1, rawClass2);
             });
+  }
+
+  public static final class WithABuffer {
+    public final ByteBuffer buf;
+
+    WithABuffer(ByteBuffer buf) {
+      this.buf = buf;
+    }
+
+    public String toText() {
+      var arr = new byte[buf.limit()];
+      buf.get(arr);
+      return new String(arr);
+    }
+  }
+
+  public static WithABuffer withBuffer(int type, int size) {
+    var buf =
+        switch (type) {
+          case 0 -> ByteBuffer.allocateDirect(size);
+          default -> throw new IllegalArgumentException();
+        };
+    buf.put("Hello".getBytes());
+    buf.flip();
+    return new WithABuffer(buf);
+  }
+
+  @Test
+  public void directByteBufferHostInterop() throws Exception {
+    var otherClass = ctx.asValue(OtherJvmObjectTest.class).getMember("static");
+    checkDirectByteBuffer(otherClass);
+  }
+
+  @Test
+  public void directByteBufferGuestInterop() throws Exception {
+    var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
+    checkDirectByteBuffer(otherClass);
+  }
+
+  private void checkDirectByteBuffer(Value otherClass) throws Exception {
+    var withBuffer = otherClass.invokeMember("withBuffer", 0, 10);
+    var bufValue = withBuffer.getMember("buf");
+    assertTrue("It is a byte buffer", bufValue.hasBufferElements());
+    var seq = bufValue.as(ByteSequence.class);
+    assertEquals('H', seq.byteAt(0));
+    assertEquals('e', seq.byteAt(1));
+    assertEquals('l', seq.byteAt(2));
+    assertEquals('l', seq.byteAt(3));
+    assertEquals('o', seq.byteAt(4));
+
+    var buf = asByteBuffer(bufValue);
+    assertEquals('H', buf.get(0));
+    assertEquals('e', buf.get(1));
+    assertEquals('l', buf.get(2));
+    assertEquals('l', buf.get(3));
+    assertEquals('o', buf.get(4));
+    buf.put(0, "Ahoj!".getBytes());
+
+    assertEquals("Ahoj!", withBuffer.invokeMember("toText").asString());
+  }
+
+  /**
+   * Converting a buffer-like value to {@link ByteBuffer} is tricky. Simple {@link
+   * Value#as(java.lang.Class)} works only for {@code HostObject}. To convert "guest value" we need
+   * to do something special. Let's rely on special <em>native pointer</em> support provided by the
+   * other JVM for direct {@link ByteBuffer}.
+   *
+   * @param value the value to convert to {@link ByteBuffer}
+   * @return instance of {@link ByteBuffer} to use in this JVM
+   */
+  private static ByteBuffer asByteBuffer(Value value) throws Exception {
+    assertTrue("The value is buffer-like", value.hasBufferElements());
+    try {
+      return value.as(ByteBuffer.class);
+    } catch (ClassCastException ex) {
+      assertTrue("Direct buffer should support native address", value.isNativePointer());
+      var address = value.asNativePointer();
+      var seg = MemorySegment.ofAddress(address).reinterpret(value.getBufferSize());
+      return seg.asByteBuffer();
+    }
   }
 
   private static Value loadOtherJvmClass(String name) throws Exception {
