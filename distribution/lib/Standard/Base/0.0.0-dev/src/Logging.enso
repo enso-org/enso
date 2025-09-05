@@ -56,7 +56,7 @@ type Progress
         closed = Ref.new False
         counter = Ref.new step
 
-        Managed_Resource.bracket (Progress.Running handle label (up_to.max 1) logger closed counter step) (_.close) progress->
+        Managed_Resource.bracket (Progress.Running handle label (up_to.max 1) logger closed counter step) close_progress progress->
             log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress.handle, progress.label, progress.max]
             res = action progress
             progress.close
@@ -147,3 +147,8 @@ private log_impl logger ~message level args =
         builder.addArgument a
 
     builder.log
+
+## Resource closing has to be static
+private close_progress resource =
+    if resource.closed.get.not then
+        log_impl self.logger "ADVANCE {}+{}" Log_Level.Finest [resource.handle, resource.max]
