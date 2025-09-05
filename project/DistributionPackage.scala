@@ -574,11 +574,19 @@ object DistributionPackage {
       for (libName <- (sourceRoot / prefix).list()) {
         val targetPackageRoot =
           destinationRoot / prefix / libName / targetVersion
-        copyDirectoryIncremental(
-          source      = sourceRoot / prefix / libName / sourceVersion,
+        val libSourceDir = sourceRoot / prefix / libName / sourceVersion
+        val copied = copyDirectoryIncremental(
+          source      = libSourceDir,
           destination = targetPackageRoot,
           cache       = cacheFactory.make(s"$prefix.$libName")
         )
+        val bindingsDir = targetPackageRoot / ".enso" / "cache" / "bindings"
+        if (copied && bindingsDir.exists()) {
+          log.info(
+            s"Clearing cached bindings for $prefix.$libName, because library sources were changed."
+          )
+          IO.delete(bindingsDir)
+        }
         fixLibraryManifest(targetPackageRoot, targetVersion, log)
         existingLibraries.append((prefix, libName))
       }
