@@ -49,6 +49,13 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
   private readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
+  private readonly constructorFields = new ReactiveIndex(this, (id, entry) => {
+    if (entry.kind !== SuggestionKind.Constructor) return []
+    const fields = entry.arguments.map((arg) => arg.name)
+    const path = entry.memberOf.key()
+    const fieldKeys = fields.map((field) => `${path}#${field}`)
+    return Array.from(fieldKeys, (key) => [key, id])
+  })
 
   /** Constructor. */
   constructor() {
@@ -116,6 +123,11 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     if (id == null) return
     const entry = this.get(id)
     return entry && entryIsCallable(entry) ? entry : undefined
+  }
+
+  /** TODO */
+  lookupConstructorField(type: ProjectPath, field: string): Set<SuggestionId> {
+    return this.constructorFields.lookup(`${type.key()}#${field}`)
   }
 
   /** Returns the entry's ancestors, starting with its parent. */
