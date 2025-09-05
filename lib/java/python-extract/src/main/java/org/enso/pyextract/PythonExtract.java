@@ -29,9 +29,6 @@ public final class PythonExtract {
    * {@link Engine#copyResources(Path, String...)} copies not only python, but other component's
    * resources as well. We first copy it to a temporary directory, and from that temporary
    * directory, we copy only the `python` subdirectory.
-   *
-   * @param outDir
-   * @throws IOException
    */
   private static void unpackPythonResources(Path outDir) throws IOException {
     var tmpDir = Files.createTempDirectory("py-resources");

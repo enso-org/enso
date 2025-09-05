@@ -2,8 +2,9 @@ package org.enso.database.dryrun;
 
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
-import java.util.logging.Logger;
 import org.graalvm.polyglot.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A helper for ensuring that only one database operation is running at a time, and that maintenance
@@ -12,6 +13,8 @@ import org.graalvm.polyglot.Value;
  * <p>Additionally, it allows running maintenance actions when no regular actions are being run.
  */
 public class OperationSynchronizer {
+  private static final Logger LOGGER = LoggerFactory.getLogger(OperationSynchronizer.class);
+
   /** This lock guarantees that only one thread can access the connection at a time. */
   private final ReentrantLock lock = new ReentrantLock();
 
@@ -84,8 +87,7 @@ public class OperationSynchronizer {
           try {
             maintenanceAction.apply(null);
           } catch (Exception e) {
-            Logger.getLogger("enso-std-database")
-                .severe("A maintenance action failed with exception: " + e.getMessage());
+            LOGGER.error("Maintenance action failed", e);
           } finally {
             nestingLevel--;
           }

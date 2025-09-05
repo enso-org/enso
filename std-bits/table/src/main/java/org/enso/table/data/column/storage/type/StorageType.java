@@ -16,18 +16,7 @@ import org.enso.table.problems.ProblemAggregator;
  * Represents an underlying internal storage type that can be mapped to the Value Type that is
  * exposed to users.
  */
-public /*sealed*/ interface StorageType<T>
-/*permits AnyObjectType,
-BigDecimalType,
-BigIntegerType,
-BooleanType,
-DateTimeType,
-DateType,
-FloatType,
-IntegerType,
-NullType,
-TextType,
-TimeOfDayType*/ {
+public interface StorageType<T> {
   /**
    * @param item the item whose type is to be determined.
    * @param options specifies details on how the precise type should be determined
@@ -92,17 +81,23 @@ TimeOfDayType*/ {
   /**
    * @return true if the storage type is numeric.
    */
-  boolean isNumeric();
+  default boolean isNumeric() {
+    return false;
+  }
 
   /**
    * @return true if the storage type has a date part.
    */
-  boolean hasDate();
+  default boolean hasDate() {
+    return false;
+  }
 
   /**
    * @return true if the storage type has a time part.
    */
-  boolean hasTime();
+  default boolean hasTime() {
+    return false;
+  }
 
   /**
    * @return true if the storage type is of the same type as the other.
@@ -128,4 +123,47 @@ TimeOfDayType*/ {
    * @return the storage as a typed storage.
    */
   ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
+
+  static StorageType<?> fromTypeCharAndSize(char typeChar, long size) {
+    return switch (typeChar) {
+      case 'A' -> AnyObjectType.INSTANCE;
+      case 'B' -> BooleanType.INSTANCE;
+      case 'D' -> BigDecimalType.INSTANCE;
+      case 'E' -> BigIntegerType.INSTANCE;
+      case 'F' -> {
+        if (size != 64) {
+          throw new IllegalArgumentException("Unknown float size: " + size);
+        }
+        yield FloatType.FLOAT_64;
+      }
+      case 'I' -> switch ((int) size) {
+        case 8 -> IntegerType.INT_8;
+        case 16 -> IntegerType.INT_16;
+        case 32 -> IntegerType.INT_32;
+        case 64 -> IntegerType.INT_64;
+        default -> throw new IllegalArgumentException("Unknown integer size: " + size);
+      };
+      case 'N' -> NullType.INSTANCE;
+      case 'S' -> size == -1 ? TextType.VARIABLE_LENGTH : TextType.variableLengthWithLimit(size);
+      case 'T' -> TextType.fixedLength(size);
+      case 'W' -> TimeOfDayType.INSTANCE;
+      case 'X' -> DateType.INSTANCE;
+      case 'Y' -> DateTimeType.INSTANCE_NO_TZ;
+      case 'Z' -> DateTimeType.INSTANCE;
+      default -> throw new IllegalArgumentException("Unknown type char: " + typeChar);
+    };
+  }
+
+  /**
+   * @return a character representing the type, used for serialization.
+   */
+  char typeChar();
+
+  /**
+   * @return the maximum length of the type if applicable, or -1 if not applicable (e.g. for
+   *     variable-length)
+   */
+  default long size() {
+    return -1;
+  }
 }

@@ -12,6 +12,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -99,26 +100,14 @@ public final class Cache<T, M> {
    *
    * @param entry data to save
    * @param context the language context in which loading is taking place
-   * @param useGlobalCacheLocations if true, will use global cache location, local one otherwise
    * @return the location of the successfully saved location of the cached data
    * @throws IOException if something goes wrong
    */
-  public final TruffleFile save(T entry, EnsoContext context, boolean useGlobalCacheLocations)
-      throws IOException {
+  public final TruffleFile save(T entry, EnsoContext context) throws IOException {
     TruffleLogger logger = context.getLogger(this.getClass());
-    var rootsOption = spi.getCacheRoots(context);
-    if (rootsOption.isPresent()) {
-      var roots = rootsOption.get();
-      if (useGlobalCacheLocations) {
-        if (saveCacheTo(context, roots.globalCacheRoot, entry, logger)) {
-          return roots.globalCacheRoot;
-        }
-      } else {
-        logger.log(logLevel, "Skipping use of global cache locations for " + logName + ".");
-      }
-
-      if (saveCacheTo(context, roots.localCacheRoot, entry, logger)) {
-        return roots.localCacheRoot;
+    for (var root : spi.getCacheRoots(context)) {
+      if (saveCacheTo(context, root, entry, logger)) {
+        return root;
       }
     }
     throw new IOException("Unable to write cache data for " + logName + ".");
@@ -187,43 +176,29 @@ public final class Cache<T, M> {
    * @return the cached data if possible, and [[None]] if it could not load a valid cache
    */
   public final Optional<T> load(EnsoContext context) {
+    var logger = context.getLogger(this.getClass());
+    var collected = new ArrayList<IOException>();
     synchronized (LOCK) {
-      TruffleLogger logger = context.getLogger(this.getClass());
-      return spi.getCacheRoots(context)
-          .flatMap(
-              roots -> {
-                // Load from the global root as a priority.
-                try {
-                  var globalCache = loadCacheFrom(roots.globalCacheRoot(), context, logger);
-                  logger.log(
-                      logLevel,
-                      "Using cache for ["
-                          + logName
-                          + " at location ["
-                          + toMaskedPath(roots.globalCacheRoot()).applyMasking()
-                          + "].");
-                  return Optional.of(globalCache);
-                } catch (IOException globalEx) {
-                  try {
-                    var localCache = loadCacheFrom(roots.localCacheRoot(), context, logger);
-                    logger.log(
-                        logLevel,
-                        "Using cache for ["
-                            + logName
-                            + " at location ["
-                            + toMaskedPath(roots.localCacheRoot()).applyMasking()
-                            + "].");
-                    return Optional.of(localCache);
-                  } catch (IOException localEx) {
-                    logCacheLoadFailure(
-                        logger, "Unable to load a global cache [" + logName + "]: ", globalEx);
-                    logCacheLoadFailure(
-                        logger, "Unable to load a local cache [" + logName + "]: ", localEx);
-                  }
-                  return Optional.empty();
-                }
-              });
+      for (var root : spi.getCacheRoots(context)) {
+        try {
+          var cache = loadCacheFrom(root, context, logger);
+          logger.log(
+              logLevel,
+              "Using cache for ["
+                  + logName
+                  + " at location ["
+                  + toMaskedPath(root).applyMasking()
+                  + "].");
+          return Optional.of(cache);
+        } catch (IOException ex) {
+          collected.add(ex);
+        }
+      }
     }
+    for (var ex : collected) {
+      logCacheLoadFailure(logger, "Unable to load a cache [" + logName + "]: ", ex);
+    }
+    return Optional.empty();
   }
 
   private void logCacheLoadFailure(TruffleLogger logger, String prefix, IOException ex) {
@@ -388,26 +363,15 @@ public final class Cache<T, M> {
   public final void invalidate(EnsoContext context) {
     synchronized (LOCK) {
       TruffleLogger logger = context.getLogger(this.getClass());
-      spi.getCacheRoots(context)
-          .ifPresent(
-              roots -> {
-                invalidateCache(roots.globalCacheRoot, logger);
-                invalidateCache(roots.localCacheRoot, logger);
-              });
+      for (var root : spi.getCacheRoots(context)) {
+        invalidateCache(root, logger);
+      }
     }
   }
 
   final <T> T asSpi(Class<T> type) {
     return type.cast(spi);
   }
-
-  /**
-   * Roots encapsulates two possible locations where caches can be stored.
-   *
-   * @param localCacheRoot project's local location of the cache
-   * @param globalCacheRoot system's global location of the cache
-   */
-  record Roots(TruffleFile localCacheRoot, TruffleFile globalCacheRoot) {}
 
   private static boolean writeBytesTo(TruffleFile file, byte[] bytes) {
     try (OutputStream stream =
@@ -507,7 +471,7 @@ public final class Cache<T, M> {
      * @param context the language context in which loading is taking place
      * @return non-empty if the locations have been inferred successfully, empty otherwise
      */
-    public abstract Optional<Roots> getCacheRoots(EnsoContext context);
+    public abstract Iterable<TruffleFile> getCacheRoots(EnsoContext context);
 
     public abstract String entryName();
 
