@@ -53,7 +53,8 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
   )
 
   const goToDrive = async () => {
-    await router.push('/drive')
+    if (router.currentRoute.value.path === '/drive') return
+    await router.push({ ...router.currentRoute.value, path: '/drive' })
   }
 
   return defineMenuEntries([

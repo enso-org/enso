@@ -159,7 +159,8 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   })
 
   const goToDrive = async () => {
-    await router.push('/drive')
+    if (router.currentRoute.value.path === '/drive') return
+    await router.push({ ...router.currentRoute.value, path: '/drive' })
   }
 
   const copyIdsMenuEntry = defineMenuEntry(

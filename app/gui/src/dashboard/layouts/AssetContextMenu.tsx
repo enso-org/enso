@@ -155,7 +155,8 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
     asset.projectState.openedBy !== user.email
 
   const goToDrive = async () => {
-    await router.push('/drive')
+    if (router.currentRoute.value.path === '/drive') return
+    await router.push({ ...router.currentRoute.value, path: '/drive' })
   }
 
   const pasteMenuEntry = defineMenuEntry(
