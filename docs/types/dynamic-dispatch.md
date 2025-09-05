@@ -207,7 +207,7 @@ where `T.method` "overrides" `Any.method`, the method resolution and invocation
 algorithm can be generally described as follows:
 
 - Is the method called statically? For example like `Any.method ...` or
-  `T.method ...`.
+  `T.method ...`. In other words, is the receiver a *type*?
   - No: Continue normal resolution and invocation.
   - Yes:
     - Is the method defined on `Any`?
