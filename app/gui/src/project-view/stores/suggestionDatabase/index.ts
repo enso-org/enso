@@ -125,7 +125,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return entry && entryIsCallable(entry) ? entry : undefined
   }
 
-  /** TODO */
+  /** Get a list of constructors for `type` that have an argument named `field`. */
   lookupConstructorField(type: ProjectPath, field: string): Set<SuggestionId> {
     return this.constructorFields.lookup(`${type.key()}#${field}`)
   }

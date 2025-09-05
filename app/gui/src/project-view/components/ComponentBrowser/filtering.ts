@@ -1,4 +1,5 @@
 import { TypeInfo } from '@/stores/project/computedValueRegistry'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { ANY_TYPE } from '@/util/ensoTypes'
 import { type ProjectPath } from '@/util/projectPath'
@@ -314,11 +315,17 @@ export class Filtering {
    * - When {@link selfArg} is not available, {@link mainViewFilter} is used to only display
    * entries with a group defined or in the top module.
    */
-  filter(entry: SuggestionEntry): MatchResult | null {
+  filter(entry: SuggestionEntry, db: SuggestionDb): MatchResult | null {
     if (entry.isPrivate || entry.kind != SuggestionKind.Method) return null
     if (this.selfArg == null && isInternal(entry)) return null
     const selfTypeMatch = this.selfTypeMatches(entry)
     if (selfTypeMatch == null) return null
+    if (entry.kind === SuggestionKind.Method) {
+      const constructors = db.lookupConstructorField(entry.memberOf, entry.name)
+      const isPrivate =
+        constructors.size > 0 && [...constructors].every((id) => db.get(id)?.isPrivate)
+      if (isPrivate) return null
+    }
     if (this.pattern) {
       const additionalSelfTypes =
         this.selfArg?.type === 'known' ? this.selfArg.typeInfo.hiddenTypes : []
