@@ -91,6 +91,29 @@ public final class MethodResolutionTest {
   }
 
   @Test
+  public void resolveInstanceMethod_DefinedBothOnMyTypeAndAny() {
+    var myTypeVal =
+        ctxRule.evalModule(
+            """
+        from Standard.Base import Any
+        
+        Any.method self = 23
+        
+        type My_Type
+            method self = 42
+
+        main = My_Type
+        """,
+            "Module",
+            "main");
+    var myType = unwrapType(myTypeVal);
+    var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(myType, symbol);
+    assertThat("method is found", func, is(notNullValue()));
+    assertThat(func.getName(), is("My_Type.method"));
+  }
+
+  @Test
   public void resolveStaticMethodFromMyType() {
     var myTypeVal =
         ctxRule.evalModule(
