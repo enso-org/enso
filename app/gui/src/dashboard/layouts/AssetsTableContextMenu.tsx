@@ -194,7 +194,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
       selectedAssets.length === 0 ?
         []
       : [
-          copyIdsMenuEntry,
+          pasteAllMenuEntry,
           {
             action: 'undelete',
             label: getText('restoreFromTrashShortcut'),
@@ -229,18 +229,9 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
               )
             },
           },
-          pasteAllMenuEntry,
+          copyIdsMenuEntry,
         ]
     : [
-        copyIdsMenuEntry,
-        selectedAssets.length !== 0 && {
-          action: 'delete',
-          label: isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut'),
-          doAction: () => {
-            void goToDrive()
-            doDeleteAll()
-          },
-        },
         selectedAssets.length !== 0 &&
           canUploadAllProjectsToCloud && {
             isUnderPaywall: !canUploadToCloud,
@@ -276,6 +267,15 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
         },
         pasteAllMenuEntry,
         ...globalContextMenuEntries,
+        selectedAssets.length !== 0 && {
+          action: 'delete',
+          label: isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut'),
+          doAction: () => {
+            void goToDrive()
+            doDeleteAll()
+          },
+        },
+        copyIdsMenuEntry,
       ],
   )
 
