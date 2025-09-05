@@ -10,7 +10,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.source.SourceSection;
+import com.oracle.truffle.api.source.Source;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +19,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import org.enso.compiler.context.LocalScope;
+import org.enso.compiler.core.ir.Location;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.MethodRootNode;
@@ -114,19 +115,22 @@ public final class AtomConstructor extends EnsoObject {
    * @param args the list of argument definitions
    */
   public static InitializationBuilder newInitializationBuilder(
-      SourceSection section,
+      Supplier<Source> source,
+      Location section,
       LocalScope localScope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       Annotation[] annotations,
       ArgumentDefinition[] args) {
-    return new InitializationBuilder(section, localScope, assignments, varReads, annotations, args);
+    return new InitializationBuilder(
+        source, section, localScope, assignments, varReads, annotations, args);
   }
 
   /** Builder required for initialization of the atom constructor. */
   public static final class InitializationBuilder {
 
-    private final SourceSection section;
+    private final Supplier<Source> source;
+    private final Location section;
     private final LocalScope localScope;
     private final ExpressionNode[] assignments;
     private final ExpressionNode[] varReads;
@@ -145,12 +149,14 @@ public final class AtomConstructor extends EnsoObject {
      * @param args the list of argument definitions
      */
     InitializationBuilder(
-        SourceSection section,
+        Supplier<Source> source,
+        Location section,
         LocalScope localScope,
         ExpressionNode[] assignments,
         ExpressionNode[] varReads,
         Annotation[] annotations,
         ArgumentDefinition[] args) {
+      this.source = source;
       this.section = section;
       this.localScope = localScope;
       this.assignments = assignments;
@@ -159,7 +165,7 @@ public final class AtomConstructor extends EnsoObject {
       this.args = args;
     }
 
-    private SourceSection getSection() {
+    private Location getSection() {
       return section;
     }
 
@@ -209,7 +215,7 @@ public final class AtomConstructor extends EnsoObject {
 
     var builder =
         newInitializationBuilder(
-            null, LocalScope.empty(), new ExpressionNode[0], reads, new Annotation[0], args);
+            null, null, LocalScope.empty(), new ExpressionNode[0], reads, new Annotation[0], args);
     return initializeFields(language, scopeBuilder, CachingSupplier.forValue(builder), fieldNames);
   }
 
@@ -243,6 +249,7 @@ public final class AtomConstructor extends EnsoObject {
               var constructorFunction =
                   buildConstructorFunction(
                       language,
+                      builder.source,
                       builder.getSection(),
                       builder.getLocalScope(),
                       scopeBuilder,
@@ -277,7 +284,8 @@ public final class AtomConstructor extends EnsoObject {
    */
   private Function buildConstructorFunction(
       EnsoLanguage language,
-      SourceSection section,
+      Supplier<Source> source,
+      Location section,
       LocalScope localScope,
       ModuleScopeBuilder scopeBuilder,
       ExpressionNode[] assignments,
@@ -286,12 +294,18 @@ public final class AtomConstructor extends EnsoObject {
       ArgumentDefinition[] args) {
     ExpressionNode instantiateNode = InstantiateNode.build(this, varReads);
     if (section != null) {
-      instantiateNode.setSourceLocation(section.getCharIndex(), section.getCharLength());
+      instantiateNode.setSourceLocation(section.start(), section.length());
     }
     BlockNode instantiateBlock = BlockNode.buildRoot(assignments, instantiateNode);
     RootNode rootNode =
         MethodRootNode.buildConstructor(
-            language, localScope, scopeBuilder.asModuleScope(), instantiateBlock, section, this);
+            language,
+            localScope,
+            scopeBuilder.asModuleScope(),
+            instantiateBlock,
+            source,
+            section,
+            this);
     RootCallTarget callTarget = rootNode.getCallTarget();
     var schemaBldr = FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
     if (type.hasAllConstructorsPrivate()) {

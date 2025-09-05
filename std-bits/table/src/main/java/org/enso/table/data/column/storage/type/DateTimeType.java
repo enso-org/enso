@@ -7,13 +7,28 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record DateTimeType(boolean hasTimeZone) implements StorageType<ZonedDateTime> {
+public final class DateTimeType implements StorageType<ZonedDateTime> {
   public static final DateTimeType INSTANCE = new DateTimeType(true);
   public static final DateTimeType INSTANCE_NO_TZ = new DateTimeType(false);
 
+  private final boolean hasTimeZone;
+
+  private DateTimeType(boolean hasTimeZone) {
+    this.hasTimeZone = hasTimeZone;
+  }
+
   @Override
-  public boolean isNumeric() {
-    return false;
+  public char typeChar() {
+    return hasTimeZone ? 'Z' : 'Y';
+  }
+
+  /**
+   * Returns true if the DateTimeType includes timezone information.
+   *
+   * @return true if the DateTimeType includes timezone information.
+   */
+  public boolean hasTimeZone() {
+    return hasTimeZone;
   }
 
   @Override
