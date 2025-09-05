@@ -296,7 +296,11 @@ final class TreeToIr {
     } else {
       return translateSyntaxError(fn, new Syntax.InvalidForeignDefinition("Expected text literal as body"));
     }
-    return new Foreign.Definition(language, text, getIdentifiedLocation(fn.getBody()), meta());
+    return Foreign.Definition.builder()
+        .lang(language)
+        .code(text)
+        .location(getIdentifiedLocation(fn.getBody()))
+        .build();
   }
 
   private List<DefinitionArgument> translateArgumentsDefinition(
