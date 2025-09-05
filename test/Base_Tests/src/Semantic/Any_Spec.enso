@@ -38,18 +38,18 @@ add_specs suite_builder =
             (1 != 1) . should_be_false
 
     suite_builder.group "Any's methods" group_builder->
-        group_builder.specify "should not be overridable when called statically" <|
+        group_builder.specify "can be overridden when called statically" <|
             My_Type.Value 33 . x . should_equal "Any:(My_Type.Value 33)"
             With_X.Value 44 . x . should_equal "With_X:(With_X.Value 44)"
             With_Y.Value 44 . x . should_equal "With_Y:With_Y(44)"
             My_Type.x . should_equal "Any:My_Type"
-            With_X.x . to_text . should_equal "Any:With_X"
             With_X.y.should_be_a Function
             With_Y.x . to_text . should_equal "Any:With_Y"
             With_Y.y.should_be_a Function
             With_X.to_text . to_text . should_equal "With_X"
             With_Y.to_text . to_text . should_equal "With_Y"
             Any.x . to_text . should_equal "Any:Any"
+            Any.x Any . to_text . should_equal "Any:Any"
             Any.x self=Any . to_text . should_equal "Any:Any"
             Any.x self=With_X . should_equal "Any:With_X"
             Any.x self=With_Y . should_equal "Any:With_Y"
@@ -107,6 +107,18 @@ add_specs suite_builder =
             Vector.is_empty . to_text . contains "Vector.type.is_empty" . should_be_true
             Vector.is_empty self=[] . should_be_true
             Vector.is_empty [] . should_be_true
+
+        group_builder.specify "overridden methods from Any called statically on different types should resolve to overridden method and have defaulted self argument" <|
+            # With_X.x overrides Any.x
+            With_X.x             . should_equal "With_X:With_X"
+            With_X.x With_X      . should_equal "With_X:With_X"
+            With_X.x self=With_X . should_equal "With_X:With_X"
+            Any.x self=With_X    . should_equal "Any:With_X"
+
+            # There is no My_Type.x - My_Type.x does not override Any.x
+            My_Type.x          . should_equal "Any:My_Type"
+            Any.x My_Type      . should_equal "Any:My_Type"
+            Any.x self=My_Type . should_equal "Any:My_Type"
 
 
 main filter=Nothing =

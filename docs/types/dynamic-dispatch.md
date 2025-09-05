@@ -19,6 +19,7 @@ implementation to invoke.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Static versus instance method calls](#static-versus-instance-method-calls)
 - [Specificity](#specificity)
 - [Multiple Dispatch](#multiple-dispatch)
 - [Resolving Clashes on `Any`](#resolving-clashes-on-any)
@@ -26,6 +27,25 @@ implementation to invoke.
 <!-- /MarkdownTOC -->
 
 Another page related to [dispatch](../semantics/dispatch.md) exists.
+
+## Static versus instance method calls
+
+Unlike other programming languages like Java, Enso does not differentiate
+between _static_ and _instance_ method calls. An instance method call is simply
+a static method call with the `self` argument provided implicitly.
+
+For example, with:
+
+```
+type T
+    Cons data
+    method self = self.data
+
+obj = T.Cons 42
+```
+
+the method call `obj.method` is equivalent to `T.method obj`, which is
+equivalent to `T.method self=obj`.
 
 ## Specificity
 
@@ -162,3 +182,54 @@ main = Test.simplify
 When invoking a method on _module object_ its _module static methods_ take
 precedence over _instance methods_ defined on `Any`. Thus a module serves
 primarily as a _container for module (static) methods_.
+
+### Diagram of method resolution and invocation on `Any`
+
+This section describes the _special_ method resolution and invocation on `Any`
+type. More specifically, it describes when a `self` argument is implicitly
+provided and what kind of `self` it is.
+
+Considering:
+
+```
+@Builtin_Type
+type Any
+    to_text self = ...
+    ...
+
+type T
+    method self = "T.method:" + self.to_text
+
+Any.method self = "Any.method:" + self.to_text
+```
+
+where `T.method` "overrides" `Any.method`, the method resolution and invocation
+algorithm can be generally described as follows:
+
+- Is the method called statically? For example like `Any.method ...` or
+  `T.method ...`.
+  - No: Continue normal resolution and invocation.
+  - Yes:
+    - Is the method defined on `Any`?
+      - No: Continue normal resolution and invocation.
+      - Yes:
+        - Is it called on `Any`? For example like `Any.method ...` or
+          `Any.to_text ...`.
+          - Yes:
+            - Method is resolved on `Any` type and invoked with prepended
+              `self=Any` argument. Which means that `Any.method` is equivalent
+              to `Any.method Any`, which is equivalent to `Any.method self=Any`.
+          - No:
+            - Is the method _overriden_ in the type on which it is called?
+              - Yes:
+                - This means that we are calling, e.g., `T.method`.
+                - Method is resolved on `T` type and invoked with prepended
+                  `self=T` argument.
+                - Which means that `T.method` is equivalent to `T.method T`,
+                  which is equivalent to `T.method self=T`.
+              - No:
+                - This means that we are calling, for example, `T.to_text`.
+                - Method is resolved on `Any` type and invoked with prepended
+                  `self=T`
+                - Which means that `T.to_text` is equivalent to `Any.to_text T`,
+                  which is equivalent to `Any.to_text self=T`.
