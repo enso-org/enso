@@ -416,24 +416,30 @@ object DistributionPackage {
   ): Boolean = {
     import scala.collection.JavaConverters._
 
-    val enso        = distributionRoot / "bin" / batOrExeName("enso")
-    val pb          = new java.lang.ProcessBuilder()
-    val all         = new java.util.ArrayList[String]()
-    val projectPath = findProjectPath(args)
-    val disablePrivateCheck = projectPath match {
-      case Some(whatToRun) =>
-        val pathToRun   = file(whatToRun).toPath
-        val projectName = pathToRun.getFileName.toString
-        EnsoProjects.Project(None, projectName, pathToRun).usesPrivateAccess
-      case None => false
-    }
+    val enso = distributionRoot / "bin" / batOrExeName("enso")
+    val pb   = new java.lang.ProcessBuilder()
+    val all  = new java.util.ArrayList[String]()
+    val (atIndex, fileToRun, projectPath) =
+      findProjectPath(distributionRoot, args)
+
+    log.debug("fileToRun Index: " + atIndex)
+    log.debug("fileToRun: " + fileToRun)
+    log.debug("projectPath: " + projectPath)
+
+    val disablePrivateCheck =
+      EnsoProjects
+        .Project(None, projectPath, fileToRun.toPath)
+        .usesPrivateAccess
+    val adjustedCwd = cwd.orElse(Some(new File(projectPath).getParentFile))
 
     all.add(enso.getAbsolutePath)
     all.addAll(args.asJava)
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
-    val p        = adjustArgsAndStart(log, all, "JAVA_TOOL_OPTIONS", pb, cwd = cwd)
+    all.set(atIndex + 1, fileToRun.getPath)
+    val p =
+      adjustArgsAndStart(log, all, "JAVA_TOOL_OPTIONS", pb, cwd = adjustedCwd)
     val exitCode = p.waitFor()
     if (exitCode != 0) {
       log.warn(enso + " finished with exit code " + exitCode)
@@ -476,20 +482,66 @@ object DistributionPackage {
   /** Returns the argument specifying the path of the project to run.
     *
     * It will be the argument following `--in-project`, `--run` or `--compile`.
+    *
+    * @param root the root of the engine distribution
+    * @return index of the replace argument (or -1)
     */
-  private def findProjectPath(args: Seq[String]): Option[String] = {
-    def findArg(name: String): Option[String] = {
+  private def findProjectPath(
+    root: File,
+    args: Seq[String]
+  ): (Int, java.io.File, String) = {
+    def findArg(name: String): Option[(Int, String)] = {
       val location = args.indexOf(name)
       if (location >= 0 && location + 1 < args.size) {
-        Some(args(location + 1))
+        Some((location + 1, args(location + 1)))
       } else {
         None
       }
     }
 
-    findArg("--in-project")
+    val indexPath = findArg("--in-project")
       .orElse(findArg("--run"))
       .orElse(findArg("--compile"))
+    if (indexPath.isEmpty) {
+      return (-1, null, null)
+    }
+
+    val index = indexPath.orNull._1
+    val path  = indexPath.orNull._2
+
+    val runnerJar = root / "component" / "engine-runner.jar"
+    if (!runnerJar.exists()) {
+      throw new IllegalStateException("Cannot find " + runnerJar)
+    }
+    val slf4jJar = root / "component" / "slf4j-api-2.0.16.jar"
+    if (!slf4jJar.exists()) {
+      throw new IllegalStateException("Cannot find " + slf4jJar)
+    }
+    val l = new java.net.URLClassLoader(
+      Array(
+        runnerJar.toURI().toURL(),
+        slf4jJar.toURI().toURL()
+      ),
+      Class.forName("scala.Tuple2").getClassLoader()
+    )
+    try {
+      val utils = l.loadClass("org.enso.runner.Utils")
+      val find = utils.getDeclaredMethod(
+        "findFileAndProject",
+        classOf[String],
+        classOf[String],
+        classOf[String]
+      )
+      find.setAccessible(true)
+      val res = find
+        .invoke(null, null, path, null)
+        .asInstanceOf[(Boolean, java.io.File, String)]
+      return (index, res._2, res._3);
+    } catch {
+      case ex: ReflectiveOperationException =>
+        ex.printStackTrace()
+        throw ex
+    }
   }
 
   /** @param projManagerCmdLine Options for the java process.
