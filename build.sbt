@@ -4174,7 +4174,7 @@ lazy val `jvm-channel` =
     .in(file("lib/java/jvm-channel"))
     .enablePlugins(JPMSPlugin)
     .settings(
-      customFrgaalJavaCompilerSettings("24"),
+      customFrgaalJavaCompilerSettings(targetJdk = "24"),
       autoScalaLibrary := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
@@ -4202,7 +4202,7 @@ lazy val `jvm-interop` =
     .in(file("lib/java/jvm-interop"))
     .enablePlugins(JPMSPlugin)
     .settings(
-      frgaalJavaCompilerSetting,
+      customFrgaalJavaCompilerSettings("24"),
       // jvm-interop/test has to run with -ea disabled form Truffle.
       // Otherwise Truffle library performs a lot of additional
       // checks and they skew the message counts. Thus enabling -ea

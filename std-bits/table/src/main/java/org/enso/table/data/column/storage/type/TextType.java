@@ -1,34 +1,13 @@
 package org.enso.table.data.column.storage.type;
 
+import java.util.Objects;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record TextType(long maxLength, boolean fixedLength) implements StorageType<String> {
-  public TextType {
-    if (maxLength == 0) {
-      throw new IllegalArgumentException(
-          "The maxLength of a text type must be positive or -1 to indicate unlimited length.");
-    }
-  }
-
-  @Override
-  public boolean isNumeric() {
-    return false;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
-  }
-
+public final class TextType implements StorageType<String> {
   public static final TextType VARIABLE_LENGTH = new TextType(-1, false);
 
   public static TextType fixedLength(long length) {
@@ -38,6 +17,37 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
   public static TextType variableLengthWithLimit(long maxLength) {
     assert maxLength > 0;
     return new TextType(maxLength, false);
+  }
+
+  private final long maxLength;
+  private final boolean fixedLength;
+
+  private TextType(long maxLength, boolean fixedLength) {
+    if (maxLength == 0 || maxLength < -1) {
+      throw new IllegalArgumentException(
+          "The maxLength of a text type must be positive or -1 to indicate unlimited length.");
+    }
+    this.maxLength = maxLength;
+    this.fixedLength = fixedLength;
+  }
+
+  @Override
+  public char typeChar() {
+    return fixedLength ? 'T' : 'S';
+  }
+
+  @Override
+  public long size() {
+    return maxLength;
+  }
+
+  public long maxLength() {
+    return maxLength;
+  }
+
+  /** Returns if it is a fixed length string. */
+  public boolean fixedLength() {
+    return fixedLength;
   }
 
   public boolean fits(String string) {
@@ -163,5 +173,17 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
       return output;
     }
     throw new IllegalArgumentException("Storage is not of TextType");
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == null || getClass() != o.getClass()) return false;
+    TextType textType = (TextType) o;
+    return maxLength == textType.maxLength && fixedLength == textType.fixedLength;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(maxLength, fixedLength);
   }
 }
