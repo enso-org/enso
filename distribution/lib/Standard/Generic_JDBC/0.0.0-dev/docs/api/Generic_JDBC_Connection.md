@@ -3,6 +3,7 @@
 - type Generic_JDBC_Connection
     - close self -> Standard.Base.Nothing.Nothing
     - connect url:Standard.Base.Data.Text.Text= properties:Standard.Base.Data.Vector.Vector= quote_char:Standard.Base.Data.Text.Text= -> Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
+    - connect_in_jvm url:Standard.Base.Data.Text.Text= properties:Standard.Base.Data.Vector.Vector= quote_char:Standard.Base.Data.Text.Text= -> Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
     - database self -> (Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)
     - database_product self -> Standard.Base.Data.Text.Text
     - databases self -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
