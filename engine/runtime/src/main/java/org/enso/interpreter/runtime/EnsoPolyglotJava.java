@@ -156,7 +156,7 @@ final class EnsoPolyglotJava {
 
   @CompilerDirectives.TruffleBoundary
   private Object findPolyglotJava() throws InteropException {
-    acquireLock();
+    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
     try {
       if (polyglotJava != this) {
         return polyglotJava;
@@ -189,12 +189,6 @@ final class EnsoPolyglotJava {
     data.guest.addToClassPath(path);
   }
 
-  private void acquireLock() {
-    while (!lock.tryAcquire()) {
-      TruffleSafepoint.poll(null);
-    }
-  }
-
   /**
    * Modifies the classpath to use to lookup {@code polyglot java} imports.
    *
@@ -202,7 +196,7 @@ final class EnsoPolyglotJava {
    */
   @CompilerDirectives.TruffleBoundary
   private final void addToClassPath(File file) throws InteropException {
-    acquireLock();
+    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
     try {
       if (polyglotJava == this) {
         pendingPath.add(file);
@@ -215,7 +209,7 @@ final class EnsoPolyglotJava {
   }
 
   private final void close() {
-    acquireLock();
+    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
     try {
       if (polyglotJava instanceof TruffleObject closeJava) {
         polyglotJava = null;
