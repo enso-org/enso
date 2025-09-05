@@ -9,6 +9,15 @@ import org.slf4j.LoggerFactory;
  * be handled by Enso.
  */
 public final class ProgressReporter implements AutoCloseable {
+  public static Object makeHandle(String name) {
+    return new Object() {
+      @Override
+      public String toString() {
+        return name;
+      }
+    };
+  }
+
   private static final Logger LOGGER = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
 
   public static ProgressReporter create(String name, long count) {
@@ -31,13 +40,7 @@ public final class ProgressReporter implements AutoCloseable {
 
   private ProgressReporter(String name, long count, long stepSize) {
     this.name = name;
-    this.handle =
-        new Object() {
-          @Override
-          public String toString() {
-            return name;
-          }
-        };
+    this.handle = makeHandle(name);
     this.count = count;
     this.context = Context.getCurrent();
     this.stepSize = stepSize;
