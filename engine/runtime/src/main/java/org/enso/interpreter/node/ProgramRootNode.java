@@ -82,7 +82,9 @@ public class ProgramRootNode extends RootNode {
         var rel = pkg.sourceDir().relativize(src.getParent());
         var names = new LinkedList<String>();
         while (rel != null) {
-          names.add(0, rel.getName());
+          if (!rel.getName().isEmpty()) {
+            names.add(0, rel.getName());
+          }
           rel = rel.getParent();
         }
         names.add(0, pkg.name());
