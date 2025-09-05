@@ -33,8 +33,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.table.data.column.builder.Builder;
@@ -56,13 +54,15 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Class responsible for reading/writing Tableau Hyper files. */
 public class HyperFormat {
   public static final Path HYPER_PATH = Path.of(getHyperPath());
   private static HyperProcess process;
 
-  private static final Logger LOGGER = Logger.getLogger("enso-hyper-reader");
+  private static final Logger LOGGER = LoggerFactory.getLogger(HyperFormat.class);
 
   private static String getHyperPath() {
     if (System.getenv("HYPER_PATH") != null) {
@@ -129,7 +129,7 @@ public class HyperFormat {
         var classLoader = new TableauClassLoader();
         var jnaPath = classLoader.getResource("jnidispatch");
         Thread.currentThread().setContextClassLoader(classLoader);
-        LOGGER.log(Level.INFO, "Starting Hyper process: {0}.", HYPER_PATH);
+        LOGGER.info("Starting Hyper process: {}.", HYPER_PATH);
         try {
           if (jnaPath != null) {
             // Use URI to correctly handle spaces and other encoded characters.
@@ -138,7 +138,7 @@ public class HyperFormat {
           }
           process = new HyperProcess(HYPER_PATH, Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU);
         } catch (Throwable ioe) {
-          LOGGER.log(Level.SEVERE, "Failed to start Hyper process.", ioe);
+          LOGGER.error("Failed to start Hyper process.", ioe);
           throw new IOException("Failed to start Hyper process.", ioe);
         }
       } finally {
@@ -168,8 +168,7 @@ public class HyperFormat {
         var found = bindings.invokeMember("find_native_library", libName);
         try {
           if (found == null || found.asString() == null) {
-            LOGGER.log(
-                Level.WARNING, "Failed to find library `{0}`. Retrying with a fallback", libName);
+            LOGGER.warn("Failed to find library `{}`. Retrying with a fallback", libName);
             return super.getResource(name);
           } else {
             return new File(found.asString()).toURI().toURL();
@@ -196,8 +195,7 @@ public class HyperFormat {
         var found = bindings.invokeMember("find_native_library", libName);
         try {
           if (found == null || found.asString() == null) {
-            LOGGER.log(
-                Level.WARNING, "Failed to find library `{0}`. Retrying with a fallback", libName);
+            LOGGER.warn("Failed to find library `{}`. Retrying with a fallback", libName);
             return super.getResourceAsStream(name);
           } else {
             return new FileInputStream(found.asString());
@@ -217,7 +215,7 @@ public class HyperFormat {
           InvalidPathException,
           UnsupportedOperationException,
           SecurityException {
-    LOGGER.log(Level.INFO, "Downloading Hyper from: {0}", uri);
+    LOGGER.info("Downloading Hyper from: {}", uri);
     var hyperdFile = HYPER_PATH.resolve(fileName).toFile();
     var url = new URI(uri);
     var readChannel = Channels.newChannel(url.toURL().openStream());

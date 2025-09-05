@@ -15,17 +15,18 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 import org.enso.base.cache.ReloadDetector;
 import org.enso.base.enso_cloud.AuthenticationProvider;
 import org.enso.base.enso_cloud.CloudAPI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting
  * the logs.
  */
 public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache {
-  private static final Logger logger = Logger.getLogger(AuditLogApiAccess.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(AuditLogApiAccess.class);
 
   /**
    * We still want to limit the batch size to some reasonable number - sending too many logs in one
@@ -246,10 +247,10 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
       }
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
-        logger.severe("Failed to send log messages after retrying: " + e.getMessage());
+        LOGGER.error("Failed to send log messages after retrying.", e);
         throw e;
       } else {
-        logger.warning("Exception when sending log messages: " + e.getMessage() + ". Retrying...");
+        LOGGER.warn("Exception when sending log messages: {}. Retrying...", e.getMessage());
         sendLogRequest(request, retryCount - 1);
       }
     }
