@@ -8,9 +8,9 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.enso.common.CachePreferences;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
+import org.enso.interpreter.instrument.Observable;
 import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.TypeInfo;
@@ -41,10 +41,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onCachedCallback;
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
-  private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
+  private final Consumer<ExecutedVisualization>
+      onExecutedVisualizationCallback; // For one-shot expressions
   private final Consumer<ExpressionValue> onProgressCallbackOrNull;
   private ExecutionProgressObserver progressObserver;
   private final Map<UUID, Object> savedNodeExecutionEnvironment;
+  private final Map<UUID, UUID> parentDependencies;
 
   /**
    * Creates callbacks instance.
@@ -85,16 +87,14 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.onExecutedVisualizationCallback = onExecutedVisualizationCallback;
     this.onProgressCallbackOrNull = onProgressCallbackOrNull;
     this.savedNodeExecutionEnvironment = new HashMap<>();
+    this.parentDependencies = new HashMap<>();
   }
 
   @Override
-  public Object findCachedResult(IdExecutionService.Info info) {
+  public Object findCachedResult(IdExecutionService.Info info, UUID downstreamDependency) {
     UUID nodeId = info.getId();
-    Object result = getCachedResult(nodeId);
-
-    if (result != null) {
-      executeOneshotExpressions(nodeId, result, info);
-    }
+    Observable observable = getCachedResult(nodeId, downstreamDependency);
+    Object result = observable.get(); // will result in null if pending
 
     // When executing the call stack we need to capture the FunctionCall of the next (top) stack
     // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
@@ -108,12 +108,13 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       }
     }
 
-    return null;
+    return result;
   }
 
   @CompilerDirectives.TruffleBoundary
   private void reportEvaluationProgress(UUID nodeId) {
-    if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
+    // FIXME: Need a way to identify that `nodeId` represents a binding
+    /*if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
       var newObserver =
           ExecutionProgressObserver.startComputation(
               nodeId,
@@ -123,7 +124,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
                 onProgressCallbackOrNull.accept(expressionValue);
               });
       refreshObserver(newObserver);
-    }
+    }*/
   }
 
   private void refreshObserver(ExecutionProgressObserver newObserverOrNull) {
@@ -197,17 +198,18 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @CompilerDirectives.TruffleBoundary
   @Override
   public Object onFunctionReturn(IdExecutionService.Info info) {
+
     FunctionCallInstrumentationNode.FunctionCall fnCall =
         (FunctionCallInstrumentationNode.FunctionCall) info.getResult();
     UUID nodeId = info.getId();
     calls.put(nodeId, FunctionCallInfo.fromFunctionCall(fnCall));
     functionCallCallback.accept(new ExpressionCall(nodeId, fnCall));
-    // Return cached value after capturing the enterable function call in `functionCallCallback`
-    Object cachedResult = cache.get(nodeId);
-    if (cachedResult != null) {
-      return cachedResult;
-    }
+    // Return cached value after capturing the enterable function call in `functionCallCallback`.
+    Observable cachedResult = cache.get(nodeId);
     methodCallsCache.setExecuted(nodeId);
+    if (cachedResult != null) {
+      return cachedResult.get();
+    }
     return null;
   }
 
@@ -230,6 +232,22 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
         savedNodeExecutionEnvironment.put(uuid, replacement);
       }
     }
+  }
+
+  @Override
+  public void updateParent(IdExecutionService.Info info, UUID parent) {
+    var previous = parentDependencies.put(info.getId(), parent);
+    assert previous == null; // no previous setup is allowed
+  }
+
+  @Override
+  public UUID restoreParent(UUID currentNodeUUID) {
+    return parentDependencies.remove(currentNodeUUID);
+  }
+
+  @Override
+  public boolean needsFullExecution() {
+    return visualizationHolder.hasOneShotExpressions();
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -280,8 +298,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Object getCachedResult(UUID nodeId) {
-    return cache.get(nodeId);
+  private Observable getCachedResult(UUID nodeId, UUID downstreamDependency) {
+    return cache.get(nodeId, downstreamDependency);
   }
 
   @CompilerDirectives.TruffleBoundary

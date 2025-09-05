@@ -2,7 +2,12 @@ package org.enso.interpreter.instrument.execution
 
 import org.enso.common.Asserts.assertInJvm
 import org.enso.interpreter.instrument.InterpreterContext
-import org.enso.interpreter.instrument.job.{BackgroundJob, Job, UniqueJob}
+import org.enso.interpreter.instrument.job.{
+  BackgroundJob,
+  ExecuteJob,
+  Job,
+  UniqueJob
+}
 import org.enso.text.Sha3_224VersionCalculator
 import org.enso.runtime.utils.ThreadUtils
 import org.slf4j.Logger
@@ -69,6 +74,9 @@ final class JobExecutionEngine(
       4,
       MaxJobLimit
     )
+
+  private val executeJobExecutor: ExecutorService =
+    context.getThreadManager.newFixedThreadPool(1, "main-execute")
 
   private val runtimeContext =
     RuntimeContext(
@@ -172,7 +180,9 @@ final class JobExecutionEngine(
   override def run[A](job: Job[A]): Future[A] = {
     cancelDuplicateJobs(job, runningJobsRef)
     val executor =
-      if (job.highPriority) highPriorityJobExecutor else jobExecutor
+      if (job.isInstanceOf[ExecuteJob]) executeJobExecutor
+      else if (job.highPriority) highPriorityJobExecutor
+      else jobExecutor
     runInternal(job, executor, runningJobsRef, "regular")
   }
 

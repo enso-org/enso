@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument
 
+import org.enso.interpreter.service.GuestExecutionService
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
 
 import scala.collection.mutable
@@ -46,6 +47,13 @@ case object InstrumentFrame {
     * @param item the stack item
     * @return an instance of [[InstrumentFrame]]
     */
-  def apply(item: StackItem): InstrumentFrame =
-    new InstrumentFrame(item, new RuntimeCache, new UpdatesSynchronizationState)
+  def apply(
+    item: StackItem,
+    executionService: GuestExecutionService
+  ): InstrumentFrame =
+    new InstrumentFrame(
+      item,
+      new RuntimeCache(executionService),
+      new UpdatesSynchronizationState
+    )
 }

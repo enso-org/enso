@@ -198,6 +198,8 @@ object RecomputeContextCmd {
     contextId: Api.ContextId,
     cacheInvalidations: Seq[CacheInvalidation]
   )(implicit ctx: RuntimeContext): Unit = {
+    // FIXME: Needs to be re-done
+    /*
     val builder = Set.newBuilder[Api.ExpressionId]
     cacheInvalidations.map(_.command).foreach {
       case CacheInvalidation.Command.InvalidateAll =>
@@ -229,6 +231,6 @@ object RecomputeContextCmd {
       ctx.endpoint.sendToClient(
         Api.Response(Api.ExpressionUpdates(contextId, updates))
       )
-    }
+    }*/
   }
 }

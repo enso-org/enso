@@ -6,6 +6,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   ExpressionId,
   VisualizationId
 }
+import org.slf4j.{Logger, LoggerFactory}
 
 /** A job that detaches a visualization.
   *
@@ -34,12 +35,25 @@ class DetachVisualizationJob(
       ctx.locking.getOrCreateContextLock(contextId),
       this.getClass,
       () => {
-        ctx.contextManager.removeVisualization(
-          contextId,
-          expressionId,
-          visualizationId
+        val stack =
+          ctx.contextManager.getStack(contextId)
+        val runtimeCache = stack.headOption
+          .flatMap(frame => Option(frame.cache))
+        val result = runtimeCache.exists(cache =>
+          cache.deregisterAction(expressionId, visualizationId)
         )
+        if (!result) {
+          DetachVisualizationJob.logger.warn(
+            "Failed to detach visualization {} - unknown visualization/expression",
+            visualizationId
+          )
+        }
       }
     )
   }
+}
+
+object DetachVisualizationJob {
+  private lazy val logger: Logger =
+    LoggerFactory.getLogger(classOf[DetachVisualizationJob])
 }

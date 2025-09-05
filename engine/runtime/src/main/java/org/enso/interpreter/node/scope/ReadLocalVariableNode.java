@@ -8,8 +8,11 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import java.util.UUID;
 import org.enso.compiler.pass.analyse.FramePointer;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.RuntimeAnalysis;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -45,6 +48,7 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
    */
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected long readLong(VirtualFrame frame) throws FrameSlotTypeException {
+    registerLocalVariableAccess(getFramePointer().externalId());
     if (getFramePointer().parentLevel() == 0)
       return frame.getLong(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
@@ -61,6 +65,7 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
    */
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected Object readGeneric(VirtualFrame frame) throws FrameSlotTypeException {
+    registerLocalVariableAccess(getFramePointer().externalId());
     if (getFramePointer().parentLevel() == 0)
       return frame.getObject(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
@@ -69,6 +74,7 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
 
   @Specialization
   protected Object readGenericValue(VirtualFrame frame) {
+    registerLocalVariableAccess(getFramePointer().externalId());
     if (getFramePointer().parentLevel() == 0)
       return frame.getValue(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
@@ -83,6 +89,13 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
    */
   public MaterializedFrame getParentFrame(Frame frame) {
     return Function.ArgumentsHelper.getLocalScope(frame.getArguments());
+  }
+
+  private void registerLocalVariableAccess(UUID uuid) {
+    if (uuid != null) {
+      RuntimeAnalysis runtimeAnalysis = EnsoContext.get(this).currentRuntimeAnalysis();
+      runtimeAnalysis.registerLocalDependency(getFramePointer().externalId());
+    }
   }
 
   /**

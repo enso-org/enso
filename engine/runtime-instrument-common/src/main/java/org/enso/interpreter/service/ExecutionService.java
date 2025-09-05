@@ -78,7 +78,7 @@ import org.slf4j.LoggerFactory;
  * A service allowing externally-triggered code execution, registered by an instance of the
  * language.
  */
-public final class ExecutionService {
+public final class ExecutionService implements GuestExecutionService {
   private static final Logger LOGGER = LoggerFactory.getLogger(ExecutionService.class);
   private static final String MAIN_METHOD = "main";
   private final EnsoContext context;
@@ -213,6 +213,22 @@ public final class ExecutionService {
             return RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
           } finally {
             eventNodeFactory.ifPresent(EventBinding::dispose);
+            var runtimeAnalysis = context.currentRuntimeAnalysis();
+            runtimeAnalysis
+                .currentSnapshot()
+                .forEach(
+                    (uuid, deps) -> {
+                      var upstream = cache.get(uuid);
+                      if (upstream == null) {
+                        LOGGER.debug("Unable to register dependencies ({}) to {}", deps, uuid);
+                      } else {
+                        deps.forEach(
+                            d -> {
+                              var observable = cache.get(d);
+                              observable.register(upstream);
+                            });
+                      }
+                    });
           }
         });
   }
@@ -650,7 +666,7 @@ public final class ExecutionService {
     throw (E) ex;
   }
 
-  private <T> CompletionStage<T> submitExecution(Supplier<T> c) {
+  public <T> CompletionStage<T> submitExecution(Supplier<T> c) {
     return context.getThreadManager().submit(c);
   }
 

@@ -305,7 +305,7 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
       }
       if (name1 instanceof BindingsMap.ResolvedModuleMethod &&
           name2 instanceof BindingsMap.ResolvedModuleMethod) {
-        throw new AssertionError("Two module methods with the same name should not be allowed.");
+        throw new AssertionError("Two module methods with the same name (" + name1 + ") should not be allowed.");
       }
       if (name1 instanceof BindingsMap.ResolvedExtensionMethod && name2 instanceof BindingsMap.ResolvedModuleMethod) {
         return true;

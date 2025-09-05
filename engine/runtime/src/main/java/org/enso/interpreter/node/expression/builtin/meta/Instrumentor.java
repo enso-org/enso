@@ -69,7 +69,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
   // Callbacks
   //
   @Override
-  public Object findCachedResult(IdExecutionService.Info info) {
+  public Object findCachedResult(IdExecutionService.Info info, UUID downstreamDependency) {
     try {
       if (onEnter != null) {
         var ret = InteropLibrary.getUncached().execute(onEnter, idString(info));
@@ -104,7 +104,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
     try {
       if (onCall != null
           && info.getResult() instanceof FunctionCallInstrumentationNode.FunctionCall call) {
-        var args = (Object[]) call.getArguments().clone();
+        var args = call.getArguments().clone();
         for (var i = 0; i < args.length; i++) {
           if (args[i] == null) {
             args[i] = EnsoContext.get(null).getBuiltins().nothing();
@@ -133,6 +133,19 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
   @Override
   public void updateLocalExecutionEnvironment(
       UUID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess) {}
+
+  @Override
+  public void updateParent(IdExecutionService.Info info, UUID parent) {}
+
+  @Override
+  public UUID restoreParent(UUID currentNodeUUID) {
+    return null;
+  }
+
+  @Override
+  public boolean needsFullExecution() {
+    return false;
+  }
 
   @Override
   @TruffleBoundary

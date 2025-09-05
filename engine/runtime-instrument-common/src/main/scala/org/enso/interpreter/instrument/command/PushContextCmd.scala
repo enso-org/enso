@@ -50,11 +50,19 @@ class PushContextCmd(
       val stack = ctx.contextManager.getStack(request.contextId)
       val pushed = request.stackItem match {
         case _: Api.StackItem.ExplicitCall if stack.isEmpty =>
-          ctx.contextManager.push(request.contextId, request.stackItem)
+          ctx.contextManager.push(
+            request.contextId,
+            request.stackItem,
+            ctx.executionService
+          )
           true
 
         case _: Api.StackItem.LocalCall if stack.nonEmpty =>
-          ctx.contextManager.push(request.contextId, request.stackItem)
+          ctx.contextManager.push(
+            request.contextId,
+            request.stackItem,
+            ctx.executionService
+          )
           true
 
         case _ =>

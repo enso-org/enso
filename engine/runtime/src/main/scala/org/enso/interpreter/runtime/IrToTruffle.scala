@@ -484,7 +484,9 @@ private[runtime] class IrToTruffle(
           val readArg       = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
           val assignmentArg = AssignmentNode.build(readArg, slotIdx)
           val argRead =
-            ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+            ReadLocalVariableNode.build(
+              new FramePointer(0, slotIdx, fp.externalId())
+            )
           argumentExpressions.append((assignmentArg, argRead))
         }
 
@@ -1899,7 +1901,11 @@ private[runtime] class IrToTruffle(
       ): Option[FramePointer] = {
         if (scope.flattenToParent && fpMeta.parentLevel() > 0) {
           Some(
-            new FramePointer(fpMeta.parentLevel() - 1, fpMeta.frameSlotIdx())
+            new FramePointer(
+              fpMeta.parentLevel() - 1,
+              fpMeta.frameSlotIdx(),
+              fpMeta.externalId()
+            )
           )
         } else {
           Some(fpMeta)
@@ -2211,7 +2217,9 @@ private[runtime] class IrToTruffle(
       val src = b.build()
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>
-          ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+          ReadLocalVariableNode.build(
+            new FramePointer(0, slotIdx, location.flatMap(_.id()).orNull)
+          )
         )
         .toArray[RuntimeExpression]
       ForeignMethodCallNode.buildDeferred(

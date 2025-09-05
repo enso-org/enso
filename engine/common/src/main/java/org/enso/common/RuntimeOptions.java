@@ -99,7 +99,7 @@ public final class RuntimeOptions {
       OptionDescriptor.newBuilder(JOB_PARALLELISM_KEY, JOB_PARALLELISM).build();
 
   public static final String GUEST_PARALLELISM = interpreterOptionName("guestParallelism");
-  public static final OptionKey<Integer> GUEST_PARALLELISM_KEY = new OptionKey<>(1);
+  public static final OptionKey<Integer> GUEST_PARALLELISM_KEY = new OptionKey<>(2);
   public static final OptionDescriptor GUEST_PARALLELISM_DESCRIPTOR =
       OptionDescriptor.newBuilder(GUEST_PARALLELISM_KEY, GUEST_PARALLELISM)
           .category(OptionCategory.EXPERT)

@@ -74,6 +74,7 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                                                             executionEnvironment.name()));
                                                 return null;
                                               }));
+                          // TODO: Needs to inform reactive cache to invalidate
                           CacheInvalidation.invalidateAll(stack);
                           ctx.jobProcessor()
                               .run(

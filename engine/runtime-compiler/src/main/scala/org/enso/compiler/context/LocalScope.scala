@@ -165,7 +165,8 @@ class LocalScope(
     scope.forEachOccurenceDefinition { x =>
       parentResult += x.symbol -> new FramePointer(
         level,
-        allFrameSlotIdxs(x.id)
+        allFrameSlotIdxs(x.id),
+        x.externalId().orNull
       )
     }
     parentResult

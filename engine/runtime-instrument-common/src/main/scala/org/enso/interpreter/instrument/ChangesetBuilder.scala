@@ -133,6 +133,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     */
   @throws[CompilerError]
   def compute(edits: Seq[TextEdit]): Set[UUID @ExternalID] = {
+    @scala.annotation.unused
     val metadata = ir
       .unsafeGetMetadata(
         DataflowAnalysis,
@@ -140,6 +141,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       )
 
     @scala.annotation.tailrec
+    @scala.annotation.unused
     def go(
       queue: mutable.Queue[DataflowAnalysis.DependencyInfo.Type],
       visited: mutable.Set[DataflowAnalysis.DependencyInfo.Type]
@@ -170,13 +172,14 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       }
 
     val nodeIds = invalidated(edits)
-    val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
+    /*val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
     val transitive =
       go(
         mutable.Queue().addAll(direct),
         mutable.Set()
       )
-    direct.flatMap(_.externalId) ++ transitive
+    direct.flatMap(_.externalId) ++ transitive*/
+    nodeIds.flatMap(_.externalId)
   }
 
   /** Traverses the IR and returns a list of the most specific (the innermost)
@@ -211,6 +214,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         val edit = edits.dequeue()
         val locationEdit =
           ChangesetBuilder.toLocationEdit(edit, source, allEdits)
+
         var invalidatedSet =
           ChangesetBuilder.invalidated(
             tree,
@@ -660,6 +664,7 @@ object ChangesetBuilder {
     * @param node the invalidated node
     * @return the dataflow dependency type
     */
+  @scala.annotation.unused
   private def toDataflowDependencyTypes(
     node: NodeId
   ): Seq[DataflowAnalysis.DependencyInfo.Type] = {
@@ -677,6 +682,7 @@ object ChangesetBuilder {
     * @param id the node identifier
     * @return the node name
     */
+  @scala.annotation.unused
   private def getExpressionName(
     ir: IR,
     id: UUID @Identifier

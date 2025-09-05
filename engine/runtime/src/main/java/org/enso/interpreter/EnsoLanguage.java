@@ -42,6 +42,7 @@ import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.IrToTruffle;
+import org.enso.interpreter.runtime.RuntimeAnalysis;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
@@ -120,6 +121,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   private final ContextLocal<ExecutionEnvironment[]> executionEnvironment =
       locals.createContextLocal(ctx -> new ExecutionEnvironment[1]);
+
+  private final ContextThreadLocal<RuntimeAnalysis> runtimeAnalysis =
+      locals.createContextThreadLocal((ctx, thread) -> RuntimeAnalysis.create(ctx));
+
   private final ContextThreadLocal<State> state =
       locals.createContextThreadLocal((ctx, thread) -> State.create(ctx));
 
@@ -485,5 +490,9 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   /** Access to state associated with current context and thread. */
   public final State currentState() {
     return this.state.get();
+  }
+
+  public final RuntimeAnalysis currentRuntimeAnalysis() {
+    return this.runtimeAnalysis.get();
   }
 }

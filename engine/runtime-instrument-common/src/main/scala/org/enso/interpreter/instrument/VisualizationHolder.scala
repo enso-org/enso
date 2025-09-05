@@ -5,13 +5,15 @@ import org.enso.polyglot.runtime.Runtime.Api.{ExpressionId, VisualizationId}
 import com.oracle.truffle.api.CompilerDirectives
 
 import scala.collection.mutable
+import scala.collection.concurrent
 
 /** A mutable holder of all visualizations attached to an execution context.
   */
 class VisualizationHolder {
 
-  private val oneshotExpressions: mutable.Map[ExpressionId, OneshotExpression] =
-    mutable.Map.empty
+  private val oneshotExpressions
+    : concurrent.Map[ExpressionId, OneshotExpression] =
+    concurrent.TrieMap.empty
 
   private val visualizationMap: mutable.Map[ExpressionId, List[Visualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
@@ -97,6 +99,8 @@ class VisualizationHolder {
     this.oneshotExpressions
       .put(oneshotExpression.expressionId, oneshotExpression)
   }
+
+  def hasOneShotExpressions(): Boolean = this.oneshotExpressions.nonEmpty
 }
 
 object VisualizationHolder {

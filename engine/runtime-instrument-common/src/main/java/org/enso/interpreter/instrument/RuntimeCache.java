@@ -1,29 +1,33 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import java.lang.ref.Reference;
-import java.lang.ref.SoftReference;
-import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import org.enso.common.CachePreferences;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.service.ExecutionService;
+import org.enso.interpreter.service.GuestExecutionService;
 
 /** A storage for computed values. */
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
-  private final Map<UUID, Reference<Object>> cache = new HashMap<>();
-  private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
+  private final Map<UUID, Observable> cache = new ConcurrentHashMap<>();
   private final Map<UUID, TypeInfo> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
-  private CachePreferences preferences = CachePreferences.empty();
   private Consumer<UUID> observer;
+  private final GuestExecutionService executionService;
+
+  public RuntimeCache(GuestExecutionService executionService) {
+    this.executionService = executionService;
+  }
 
   /**
-   * Add value to the cache if it is possible.
+   * Add value to the cache if it is possible. If any observer registered for `key` updates, it will be notified.
+   * DataflowErrors are never cached.
    *
    * @param key the key of an entry.
    * @param value the added value.
@@ -31,27 +35,38 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
-    expressions.put(key, new WeakReference<>(value));
-    if (preferences.contains(key)) {
-      var ref = new SoftReference<>(value);
-      cache.put(key, ref);
-      return true;
+    var observable = cache.get(key);
+    // If one `offers` the value, then it means an Observable has been assigned to the key
+    assert observable != null;
+    var notDataflowError = !(value instanceof DataflowError);
+    observable.update(value, notDataflowError, executionService);
+    return notDataflowError;
+  }
+
+  /** Get the observable from the cache. */
+  public Observable get(UUID key) {
+    return cache.computeIfAbsent(key, k -> new Observable(key));
+  }
+
+  /** Get the observable from the cache. */
+  public Observable get(UUID expressionId, UUID downstreamDependency) {
+    var o = cache.computeIfAbsent(expressionId, _ -> new Observable(expressionId));
+    return downstreamDependency == null ? o : o.register(cache.get(downstreamDependency));
+  }
+
+  public CompletionStage<Boolean> registerAction(UUID expressionId, ObservableAction action) {
+    return cache
+        .computeIfAbsent(expressionId, k -> new Observable(expressionId))
+        .registerAction(action, executionService);
+  }
+
+  public boolean deregisterAction(UUID expressionId, UUID visualizationId) {
+    var observable = cache.get(expressionId);
+    if (observable != null) {
+      return observable.deregisterAction(visualizationId);
+    } else {
+      return false;
     }
-    return false;
-  }
-
-  /** Get the value from the cache. */
-  public Object get(UUID key) {
-    var ref = cache.get(key);
-    var res = ref != null ? ref.get() : null;
-    return res;
-  }
-
-  /** Get the value from the cache. */
-  public Object getAnyValue(UUID key) {
-    var ref = expressions.get(key);
-    var res = ref != null ? ref.get() : null;
-    return res;
   }
 
   // Accessed in InstrumentorBuiltin
@@ -60,8 +75,8 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     Object res;
     try {
       var key = UUID.fromString(uuid);
-      var ref = expressions.get(key);
-      res = ref != null ? ref.get() : null;
+      var observable = cache.get(key);
+      res = observable == null ? null : observable.get();
       var callback = observer;
       if (callback != null) {
         callback.accept(key);
@@ -96,13 +111,13 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    * @param kind the kind of cached value to clear
    * @return the set of cleared keys
    */
-  public Set<UUID> clear(CachePreferences.Kind kind) {
+  /*public Set<UUID> clear(CachePreferences.Kind kind) {
     var keys = preferences.get(kind);
     for (var key : keys) {
       cache.remove(key);
     }
     return keys;
-  }
+  }*/
 
   /**
    * Cache the type of expression.
@@ -175,36 +190,6 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   /** Clear the cached types. */
   public void clearTypes() {
     types.clear();
-  }
-
-  /**
-   * @return the preferences of this cache.
-   */
-  public CachePreferences getPreferences() {
-    return preferences;
-  }
-
-  /**
-   * Set the new cache preferences.
-   *
-   * @param preferences the new cache preferences
-   */
-  public void setPreferences(CachePreferences preferences) {
-    this.preferences = preferences;
-  }
-
-  /**
-   * Remove the cache preference associated with the provided key.
-   *
-   * @param key the preference to remove
-   */
-  public void removePreference(UUID key) {
-    preferences.remove(key);
-  }
-
-  /** Clear the cache preferences. */
-  public void clearPreferences() {
-    preferences.clear();
   }
 
   /**

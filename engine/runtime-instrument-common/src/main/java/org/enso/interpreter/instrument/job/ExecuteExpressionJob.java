@@ -44,8 +44,10 @@ public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<E
             () -> {
               OneshotExpression oneshotExpression =
                   new OneshotExpression(visualizationId, expressionId, contextId, expression);
+              // NOTE: "Oneshot" expressions cannot be implemented as a one-off visualization
+              // attached to a reactive object
+              // because they need expression's node context for evaluation.
               ctx.contextManager().setOneshotExpression(contextId, oneshotExpression);
-
               var stack = ctx.contextManager().getStack(contextId);
               return new Executable(contextId, stack);
             });

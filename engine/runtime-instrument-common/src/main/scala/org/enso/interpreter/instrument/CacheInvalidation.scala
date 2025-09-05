@@ -230,14 +230,14 @@ object CacheInvalidation {
           cache.remove(key)
           indexes.foreach(clearIndexKey(key, _, cache))
         }
-      case Command.InvalidateByKind(kinds) =>
-        kinds.foreach { kind =>
+      case Command.InvalidateByKind(_) =>
+      /*kinds.foreach { kind =>
           val keys = cache.clear(kind)
           logger.trace("Cache - clear keys in kind {}: {}", kind, keys)
           keys.forEach { key =>
             indexes.foreach(clearIndexKey(key, _, cache))
           }
-        }
+        }*/
       case Command.InvalidateStale(scope) =>
         val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
         logger.trace("Cache - clear stale keys: {}", staleKeys)
@@ -247,7 +247,7 @@ object CacheInvalidation {
           syncState.foreach(_.invalidate(key))
         }
       case Command.SetMetadata(metadata) =>
-        cache.setPreferences(metadata.preferences)
+      //cache.setPreferences(metadata.preferences)
     }
 
   /** Clear the selected index.
@@ -259,10 +259,10 @@ object CacheInvalidation {
     selector match {
       case IndexSelector.All =>
         cache.clearTypes()
-        cache.clearPreferences()
+        //cache.clearPreferences()
         cache.clearCalls()
       case IndexSelector.Weights =>
-        cache.clearPreferences()
+      //cache.clearPreferences()
       case IndexSelector.Types =>
         cache.clearTypes()
       case IndexSelector.Calls =>
@@ -283,10 +283,10 @@ object CacheInvalidation {
     selector match {
       case IndexSelector.All =>
         cache.removeType(key)
-        cache.removePreference(key)
+        //cache.removePreference(key)
         cache.removeCall(key)
       case IndexSelector.Weights =>
-        cache.removePreference(key)
+      //cache.removePreference(key)
       case IndexSelector.Types =>
         cache.removeType(key)
       case IndexSelector.Calls =>

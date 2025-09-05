@@ -14,7 +14,7 @@ public interface IdExecutionService {
   public abstract class Info {
 
     /**
-     * @return UUID of the node, never {@code null}.
+     * @return UUID of the node, or {@code null} if no UUID has been assigned.
      */
     public abstract UUID getId();
 
@@ -52,7 +52,7 @@ public interface IdExecutionService {
      * @return {@code null} should the execution of the node be performed; any other value to skip
      *     the execution and return the value as a result.
      */
-    Object findCachedResult(Info info);
+    Object findCachedResult(Info info, UUID downstreamDependency);
 
     /**
      * Notifies when an execution of a node is over.
@@ -94,6 +94,12 @@ public interface IdExecutionService {
      */
     void updateLocalExecutionEnvironment(
         UUID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess);
+
+    void updateParent(Info info, UUID parent);
+
+    UUID restoreParent(UUID currentNodeUUID);
+
+    boolean needsFullExecution();
   }
 
   /**

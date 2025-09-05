@@ -49,6 +49,7 @@ import org.enso.polyglot.debugger.IdExecutionService;
 public class IdExecutionInstrument extends TruffleInstrument implements IdExecutionService {
 
   private Env env;
+  private static UUID globalParentNode;
 
   /**
    * Initializes the instrument. Substitute for a constructor, called by the Truffle framework.
@@ -209,11 +210,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
 
         Info info = new NodeInfo(frame.materialize(), context.getInstrumentedNode());
-        Object result = callbacks.findCachedResult(info);
+        Object result = callbacks.findCachedResult(info, globalParentNode);
 
-        if (result != null) {
+        if (result != null && !callbacks.needsFullExecution()) {
           throw context.createUnwind(result);
         }
+        EnsoContext.get(this).currentRuntimeAnalysis().enterNode(info.getId());
+        setParentNode(info);
         setExecutionEnvironment(info);
         nanoTimeElapsed = timer.getTime();
       }
@@ -232,6 +235,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           return;
         }
         Node node = context.getInstrumentedNode();
+        restoreParentNode(node);
+        var uuid = NodeInfo.getNodeId(node);
 
         if (node instanceof FunctionCallInstrumentationNode functionCallInstrumentationNode
             && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
@@ -243,6 +248,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   frame == null ? null : frame.materialize(),
                   node);
           Object cachedResult = callbacks.onFunctionReturn(info);
+          resetExecutionEnvironment(uuid);
           if (cachedResult != null) {
             throw context.createUnwind(cachedResult);
           }
@@ -256,13 +262,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   frame == null ? null : frame.materialize(),
                   node);
           callbacks.updateCachedResult(info);
-          resetExecutionEnvironment(info.getId());
-
+          resetExecutionEnvironment(uuid);
           if (info.isPanic()) {
             throw context.createUnwind(result);
           }
-        } else if (node instanceof ExpressionNode expressionNode) {
-          resetExecutionEnvironment(expressionNode.getId());
+        } else {
+          resetExecutionEnvironment(uuid);
         }
       }
 
@@ -339,15 +344,35 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
       }
 
+      private void setParentNode(IdExecutionService.Info info) {
+        assert info != null;
+        if (info.getId() != null) {
+          callbacks.updateParent(info, globalParentNode);
+          globalParentNode = info.getId();
+        }
+      }
+
+      private void restoreParentNode(Node node) {
+        var uuid = NodeInfo.getNodeId(node);
+        if (uuid != null) {
+          var parent = callbacks.restoreParent(uuid);
+          globalParentNode = parent;
+        }
+        EnsoContext.get(this).currentRuntimeAnalysis().exitNode(uuid);
+      }
+
       private void resetExecutionEnvironment(UUID uuid) {
-        callbacks.updateLocalExecutionEnvironment(
-            uuid,
-            Objects::nonNull,
-            (originalExecutionEnvironment) -> {
-              EnsoContext context = EnsoContext.get(this);
-              context.setExecutionEnvironment((ExecutionEnvironment) originalExecutionEnvironment);
-              return null;
-            });
+        if (uuid != null) {
+          callbacks.updateLocalExecutionEnvironment(
+              uuid,
+              Objects::nonNull,
+              (originalExecutionEnvironment) -> {
+                EnsoContext context = EnsoContext.get(this);
+                context.setExecutionEnvironment(
+                    (ExecutionEnvironment) originalExecutionEnvironment);
+                return null;
+              });
+        }
       }
     }
   }

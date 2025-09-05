@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.job
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
 import org.enso.common.CachePreferences
 import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
@@ -40,6 +39,8 @@ import java.io.File
 import java.util
 import java.util.UUID
 import java.util.function.Consumer
+import scala.annotation.unused
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -371,6 +372,7 @@ class EnsureCompiledJob(
     * @param reason human-readable explanation for invalidation
     * @return the list of cache invalidation commands
     */
+  @unused
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
     ir: IR,
@@ -405,6 +407,7 @@ class EnsureCompiledJob(
     )
   }
 
+  @unused
   private def getModuleIds(ir: IR): Set[UUID @ExternalID] = {
     val builder = Set.newBuilder[UUID @ExternalID]
     IR.preorder(ir, _.getExternalId.foreach(builder.addOne))
@@ -456,7 +459,49 @@ class EnsureCompiledJob(
     module: Module,
     changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
-    val invalidationCommands =
+    val resolutionErrors = findNodesWithResolutionErrors(module.getIr)
+    ctx.state.executionHooks.add(new Runnable {
+      override def run(): Unit = {
+        ctx.contextManager.getAllContexts.values.foreach { stack =>
+          val runtimeCache =
+            stack.headOption.flatMap(frame => Option(frame.cache))
+          val uuids = changeset.invalidated ++ resolutionErrors
+          runtimeCache.foreach { cache =>
+            val updates = uuids.flatMap { uuid =>
+              val observable = cache.get(uuid)
+              if (observable != null) {
+                collection.immutable.SortedSet(
+                  observable.invalidate().toList.asScala.toSeq: _*
+                )
+              } else {
+                Set.empty
+              }
+            }
+            // pending updates
+            val expressionUpdates = updates.map { key =>
+              Api.ExpressionUpdate(
+                key,
+                None,
+                None,
+                Vector.empty,
+                true,
+                false,
+                Api.ExpressionUpdate.Payload.Pending(None, None)
+              )
+            }
+            if (expressionUpdates.nonEmpty) {
+              ctx.contextManager.getAllContexts.keys.foreach { contextId =>
+                val response = Api.Response(
+                  Api.ExpressionUpdates(contextId, expressionUpdates)
+                )
+                ctx.endpoint.sendToClient(response)
+              }
+            }
+          }
+        }
+      }
+    })
+    /*val invalidationCommands =
       buildCacheInvalidationCommands(changeset, module.getIr, "changeset")
     ctx.contextManager.getAllContexts.values
       .foreach { stack =>
@@ -501,7 +546,7 @@ class EnsureCompiledJob(
         val response = Api.Response(Api.ExpressionUpdates(contextId, updates))
         ctx.endpoint.sendToClient(response)
       }
-    }
+    }*/
   }
 
   /** Send notification about the compilation status.
@@ -605,6 +650,7 @@ class EnsureCompiledJob(
     * @param module the qualified module name
     * @param stack the execution stack
     */
+  @unused
   private def isStackInModule(
     module: QualifiedName,
     stack: Iterable[InstrumentFrame]

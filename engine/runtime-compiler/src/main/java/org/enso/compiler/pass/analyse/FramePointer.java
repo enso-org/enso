@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
+import java.util.UUID;
 import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.persist.Persistable;
@@ -8,8 +9,9 @@ import scala.Option;
 /**
  * A representation of a pointer into a stack frame at a given number of levels above the current.
  */
-@Persistable(clazz = FramePointer.class, id = 1283)
-public record FramePointer(int parentLevel, int frameSlotIdx) implements FrameAnalysisMeta {
+@Persistable(clazz = FramePointer.class, id = 1288)
+public record FramePointer(int parentLevel, int frameSlotIdx, UUID externalId)
+    implements FrameAnalysisMeta {
 
   public FramePointer {
     assert parentLevel >= 0;

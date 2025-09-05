@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.IR;
@@ -46,17 +47,20 @@ public sealed interface FrameAnalysisMeta extends ProcessingPass.Metadata
           var defLink = linkOpt.get();
           var defId = defLink.target();
           var defOcc = (GraphOccurrence.Def) graph.getOccurrence(defId).get();
+          UUID externalId = defOcc == null ? null : defOcc.externalId().getOrElse(() -> null);
           var defScope = graph.scopeFor(defId).get();
           var parentLevel = getScopeDistance(defScope, scope);
           var frameSlotIdx = getFrameSlotIdxInScope(graph, defScope, defOcc);
-          updateMetadata(ir, new FramePointer(parentLevel, frameSlotIdx));
+          updateMetadata(ir, new FramePointer(parentLevel, frameSlotIdx, externalId));
         }
       }
       case GraphOccurrence.Def defn -> {
         // The definition cannot write to parent's frame slots.
         var parentLevel = 0;
         var frameSlotIdx = getFrameSlotIdxInScope(graph, scope, defn);
-        FrameAnalysisMeta.updateMetadata(ir, new FramePointer(parentLevel, frameSlotIdx));
+        UUID externalId = defn.externalId().getOrElse(() -> null);
+        FrameAnalysisMeta.updateMetadata(
+            ir, new FramePointer(parentLevel, frameSlotIdx, externalId));
       }
     }
   }

@@ -116,7 +116,7 @@ case object FramePointerAnalysis extends IRPass {
         case Name.Self(loc, synthetic, _) if loc == null && synthetic =>
           // synthetic self argument has occurrence attached, but there is no Occurence.Def for it.
           // So we have to handle it specially.
-          FrameAnalysisMeta.updateMetadata(arg, new FramePointer(0, 1))
+          FrameAnalysisMeta.updateMetadata(arg, new FramePointer(0, 1, null))
         case _ =>
           maybeAttachFramePointer(arg, graph)
       }

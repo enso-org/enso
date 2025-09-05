@@ -1,15 +1,9 @@
 package org.enso.interpreter.instrument.job
 
 import org.slf4j.LoggerFactory
-import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.{definition, Definition}
-import org.enso.compiler.refactoring.IRUtils
-import org.enso.compiler.pass.analyse.{
-  CachePreferenceAnalysis,
-  DataflowAnalysis
-}
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   EvaluationFailed,
@@ -18,8 +12,8 @@ import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   RequiresCompilation
 }
 import org.enso.interpreter.instrument.{
-  CacheInvalidation,
   InstrumentFrame,
+  ObservableAction,
   RuntimeCache,
   Visualization
 }
@@ -29,6 +23,8 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
+//import java.util.concurrent.CompletableFuture
+import java.util.function.Consumer
 import scala.annotation.unused
 import scala.concurrent.ExecutionException
 import scala.util.Try
@@ -159,6 +155,12 @@ class UpsertVisualizationJob(
       expressionId
     )
 
+    val stack =
+      ctx.contextManager.getStack(config.executionContextId)
+    val runtimeCache = stack.headOption
+      .flatMap(frame => Option(frame.cache))
+      .getOrElse(new RuntimeCache(ctx.executionService))
+
     val visualization =
       UpsertVisualizationJob.updateAttachedVisualization(
         visualizationId,
@@ -166,12 +168,36 @@ class UpsertVisualizationJob(
         module,
         config,
         callable,
-        arguments
+        arguments,
+        runtimeCache
       )
-    val stack =
-      ctx.contextManager.getStack(config.executionContextId)
-    val runtimeCache = stack.headOption
-      .flatMap(frame => Option(frame.cache))
+    val action = new Consumer[Object] {
+      override def accept(value: Object): Unit = {
+        ProgramExecutionSupport.executeAndSendVisualizationUpdate(
+          config.executionContextId,
+          runtimeCache,
+          stack.headOption.get.syncState,
+          visualization,
+          expressionId,
+          value
+        )
+      }
+    }
+    val registered =
+      runtimeCache.registerAction(
+        expressionId,
+        new ObservableAction(visualizationId, action)
+      )
+    registered
+      .thenApply(needsExecution => {
+        if (needsExecution)
+          Some(Executable(config.executionContextId, stack))
+        else
+          None
+      })
+      .toCompletableFuture
+      .get()
+    /*
     val cachedValue = runtimeCache
       .flatMap(c => Option(c.get(expressionId)))
     UpsertVisualizationJob.requireVisualizationSynchronization(
@@ -195,7 +221,7 @@ class UpsertVisualizationJob(
           expressionId
         )
         Some(Executable(config.executionContextId, stack))
-    }
+    }*/
   }
 
   private def replyWithExpressionFailedError(
@@ -233,6 +259,7 @@ object UpsertVisualizationJob {
     LoggerFactory.getLogger(classOf[UpsertVisualizationJob])
 
   /** Invalidate caches for a particular expression id. */
+  /*@unused
   sealed private case class InvalidateCaches(
     expressionId: Api.ExpressionId
   )(implicit ctx: RuntimeContext)
@@ -244,7 +271,7 @@ object UpsertVisualizationJob {
         () => invalidateCaches(expressionId)
       )
     }
-  }
+  }*/
 
   /** The number of times to retry the expression evaluation. */
   private val MaxEvaluationRetryCount: Int = 5
@@ -312,7 +339,8 @@ object UpsertVisualizationJob {
         result.module,
         visualizationConfig,
         result.callback,
-        result.arguments
+        result.arguments,
+        visualization.cache
       )
       val stack =
         ctx.contextManager.getStack(visualizationConfig.executionContextId)
@@ -607,7 +635,8 @@ object UpsertVisualizationJob {
     module: Module,
     visualizationConfig: Api.VisualizationConfiguration,
     callback: AnyRef,
-    arguments: Vector[AnyRef]
+    arguments: Vector[AnyRef],
+    runtimeCache: RuntimeCache
   )(implicit ctx: RuntimeContext): Visualization = {
     val visualizationExpressionId =
       findVisualizationExpressionId(module, visualizationConfig.expression)
@@ -615,15 +644,17 @@ object UpsertVisualizationJob {
       Visualization(
         visualizationId,
         expressionId,
-        new RuntimeCache(),
+        runtimeCache,
         module,
         visualizationConfig,
         visualizationExpressionId,
         callback,
         arguments
       )
-    setCacheWeights(visualization)
-    ctx.state.executionHooks.add(InvalidateCaches(expressionId))
+    //setCacheWeights(visualization)
+    //ctx.state.executionHooks.add(InvalidateCaches(expressionId))
+
+    // FIXME: remove
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization
@@ -675,34 +706,34 @@ object UpsertVisualizationJob {
   }
 
   /** Update the caches. */
-  private def invalidateCaches(
+  /* private def invalidateCaches(
     expressionId: Api.ExpressionId
   )(implicit ctx: RuntimeContext): Unit = {
     val stacks = ctx.contextManager.getAllContexts.values
     /* The invalidation of the first cached dependent node is required for
-     * attaching the visualizations to sub-expressions. Consider the example
-     * ```
-     * op = target.foo arg
-     * ```
-     * The result of expression `target.foo arg` is cached. If you attach the
-     * visualization to say `target`, the sub-expression `target` won't be
-     * executed because the whole expression is cached. And the visualization
-     * won't be computed.
-     * To workaround this issue, the logic below tries to identify if the
-     * visualized expression is a sub-expression and invalidate the first parent
-     * expression accordingly.
-     */
+   * attaching the visualizations to sub-expressions. Consider the example
+   * ```
+   * op = target.foo arg
+   * ```
+   * The result of expression `target.foo arg` is cached. If you attach the
+   * visualization to say `target`, the sub-expression `target` won't be
+   * executed because the whole expression is cached. And the visualization
+   * won't be computed.
+   * To workaround this issue, the logic below tries to identify if the
+   * visualized expression is a sub-expression and invalidate the first parent
+   * expression accordingly.
+   */
     if (!stacks.exists(isExpressionCached(expressionId, _))) {
       invalidateFirstDependent(expressionId)
     }
   }
 
   /** Check if the expression is cached in the execution stack.
-    *
-    * @param expressionId the expression id to check
-    * @param stack the execution stack
-    * @return `true` if the expression exists in the frame cache
-    */
+   *
+   * @param expressionId the expression id to check
+   * @param stack the execution stack
+   * @return `true` if the expression exists in the frame cache
+   */
   private def isExpressionCached(
     expressionId: Api.ExpressionId,
     stack: Iterable[InstrumentFrame]
@@ -713,10 +744,10 @@ object UpsertVisualizationJob {
   }
 
   /** Set the cache weights for the provided visualization.
-    *
-    * @param visualization the visualization to update
-    */
-  private def setCacheWeights(visualization: Visualization): Unit = {
+   *
+   * @param visualization the visualization to update
+   */
+   private def setCacheWeights(visualization: Visualization): Unit = {
     visualization.module.getIr
       .getMetadata(CachePreferenceAnalysis)
       .foreach { metadata =>
@@ -728,9 +759,9 @@ object UpsertVisualizationJob {
   }
 
   /** Invalidate the first cached dependent node of the provided expression.
-    *
-    * @param expressionId the expression id
-    */
+   *
+   * @param expressionId the expression id
+   */
   private def invalidateFirstDependent(
     expressionId: Api.ExpressionId
   )(implicit ctx: RuntimeContext): Unit = {
@@ -774,7 +805,7 @@ object UpsertVisualizationJob {
               }
           }
       }
-  }
+  }*/
 
   /** Require to send the visualization update.
     *
