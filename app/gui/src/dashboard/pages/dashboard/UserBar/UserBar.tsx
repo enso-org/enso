@@ -22,7 +22,6 @@ import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
 import type { TextId } from 'enso-common/src/text'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import { AnimatePresence, motion } from 'framer-motion'
 import { twJoin } from 'tailwind-merge'
 import { z } from 'zod'
 import { NotificationTray } from './NotificationTray'
@@ -94,23 +93,14 @@ export function UserBar(props: UserBarProps) {
   return (
     <div className="pt-0.5">
       <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x">
-        <AnimatePresence initial={false}>
-          {isOffline && (
-            <motion.div
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-              exit={{ opacity: 0, x: 12 }}
-              className="mr-2 flex items-center gap-2"
-            >
-              <SvgMask src={Offline} className="aspect-square w-4 flex-none" />
-              <Text tooltip={getText('offlineToastMessage')} tooltipDisplay="always">
-                {getText('youAreOffline')}
-              </Text>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {isOffline && (
+          <div className="mr-2 flex items-center gap-2">
+            <SvgMask src={Offline} className="aspect-square w-4 flex-none" />
+            <Text tooltip={getText('offlineToastMessage')} tooltipDisplay="always">
+              {getText('youAreOffline')}
+            </Text>
+          </div>
+        )}
         {isCurrentlyTrialing && (
           <VisualTooltip
             className="relative px-2"

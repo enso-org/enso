@@ -11,17 +11,11 @@ import { useAutoFocus } from '#/hooks/autoFocusHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { twJoin } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
-import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import * as React from 'react'
 import { useLayoutEffect } from 'react'
 import type { z } from 'zod'
 
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-assignment
-const MotionText = motion(Text)
-
-/**
- * Props for {@link EditableSpan}.
- */
+/** Props for {@link EditableSpan}. */
 export interface EditableSpanProps {
   readonly 'data-testid'?: string
   readonly className?: string
@@ -29,9 +23,7 @@ export interface EditableSpanProps {
   readonly onSubmit: (value: string) => Promise<void>
   readonly onCancel: () => void
   readonly children: string
-  /**
-   * Additional schema to validate the value.
-   */
+  /** Additional schema to validate the value. */
   readonly schema?: (schema: z.ZodType<string>) => z.ZodType<string>
 }
 
@@ -50,37 +42,10 @@ export default function EditableSpan(props: EditableSpanProps) {
   return <EditForm {...props} />
 }
 
-/**
- * Props for {@link EditForm}.
- */
+/** Props for {@link EditForm}. */
 interface EditFormProps extends EditableSpanProps {}
 
-const CONTAINER_VARIANTS: Variants = {
-  hidden: {
-    opacity: 0,
-    transition: {
-      staggerChildren: 1,
-    },
-  },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 1,
-    },
-  },
-}
-
-const CHILD_VARIANTS: Variants = {
-  hidden: { opacity: 0, x: 5 },
-  visible: { opacity: 1, x: 0 },
-}
-
-// eslint-disable-next-line @typescript-eslint/no-magic-numbers
-const TRANSITION_OPTIONS = { stiffness: 300, damping: 150, mass: 1 }
-
-/**
- * Edit form for {@link EditableSpan}.
- */
+/** Edit form for {@link EditableSpan}. */
 function EditForm(props: EditFormProps) {
   const { className = '', children, onSubmit, onCancel, schema } = props
 
@@ -160,55 +125,28 @@ function EditForm(props: EditFormProps) {
             }}
           />
 
-          <AnimatePresence>
-            {hasError && <ErrorMessage message={errorMessage} formRef={formRef} />}
-          </AnimatePresence>
+          {hasError && <ErrorMessage message={errorMessage} formRef={formRef} />}
 
-          <AnimatePresence>
-            <motion.div
-              variants={CONTAINER_VARIANTS}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              className="ml-1 flex w-auto flex-none basis-0 items-center gap-1.5"
-            >
-              {form.formState.isDirty && (
-                <motion.div
-                  variants={CHILD_VARIANTS}
-                  transition={TRANSITION_OPTIONS}
-                  initial="hidden"
-                  animate="visible"
-                  exit="hidden"
-                >
-                  <Form.Submit
-                    size="medium"
-                    variant="icon"
-                    icon={TickIcon}
-                    aria-label={getText('confirmEdit')}
-                    children={null}
-                  />
-                </motion.div>
-              )}
+          <div className="ml-1 flex w-auto flex-none basis-0 items-center gap-1.5">
+            {form.formState.isDirty && (
+              <Form.Submit
+                size="medium"
+                variant="icon"
+                icon={TickIcon}
+                aria-label={getText('confirmEdit')}
+                children={null}
+              />
+            )}
 
-              <motion.div
-                variants={CHILD_VARIANTS}
-                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                transition={{ ...TRANSITION_OPTIONS, delay: 0.25 }}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-              >
-                <Button
-                  size="medium"
-                  variant="icon"
-                  icon={CrossIcon}
-                  aria-label={getText('cancelEdit')}
-                  onPress={onCancel}
-                  children={null}
-                />
-              </motion.div>
-            </motion.div>
-          </AnimatePresence>
+            <Button
+              size="medium"
+              variant="icon"
+              icon={CrossIcon}
+              aria-label={getText('cancelEdit')}
+              onPress={onCancel}
+              children={null}
+            />
+          </div>
         </div>
       </Form.Provider>
     </form>
@@ -229,7 +167,7 @@ interface ErrorMessageProps {
 function ErrorMessage(props: ErrorMessageProps) {
   const { message, formRef } = props
 
-  const [measureFormRef, formRect] = useMeasure({ useRAF: false })
+  const [measureFormRef, formRect] = useMeasure()
 
   const offset = 12
   const crossOffset = 30
@@ -254,50 +192,24 @@ function ErrorMessage(props: ErrorMessageProps) {
         transform: `translateX(-${crossOffset}px)`,
       }}
     >
-      <motion.div
-        layout
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        initial={{ opacity: 0, scaleX: 0.99 }}
-        animate={{ opacity: 1, scaleX: 1 }}
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        exit={{ opacity: 0, scaleX: 0.99 }}
+      <div
         className="pointer-events-none absolute h-full w-full rounded-4xl border-[2px] border-danger"
         data-testid="error-message-outline"
       />
 
-      <motion.div
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        initial={{ opacity: 0, x: -4 }}
-        animate={{ opacity: 1, x: 0 }}
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        exit={{ x: -4, opacity: 0 }}
-        data-testid="error-message-container"
-        className="absolute bottom-0 right-0 top-0 z-1"
-      >
+      <div data-testid="error-message-container" className="absolute bottom-0 right-0 top-0 z-1">
         <Underlay
           className="pointer-events-auto flex h-full max-w-[512px] items-center rounded-3xl rounded-l-none bg-danger pl-1.5 pr-2.5"
           style={{ transform: `translateX(100%)` }}
         >
-          <MotionText
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            initial={{ filter: 'blur(8px)', opacity: 0, x: -12 }}
-            animate={{ filter: 'blur(0px)', opacity: 1, x: 0 }}
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            exit={{ filter: 'blur(8px)', opacity: 0, x: -12 }}
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            transition={{ stiffness: 550, damping: 150, mass: 4 }}
-            testId="error-message-text"
-            variant="body"
-            truncate="1"
-            color="invert"
-          >
+          <Text testId="error-message-text" variant="body" truncate="1" color="invert">
             {message}
-          </MotionText>
+          </Text>
 
           <div className="absolute bottom-0 left-0 aspect-square w-5 -translate-x-full [background:radial-gradient(circle_at_0%_0%,_transparent_70%,_var(--color-danger)_70%)]" />
           <div className="absolute left-0 top-0 aspect-square w-5 -translate-x-full [background:radial-gradient(circle_at_0%_100%,_transparent_70%,_var(--color-danger)_70%)]" />
         </Underlay>
-      </motion.div>
+      </div>
     </div>
   )
 }
