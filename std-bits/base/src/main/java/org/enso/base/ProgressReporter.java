@@ -9,13 +9,31 @@ import org.slf4j.LoggerFactory;
  * be handled by Enso.
  */
 public final class ProgressReporter implements AutoCloseable {
-  public static Object makeHandle(String name) {
-    return new Object() {
-      @Override
-      public String toString() {
-        return name;
-      }
-    };
+  public static final class Handle {
+    private final String name;
+    boolean closed = false;
+
+    Handle(String name) {
+      this.name = name;
+    }
+
+    /** Has the progress reporter been closed. */
+    public boolean isClosed() {
+      return closed;
+    }
+
+    public void close() {
+      closed = true;
+    }
+
+    @Override
+    public String toString() {
+      return name;
+    }
+  }
+
+  public static Handle makeHandle(String name) {
+    return new Handle(name);
   }
 
   private static final Logger LOGGER = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
@@ -31,7 +49,7 @@ public final class ProgressReporter implements AutoCloseable {
     return result;
   }
 
-  private final Object handle;
+  private final Handle handle;
   private final String name;
   private final long count;
   private final long stepSize;
@@ -63,6 +81,9 @@ public final class ProgressReporter implements AutoCloseable {
 
   @Override
   public void close() {
-    LOGGER.trace("ADVANCE {}+{}", handle, count);
+    if (!handle.isClosed()) {
+      LOGGER.trace("ADVANCE {}+{}", handle, count);
+      handle.close();
+    }
   }
 }

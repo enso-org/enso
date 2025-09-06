@@ -35,7 +35,7 @@ Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
    together and will report it as a whole to a [progress displaying
    facility](https://github.com/enso-org/enso/pull/12126).
 type Progress
-    private Running handle label:Text max:Integer logger closed:Ref counter:Ref step:Integer
+    private Running handle label:Text max:Integer logger counter:Ref step:Integer
 
     ## Performs provided `action` while reporting its progress.
        The `action` is a function that takes a `Progress` handle and uses its
@@ -51,12 +51,11 @@ type Progress
         - `step`: how often the progress should be reported. It has to be at
           least one or higher.
     run label:Text up_to:Integer action:(Progress->Any) step:Integer=1 -> Any =
-        handle = ProgressReporter.makeHandle label
         logger = LoggerFactory.getLogger (Progress.to Meta.Type . qualified_name)
-        closed = Ref.new False
         counter = Ref.new step
 
-        Managed_Resource.bracket (Progress.Running handle label (up_to.max 1) logger closed counter step) close_progress progress->
+        Managed_Resource.bracket (ProgressReporter.makeHandle label) (h -> close_handle h logger up_to) handle->
+            progress = Progress.Running handle label (up_to.max 1) logger counter step
             log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress.handle, progress.label, progress.max]
             res = action progress
             progress.close
@@ -95,9 +94,9 @@ type Progress
        ## Returns
        The self value.
     close self =
-        if self.closed.get then
+        if self.handle.isClosed.not then
             self.advance self.max
-            self.closed.put True
+            self.handle.close
         self
 
     ## Provides additional human readable detail of the status of the
@@ -149,6 +148,6 @@ private log_impl logger ~message level args =
     builder.log
 
 ## Resource closing has to be static
-private close_progress resource =
-    if resource.closed.get.not then
-        log_impl resource.logger "ADVANCE {}+{}" Log_Level.Finest [resource.handle, resource.max]
+private close_handle handle logger max =
+    if handle.isClosed.not then
+        log_impl logger "ADVANCE {}+{}" Log_Level.Finest [handle, max]
