@@ -34,6 +34,8 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
 
   @Override
   public boolean changeWorkingDir(String path) {
+    path = path.replace('/', '\\');
+
     try (var cPath = CTypeConversion.toCString(path)) {
       var res = SetCurrentDirectoryA(cPath.get());
       if (res == 0) {
@@ -49,6 +51,9 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
 
   @Override
   public boolean exists(String dir, String file) {
+    dir = dir.replace('/', '\\');
+    file = file.replace('/', '\\');
+
     String full;
     if (dir.endsWith(File.separator)) {
       full = dir + file;
