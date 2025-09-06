@@ -36,6 +36,7 @@ public class ProgramRootNode extends RootNode {
   }
 
   @Override
+  @CompilerDirectives.TruffleBoundary
   public String getName() {
     var segs = sourceCode.getName().split("\\.");
     if (segs.length == 0) {
@@ -46,6 +47,7 @@ public class ProgramRootNode extends RootNode {
   }
 
   @Override
+  @CompilerDirectives.TruffleBoundary
   public SourceSection getSourceSection() {
     return sourceCode.createSection(0, sourceCode.getLength());
   }
