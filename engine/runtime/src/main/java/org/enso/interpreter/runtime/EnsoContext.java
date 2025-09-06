@@ -240,9 +240,11 @@ public final class EnsoContext {
           var maskedCwd = MaskedPath$.MODULE$.apply(Path.of(cwd.toString()));
           var maskedPath = MaskedPath$.MODULE$.apply(Path.of(parent.toString()));
           var templ =
-              "Initializing with unexpected working directory (%s). "
-                  + "This may lead to improper relative paths resolution by `File.new`. "
-                  + "Change working directory to %s and the engine again.";
+              """
+              Initializing with unexpected working directory (%s).
+              This may lead to improper relative paths resolution by `File.new`.
+              Change working directory to %s and run the engine again.
+              """;
           var msg = templ.formatted(maskedCwd, maskedPath);
           logger.log(Level.WARNING, msg);
           assert false : msg;
