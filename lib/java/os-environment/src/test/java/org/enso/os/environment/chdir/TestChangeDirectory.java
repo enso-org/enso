@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.ImageInfo;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -40,11 +41,11 @@ public class TestChangeDirectory {
     nativeApi = null;
   }
 
-  @Test
-  public void curDir() {
-    var curDir = nativeApi.currentWorkingDir();
-    var expectedDir = System.getProperty("user.dir");
-    assertEquals(expectedDir, curDir);
+  @Before
+  public void ensureCwdIsAtTmpDir() {
+    var rootPath = TMP_DIR.getRoot().getPath();
+    nativeApi.changeWorkingDir(rootPath);
+    assertEquals("CWD is correct", rootPath, nativeApi.currentWorkingDir());
   }
 
   @Test
@@ -144,60 +145,43 @@ public class TestChangeDirectory {
   }
 
   private void findProjectRootRelativePath(String suffix) throws IOException {
-    var projDir = Path.of("Proj");
-    try {
-      var wasCreated = projDir.toFile().mkdir();
-      if (!wasCreated) {
-        throw new IOException(projDir + " directory already exists");
-      }
-      createDummyProject(projDir);
-      var main = projDir.resolve("src").resolve("Main.enso");
-      var mainAbsPath = main.toFile().getCanonicalPath() + suffix;
-      var expectedProjRoot = projDir.toFile().getCanonicalPath();
-      var actualProjRoot = nativeApi.findProjectRoot(mainAbsPath);
-      assertEquals(
-          "Should be able to find project root for " + mainAbsPath,
-          expectedProjRoot,
-          actualProjRoot);
-    } finally {
-      deleteRecursively(projDir);
-    }
+    var projDir = TMP_DIR.newFolder("Proj").toPath();
+    createDummyProject(projDir);
+    var main = projDir.resolve("src").resolve("Main.enso");
+    var relative = TMP_DIR.getRoot().toPath().relativize(main) + suffix;
+    var expectedProjRoot = projDir.toFile().getCanonicalPath();
+    var actualProjRoot = nativeApi.findProjectRoot(relative);
+    assertEquals(
+        "Should be able to find project root for " + relative, expectedProjRoot, actualProjRoot);
+    deleteRecursively(projDir);
   }
 
   @Test
   public void findProjectWithSlashes() throws IOException {
-    findProjectWith("Proj/SubPrj");
+    findProjectWith("SimpleSlash", "SimpleSlash/SubPrj");
   }
 
   @Test
   public void findProjectWithEvenTrailingSlashes() throws IOException {
-    findProjectWith("Proj/SubPrj/");
+    findProjectWith("Trailing", "Trailing/SubPrj");
   }
 
   @Test
   public void findProjectWithSlashesToMain() throws IOException {
-    findProjectWith("Proj/SubPrj/src/Main.enso");
+    findProjectWith("MainFile", "MainFile/SubPrj/src/Main.enso");
   }
 
-  private void findProjectWith(String prjName) throws IOException {
-    var projDir = Path.of("Proj", "SubPrj");
-    try {
-      deleteRecursively(projDir.getParent().toAbsolutePath());
-    } catch (IOException ignore) {
-    }
-    var wasCreated = projDir.toFile().mkdirs();
-    if (!wasCreated) {
-      throw new IOException(projDir + " directory already exists");
-    }
-    createDummyProject(projDir);
-    var expectedProjRoot = projDir.toFile().getCanonicalPath();
-    var actualProjRoot = nativeApi.findProjectRoot(prjName);
+  private void findProjectWith(String container, String resolvePath) throws IOException {
+    var subPrjDir = TMP_DIR.newFolder(container, "SubPrj").toPath();
+    createDummyProject(subPrjDir);
+    var expectedProjRoot = subPrjDir.toFile().getCanonicalPath();
+    var actualProjRoot = nativeApi.findProjectRoot(resolvePath);
     assertEquals(
-        "Should be able to find project root for " + "Proj/SubPrj",
+        "Should be able to find project root for " + "Contain/SubPrj",
         expectedProjRoot,
         actualProjRoot);
 
-    deleteRecursively(projDir.getParent().toAbsolutePath());
+    deleteRecursively(subPrjDir.getParent().toAbsolutePath());
   }
 
   private static void deleteRecursively(Path projDir) throws IOException {
@@ -217,6 +201,10 @@ public class TestChangeDirectory {
             return FileVisitResult.CONTINUE;
           }
         });
+    var dir = projDir.toFile();
+    if (dir.exists()) {
+      assertTrue("Directory can be deleted at the end: " + projDir, dir.delete());
+    }
   }
 
   @Test
@@ -227,9 +215,12 @@ public class TestChangeDirectory {
   }
 
   private static void createDummyProject(Path projDir) throws IOException {
+    var projFile = projDir.toFile();
+    projFile.mkdirs();
+    assertTrue("Directory created " + projDir, projFile.isDirectory());
     Files.write(
         projDir.resolve("package.yaml"),
-        List.of("name: Proj", "version: 0.0.0-dev"),
+        List.of("name: " + projDir.getFileName(), "version: 0.0.0-dev"),
         StandardOpenOption.CREATE_NEW);
     var dirCreated = projDir.resolve("src").toFile().mkdirs();
     assertTrue(dirCreated);
