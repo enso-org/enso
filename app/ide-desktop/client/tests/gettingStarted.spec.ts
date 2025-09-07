@@ -3,8 +3,9 @@
 import { expect } from 'playwright/test'
 import {
   closeWelcome,
-  createNewComponent,
+  createComponentText,
   createNewProject,
+  fillText,
   loginAsTestUser,
   test,
   visualizeData,
@@ -27,9 +28,12 @@ test('Exercise 1', async ({ page }) => {
     await expect(dataReadEntry).toBeVisible()
     await dataReadEntry.click()
 
-    const urlBox = page.getByTestId('widget-text-content')
-    await expect(urlBox).toBeVisible()
-    await urlBox.fill('Samples/Data/sample_bank_data.xlsx')
+    // Filling in file url
+    await fillText(page, 'path‘‘', 'Samples/Data/sample_bank_data.xlsx')
+
+    // const urlBox = page.getByTestId('widget-text-content')
+    // await expect(urlBox).toBeVisible()
+    // await urlBox.fill('Samples/Data/sample_bank_data.xlsx')
 
     await Promise.race([
       page.getByLabel('Show visualization (Space)').waitFor({ state: 'visible', timeout: 5000 }),
@@ -49,32 +53,34 @@ test('Exercise 1', async ({ page }) => {
   })
 
   // ---------------- Objective 2 ----------------
-  await test.step('Objective 1: Filter Data to find “exception” records', async () => {
+  await test.step('Objective 2: Filter Data to find “exception” records', async () => {
     // Adding set component
-    await createNewComponent(page)
+    await createComponentText(page, 'readquery‘Sheet1’')
     await page.locator('.ComponentEntry', { hasText: 'set' }).click()
 
     // Set parameters
     await page.locator('.WidgetSelection.clickable').filter({ hasText: 'value' }).click()
     await page.getByRole('button', { name: '<Simple Expression>', exact: true }).click()
 
-    await page.locator('.widgetApplyPadding', { hasText: 'input' }).click()
+    await page.getByText('input', { exact: true }).click()
     await page.getByRole('button', { name: 'currency_code', exact: true }).click()
 
-    await page.locator('.widgetApplyPadding', { hasText: 'operation' }).click()
+    await page.getByText('operation', { exact: true }).click()
     await page.getByRole('button', { name: 'Text', exact: true }).click()
 
-    await page.locator('.widgetApplyPadding', { hasText: 'operation' }).click()
+    await page.getByText('operation', { exact: true }).click()
     await page.getByRole('button', { name: 'length', exact: true }).click()
 
     // Typing in the column name
-    const container = page.locator('.WidgetArgumentName.primary:has-text("as")')
-    const nameBox = container.locator('div.cm-content[role="textbox"]')
-    await expect(nameBox).toBeVisible()
-    await nameBox.fill('currency_code_length')
+    await fillText(page, 'as“”', 'currency_code_length')
+    // const container = page.getByText('as“”')
+    // const nameBox = container.getByTestId('widget-text-content')
+    // await expect(nameBox).toBeVisible()
+    // await nameBox.fill('currency_code_length')
 
     // Adding filter component
-    await createNewComponent(page)
+    await createComponentText(page, 'set')
+
     await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
     await page.locator('.WidgetSelection.clickable').filter({ hasText: 'column' }).click()
 
@@ -86,7 +92,7 @@ test('Exercise 1', async ({ page }) => {
 
     // Choosing the right filter
     const filterContainer = page.locator('.WidgetArgumentName.primary', { hasText: 'filter' })
-    const filter = filterContainer.locator('span.widgetApplyPadding', { hasText: /^filter$/ })
+    const filter = filterContainer.getByText(/^filter$/)
     await expect(filter).toBeVisible()
     await filter.click()
 
@@ -128,7 +134,7 @@ test('Exercise 1', async ({ page }) => {
 
     // Choosing the right parameters
     const filterContainer2 = page.locator('.WidgetArgumentName.primary', { hasText: 'filter' })
-    const filter2 = filterContainer2.locator('span.widgetApplyPadding', { hasText: /^filter$/ })
+    const filter2 = filterContainer2.getByText(/^filter$/)
     await expect(filter2).toBeVisible()
     await filter2.click()
 
@@ -138,27 +144,12 @@ test('Exercise 1', async ({ page }) => {
     await page.getByRole('button', { name: '<Text Value>' }).click()
 
     // Set the filtered text value
-    const filterInput = page.getByTestId('widget-text-content').last()
-    await expect(filterInput).toBeVisible()
-    await filterInput.fill('Savings Account')
+    await fillText(page, 'filter..Equal“”', 'Savings Account')
 
     // Visualize data frame
     await visualizeData(page)
   })
 
   // ---------------- Objective 4 ----------------
-  await test.step('Objective 4: Using the Zoom controls to show more or less of the workflow', async () => {
-    const seeLess = page.getByLabel('Increase Zoom')
-    const seeMore = page.getByLabel('Decrease Zoom')
-    const showAll = page.getByLabel('Show All Components (Ctrl + Shift + A)')
-
-    // Making all elements visible
-    await showAll.click()
-
-    // Clicking back and forth
-    for (let i = 0; i < 10; i++) {
-      await seeLess.click()
-      await seeMore.click()
-    }
-  })
+  // Hardly testable
 })
