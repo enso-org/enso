@@ -31,10 +31,6 @@ test('Exercise 1', async ({ page }) => {
     // Filling in file url
     await fillText(page, 'path‘‘', 'Samples/Data/sample_bank_data.xlsx')
 
-    // const urlBox = page.getByTestId('widget-text-content')
-    // await expect(urlBox).toBeVisible()
-    // await urlBox.fill('Samples/Data/sample_bank_data.xlsx')
-
     await Promise.race([
       page.getByLabel('Show visualization (Space)').waitFor({ state: 'visible', timeout: 5000 }),
       page
@@ -73,10 +69,6 @@ test('Exercise 1', async ({ page }) => {
 
     // Typing in the column name
     await fillText(page, 'as“”', 'currency_code_length')
-    // const container = page.getByText('as“”')
-    // const nameBox = container.getByTestId('widget-text-content')
-    // await expect(nameBox).toBeVisible()
-    // await nameBox.fill('currency_code_length')
 
     // Adding filter component
     await createComponentText(page, 'set')
