@@ -7,7 +7,7 @@ import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 
 public class TestRunner {
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Throwable {
     var junit = new JUnitCore();
     var results = new ArrayList<Result>();
     for (var testClass : getAllTests()) {
@@ -18,20 +18,17 @@ public class TestRunner {
   }
 
   private static void printSummary(List<Result> results) {
-    var runTests = results.stream().map(Result::getRunCount).mapToInt(m -> m).sum();
-    var failedTests = results.stream().filter(r -> !r.wasSuccessful()).toList();
+    var runTests = results.stream().mapToInt(Result::getRunCount).sum();
+    var failedTests = results.stream().map(Result::getFailures).flatMap(List::stream).toList();
     var ignoredTests = results.stream().map(Result::getIgnoreCount).mapToInt(m -> m).sum();
-    System.out.println("Test run finished.");
-    System.out.println("Number of test classes: " + results.size());
-    System.out.println("Number of tests failed: " + failedTests.size());
-    System.out.println("Number of tests ignored: " + ignoredTests);
-    System.out.println("Number of successful tests: " + runTests);
+    System.out.printf("Test run (of %s classes) finished.\n", results.size());
+    System.out.printf("Number of tests: %s\n", runTests);
+    System.out.printf("Number of tests failed: %s\n", failedTests.size());
+    System.out.printf("Number of tests ignored: %s\n", ignoredTests);
     var success = failedTests.isEmpty();
-    System.out.println("Test run successful: " + success);
+    System.out.printf("Test run successful: %s", success);
     if (!success) {
-      for (var failedTest : failedTests) {
-        printFailures(failedTest.getFailures());
-      }
+      printFailures(failedTests);
       System.exit(1);
     }
   }
