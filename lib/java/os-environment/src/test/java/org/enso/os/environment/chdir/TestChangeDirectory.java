@@ -130,6 +130,20 @@ public class TestChangeDirectory {
   /** Create Proj directory in the current working directory and try to determine its root. */
   @Test
   public void testFindProjectRoot_RelativePath() throws IOException {
+    findProjectRootRelativePath("");
+  }
+
+  @Test
+  public void testFindProjectRoot_RelativePathTrailingSlash() throws IOException {
+    findProjectRootRelativePath("/");
+  }
+
+  @Test
+  public void testFindProjectRoot_RelativePathTrailingSeparatorChar() throws IOException {
+    findProjectRootRelativePath(java.io.File.separator);
+  }
+
+  private void findProjectRootRelativePath(String suffix) throws IOException {
     var projDir = Path.of("Proj");
     try {
       var wasCreated = projDir.toFile().mkdir();
@@ -138,7 +152,7 @@ public class TestChangeDirectory {
       }
       createDummyProject(projDir);
       var main = projDir.resolve("src").resolve("Main.enso");
-      var mainAbsPath = main.toFile().getCanonicalPath();
+      var mainAbsPath = main.toFile().getCanonicalPath() + suffix;
       var expectedProjRoot = projDir.toFile().getCanonicalPath();
       var actualProjRoot = nativeApi.findProjectRoot(mainAbsPath);
       assertEquals(
@@ -148,6 +162,42 @@ public class TestChangeDirectory {
     } finally {
       deleteRecursively(projDir);
     }
+  }
+
+  @Test
+  public void findProjectWithSlashes() throws IOException {
+    findProjectWith("Proj/SubPrj");
+  }
+
+  @Test
+  public void findProjectWithEvenTrailingSlashes() throws IOException {
+    findProjectWith("Proj/SubPrj/");
+  }
+
+  @Test
+  public void findProjectWithSlashesToMain() throws IOException {
+    findProjectWith("Proj/SubPrj/src/Main.enso");
+  }
+
+  private void findProjectWith(String prjName) throws IOException {
+    var projDir = Path.of("Proj", "SubPrj");
+    try {
+      deleteRecursively(projDir.getParent().toAbsolutePath());
+    } catch (IOException ignore) {
+    }
+    var wasCreated = projDir.toFile().mkdirs();
+    if (!wasCreated) {
+      throw new IOException(projDir + " directory already exists");
+    }
+    createDummyProject(projDir);
+    var expectedProjRoot = projDir.toFile().getCanonicalPath();
+    var actualProjRoot = nativeApi.findProjectRoot(prjName);
+    assertEquals(
+        "Should be able to find project root for " + "Proj/SubPrj",
+        expectedProjRoot,
+        actualProjRoot);
+
+    deleteRecursively(projDir.getParent().toAbsolutePath());
   }
 
   private static void deleteRecursively(Path projDir) throws IOException {
@@ -181,7 +231,7 @@ public class TestChangeDirectory {
         projDir.resolve("package.yaml"),
         List.of("name: Proj", "version: 0.0.0-dev"),
         StandardOpenOption.CREATE_NEW);
-    var dirCreated = projDir.resolve("src").toFile().mkdir();
+    var dirCreated = projDir.resolve("src").toFile().mkdirs();
     assertTrue(dirCreated);
     var main = projDir.resolve("src").resolve("Main.enso");
     Files.write(main, List.of("main = 42"), StandardOpenOption.CREATE_NEW);
