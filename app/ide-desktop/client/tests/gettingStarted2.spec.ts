@@ -178,19 +178,23 @@ test('Exercise 2', async ({ page }) => {
     await page.getByRole('button', { name: '<Text Value>' }).click()
 
     // Write in the textbox
-    const inputTo = page.locator('div').filter({ hasText: /^\.\.Equal“”$/ }).locator('label')
-    await expect(inputTo).toBeVisible()
-    await page.pause()
-    await inputTo.fill('G')
+    // const inputTo = page.locator('div').filter({ hasText: /^\.\.Equal“”$/ }).locator('label')
+    // await expect(inputTo).toBeVisible()
+    // await page.pause()
+    // await inputTo.fill('G')
+
+    await fillText(page, '..Equal“”', 'G')
 
     await page.locator('.widgetApplyPadding', { hasText: 'true_value' }).click()
     await page.getByRole('button', { name: '<Text Value>', exact: true }).click()
 
-    // Write in the textbox
-    const inputTrue = page.locator('div').filter({ hasText: /^“”$/ }).nth(1)
-    await expect(inputTrue).toBeVisible()
-    await page.pause()
-    await inputTrue.fill('GBP')
+    // // Write in the textbox
+    // const inputTrue = page.locator('div').filter({ hasText: /^“”$/ }).nth(1)
+    // await expect(inputTrue).toBeVisible()
+    // await page.pause()
+    // await inputTrue.fill('GBP')
+
+    await fillText(page, '..If(..Equal“G”)“”', 'GBP')
 
     await page.locator('.widgetApplyPadding', { hasText: 'false_value' }).click()
     const option = page.getByRole('button', { name: 'currency_code', exact: true })
@@ -199,9 +203,11 @@ test('Exercise 2', async ({ page }) => {
     await option.click()
 
     // Write in the textbox
-    const inputAs = page.getByText('“”')
-    await expect(inputAs).toBeVisible()
-    await inputAs.fill('currency_code')
+    // const inputAs = page.getByText('“”')
+    // await expect(inputAs).toBeVisible()
+    await page.pause()
+    await fillText(page, 'as“”', 'currency_code')
+    // await inputAs.fill('currency_code')
 
     // Draging the connectors
     await page.getByText('set', { exact : true }).click()
