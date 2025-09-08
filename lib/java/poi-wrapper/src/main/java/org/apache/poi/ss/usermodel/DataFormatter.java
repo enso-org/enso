@@ -1,5 +1,3 @@
-package org.apache.poi.ss.usermodel;
-
 /* ====================================================================
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
@@ -20,6 +18,7 @@ package org.apache.poi.ss.usermodel;
    Alfresco Software has modified source of this file
    The details of changes as svn diff can be found in svn at location root/projects/3rd-party/src
 ==================================================================== */
+package org.apache.poi.ss.usermodel;
 
 //
 // Modified version of org.apache.poi:poi-ooxml:5.2.3 that avoids
@@ -49,6 +48,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.poi.logging.PoiLogManager;
 import org.apache.poi.ss.format.CellFormat;
 import org.apache.poi.ss.format.CellFormatResult;
 import org.apache.poi.ss.formula.ConditionalFormattingEvaluator;
@@ -97,7 +97,7 @@ import org.apache.poi.util.StringUtil;
  * underscore and space ("_ ") in the format adds a space to the end and Excel formats this cell as
  * {@code "12.34 "}, but {@code DataFormatter} trims the formatted value and returns {@code
  * "12.34"}. You can enable spaces by passing the {@code emulateCSV=true} flag in the {@code
- * DateFormatter} cosntructor. If set to true, then the output tries to conform to what you get when
+ * DateFormatter} constructor. If set to true, then the output tries to conform to what you get when
  * you take an xls or xlsx in Excel and Save As CSV file:
  *
  * <ul>
@@ -163,6 +163,9 @@ public class DataFormatter {
   /** A regex to detect if an alternate grouping character is used in a numeric format */
   private static final Pattern alternateGrouping = Pattern.compile("([#0]([^.#0])[#0]{3})");
 
+  /** For handling '0#' properly */
+  private static final Pattern decimalFormatFix = Pattern.compile("0+#");
+
   /**
    * Cells formatted with a date or time format and which contain invalid date or time values show
    * 255 pound signs ("#").
@@ -218,7 +221,7 @@ public class DataFormatter {
   // private final PropertyChangeSupport pcs;
 
   /** For logging any problems we find */
-  private static final Logger LOG = LogManager.getLogger(DataFormatter.class);
+  private static final Logger LOG = PoiLogManager.getLogger(DataFormatter.class);
 
   /** Creates a formatter using the {@link Locale#getDefault() default locale}. */
   public DataFormatter() {
@@ -361,6 +364,11 @@ public class DataFormatter {
 
   private Format getFormat(
       double cellValue, int formatIndex, String formatStrIn, boolean use1904Windowing) {
+    if (formatStrIn == null) {
+      throw new IllegalArgumentException(
+          "Missing input format for value " + cellValue + " and index " + formatIndex);
+    }
+
     checkForLocaleChange();
 
     // Might be better to separate out the n p and z formats, falling back to p when n and z are not
@@ -371,7 +379,7 @@ public class DataFormatter {
     // String formatStr = (i < formatBits.length) ? formatBits[i] : formatBits[0];
 
     // this replace is done to fix https://bz.apache.org/bugzilla/show_bug.cgi?id=63211
-    String formatStr = formatStrIn.replace("\\%", "\'%\'");
+    String formatStr = formatStrIn.replace("\\%", "'%'");
 
     // Excel supports 2+ part conditional data formats, eg positive/negative/zero,
     //  or (>1000),(>0),(0),(negative). As Java doesn't handle these kinds
@@ -484,6 +492,10 @@ public class DataFormatter {
 
     if ("General".equalsIgnoreCase(formatStr) || "@".equals(formatStr)) {
       return generalNumberFormat;
+    }
+
+    if (formatStr == null) {
+      return null;
     }
 
     if (DateUtil.isADateFormat(formatIndex, formatStr) && DateUtil.isValidExcelDate(cellValue)) {
@@ -678,7 +690,7 @@ public class DataFormatter {
 
   private String cleanFormatForNumber(String formatStrIn) {
     // this replace is done to fix https://bz.apache.org/bugzilla/show_bug.cgi?id=63211
-    String formatStr = formatStrIn.replace("\\%", "\'%\'");
+    String formatStr = formatStrIn.replace("\\%", "'%'");
 
     StringBuilder sb = new StringBuilder(formatStr);
 
@@ -789,7 +801,7 @@ public class DataFormatter {
         } else if (obj instanceof Double) {
           obj = (Double) obj / divider.doubleValue();
         } else {
-          throw new UnsupportedOperationException();
+          throw new UnsupportedOperationException("cannot scaleInput of type " + obj.getClass());
         }
       }
       return obj;
@@ -827,6 +839,11 @@ public class DataFormatter {
         String newPart = oldPart.replace(grouping, ',');
         format = format.replace(oldPart, newPart);
       }
+    }
+
+    // Excel ignores leading zeros, but Java fails with an exception below
+    if (decimalFormatFix.matcher(format).matches()) {
+      format = "#";
     }
 
     try {
@@ -897,7 +914,7 @@ public class DataFormatter {
         sdf.setTimeZone(LocaleUtil.getUserTimeZone());
         dateFormat = sdf;
       } else {
-        dateFormat = defaultNumFormat;
+        dateFormat = defaultDateformat;
       }
     }
     synchronized (dateFormat) {
@@ -1114,7 +1131,7 @@ public class DataFormatter {
       case ERROR:
         return FormulaError.forInt(cell.getErrorCellValue()).getString();
       default:
-        throw new RuntimeException("Unexpected celltype (" + cellType + ")");
+        throw new IllegalStateException("Unexpected celltype (" + cellType + ")");
     }
   }
 
@@ -1190,12 +1207,12 @@ public class DataFormatter {
    *
    * @return the listener object, where callers can register themselves
    */
-  //    public PropertyChangeSupport getLocaleChangedObservable() {
-  //        return pcs;
-  //    }
+  //  public PropertyChangeSupport getLocaleChangedObservable() {
+  //    return pcs;
+  //  }
 
   private void checkForLocaleChange() {
-    //        checkForLocaleChange(LocaleUtil.getUserLocale());
+    //  checkForLocaleChange(LocaleUtil.getUserLocale());
   }
 
   /**
