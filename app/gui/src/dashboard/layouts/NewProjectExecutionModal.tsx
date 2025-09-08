@@ -67,7 +67,7 @@ const REPEAT_TIMES_COUNT = 3
 /** The form schema for this page. */
 const UPSERT_EXECUTION_SCHEMA = z
   .object({
-    projectId: z.string().refine((x: unknown): x is ProjectId => true),
+    projectId: z.string().refine((_x: unknown): _x is ProjectId => true),
     repeatType: z.enum(PROJECT_EXECUTION_REPEAT_TYPES),
     days: z
       .number()
