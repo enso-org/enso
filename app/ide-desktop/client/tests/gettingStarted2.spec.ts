@@ -63,7 +63,9 @@ test('Exercise 2', async ({ page }) => {
 
     // Choosing parameters
     const groupBy = page.getByText('group_by', { exact: true })
-    await expect(groupBy).toBeVisible()
+
+    // Ensuring 'plus' is visible, to avoid clicking too early
+    await expect(page.locator('div').getByLabel('Add a new item').last()).toBeVisible()
     await groupBy.click()
     await page.getByRole('button', { name: 'product_name', exact: true }).click()
 
@@ -123,7 +125,9 @@ test('Exercise 2', async ({ page }) => {
 
     // Choosing the right parameters
     const crossGroup = await page.getByText('group_by', { exact: true }).nth(1)
-    await expect(crossGroup).toBeVisible()
+
+    // Ensuring 'plus' is visible, to avoid clicking too early
+    await expect(page.locator('div').getByLabel('Add a new item').last()).toBeVisible()
     await crossGroup.click()
     await page.getByRole('button', { name: 'product_name', exact: true }).click()
 
@@ -203,24 +207,7 @@ test('Exercise 2', async ({ page }) => {
 
     // Write in the textbox
     await fillText(page, 'as“”', 'currency_code')
-
-    // Draging the connectors
-    await page.getByText('set', { exact: true }).click()
-
-    const dragLine = page.locator(
-      'g:nth-child(19) > g > g > .portClip > .clickable > .outputPortHoverArea',
-    )
-    const crossEnd = page
-      .locator('div')
-      .filter({ hasText: /^cross_tabgroup_by\[\]names‘currency_code’$/ })
-      .getByRole('img')
-
-    // Moving the line
-    await dragLine.hover()
-    await page.mouse.down()
-    await crossEnd.hover()
-    await page.mouse.up()
-
-    await page.getByText('s', { exact: true }).click()
+    await visualizeData(page)
+    await expect(page.getByText('191')).toBeVisible()
   })
 })
