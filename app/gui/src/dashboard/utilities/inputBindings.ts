@@ -339,8 +339,9 @@ type AutocompleteKeybinds<T extends readonly string[]> = {
 }
 
 /** A list of keybinds, with metadata describing its purpose. */
-export interface KeybindsWithMetadata {
+export interface KeybindsWithMetadata<Category extends string> {
   readonly bindings: readonly [] | readonly string[]
+  readonly category: Category
   readonly description?: string
   readonly icon?: string
   readonly color?: string
@@ -355,8 +356,12 @@ export interface KeybindsWithMetadata {
  * This type SHOULD NOT be explicitly written - it is only exported to suppress TypeScript
  * errors.
  */
-export interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata> {
+export interface AutocompleteKeybindsWithMetadata<
+  T extends KeybindsWithMetadata<Category>,
+  Category extends string,
+> {
   readonly bindings: AutocompleteKeybinds<T['bindings']>
+  readonly category: Category
   readonly description?: string
   readonly icon?: SvgUseIcon
   readonly color?: string
@@ -365,7 +370,7 @@ export interface AutocompleteKeybindsWithMetadata<T extends KeybindsWithMetadata
 }
 
 /** All the corresponding value for an arbitrary key of a {@link Keybinds}. */
-type KeybindValue = KeybindsWithMetadata | readonly [] | readonly string[]
+type KeybindValue = KeybindsWithMetadata<string> | readonly [] | readonly string[]
 
 /**
  * A helper type used to autocomplete and validate an object containing actions and their
@@ -373,12 +378,13 @@ type KeybindValue = KeybindsWithMetadata | readonly [] | readonly string[]
  */
 // `never extends T ? Result : InferenceSource` is a trick to unify `T` with the actual type of the
 // argument.
-type Keybinds<T extends Record<keyof T, KeybindValue>> =
+type Keybinds<T extends Record<keyof T, KeybindValue>, Category extends string> =
   never extends T ?
     {
       [K in keyof T]: T[K] extends readonly string[] ? AutocompleteKeybinds<T[K]>
-      : T[K] extends KeybindsWithMetadata ? AutocompleteKeybindsWithMetadata<T[K]>
-      : ['error...', T]
+      : T[K] extends KeybindsWithMetadata<Category> ?
+        AutocompleteKeybindsWithMetadata<T[K], Category>
+      : KeybindsWithMetadata<Category>
     }
   : T
 
@@ -386,7 +392,7 @@ const DEFINED_NAMESPACES = new Map<
   string,
   // This is SAFE, as the value is only being stored for bookkeeping purposes.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ReturnType<typeof defineBindingNamespace<Record<any, any>>>
+  ReturnType<typeof defineBindingNamespace<Record<any, any>, string>>
 >()
 
 export const DEFAULT_HANDLER = Symbol('default handler')
@@ -448,9 +454,13 @@ export const DEFAULT_HANDLER = Symbol('default handler')
  * useEvent(window, 'keydown', graphBindingsHandler)
  * ```
  */
-export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
+export function defineBindingNamespace<
+  T extends Record<keyof T, KeybindValue>,
+  Category extends string,
+>(
   namespace: string,
-  originalBindings: Keybinds<T>,
+  originalBindings: Keybinds<T, Category>,
+  _categories: readonly Category[] | [],
 ) {
   /** The name of a binding in this set of keybinds. */
   type BindingKey = string & keyof T
@@ -467,7 +477,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     bindings as Readonly<Record<string, KeybindValue>>
 
   // This non-null assertion is SAFE, as it is immediately assigned by `rebuildMetadata()`.
-  let metadata!: Record<BindingKey, KeybindsWithMetadata>
+  let metadata!: Record<BindingKey, KeybindsWithMetadata<Category>>
   const rebuildMetadata = () => {
     // This is SAFE, as this type is a direct mapping from `bindingsAsRecord`, which has `BindingKey`
     // as its keys.
@@ -484,7 +494,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
           return [name, structuredClone(info)]
         }
       }),
-    ) as Record<BindingKey, KeybindsWithMetadata>
+    ) as Record<BindingKey, KeybindsWithMetadata<Category>>
   }
 
   const rebuildLookups = () => {
@@ -581,6 +591,19 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
     }
   }
 
+  const defineHandlers = <
+    Handlers extends Partial<
+      // This MUST be `void` to allow implicit returns.
+      Record<
+        BindingKey | typeof DEFAULT_HANDLER,
+        // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+        (event: Event, matchingBindings: Set<BindingKey>) => boolean | void
+      >
+    >,
+  >(
+    handlers: Handlers,
+  ) => handlers
+
   const attach = <
     EventName extends string,
     Event extends
@@ -642,6 +665,7 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
   const result = {
     /** Return an event handler that handles a native keyboard, mouse or pointer event. */
     handler,
+    defineHandlers,
     /**
      * Attach an event listener to an {@link EventTarget} and return a function to detach the
      * listener.
@@ -686,9 +710,15 @@ export function defineBindingNamespace<T extends Record<keyof T, KeybindValue>>(
 /**
  * A function to define a bindings object that can be passed to {@link defineBindingNamespace}.
  * Useful when wanting to create reusable keybind definitions, or non-global keybind definitions.
+ * @param categories - The categories of the bindings. Order will be preserved in the UI.
+ * @param bindings - The bindings to define.
+ * @returns An object containing the categories and bindings.
  */
-export function defineBindings<T extends Record<keyof T, KeybindValue>>(bindings: Keybinds<T>) {
-  return bindings
+export function defineBindings<T extends Record<keyof T, KeybindValue>, Category extends string>(
+  categories: readonly Category[] | [],
+  bindings: Keybinds<T, Category>,
+) {
+  return { categories, bindings }
 }
 
 /** A type predicate that narrows the potential child of the array. */

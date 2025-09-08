@@ -42,3 +42,9 @@ get_widget_json value call_name argument_names uuids="{}" = time_visualization W
 
     annotations = argument_names.map (arg -> '[' + arg.to_json + ',' + (read_annotation arg).to_json + ']')
     '[' + (annotations.join ',') + ']'
+
+## ---
+   private: true
+   ---
+   Preprocessor for table column names.
+column_names_json table = table.column_names.to_json
