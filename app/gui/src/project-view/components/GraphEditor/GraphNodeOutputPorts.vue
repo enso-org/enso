@@ -186,7 +186,11 @@ graph.value?.suggestEdgeFromOutput(outputHovered)
             @pointerenter="mouseOverOutput = port.portId"
             @pointerleave="mouseOverOutput = undefined"
           >
-            <g class="clickable" @pointerdown.stop.prevent="handlePortClick($event, port.portId)">
+            <g
+              class="clickable"
+              @pointerdown.stop="handlePortClick($event, port.portId)"
+              @click.stop
+            >
               <rect class="outputPortHoverArea" />
               <rect
                 v-if="!componentBrowserOpened && isPortDisconnected(port.portId)"

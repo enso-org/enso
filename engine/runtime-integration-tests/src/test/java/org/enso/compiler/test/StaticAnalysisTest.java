@@ -39,8 +39,8 @@ public abstract class StaticAnalysisTest {
           (builder) ->
               builder
                   .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, "true")
-                  .option(RuntimeOptions.LOG_LEVEL, Level.INFO.getName())
                   .option(RuntimeOptions.LOG_LEVEL, Level.SEVERE.getName())
+                  .option(RuntimeOptions.CHECK_CWD, "false")
                   .out(OutputStream.nullOutputStream())
                   .err(OutputStream.nullOutputStream()));
 

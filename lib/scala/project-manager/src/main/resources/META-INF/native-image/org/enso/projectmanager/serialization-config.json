@@ -25,6 +25,9 @@
       "name":"java.lang.String"
     },
     {
+      "name":"java.net.SocketException"
+    },
+    {
       "name":"java.util.ArrayList"
     },
     {

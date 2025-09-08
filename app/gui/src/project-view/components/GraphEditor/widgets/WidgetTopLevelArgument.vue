@@ -35,7 +35,6 @@ export const widgetDefinition = defineWidget(
   display: flex;
   flex-direction: row;
   place-items: center;
-  overflow-x: clip;
 
   &:before {
     content: '';

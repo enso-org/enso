@@ -130,6 +130,7 @@ public final class SpecCollector {
             .allowIO(IOAccess.ALL)
             .allowAllAccess(true)
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .option(RuntimeOptions.CHECK_CWD, "false")
             .logHandler(new ConsoleHandler())
             .option(RuntimeOptions.PROJECT_ROOT, projectRootDir.getAbsolutePath())
             .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, ensoHomeOverride.getAbsolutePath())

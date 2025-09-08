@@ -1,5 +1,7 @@
+load("@rules_java//java:java_binary.bzl", "java_binary")
+
 java_binary(
-    name = "http-test-helper",
+    name = "http_test_helper",
     srcs = glob(["src/main/java/**/*.java"]),
     javacopts = ["-Xlint:all"],
     main_class = "org.enso.shttp.HTTPTestHelperServer",

@@ -116,4 +116,16 @@ public class TestClass {
       return "subclass";
     }
   }
+
+  public static Function<Object, Object> alien() {
+    return (x) -> x;
+  }
+
+  public static TestClass.FnIntrfc real() {
+    return (x) -> x;
+  }
+
+  public static TestClass.FnIntrfc subclass() {
+    return new FnIntrfcSubclass();
+  }
 }

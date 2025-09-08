@@ -214,13 +214,16 @@ type JS_Object
     ## ---
        group: Logical
        icon: preparation
+       suggested: 5
        ---
-       Returns True iff the objects contains the given `key`.
+       Returns True if the object contains the given `key`.
     contains_key : Text -> Boolean
     contains_key self key:Text = self.object_node.has key
 
     ## ---
+       group: Selections
        icon: parse3
+       suggested: 3
        ---
        Get a value for a key of the object, or a default value if that key is not
        present.
@@ -229,7 +232,7 @@ type JS_Object
         - `key`: The key to get.
         - `if_missing`: The value to return if the key is not found.
     @key make_field_name_selector
-    get : Text -> Any -> Nothing | Boolean | Number | Text | Vector | JS_Object
+    get : Text -> Any -> JS_Object | Boolean | Number | Nothing | Text | Vector
     get self key:Text ~if_missing=Nothing =
         if self.contains_key key . not then if_missing else
             child = self.object_node.get key
@@ -238,6 +241,7 @@ type JS_Object
     ## ---
        group: Selections
        icon: parse3
+       suggested: 2
        ---
        Get a value for a key of the object.
        If the key is not found, throws a `No_Such_Key` error.
@@ -251,6 +255,7 @@ type JS_Object
     ## ---
        group: Metadata
        icon: metadata
+       suggested: 6
        ---
        Get the keys of the object.
     field_names : Vector
@@ -286,6 +291,7 @@ type JS_Object
     ## ---
        group: Metadata
        icon: metadata
+       suggested: 7
        ---
        Gets the number of keys in the object.
     length : Number
@@ -357,7 +363,7 @@ type JS_Object
         render self
 
     ## ---
-       group: Conversions
+       private: true
        icon: convert
        ---
        Creates an Enso object from the JS_Object.
@@ -385,9 +391,11 @@ type JS_Object
                     _ -> Error.throw (Illegal_Argument.Error "Unable to build a "+target_type.to_text+" cannot find unique constructor.")
 
     ## ---
+       group: Values
        icon: edit
+       suggested: 4
        ---
-       Modify a field of a JSON object, returning a new updated object.
+       Modify a field of the object, returning a new updated object.
 
        ## Arguments
         - `key`: the name of the field to modify.

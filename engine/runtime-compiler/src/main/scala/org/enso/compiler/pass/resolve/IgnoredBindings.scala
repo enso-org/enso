@@ -176,15 +176,16 @@ case object IgnoredBindings extends IRPass {
     supply: FreshNameSupply
   ): Function = {
     function match {
-      case lam @ Function.Lambda(args, body, _, _, _, _) =>
+      case lam: Function.Lambda =>
+        val args        = lam.arguments()
         val argIsIgnore = args.map(isIgnoreArg)
         val newArgs = args.zip(argIsIgnore).map { case (arg, isIgnore) =>
           genNewArg(arg, isIgnore, supply)
         }
 
-        lam.copy(
-          arguments = newArgs,
-          body      = resolveExpression(body, supply)
+        lam.copyWithArgumentsAndBody(
+          newArgs,
+          resolveExpression(lam.body(), supply)
         )
       case _: Function.Binding =>
         throw new CompilerError(
@@ -230,9 +231,8 @@ case object IgnoredBindings extends IRPass {
 
           spec
             .copy(
-              name = newName,
-              defaultValue =
-                spec.defaultValue.map(resolveExpression(_, freshNameSupply))
+              newName,
+              spec.defaultValue.map(resolveExpression(_, freshNameSupply))
             )
             .updateMetadata(new MetadataPair(this, State.Ignored))
         } else {
@@ -281,8 +281,8 @@ case object IgnoredBindings extends IRPass {
     cse match {
       case expr: Case.Expr =>
         expr.copy(
-          scrutinee = resolveExpression(expr.scrutinee, supply),
-          branches  = expr.branches.map(resolveCaseBranch(_, supply))
+          resolveExpression(expr.scrutinee, supply),
+          expr.branches.map(resolveCaseBranch(_, supply))
         )
       case _: Case.Branch =>
         throw new CompilerError(

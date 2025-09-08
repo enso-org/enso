@@ -479,13 +479,26 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
           }
           return succeed({ exists: fileSystem.has(path) })
         }
-        case 'filesystem-list': {
+        case 'filesystem-list':
+        case 'filesystem-list-recursive': {
+          const recursive = cliArgumentsObject.name === 'filesystem-list-recursive'
           const folderPath = cliArguments[0]?.replace(/[/]$/, '')
           const folder = folderPath != null ? fileSystem.get(folderPath) : null
-          if (folder?.type !== 'DirectoryEntry') {
+          if (folderPath == null || folder?.type !== 'DirectoryEntry') {
             return fail(`Could not find folder at '${folderPath}'`)
           }
-          const entries: readonly FileSystemEntry[] = folder.children.map(({ entry }) => entry)
+          const folderPathQueue = [folderPath]
+          const entries: FileSystemEntry[] = []
+          while (true) {
+            const currentFolderPath = folderPathQueue.shift()
+            if (currentFolderPath == null) break
+            for (const { entry } of folder.children) {
+              if (recursive && entry.type === 'DirectoryEntry') {
+                folderPathQueue.push(entry.path)
+              }
+              entries.push(entry)
+            }
+          }
           return succeed({ entries })
         }
         case 'filesystem-read-path': {

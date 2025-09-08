@@ -1,7 +1,7 @@
 <script lang="ts">
-import { SHORT_CACHE_TIME_MS } from '#/hooks/backendHooks'
 import { Dashboard as DashboardReact, type DashboardProps } from '#/pages/dashboard/Dashboard'
 import { EnsoPath } from '#/services/Backend'
+import CommandPalette from '$/components/CommandPalette.vue'
 import { useBackends } from '$/providers/backends'
 import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
@@ -40,10 +40,7 @@ export const dataLoader: DataLoader<DashboardProps> = {
     const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
     if (typedAsset?.type !== AssetType.project) return Ok({})
     const options = backendQueryOptions('getAssetDetails', [typedAsset.id, undefined], backend)
-    const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery({
-      ...options,
-      staleTime: SHORT_CACHE_TIME_MS,
-    })
+    const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
     if (!assetResponse) return Ok({})
     const asset: ProjectAsset = { ...assetResponse, ensoPath: path }
     return Ok({ projectToOpen: { asset, backend: backend.type } })
@@ -58,8 +55,10 @@ const openedProjectsStore = provideOpenedProjects()
 provideAsyncResources(openedProjectsStore)
 provideContainerData()
 </script>
+
 <template>
   <div class="TabView">
+    <CommandPalette />
     <ContainerDataProviderForReact>
       <Dashboard v-bind="props" />
     </ContainerDataProviderForReact>

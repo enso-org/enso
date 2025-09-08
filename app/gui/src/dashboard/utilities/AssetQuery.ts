@@ -1,4 +1,5 @@
 /** @file Parsing and representation of the search query. */
+import { unsafeKeyValuePair } from '#/utilities/object'
 import * as array from './array'
 
 // Control characters must be handled, in order to follow the JSON spec.
@@ -17,7 +18,7 @@ function interpolateRegex(regex: RegExp) {
 export type AssetQueryKey = Exclude<keyof AssetQuery & `${string}s`, 'withUpdates'>
 
 /** An {@link AssetQuery}, without the query and methods. */
-export type AssetQueryData = Record<AssetQueryKey, string[][]>
+export type AssetQueryData = Record<AssetQueryKey, readonly string[]>
 
 /**
  * An {@link AssetQuery}, without the query and methods, and with all the values being `string[]`s
@@ -28,7 +29,7 @@ export type AssetQueryLastTermData = Readonly<Record<AssetQueryKey, string[]>>
 /** An individual segment of a query string input to {@link AssetQuery}. */
 interface AssetQueryTerm {
   readonly tag: string | null
-  readonly values: string[]
+  readonly values: readonly string[]
 }
 
 /** Parsing and representation of the search query. */
@@ -39,36 +40,21 @@ export default class AssetQuery {
   static valuesRegex = interpolateRegex(/(?:<json>)|(?:[^,\s"][^,\s]*)/g)
   static tagNames = [
     ['keywords', null],
-    ['negativeKeywords', '-'],
     ['names', 'name'],
-    ['negativeNames', '-name'],
     ['types', 'type'],
-    ['negativeTypes', '-type'],
     ['extensions', 'extension'],
-    ['negativeExtensions', '-extension'],
     ['descriptions', 'description'],
-    ['negativeDescriptions', '-description'],
-    ['modifieds', 'modified'],
-    ['negativeModifieds', '-modified'],
-    ['labels', 'label'],
-    ['negativeLabels', '-label'],
+    // ['modifieds', 'modified'],
+    // ['labels', 'label'],
     ['owners', 'owner'],
-    ['negativeOwners', '-owner'],
-    ['nos', 'no'],
-    ['negativeNos', 'has'],
   ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
   /** The subset of {@link AssetQuery.tagNames} that are applicable for the Local Backend. */
   static localTagNames = [
     ['keywords', null],
-    ['negativeKeywords', '-'],
     ['names', 'name'],
-    ['negativeNames', '-name'],
     ['types', 'type'],
-    ['negativeTypes', '-type'],
     ['extensions', 'extension'],
-    ['negativeExtensions', '-extension'],
-    ['modifieds', 'modified'],
-    ['negativeModifieds', '-modified'],
+    // ['modifieds', 'modified'],
   ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
 
   readonly query
@@ -76,24 +62,14 @@ export default class AssetQuery {
   /** Create an {@link AssetQuery}. */
   constructor(
     query: string | null,
-    readonly keywords: string[][],
-    readonly negativeKeywords: string[][],
-    readonly names: string[][],
-    readonly negativeNames: string[][],
-    readonly labels: string[][],
-    readonly negativeLabels: string[][],
-    readonly types: string[][],
-    readonly negativeTypes: string[][],
-    readonly extensions: string[][],
-    readonly negativeExtensions: string[][],
-    readonly descriptions: string[][],
-    readonly negativeDescriptions: string[][],
-    readonly modifieds: string[][],
-    readonly negativeModifieds: string[][],
-    readonly owners: string[][],
-    readonly negativeOwners: string[][],
-    readonly nos: string[][],
-    readonly negativeNos: string[][],
+    readonly keywords: readonly string[],
+    readonly names: readonly string[],
+    readonly labels: readonly string[],
+    readonly types: readonly string[],
+    readonly extensions: readonly string[],
+    readonly descriptions: readonly string[],
+    readonly modifieds: readonly string[],
+    readonly owners: readonly string[],
   ) {
     this.query = query ?? ''
     if (query == null) {
@@ -129,96 +105,70 @@ export default class AssetQuery {
     const tagSegment = term.tag == null ? '' : term.tag + ':'
     const valueSegment = term.values
       .map((value) => (AssetQuery.plainValueRegex.test(value) ? value : JSON.stringify(value)))
-      .join(',')
+      .join(' ')
     return tagSegment + valueSegment
   }
 
   /** Create an {@link AssetQuery} from a raw user input string. */
   static fromString(query: string): AssetQuery {
     const terms = AssetQuery.terms(query)
-    const keywords: string[][] = []
-    const negativeKeywords: string[][] = []
-    const names: string[][] = []
-    const negativeNames: string[][] = []
-    const labels: string[][] = []
-    const negativeLabels: string[][] = []
-    const types: string[][] = []
-    const negativeTypes: string[][] = []
-    const extensions: string[][] = []
-    const negativeExtensions: string[][] = []
-    const descriptions: string[][] = []
-    const negativeDescriptions: string[][] = []
-    const modifieds: string[][] = []
-    const negativeModifieds: string[][] = []
-    const owners: string[][] = []
-    const negativeOwners: string[][] = []
-    const nos: string[][] = []
-    const negativeNos: string[][] = []
-    const tagNameToSet: Readonly<Record<string, string[][]>> = {
+    const keywords: string[] = []
+    const names: string[] = []
+    const labels: string[] = []
+    const types: string[] = []
+    const extensions: string[] = []
+    const descriptions: string[] = []
+    const modifieds: string[] = []
+    const owners: string[] = []
+    const tagNameToSet: Readonly<Record<string, string[]>> = {
       // This is a dictionary, not an object.
       /* eslint-disable @typescript-eslint/naming-convention */
       '': keywords,
-      '-': negativeKeywords,
       name: names,
-      '-name': negativeNames,
       label: labels,
-      '-label': negativeLabels,
       type: types,
-      '-type': negativeTypes,
       extension: extensions,
-      '-extension': negativeExtensions,
       ext: extensions,
-      '-ext': negativeExtensions,
       description: descriptions,
-      '-description': negativeDescriptions,
       desc: descriptions,
-      '-desc': negativeDescriptions,
       modified: modifieds,
-      '-modified': negativeModifieds,
       owner: owners,
-      '-owner': negativeOwners,
-      no: nos,
-      '-no': negativeNos,
-      has: negativeNos,
-      '-has': nos,
       /* eslint-enable @typescript-eslint/naming-convention */
     }
     for (const term of terms) {
-      const set = term.tag == null ? keywords : tagNameToSet[term.tag]
-      set?.push(term.values)
+      if (term.tag == null) {
+        keywords.push(...term.values)
+      } else {
+        tagNameToSet[term.tag]?.push(...term.values)
+      }
     }
     return new AssetQuery(
       query,
       keywords,
-      negativeKeywords,
       names,
-      negativeNames,
       labels,
-      negativeLabels,
       types,
-      negativeTypes,
       extensions,
-      negativeExtensions,
       descriptions,
-      negativeDescriptions,
       modifieds,
-      negativeModifieds,
       owners,
-      negativeOwners,
-      nos,
-      negativeNos,
     )
   }
 
   /** Return a new array of terms, after applying the given updates. */
-  static updatedTerms(original: string[][], toAdd: string[][] | null, toRemove: string[][] | null) {
+  static updatedTerms(
+    original: readonly string[],
+    toAdd: readonly string[] | null,
+    toRemove: readonly string[] | null,
+  ) {
     toAdd = toAdd?.length === 0 ? null : toAdd
     toRemove = toRemove?.length === 0 ? null : toRemove
     if (toAdd == null && (toRemove == null || original.length === 0)) {
       return null
     } else {
-      let changed = false
-      let terms = original
+      let terms =
+        original.some((term) => term === '') ? original.filter((term) => term !== '') : original
+      let changed = terms === original
       if (toAdd != null) {
         const termsAfterAdditions = [
           ...terms,
@@ -246,102 +196,18 @@ export default class AssetQuery {
     }
   }
 
-  /** Return a new array of terms, after applying the given updates to the last term. */
-  static updatedLastTerm(original: string[][], toAdd: string[] | null, toRemove: string[] | null) {
-    toAdd = toAdd?.filter((term) => term.length !== 0) ?? null
-    toRemove = toRemove?.filter((term) => term.length !== 0) ?? null
-    toAdd = toAdd?.length === 0 ? null : toAdd
-    toRemove = toRemove?.length === 0 ? null : toRemove
-    let lastTerm = original[original.length - 1]
-    if (toAdd == null && (toRemove == null || lastTerm == null || lastTerm.length === 0)) {
-      return null
-    } else {
-      lastTerm ??= []
-      if (lastTerm[lastTerm.length - 1] === '') {
-        lastTerm.pop()
-      }
-      let changed = false
-      if (toAdd != null) {
-        const lastTermAfterAdditions = [
-          ...lastTerm,
-          ...toAdd.filter((word) => lastTerm?.includes(word) === false),
-        ]
-        if (lastTermAfterAdditions.length !== lastTerm.length) {
-          lastTerm = lastTermAfterAdditions
-          changed = true
-        }
-      }
-      if (toRemove != null) {
-        const lastTermAfterRemovals = lastTerm.filter((word) => toRemove.includes(word) === false)
-        if (lastTermAfterRemovals.length !== lastTerm.length) {
-          lastTerm = lastTermAfterRemovals
-          changed = true
-        }
-      }
-      return !changed ? null : original.slice(0, -1).concat(lastTerm.length !== 0 ? [lastTerm] : [])
-    }
-  }
-
-  /** Return a new array of terms, after applying the given updates to the last term. */
-  static updatedEveryTerm(original: string[][], toAdd: string[] | null, toRemove: string[] | null) {
-    toAdd = toAdd?.filter((term) => term.length !== 0) ?? null
-    toRemove = toRemove?.filter((term) => term.length !== 0) ?? null
-    toAdd = toAdd?.length === 0 ? null : toAdd
-    toRemove = toRemove?.length === 0 ? null : toRemove
-    if (toAdd == null && (toRemove == null || original.length === 0)) {
-      return null
-    } else {
-      const newTerms: string[][] = []
-      let changed = false
-      for (const term of original) {
-        let newTerm = term
-        if (toAdd != null) {
-          const termAfterAdditions = [
-            ...newTerm,
-            ...toAdd.filter((word) => newTerm.includes(word) === false),
-          ]
-          if (termAfterAdditions.length !== newTerm.length) {
-            newTerm = termAfterAdditions
-            changed = true
-          }
-        }
-        if (toRemove != null) {
-          const termAfterRemovals = newTerm.filter((word) => toRemove.includes(word) === false)
-          if (termAfterRemovals.length !== newTerm.length) {
-            newTerm = termAfterRemovals
-            changed = true
-          }
-        }
-        if (newTerm.length !== 0) {
-          newTerms.push(newTerm)
-        }
-      }
-      return !changed ? null : newTerms
-    }
-  }
-
   /** Create an identical copy of this query. Useful to force a React refresh. */
   clone() {
     return new AssetQuery(
       this.query,
       this.keywords,
-      this.negativeKeywords,
       this.names,
-      this.negativeNames,
       this.labels,
-      this.negativeLabels,
       this.types,
-      this.negativeTypes,
       this.extensions,
-      this.negativeExtensions,
       this.descriptions,
-      this.negativeDescriptions,
       this.modifieds,
-      this.negativeModifieds,
       this.owners,
-      this.negativeOwners,
-      this.nos,
-      this.negativeNos,
     )
   }
 
@@ -356,148 +222,39 @@ export default class AssetQuery {
       return new AssetQuery(
         null,
         updates.keywords ?? this.keywords,
-        updates.negativeKeywords ?? this.negativeKeywords,
         updates.names ?? this.names,
-        updates.negativeNames ?? this.negativeNames,
         updates.labels ?? this.labels,
-        updates.negativeLabels ?? this.negativeLabels,
         updates.types ?? this.types,
-        updates.negativeTypes ?? this.negativeTypes,
         updates.extensions ?? this.extensions,
-        updates.negativeExtensions ?? this.negativeExtensions,
         updates.descriptions ?? this.descriptions,
-        updates.negativeDescriptions ?? this.negativeDescriptions,
         updates.modifieds ?? this.modifieds,
-        updates.negativeModifieds ?? this.negativeModifieds,
         updates.owners ?? this.owners,
-        updates.negativeOwners ?? this.negativeOwners,
-        updates.nos ?? this.nos,
-        updates.negativeNos ?? this.negativeNos,
       )
     }
   }
 
-  /**
-   * Return a new {@link AssetQuery} with the specified terms added,
-   * or itself if there are no terms to add.
-   */
-  add(values: Partial<AssetQueryData>): AssetQuery {
-    const updates: Partial<AssetQueryData> = {}
-    for (const [key] of AssetQuery.tagNames) {
-      const update = AssetQuery.updatedTerms(this[key], values[key] ?? null, null)
-      if (update != null) {
-        updates[key] = update
-      }
-    }
-    return this.withUpdates(updates)
+  /** Return a new {@link AssetQuery} with the specified terms added. */
+  add(key: AssetQueryKey, value: readonly string[]): AssetQuery {
+    const update = AssetQuery.updatedTerms(this[key], value, null)
+    if (!update) return this
+    return this.withUpdates(unsafeKeyValuePair(key, update))
   }
 
-  /**
-   * Return a new {@link AssetQuery} with the specified terms deleted,
-   * or itself if there are no terms to delete.
-   */
-  delete(values: Partial<AssetQueryData>): AssetQuery {
-    const updates: Partial<AssetQueryData> = {}
-    for (const [key] of AssetQuery.tagNames) {
-      const update = AssetQuery.updatedTerms(this[key], null, values[key] ?? null)
-      if (update != null) {
-        updates[key] = update
-      }
-    }
-    return this.withUpdates(updates)
+  /** Return a new {@link AssetQuery} with the specified terms deleted. */
+  delete(key: AssetQueryKey, value: readonly string[]): AssetQuery {
+    const update = AssetQuery.updatedTerms(this[key], null, value)
+    if (!update) return this
+    return this.withUpdates(unsafeKeyValuePair(key, update))
   }
 
-  /**
-   * Return a new {@link AssetQuery} with the specified words added to the last term
-   * with the matching tag, or itself if there are no terms to add.
-   */
-  addToLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
-    const updates: Partial<AssetQueryData> = {}
-    for (const [key] of AssetQuery.tagNames) {
-      const update = AssetQuery.updatedLastTerm(this[key], values[key] ?? null, null)
-      if (update != null) {
-        updates[key] = update
-      }
-    }
-    return this.withUpdates(updates)
-  }
-
-  /**
-   * Return a new {@link AssetQuery} with the specified terms deleted from the last term
-   * with the matching tag, or itself if there are no terms to delete.
-   */
-  deleteFromLastTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
-    const updates: Partial<AssetQueryData> = {}
-    for (const [key] of AssetQuery.tagNames) {
-      const update = AssetQuery.updatedLastTerm(this[key], null, values[key] ?? null)
-      if (update != null) {
-        updates[key] = update
-      }
-    }
-    return this.withUpdates(updates)
-  }
-
-  /**
-   * Return a new {@link AssetQuery} with the specified words added to every term
-   * with the matching tag, or itself if there are no terms to add.
-   * Note that this makes little sense to use, but is added for symmetry with
-   * {@link AssetQuery.deleteFromEveryTerm}.
-   */
-  addToEveryTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
-    const updates: Partial<AssetQueryData> = {}
-    for (const [key] of AssetQuery.tagNames) {
-      const update = AssetQuery.updatedEveryTerm(this[key], values[key] ?? null, null)
-      if (update != null) {
-        updates[key] = update
-      }
-    }
-    return this.withUpdates(updates)
-  }
-
-  /**
-   * Return a new {@link AssetQuery} with the specified terms deleted from the last term
-   * with the matching tag, or itself if there are no terms to delete.
-   */
-  deleteFromEveryTerm(values: Partial<AssetQueryLastTermData>): AssetQuery {
-    const updates: Partial<AssetQueryData> = {}
-    for (const [key] of AssetQuery.tagNames) {
-      const update = AssetQuery.updatedEveryTerm(this[key], null, values[key] ?? null)
-      if (update != null) {
-        updates[key] = update
-      }
-    }
-    return this.withUpdates(updates)
-  }
-
-  /**
-   * Try to cycle the tag between:
-   * - not present
-   * - present as a positive tag, and
-   * - present as a negative tag.
-   */
-  withToggled(
-    positiveTag: AssetQueryKey,
-    negativeTag: AssetQueryKey,
-    value: string,
-    fromLastTerm = false,
-  ) {
+  /** Try to cycle the tag between present, and not present. */
+  withToggled(positiveTag: AssetQueryKey, value: string) {
     // This aliasing is INTENTIONAL because the variable is (potentially) reassigned.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     let newQuery: AssetQuery = this
-    if (fromLastTerm) {
-      newQuery = newQuery.deleteFromLastTerm({ [negativeTag]: [value] })
-      if (newQuery === this) {
-        newQuery = newQuery.deleteFromLastTerm({ [positiveTag]: [value] })
-        newQuery = newQuery.addToLastTerm({
-          [newQuery === this ? positiveTag : negativeTag]: [value],
-        })
-      }
-    } else {
-      newQuery = newQuery.delete({ [negativeTag]: [[value]] })
-      if (newQuery === this) {
-        newQuery = newQuery.delete({ [positiveTag]: [[value]] })
-        newQuery = newQuery.add({ [newQuery === this ? positiveTag : negativeTag]: [[value]] })
-      }
+    newQuery = newQuery.delete(positiveTag, [value])
+    if (newQuery === this) {
+      newQuery = newQuery.add(positiveTag, [value])
     }
     return newQuery
   }
@@ -506,9 +263,11 @@ export default class AssetQuery {
   toString() {
     const segments: string[] = []
     for (const [key, tag] of AssetQuery.tagNames) {
-      for (const values of this[key]) {
-        segments.push(AssetQuery.termToString({ tag, values }))
+      const values = this[key]
+      if (values.length === 0) {
+        continue
       }
+      segments.push(AssetQuery.termToString({ tag, values }))
     }
     return segments.join(' ')
   }

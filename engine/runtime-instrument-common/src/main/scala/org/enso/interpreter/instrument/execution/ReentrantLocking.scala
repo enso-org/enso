@@ -89,7 +89,16 @@ class ReentrantLocking extends Locking {
       "should already held write compilation lock during the operation"
     )
 
-  def withWriteCompilationLock[T](where: Class[_], callable: Callable[T]): T = {
+  /** @inheritdoc */
+  def withWriteCompilationLock[T](where: Class[_], callable: Callable[T]): T =
+    withWriteCompilationLock(where, null, callable)
+
+  /** @inheritdoc */
+  def withWriteCompilationLock[T](
+    where: Class[_],
+    context: String,
+    callable: Callable[T]
+  ): T = {
     var lockTimestamp: Long = 0
     try {
       lockTimestamp = acquireWriteCompilationLock(where)
@@ -105,8 +114,9 @@ class ReentrantLocking extends Locking {
       if (lockTimestamp != 0) {
         releaseWriteCompilationLock()
         logger.trace(
-          "Kept write compilation lock [{}] for {}ms",
+          "Kept write compilation lock [{}, context {}] for {}ms",
           where.getSimpleName,
+          if (context == null) "<missing>" else context,
           System.currentTimeMillis - lockTimestamp
         )
       }
@@ -231,14 +241,24 @@ class ReentrantLocking extends Locking {
     lock: ContextLock,
     where: Class[_],
     callable: Callable[T]
+  ): T =
+    withWriteContextLock(lock, where, null, callable)
+
+  /** @inheritdoc */
+  override def withWriteContextLock[T](
+    lock: ContextLock,
+    where: Class[_],
+    context: String,
+    callable: Callable[T]
   ): T = {
     val contextLock                = lock.asInstanceOf[ContextLockImpl]
     var contextLockTimestamp: Long = 0
     val writeLock                  = contextLock.lock.writeLock()
+    val ctx                        = if (context == null) "<missing>" else context
     try {
       contextLockTimestamp = logLockAcquisition(
         writeLock,
-        "write context lock",
+        "write context lock (context=" + ctx + ")",
         where
       )
       callable.call()

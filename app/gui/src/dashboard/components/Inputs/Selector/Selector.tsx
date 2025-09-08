@@ -1,5 +1,4 @@
 /** @file A horizontal selector. */
-import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { mergeProps, type RadioGroupProps } from '#/components/aria'
 import {
   Form,
@@ -158,18 +157,17 @@ export const Selector = React.forwardRef(function Selector<
                   renderProps.field.onChange(items[Number(newValue)])
                 }}
               >
-                <AnimatedBackground value={String(items.indexOf(value))}>
-                  {items.map((item, i) => (
-                    <SelectorOption
-                      key={i}
-                      value={String(i)}
-                      label={children(item)}
-                      rounded={rounded}
-                      size={size}
-                      variant={variant}
-                    />
-                  ))}
-                </AnimatedBackground>
+                {items.map((item, i) => (
+                  <SelectorOption
+                    key={i}
+                    value={String(i)}
+                    label={children(item)}
+                    rounded={rounded}
+                    size={size}
+                    variant={variant}
+                    isSelected={item === value}
+                  />
+                ))}
               </RadioGroup>
             </div>
           </Form.Field>

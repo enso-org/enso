@@ -54,6 +54,7 @@ export project.Position.Position
 export project.Prefix_Name.Prefix_Name
 
 export project.Refined_Types.Numeric_Column.Numeric_Column
+export project.Refined_Types.Text_Column.Text_Column
 
 export project.Set_Mode.Set_Mode
 

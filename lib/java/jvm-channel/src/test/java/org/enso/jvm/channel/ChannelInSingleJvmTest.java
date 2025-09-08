@@ -56,6 +56,26 @@ public class ChannelInSingleJvmTest {
     assertEquals("Original value remains", 10, msg.valueToSet());
   }
 
+  @Test
+  public void smallText() {
+    var ch = Channel.create(null, PrivateData.class);
+
+    var msg = new GenerateString(256);
+    var newMsg = ch.execute(LongString.class, msg);
+
+    assertEquals(newMsg.text(), 256, newMsg.text().length());
+  }
+
+  @Test
+  public void longText() {
+    var ch = Channel.create(null, PrivateData.class);
+
+    var msg = new GenerateString(32632);
+    var newMsg = ch.execute(LongString.class, msg);
+
+    assertEquals(newMsg.text(), 32632, newMsg.text().length());
+  }
+
   @Persistable(id = 8341)
   static final class Increment implements Function<Channel<?>, Increment> {
     int valueToIncrement;
@@ -83,6 +103,22 @@ public class ChannelInSingleJvmTest {
     public AssignPrivateData apply(Channel<PrivateData> t) {
       t.getConfig().counter = valueToSet;
       return new AssignPrivateData(t.getConfig().counter + 1);
+    }
+  }
+
+  @Persistable(id = 8343)
+  static record GenerateString(int lengthToGenerate)
+      implements Function<Channel<PrivateData>, LongString> {
+    @Override
+    public LongString apply(Channel<PrivateData> t) {
+      return new LongString(lengthToGenerate);
+    }
+  }
+
+  @Persistable(id = 8344)
+  static record LongString(String text) {
+    private LongString(int len) {
+      this("Hello".repeat(len / 5) + "!!!!!".substring(5 - len % 5));
     }
   }
 }

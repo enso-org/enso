@@ -37,7 +37,7 @@ final class PerGenerator {
 
   static byte[] writeObject(PerMap map, Object obj, Function<Object, Object> writeReplace)
       throws IOException {
-    var histogram = PerUtils.LOG.isLoggable(System.Logger.Level.DEBUG) ? new Histogram() : null;
+    var histogram = PerUtils.LOG.isLoggable(System.Logger.Level.TRACE) ? new Histogram() : null;
 
     var out = new ByteArrayOutputStream();
     var data = new DataOutputStream(out);

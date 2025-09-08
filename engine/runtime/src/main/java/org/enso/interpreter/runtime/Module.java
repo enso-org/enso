@@ -38,6 +38,7 @@ import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
+import org.enso.interpreter.node.expression.builtin.debug.DebugEvalNode;
 import org.enso.interpreter.runtime.builtin.BuiltinFunction;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -47,7 +48,6 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -174,7 +174,7 @@ public final class Module extends EnsoObject {
       this.compilationStage = CompilationStage.INITIAL;
     } else {
       if (fillWith != null) {
-        fillWith.accept(scopeBuilder.unsafeScopeBuilder());
+        fillWith.accept(scopeBuilder);
       }
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
     }
@@ -456,11 +456,14 @@ public final class Module extends EnsoObject {
   }
 
   /**
-   * Check whether given source has ever been associated with this module.
+   * Check whether given source has ever been associated with this module. For example {@link
+   * DebugEvalNode} likes to create sources in a context of some module, but those are not
+   * associated with the module itself.
    *
    * @param s source to check
    * @return {@code true} if the source has been created for this module
    */
+  @TruffleBoundary
   public final boolean isModuleSource(Source s) {
     return allSources.containsKey(s);
   }
@@ -557,7 +560,7 @@ public final class Module extends EnsoObject {
    */
   final ModuleScopeBuilder getScopeBuilder(boolean reset) {
     var sb = TruffleCompilerContext.findCompilerModule(this).getScopeBuilder(reset);
-    return sb.unsafeScopeBuilder();
+    return sb;
   }
 
   /**
@@ -567,6 +570,11 @@ public final class Module extends EnsoObject {
     return name;
   }
 
+  /**
+   * Package (e.g. project/library) associated with the module, if any.
+   *
+   * @return {@code null} or package associated with the module
+   */
   public Package<TruffleFile> getPackage() {
     return pkg;
   }

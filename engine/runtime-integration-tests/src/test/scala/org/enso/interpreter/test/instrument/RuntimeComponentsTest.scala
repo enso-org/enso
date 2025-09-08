@@ -124,6 +124,7 @@ class RuntimeComponentsTest
           distributionHome.toString
         )
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")

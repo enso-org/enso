@@ -222,14 +222,15 @@ trait CompilerRunner {
       Definition.Data(
         Name.Literal("TestAtom", isMethod = false, identifiedLocation = null),
         List(
-          new DefinitionArgument.Specified(
-            Name
-              .Literal("arg", isMethod = false, identifiedLocation = null),
-            None,
-            Some(ir),
-            suspended          = false,
-            identifiedLocation = null
-          )
+          DefinitionArgument.Specified
+            .builder()
+            .name(
+              Name
+                .Literal("arg", isMethod = false, identifiedLocation = null)
+            )
+            .defaultValue(Some(ir))
+            .suspended(false)
+            .build()
         ),
         List(),
         false,

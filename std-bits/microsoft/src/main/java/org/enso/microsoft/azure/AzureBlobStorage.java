@@ -8,9 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AzureBlobStorage {
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(AzureBlobStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AzureBlobStorage.class);
 
   private static BlobServiceClient makeClient(
       AzureCredential credential, String storageAccountName) {

@@ -5,7 +5,14 @@ import { TEXTS } from 'enso-common/src/text'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { _electron, test as base, ElectronApplication, expect, type Page } from 'playwright/test'
+import {
+  _electron,
+  test as base,
+  expect,
+  Locator,
+  type ElectronApplication,
+  type Page,
+} from 'playwright/test'
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
@@ -96,4 +103,57 @@ export async function loginAsTestUser(page: Page) {
     .click()
 
   await page.getByRole('button', { name: TEXT.accept }).click()
+}
+
+/**
+ * The funcion creates a new Enso project
+ */
+export async function createNewProject(page: Page) {
+  const newProjectTab = page.getByRole('button', { name: 'New Project', exact: true })
+
+  await expect(newProjectTab).toBeVisible()
+  await newProjectTab.click()
+  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
+
+  const tableViz = page.locator('.TableVisualization')
+  await expect(tableViz).toBeVisible({ timeout: 30000 })
+  await expect(tableViz).toContainText('Welcome To Enso!')
+}
+
+/**
+ * If welcome project is to be opened, this function takes you back to your dashboard
+ */
+export async function closeWelcome(page: Page) {
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
+  if (await welcomeProjectTab.isVisible()) {
+    await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  }
+}
+
+/**
+ * Finds the "newest" project (highest numbered "New Project N") in the user dasboard.
+ * @param page - The Playwright Page instance
+ * @returns Locator for the newest project
+ */
+export async function getNewestProject(page: Page): Promise<Locator> {
+  // Returning back to the data catalog
+  const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
+  await expect(dataCatalogTab).toBeVisible()
+  await dataCatalogTab.click()
+
+  const projects = await page
+    .getByTestId('drive-view')
+    .getByText(/New Project \d+/)
+    .all()
+
+  const numbered = await Promise.all(
+    projects.map(async (p) => {
+      const text = await p.innerText()
+      const num = parseInt(text.replace('New Project ', ''), 10)
+      return { locator: p, num }
+    }),
+  )
+
+  return numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
 }

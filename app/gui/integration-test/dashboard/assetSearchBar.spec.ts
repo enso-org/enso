@@ -40,23 +40,7 @@ test('tags (positive)', ({ page }) =>
     }
   }))
 
-test('tags (negative)', ({ page }) =>
-  mockAllAndLogin({ page }).withSearchBar(async (searchBar) => {
-    const tags = locateSearchBarTags(page)
-
-    await searchBar.click()
-    await page.keyboard.down('Shift')
-    for (const negativeTag of await tags.all()) {
-      await searchBar.selectText()
-      await searchBar.press('Backspace')
-      const text = (await negativeTag.textContent()) ?? ''
-      expect(text.length).toBeGreaterThan(0)
-      await negativeTag.click()
-      await expect(searchBar).toHaveValue(text)
-    }
-  }))
-
-test('labels', ({ page }) =>
+test.skip('labels (were supported in list directory, but not supported in search)', ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: (api) => {
@@ -74,8 +58,6 @@ test('labels', ({ page }) =>
       expect(name.length).toBeGreaterThan(0)
       await label.click()
       await expect(searchBar).toHaveValue('label:' + name)
-      await label.click()
-      await expect(searchBar).toHaveValue('-label:' + name)
       await label.click()
       await expect(searchBar).toHaveValue('')
     }
