@@ -186,7 +186,7 @@ export async function createNewComponent(page: Page) {
 /**
  * Creating new component from the name of its parent component
  */
-export async function createComponentText(page: Page, parentComponent: string) {
+export async function openComponentBrowser(page: Page, parentComponent: string) {
   await page.getByText(parentComponent, { exact: true }).click({ button: 'right' })
   await page.keyboard.press('Enter')
 }

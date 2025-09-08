@@ -3,10 +3,10 @@
 import { expect } from 'playwright/test'
 import {
   closeWelcome,
-  createComponentText,
   createNewProject,
   fillText,
   loginAsTestUser,
+  openComponentBrowser,
   test,
   visualizeData,
 } from './electronTest'
@@ -44,14 +44,12 @@ test('Exercise 1', async ({ page }) => {
     // Choosing the first sheet
     await expect(page.getByText('Sheet1')).toBeVisible()
     await page.getByText('Sheet1').dblclick()
-
-    await visualizeData(page)
   })
 
   // ---------------- Objective 2 ----------------
   await test.step('Objective 2: Filter Data to find “exception” records', async () => {
     // Adding set component
-    await createComponentText(page, 'readquery‘Sheet1’')
+    await openComponentBrowser(page, 'readquery‘Sheet1’')
     await page.locator('.ComponentEntry', { hasText: 'set' }).click()
 
     // Set parameters
@@ -71,7 +69,7 @@ test('Exercise 1', async ({ page }) => {
     await fillText(page, 'as“”', 'currency_code_length')
 
     // Adding filter component
-    await createComponentText(page, 'set')
+    await openComponentBrowser(page, 'set')
 
     await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
     await page.locator('.WidgetSelection.clickable').filter({ hasText: 'column' }).click()
@@ -140,9 +138,6 @@ test('Exercise 1', async ({ page }) => {
 
     // Set the filtered text value
     await fillText(page, 'filter..Equal“”', 'Savings Account')
-
-    // Visualize data frame
-    await visualizeData(page)
   })
 
   // ---------------- Objective 4 ----------------
