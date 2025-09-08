@@ -17,11 +17,12 @@
 
 package org.apache.poi.ss.util;
 
-import java.awt.font.FontRenderContext;
-import java.awt.font.TextAttribute;
-import java.awt.font.TextLayout;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Rectangle2D;
+//import java.awt.font.FontRenderContext;
+//import java.awt.font.TextAttribute;
+//import java.awt.font.TextLayout;
+//import java.awt.geom.AffineTransform;
+//import java.awt.geom.Rectangle2D;
+//import java.awt.font.FontRenderContext;
 import java.text.AttributedString;
 import java.util.List;
 import java.util.Locale;
@@ -96,7 +97,7 @@ public class SheetUtil {
     /**
      * drawing context to measure text
      */
-    private static FontRenderContext fontRenderContext = new FontRenderContext(null, true, true);
+    private static java.awt.font.FontRenderContext fontRenderContext = new java.awt.font.FontRenderContext(null, true, true);
 
     /**
      * A system property which can be enabled to not fail when the
@@ -259,16 +260,16 @@ public class SheetUtil {
      */
     private static double getCellWidth(float defaultCharWidth, final int colspan,
                                        final CellStyle style, final double minWidth, final AttributedString str) {
-        TextLayout layout;
+        java.awt.font.TextLayout layout;
         try {
-            layout = new TextLayout(str.getIterator(), fontRenderContext);
+            layout = new java.awt.font.TextLayout(str.getIterator(), fontRenderContext);
         } catch (Throwable t) {
             if (shouldIgnoreMissingFontSystem(t)) {
                 return FAILOVER_FUNCTION.apply(defaultCharWidth, colspan, style, minWidth, str);
             }
             throw t;
         }
-        final Rectangle2D bounds;
+        final java.awt.geom.Rectangle2D bounds;
         if (style.getRotation() != 0) {
             /*
              * Transform the text using a scale so that its height is increased by a multiple of the leading,
@@ -276,10 +277,10 @@ public class SheetUtil {
              * the unrotated top and bottom of the text that normally wouldn't be present if unscaled, but
              * is added by the standard Excel autosize.
              */
-            AffineTransform trans = new AffineTransform();
-            trans.concatenate(AffineTransform.getRotateInstance(style.getRotation()*2.0*Math.PI/360.0));
+            java.awt.geom.AffineTransform trans = new java.awt.geom.AffineTransform();
+            trans.concatenate(java.awt.geom.AffineTransform.getRotateInstance(style.getRotation()*2.0*Math.PI/360.0));
             trans.concatenate(
-                    AffineTransform.getScaleInstance(1, fontHeightMultiple)
+                    java.awt.geom.AffineTransform.getScaleInstance(1, fontHeightMultiple)
             );
             bounds = layout.getOutline(trans).getBounds();
         } else {
@@ -358,7 +359,7 @@ public class SheetUtil {
         AttributedString str = new AttributedString(String.valueOf(defaultChar));
         copyAttributes(defaultFont, str, 0, 1);
         try {
-            TextLayout layout = new TextLayout(str.getIterator(), fontRenderContext);
+            java.awt.font.TextLayout layout = new java.awt.font.TextLayout(str.getIterator(), fontRenderContext);
             return layout.getAdvance();
         } catch (Throwable t) {
             if (shouldIgnoreMissingFontSystem(t)) {
@@ -458,7 +459,7 @@ public class SheetUtil {
         AttributedString str = new AttributedString("1w");
         copyAttributes(font, str, 0, "1w".length());
 
-        TextLayout layout = new TextLayout(str.getIterator(), fontRenderContext);
+        java.awt.font.TextLayout layout = new java.awt.font.TextLayout(str.getIterator(), fontRenderContext);
         return (layout.getBounds().getWidth() > 0);
     }
 
@@ -466,11 +467,11 @@ public class SheetUtil {
      * Copy text attributes from the supplied Font to Java2D AttributedString
      */
     private static void copyAttributes(Font font, AttributedString str, @SuppressWarnings("SameParameterValue") int startIdx, int endIdx) {
-        str.addAttribute(TextAttribute.FAMILY, font.getFontName(), startIdx, endIdx);
-        str.addAttribute(TextAttribute.SIZE, (float)font.getFontHeightInPoints());
-        if (font.getBold()) str.addAttribute(TextAttribute.WEIGHT, TextAttribute.WEIGHT_BOLD, startIdx, endIdx);
-        if (font.getItalic() ) str.addAttribute(TextAttribute.POSTURE, TextAttribute.POSTURE_OBLIQUE, startIdx, endIdx);
-        if (font.getUnderline() == Font.U_SINGLE ) str.addAttribute(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON, startIdx, endIdx);
+        str.addAttribute(java.awt.font.TextAttribute.FAMILY, font.getFontName(), startIdx, endIdx);
+        str.addAttribute(java.awt.font.TextAttribute.SIZE, (float)font.getFontHeightInPoints());
+        if (font.getBold()) str.addAttribute(java.awt.font.TextAttribute.WEIGHT, java.awt.font.TextAttribute.WEIGHT_BOLD, startIdx, endIdx);
+        if (font.getItalic() ) str.addAttribute(java.awt.font.TextAttribute.POSTURE, java.awt.font.TextAttribute.POSTURE_OBLIQUE, startIdx, endIdx);
+        if (font.getUnderline() == Font.U_SINGLE ) str.addAttribute(java.awt.font.TextAttribute.UNDERLINE, java.awt.font.TextAttribute.UNDERLINE_ON, startIdx, endIdx);
     }
 
     /**
@@ -542,11 +543,11 @@ public class SheetUtil {
         ignoreMissingFontSystem = value;
     }
 
-    protected static FontRenderContext getFontRenderContext() {
+    protected static java.awt.font.FontRenderContext getFontRenderContext() {
         return fontRenderContext;
     }
 
-    protected static void setFontRenderContext(FontRenderContext fontRenderContext) {
+    protected static void setFontRenderContext(java.awt.font.FontRenderContext fontRenderContext) {
         SheetUtil.fontRenderContext = fontRenderContext;
     }
 
