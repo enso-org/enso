@@ -195,10 +195,10 @@ export async function createComponentText(page: Page, parentComponent: string) {
  * Creating new component from the name of its parent component
  */
 export async function fillText(page: Page, containerName: string, value: string) {
-  const cont = page.getByText(containerName, { exact:true })
+  const cont = page.getByText(containerName, { exact: true })
 
   // Ensuring the texbox is empty
-  const box = cont.getByTestId('widget-text-content').filter({hasText: /^(“”|‘’)?$/})
+  const box = cont.getByTestId('widget-text-content').filter({ hasText: /^(“”|‘’)?$/ })
   await expect(box).toBeVisible()
   await box.fill(value)
 }
