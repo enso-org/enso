@@ -2,16 +2,13 @@
 Simple rule that runs Enso distribution via a shell script.
 """
 
-load("@rules_java//java/common:java_common.bzl", "java_common")
-
 def _run_enso_impl(ctx):
     distribution = ctx.attr.distribution[DefaultInfo].files
     binary = ctx.actions.declare_file(ctx.label.name + ".sh")
     dist_dir = distribution.to_list()[0].path
     src_file = ctx.file.src.path
-    java_toolchain_type = ctx.toolchains["@bazel_tools//tools/jdk:toolchain_type"]
-    java_home = java_toolchain_type.java.java_runtime.java_home
-    print("Using Java toolchain:", java_home)
+    java_toolchain_type = ctx.toolchains["@bazel_tools//tools/jdk:runtime_toolchain_type"]
+    java_home = java_toolchain_type.java_runtime.java_home_runfiles_path
 
     ctx.actions.write(
         output = binary,
@@ -24,7 +21,7 @@ def _run_enso_impl(ctx):
             exit 1
         fi
         java -version
-        #exec $PWD/$binary_path {args} --run {src_file}
+        exec $PWD/$binary_path {args} --run {src_file}
         """.format(
             dist = dist_dir,
             args = " ".join(ctx.attr.run_args),
@@ -37,6 +34,7 @@ def _run_enso_impl(ctx):
     # This specifies that this rule depends on `distribution` and `src` attributes.
     all_runfiles = ctx.runfiles(
         files = distribution.to_list() + [ctx.file.src],
+        transitive_files = java_toolchain_type.java_runtime.files,
     )
 
     return [DefaultInfo(
@@ -47,7 +45,7 @@ def _run_enso_impl(ctx):
 run_enso = rule(
     implementation = _run_enso_impl,
     toolchains = [
-        "@bazel_tools//tools/jdk:toolchain_type",
+        "@bazel_tools//tools/jdk:runtime_toolchain_type",
     ],
     attrs = {
         "distribution": attr.label(
