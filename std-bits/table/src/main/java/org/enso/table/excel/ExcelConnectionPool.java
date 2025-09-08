@@ -11,7 +11,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Function;
-
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
@@ -274,14 +273,14 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
 
         try {
           try {
-          workbook =
-              format == ExcelFileFormat.XLSX
-                  ? new XSSFReaderWorkbook(file.getAbsolutePath())
-                  : ExcelWorkbook.forPOIUserModel(openWorkbook(file, format, false));
+            workbook =
+                format == ExcelFileFormat.XLSX
+                    ? new XSSFReaderWorkbook(file.getAbsolutePath())
+                    : ExcelWorkbook.forPOIUserModel(openWorkbook(file, format, false));
           } catch (OLE2NotOfficeXmlFileException e) {
-          throw new IOException(
-              "Invalid format encountered when opening the file " + file + " as " + format + ".",
-              e);
+            throw new IOException(
+                "Invalid format encountered when opening the file " + file + " as " + format + ".",
+                e);
           }
         } catch (IOException e) {
           initializationException = e;
@@ -316,16 +315,16 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
     return switch (format) {
       case XLS -> {
         try {
-        boolean readOnly = !writeAccess;
-        POIFSFileSystem fs = new POIFSFileSystem(file, readOnly);
-        try {
-          // If the initialization succeeds, the POIFSFileSystem will be closed by the
-          // HSSFWorkbook::close.
-          yield new HSSFWorkbook(fs);
-        } catch (IOException e) {
-          fs.close();
-          throw e;
-        }
+          boolean readOnly = !writeAccess;
+          POIFSFileSystem fs = new POIFSFileSystem(file, readOnly);
+          try {
+            // If the initialization succeeds, the POIFSFileSystem will be closed by the
+            // HSSFWorkbook::close.
+            yield new HSSFWorkbook(fs);
+          } catch (IOException e) {
+            fs.close();
+            throw e;
+          }
         } catch (OfficeXmlFileException e) {
           throw new IOException(
               "Invalid format encountered when opening the file " + file + " as " + format + ".",
