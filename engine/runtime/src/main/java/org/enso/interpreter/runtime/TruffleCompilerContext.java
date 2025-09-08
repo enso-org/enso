@@ -250,7 +250,8 @@ final class TruffleCompilerContext implements CompilerContext {
    * @param ir the module to generate stubs in.
    * @param scope module scope builder
    */
-  private static void generateStubs(Builtins builtins, IR ir, TruffleCompilerModuleScopeBuilder scope) {
+  private static void generateStubs(
+      Builtins builtins, IR ir, TruffleCompilerModuleScopeBuilder scope) {
     BindingsMap localBindings = (BindingsMap) ir.passData().get(BindingAnalysis$.MODULE$).get();
     scala.collection.immutable.List<BindingsMap.Type> types =
         localBindings
