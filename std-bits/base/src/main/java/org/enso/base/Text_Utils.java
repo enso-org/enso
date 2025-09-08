@@ -38,6 +38,25 @@ public class Text_Utils {
   }
 
   /**
+   * Creates a substring of the given string, indexing using the Java standard (UTF-16) indexing
+   * mechanism but using a BreakIterator to ensure that the indices correspond to grapheme
+   * boundaries.
+   *
+   * @param string the string to substring
+   * @param from starting index
+   * @param to index one past the end of the desired substring
+   * @return a suitable substring
+   */
+  public static String substring_clustered(String string, int from, int to) {
+    BreakIterator iter = BreakIterator.getCharacterInstance();
+    iter.setText(string);
+    int start = from == 0 ? 0 : (iter.isBoundary(from) ? from : iter.preceding(from));
+    int end =
+        to >= string.length() ? string.length() : (iter.isBoundary(to) ? to : iter.following(to));
+    return string.substring(start, end);
+  }
+
+  /**
    * Checks if the string has leading or trailing whitespace.
    *
    * @param s the string to check

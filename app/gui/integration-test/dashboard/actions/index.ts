@@ -110,7 +110,6 @@ export function mockAll({ page, setupAPI, setupLocalAPI }: MockParams) {
           context.localApi = localApi
         }),
         mockDate({ page }),
-        mockAllAnimations({ page }),
         mockUnneededUrls({ page }),
       ])
     })
@@ -136,20 +135,6 @@ export function mockAllAndLogin({
     .step('Wait for dashboard to load', waitForDashboardToLoad)
     .into(DrivePageActions<Context>)
   return goToCloudFirst ? driveActions.goToCategory.cloud() : driveActions
-}
-
-/** Mock all animations. */
-async function mockAllAnimations({ page }: MockParams) {
-  await test.step('Mock all animations', async () => {
-    await page.addInitScript({
-      content: `
-        window.DISABLE_ANIMATIONS = true;
-        document.addEventListener('DOMContentLoaded', () => {
-          document.documentElement.classList.add('disable-animations')
-        })
-      `,
-    })
-  })
 }
 
 /** Mock unneeded URLs. */

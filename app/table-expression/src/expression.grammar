@@ -105,11 +105,11 @@ Function {
 }
 
 parenthesized<term> {
-  Paren<'('> term Paren<')'>
+  OpenParen<'('> term CloseParen<')'>
 }
 
 Column {
-  SquareBracket<'['> columnName SquareBracket<']'>
+  OpenBracket<'['> columnName CloseBracket<']'>
 }
 
 @external specialize { identifier } specializeIdent from '../keywords' {
@@ -146,8 +146,10 @@ ControlOp<t> { t }
   columnNameBracketEscape { ']]' }
 
   Punctuation<t> { t }
-  Paren<t> { t }
-  SquareBracket<t> { t }
+  OpenParen<t> { t }
+  CloseParen<t> { t }
+  OpenBracket<t> { t }
+  CloseBracket<t> { t }
   Quote<t> { t }
 
   regexBody { ('\\/' | ![/\r\n] )+ }
