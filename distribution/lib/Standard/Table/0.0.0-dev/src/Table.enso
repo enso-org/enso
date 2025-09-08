@@ -3748,7 +3748,7 @@ type Table
         - covariance: ..Covariance
         - pearson: ..Pearson
         - spearman: ..Spearman
-        - r sqaured: ..R_Squared
+        - r squared: ..R_Squared
        aliases:
         - cumulative
        group: Standard.Base.Values

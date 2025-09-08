@@ -80,14 +80,7 @@ export default function InputBindingsProvider(props: InputBindingsProviderProps)
       )
     }
     return {
-      /** Transparently pass through `handler()`. */
-      get handler() {
-        return inputBindingsRaw.handler.bind(inputBindingsRaw)
-      },
-      /** Transparently pass through `attach()`. */
-      get attach() {
-        return inputBindingsRaw.attach.bind(inputBindingsRaw)
-      },
+      ...inputBindingsRaw,
       reset: (bindingKey: inputBindingsModule.DashboardBindingKey) => {
         inputBindingsRaw.reset(bindingKey)
         updateLocalStorage()
@@ -103,14 +96,6 @@ export default function InputBindingsProvider(props: InputBindingsProviderProps)
       /** Transparently pass through `metadata`. */
       get metadata() {
         return inputBindingsRaw.metadata
-      },
-      /** Transparently pass through `register()`. */
-      get register() {
-        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
-      },
-      /** Transparently pass through `unregister()`. */
-      get unregister() {
-        return inputBindingsRaw.unregister.bind(inputBindingsRaw)
       },
     }
   })

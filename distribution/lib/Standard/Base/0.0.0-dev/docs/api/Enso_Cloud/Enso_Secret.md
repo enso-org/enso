@@ -21,7 +21,7 @@
     - name self -> Standard.Base.Any.Any
     - path self -> Standard.Base.Any.Any
     - pretty self -> Standard.Base.Any.Any
-    - resolve_path path:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret!Standard.Base.Errors.Common.Not_Found
+    - resolve_path path:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret!Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret_Error
     - to_display_text self -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
@@ -33,5 +33,6 @@
 - Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value.from that:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret -> Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 - type Enso_Secret_Error
     - Access_Denied
+    - Not_Found resolved_path:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value.from that:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value

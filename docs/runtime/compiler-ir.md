@@ -24,7 +24,7 @@ Automatic removal of unused imports can be enabled with
 from the whole `Standard.Base`, run:
 
 ```
-enso --no-compile-dependencies --no-global-cache --no-ir-caches --vm.D enso.compiler.RemoveUnusedImports --compile distribution/lib/Standard/Base/0.0.0-dev/
+enso --no-compile-dependencies --no-ir-caches --vm.D enso.compiler.RemoveUnusedImports --compile distribution/lib/Standard/Base/0.0.0-dev/
 ```
 
 ## Dumping IR

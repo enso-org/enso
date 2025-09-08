@@ -91,6 +91,10 @@ export const gridBindings = defineKeybinds('grid', {
   'grid.pasteCells': ['Mod+V'],
 })
 
+export const commandPaletteBindings = defineKeybinds('command-palette', {
+  'commandPalette.open': ['Mod+K'],
+})
+
 // === Mouse bindings ===
 
 export const textEditorsBindings = defineKeybinds('text-editors', {

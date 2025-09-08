@@ -40,6 +40,7 @@ import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
+import { provideLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import type { Node, NodeId } from '@/stores/graph'
 import { isInputNode, nodeId } from '@/stores/graph/graphDatabase'
@@ -82,6 +83,11 @@ const graphStore = useGraphStore()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
 provideVisualizationStore(projectStore)
+provideLanguageSupportExtensions({
+  project: projectStore,
+  projectNames,
+  suggestionDb: suggestionDb.entries,
+})
 
 const nodeExecution = provideNodeExecution(projectStore)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion

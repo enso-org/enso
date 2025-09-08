@@ -62,13 +62,15 @@ add_specs suite_builder =
 foreign js is_like data available = """
     let at = 0
     let is = {
-        read : function(arr, off, len) {
+        readNBytes : function(len) {
+          let arr = new Array();
+          let off = 0;
           let cnt = 0;
           while (len-- > 0) {
             arr[off++] = data[at++];
             cnt++;
           }
-          return cnt;
+          return arr;
         }
     }
     if (available) {

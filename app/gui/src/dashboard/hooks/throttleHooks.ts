@@ -1,10 +1,5 @@
-/**
- * @file
- * Throttle hooks.
- */
-
+/** @file Hooks for throttling events. */
 import { useEventCallback } from './eventCallbackHooks'
-
 import { useRAF } from './useRaf'
 
 /**
@@ -12,12 +7,12 @@ import { useRAF } from './useRaf'
  * Cancels all callbacks before scheduling a new one.
  */
 export function useRafThrottle() {
-  const { cancelRAF, scheduleRAF: scheduleRAFRaw } = useRAF()
+  const { cancelRaf: cancelRafRaw, scheduleRaf: scheduleRafRaw } = useRAF()
 
   const scheduleRAF = useEventCallback((callback: FrameRequestCallback) => {
-    cancelRAF()
-    scheduleRAFRaw(callback)
+    cancelRafRaw()
+    scheduleRafRaw(callback)
   })
 
-  return { scheduleRAF, cancelRAF }
+  return { scheduleRAF, cancelRAF: cancelRafRaw }
 }

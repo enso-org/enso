@@ -8,6 +8,8 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Row;
 import org.enso.table.data.table.Table;
+import org.enso.table.data.table.problems.IllegalArgumentError;
+import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ProgressHandler;
 
@@ -115,6 +117,111 @@ public class AddGroupNumber {
                     parent().step, (parent.builder.getCurrentSize() / parent().groupSize)));
         parent.builder.appendLong(group);
       }
+    }
+  }
+
+  public static record EqualSumResult(ColumnStorage<?> storage, long actualGroupCount) {}
+
+  public static EqualSumResult numberGroupsEqualSum(
+      long numRows,
+      Column sumColumn,
+      int groupCount,
+      long start,
+      long step,
+      Column[] orderingColumns,
+      int[] directions,
+      ProblemAggregator problemAggregator) {
+    var visitorFactory =
+        new EqualSumRowVisitorFactory(
+            start, step, numRows, sumColumn, groupCount, problemAggregator);
+    var storage =
+        GroupingOrderingVisitor.visit(
+            new Column[0], orderingColumns, directions, problemAggregator, visitorFactory, numRows);
+    long actualGroupCount = visitorFactory.getHighestGroupIndex() + 1;
+    return new EqualSumResult(storage, actualGroupCount);
+  }
+
+  /** This 'factory' is also the sole visitor. */
+  private static class EqualSumRowVisitorFactory implements RowVisitorFactory, GroupRowVisitor {
+    private final long start;
+    private final long step;
+    private final double targetGroupSum;
+    private final Column sumColumn;
+    private final BuilderForLong builder;
+    private final ColumnAggregatedProblemAggregator innerAggregator;
+
+    private final double columnTotal;
+    private double currentGroupSubtotal = 0.0;
+    private long currentGroupIndex = 0;
+    private long highestGroupIndex = 0;
+
+    EqualSumRowVisitorFactory(
+        long start,
+        long step,
+        long totalCount,
+        Column sumColumn,
+        long numgroups,
+        ProblemAggregator problemAggregator) {
+      this.start = start;
+      this.step = step;
+      this.sumColumn = sumColumn;
+      this.builder = Builder.getForLong(IntegerType.INT_64, totalCount, problemAggregator);
+
+      columnTotal = sum();
+      targetGroupSum = columnTotal / numgroups;
+
+      innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
+    }
+
+    @Override
+    public GroupRowVisitor getNewRowVisitor() {
+      return this;
+    }
+
+    @Override
+    public ColumnStorage<?> seal() {
+      return builder.seal();
+    }
+
+    @Override
+    public void visit(long row) {
+      Object valObj = sumColumn.getItem(row);
+      if (valObj instanceof Number n) {
+        double d = n.doubleValue();
+
+        long groupIndex = currentGroupIndex;
+
+        currentGroupSubtotal += d;
+        if (currentGroupSubtotal >= targetGroupSum) {
+          currentGroupSubtotal = 0.0;
+          currentGroupIndex++;
+        }
+
+        long groupNumber = Math.addExact(start, Math.multiplyExact(step, groupIndex));
+        builder.appendLong(groupNumber);
+
+        highestGroupIndex = groupIndex;
+      } else {
+        innerAggregator.reportColumnAggregatedProblem(
+            new IllegalArgumentError(
+                "Equal_Sum", "Non-numeric value encountered in sum column", row));
+      }
+    }
+
+    public long getHighestGroupIndex() {
+      return highestGroupIndex;
+    }
+
+    // This ignores non-numeric values, which will be reported in visit().
+    private double sum() {
+      double total = 0.0;
+      for (long i = 0; i < sumColumn.getSize(); i++) {
+        Object val = sumColumn.getItem(i);
+        if (val instanceof Number n) {
+          total += n.doubleValue();
+        }
+      }
+      return total;
     }
   }
 

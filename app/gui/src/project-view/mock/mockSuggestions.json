@@ -1267,7 +1267,7 @@
     ],
     "returnType": "Standard.Table.Aggregate_Column.Aggregate_Column",
     "documentation": " ---\nprivate: true\n---\nSpecifies a column to group the rows by. Deprecated but used internally.\n\n## Arguments\n- `column`: the column (either name, expression or index) to group by.\n- `as`: name of new column.",
-    "annotations": [],
+    "annotations": ["column"],
     "reexports": []
   },
   {

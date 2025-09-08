@@ -6,11 +6,20 @@
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [The documentation panel opens to the scroll position at last close][13647]
 - [Autocompletion for Column methods in table expressions][13797]
+- [Autocompletion for Column names in table expressions][13848]
+- [Removal of --no-global-cache option][13909]
+- [Autocompletion for table expression builtin functions in table
+  expressions][13914]
+- [Autocompletion for table expression builtin functions in table
+  expressions][13914]
 
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13647]: https://github.com/enso-org/enso/pull/13647
 [13797]: https://github.com/enso-org/enso/pull/13797
+[13848]: https://github.com/enso-org/enso/pull/13848
+[13909]: https://github.com/enso-org/enso/pull/13909
+[13914]: https://github.com/enso-org/enso/pull/13914
 
 # Next Release
 
@@ -50,6 +59,11 @@
 - [Graph is not moved when showing/resizing side panels.][13557]
 - [Add "Invite" button to the top bar when using a team or higher plan][13522]
 - ["Welcome Project" is automatically opened for new users][13479]
+- [Project and Setting tab may be now closed with shortcut][13498]
+  (reimplemented in [13604][13604]). On Windows/Linux
+  <kbd>Ctrl</kbd>+<kbd>W</kbd> or <kbd>Ctrl</kbd> + <kbd>F4</kbd>; on macOS:
+  <kbd>⌘</kbd> + <kbd>W</kbd>.
+- [Command Palette to search for arbitrary actions][13658]
 - [Project and Setting tab may be now closed with shortcut][13498][13604]. On
   Windows/Linux <kbd>Ctrl</kbd>+<kbd>W</kbd> or <kbd>Ctrl</kbd> + <kbd>F4</kbd>;
   on macOS: <kbd>⌘</kbd> + <kbd>W</kbd>.
@@ -86,6 +100,7 @@
 [13479]: https://github.com/enso-org/enso/pull/13479
 [13498]: https://github.com/enso-org/enso/pull/13498
 [13604]: https://github.com/enso-org/enso/pull/13604
+[13658]: https://github.com/enso-org/enso/pull/13658
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13726]: https://github.com/enso-org/enso/pull/13726
 
@@ -111,6 +126,9 @@
 - [Add prototype `find_group_number` function to Table][13487]
 - [Add support for custom and empty line endings to the fixed-width file format]
   [13554]
+- [Implement `Text_Column` for in-memnory backend.][13769]
+- [Implement `Text_Column.to_case` for in-memnory backend.][13769]
+- [In-memory table `add_group_number` supports `Equal_Sum`.][13819]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -128,6 +146,8 @@
 [13475]: https://github.com/enso-org/enso/pull/13475
 [13487]: https://github.com/enso-org/enso/pull/13487
 [13554]: https://github.com/enso-org/enso/pull/13554
+[13769]: https://github.com/enso-org/enso/pull/13769
+[13819]: https://github.com/enso-org/enso/pull/13819
 
 #### Enso Language & Runtime
 

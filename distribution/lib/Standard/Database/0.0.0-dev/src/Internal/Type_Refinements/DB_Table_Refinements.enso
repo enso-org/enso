@@ -3,6 +3,7 @@ private
 from Standard.Base import all
 
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
+import Standard.Table.Refined_Types.Text_Column.Text_Column
 from Standard.Table import Column, Table, Value_Type
 
 import project.DB_Column.DB_Column
@@ -23,4 +24,5 @@ private _refine_single_column_table table =
         Value_Type.Byte -> (table : Table & DB_Table & Column & DB_Column & Numeric_Column)
         Value_Type.Float _ -> (table : Table & DB_Table & Column & DB_Column & Numeric_Column)
         Value_Type.Decimal _ _ -> (table : Table & DB_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Char _ _ -> (table : Table & DB_Table & Column & DB_Column & Text_Column)
         _ -> (table : Table & DB_Table & Column & DB_Column)

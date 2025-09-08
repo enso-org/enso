@@ -1,20 +1,8 @@
 /** @file A wrapper containing all UI-related React Provdiers. */
 import { DialogStackProvider } from '#/components/Dialog'
 import { PortalProvider } from '#/components/Portal'
-import type { Spring } from 'framer-motion'
-import { MotionConfig } from 'framer-motion'
 import * as React from 'react'
 import { I18nProvider } from 'react-aria-components'
-
-const DEFAULT_TRANSITION_OPTIONS: Spring = {
-  type: 'spring',
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  stiffness: 200,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  damping: 30,
-  mass: 1,
-  velocity: 0,
-}
 
 const RootContext = React.createContext<HTMLElement>(document.body)
 
@@ -31,13 +19,11 @@ export default function UIProviders(props: UIProvidersProps) {
 
   return (
     <RootContext.Provider value={appRoot}>
-      <MotionConfig reducedMotion="user" transition={DEFAULT_TRANSITION_OPTIONS}>
-        <PortalProvider value={portalRoot}>
-          <DialogStackProvider>
-            <I18nProvider locale={locale}>{children}</I18nProvider>
-          </DialogStackProvider>
-        </PortalProvider>
-      </MotionConfig>
+      <PortalProvider value={portalRoot}>
+        <DialogStackProvider>
+          <I18nProvider locale={locale}>{children}</I18nProvider>
+        </DialogStackProvider>
+      </PortalProvider>
     </RootContext.Provider>
   )
 }

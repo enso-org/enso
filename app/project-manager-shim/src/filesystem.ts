@@ -148,7 +148,7 @@ function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMeta
  * Checks if files that start with the dot.
  * Note on Windows does not check the hidden property.
  */
-function isHidden(filePath: string): boolean {
+function isFileHidden(filePath: string): boolean {
   const dotfile = /(^|[\\/])\.[^\\/]+$/g
   return dotfile.test(filePath)
 }
@@ -185,14 +185,20 @@ export async function handleFilesystemCommand(
         }
         break
       }
-      case '--filesystem-list': {
+      case '--filesystem-list':
+      case '--filesystem-list-recursive': {
         const directoryPath = cliArguments[1]
-        if (directoryPath != null) {
-          const entryNames = await fs.readdir(directoryPath)
-          const entries: FileSystemEntry[] = []
+        const isRecursive = cliArguments[1] === '--filesystem-list-recursive'
+        if (directoryPath == null) break
+        const directoryPathQueue = [directoryPath]
+        const entries: FileSystemEntry[] = []
+        while (true) {
+          const currentDirectoryPath = directoryPathQueue.shift()
+          if (currentDirectoryPath == null) break
+          const entryNames = await fs.readdir(currentDirectoryPath)
           for (const entryName of entryNames) {
-            const entryPath = path.join(directoryPath, entryName)
-            if (isHidden(entryPath)) continue
+            const entryPath = path.join(currentDirectoryPath, entryName)
+            if (isFileHidden(entryPath)) continue
             const stat = await fs.stat(entryPath)
             const attributes: Attributes = {
               byteSize: stat.size,
@@ -207,6 +213,9 @@ export async function handleFilesystemCommand(
                 attributes,
               } satisfies FileEntry)
             } else {
+              if (isRecursive) {
+                directoryPathQueue.push(entryPath)
+              }
               try {
                 const packageMetadataPath = path.join(entryPath, 'package.yaml')
                 const projectMetadataPath = path.join(
@@ -260,59 +269,55 @@ export async function handleFilesystemCommand(
               }
             }
           }
-          result = toJSONRPCResult({ entries })
         }
+        result = toJSONRPCResult({ entries })
         break
       }
       case '--filesystem-create-directory': {
         const directoryPath = cliArguments[1]
-        if (directoryPath != null) {
-          await fs.mkdir(directoryPath, { recursive: true })
-          result = toJSONRPCResult(null)
-        }
+        if (directoryPath == null) break
+        await fs.mkdir(directoryPath, { recursive: true })
+        result = toJSONRPCResult(null)
         break
       }
       case '--filesystem-read-path': {
         const filePath = cliArguments[1]
-        if (filePath != null) {
-          result = fsSync.createReadStream(filePath)
-        }
+        if (filePath == null) break
+        result = fsSync.createReadStream(filePath)
         break
       }
       case '--filesystem-write-path': {
         const filePath = cliArguments[1]
-        if (filePath != null) {
-          await new Promise((resolve, reject) => {
-            request
-              .pipe(fsSync.createWriteStream(filePath), {
-                end: true,
-              })
-              .on('close', resolve)
-              .on('error', reject)
-          })
-          result = toJSONRPCResult(null)
-        }
+        if (filePath == null) break
+        await new Promise((resolve, reject) => {
+          request
+            .pipe(fsSync.createWriteStream(filePath), {
+              end: true,
+            })
+            .on('close', resolve)
+            .on('error', reject)
+        })
+        result = toJSONRPCResult(null)
         break
       }
       case '--filesystem-move-from': {
         const sourcePath = cliArguments[1]
         const destinationPath = cliArguments[3]
         if (
-          sourcePath != null &&
-          cliArguments[2] === '--filesystem-move-to' &&
-          destinationPath != null
-        ) {
-          await fs.rename(sourcePath, destinationPath)
-          result = toJSONRPCResult(null)
-        }
+          sourcePath == null ||
+          cliArguments[2] !== '--filesystem-move-to' ||
+          destinationPath == null
+        )
+          break
+        await fs.rename(sourcePath, destinationPath)
+        result = toJSONRPCResult(null)
         break
       }
       case '--filesystem-delete': {
         const fileOrDirectoryPath = cliArguments[1]
-        if (fileOrDirectoryPath != null) {
-          await fs.rm(fileOrDirectoryPath, { recursive: true })
-          result = toJSONRPCResult(null)
-        }
+        if (fileOrDirectoryPath == null) break
+        await fs.rm(fileOrDirectoryPath, { recursive: true })
+        result = toJSONRPCResult(null)
         break
       }
       default: {

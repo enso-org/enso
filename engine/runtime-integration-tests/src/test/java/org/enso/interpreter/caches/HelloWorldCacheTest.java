@@ -131,7 +131,6 @@ public class HelloWorldCacheTest {
                         disablePrivateCheck ? "true" : "false")
                     .option(
                         RuntimeOptions.DISABLE_IR_CACHES, disablePrivateCheck ? "true" : "false")
-                    .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
                     .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
         .withProjectRoot(projRoot);
   }
@@ -142,6 +141,7 @@ public class HelloWorldCacheTest {
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
+                        .option(RuntimeOptions.CHECK_CWD, "false")
                         .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
                         .option(RuntimeOptions.PROJECT_ROOT, findBenchmarks(src).getAbsolutePath())
                         .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))

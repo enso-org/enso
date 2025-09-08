@@ -19,11 +19,13 @@ use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::shell;
+use ide_ci::actions::workflow::definition::step::Argument;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::RunnerLabel;
+use ide_ci::actions::workflow::definition::Shell;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
@@ -975,6 +977,23 @@ rm dist/backend/project-manager.tar"
                     );
                 steps.push(upload_ide);
 
+                let test_prepare_step = shell("\
+                    mkdir -p app/ide-desktop/client/playwright/.auth && \
+                    touch app/ide-desktop/client/playwright/.auth/user.json && \
+                    chmod 600 app/ide-desktop/client/playwright/.auth/user.json && \
+                    echo \"{\\\"user\\\": \\\"$ENSO_TEST_USER\\\",\\\"password\\\":\\\"$ENSO_TEST_USER_PASSWORD\\\"}\" >> app/ide-desktop/client/playwright/.auth/user.json\
+                    ").with_shell(Shell::Bash).with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+                        "ENSO_TEST_USER",
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+                        "ENSO_TEST_USER_PASSWORD",
+                    ).with_name(
+                        "Prepare Package Tests"
+                    );
+                steps.push(test_prepare_step);
+
                 const TEST_COMMAND: &str = "corepack pnpm -r --filter enso ide-integration-test";
                 let test_step = match target.0 {
                     OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
@@ -988,15 +1007,22 @@ rm dist/backend/project-manager.tar"
                 };
                 let test_step = test_step
                     .with_env("DEBUG", "pw:browser log:")
-                    .with_secret_exposed_as(
-                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
-                        "ENSO_TEST_USER",
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
-                        "ENSO_TEST_USER_PASSWORD",
-                    );
+                    .with_name("Run Package Tests");
+
                 steps.push(test_step);
+
+                let upload_test_traces_step = Step {
+                    r#if: Some("failure()".into()),
+                    name: Some("Upload Test Traces".into()),
+                    uses: Some("actions/upload-artifact@v4".into()),
+                    with: Some(Argument::Other(BTreeMap::from_iter([
+                        ("name".into(), format!("test-traces-{}-{}", target.0, target.1).into()),
+                        ("path".into(), "app/ide-desktop/client/test-traces".into()),
+                        ("compression-level".into(), 0.into()), // The traces are in zip already.
+                    ]))),
+                    ..Default::default()
+                };
+                steps.push(upload_test_traces_step);
 
                 // After the E2E tests run, they create a credentials file in user home directory.
                 // If that file is not cleaned up, future runs of our tests may randomly get
@@ -1004,7 +1030,13 @@ rm dist/backend/project-manager.tar"
                 // user only when we explicitly set that up, not randomly. So we clean the
                 // credentials file.
                 let cloud_credentials_path = "$HOME/.enso/credentials";
-                let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
+                let cleanup_credentials_step = Step {
+                    r#if: Some("always()".into()),
+                    name: Some("Remove Credentials File".into()),
+                    shell: Some(Shell::Bash),
+                    ..shell(format!("rm -f {cloud_credentials_path}"))
+                };
+
                 steps.push(cleanup_credentials_step);
 
                 steps

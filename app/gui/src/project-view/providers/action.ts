@@ -1,6 +1,7 @@
 import {
   appBindings,
   appContainerBindings,
+  commandPaletteBindings,
   componentBrowserBindings,
   documentationEditorFormatBindings,
   graphBindings,
@@ -271,6 +272,14 @@ const displayableActions = {
     icon: 'fullscreen',
     description: 'Fullscreen',
   },
+
+  // === Command Palette ===
+
+  'commandPalette.open': {
+    icon: 'code',
+    description: 'Open Command Palette',
+    shortcut: commandPaletteBindings.bindings['commandPalette.open'],
+  },
 } satisfies Record<string, DisplayableAction>
 export type DisplayableActionName = keyof typeof displayableActions
 const undisplayableActions = {
@@ -412,6 +421,7 @@ export function registerHandlers<Handlers extends Partial<Record<keyof Actions, 
     } as (typeof newActions)[typeof action]
   }
   provideActions(newActions)
+
   return newActions as Actions & Handlers
 }
 

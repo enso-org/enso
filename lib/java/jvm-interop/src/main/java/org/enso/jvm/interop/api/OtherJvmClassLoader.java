@@ -6,6 +6,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.File;
@@ -79,13 +80,22 @@ public final class OtherJvmClassLoader implements TruffleObject {
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   final TruffleObject invokeMember(String name, Object[] args)
-      throws UnknownIdentifierException, UnsupportedMessageException {
-    if (!"addPath".equals(name)) {
-      throw UnknownIdentifierException.create(name);
-    } else {
-      var path = InteropLibrary.getUncached().asString(args[0]);
-      addToClassPath(path);
+      throws UnknownIdentifierException, UnsupportedMessageException, UnsupportedTypeException {
+    switch (name) {
+      case "addPath" -> {
+        var path = InteropLibrary.getUncached().asString(args[0]);
+        channel.execute(Void.class, new OtherJvmMessage.AddToClassPath(path));
+      }
+      case "findLibraries" -> {
+        if (args[0] instanceof TruffleObject obj) {
+          channel.execute(Void.class, new OtherJvmMessage.FindLibraries(obj));
+        } else {
+          throw UnsupportedTypeException.create(args);
+        }
+      }
+      default -> throw UnknownIdentifierException.create(name);
     }
     return this;
   }
@@ -93,12 +103,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   private final TruffleObject loadClass(String name) throws ClassNotFoundException {
     var result = channel.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
-    return result.value();
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private final void addToClassPath(String path) {
-    channel.execute(Void.class, new OtherJvmMessage.AddToClassPath(path));
+    return result.value(null);
   }
 
   private static JVM initializeJvm() throws IOException, URISyntaxException {

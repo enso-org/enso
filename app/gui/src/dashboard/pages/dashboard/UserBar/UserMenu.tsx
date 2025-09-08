@@ -56,7 +56,7 @@ export function UserMenu(props: UserMenuProps) {
     },
     user.isEnsoTeamMember &&
       IS_DEV_MODE && {
-        action: 'ensoDevtools',
+        action: 'toggleEnsoDevtools',
         doAction: () => {
           toggleEnsoDevtools()
         },

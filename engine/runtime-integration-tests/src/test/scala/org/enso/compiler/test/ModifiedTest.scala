@@ -67,6 +67,7 @@ trait ModifiedTest
       .out(output)
       .in(System.in)
       .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+      .option(RuntimeOptions.CHECK_CWD, "false")
       .logHandler(System.err)
       .build()
     context.initialize(LanguageInfo.ID)

@@ -12,11 +12,14 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Supplier;
 import org.enso.compiler.context.LocalScope;
+import org.enso.compiler.core.ir.Location;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -212,9 +215,12 @@ public final class UnresolvedConstructor extends EnsoObject {
       var lang = EnsoLanguage.get(null);
       var body = BlockNode.buildSilent(new ExpressionNode[0], expr);
       body.adoptChildren();
+      var loc =
+          section == null ? null : new Location(section.getCharIndex(), section.getCharEndIndex());
+      Supplier<Source> src = section == null ? null : section::getSource;
       var root =
           ClosureRootNode.build(
-              lang, LocalScope.empty(), scope, body, section, prototype.getName(), true, true);
+              lang, LocalScope.empty(), scope, body, src, loc, prototype.getName(), true, true);
       root.adoptChildren();
       assert Objects.equals(expr.getSourceSection(), section)
           : "Expr: " + expr.getSourceSection() + " orig: " + section;

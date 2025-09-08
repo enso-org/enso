@@ -142,6 +142,9 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
         category,
         backend,
         parentId: targetId,
+        labels: null,
+        sortExpression: null,
+        sortDirection: null,
         refetchInterval: null,
       }),
       listDirectoryQueryOptions({
@@ -149,6 +152,9 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
         backend,
         parentId: targetId,
         filterBy: FilterBy.trashed,
+        labels: null,
+        sortExpression: null,
+        sortDirection: null,
         refetchInterval: null,
       }),
     ],
@@ -156,7 +162,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       const map = new Map<string, backendModule.AnyAsset>()
       const siblings = []
       for (const query of queries) {
-        for (const asset of query.data) {
+        for (const asset of query.data.assets) {
           map.set(asset.title, asset)
           siblings.push(asset)
         }
