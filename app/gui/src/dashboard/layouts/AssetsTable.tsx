@@ -74,7 +74,6 @@ import {
   BackendType,
   IS_OPENING_OR_OPENED,
   isAssetCredential,
-  isDirectoryId,
   LabelName,
   type AnyAsset,
 } from '#/services/Backend'
@@ -225,27 +224,9 @@ function AssetsTable(props: AssetsTableProps) {
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
   const paste = usePaste(category)
 
-  const isSingleSelectedDirectoryItem = useStore(
-    driveStore,
-    (state) => {
-      const selectedIds = state.selectedIds
-
-      if (selectedIds.size !== 1) {
-        return false
-      }
-
-      const firstId = Array.from(selectedIds).values().next().value
-
-      if (firstId == null) {
-        return false
-      }
-
-      const isDirectory = isDirectoryId(firstId)
-
-      return isDirectory
-    },
-    { unsafeEnableTransition: true },
-  )
+  const isSingleSelectedItem = useStore(driveStore, (state) => state.selectedIds.size === 1, {
+    unsafeEnableTransition: true,
+  })
 
   const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const { data: userGroups } = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
@@ -797,7 +778,7 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const contextMenu =
-    isSingleSelectedDirectoryItem ? null : (
+    isSingleSelectedItem ? null : (
       <AssetsTableContextMenu
         ref={contextMenuRef}
         backend={backend}
@@ -1301,7 +1282,7 @@ function AssetsTable(props: AssetsTableProps) {
           </div>
         )}
 
-        <IsolateLayout className="isolate h-full w-full" useRAF>
+        <IsolateLayout className="isolate h-full w-full">
           <div
             tabIndex={-1}
             className="h-full w-full flex-1 container-size"

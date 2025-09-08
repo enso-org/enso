@@ -10,7 +10,6 @@ import { VueQueryPlugin } from '@tanstack/vue-query'
 import * as detect from 'enso-common/src/detect'
 import { createQueryClient } from 'enso-common/src/queryClient'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
-import { MotionGlobalConfig } from 'framer-motion'
 import * as idbKeyval from 'idb-keyval'
 import { createApp, markRaw } from 'vue'
 
@@ -26,7 +25,6 @@ markRaw(HttpClient.prototype)
 async function main() {
   setupScamWarning()
   setupSentry()
-  configureAnimations()
   const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = createQueryClientOfPersistCache()
   const rootDirPath = await getRootDirPath()
@@ -111,21 +109,6 @@ function setupSentry() {
         return event
       },
     })
-  }
-}
-
-function configureAnimations() {
-  const areAnimationsDisabled =
-    window.DISABLE_ANIMATIONS === true ||
-    localStorage.getItem('disableAnimations') === 'true' ||
-    false
-
-  MotionGlobalConfig.skipAnimations = areAnimationsDisabled
-
-  if (areAnimationsDisabled) {
-    document.documentElement.classList.add('disable-animations')
-  } else {
-    document.documentElement.classList.remove('disable-animations')
   }
 }
 

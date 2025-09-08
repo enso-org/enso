@@ -618,11 +618,11 @@ class App {
 
     // Handling navigation events from renderer process
     electron.ipcMain.on(ipc.Channel.goBack, () => {
-      this.window?.webContents.goBack()
+      this.window?.webContents.navigationHistory.goBack()
     })
 
     electron.ipcMain.on(ipc.Channel.goForward, () => {
-      this.window?.webContents.goForward()
+      this.window?.webContents.navigationHistory.goForward()
     })
   }
 

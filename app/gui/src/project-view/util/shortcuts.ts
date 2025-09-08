@@ -127,7 +127,7 @@ const allPointers = [
 ] as const
 type Pointer = (typeof allPointers)[number]
 type LowercasePointer = Lowercase<Pointer>
-/** This list is non-exhaustive. It is intentionally  */
+/** This list is non-exhaustive. It is intentionally limited to keys found on most keyboards. */
 const allKeys = [
   'Escape',
   'Enter',

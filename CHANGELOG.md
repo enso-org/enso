@@ -52,6 +52,11 @@
 - [Graph is not moved when showing/resizing side panels.][13557]
 - [Add "Invite" button to the top bar when using a team or higher plan][13522]
 - ["Welcome Project" is automatically opened for new users][13479]
+- [Project and Setting tab may be now closed with shortcut][13498]
+  (reimplemented in [13604][13604]). On Windows/Linux
+  <kbd>Ctrl</kbd>+<kbd>W</kbd> or <kbd>Ctrl</kbd> + <kbd>F4</kbd>; on macOS:
+  <kbd>⌘</kbd> + <kbd>W</kbd>.
+- [Command Palette to search for arbitrary actions][13658]
 - [Project and Setting tab may be now closed with shortcut][13498][13604]. On
   Windows/Linux <kbd>Ctrl</kbd>+<kbd>W</kbd> or <kbd>Ctrl</kbd> + <kbd>F4</kbd>;
   on macOS: <kbd>⌘</kbd> + <kbd>W</kbd>.
@@ -88,6 +93,7 @@
 [13479]: https://github.com/enso-org/enso/pull/13479
 [13498]: https://github.com/enso-org/enso/pull/13498
 [13604]: https://github.com/enso-org/enso/pull/13604
+[13658]: https://github.com/enso-org/enso/pull/13658
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13726]: https://github.com/enso-org/enso/pull/13726
 

@@ -22,7 +22,6 @@ import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 
 /** The maximum number of user icons per row. */
@@ -87,91 +86,79 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
   const styles = USER_GROUP_SETTINGS_SECTION_STYLES()
 
   return (
-    <AnimatePresence>
-      <motion.div
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        exit={{ opacity: 0, y: -10 }}
-        className="flex min-h-0 flex-1 flex-col gap-2"
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      {isAdmin && (
+        <Button.Group verticalAlign="center" className="flex-initial">
+          {shouldDisplayPaywall && (
+            <PaywallDialogButton
+              feature="userGroupsFull"
+              variant="outline"
+              size="medium"
+              rounded="full"
+              iconPosition="end"
+              tooltip={getText('userGroupsPaywallMessage')}
+            >
+              {getText('newUserGroup')}
+            </PaywallDialogButton>
+          )}
+          {!shouldDisplayPaywall && (
+            <Popover.Trigger>
+              <Button variant="outline">{getText('newUserGroup')}</Button>
+              <Popover size="small" placement="bottom left">
+                <NewUserGroupForm />
+              </Popover>
+            </Popover.Trigger>
+          )}
+          {isUnderPaywall && (
+            <span className="text-xs">
+              {userGroupsLeft <= 0 ?
+                getText('userGroupsPaywallMessage')
+              : getText('userGroupsLimitMessage', userGroupsLeft)}
+            </span>
+          )}
+        </Button.Group>
+      )}
+      <Scroller
+        scrollbar
+        orientation="vertical"
+        className={styles.tableContainer()}
+        shadowStartClassName="mt-8"
       >
-        {isAdmin && (
-          <Button.Group verticalAlign="center" className="flex-initial">
-            {shouldDisplayPaywall && (
-              <PaywallDialogButton
-                feature="userGroupsFull"
-                variant="outline"
-                size="medium"
-                rounded="full"
-                iconPosition="end"
-                tooltip={getText('userGroupsPaywallMessage')}
-              >
-                {getText('newUserGroup')}
-              </PaywallDialogButton>
-            )}
-            {!shouldDisplayPaywall && (
-              <Popover.Trigger>
-                <Button variant="outline">{getText('newUserGroup')}</Button>
-                <Popover size="small" placement="bottom left">
-                  <NewUserGroupForm />
-                </Popover>
-              </Popover.Trigger>
-            )}
-            {isUnderPaywall && (
-              <span className="text-xs">
-                {userGroupsLeft <= 0 ?
-                  getText('userGroupsPaywallMessage')
-                : getText('userGroupsLimitMessage', userGroupsLeft)}
-              </span>
-            )}
-          </Button.Group>
-        )}
-        <Scroller
-          scrollbar
-          orientation="vertical"
-          className={styles.tableContainer()}
-          shadowStartClassName="mt-8"
-        >
-          <Table aria-label={getText('userGroups')} className={styles.table()}>
-            <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
-              <Column isRowHeader className={styles.column({ className: 'w-48 min-w-48' })}>
-                {getText('userGroup')}
+        <Table aria-label={getText('userGroups')} className={styles.table()}>
+          <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
+            <Column isRowHeader className={styles.column({ className: 'w-48 min-w-48' })}>
+              {getText('userGroup')}
+            </Column>
+            <Column isRowHeader className={styles.column({ className: 'w-[21rem] min-w-[21rem]' })}>
+              {getText('users')}
+            </Column>
+            {isAdmin && (
+              <Column isRowHeader className={styles.column()}>
+                {getText('actions')}
               </Column>
-              <Column
-                isRowHeader
-                className={styles.column({ className: 'w-[21rem] min-w-[21rem]' })}
-              >
-                {getText('users')}
-              </Column>
-              {isAdmin && (
-                <Column isRowHeader className={styles.column()}>
-                  {getText('actions')}
-                </Column>
-              )}
-            </TableHeader>
-            <TableBody items={userGroups} dependencies={[userGroups]} className="select-text">
-              {userGroups.length === 0 ?
-                <Row className="h-10">
-                  <Cell className="col-span-2 px-2.5 placeholder">
-                    {isAdmin ?
-                      getText('youHaveNoUserGroupsAdmin')
-                    : getText('youHaveNoUserGroupsNonAdmin')}
-                  </Cell>
-                </Row>
-              : (userGroup) => (
-                  <UserGroupRow
-                    key={userGroup.id}
-                    userGroup={userGroup}
-                    setUserGroup={setUserGroup}
-                  />
-                )
-              }
-            </TableBody>
-          </Table>
-        </Scroller>
-      </motion.div>
-    </AnimatePresence>
+            )}
+          </TableHeader>
+          <TableBody items={userGroups} dependencies={[userGroups]} className="select-text">
+            {userGroups.length === 0 ?
+              <Row className="h-10">
+                <Cell className="col-span-2 px-2.5 placeholder">
+                  {isAdmin ?
+                    getText('youHaveNoUserGroupsAdmin')
+                  : getText('youHaveNoUserGroupsNonAdmin')}
+                </Cell>
+              </Row>
+            : (userGroup) => (
+                <UserGroupRow
+                  key={userGroup.id}
+                  userGroup={userGroup}
+                  setUserGroup={setUserGroup}
+                />
+              )
+            }
+          </TableBody>
+        </Table>
+      </Scroller>
+    </div>
   )
 }
 
@@ -308,115 +295,106 @@ function UserGroupSettingsSection(props: UserGroupSettingsSectionProps) {
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-        exit={{ opacity: 0, y: -10 }}
-        className="flex min-h-0 flex-1 flex-col gap-2"
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <Button
+        variant="icon"
+        size="medium"
+        icon="arrow_circle_left"
+        className="-ml-2"
+        onPress={unsetUserGroup}
       >
+        {getText('returnToGroupsList')}
+      </Button>
+      <Button.Group verticalAlign="center" className="flex-initial">
+        <Popover.Trigger>
+          <Button variant="outline">{getText('addUsers')}</Button>
+          <Popover>
+            <UserGroupAddUserForm userGroup={userGroup} />
+          </Popover>
+        </Popover.Trigger>
         <Button
-          variant="icon"
-          size="medium"
-          icon="arrow_circle_left"
-          className="-ml-2"
-          onPress={unsetUserGroup}
+          variant="delete-outline"
+          onPress={() => {
+            setModal(
+              <ConfirmDeleteModal
+                actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
+                onConfirm={deleteUserGroup}
+              />,
+            )
+          }}
         >
-          {getText('returnToGroupsList')}
+          {getText('deleteUserGroup')}
         </Button>
-        <Button.Group verticalAlign="center" className="flex-initial">
-          <Popover.Trigger>
-            <Button variant="outline">{getText('addUsers')}</Button>
-            <Popover>
-              <UserGroupAddUserForm userGroup={userGroup} />
-            </Popover>
-          </Popover.Trigger>
-          <Button
-            variant="delete-outline"
-            onPress={() => {
-              setModal(
-                <ConfirmDeleteModal
-                  actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
-                  onConfirm={deleteUserGroup}
-                />,
-              )
-            }}
-          >
-            {getText('deleteUserGroup')}
-          </Button>
-        </Button.Group>
-        <Text.Heading variant="subtitle">
-          {getText('managingUserGroupX', userGroup.groupName)}
-        </Text.Heading>
-        <Scroller
-          scrollbar
-          orientation="vertical"
-          className={styles.tableContainer()}
-          shadowStartClassName="mt-8"
-        >
-          <Table>
-            <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
-              <Column isRowHeader className={styles.column({ className: 'w-80 max-w-80' })}>
-                {getText('user')}
-              </Column>
-              <Column isRowHeader className={styles.column({ className: 'w-32 max-w-32' })}>
-                {getText('actions')}
-              </Column>
-            </TableHeader>
-            <TableBody>
-              {users.map((otherUser) => (
-                <Row key={otherUser.userId} className="group h-row rounded-rows-child">
-                  <Cell className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
-                    <Text truncate="1" className="block">
-                      {otherUser.email}
-                    </Text>
-                    <Text truncate="1" className="block text-2xs text-primary/40">
-                      {otherUser.name}
-                    </Text>
-                  </Cell>
-                  <Cell className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
-                    <Button.GroupJoin
-                      className="shrink-0 grow-0"
-                      buttonVariants={{ size: 'small', variant: 'outline' }}
+      </Button.Group>
+      <Text.Heading variant="subtitle">
+        {getText('managingUserGroupX', userGroup.groupName)}
+      </Text.Heading>
+      <Scroller
+        scrollbar
+        orientation="vertical"
+        className={styles.tableContainer()}
+        shadowStartClassName="mt-8"
+      >
+        <Table>
+          <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
+            <Column isRowHeader className={styles.column({ className: 'w-80 max-w-80' })}>
+              {getText('user')}
+            </Column>
+            <Column isRowHeader className={styles.column({ className: 'w-32 max-w-32' })}>
+              {getText('actions')}
+            </Column>
+          </TableHeader>
+          <TableBody>
+            {users.map((otherUser) => (
+              <Row key={otherUser.userId} className="group h-row rounded-rows-child">
+                <Cell className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <Text truncate="1" className="block">
+                    {otherUser.email}
+                  </Text>
+                  <Text truncate="1" className="block text-2xs text-primary/40">
+                    {otherUser.name}
+                  </Text>
+                </Cell>
+                <Cell className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <Button.GroupJoin
+                    className="shrink-0 grow-0"
+                    buttonVariants={{ size: 'small', variant: 'outline' }}
+                  >
+                    <Button
+                      icon="data_output"
+                      onPress={() => {
+                        setModal(
+                          <ConfirmDeleteModal
+                            actionText={getText(
+                              'removeUserFromUserGroupActionText',
+                              otherUser.name,
+                              userGroup.groupName,
+                            )}
+                            onConfirm={async () => {
+                              unsetModal()
+                              await removeUser(otherUser)
+                            }}
+                          />,
+                        )
+                      }}
                     >
-                      <Button
-                        icon="data_output"
-                        onPress={() => {
-                          setModal(
-                            <ConfirmDeleteModal
-                              actionText={getText(
-                                'removeUserFromUserGroupActionText',
-                                otherUser.name,
-                                userGroup.groupName,
-                              )}
-                              onConfirm={async () => {
-                                unsetModal()
-                                await removeUser(otherUser)
-                              }}
-                            />,
-                          )
-                        }}
-                      >
-                        {getText('remove')}
-                      </Button>
-                    </Button.GroupJoin>
-                  </Cell>
-                </Row>
-              ))}
-              {users.length === 0 && (
-                <Row>
-                  <Cell>
-                    <Text color="muted">{getText('noUsersInThisGroup')}</Text>
-                  </Cell>
-                </Row>
-              )}
-            </TableBody>
-          </Table>
-        </Scroller>
-      </motion.div>
-    </AnimatePresence>
+                      {getText('remove')}
+                    </Button>
+                  </Button.GroupJoin>
+                </Cell>
+              </Row>
+            ))}
+            {users.length === 0 && (
+              <Row>
+                <Cell>
+                  <Text color="muted">{getText('noUsersInThisGroup')}</Text>
+                </Cell>
+              </Row>
+            )}
+          </TableBody>
+        </Table>
+      </Scroller>
+    </div>
   )
 }
 

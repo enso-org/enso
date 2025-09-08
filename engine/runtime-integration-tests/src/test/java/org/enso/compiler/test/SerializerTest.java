@@ -29,6 +29,7 @@ public class SerializerTest {
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .option(RuntimeOptions.CHECK_CWD, "false")
             .logHandler(System.err)
             .allowAllAccess(true)
             .build();

@@ -21,7 +21,6 @@ import { createStore, useStore } from '#/utilities/zustand'
 import { useText } from '$/providers/react'
 import { useQuery } from '@tanstack/react-query'
 import * as detect from 'enso-common/src/detect'
-import { AnimatePresence, motion } from 'framer-motion'
 import * as React from 'react'
 
 /** The reason behind a new query. */
@@ -443,59 +442,47 @@ const AssetSearchBarPopover = React.memo(function AssetSearchBarPopover(
   )
 
   return (
-    <>
-      <AnimatePresence mode="wait" custom={suggestions.length}>
-        {areSuggestionsVisible && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className={DIALOG_BACKGROUND({
-              className:
-                'absolute left-0 right-0 top-0 z-1 grid w-full overflow-hidden rounded-default border-0.5 border-primary/20 -outline-offset-1 outline-primary',
-            })}
-          >
-            <div className="overflow-hidden">
-              <div className="relative mt-3 flex flex-col gap-3 pt-8">
-                {/* Tags (`name:`, `modified:`, etc.) */}
-                <Tags
-                  isCloud={isCloud}
+    areSuggestionsVisible && (
+      <div
+        className={DIALOG_BACKGROUND({
+          className:
+            'absolute left-0 right-0 top-0 z-1 grid w-full overflow-hidden rounded-default border-0.5 border-primary/20 -outline-offset-1 outline-primary',
+        })}
+      >
+        <div className="overflow-hidden">
+          <div className="relative mt-3 flex flex-col gap-3 pt-8">
+            {/* Tags (`name:`, `modified:`, etc.) */}
+            <Tags isCloud={isCloud} querySource={querySource} query={query} setQuery={setQuery} />
+            {/* Asset labels */}
+            <Labels
+              isCloud={isCloud}
+              query={query}
+              setQuery={setQuery}
+              querySource={querySource}
+              backend={backend}
+            />
+            {/* Suggestions */}
+            <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto overflow-x-hidden pb-0.5 pl-0.5">
+              {suggestions.map((suggestion, index) => (
+                <SuggestionRenderer
+                  key={suggestion.key}
+                  index={index}
+                  selectedIndex={selectedIndex}
+                  selectedIndices={selectedIndices}
                   querySource={querySource}
-                  query={query}
                   setQuery={setQuery}
-                />
-                {/* Asset labels */}
-                <Labels
-                  isCloud={isCloud}
-                  querySource={querySource}
+                  suggestion={suggestion}
+                  setSelectedIndices={setSelectedIndices}
+                  setAreSuggestionsVisible={setAreSuggestionsVisible}
                   query={query}
-                  setQuery={setQuery}
-                  backend={backend}
+                  baseQuery={baseQuery}
                 />
-                {/* Suggestions */}
-                <div className="flex max-h-search-suggestions-list flex-col overflow-y-auto overflow-x-hidden pb-0.5 pl-0.5">
-                  {suggestions.map((suggestion, index) => (
-                    <SuggestionRenderer
-                      key={suggestion.key}
-                      index={index}
-                      selectedIndex={selectedIndex}
-                      selectedIndices={selectedIndices}
-                      querySource={querySource}
-                      setQuery={setQuery}
-                      suggestion={suggestion}
-                      setSelectedIndices={setSelectedIndices}
-                      setAreSuggestionsVisible={setAreSuggestionsVisible}
-                      query={query}
-                      baseQuery={baseQuery}
-                    />
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+          </div>
+        </div>
+      </div>
+    )
   )
 })
 
@@ -583,6 +570,10 @@ const Labels = React.memo(function Labels(props: LabelsProps) {
   const { isCloud, query, setQuery, backend, querySource } = props
 
   const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
+  const sortedLabels = React.useMemo(
+    () => [...labels].sort((a, b) => string.compareCaseInsensitive(a.value, b.value)),
+    [labels],
+  )
 
   const toggleLabel = useEventCallback((label?: BackendLabel) => {
     if (label == null) {
@@ -592,27 +583,23 @@ const Labels = React.memo(function Labels(props: LabelsProps) {
     setQuery(query.withToggled('labels', label.value))
   })
 
-  if (!isCloud || labels.length === 0) {
-    return null
-  }
+  if (!isCloud || labels.length === 0) return null
 
   return (
     <div data-testid="asset-search-labels" className="pointer-events-auto flex gap-2 px-1.5">
-      {[...labels]
-        .sort((a, b) => string.compareCaseInsensitive(a.value, b.value))
-        .map((label) => {
-          return (
-            <Label
-              key={label.id}
-              color={label.color}
-              label={label}
-              active={query.labels.some((term) => term === label.value)}
-              onPress={toggleLabel}
-            >
-              {label.value}
-            </Label>
-          )
-        })}
+      {sortedLabels.map((label) => {
+        return (
+          <Label
+            key={label.id}
+            color={label.color}
+            label={label}
+            active={query.labels.some((term) => term === label.value)}
+            onPress={toggleLabel}
+          >
+            {label.value}
+          </Label>
+        )
+      })}
     </div>
   )
 })

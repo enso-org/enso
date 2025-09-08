@@ -4273,6 +4273,7 @@ lazy val `os-environment` =
           "test-os-env",
           staticOnLinux = false,
           targetDir     = targetDir,
+          symlink       = false,
           mainClass     = Some("org.enso.os.environment.TestRunner"),
           additionalOptions = Seq(
             "-ea",
