@@ -72,7 +72,12 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return [...iter.filter(allTypeEntries, isUserSelectableType)]
   })
 
-  /** Retrieve all methods, optionally filtered by the given criteria. */
+  /**
+   * Retrieve all methods, optionally filtered by the given criteria.
+   *
+   * PERFORMANCE: This function performs a linear search over all entries. Depending on usage
+   * pattern, a `ReactiveIndex` is likely to be more efficient.
+   */
   methods(
     filter: {
       /** Whether to include private methods (false by default). */
