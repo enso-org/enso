@@ -50,12 +50,12 @@ type Progress
           `Progress`
         - `step`: how often the progress should be reported. It has to be at
           least one or higher.
-    run label:Text up_to:Integer action:(Progress->Any) step:Integer=1 -> Any =
+    run label:Text up_to:Integer action:(Progress->Any) step:Integer=1 handle_name:Text="Progress" -> Any =
         logger = LoggerFactory.getLogger (Progress.to Meta.Type . qualified_name)
         counter = Ref.new step
         max = up_to.max 1
 
-        Managed_Resource.bracket (ProgressReporter.makeHandle label max) close_handle handle->
+        Managed_Resource.bracket (ProgressReporter.makeHandle handle_name max) close_handle handle->
             progress = Progress.Running handle label max logger counter step
             log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress.handle, progress.label, max]
             res = action progress
