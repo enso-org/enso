@@ -34,14 +34,14 @@ use insta::assert_snapshot;
 // ===========================
 
 macro_rules! test_module {
-    ( $code:expr, $($statements:tt)* ) => {
-        assert_snapshot!(module($code), $( $statements )*)
+    ( $code:expr, @$expected:tt ) => {
+        assert_snapshot!(module($code), @$expected)
     }
 }
 
 macro_rules! test_block {
-    ( $code:expr, $($statements:tt)* ) => {
-        assert_snapshot!(block($code), $( $statements )*)
+    ( $code:expr, @$expected:tt ) => {
+        assert_snapshot!(block($code), @$expected)
     }
 }
 
