@@ -16,7 +16,6 @@ from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch, Existing
 
 polyglot java import java.io.File as Java_File
 polyglot java import java.lang.IllegalStateException
-polyglot java import org.apache.poi.ss.usermodel.Workbook
 polyglot java import org.enso.base.DryRunFileManager
 polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.InvalidLocationException
@@ -25,6 +24,7 @@ polyglot java import org.enso.table.excel.ExcelConnectionPool
 polyglot java import org.enso.table.excel.ExcelConnectionPool.ConnectionRecord
 polyglot java import org.enso.table.excel.ExcelConnectionPool.WriteHelper
 polyglot java import org.enso.table.excel.ExcelFileFormat
+polyglot java import org.enso.table.excel.ExcelWorkbook as Workbook
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
 polyglot java import org.enso.table.write.ExistingDataMode

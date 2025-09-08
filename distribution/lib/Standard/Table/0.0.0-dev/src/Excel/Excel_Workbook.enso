@@ -38,10 +38,10 @@ from project.Internal.Excel_Reader import handle_invalid_location
 from project.Internal.Table_Helpers import duplicate_rows
 
 polyglot java import java.io.File as Java_File
-polyglot java import org.apache.poi.ss.usermodel.Workbook
 polyglot java import org.enso.table.excel.ExcelConnectionPool
 polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ReadOnlyExcelConnection
+polyglot java import org.enso.table.excel.ExcelWorkbook as Workbook
 polyglot java import org.enso.table.read.ExcelReader
 
 type Excel_Workbook
