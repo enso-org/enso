@@ -10,10 +10,18 @@ import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Numeric_Column_Implementation
+import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
 import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Refined_Types.Text_Column.Text_Column
 
 ## This conversion is internal and should never be exported.
 Numeric_Column.from (that : In_Memory_Column) =
     if (that:Column).inferred_precise_value_type.is_numeric.not then
         Panic.throw (Illegal_Argument.Error "Numeric_Column conversion called on a In_Memory_Column that is not numeric. This is a bug in Table library.")
     Typed_Column_Helpers.make_numeric_column that In_Memory_Numeric_Column_Implementation
+
+## This conversion is internal and should never be exported.
+Text_Column.from (that : In_Memory_Column) =
+    if (that:Column).inferred_precise_value_type.is_text.not then
+        Panic.throw (Illegal_Argument.Error "Text_Column conversion called on a In_Memory_Column that is not text. This is a bug in Table library.")
+    Typed_Column_Helpers.make_text_column that In_Memory_Text_Column_Implementation

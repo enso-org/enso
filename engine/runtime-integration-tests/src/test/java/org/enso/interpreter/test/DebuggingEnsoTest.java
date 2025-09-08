@@ -66,6 +66,7 @@ public class DebuggingEnsoTest {
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .option(RuntimeOptions.CHECK_CWD, "false")
             .logHandler(out)
             .err(out)
             .out(out)
@@ -890,6 +891,37 @@ public class DebuggingEnsoTest {
             })) {
       session.suspendNextExecution();
       fooFunc.execute(0);
+    }
+  }
+
+  @Test
+  public void breakInMeta() {
+    Value fooFunc =
+        createEnsoMethod(
+            """
+        from Standard.Base import Meta
+        foo x =
+            Meta.meta x
+        """,
+            "foo");
+
+    var interceptedKind = new int[] {-1};
+
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              var code = event.getSourceSection().getCharacters().toString();
+              if (code.contains("case kind:Integer")) {
+                // at Meta.enso:381 currently
+                var kind = event.getTopStackFrame().eval("kind");
+                interceptedKind[0] = kind.asInt();
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      var res = fooFunc.execute(42);
+      assertEquals("(Primitive.Value 42)", res.toString());
+      assertEquals("Primitive.Value kind", 0, interceptedKind[0]);
     }
   }
 

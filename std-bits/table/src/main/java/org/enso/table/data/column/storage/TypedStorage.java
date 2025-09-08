@@ -9,21 +9,15 @@ public class TypedStorage<T> extends Storage<T> {
    * @param data the underlying data
    */
   public TypedStorage(StorageType<T> type, T[] data) {
-    this.type = type;
+    super(type);
     this.data = data;
   }
 
   protected final T[] data;
-  private final StorageType<T> type;
 
   @Override
   public final long getSize() {
     return data.length;
-  }
-
-  @Override
-  public StorageType<T> getType() {
-    return type;
   }
 
   /**

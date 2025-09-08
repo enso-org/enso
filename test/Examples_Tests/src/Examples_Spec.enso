@@ -79,13 +79,13 @@ add_specs suite_builder = suite_builder.group "Examples" group_builder->
     group_builder.specify "should provide an example URI" <|
         Examples.uri
 
-    group_builder.specify "should provide an image file" <|
+    group_builder.specify "should provide an image file" pending="https://github.com/enso-org/enso/issues/13897" <|
         Examples.image_file
 
-    group_builder.specify "should provide an image" <|
+    group_builder.specify "should provide an image" pending="https://github.com/enso-org/enso/issues/13897" <|
         Examples.image
 
-    group_builder.specify "should provide a matrix" <|
+    group_builder.specify "should provide a matrix" pending="https://github.com/enso-org/enso/issues/13897" <|
         Examples.matrix
 
     group_builder.specify "should provide a silly function" <|

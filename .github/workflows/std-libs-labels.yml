@@ -189,31 +189,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: -libs-API-change-Microsoft
-  stdlib-api-check-Snowflake-linux-amd64:
-    name: Snowflake-change-labels
-    runs-on:
-      - ubuntu-latest
-    steps:
-      - name: Checking out the repository
-        uses: actions/checkout@v4
-        with:
-          clean: false
-          fetch-depth: 2
-      - id: Snowflake-changed-files
-        name: Snowflake-changed-files
-        uses: step-security/changed-files@v45
-        with:
-          files: distribution/lib/Standard/Snowflake/**/docs/api/**/**.md
-      - name: List all changed files in Snowflake
-        run: "\n        if [[ \"${{ steps.Snowflake-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
-        env:
-          ALL_CHANGED_FILES: ${{ steps.Snowflake-changed-files.outputs.all_changed_files }}
-      - if: steps.Snowflake-changed-files.outputs.any_changed == 'true'
-        name: Append -libs-API-change-Snowflake label
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          labels: -libs-API-change-Snowflake
   stdlib-api-check-Saas-linux-amd64:
     name: Saas-change-labels
     runs-on:
@@ -239,6 +214,31 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: -libs-API-change-Saas
+  stdlib-api-check-Snowflake-linux-amd64:
+    name: Snowflake-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Snowflake-changed-files
+        name: Snowflake-changed-files
+        uses: step-security/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Snowflake/**/docs/api/**/**.md
+      - name: List all changed files in Snowflake
+        run: "\n        if [[ \"${{ steps.Snowflake-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Snowflake-changed-files.outputs.all_changed_files }}
+      - if: steps.Snowflake-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Snowflake label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Snowflake
   stdlib-api-check-Table-linux-amd64:
     name: Table-change-labels
     runs-on:

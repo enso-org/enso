@@ -1,9 +1,11 @@
 import LocalStorage from '#/utilities/LocalStorage'
+import { ActionsStore, useActionsStore } from '$/providers/actions'
 import { AuthStore, useAuth } from '$/providers/auth'
 import { BackendsStore, useBackends } from '$/providers/backends'
 import { useHttpClient } from '$/providers/httpClient'
 import { QueryParams, useQueryParams } from '$/providers/queryParams'
 import {
+  ActionsContext,
   ConfigContext,
   HTTPClientContext,
   LocalStorageContext,
@@ -33,6 +35,7 @@ interface ContextsForReactProviderProps {
   session: SessionStore
   auth: AuthStore
   queryParams: QueryParams
+  actionsStore: ActionsStore
 }
 
 /**
@@ -54,6 +57,7 @@ export const ContextsForReactProvider = reactComponent(
       session,
       auth,
       queryParams,
+      actionsStore,
     } = props
     return (
       <RouterContext.Provider value={router}>
@@ -65,7 +69,9 @@ export const ContextsForReactProvider = reactComponent(
                   <AuthContext.Provider value={auth}>
                     <QueryParamsContext.Provider value={queryParams}>
                       <BackendsContext.Provider value={backends}>
-                        {children}
+                        <ActionsContext.Provider value={actionsStore}>
+                          {children}
+                        </ActionsContext.Provider>
                       </BackendsContext.Provider>
                     </QueryParamsContext.Provider>
                   </AuthContext.Provider>
@@ -94,6 +100,7 @@ export const ContextsForReactProvider = reactComponent(
         session: useSession(),
         auth: useAuth(),
         queryParams: useQueryParams(),
+        actionsStore: useActionsStore(),
       })
       // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
       // avoids the code path that assigns that property to overwrite a computed value with constant.

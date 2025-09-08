@@ -7,18 +7,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
-import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.DateType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.LeastRecentlyUsedCache;
@@ -62,7 +51,8 @@ public class CastOperation {
       case BigIntegerType bigIntegerType -> new ToBigIntegerConverter();
       case BigDecimalType bigDecimalType -> new ToBigDecimalConverter();
       case NullType nullType -> throw new IllegalArgumentException("Cannot cast to Null type.");
-      default -> throw new IllegalArgumentException("Cannot cast " + storageType);
+      default -> fromStorageType(
+          StorageType.fromTypeCharAndSize(storageType.typeChar(), storageType.size()));
     };
   }
 
@@ -199,7 +189,7 @@ public class CastOperation {
           "Cannot infer integer type from non-integer storage: " + columnStorage.getType());
     }
 
-    if (integerType.bits().toInteger() <= 16) {
+    if (integerType.size() <= 16) {
       // If the type is already the smallest possible, we return it unchanged.
       return integerType;
     }

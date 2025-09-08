@@ -1,3 +1,7 @@
+import {
+  GET_WIDGETS_METHOD,
+  WIDGETS_ENSO_MODULE,
+} from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import type { MockYdocProviderImpl } from '@/util/crdt'
@@ -135,71 +139,73 @@ const scatterplotJson = (params: string[]) =>
     ],
   })
 
-const mockVizPreprocessors: Record<string, Uint8Array | ((params: string[]) => Uint8Array)> = {
-  // JSON
-  'Standard.Visualization.Preprocessor.default_preprocessor': scatterplotJson,
-  'Standard.Visualization.Scatter_Plot.process_to_json_text': scatterplotJson,
-  'Standard.Visualization.SQL.Visualization.prepare_visualization': encodeJSON({
-    dialect: 'sql',
-    code: `SELECT * FROM \`foo\` WHERE \`a\` = ? AND b LIKE ?;`,
-    interpolations: [
-      // eslint-disable-next-line camelcase
-      { enso_type: 'Data.Numbers.Number', value: '123' },
-      // eslint-disable-next-line camelcase
-      { enso_type: 'Builtins.Main.Text', value: "a'bcd" },
-    ],
-  }),
-  'Standard.Visualization.Geo_Map.process_to_json_text': encodeJSON({
-    latitude: 37.8,
-    longitude: -122.45,
-    zoom: 15,
-    controller: true,
-    showingLabels: true, // Enables presenting labels when hovering over a point.
-    layers: [
-      {
-        type: 'Scatterplot_Layer',
-        data: [
-          {
-            latitude: 37.8,
-            longitude: -122.45,
-            color: [255, 0, 0],
-            radius: 100,
-            label: 'an example label',
-          },
-        ],
+const mockVizPreprocessors: Record<string, Uint8Array | ((params: string[]) => Uint8Array | null)> =
+  {
+    // JSON
+    'Standard.Visualization.Preprocessor.default_preprocessor': scatterplotJson,
+    'Standard.Visualization.Scatter_Plot.process_to_json_text': scatterplotJson,
+    'Standard.Visualization.SQL.Visualization.prepare_visualization': encodeJSON({
+      dialect: 'sql',
+      code: `SELECT * FROM \`foo\` WHERE \`a\` = ? AND b LIKE ?;`,
+      interpolations: [
+        // eslint-disable-next-line camelcase
+        { enso_type: 'Data.Numbers.Number', value: '123' },
+        // eslint-disable-next-line camelcase
+        { enso_type: 'Builtins.Main.Text', value: "a'bcd" },
+      ],
+    }),
+    'Standard.Visualization.Geo_Map.process_to_json_text': encodeJSON({
+      latitude: 37.8,
+      longitude: -122.45,
+      zoom: 15,
+      controller: true,
+      showingLabels: true, // Enables presenting labels when hovering over a point.
+      layers: [
+        {
+          type: 'Scatterplot_Layer',
+          data: [
+            {
+              latitude: 37.8,
+              longitude: -122.45,
+              color: [255, 0, 0],
+              radius: 100,
+              label: 'an example label',
+            },
+          ],
+        },
+      ],
+    }),
+    'Standard.Visualization.Histogram.process_to_json_text': encodeJSON({
+      axis: {
+        x: { label: 'x-axis label', scale: 'linear' },
+        y: { label: 'y-axis label', scale: 'logarithmic' },
       },
-    ],
-  }),
-  'Standard.Visualization.Histogram.process_to_json_text': encodeJSON({
-    axis: {
-      x: { label: 'x-axis label', scale: 'linear' },
-      y: { label: 'y-axis label', scale: 'logarithmic' },
-    },
-    color: 'rgb(1.0,0.0,0.0)',
-    bins: 10,
-    data: {
-      values: [0.1, 0.2, 0.1, 0.15, 0.7],
-    },
-  }),
-  'Standard.Visualization.Table.Visualization.prepare_visualization': encodeJSON({
-    type: 'Matrix',
-    // eslint-disable-next-line camelcase
-    column_count: 5,
-    // eslint-disable-next-line camelcase
-    all_rows_count: 10,
-    json: Array.from({ length: 10 }, (_, i) => Array.from({ length: 5 }, (_, j) => `${i},${j}`)),
-  }),
-  'Standard.Visualization.Warnings.process_to_json_text': encodeJSON([
-    'warning 1',
-    "warning 2!!&<>;'\x22",
-  ]),
-  'Standard.Visualization.Widgets.get_widget_json': (params) => mockWidgetConfiguration(params[0]),
+      color: 'rgb(1.0,0.0,0.0)',
+      bins: 10,
+      data: {
+        values: [0.1, 0.2, 0.1, 0.15, 0.7],
+      },
+    }),
+    'Standard.Visualization.Table.Visualization.prepare_visualization': encodeJSON({
+      type: 'Matrix',
+      // eslint-disable-next-line camelcase
+      column_count: 5,
+      // eslint-disable-next-line camelcase
+      all_rows_count: 10,
+      json: Array.from({ length: 10 }, (_, i) => Array.from({ length: 5 }, (_, j) => `${i},${j}`)),
+    }),
+    'Standard.Visualization.Warnings.process_to_json_text': encodeJSON([
+      'warning 1',
+      "warning 2!!&<>;'\x22",
+    ]),
+    'Standard.Visualization.Widgets.get_widget_json': (params) =>
+      mockWidgetConfiguration(params[0]),
 
-  // The following visualizations do not have unique transformation methods, and as such are only kept
-  // for posterity.
-  Image: encodeJSON({
-    mediaType: 'image/svg+xml',
-    base64: `PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0\
+    // The following visualizations do not have unique transformation methods, and as such are only kept
+    // for posterity.
+    Image: encodeJSON({
+      mediaType: 'image/svg+xml',
+      base64: `PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0\
 MCI+PGcgY2xpcC1wYXRoPSJ1cmwoI2EpIj48cGF0aCBkPSJNMjAuMDUgMEEyMCAyMCAwIDAgMCAwIDIwLjA1IDIwLjA2IDIwLjA\
 2IDAgMSAwIDIwLjA1IDBabTAgMzYuMDVjLTguOTMgMC0xNi4xLTcuMTctMTYuMS0xNi4xIDAtOC45NCA3LjE3LTE2LjEgMTYuMS\
 0xNi4xIDguOTQgMCAxNi4xIDcuMTYgMTYuMSAxNi4xYTE2LjE4IDE2LjE4IDAgMCAxLTE2LjEgMTYuMVoiLz48cGF0aCBkPSJNM\
@@ -207,21 +213,86 @@ jcuMTIgMTcuNzdhNC42OCA0LjY4IDAgMCAxIDIuMzkgNS45MiAxMC4yMiAxMC4yMiAwIDAgMS05LjU2I
 IDAgMCAxIDkuNzcgMjAuMzZzMS41NSAyLjA4IDQuNTcgMi4wOGMzLjAxIDAgNC4zNi0xLjE0IDUuNi0yLjA4IDEuMjUtLjkzIDI\
 uMDktMyA1LjItMyAuNzMgMCAxLjQ2LjIgMS45OC40WiIvPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImEiPjxwYXRoIGZpbGw9Ii\
 NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
-  }),
-  Heatmap: encodeJSON([
-    ['A', 'B', 'C', 'D', 'A'],
-    ['D', 'E', 'D', 'X', 'Z'],
-    [50, 25, 40, 20, 10],
-  ]),
-}
+    }),
+    Heatmap: encodeJSON([
+      ['A', 'B', 'C', 'D', 'A'],
+      ['D', 'E', 'D', 'X', 'Z'],
+      [50, 25, 40, 20, 10],
+    ]),
+  }
 
-function mockWidgetConfiguration(method: string | undefined) {
-  switch (method) {
-    case '.read':
-      return encodeJSON([
-        [
-          'path',
-          {
+const mockWidgetConfigurations: Map<string, Uint8Array> = new Map([
+  [
+    '.read',
+    encodeJSON([
+      [
+        'path',
+        {
+          type: 'Widget',
+          constructor: 'Single_Choice',
+          label: null,
+          values: [
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: '"File 1"',
+              label: 'File 1',
+              parameters: [],
+            },
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: '"File 2"',
+              label: 'File 2',
+              parameters: [],
+            },
+          ],
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ]),
+  ],
+  [
+    '.select_columns',
+    encodeJSON([
+      [
+        'columns',
+        {
+          type: 'Widget',
+          constructor: 'Multiple_Choice',
+          label: null,
+          values: [
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: "'Column A'",
+              label: 'Column A',
+              parameters: [],
+            },
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: "'Column B'",
+              label: 'Column B',
+              parameters: [],
+            },
+          ],
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ]),
+  ],
+  [
+    '.aggregate',
+    encodeJSON([
+      [
+        'columns',
+        {
+          type: 'Widget',
+          constructor: 'Vector_Editor',
+          /* eslint-disable camelcase */
+          item_default: 'Aggregate_Column.Group_By',
+          item_editor: {
             type: 'Widget',
             constructor: 'Single_Choice',
             label: null,
@@ -229,148 +300,95 @@ function mockWidgetConfiguration(method: string | undefined) {
               {
                 type: 'Choice',
                 constructor: 'Option',
-                value: '"File 1"',
-                label: 'File 1',
+                value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
+                label: null,
+                parameters: [
+                  [
+                    'column',
+                    {
+                      type: 'Widget',
+                      constructor: 'Single_Choice',
+                      label: null,
+                      values: [
+                        {
+                          type: 'Choice',
+                          constructor: 'Option',
+                          value: '"column 1"',
+                          label: 'column 1',
+                          parameters: [],
+                        },
+                        {
+                          type: 'Choice',
+                          constructor: 'Option',
+                          value: '"column 2"',
+                          label: 'column 2',
+                          parameters: [],
+                        },
+                      ],
+                      display: { type: 'Display', constructor: 'Always' },
+                    },
+                  ],
+                ],
+              },
+              {
+                type: 'Choice',
+                constructor: 'Option',
+                value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
+                label: null,
                 parameters: [],
               },
               {
                 type: 'Choice',
                 constructor: 'Option',
-                value: '"File 2"',
-                label: 'File 2',
-                parameters: [],
+                value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
+                label: null,
+                parameters: [
+                  [
+                    'columns',
+                    {
+                      type: 'Widget',
+                      constructor: 'Single_Choice',
+                      label: null,
+                      values: [
+                        {
+                          type: 'Choice',
+                          constructor: 'Option',
+                          value: '"column 1"',
+                          label: 'column 1',
+                          parameters: [],
+                        },
+                        {
+                          type: 'Choice',
+                          constructor: 'Option',
+                          value: '"column 2"',
+                          label: 'column 2',
+                          parameters: [],
+                        },
+                      ],
+                      display: { type: 'Display', constructor: 'Always' },
+                    },
+                  ],
+                ],
               },
             ],
             display: { type: 'Display', constructor: 'Always' },
           },
-        ],
-      ])
-    case '.select_columns':
-      return encodeJSON([
-        [
-          'columns',
-          {
-            type: 'Widget',
-            constructor: 'Multiple_Choice',
-            label: null,
-            values: [
-              {
-                type: 'Choice',
-                constructor: 'Option',
-                value: "'Column A'",
-                label: 'Column A',
-                parameters: [],
-              },
-              {
-                type: 'Choice',
-                constructor: 'Option',
-                value: "'Column B'",
-                label: 'Column B',
-                parameters: [],
-              },
-            ],
-            display: { type: 'Display', constructor: 'Always' },
-          },
-        ],
-      ])
-    case '.aggregate':
-      return encodeJSON([
-        [
-          'columns',
-          {
-            type: 'Widget',
-            constructor: 'Vector_Editor',
-            /* eslint-disable camelcase */
-            item_default: 'Aggregate_Column.Group_By',
-            item_editor: {
-              type: 'Widget',
-              constructor: 'Single_Choice',
-              label: null,
-              values: [
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
-                  label: null,
-                  parameters: [
-                    [
-                      'column',
-                      {
-                        type: 'Widget',
-                        constructor: 'Single_Choice',
-                        label: null,
-                        values: [
-                          {
-                            type: 'Choice',
-                            constructor: 'Option',
-                            value: '"column 1"',
-                            label: 'column 1',
-                            parameters: [],
-                          },
-                          {
-                            type: 'Choice',
-                            constructor: 'Option',
-                            value: '"column 2"',
-                            label: 'column 2',
-                            parameters: [],
-                          },
-                        ],
-                        display: { type: 'Display', constructor: 'Always' },
-                      },
-                    ],
-                  ],
-                },
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count',
-                  label: null,
-                  parameters: [],
-                },
-                {
-                  type: 'Choice',
-                  constructor: 'Option',
-                  value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Count_Distinct',
-                  label: null,
-                  parameters: [
-                    [
-                      'columns',
-                      {
-                        type: 'Widget',
-                        constructor: 'Single_Choice',
-                        label: null,
-                        values: [
-                          {
-                            type: 'Choice',
-                            constructor: 'Option',
-                            value: '"column 1"',
-                            label: 'column 1',
-                            parameters: [],
-                          },
-                          {
-                            type: 'Choice',
-                            constructor: 'Option',
-                            value: '"column 2"',
-                            label: 'column 2',
-                            parameters: [],
-                          },
-                        ],
-                        display: { type: 'Display', constructor: 'Always' },
-                      },
-                    ],
-                  ],
-                },
-              ],
-              display: { type: 'Display', constructor: 'Always' },
-            },
-            /* eslint-enable camelcase */
-            display: { type: 'Display', constructor: 'Always' },
-          },
-        ],
-      ])
-    default:
-      return encodeJSON([])
-  }
+          /* eslint-enable camelcase */
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ]),
+  ],
+])
+
+function resetMockWidgetConfigurations() {
+  mockWidgetConfigurations.clear()
+}
+;(window as any)._resetMockWidgetConfigurations = resetMockWidgetConfigurations
+
+function mockWidgetConfiguration(method: string | undefined) {
+  if (!method) return null
+  return mockWidgetConfigurations.get(method) ?? null
 }
 
 function createMessageId(builder: Builder) {
@@ -386,21 +404,28 @@ function createId(id: Uuid) {
 
 type VizRequest = { type: 'widget'; id: string | undefined } | { type: 'visualization'; id: string }
 function recognizeVizRequest(config: VisualizationConfiguration): VizRequest {
-  return (
-    typeof config.expression === 'string' ?
-      // Getting widget configuration is a special case, where we sometimes pass lambda as
-      // expression to discard the input value
-      /^[a-z_]+ *->.*get_widget_json/.test(config.expression) ?
-        ({ type: 'widget', id: config.positionalArgumentsExpressions?.at(0) } satisfies VizRequest)
-      : ({
-          type: 'visualization',
-          id: `${config.visualizationModule}.${config.expression}`,
-        } satisfies VizRequest)
-    : ({
+  if (typeof config.expression === 'string') {
+    // Getting widget configuration is a special case, where we sometimes pass lambda as
+    // expression to discard the input value
+    if (/^[a-z_]+ *->.*get_widget_json/.test(config.expression)) {
+      return { type: 'widget', id: config.positionalArgumentsExpressions?.at(0) } as VizRequest
+    } else {
+      return {
         type: 'visualization',
-        id: `${config.expression.definedOnType}.${config.expression.name}`,
-      } satisfies VizRequest)
-  )
+        id: `${config.visualizationModule}.${config.expression}`,
+      } as VizRequest
+    }
+  } else if (
+    config.expression.module === WIDGETS_ENSO_MODULE &&
+    config.expression.name === GET_WIDGETS_METHOD
+  ) {
+    return { type: 'widget', id: config.positionalArgumentsExpressions?.at(0) } as VizRequest
+  } else {
+    return {
+      type: 'visualization',
+      id: `${config.expression.definedOnType}.${config.expression.name}`,
+    } as VizRequest
+  }
 }
 
 function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
@@ -412,6 +437,7 @@ function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?
     vizDataHandler instanceof Uint8Array ? vizDataHandler : (
       vizDataHandler(config.positionalArgumentsExpressions ?? [])
     )
+  if (!vizData) return
   const exprId = expressionId ?? visualizationExprIds.get(id)
   sendVizUpdate(id, config.executionContextId, exprId, vizData)
 }
@@ -598,6 +624,7 @@ function updateVisualization(preprocessor: string, data: unknown) {
       const exprId = visualizationExprIds.get(id)
       const vizData = encodeJSON(data)
       sendVizUpdate(id, config.executionContextId, exprId, vizData)
+      mockWidgetConfigurations.set(preprocessor, vizData)
     }
   }
 }
