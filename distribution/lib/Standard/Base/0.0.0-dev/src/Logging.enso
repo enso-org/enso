@@ -148,4 +148,4 @@ private log_impl logger ~message level args =
 
 ## Resource closing has to be static
 private close_handle handle =
-    handle.close
+    if handle != Nothing then handle.close

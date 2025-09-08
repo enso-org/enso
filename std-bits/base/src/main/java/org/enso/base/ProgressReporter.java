@@ -21,8 +21,10 @@ public final class ProgressReporter implements AutoCloseable {
 
     public void close() {
       if (!closed) {
-        LOGGER.trace("ADVANCE {}+{}", this, count);
         closed = true;
+        if (LOGGER != null) {
+          LOGGER.trace("ADVANCE {}+{}", this, count);
+        }
       }
     }
 
