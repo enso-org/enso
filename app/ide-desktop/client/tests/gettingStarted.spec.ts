@@ -88,7 +88,10 @@ test('Exercise 1', async ({ page }) => {
     await expect(filter).toBeVisible()
     await filter.click()
 
-    await page.getByRole('button', { name: '..Not_Equal', exact: true }).click()
+    // Ensuring visibility
+    const notEqualBtn = page.getByRole('button', { name: '..Not_Equal', exact: true })
+    await notEqualBtn.waitFor({ state: 'visible', timeout: 10000 })
+    await notEqualBtn.click()
 
     await page.locator('.WidgetSelection.clickable').filter({ hasText: /^to$/ }).click()
     await page.getByRole('button', { name: '<Number Value>' }).click()
