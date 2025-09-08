@@ -57,7 +57,7 @@ type Progress
 
         Managed_Resource.bracket (ProgressReporter.makeHandle label max) close_handle handle->
             progress = Progress.Running handle label max logger counter step
-            log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress.handle, progress.label, progress.max]
+            log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress.handle, progress.label, max]
             res = action progress
             progress.close
             res
@@ -95,9 +95,7 @@ type Progress
        ## Returns
        The self value.
     close self =
-        if self.handle.isClosed.not then
-            self.advance self.max
-            self.handle.setClosed
+        self.handle.close
         self
 
     ## Provides additional human readable detail of the status of the

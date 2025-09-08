@@ -24,15 +24,6 @@ public final class ProgressReporter implements AutoCloseable {
       return closed;
     }
 
-    /** Make that the progress reporter was closed. */
-    public boolean setClosed() {
-      if (closed) {
-        return true;
-      }
-      closed = true;
-      return false;
-    }
-
     public void close() {
       if (!closed) {
         LOGGER.trace("ADVANCE {}+{}", this, count);
