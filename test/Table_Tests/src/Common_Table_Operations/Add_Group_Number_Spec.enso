@@ -207,7 +207,6 @@ add_group_number_specs suite_builder setup =
 
             t.add_group_number (..Equal_Sum "q" 3) "g" . should_fail_with Illegal_Argument
 
-        label_n2 = "Low (-2.5 to -1.5 sd)"
         label_n1 = "Below Average (-1.5 to -0.5 sd)"
         label_0  = "Average (-0.5 to 0.5 sd)"
         label_p1 = "Above Average (0.5 to 1.5 sd)"
@@ -236,6 +235,22 @@ add_group_number_specs suite_builder setup =
 
             g0 = t.add_group_number (..Standard_Deviation "x") "g"
             Problems.expect_only_warning Illegal_Argument g0
+
+        group_builder.specify "add group number by standard deviation with 0 or 1 element works" <|
+            t_one = table_builder [['x', [3]]]
+            t_zero = t_one . take 0
+
+            g0 = t_one.add_group_number (..Standard_Deviation "x") "g"
+            g0.at "g" . to_vector . should_equal [label_0]
+
+            g1 = t_one.add_group_number (..Standard_Deviation "x" population=True) "g"
+            g1.at "g" . to_vector . should_equal [label_0]
+
+            g2 = t_zero.add_group_number (..Standard_Deviation "x") "g"
+            g2.at "g" . to_vector . should_equal []
+
+            g3 = t_zero.add_group_number (..Standard_Deviation "x" population=True) "g"
+            g3.at "g" . to_vector . should_equal []
 
         group_builder.specify "add group number by standard deviation does not allow from/step" <|
             t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]]]
