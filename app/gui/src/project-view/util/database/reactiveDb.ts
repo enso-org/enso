@@ -309,11 +309,13 @@ export class ReactiveIndex<K, V, IK, IV> {
 
   /** TODO: Add docs */
   hasKey(key: IK): boolean {
+    this.effects.flush()
     return this.forward.has(key)
   }
 
   /** TODO: Add docs */
   hasValue(value: IV): boolean {
+    this.effects.flush()
     return this.reverse.has(value)
   }
 }
