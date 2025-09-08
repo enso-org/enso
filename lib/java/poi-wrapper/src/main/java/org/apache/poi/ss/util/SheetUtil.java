@@ -97,7 +97,7 @@ public class SheetUtil {
     /**
      * drawing context to measure text
      */
-    private static java.awt.font.FontRenderContext fontRenderContext = new java.awt.font.FontRenderContext(null, true, true);
+    //private static java.awt.font.FontRenderContext fontRenderContext = new java.awt.font.FontRenderContext(null, true, true);
 
     /**
      * A system property which can be enabled to not fail when the
@@ -215,8 +215,7 @@ public class SheetUtil {
                     String txt = line + defaultChar;
 
                     AttributedString str = new AttributedString(txt);
-                    copyAttributes(font, str, 0, txt.length());
-
+                    //                    copyAttributes(font, str, 0, txt.length());
                     /*if (rt.numFormattingRuns() > 0) {
                         // TODO: support rich text fragments
                     }*/
@@ -239,7 +238,7 @@ public class SheetUtil {
             if(sval != null) {
                 String txt = sval + defaultChar;
                 AttributedString str = new AttributedString(txt);
-                copyAttributes(font, str, 0, txt.length());
+                //                copyAttributes(font, str, 0, txt.length());
 
                 width = getCellWidth(defaultCharWidth, colspan, style, width, str);
             }
@@ -260,35 +259,36 @@ public class SheetUtil {
      */
     private static double getCellWidth(float defaultCharWidth, final int colspan,
                                        final CellStyle style, final double minWidth, final AttributedString str) {
-        java.awt.font.TextLayout layout;
-        try {
-            layout = new java.awt.font.TextLayout(str.getIterator(), fontRenderContext);
-        } catch (Throwable t) {
-            if (shouldIgnoreMissingFontSystem(t)) {
-                return FAILOVER_FUNCTION.apply(defaultCharWidth, colspan, style, minWidth, str);
-            }
-            throw t;
-        }
-        final java.awt.geom.Rectangle2D bounds;
-        if (style.getRotation() != 0) {
-            /*
-             * Transform the text using a scale so that its height is increased by a multiple of the leading,
-             * and then rotate the text before computing the bounds. The scale results in some whitespace around
-             * the unrotated top and bottom of the text that normally wouldn't be present if unscaled, but
-             * is added by the standard Excel autosize.
-             */
-            java.awt.geom.AffineTransform trans = new java.awt.geom.AffineTransform();
-            trans.concatenate(java.awt.geom.AffineTransform.getRotateInstance(style.getRotation()*2.0*Math.PI/360.0));
-            trans.concatenate(
-                    java.awt.geom.AffineTransform.getScaleInstance(1, fontHeightMultiple)
-            );
-            bounds = layout.getOutline(trans).getBounds();
-        } else {
-            bounds = layout.getBounds();
-        }
-        // frameWidth accounts for leading spaces which is excluded from bounds.getWidth()
-        final double frameWidth = bounds.getX() + bounds.getWidth();
-        return Math.max(minWidth, ((frameWidth / colspan) / defaultCharWidth) + style.getIndention());
+      //        java.awt.font.TextLayout layout;
+      //        try {
+      //            layout = new java.awt.font.TextLayout(str.getIterator(), fontRenderContext);
+      //        } catch (Throwable t) {
+      //            if (shouldIgnoreMissingFontSystem(t)) {
+      //                return FAILOVER_FUNCTION.apply(defaultCharWidth, colspan, style, minWidth, str);
+      //            }
+      //            throw t;
+      //        }
+      //        final java.awt.geom.Rectangle2D bounds;
+      //        if (style.getRotation() != 0) {
+      //            /*
+      //             * Transform the text using a scale so that its height is increased by a multiple of the leading,
+      //             * and then rotate the text before computing the bounds. The scale results in some whitespace around
+      //             * the unrotated top and bottom of the text that normally wouldn't be present if unscaled, but
+      //             * is added by the standard Excel autosize.
+      //             */
+      //            java.awt.geom.AffineTransform trans = new java.awt.geom.AffineTransform();
+      //            trans.concatenate(java.awt.geom.AffineTransform.getRotateInstance(style.getRotation()*2.0*Math.PI/360.0));
+      //            trans.concatenate(
+      //                    java.awt.geom.AffineTransform.getScaleInstance(1, fontHeightMultiple)
+      //            );
+      //            bounds = layout.getOutline(trans).getBounds();
+      //        } else {
+      //            bounds = layout.getBounds();
+      //        }
+      //        // frameWidth accounts for leading spaces which is excluded from bounds.getWidth()
+      //        final double frameWidth = bounds.getX() + bounds.getWidth();
+      //        return Math.max(minWidth, ((frameWidth / colspan) / defaultCharWidth) + style.getIndention());
+      return FAILOVER_FUNCTION.apply(defaultCharWidth, colspan, style, minWidth, str);
     }
 
     /**
@@ -354,19 +354,20 @@ public class SheetUtil {
      */
     @Internal
     public static float getDefaultCharWidthAsFloat(final Workbook wb) {
-        Font defaultFont = wb.getFontAt( 0);
-
-        AttributedString str = new AttributedString(String.valueOf(defaultChar));
-        copyAttributes(defaultFont, str, 0, 1);
-        try {
-            java.awt.font.TextLayout layout = new java.awt.font.TextLayout(str.getIterator(), fontRenderContext);
-            return layout.getAdvance();
-        } catch (Throwable t) {
-            if (shouldIgnoreMissingFontSystem(t)) {
-                return DEFAULT_CHAR_WIDTH;
-            }
-            throw t;
-        }
+      //        Font defaultFont = wb.getFontAt( 0);
+      //
+      //        AttributedString str = new AttributedString(String.valueOf(defaultChar));
+      //        copyAttributes(defaultFont, str, 0, 1);
+      //        try {
+      //            java.awt.font.TextLayout layout = new java.awt.font.TextLayout(str.getIterator(), fontRenderContext);
+      //            return layout.getAdvance();
+      //        } catch (Throwable t) {
+      //            if (shouldIgnoreMissingFontSystem(t)) {
+      //                return DEFAULT_CHAR_WIDTH;
+      //            }
+      //            throw t;
+      //        }
+      return DEFAULT_CHAR_WIDTH;
     }
 
     /**
@@ -455,24 +456,25 @@ public class SheetUtil {
      * @return true if computing the size for this Font will succeed, false otherwise
      */
     public static boolean canComputeColumnWidth(Font font) {
-        // not sure what is the best value sample-here, only "1" did not work on some platforms...
-        AttributedString str = new AttributedString("1w");
-        copyAttributes(font, str, 0, "1w".length());
-
-        java.awt.font.TextLayout layout = new java.awt.font.TextLayout(str.getIterator(), fontRenderContext);
-        return (layout.getBounds().getWidth() > 0);
+      //        // not sure what is the best value sample-here, only "1" did not work on some platforms...
+      //        AttributedString str = new AttributedString("1w");
+      //        copyAttributes(font, str, 0, "1w".length());
+      //
+      //        java.awt.font.TextLayout layout = new java.awt.font.TextLayout(str.getIterator(), fontRenderContext);
+      //        return (layout.getBounds().getWidth() > 0);
+      return false;
     }
 
     /**
      * Copy text attributes from the supplied Font to Java2D AttributedString
      */
-    private static void copyAttributes(Font font, AttributedString str, @SuppressWarnings("SameParameterValue") int startIdx, int endIdx) {
-        str.addAttribute(java.awt.font.TextAttribute.FAMILY, font.getFontName(), startIdx, endIdx);
-        str.addAttribute(java.awt.font.TextAttribute.SIZE, (float)font.getFontHeightInPoints());
-        if (font.getBold()) str.addAttribute(java.awt.font.TextAttribute.WEIGHT, java.awt.font.TextAttribute.WEIGHT_BOLD, startIdx, endIdx);
-        if (font.getItalic() ) str.addAttribute(java.awt.font.TextAttribute.POSTURE, java.awt.font.TextAttribute.POSTURE_OBLIQUE, startIdx, endIdx);
-        if (font.getUnderline() == Font.U_SINGLE ) str.addAttribute(java.awt.font.TextAttribute.UNDERLINE, java.awt.font.TextAttribute.UNDERLINE_ON, startIdx, endIdx);
-    }
+    //    private static void copyAttributes(Font font, AttributedString str, @SuppressWarnings("SameParameterValue") int startIdx, int endIdx) {
+    //        str.addAttribute(java.awt.font.TextAttribute.FAMILY, font.getFontName(), startIdx, endIdx);
+    //        str.addAttribute(java.awt.font.TextAttribute.SIZE, (float)font.getFontHeightInPoints());
+    //        if (font.getBold()) str.addAttribute(java.awt.font.TextAttribute.WEIGHT, java.awt.font.TextAttribute.WEIGHT_BOLD, startIdx, endIdx);
+    //        if (font.getItalic() ) str.addAttribute(java.awt.font.TextAttribute.POSTURE, java.awt.font.TextAttribute.POSTURE_OBLIQUE, startIdx, endIdx);
+    //        if (font.getUnderline() == Font.U_SINGLE ) str.addAttribute(java.awt.font.TextAttribute.UNDERLINE, java.awt.font.TextAttribute.UNDERLINE_ON, startIdx, endIdx);
+    //    }
 
     /**
      * Return the cell, without taking account of merged regions.
@@ -543,13 +545,13 @@ public class SheetUtil {
         ignoreMissingFontSystem = value;
     }
 
-    protected static java.awt.font.FontRenderContext getFontRenderContext() {
-        return fontRenderContext;
-    }
-
-    protected static void setFontRenderContext(java.awt.font.FontRenderContext fontRenderContext) {
-        SheetUtil.fontRenderContext = fontRenderContext;
-    }
+    //    protected static java.awt.font.FontRenderContext getFontRenderContext() {
+    //        return fontRenderContext;
+    //    }
+    //
+    //    protected static void setFontRenderContext(java.awt.font.FontRenderContext fontRenderContext) {
+    //        SheetUtil.fontRenderContext = fontRenderContext;
+    //    }
 
     private static boolean initIgnoreMissingFontSystemFlag() {
         final String flag = System.getProperty("org.apache.poi.ss.ignoreMissingFontSystem");
