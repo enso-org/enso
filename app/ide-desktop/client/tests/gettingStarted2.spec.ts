@@ -67,7 +67,15 @@ test('Exercise 2', async ({ page }) => {
     // Ensuring 'plus' is visible, to avoid clicking too early
     await expect(page.locator('div').getByLabel('Add a new item').last()).toBeVisible()
     await groupBy.click()
-    await page.getByRole('button', { name: 'product_name', exact: true }).click()
+
+    const productBtn = page.getByRole('button', { name: 'product_name', exact: true })
+
+    // If dropdown menu doesn't open, click groupBy again to avoid test flakyness
+    if (!(await productBtn.isVisible())) {
+      await groupBy.click()
+    }
+    await productBtn.isVisible()
+    await productBtn.click()
 
     // Close the dropdown
     await page.getByText('aggregate').click()
