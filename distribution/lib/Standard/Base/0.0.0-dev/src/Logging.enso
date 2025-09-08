@@ -53,9 +53,10 @@ type Progress
     run label:Text up_to:Integer action:(Progress->Any) step:Integer=1 -> Any =
         logger = LoggerFactory.getLogger (Progress.to Meta.Type . qualified_name)
         counter = Ref.new step
+        max = up_to.max 1
 
-        Managed_Resource.bracket (ProgressReporter.makeHandle label) (h -> close_handle h logger up_to) handle->
-            progress = Progress.Running handle label (up_to.max 1) logger counter step
+        Managed_Resource.bracket (ProgressReporter.makeHandle label max) close_handle handle->
+            progress = Progress.Running handle label max logger counter step
             log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress.handle, progress.label, progress.max]
             res = action progress
             progress.close
@@ -96,7 +97,7 @@ type Progress
     close self =
         if self.handle.isClosed.not then
             self.advance self.max
-            self.handle.close
+            self.handle.setClosed
         self
 
     ## Provides additional human readable detail of the status of the
@@ -148,6 +149,5 @@ private log_impl logger ~message level args =
     builder.log
 
 ## Resource closing has to be static
-private close_handle handle logger max =
-    if handle.isClosed.not then
-        log_impl logger "ADVANCE {}+{}" Log_Level.Finest [handle, max]
+private close_handle handle =
+    handle.close

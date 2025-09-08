@@ -11,10 +11,12 @@ import org.slf4j.LoggerFactory;
 public final class ProgressReporter implements AutoCloseable {
   public static final class Handle {
     private final String name;
+    private final long count;
     boolean closed = false;
 
-    Handle(String name) {
+    Handle(String name, long count) {
       this.name = name;
+      this.count = count;
     }
 
     /** Has the progress reporter been closed. */
@@ -22,8 +24,20 @@ public final class ProgressReporter implements AutoCloseable {
       return closed;
     }
 
-    public void close() {
+    /** Make that the progress reporter was closed. */
+    public boolean setClosed() {
+      if (closed) {
+        return true;
+      }
       closed = true;
+      return false;
+    }
+
+    public void close() {
+      if (!closed) {
+        LOGGER.trace("ADVANCE {}+{}", this, count);
+        closed = true;
+      }
     }
 
     @Override
@@ -32,8 +46,8 @@ public final class ProgressReporter implements AutoCloseable {
     }
   }
 
-  public static Handle makeHandle(String name) {
-    return new Handle(name);
+  public static Handle makeHandle(String name, long count) {
+    return new Handle(name, count);
   }
 
   private static final Logger LOGGER = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
@@ -51,15 +65,13 @@ public final class ProgressReporter implements AutoCloseable {
 
   private final Handle handle;
   private final String name;
-  private final long count;
   private final long stepSize;
   private final Context context;
   private long step;
 
   private ProgressReporter(String name, long count, long stepSize) {
     this.name = name;
-    this.handle = makeHandle(name);
-    this.count = count;
+    this.handle = makeHandle(name, count);
     this.context = Context.getCurrent();
     this.stepSize = stepSize;
     this.step = stepSize;
@@ -81,9 +93,6 @@ public final class ProgressReporter implements AutoCloseable {
 
   @Override
   public void close() {
-    if (!handle.isClosed()) {
-      LOGGER.trace("ADVANCE {}+{}", handle, count);
-      handle.close();
-    }
+    handle.close();
   }
 }
