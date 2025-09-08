@@ -53,7 +53,7 @@ test('Exercise 2', async ({ page }) => {
   })
 
   // ---------------- Objective 2 ----------------
-  await test.step('Objective 1:  Aggregating and ranking Account Type', async () => {
+  await test.step('Objective 2:  Aggregating and ranking Account Type', async () => {
     // Decrease zoom
     await page.getByLabel('Decrease Zoom').click()
 
@@ -164,7 +164,7 @@ test('Exercise 2', async ({ page }) => {
   })
 
   // ---------------- Objective 4 ----------------
-  await test.step('Objective 4: Using the Zoom controls to show more or less of the workflow', async () => {
+  await test.step('Objective 4:  Fixing Dirty Data', async () => {
     // Scroll into view
     await page.mouse.wheel(0, -200)
 
