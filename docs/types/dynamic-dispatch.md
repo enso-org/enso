@@ -162,3 +162,137 @@ main = Test.simplify
 When invoking a method on _module object_ its _module static methods_ take
 precedence over _instance methods_ defined on `Any`. Thus a module serves
 primarily as a _container for module (static) methods_.
+
+## Method Resolution
+
+This section describes the _method resolution_ process, which resolves a
+concrete method definition for a concrete call site. For a method call
+expression `Receiver.symbol`, this section focuses only on a single dispatch
+based on `Receiver` argument. For multiple dispatch, see the
+[Multiple Dispatch](#multiple-dispatch) section.
+
+Method resolution algorithm for `Receiver.symbol`:
+
+1. **Determine the kind of `Receiver`:**
+
+   - 1.1. If `Receiver` is a type (type object), go to step 2.
+   - 1.2. If `Receiver` is a value (instance / atom), go to step 3.
+   - 1.3. If `Receiver` is a module, go to step 4.
+   - 1.4. If `Receiver` is a polyglot object, go to step 5.
+   - 1.5. If there is no `Receiver`, go to step 6.
+
+2. **`Receiver` is a type. This call site is a _static method call_:**
+
+   - 2.1. We are looking for either a _static method_ or an _instance method_
+     defined on `Receiver` type.
+   - 2.2. If `symbol` is defined on `Receiver`, with or without `self` argument,
+     select it and stop.
+   - 2.3. If `symbol` is defined on `Any`, with or without `self` argument,
+     select it and stop.
+   - 2.4. Otherwise, raise `No_Such_Method` panic and stop.
+
+3. **`Receiver` is a value (instance / atom):**
+
+   - 3.1. We are looking for an _instance method_.
+   - 3.2. If `symbol` is defined on `Receiver` with `self` argument, select it
+     and stop.
+   - 3.3. If `symbol` is defined on `Any` with `self` argument, select it and
+     stop.
+   - 3.4. Otherwise, raise `No_Such_Method` panic and stop.
+
+4. **`Receiver` is a module. We are looking for a _module method_:**
+
+   - 4.1. Module methods are not allowed to be defined with `self` argument.
+   - 4.2. If `symbol` is defined in `Receiver` module, select it and stop.
+   - 4.3. Otherwise, raise `No_Such_Method` panic and stop.
+
+5. **`Receiver` is a polyglot object. A polyglot object can be:**
+
+   - 5.1. A Java class, imported by `polyglot java import ...` statement.
+   - 5.2. Java object instance, created by `Java_Class.new ...` expression.
+   - 5.3. Javascript, Python, or any other allowed foreign language object
+     returned by a foreign method call.
+   - 5.4. Searching for `symbol` on such a `Receiver` is subject to the rules of
+     the [polyglot Interoperability](../polyglot/README.md) chapter.
+
+6. **There is no `Receiver`:**
+   - 6.1. We are looking either for a _module method_ or for a variable in the
+     current scope or any parent scopes.
+   - 6.2. Note that in this case, `symbol` does not have to resolve to a method
+     definition. This is a general _symbol lookup_ rather than a _method
+     resolution_. See [Symbol lookup](#symbol-lookup).
+
+### Symbol lookup
+
+- If `symbol` is defined in the current lexical scope, select it and stop.
+- Iterate parent scopes: from the current lexical scope, up until this module
+  scope. If `symbol` is defined in the scope, select it and stop.
+- Look for the `symbol` in all transitively imported modules (in DFS?). If
+  `symbol` is defined in any of the modules, select it and stop.
+- Raise `Name_Not_Found` panic and stop.
+
+## Method evaluation
+
+This section describes the _method evaluation_ process. We assume that a
+particular method definition was already selected by the
+[method resolution](#method-resolution) process.
+
+Let's have `method` be a method definition resolved from
+[Method Resolution](#method-resolution) process, that is defined as
+`method [self] [parName=[defaultValue]]* = <body expression>`.
+
+If `self` parameter is specified, we call it an _instance method_, otherwise, we
+call it a _static method_.
+
+### Instance method call evaluation
+
+The method call expression in the format of `obj.method [[argName=]argValue]*`,
+where `obj` is an instance (value / atom) of type `T`, and `method` is an
+_instance method_ with `self` argument defined either on `T` or outside `T` as
+an _extension method_, the method evaluation process is as follows:
+
+- `self` argument cannot be specified explicitly
+- Go to [Arguments evaluation](#argument-evaluation) to evaluate `argValue`s and
+  bind them to `argName`s.
+
+### Static method call evaluation
+
+The method call expression in the format of
+`TypeOrModule.method [[argName=]argValue]*`, where `TypeOrModule` is either a
+type or a module, and `method` is a _static method_ defined on `TypeOrModule`.
+Note that `TypeOrModule` does not have to be specified, if `method` is directly
+imported.
+
+The method evaluation process is as follows:
+
+1. **Determine whether `TypeOrModule` is a type or a module:**
+
+   - 1.1. If `TypeOrModule` is not `Any`, go to 2
+   - 1.2. If `TypeOrModule` is `Any`, go to 4
+
+2. **`TypeOrModule` is not `Any`:**
+
+   - 2.1. If `self` argument is specified explicitly, go to 3. `self` argument
+     value is either:
+     - Passed via `self` named argument.
+     - First positional argument.
+   - 2.2. If `self` argument is not specified explicitly, go to 4.
+
+3. **`self` is specified explicitly:**
+
+   - 3.1. `self` argument is specified explicitly.
+   - 3.2. Bind `self` argument to the provided value.
+   - 3.3. Go to [Arguments evaluation](#argument-evaluation) to evaluate rest of
+     the arguments.
+
+4. **`self` is not specified explicitly:**
+
+   - 4.1. `self` argument is not specified explicitly. This can happen only if
+     there are no arguments. Which results in a method reference.
+
+5. **`TypeOrModule` is `Any`:**
+   - 5.1. TODO ...
+
+### Argument evaluation
+
+TODO
