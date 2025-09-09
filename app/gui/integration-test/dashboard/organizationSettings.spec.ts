@@ -1,8 +1,7 @@
 /** @file Test the organization settings tab. */
-import { expect, test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 
 import { Plan } from 'enso-common/src/services/Backend'
-import { mockAllAndLogin } from './actions'
 
 const NEW_NAME = 'another organization-name'
 const INVALID_EMAIL = 'invalid@email'
@@ -13,15 +12,13 @@ const PROFILE_PICTURE_FILENAME = 'bar.jpeg'
 const PROFILE_PICTURE_CONTENT = 'organization profile picture'
 const PROFILE_PICTURE_MIMETYPE = 'image/jpeg'
 
-test('organization settings', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.setPlan(Plan.team)
-      api.setCurrentOrganization(api.defaultOrganization)
-    },
-  })
-    .step('Verify initial organization state', (_, { api }) => {
+test('organization settings', async ({ drivePage, cloudApi }) => {
+  cloudApi.setPlan(Plan.team)
+  cloudApi.setCurrentOrganization(cloudApi.defaultOrganization)
+  let calls = cloudApi.trackCalls()
+  await drivePage.goToCategory
+    .cloud()
+    .step('Verify initial organization state', (_, { cloudApi: api }) => {
       expect(api.defaultUser.isOrganizationAdmin).toBe(true)
       expect(api.currentOrganization()?.name).toBe(api.defaultOrganizationName)
       expect(api.currentOrganization()?.email).toBe(null)
@@ -33,23 +30,23 @@ test('organization settings', ({ page }) =>
     .goToSettingsTab.organization()
     .organizationForm()
     .fillName(NEW_NAME)
-    .do((_, context) => {
-      context.calls = context.api.trackCalls()
+    .do(() => {
+      calls = cloudApi.trackCalls()
     })
     .save()
-    .step('Set organization name', (_, { api, calls }) => {
-      expect(api.currentOrganization()?.name).toBe(NEW_NAME)
-      expect(api.currentUser()?.name).not.toBe(NEW_NAME)
+    .step('Set organization name', (_) => {
+      expect(cloudApi.currentOrganization()?.name).toBe(NEW_NAME)
+      expect(cloudApi.currentUser()?.name).not.toBe(NEW_NAME)
       expect(calls.updateOrganization).toMatchObject([{ name: NEW_NAME }])
     })
     .organizationForm()
     .fillName('')
-    .do((_, context) => {
-      context.calls = context.api.trackCalls()
+    .do(() => {
+      calls = cloudApi.trackCalls()
     })
     .save(false)
-    .step('Unsetting organization name should fail', (_, { api, calls }) => {
-      expect(api.currentOrganization()?.name).toBe(NEW_NAME)
+    .step('Unsetting organization name should fail', () => {
+      expect(cloudApi.currentOrganization()?.name).toBe(NEW_NAME)
       expect(calls.updateOrganization).toMatchObject([{ name: '' }])
     })
     .organizationForm()
@@ -57,36 +54,34 @@ test('organization settings', ({ page }) =>
     .organizationForm()
     .fillEmail(INVALID_EMAIL)
     .save(false)
-    .step('Setting invalid email should fail', (_, { api }) => {
-      expect(api.currentOrganization()?.email).toBe('')
+    .step('Setting invalid email should fail', () => {
+      expect(cloudApi.currentOrganization()?.email).toBe('')
     })
     .organizationForm()
     .fillEmail(NEW_EMAIL)
     .save(true)
-    .step('Set email', (_, { api }) => {
-      expect(api.currentOrganization()?.email).toBe(NEW_EMAIL)
+    .step('Set email', () => {
+      expect(cloudApi.currentOrganization()?.email).toBe(NEW_EMAIL)
     })
     .organizationForm()
     .fillWebsite(NEW_WEBSITE)
     .save(true)
     // NOTE: It is not yet possible to unset the website or the location.
-    .step('Set website', async (_, { api }) => {
-      expect(api.currentOrganization()?.website).toBe(NEW_WEBSITE)
+    .step('Set website', () => {
+      expect(cloudApi.currentOrganization()?.website).toBe(NEW_WEBSITE)
     })
     .organizationForm()
     .fillLocation(NEW_LOCATION)
     .save(true)
-    .step('Set website', async (_, { api }) => {
-      expect(api.currentOrganization()?.address).toBe(NEW_LOCATION)
-    }))
+    .step('Set website', () => {
+      expect(cloudApi.currentOrganization()?.address).toBe(NEW_LOCATION)
+    })
+})
 
-test('upload organization profile picture', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (theApi) => {
-      theApi.setPlan(Plan.team)
-    },
-  })
+test('upload organization profile picture', async ({ drivePage, cloudApi }) => {
+  cloudApi.setPlan(Plan.team)
+  await drivePage.goToCategory
+    .cloud()
     .goToPage.settings()
     .goToSettingsTab.organization()
     .uploadProfilePicture(
@@ -94,8 +89,7 @@ test('upload organization profile picture', ({ page }) =>
       PROFILE_PICTURE_CONTENT,
       PROFILE_PICTURE_MIMETYPE,
     )
-    .step('Profile picture should be updated', async (_, { api }) => {
-      await expect(() => {
-        expect(api.currentOrganizationProfilePicture()).toEqual(PROFILE_PICTURE_CONTENT)
-      }).toPass()
-    }))
+    .step('Profile picture should be updated', () => {
+      expect(cloudApi.currentOrganizationProfilePicture()).toEqual(PROFILE_PICTURE_CONTENT)
+    })
+})

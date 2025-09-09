@@ -1,4 +1,35 @@
-import { expect as baseExpect, type Locator } from 'playwright/test'
+import { test as base, expect as baseExpect, type Locator } from 'playwright/test'
+import type DrivePageActions from './actions/DrivePageActions'
+import LoginPageActions from './actions/LoginPageActions'
+import { mockCloudApi, type MockCloudApi } from './mock/cloudApi'
+import { mockLocalApi, type MockLocalApi } from './mock/localApi'
+
+export type * from 'playwright/test'
+
+export interface PageCtx {
+  readonly cloudApi: MockCloudApi
+  readonly localApi: MockLocalApi
+}
+
+export const test = base.extend<{
+  cloudApi: MockCloudApi
+  localApi: MockLocalApi
+  loginPage: LoginPageActions<PageCtx>
+  drivePage: DrivePageActions<PageCtx>
+}>({
+  cloudApi: async ({ page }, use) => {
+    await use(await mockCloudApi(page))
+  },
+  localApi: async ({ page }, use) => {
+    await use(await mockLocalApi(page))
+  },
+  loginPage: ({ page, cloudApi, localApi }, use) => {
+    return use(new LoginPageActions<PageCtx>(page, { cloudApi, localApi }))
+  },
+  drivePage: ({ loginPage }, use) => {
+    return use(loginPage.loginIfNeeded())
+  },
+})
 
 export const expect = baseExpect.extend({
   /**

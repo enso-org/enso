@@ -1,7 +1,5 @@
 /** @file Test the login flow. */
-import { expect, test, type Page } from 'playwright/test'
-
-import { mockAllAndLogin } from './actions'
+import { expect, test, type Page } from 'integration-test/base'
 
 /** Find an editor container. */
 function locateEditor(page: Page) {
@@ -15,12 +13,12 @@ function locateDriveView(page: Page) {
   return page.getByTestId('drive-view')
 }
 
-test('page switcher', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => api.setFeatureFlags({ enableCloudExecution: true }),
-  })
+test('page switcher', async ({ drivePage, cloudApi }) => {
+  cloudApi.setFeatureFlags({ enableCloudExecution: true })
+  await drivePage.goToCategory
+    .cloud()
     .newEmptyProject()
+    .withDriveView((driveView) => expect(driveView).not.toBeVisible())
     .do(async (thePage) => {
       await expect(locateDriveView(thePage)).not.toBeVisible()
       await expect(locateEditor(thePage)).toBeVisible()
@@ -34,4 +32,5 @@ test('page switcher', ({ page }) =>
     .do(async (thePage) => {
       await expect(locateDriveView(thePage)).not.toBeVisible()
       await expect(locateEditor(thePage)).toBeVisible()
-    }))
+    })
+})

@@ -1,7 +1,7 @@
 /** @file Test copying, moving, cutting and pasting. */
 import { expect, test } from 'playwright/test'
 
-import { mockAllAndLogin } from './actions'
+import { mockAllAndLogin } from '../actions'
 
 test.skip(
   'export from remote to local (local+remote)',

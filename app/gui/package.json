@@ -34,7 +34,6 @@
     "test:integration": "cross-env NODE_ENV=production playwright test",
     "test-dev:unit": "vitest",
     "test-dev:integration": "cross-env NODE_ENV=production playwright test --ui",
-    "test-dev-dashboard:integration": "cross-env NODE_ENV=production playwright test ./integration-test/dashboard/ --ui",
     "playwright:install": "playwright install chromium"
   },
   "dependencies": {
@@ -174,7 +173,7 @@
     "hash-wasm": "^4.12.0",
     "jsdom": "^26.1.0",
     "playwright": "catalog:",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.6",
     "postcss-nesting": "^12.0.1",
     "project-manager-shim": "workspace:*",
     "react": "^18.3.1",

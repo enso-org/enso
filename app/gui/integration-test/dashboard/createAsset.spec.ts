@@ -1,7 +1,7 @@
 /** @file Test copying, moving, cutting and pasting. */
 import { expect, test } from 'playwright/test'
 
-import { mockAllAndLogin } from './actions'
+import { mockAllAndLogin } from '../actions'
 
 /** The name of the uploaded file. */
 const FILE_NAME = 'foo.txt'

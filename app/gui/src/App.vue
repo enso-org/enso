@@ -1,25 +1,16 @@
 <script setup lang="ts">
 import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
-import { EnsoPath } from '#/services/Backend'
-import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import { useAppTitle } from '$/composables/appTitle'
 import { useAuth } from '$/providers/auth'
-import { provideContainerData } from '$/providers/container'
-import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
-import { provideRightPanelData } from '$/providers/rightPanel'
-import { useText } from '$/providers/text'
 import ReactRoot from '$/ReactRoot'
 import { appOpenCloseCallback } from '$/utils/analytics'
 import '@/assets/base.css'
 import { appBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
 import { useEvent, useMounted } from '@/composables/events'
-import ProjectView from '@/ProjectView.vue'
 import { initializeActions, registerHandlers } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
-import { provideAsyncResources } from '@/providers/asyncResources'
-import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
@@ -30,14 +21,7 @@ import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { computed, onMounted, shallowRef } from 'vue'
-import { ComponentProps } from 'vue-component-type-helpers'
-
-const { projectViewOnly } = defineProps<{
-  // Used in Project View integration tests. Once both test projects will be merged, this should be
-  // removed
-  projectViewOnly?: { options: ComponentProps<typeof ProjectView> } | null
-}>()
+import { computed, onMounted } from 'vue'
 
 const LoadingScreen = reactComponent(LoadingScreenReact)
 
@@ -101,28 +85,13 @@ onMounted(() => {
     document.body.classList.add('vibrancy')
   }
 })
-const fullscreenRoot = shallowRef<HTMLElement>()
 
 useMounted(appOpenCloseCallback)
-
-// Mock external context in Project View integration tests. Once both test projects will be merged,
-// this should be removed
-if (projectViewOnly) {
-  const openedProjects = provideOpenedProjects()
-  provideAsyncResources(openedProjects)
-  provideContainerData(EnsoPath(projectViewOnly.options.projectPath))
-  provideRightPanelData(EnsoPath(projectViewOnly.options.projectPath), () => false, useText())
-  provideFullscreenRoot(fullscreenRoot)
-}
 </script>
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <div v-if="projectViewOnly" ref="fullscreenRoot" class="mainView">
-      <ProjectView v-bind="projectViewOnly.options" />
-      <RightPanel />
-    </div>
-    <ContextsForReactProvider v-else>
+    <ContextsForReactProvider>
       <ReactRootWrapper :queryClient="queryClient">
         <RouterView v-slot="{ Component }">
           <component :is="Component" v-if="Component" />

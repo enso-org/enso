@@ -1,5 +1,7 @@
 /** @file Available actions for the login page. */
+import { test } from 'integration-test/base'
 import { expect } from 'playwright/test'
+import { waitForLoaded } from '.'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import ForgotPasswordPageActions from './ForgotPasswordPageActions'
@@ -24,11 +26,32 @@ export default class LoginPageActions<Context> extends BaseActions<Context> {
     }
   }
 
+  /** Perform a login, but only if not already logged in. */
+  loginIfNeeded(email = VALID_EMAIL, password = VALID_PASSWORD) {
+    return this.step('Login if needed', async (page) => {
+      await waitForLoaded(page)
+      const isLoggedIn = (await page.getByTestId('before-auth-layout').count()) === 0
+      if (isLoggedIn) {
+        test.info().annotations.push({
+          type: 'skip',
+          description: 'Already logged in',
+        })
+      } else {
+        await this.loginInternal(email, password)
+      }
+
+      const agreementModalVisible = (await page.locator('#agreements-modal').count()) > 0
+      if (agreementModalVisible) {
+        await passAgreementsDialog(page)
+      }
+    }).into(DrivePageActions<Context>)
+  }
+
   /** Perform a successful login. */
   login(email = VALID_EMAIL, password = VALID_PASSWORD) {
     return this.step('Login', async (page) => {
       await this.loginInternal(email, password)
-      await passAgreementsDialog({ page })
+      await passAgreementsDialog(page)
     }).into(DrivePageActions<Context>)
   }
 
@@ -36,7 +59,7 @@ export default class LoginPageActions<Context> extends BaseActions<Context> {
   loginAsNewUser(email = VALID_EMAIL, password = VALID_PASSWORD) {
     return this.step('Login (as new user)', async (page) => {
       await this.loginInternal(email, password)
-      await passAgreementsDialog({ page })
+      await passAgreementsDialog(page)
     }).into(DrivePageActions<Context>)
   }
 

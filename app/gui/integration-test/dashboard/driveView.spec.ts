@@ -1,7 +1,7 @@
 /** @file Test the drive view. */
 import { expect, test, type Locator } from 'playwright/test'
 
-import { TEXT, mockAllAndLogin } from './actions'
+import { TEXT, mockAllAndLogin } from '../actions'
 
 /** Find a button to close the project. */
 

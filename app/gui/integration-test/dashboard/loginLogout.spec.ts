@@ -1,7 +1,7 @@
 /** @file Test the login flow. */
 import { expect, test, type Page } from 'playwright/test'
 
-import { TEXT, mockAll } from './actions'
+import { TEXT, mockAll } from '../actions'
 
 /** Find a "login" button.on the current locator. */
 function locateLoginButton(page: Page) {

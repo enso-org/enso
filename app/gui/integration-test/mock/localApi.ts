@@ -86,26 +86,11 @@ type FileEntryWithData = { type: 'FileEntry'; entry: FileEntry; content: string 
 
 type FileSystemEntryWithData = DirectoryEntryWithData | ProjectEntryWithData | FileEntryWithData
 
-/**
- * Setup function for the mock API.
- * use it to setup the mock API with custom handlers.
- */
-export interface SetupLocalAPI {
-  (api: Awaited<ReturnType<typeof mockLocalApi>>): Promise<void> | void
-}
-
-/** Parameters for {@link mockApi}. */
-export interface LocalMockParams {
-  readonly page: Page
-  readonly setupLocalAPI?: SetupLocalAPI | null | undefined
-}
-/** The return type of {@link localMockApi}. */
-export interface LocalMockApi extends Awaited<ReturnType<typeof localMockApiInternal>> {}
-
-export const mockLocalApi: (params: LocalMockParams) => Promise<LocalMockApi> = localMockApiInternal
+/** The return type of {@link mockLocalApi}. */
+export interface MockLocalApi extends Awaited<ReturnType<typeof mockLocalApi>> {}
 
 /** Add route handlers for the mock API to a page. */
-async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
+export async function mockLocalApi(page: Page) {
   const fileSystem = new Map<string, FileSystemEntryWithData>()
   const openProjects = new Map<UUID, ProjectState>()
 
@@ -564,8 +549,6 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
     addFile,
     removeEntry,
   } as const
-
-  await setupLocalAPI?.(api)
 
   return api
 }

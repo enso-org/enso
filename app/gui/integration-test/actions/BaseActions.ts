@@ -12,7 +12,7 @@ export async function modModifier(page: Page) {
 }
 
 /** A callback that performs actions on a {@link Page}. */
-export interface PageCallback<Context, Self = void> {
+export interface PageCallback<Context, Self = unknown> {
   (input: Page, context: Context, self: Self): Promise<void> | void
 }
 

@@ -1,7 +1,7 @@
 /** @file Test copying, moving, cutting and pasting. */
-import { expect, test, type Locator, type Page } from 'playwright/test'
+import { expect, test, type Locator, type Page } from 'integration-test/base'
 
-import { TEXT, getText, mockAllAndLogin } from './actions'
+import { TEXT, getText, mockAllAndLogin } from '../actions'
 
 const NEW_NAME = 'foo bar baz'
 const NEW_NAME_2 = 'foo bar baz quux'
@@ -34,7 +34,7 @@ function locateEditingCross(page: Locator) {
 test('edit name (context menu)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
-    .driveTable.withRows(async (rows, _, { api }) => {
+    .driveTable.withRows(async (rows, _, { cloudApi }) => {
       const row = rows.nth(0)
       await locateAssetRowName(row).click({ button: 'right' })
       await locateContextMenu(page)
@@ -45,7 +45,7 @@ test('edit name (context menu)', ({ page }) =>
       await expect(locateInput(nameEl)).toBeFocused()
       await locateInput(nameEl).fill(NEW_NAME)
       await expect(locateInput(nameEl)).toHaveValue(NEW_NAME)
-      const calls = api.trackCalls()
+      const calls = cloudApi.trackCalls()
       await nameEl.press('Enter')
       await expect(row).toHaveText(new RegExp('^' + NEW_NAME))
       expect(calls.updateAsset).toMatchObject([{ title: NEW_NAME }])
@@ -58,11 +58,11 @@ test('edit name (keyboard)', ({ page }) =>
       await locateAssetRowName(rows.nth(0)).click()
     })
     .press('Mod+R')
-    .driveTable.withRows(async (rows, _, { api }) => {
+    .driveTable.withRows(async (rows, _, { cloudApi }) => {
       const row = rows.nth(0)
       const nameEl = locateAssetRowName(row)
       await locateInput(nameEl).fill(NEW_NAME_2)
-      const calls = api.trackCalls()
+      const calls = cloudApi.trackCalls()
       await nameEl.press('Enter')
       await expect(row).toHaveText(new RegExp('^' + NEW_NAME_2))
       expect(calls.updateAsset).toMatchObject([{ title: NEW_NAME_2 }])
@@ -71,7 +71,7 @@ test('edit name (keyboard)', ({ page }) =>
 test('cancel editing name (context menu)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
-    .driveTable.withRows(async (rows, _, { api }) => {
+    .driveTable.withRows(async (rows, _, { cloudApi }) => {
       const row = rows.nth(0)
       const nameEl = locateAssetRowName(row)
       const oldName = (await nameEl.textContent()) ?? ''
@@ -80,7 +80,7 @@ test('cancel editing name (context menu)', ({ page }) =>
         .getByText(/Rename/)
         .click()
       await nameEl.getByTestId('input').fill(NEW_NAME)
-      const calls = api.trackCalls()
+      const calls = cloudApi.trackCalls()
       await locateEditingCross(row).click()
       await expect(row).toHaveText(new RegExp('^' + oldName))
       expect(calls.updateAsset).toMatchObject([])
@@ -94,12 +94,12 @@ test('cancel editing name (keyboard)', ({ page }) => {
       await rows.nth(0).click()
     })
     .press('Mod+R')
-    .driveTable.withRows(async (rows, _, { api }) => {
+    .driveTable.withRows(async (rows, _, { cloudApi }) => {
       const row = rows.nth(0)
       const nameEl = locateAssetRowName(row)
       oldName = (await nameEl.textContent()) ?? ''
       await nameEl.getByTestId('input').fill(NEW_NAME_2)
-      const calls = api.trackCalls()
+      const calls = cloudApi.trackCalls()
       await nameEl.press('Escape')
       await expect(row).toHaveText(new RegExp('^' + oldName))
       expect(calls.updateAsset).toMatchObject([])
@@ -109,7 +109,7 @@ test('cancel editing name (keyboard)', ({ page }) => {
 test('change to blank name (context menu)', ({ page }) =>
   mockAllAndLogin({ page })
     .createFolder()
-    .driveTable.withRows(async (rows, _, { api }) => {
+    .driveTable.withRows(async (rows, _, { cloudApi }) => {
       const row = rows.nth(0)
       const nameEl = locateAssetRowName(row)
       const oldName = (await nameEl.textContent()) ?? ''
@@ -119,7 +119,7 @@ test('change to blank name (context menu)', ({ page }) =>
         .click()
       await nameEl.getByTestId('input').fill('')
       await expect(locateEditingTick(row)).toBeVisible()
-      const calls = api.trackCalls()
+      const calls = cloudApi.trackCalls()
       await locateEditingCross(row).click()
       await expect(row).toHaveText(new RegExp('^' + oldName))
       expect(calls.updateAsset).toMatchObject([])
@@ -132,26 +132,23 @@ test('change to blank name (keyboard)', ({ page }) =>
       await locateAssetRowName(rows.nth(0)).click()
     })
     .press('Mod+R')
-    .driveTable.withRows(async (rows, _, { api }) => {
+    .driveTable.withRows(async (rows, _, { cloudApi }) => {
       const row = rows.nth(0)
       const nameEl = locateAssetRowName(row)
       const oldName = (await nameEl.textContent()) ?? ''
       await nameEl.getByTestId('input').fill('')
-      const calls = api.trackCalls()
+      const calls = cloudApi.trackCalls()
       await nameEl.press('Enter')
       await expect(row).toHaveText(new RegExp('^' + oldName))
       expect(calls.updateAsset).toMatchObject([])
     }))
 
-test('edit name, error message is visible', ({ page }) => {
-  return mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      for (let i = 0; i < 100; i++) {
-        api.addProject({ title: 'Some Project ' + i })
-      }
-    },
-  }).driveTable.withRows(async (rows) => {
+test('edit name, error message is visible', async ({ drivePage, cloudApi, page }) => {
+  for (let i = 0; i < 100; i++) {
+    cloudApi.addProject({ title: 'Some Project ' + i })
+  }
+
+  await drivePage.goToCategory.cloud().driveTable.withRows(async (rows) => {
     const row = rows.nth(0)
     await locateAssetRowName(row).click()
 
@@ -183,15 +180,12 @@ test('edit name, error message is visible', ({ page }) => {
   })
 })
 
-test('edit name (empty name)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addProject({ title: 'Some Project' })
-      api.addProject({ title: 'Other Project' })
-      api.addProject({ title: 'Yet Another Project' })
-    },
-  }).driveTable.withRows(async (rows) => {
+test('edit name (empty name)', async ({ drivePage, cloudApi, page }) => {
+  cloudApi.addProject({ title: 'Some Project' })
+  cloudApi.addProject({ title: 'Other Project' })
+  cloudApi.addProject({ title: 'Yet Another Project' })
+
+  await drivePage.goToCategory.cloud().driveTable.withRows(async (rows) => {
     const row = rows.nth(0)
     await locateAssetRowName(row).click()
 
@@ -222,15 +216,12 @@ test('edit name (empty name)', ({ page }) =>
     await expect(row).toHaveText(/^Another Project/)
     await expect(errorOutline).not.toBeAttached()
     await expect(errorContainer).not.toBeAttached()
-  }))
+  })
+})
 
-test('edit name (invalid name)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addDirectory({ title: 'Some Directory' })
-    },
-  }).driveTable.withRows(async (rows) => {
+test('edit name (invalid name)', async ({ drivePage, page, cloudApi }) => {
+  cloudApi.addDirectory({ title: 'Some Directory' })
+  await drivePage.goToCategory.cloud().driveTable.withRows(async (rows) => {
     const row = rows.nth(0)
     await locateAssetRowName(row).click()
 
@@ -261,16 +252,14 @@ test('edit name (invalid name)', ({ page }) =>
     await locateEditingTick(row).click()
 
     await expect(row).toHaveText(/^Other Directory/)
-  }))
+  })
+})
 
-test('edit name (duplicate name)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addDirectory({ title: 'Some Directory' })
-      api.addProject({ title: 'Some Project' })
-    },
-  }).driveTable.withRows(async (rows) => {
+test('edit name (duplicate name)', async ({ drivePage, page, cloudApi }) => {
+  cloudApi.addDirectory({ title: 'Some Directory' })
+  cloudApi.addProject({ title: 'Some Project' })
+
+  await drivePage.goToCategory.cloud().driveTable.withRows(async (rows) => {
     const row = rows.nth(0)
     await locateAssetRowName(row).click()
 
@@ -294,17 +283,14 @@ test('edit name (duplicate name)', ({ page }) =>
     await locateEditingTick(row).click()
 
     await expect(row).toHaveText(/^Other Directory/)
-  }))
+  })
+})
 
-test('error should not overlay the table header', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      for (let i = 0; i < 100; i++) {
-        api.addProject({ title: 'Some Project ' + i })
-      }
-    },
-  }).driveTable.withRows(async (rows) => {
+test('error should not overlay the table header', async ({ drivePage, page, cloudApi }) => {
+  for (let i = 0; i < 100; i++) {
+    cloudApi.addProject({ title: 'Some Project ' + i })
+  }
+  await drivePage.goToCategory.cloud().driveTable.withRows(async (rows) => {
     const row = rows.nth(1)
     await locateAssetRowName(row).click()
 
@@ -331,4 +317,5 @@ test('error should not overlay the table header', ({ page }) =>
     await expect(errorOutline).not.toBeInViewport()
     await expect(errorContainer).not.toBeInViewport()
     await expect(errorText).not.toBeInViewport()
-  }))
+  })
+})

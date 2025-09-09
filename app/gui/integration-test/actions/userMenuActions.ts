@@ -19,11 +19,11 @@ export interface UserMenuActions<
 
 /** Generate actions for the user menu. */
 export function userMenuActions<
-  T extends BaseActions<Context, ParentClass>,
   Context,
+  T extends BaseActions<Context, ParentClass>,
   ParentClass extends BaseActionsClass<Context>,
 >(
-  step: (name: string, callback: PageCallback<Context>) => T,
+  step: (this: void, name: string, callback: PageCallback<Context>) => T,
 ): UserMenuActions<T, Context, ParentClass> {
   return {
     downloadApp: (callback: (download: Download) => Promise<void> | void) =>

@@ -1,11 +1,12 @@
 /** @file Test copying, moving, cutting and pasting. */
-import { expect, test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 
-import { modModifier } from 'integration-test/dashboard/actions/BaseActions'
-import { mockAllAndLogin, TEXT } from './actions'
+import { modModifier } from 'integration-test/actions/BaseActions'
+import { TEXT } from '../actions'
 
-test('delete (local)', ({ page }) =>
-  mockAllAndLogin({ page })
+test('delete (local)', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     .goToCategory.local()
     .createFolder()
     .driveTable.withRows(async (rows) => {
@@ -13,10 +14,12 @@ test('delete (local)', ({ page }) =>
     })
     .driveTable.rightClickRow(0)
     .contextMenu.delete()
-    .driveTable.expectPlaceholderRow())
+    .driveTable.expectPlaceholderRow()
+})
 
-test('delete and restore (remote)', ({ page }) =>
-  mockAllAndLogin({ page })
+test('delete and restore (remote)', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     .createFolder()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
@@ -34,15 +37,13 @@ test('delete and restore (remote)', ({ page }) =>
     .goToCategory.cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
-    }))
+    })
+})
 
-test('delete and restore project (remote)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addProject()
-    },
-  })
+test('delete and restore project (remote)', async ({ drivePage, cloudApi }) => {
+  cloudApi.addProject()
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
     })
@@ -59,10 +60,12 @@ test('delete and restore project (remote)', ({ page }) =>
     .goToCategory.cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
-    }))
+    })
+})
 
-test('delete and restore (keyboard) (remote)', ({ page }) =>
-  mockAllAndLogin({ page })
+test('delete and restore (keyboard) (remote)', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     .createFolder()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
@@ -83,15 +86,13 @@ test('delete and restore (keyboard) (remote)', ({ page }) =>
     .goToCategory.cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
-    }))
+    })
+})
 
-test('delete and restore project (keyboard) (remote)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addProject()
-    },
-  })
+test('delete and restore project (keyboard) (remote)', async ({ drivePage, cloudApi }) => {
+  cloudApi.addProject()
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
     })
@@ -111,21 +112,19 @@ test('delete and restore project (keyboard) (remote)', ({ page }) =>
     .goToCategory.cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
-    }))
+    })
+})
 
-test('clear trash (remote)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addDirectory()
-      api.addDirectory()
-      api.addProject()
-      api.addProject()
-      api.addFile()
-      api.addSecret()
-      api.addDatalink()
-    },
-  })
+test('clear trash (remote)', async ({ drivePage, cloudApi }) => {
+  cloudApi.addDirectory()
+  cloudApi.addDirectory()
+  cloudApi.addProject()
+  cloudApi.addProject()
+  cloudApi.addFile()
+  cloudApi.addSecret()
+  cloudApi.addDatalink()
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(7)
     })
@@ -149,19 +148,17 @@ test('clear trash (remote)', ({ page }) =>
     .goToCategory.cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(0)
-    }))
+    })
+})
 
-test('clear trash (without directories) (remote)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addProject()
-      api.addProject()
-      api.addFile()
-      api.addSecret()
-      api.addDatalink()
-    },
-  })
+test('clear trash (without directories) (remote)', async ({ drivePage, cloudApi }) => {
+  cloudApi.addProject()
+  cloudApi.addProject()
+  cloudApi.addFile()
+  cloudApi.addSecret()
+  cloudApi.addDatalink()
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(5)
     })
@@ -185,4 +182,5 @@ test('clear trash (without directories) (remote)', ({ page }) =>
     .goToCategory.cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(0)
-    }))
+    })
+})

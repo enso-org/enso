@@ -1,7 +1,7 @@
 /** @file Test the user settings tab. */
 import { test } from 'playwright/test'
 
-import { mockAllAndLogin } from './actions'
+import { mockAllAndLogin } from '../actions'
 
 const DATA_LINK_NAME = 'a data link'
 

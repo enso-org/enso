@@ -1,8 +1,6 @@
 /** @file Constants for integration tests. */
 import { TEXTS } from 'enso-common/src/text'
 import test, { type Page } from 'playwright/test'
-import type { SetupAPI } from './api'
-import type { SetupLocalAPI } from './localApi'
 
 /** An example password that does not meet validation requirements. */
 export const INVALID_PASSWORD = 'password'
@@ -12,16 +10,8 @@ export const VALID_PASSWORD = 'Password0!'
 export const VALID_EMAIL = 'email@example.com'
 export const TEXT = TEXTS.english
 
-/** Parameters for {@link mockDate}. */
-export interface MockParams {
-  readonly goToCloudFirst?: boolean
-  readonly page: Page
-  readonly setupAPI?: SetupAPI | undefined
-  readonly setupLocalAPI?: SetupLocalAPI | undefined
-}
-
 /** Pass the Agreements dialog. */
-export async function passAgreementsDialog({ page }: MockParams) {
+export async function passAgreementsDialog(page: Page) {
   await test.step('Accept Terms and Conditions', async () => {
     await page.waitForSelector('#agreements-modal')
     await page

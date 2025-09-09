@@ -397,7 +397,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   /** Upload a file using the icon in the Drive Bar. */
   uploadFile(
     name: string,
-    contents: WithImplicitCoercion<Uint8Array | string | readonly number[]>,
+    contents: Uint8Array | string | readonly number[],
     mimeType = 'text/plain',
   ) {
     return this.step(`Upload file '${name}'`, async (page) => {

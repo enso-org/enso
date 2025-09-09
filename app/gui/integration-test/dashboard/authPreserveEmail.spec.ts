@@ -1,7 +1,7 @@
 /** @file Test that emails are preserved when navigating between auth pages. */
 import { expect, test } from 'playwright/test'
 
-import { VALID_EMAIL, mockAll } from './actions'
+import { VALID_EMAIL, mockAll } from '../actions'
 
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } })
