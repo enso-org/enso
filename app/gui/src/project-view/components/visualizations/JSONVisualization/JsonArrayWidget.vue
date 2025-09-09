@@ -1,10 +1,12 @@
 <script lang="ts" setup>
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
+import { Opt } from '@/util/data/opt'
 import { computed } from 'vue'
+import { CreateProjection } from './types'
 
-const props = defineProps<{ data: unknown[] }>()
-const emit = defineEmits<{
-  createProjection: [path: (string | number)[][]]
+const props = defineProps<{
+  data: unknown[]
+  onCreateProjection?: Opt<CreateProjection>
 }>()
 
 const MAX_INLINE_LENGTH = 40
@@ -17,6 +19,13 @@ function entryTitle(index: number) {
       `${singleEntry} Shift-click to create nodes selecting all ${props.data.length} elements.`
     : singleEntry
 }
+
+function onClick(index: number, event: MouseEvent) {
+  if (props.onCreateProjection) {
+    props.onCreateProjection([event.shiftKey ? [...props.data.keys()] : [index]])
+    event.stopPropagation()
+  }
+}
 </script>
 
 <template>
@@ -24,13 +33,16 @@ function entryTitle(index: number) {
     <span
       v-for="(child, index) in props.data"
       :key="index"
-      :title="entryTitle(index)"
-      class="element clickable"
-      @click.stop="emit('createProjection', [$event.shiftKey ? [...props.data.keys()] : [index]])"
+      :title="onCreateProjection != null ? entryTitle(index) : ''"
+      class="element"
+      :class="{ clickable: onCreateProjection != null }"
+      @click="onClick(index, $event)"
     >
       <JsonValueWidget
         :data="child"
-        @createProjection="emit('createProjection', [[index], ...$event])"
+        :onCreateProjection="
+          onCreateProjection && ((path) => onCreateProjection?.([[index], ...path]))
+        "
       />
     </span>
   </span>

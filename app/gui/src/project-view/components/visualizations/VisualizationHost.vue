@@ -6,6 +6,7 @@ import { initializeActions } from '@/providers/action'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
+import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
 
 // A single prop `params` is important to mitigate a bug in Vue that causes
@@ -16,7 +17,7 @@ const props = defineProps<{
     visualization?: string | object
     data?: any
     size: Vec2
-    nodeType?: string | undefined
+    nodeType?: ProjectPath | undefined
     overflow?: boolean
     toolbarOverflow?: boolean
     executeExpression: (
