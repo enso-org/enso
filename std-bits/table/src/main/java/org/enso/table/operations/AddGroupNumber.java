@@ -1,12 +1,11 @@
 package org.enso.table.operations;
 
 import java.util.function.BiFunction;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.operation.NumericColumnAdapter;
-import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
@@ -229,8 +228,8 @@ public class AddGroupNumber {
     }
   }
 
-  static private final int STANDARD_DEVIATION_GROUP_COUNT = 5;
-  static private final String[] STANDARD_DEVIATION_GROUP_LABELS = {
+  private static final int STANDARD_DEVIATION_GROUP_COUNT = 5;
+  private static final String[] STANDARD_DEVIATION_GROUP_LABELS = {
     "Low (-2.5 to -1.5 sd)",
     "Below Average (-1.5 to -0.5 sd)",
     "Average (-0.5 to 0.5 sd)",
@@ -241,11 +240,10 @@ public class AddGroupNumber {
   private record StdDevResult(double mean, double stddev) {}
 
   public static ColumnStorage<?> numberGroupsStandardDeviation(
-      long numRows,
-      Column column,
-      boolean population,
-      ProblemAggregator problemAggregator) {
-    ColumnDoubleStorage storage = (ColumnDoubleStorage) NumericColumnAdapter.DoubleColumnAdapter.INSTANCE.asTypedStorage(column.getStorage());
+      long numRows, Column column, boolean population, ProblemAggregator problemAggregator) {
+    ColumnDoubleStorage storage =
+        (ColumnDoubleStorage)
+            NumericColumnAdapter.DoubleColumnAdapter.INSTANCE.asTypedStorage(column.getStorage());
 
     var innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
 
@@ -260,13 +258,15 @@ public class AddGroupNumber {
         double d = iter.getItemAsDouble();
         String label = calculateGroup(d, mean, stddev);
         builder.append(label);
-       } else {
+      } else {
         innerAggregator.reportColumnAggregatedProblem(
             new IllegalArgumentError(
-                "Standard_Deviation", "Null value encountered in standard deviation column", iter.getIndex()));
+                "Standard_Deviation",
+                "Null value encountered in standard deviation column",
+                iter.getIndex()));
         builder.appendNulls(1);
-       }
-     }
+      }
+    }
 
     return builder.seal();
   }
