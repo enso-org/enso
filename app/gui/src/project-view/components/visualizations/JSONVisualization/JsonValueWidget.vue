@@ -6,7 +6,7 @@ import JsonPrimitiveWidget from '@/components/visualizations/JSONVisualization/J
 import { Opt } from '@/util/data/opt'
 import { CreateProjection } from './types'
 
-const props = defineProps<{ data: unknown; onCreateProjection?: Opt<CreateProjection> }>()
+const props = defineProps<{ data: unknown; createProjectionCb?: Opt<CreateProjection> }>()
 </script>
 
 <template>
@@ -17,7 +17,7 @@ const props = defineProps<{ data: unknown; onCreateProjection?: Opt<CreateProjec
   <JsonArrayWidget
     v-else-if="Array.isArray(props.data)"
     :data="props.data"
-    :onCreateProjection="onCreateProjection"
+    :createProjectionCb="createProjectionCb"
   />
   <JsonPrimitiveWidget
     v-else-if="
@@ -28,7 +28,7 @@ const props = defineProps<{ data: unknown; onCreateProjection?: Opt<CreateProjec
   <JsonObjectWidget
     v-else-if="props.data && typeof props.data === 'object'"
     :data="props.data"
-    :onCreateProjection="onCreateProjection"
+    :createProjectionCb="createProjectionCb"
   />
   <JsonPrimitiveWidget v-else :data="props.data" />
 </template>

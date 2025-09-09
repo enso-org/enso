@@ -6,7 +6,7 @@ import { CreateProjection } from './types'
 
 const props = defineProps<{
   data: unknown[]
-  onCreateProjection?: Opt<CreateProjection>
+  createProjectionCb?: Opt<CreateProjection>
 }>()
 
 const MAX_INLINE_LENGTH = 40
@@ -21,8 +21,8 @@ function entryTitle(index: number) {
 }
 
 function onClick(index: number, event: MouseEvent) {
-  if (props.onCreateProjection) {
-    props.onCreateProjection([event.shiftKey ? [...props.data.keys()] : [index]])
+  if (props.createProjectionCb) {
+    props.createProjectionCb([event.shiftKey ? [...props.data.keys()] : [index]])
     event.stopPropagation()
   }
 }
@@ -33,15 +33,15 @@ function onClick(index: number, event: MouseEvent) {
     <span
       v-for="(child, index) in props.data"
       :key="index"
-      :title="onCreateProjection != null ? entryTitle(index) : ''"
+      :title="createProjectionCb != null ? entryTitle(index) : ''"
       class="element"
-      :class="{ clickable: onCreateProjection != null }"
+      :class="{ clickable: createProjectionCb != null }"
       @click="onClick(index, $event)"
     >
       <JsonValueWidget
         :data="child"
-        :onCreateProjection="
-          onCreateProjection && ((path) => onCreateProjection?.([[index], ...path]))
+        :createProjectionCb="
+          createProjectionCb && ((path) => createProjectionCb?.([[index], ...path]))
         "
       />
     </span>

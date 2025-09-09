@@ -69,7 +69,7 @@ function createProjection(path: (string | number)[][]) {
   <div class="JSONVisualization" @wheel.stop.passive>
     <JsonValueWidget
       :data="data"
-      :onCreateProjection="projectionsEnabled ? createProjection : null"
+      :createProjectionCb="projectionsEnabled ? createProjection : null"
     />
   </div>
 </template>

@@ -4,7 +4,7 @@ import { Opt } from '@/util/data/opt'
 import { computed } from 'vue'
 import { CreateProjection } from './types'
 
-const props = defineProps<{ data: object; onCreateProjection?: Opt<CreateProjection> }>()
+const props = defineProps<{ data: object; createProjectionCb?: Opt<CreateProjection> }>()
 
 const MAX_INLINE_LENGTH = 40
 
@@ -22,8 +22,8 @@ function entryTitle(key: string) {
 }
 
 function onClick(key: string, event: MouseEvent) {
-  if (props.onCreateProjection) {
-    props.onCreateProjection([event.shiftKey ? Object.keys(props.data) : [key]])
+  if (props.createProjectionCb) {
+    props.createProjectionCb([event.shiftKey ? Object.keys(props.data) : [key]])
     event.stopPropagation()
   }
 }
@@ -34,16 +34,16 @@ function onClick(key: string, event: MouseEvent) {
     <span
       v-for="[key, value] in Object.entries(props.data)"
       :key="key"
-      :title="onCreateProjection != null ? entryTitle(key) : ''"
+      :title="createProjectionCb != null ? entryTitle(key) : ''"
       class="field"
-      :class="{ clickable: onCreateProjection != null }"
+      :class="{ clickable: createProjectionCb != null }"
       @click.stop="onClick(key, $event)"
     >
       <span class="key" v-text="JSON.stringify(key)" />:
       <JsonValueWidget
         :data="value"
-        :onCreateProjection="
-          onCreateProjection && ((path) => onCreateProjection?.([[key], ...path]))
+        :createProjectionCb="
+          createProjectionCb && ((path) => createProjectionCb?.([[key], ...path]))
         "
       />
     </span>
