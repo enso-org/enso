@@ -1,6 +1,6 @@
 /** @file Constants for integration tests. */
 import { TEXTS } from 'enso-common/src/text'
-import test, { type Page } from 'playwright/test'
+import { test, type Page } from 'integration-test/base'
 
 /** An example password that does not meet validation requirements. */
 export const INVALID_PASSWORD = 'password'

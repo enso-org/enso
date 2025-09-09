@@ -1,6 +1,5 @@
-import { test, type BrowserContext, type Locator, type Page } from 'playwright/test'
+import { expect, test, type BrowserContext, type Locator, type Page } from 'integration-test/base'
 import * as actions from './actions'
-import { expect } from './customExpect'
 import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'

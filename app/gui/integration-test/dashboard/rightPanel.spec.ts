@@ -66,7 +66,7 @@ test('asset panel contents', async ({ drivePage, page, cloudApi }) => {
     })
     .togglePropertiesAssetPanel()
     .do(async () => {
-      await expect(locateRightPanelDescription(page)).not.toBeVisible()
+      await expect(locateRightPanelDescription(page)).toBeHidden()
     })
 })
 
@@ -88,7 +88,7 @@ test('Asset Panel Decription', async ({ drivePage, cloudApi, page }) => {
       await page.keyboard.insertText(NEW_DESCRIPTION)
     })
     .driveTable.clickAway()
-    .do(() => expect(locateRightPanelDescription(page)).not.toBeVisible())
+    .do(() => expect(locateRightPanelDescription(page)).toBeHidden())
     .driveTable.clickRow(0)
     .do(async () => {
       await expect(locateRightPanelDescription(page)).toContainText(
@@ -106,7 +106,7 @@ test('Asset Panel documentation view', async ({ drivePage, cloudApi }) => {
     .withRightPanel(async (rightPanel) => {
       await expect(locateMarkdownContent(rightPanel)).toBeVisible()
       await expect(locateMarkdownContent(rightPanel)).toHaveText(/Project Goal/)
-      await expect(rightPanel.getByText(TEXT.arbitraryFetchImageError)).not.toBeVisible()
+      await expect(rightPanel.getByText(TEXT.arbitraryFetchImageError)).toBeHidden()
     })
 })
 

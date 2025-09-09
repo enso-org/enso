@@ -1,8 +1,7 @@
 import assert from 'assert'
-import { test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 import * as actions from './actions'
 import { computedContent } from './css'
-import { expect } from './customExpect'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
 

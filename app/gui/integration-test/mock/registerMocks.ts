@@ -1,37 +1,17 @@
+import { test } from 'integration-test/base'
 import type { Page, Route } from 'playwright'
-import test from 'playwright/test'
-import { mockCloudApi, type MockCloudApi, type SetupCloudAPI } from './cloudApi'
-import LATEST_GITHUB_RELEASES from './data/latestGithubReleases.json'
-import { mockLocalApi, type MockLocalApi } from './localApi'
-
-/** Parameters for {@link registerAllMocks}. */
-export interface MockParams {
-  readonly page: Page
-  readonly setupCloudAPI?: SetupCloudAPI | undefined
-}
-
-interface RegisteredMocks {
-  cloudApi: MockCloudApi
-  localApi: MockLocalApi
-}
+import LATEST_GITHUB_RELEASES from './data/latestGithubReleases.json' with { type: 'json' }
 
 /** Execute registration hooks for all playwright mocks that are shared across all tests. */
-export async function registerAllMocks(params: MockParams): Promise<RegisteredMocks> {
-  const [cloudApi, localApi] = await Promise.all([
-    mockCloudApi(params),
-    mockLocalApi(params),
-    mockDate(params),
-    mockAllAnimations(params),
-    mockUnneededUrls(params),
-  ])
-  return { cloudApi, localApi }
+export async function registerMocks(page: Page): Promise<void> {
+  await Promise.all([mockDate(page), mockAllAnimations(page), mockUnneededUrls(page)])
 }
 
 /** A placeholder date for visual regression testing. */
 const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
 
 /** Replace `Date` with a version that returns a fixed time. */
-async function mockDate({ page }: MockParams) {
+async function mockDate(page: Page) {
   // https://github.com/microsoft/playwright/issues/6347#issuecomment-1085850728
   await test.step('Mock Date', async () => {
     await page.addInitScript(`{
@@ -52,7 +32,7 @@ async function mockDate({ page }: MockParams) {
 }
 
 /** Mock all animations. */
-async function mockAllAnimations({ page }: MockParams) {
+async function mockAllAnimations(page: Page) {
   await test.step('Mock all animations', async () => {
     await page.addInitScript({
       content: `
@@ -66,7 +46,7 @@ async function mockAllAnimations({ page }: MockParams) {
 }
 
 /** Mock unneeded URLs. */
-async function mockUnneededUrls({ page }: MockParams) {
+async function mockUnneededUrls(page: Page) {
   const eulaJsonBody = JSON.stringify({
     path: '/eula.md',
     size: 9472,

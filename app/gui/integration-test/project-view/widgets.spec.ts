@@ -1,6 +1,5 @@
-import test, { type Locator, type Page } from 'playwright/test'
+import { expect, test, type Locator, type Page } from 'integration-test/base'
 import * as actions from './actions'
-import { expect } from './customExpect'
 import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
 
@@ -395,7 +394,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await page.keyboard.press('Escape')
   await expect(pathArgInput).not.toBeFocused()
   await expect(pathArgInput).toHaveText('File 2')
-  await expect(pathDropdown.dropDown).not.toBeVisible()
+  await expect(pathDropdown.dropDown).toBeHidden()
 
   // Choosing entry should finish editing
   await pathArgInput.click()
@@ -405,7 +404,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await pathDropdown.clickOption('File 1')
   await expect(pathArgInput).not.toBeFocused()
   await expect(pathArgInput).toHaveText('File 1')
-  await expect(pathDropdown.dropDown).not.toBeVisible()
+  await expect(pathDropdown.dropDown).toBeHidden()
 
   // Clicking-off and pressing Enter should accept text as-is
   await pathArgInput.click()
@@ -414,7 +413,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await page.keyboard.press('Enter')
   await expect(pathArgInput).not.toBeFocused()
   await expect(pathArgInput).toHaveText('File')
-  await expect(pathDropdown.dropDown).not.toBeVisible()
+  await expect(pathDropdown.dropDown).toBeHidden()
 
   await pathArgInput.click()
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
@@ -423,7 +422,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await actions.clickAtBackground(page)
   await expect(pathArgInput).not.toBeFocused()
   await expect(pathArgInput).toHaveText('Foo')
-  await expect(pathDropdown.dropDown).not.toBeVisible()
+  await expect(pathDropdown.dropDown).toBeHidden()
 })
 
 test('File Browser widget', async ({ page }) => {

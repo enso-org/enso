@@ -1,6 +1,6 @@
 /** @file The base class from which all `Actions` classes are derived. */
 import type { AutocompleteKeybind, ModifierKey } from '#/utilities/inputBindings'
-import { expect, test, type Locator, type Page } from 'playwright/test'
+import { expect, test, type Locator, type Page } from 'integration-test/base'
 
 /** `Meta` (`Cmd`) on macOS, and `Control` on all other platforms. */
 export async function modModifier(page: Page) {
@@ -242,7 +242,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
       })
     } else {
       return this.step(`Expect no ${description} error`, async (page) => {
-        await expect(page.getByTestId(testId).getByTestId('error')).not.toBeVisible()
+        await expect(page.getByTestId(testId).getByTestId('error')).toBeHidden()
       })
     }
   }

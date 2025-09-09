@@ -1,6 +1,5 @@
-import test, { type Page } from 'playwright/test'
+import { expect, test, type Page } from 'integration-test/base'
 import * as actions from './actions'
-import { expect } from './customExpect'
 import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
@@ -77,5 +76,5 @@ test('Removing node', async ({ page }) => {
 
   await page.keyboard.press(`${CONTROL_KEY}+Shift+Z`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
-  await expect(deletedNode).not.toBeVisible()
+  await expect(deletedNode).toBeHidden()
 })

@@ -18,13 +18,13 @@ test('organization settings', async ({ drivePage, cloudApi }) => {
   let calls = cloudApi.trackCalls()
   await drivePage.goToCategory
     .cloud()
-    .step('Verify initial organization state', (_, { cloudApi: api }) => {
-      expect(api.defaultUser.isOrganizationAdmin).toBe(true)
-      expect(api.currentOrganization()?.name).toBe(api.defaultOrganizationName)
-      expect(api.currentOrganization()?.email).toBe(null)
-      expect(api.currentOrganization()?.picture).toBe(null)
-      expect(api.currentOrganization()?.website).toBe(null)
-      expect(api.currentOrganization()?.address).toBe(null)
+    .step('Verify initial organization state', () => {
+      expect(cloudApi.defaultUser.isOrganizationAdmin).toBe(true)
+      expect(cloudApi.currentOrganization()?.name).toBe(cloudApi.defaultOrganizationName)
+      expect(cloudApi.currentOrganization()?.email).toBe(null)
+      expect(cloudApi.currentOrganization()?.picture).toBe(null)
+      expect(cloudApi.currentOrganization()?.website).toBe(null)
+      expect(cloudApi.currentOrganization()?.address).toBe(null)
     })
     .goToPage.settings()
     .goToSettingsTab.organization()
@@ -34,7 +34,7 @@ test('organization settings', async ({ drivePage, cloudApi }) => {
       calls = cloudApi.trackCalls()
     })
     .save()
-    .step('Set organization name', (_) => {
+    .step('Set organization name', () => {
       expect(cloudApi.currentOrganization()?.name).toBe(NEW_NAME)
       expect(cloudApi.currentUser()?.name).not.toBe(NEW_NAME)
       expect(calls.updateOrganization).toMatchObject([{ name: NEW_NAME }])

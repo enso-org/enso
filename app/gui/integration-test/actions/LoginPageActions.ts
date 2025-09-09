@@ -1,15 +1,21 @@
 /** @file Available actions for the login page. */
-import { test } from 'integration-test/base'
-import { expect } from 'playwright/test'
-import { waitForLoaded } from '.'
+import { expect, test, type Page } from 'integration-test/base'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import ForgotPasswordPageActions from './ForgotPasswordPageActions'
 import RegisterPageActions from './RegisterPageActions'
 import { passAgreementsDialog, TEXT, VALID_EMAIL, VALID_PASSWORD } from './utilities'
 
+/** Wait for the page to load. */
+export async function waitForLoaded(page: Page) {
+  await page.waitForLoadState()
+
+  await expect(page.getByTestId(/^(before|after)-auth-layout$/)).toBeAttached({ timeout: 30_000 })
+  await expect(page.getByTestId('loading-screen')).toHaveCount(0, { timeout: 30_000 })
+}
+
 /** Available actions for the login page. */
-export default class LoginPageActions<Context> extends BaseActions<Context> {
+export default class LoginPageActions<Context = object> extends BaseActions<Context> {
   /** Actions for navigating to another page. */
   get goToPage() {
     return {
@@ -89,7 +95,7 @@ export default class LoginPageActions<Context> extends BaseActions<Context> {
       })
     } else {
       return next.step('Expect no form error', async (page) => {
-        await expect(page.getByTestId('form-submit-error')).not.toBeVisible()
+        await expect(page.getByTestId('form-submit-error')).toBeHidden()
       })
     }
   }
@@ -116,6 +122,6 @@ export default class LoginPageActions<Context> extends BaseActions<Context> {
       .getByRole('button', { name: TEXT.login, exact: true })
       .getByText(TEXT.login)
       .click()
-    await expect(this.page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
+    await expect(this.page.getByText(TEXT.loadingAppMessage)).toBeHidden()
   }
 }

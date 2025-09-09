@@ -1,5 +1,4 @@
-import { type Page } from 'playwright/test'
-import { expect } from './customExpect'
+import { expect, type Page } from 'integration-test/base'
 import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'

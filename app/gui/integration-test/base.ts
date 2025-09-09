@@ -3,32 +3,29 @@ import type DrivePageActions from './actions/DrivePageActions'
 import LoginPageActions from './actions/LoginPageActions'
 import { mockCloudApi, type MockCloudApi } from './mock/cloudApi'
 import { mockLocalApi, type MockLocalApi } from './mock/localApi'
+import { registerMocks } from './mock/registerMocks'
 
 export type * from 'playwright/test'
 
 export interface PageCtx {
-  readonly cloudApi: MockCloudApi
-  readonly localApi: MockLocalApi
+  // readonly cloudApi: MockCloudApi
+  // readonly localApi: MockLocalApi
 }
 
 export const test = base.extend<{
   cloudApi: MockCloudApi
   localApi: MockLocalApi
-  loginPage: LoginPageActions<PageCtx>
-  drivePage: DrivePageActions<PageCtx>
+  loginPage: LoginPageActions
+  drivePage: DrivePageActions
 }>({
-  cloudApi: async ({ page }, use) => {
-    await use(await mockCloudApi(page))
-  },
-  localApi: async ({ page }, use) => {
-    await use(await mockLocalApi(page))
-  },
+  cloudApi: async ({ page }, use) => use(await mockCloudApi(page)),
+  localApi: async ({ page }, use) => use(await mockLocalApi(page)),
   loginPage: ({ page, cloudApi, localApi }, use) => {
-    return use(new LoginPageActions<PageCtx>(page, { cloudApi, localApi }))
+    // Only make sure that API mocks are registered, do not actually use the values
+    const _ = { cloudApi, localApi }
+    return use(new LoginPageActions(page, {}, registerMocks(page)))
   },
-  drivePage: ({ loginPage }, use) => {
-    return use(loginPage.loginIfNeeded())
-  },
+  drivePage: ({ loginPage }, use) => use(loginPage.loginIfNeeded()),
 })
 
 export const expect = baseExpect.extend({

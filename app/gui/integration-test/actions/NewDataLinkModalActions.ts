@@ -1,5 +1,5 @@
 /** @file Actions for a "new Data Link" modal. */
-import type { Page } from 'playwright/test'
+import type { Page } from 'integration-test/base'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import { TEXT } from './utilities'

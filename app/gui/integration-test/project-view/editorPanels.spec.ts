@@ -1,8 +1,7 @@
 /** @file Tests for the multiline CodeMirror editor panels: documentation editor and code editor. */
-import type { Page } from 'playwright/test'
-import { type Locator, test } from 'playwright/test'
+import type { Page } from 'integration-test/base'
+import { expect, type Locator, test } from 'integration-test/base'
 import * as actions from './actions'
-import { expect } from './customExpect'
 import { mockMethodCallInfo, mockUserDefinedFunctionInfo } from './expressionUpdates'
 import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
@@ -269,7 +268,7 @@ test.describe('User-defined component documentation', () => {
       const item = items.getByText(behaviour)
       await item.click()
       await this.expectMissingBehaviour(behaviour)
-      await expect(dropdown).not.toBeVisible()
+      await expect(dropdown).toBeHidden()
       await this.expectMissingBehaviour(behaviour)
     }
   }
@@ -280,11 +279,11 @@ test.describe('User-defined component documentation', () => {
     const fse = await FunctionSignatureEditor.new(locate.rightDock(page))
     const [arg] = await fse.expectArguments(1)
     await arg!.expectMissingBehaviour('optional')
-    await expect(arg!.defaultValue).not.toBeVisible()
+    await expect(arg!.defaultValue).toBeHidden()
     await arg!.setMissingBehaviour('required')
-    await expect(arg!.defaultValue).not.toBeVisible()
+    await expect(arg!.defaultValue).toBeHidden()
     await arg!.setMissingBehaviour('optional')
-    await expect(arg!.defaultValue).not.toBeVisible()
+    await expect(arg!.defaultValue).toBeHidden()
     await arg!.setMissingBehaviour('default')
     await expect(arg!.defaultValue).toBeVisible()
 

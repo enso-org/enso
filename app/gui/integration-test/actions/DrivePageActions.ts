@@ -1,5 +1,5 @@
 /** @file Actions for the "drive" page. */
-import { expect, type Locator, type Page } from 'playwright/test'
+import { expect, type Locator, type Page } from 'integration-test/base'
 import type { LocatorCallback } from './BaseActions'
 import { contextMenuActions } from './contextMenuActions'
 import EditorPageActions from './EditorPageActions'
@@ -79,7 +79,7 @@ function locateRightPanel(page: Page) {
 }
 
 /** Actions for the "drive" page. */
-export default class DrivePageActions<Context> extends PageActions<Context> {
+export default class DrivePageActions<Context = object> extends PageActions<Context> {
   /** Actions for navigating to another page. */
   get goToPage(): Omit<GoToPageActions<Context>, 'drive'> {
     return goToPageActions(this.step.bind(this))

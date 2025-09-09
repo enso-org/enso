@@ -1,7 +1,6 @@
 /** @file Test the drive view. */
 import { EmailAddress, ProjectState } from '#/services/Backend'
-import { test } from 'integration-test/base'
-import { expect, type Page } from 'playwright/test'
+import { expect, test, type Page } from 'integration-test/base'
 import { getText, TEXT } from '../actions'
 
 /** Find an extra columns button panel. */
@@ -79,7 +78,7 @@ test('can navigate to parent directory of an asset in the Trash category', async
 
       await cell.getByRole('button').click()
 
-      await expect(cell).not.toBeVisible()
+      await expect(cell).toBeHidden()
     })
     .expectCategory(TEXT.cloudCategory)
     .goToCategory.trash()
@@ -127,8 +126,8 @@ test("can't start an already running by another user", async ({ drivePage, cloud
     const stopProjectButton = row.getByTestId('stop-project')
 
     await expect(row).toBeVisible()
-    await expect(row.getByTestId('switch-to-project')).not.toBeVisible()
-    await expect(startProjectButton).not.toBeVisible()
+    await expect(row.getByTestId('switch-to-project')).toBeHidden()
+    await expect(startProjectButton).toBeHidden()
     await expect(stopProjectButton).toBeDisabled()
     await expect(stopProjectButton).toHaveAccessibleName(
       getText('xIsUsingTheProject', 'test@test.com'),

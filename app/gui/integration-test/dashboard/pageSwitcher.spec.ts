@@ -17,20 +17,24 @@ test('page switcher', async ({ drivePage, cloudApi }) => {
   cloudApi.setFeatureFlags({ enableCloudExecution: true })
   await drivePage.goToCategory
     .cloud()
+
     .newEmptyProject()
-    .withDriveView((driveView) => expect(driveView).not.toBeVisible())
     .do(async (thePage) => {
-      await expect(locateDriveView(thePage)).not.toBeVisible()
+      await expect(locateDriveView(thePage)).toBeHidden()
+      await expect(locateEditor(thePage)).toBeVisible()
+    })
+    .do(async (thePage) => {
+      await expect(locateDriveView(thePage)).toBeHidden()
       await expect(locateEditor(thePage)).toBeVisible()
     })
     .goToPage.drive()
     .do(async (thePage) => {
       await expect(locateDriveView(thePage)).toBeVisible()
-      await expect(locateEditor(thePage)).not.toBeVisible()
+      await expect(locateEditor(thePage)).toBeHidden()
     })
     .goToPage.editor()
     .do(async (thePage) => {
-      await expect(locateDriveView(thePage)).not.toBeVisible()
+      await expect(locateDriveView(thePage)).toBeHidden()
       await expect(locateEditor(thePage)).toBeVisible()
     })
 })

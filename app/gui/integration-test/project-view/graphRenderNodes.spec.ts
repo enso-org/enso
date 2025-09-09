@@ -1,6 +1,5 @@
-import { test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 import * as actions from './actions'
-import { expect } from './customExpect'
 import { mockExpressionUpdate } from './expressionUpdates'
 import * as locate from './locate'
 
@@ -22,7 +21,7 @@ test('Component icon indicates evaluation in progress', async ({ page }) => {
   await actions.goToGraph(page)
 
   const node = locate.graphNodeByBinding(page, 'final')
-  await expect(node.locator('.WidgetIcon .LoadingSpinner')).not.toBeVisible()
+  await expect(node.locator('.WidgetIcon .LoadingSpinner')).toBeHidden()
   await mockExpressionUpdate(page, 'final', { payload: { type: 'Pending', progress: 0.1 } })
   await expect(node.locator('.WidgetIcon .LoadingSpinner')).toBeVisible()
 })

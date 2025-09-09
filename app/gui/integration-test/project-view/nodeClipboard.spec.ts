@@ -1,6 +1,5 @@
-import test, { type Locator, type Page } from 'playwright/test'
+import { expect, test, type Locator, type Page } from 'integration-test/base'
 import * as actions from './actions'
-import { expect } from './customExpect'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { connectedEdgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'

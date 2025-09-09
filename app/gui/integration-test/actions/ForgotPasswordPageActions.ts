@@ -1,5 +1,5 @@
 /** @file Available actions for the login page. */
-import { expect } from 'playwright/test'
+import { expect } from 'integration-test/base'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import LoginPageActions from './LoginPageActions'
 import { TEXT, VALID_EMAIL } from './utilities'
@@ -45,6 +45,6 @@ export default class ForgotPasswordPageActions<Context> extends BaseActions<Cont
       .getByRole('button', { name: TEXT.login, exact: true })
       .getByText(TEXT.login)
       .click()
-    await expect(this.page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
+    await expect(this.page.getByText(TEXT.loadingAppMessage)).toBeHidden()
   }
 }

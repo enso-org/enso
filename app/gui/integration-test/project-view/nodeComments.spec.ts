@@ -1,6 +1,5 @@
-import test from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 import * as actions from './actions'
-import { expect } from './customExpect'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 

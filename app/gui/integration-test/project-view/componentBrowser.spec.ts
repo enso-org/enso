@@ -1,6 +1,5 @@
-import { test, type Page } from 'playwright/test'
+import { expect, test, type Page } from 'integration-test/base'
 import * as actions from './actions'
-import { expect } from './customExpect'
 import { mockExpressionUpdate } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'

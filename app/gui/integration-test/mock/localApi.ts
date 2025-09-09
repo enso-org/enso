@@ -21,10 +21,10 @@ import { unsafeMutable } from '#/utilities/object'
 import { getDirectoryAndName } from '#/utilities/path'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
+import { test } from 'integration-test/base'
 import { uuidv4 } from 'lib0/random.js'
 import { join } from 'node:path'
 import type { Page } from 'playwright'
-import test from 'playwright/test'
 
 function array<T>(): Readonly<T>[] {
   return []
