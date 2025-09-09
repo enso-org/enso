@@ -1,5 +1,11 @@
 # Next Next Release
 
+#### Enso IDE
+
+- [Resizing the right panel no longer causes content reflow][13976].
+
+[13976]: https://github.com/enso-org/enso/pull/13976
+
 #### Enso Language & Runtime
 
 - [Register and `lookup_services` in package.yaml][11868]
