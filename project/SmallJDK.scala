@@ -24,6 +24,7 @@ object SmallJDK {
   )
 
   private val JDK_MODULES = Seq(
+    "java.desktop",
     "java.naming",
     "java.net.http",
     "java.rmi",

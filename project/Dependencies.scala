@@ -122,11 +122,12 @@ object Dependencies {
   // === Commons ================================================================
 
   val commonsCollectionsVersion = "4.4"
-  val commonsLangVersion        = "3.12.0"
-  val commonsIoVersion          = "2.12.0"
+  val commonsLangVersion        = "3.16.0"
+  val commonsIoVersion          = "2.18.0"
   val commonsTextVersion        = "1.10.0"
   val commonsMathVersion        = "3.6.1"
-  val commonsCompressVersion    = "1.23.0"
+  val commonsCodecVersion       = "1.18.0"
+  val commonsCompressVersion    = "1.27.1"
   val commonsCliVersion         = "1.5.0"
   val commons = Seq(
     "org.apache.commons" % "commons-collections4" % commonsCollectionsVersion,

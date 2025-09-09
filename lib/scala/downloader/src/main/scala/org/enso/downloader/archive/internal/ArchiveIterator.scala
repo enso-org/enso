@@ -6,7 +6,7 @@ import org.apache.commons.compress.archivers.{ArchiveEntry, ArchiveInputStream}
   * non-null archive entries.
   */
 case class ArchiveIterator(
-  archiveInputStream: ArchiveInputStream
+  archiveInputStream: ArchiveInputStream[_ <: ArchiveEntry]
 ) extends Iterator[ArchiveEntry] {
 
   /** @inheritdoc

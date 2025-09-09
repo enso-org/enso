@@ -3665,6 +3665,7 @@ lazy val `engine-runner` = project
       "org.graalvm.polyglot"    % "polyglot"                % graalMavenPackagesVersion,
       "org.graalvm.sdk"         % "polyglot-tck"            % graalMavenPackagesVersion % Provided,
       "commons-cli"             % "commons-cli"             % commonsCliVersion,
+      "commons-codec"           % "commons-codec"           % commonsCodecVersion,
       "com.monovore"           %% "decline"                 % declineVersion,
       "junit"                   % "junit"                   % junitVersion              % Test,
       "com.github.sbt"          % "junit-interface"         % junitIfVersion            % Test,
@@ -3675,10 +3676,11 @@ lazy val `engine-runner` = project
       jline ++
       slf4jApi ++
       Seq(
-        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
-        "commons-cli"          % "commons-cli" % commonsCliVersion
+        "org.graalvm.polyglot" % "polyglot"      % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage"   % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"          % graalMavenPackagesVersion,
+        "commons-cli"          % "commons-cli"   % commonsCliVersion,
+        "commons-codec"        % "commons-codec" % commonsCodecVersion
       ),
     Compile / internalModuleDependencies := Seq(
       (`profiling-utils` / Compile / exportedModule).value,
@@ -3711,6 +3713,7 @@ lazy val `engine-runner` = project
         "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
         "com.typesafe"           % "config"                       % typesafeConfigVersion,
         "org.apache.commons"     % "commons-compress"             % commonsCompressVersion,
+        "org.apache.commons"     % "commons-lang3"                % commonsLangVersion,
         "org.apache.tika"        % "tika-core"                    % tikaVersion,
         "org.netbeans.api"       % "org-netbeans-modules-sampler" % netbeansApiVersion,
         "org.yaml"               % "snakeyaml"                    % snakeyamlVersion
