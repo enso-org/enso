@@ -48,6 +48,7 @@ public class TestSpecCollector {
             .allowAllAccess(true)
             .allowIO(IOAccess.ALL)
             .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+            .option(RuntimeOptions.CHECK_CWD, "false")
             .option(RuntimeOptions.PROJECT_ROOT, testCollectorPath.getAbsolutePath())
             .option(RuntimeOptions.LANGUAGE_HOME_OVERRIDE, ensoHomeOverride.getAbsolutePath())
             .build();

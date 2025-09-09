@@ -42,6 +42,7 @@ public class IRCacheLocationTest {
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
+                        .option(RuntimeOptions.CHECK_CWD, "false")
                         .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
                         .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
             .withProjectRoot(projDir.toPath())
@@ -84,6 +85,7 @@ public class IRCacheLocationTest {
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
+                        .option(RuntimeOptions.CHECK_CWD, "false")
                         .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
                         .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
             .withProjectRoot(projDir.toPath())

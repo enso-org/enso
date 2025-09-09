@@ -2,6 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 
@@ -9,6 +11,7 @@ import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
+from Standard.Database.Errors import SQL_Error, SQL_Timeout
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Internal.SQL_Warning_Helper
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
@@ -17,7 +20,13 @@ from Standard.Database.Connection.Connection import get_tables_advanced
 from Standard.Database.Internal.Result_Set import result_set_to_table
 
 polyglot java import java.sql.DatabaseMetaData
+polyglot java import java.sql.SQLException
+polyglot java import java.sql.SQLTimeoutException
+polyglot java import org.enso.base.enso_cloud.HideableValue
+polyglot java import org.enso.database.dryrun.OperationSynchronizer
+polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.database.JDBCUtils
+polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type Generic_JDBC_Connection
     private Value jdbc_connection:JDBC_Connection.JDBC_Connection url:Text quote_char:Text
@@ -56,6 +65,10 @@ type Generic_JDBC_Connection
        `polyglot/java` folder within the project). JDBC drivers can only be used
        in JVM mode.
     @properties (Vector_Editor item_editor=(Single_Choice [Option "Text" "['', '']", Option "Secret" "['', Enso_Secret.get '']"]) item_default="['', '']")
+    connect_in_jvm (url : Text = (Missing_Argument.throw "url")) properties:Vector=[] quote_char:Text="" -> Generic_JDBC_Connection =
+        jdbc_connection = create_jdbc_connection url properties
+        Generic_JDBC_Connection.Value jdbc_connection url quote_char
+
     connect (url : Text = (Missing_Argument.throw "url")) properties:Vector=[] quote_char:Text="" -> Generic_JDBC_Connection =
         jdbc_connection = JDBC_Connection.create url properties
         Generic_JDBC_Connection.Value jdbc_connection url quote_char
@@ -175,8 +188,9 @@ type Generic_JDBC_Connection
        ```
     execute self (sql : Text = (Missing_Argument.throw "sql")) -> Integer =
         when_output_enabled_ <|
-            self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
-                stmt.executeUpdate
+            handle_sql_errors <|
+                self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
+                    stmt.executeUpdate
 
     ## ---
        aliases: [import, load]
@@ -216,12 +230,13 @@ type Generic_JDBC_Connection
             Rows_To_Read.First_With_Warning n -> n+1
             Rows_To_Read.All_Rows -> -1
 
-        self.jdbc_connection.with_prepared_statement resolved_sql Statement_Setter.default stmt->
-            rs = stmt.executeQuery
-            materialised = result_set_to_table rs row_limit=rows_read
-            table = limit.attach_warning materialised
-            SQL_Warning_Helper.process_warnings stmt <|
-                table
+        handle_sql_errors <|
+            self.jdbc_connection.with_prepared_statement resolved_sql Statement_Setter.default stmt->
+                rs = stmt.executeQuery
+                materialised = result_set_to_table rs row_limit=rows_read
+                table = limit.attach_warning materialised
+                SQL_Warning_Helper.process_warnings stmt <|
+                    table
 
     ## ---
        aliases: [catalog schema database table]
@@ -345,3 +360,44 @@ type Generic_JDBC_Details
 private when_output_enabled_ ~action =
     if Context.Output.is_enabled then action else
         Error.throw (Forbidden_Operation.Error ("As writing is disabled, this operation was not executed. Press the Write button ▶ to execute it."))
+
+## ---
+   private: true
+   ---
+   Creates a JDBC connection based on a URL and optionally username and password.
+
+   ## Arguments
+    - `url`: The URL to connect to.
+    - `properties`: A vector of properties for the connection.
+create_jdbc_connection : Text -> Vector -> JDBC_Connection.JDBC_Connection
+private create_jdbc_connection url properties = handle_sql_errors <|
+    java_connection = JDBCProxy.getConnection url (properties_as_java_props properties)
+    from_java java_connection
+
+## ---
+   private: true
+   ---
+private properties_as_java_props properties =
+    properties.map pair->
+        # Some parameters may be passed by the dialect as a `HideableValue` directly, so they do not need to be converted.
+        value = pair.second
+        java_value = if value.is_a HideableValue then value else
+            as_hideable_value value
+        Java_Pair.create pair.first java_value
+
+## ---
+   private: true
+   ---
+   A special method used by dialects that construct a Java JDBC connection using
+   some custom logic.
+private from_java java_jdbc_connection =
+    resource = Managed_Resource.register java_jdbc_connection (x-> x.close)
+    synchronizer = OperationSynchronizer.new
+    JDBC_Connection.JDBC_Connection.Value resource synchronizer
+
+handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout)
+private handle_sql_errors ~action related_query=Nothing =
+    Panic.catch SQLException action caught_panic->
+        case caught_panic.payload of
+            exc : SQLTimeoutException -> Error.throw (SQL_Timeout.Error exc related_query)
+            exc -> Error.throw (SQL_Error.Error exc related_query)

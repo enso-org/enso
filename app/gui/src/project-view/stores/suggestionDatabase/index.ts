@@ -80,6 +80,13 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     )
   }
 
+  /** Returns methods defined on the specified type, including private methods. */
+  typeMethods(memberOf: ProjectPath): IterableIterator<MethodSuggestionEntry> {
+    return iter.filter(this.getAllEntriesOfKind(SuggestionKind.Method), (method) =>
+      memberOf.equals(method.memberOf),
+    )
+  }
+
   dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
     return Array.from(this.selectableTypes.value, (ty) => ExpressionTag.FromEntry(this, ty))
   })

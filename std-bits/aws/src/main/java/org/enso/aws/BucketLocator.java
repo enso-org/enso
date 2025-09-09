@@ -2,8 +2,9 @@ package org.enso.aws;
 
 import java.util.HashMap;
 import java.util.Optional;
-import java.util.logging.Logger;
 import org.enso.aws.regions.AWSRegion;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.http.SdkHttpResponse;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.BucketLocationConstraint;
@@ -20,7 +21,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
  */
 public class BucketLocator {
   private static final HashMap<String, AWSRegion> cache = new HashMap<>();
-  private static final Logger logger = Logger.getLogger(BucketLocator.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(BucketLocator.class);
 
   public static void flushCache() {
     cache.clear();
@@ -60,15 +61,14 @@ public class BucketLocator {
     } catch (S3Exception error) {
       var details = error.awsErrorDetails();
       if (details == null) {
-        logger.fine(
-            "Failed to locate a bucket (missing details in error response): " + error.getMessage());
+        LOGGER.trace("Failed to locate a bucket (missing details in error response).", error);
         return null;
       }
 
       // We can extract the region from the error response as well.
       return findRegionInResponse(details.sdkHttpResponse());
     } catch (Exception e) {
-      logger.fine("Failed to locate a bucket using HeadBucket: " + e.getMessage());
+      LOGGER.trace("Failed to locate a bucket using HeadBucket.", e);
       return null;
     }
   }
@@ -94,7 +94,7 @@ public class BucketLocator {
       }
 
       if (locationConstraint == BucketLocationConstraint.UNKNOWN_TO_SDK_VERSION) {
-        logger.fine("AWS returned an unknown location constraint.");
+        LOGGER.trace("AWS returned an unknown location constraint.");
         return null;
       }
 
@@ -103,13 +103,13 @@ public class BucketLocator {
       if (isKnown) {
         return inferredRegion;
       } else {
-        logger.fine(
-            "AWS returned a location constraint that cannot be mapped to a known region: "
-                + locationConstraint);
+        LOGGER.trace(
+            "AWS returned a location constraint that cannot be mapped to a known region: {}",
+            locationConstraint);
         return null;
       }
     } catch (Exception e) {
-      logger.fine("Failed to locate a bucket (legacy GetBucketLocation): " + e.getMessage());
+      LOGGER.trace("Failed to locate a bucket (legacy GetBucketLocation).", e);
       return null;
     }
   }

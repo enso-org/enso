@@ -13,6 +13,7 @@ import type Backend from '#/services/Backend'
 import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
+import { useRouter } from '$/providers/react'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenuEntries}. */
@@ -30,6 +31,7 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
 
   const isCloud = backend.type === BackendType.remote
 
+  const { router } = useRouter()
   const driveStore = useDriveStore()
   const hasPasteData = useStore(
     driveStore,
@@ -50,28 +52,37 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
     uploadFilesRaw(files, directoryId ?? currentDirectoryId),
   )
 
+  const goToDrive = async () => {
+    if (router.currentRoute.value.path === '/drive') return
+    await router.push({ ...router.currentRoute.value, path: '/drive' })
+  }
+
   return defineMenuEntries([
     {
       action: 'uploadFiles',
       doAction: () => {
+        void goToDrive()
         void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
       },
     },
     {
       action: 'newProject',
       doAction: () => {
+        void goToDrive()
         void newProject()
       },
     },
     {
       action: 'newFolder',
       doAction: () => {
+        void goToDrive()
         void newFolder()
       },
     },
     isCloud && {
       action: 'newSecret',
       doAction: () => {
+        void goToDrive()
         setModal(
           <UpsertSecretModal
             doCreate={async (name, value) => {
@@ -86,6 +97,7 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
     isCloud && {
       action: 'newCredential',
       doAction: () => {
+        void goToDrive()
         setModal(
           <CreateCredentialModal
             doCreate={async (name, value) =>
@@ -100,6 +112,7 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
     isCloud && {
       action: 'newDatalink',
       doAction: () => {
+        void goToDrive()
         setModal(
           <UpsertDatalinkModal
             doCreate={async (name, value) => {
@@ -120,6 +133,7 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
       directoryId == null && {
         action: 'paste',
         doAction: () => {
+          void goToDrive()
           doPaste(currentDirectoryId, currentDirectoryId)
         },
       },
