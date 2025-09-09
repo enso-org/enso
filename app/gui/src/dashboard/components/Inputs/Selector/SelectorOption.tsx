@@ -1,5 +1,4 @@
 /** @file An option in a selector. */
-import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { Radio, type RadioProps } from '#/components/aria'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
@@ -11,6 +10,7 @@ export interface SelectorOptionProps
   extends RadioProps,
     VariantProps<typeof SELECTOR_OPTION_STYLES> {
   readonly label: string
+  readonly isSelected: boolean
 }
 
 const SELECTOR_OPTION_STYLES = tv({
@@ -32,13 +32,13 @@ const SELECTOR_OPTION_STYLES = tv({
       small: { base: 'min-h-6', radio: 'px-[7px] py-[1.5px]' },
     },
     isHovered: {
-      true: { radio: '' },
-      false: { radio: '' },
+      true: '',
+      false: '',
     },
     isSelected: {
       // specified in compoundVariants
-      true: { radio: '' },
-      false: { radio: '' },
+      true: 'bg-primary',
+      false: '',
     },
     isFocusVisible: {
       // specified in compoundVariants
@@ -46,24 +46,21 @@ const SELECTOR_OPTION_STYLES = tv({
         radio:
           'outline outline-2 outline-transparent outline-offset-[-6px] focus-visible:outline-primary focus-visible:outline-offset-[2px] transition-[outline-offset] duration-200',
       },
-      false: { radio: '' },
+      false: '',
     },
 
     isPressed: {
       // specified in compoundVariants
-      true: { radio: '' },
-      false: { radio: '' },
+      true: '',
+      false: '',
     },
 
     variant: {
       // specified in compoundVariants
-      outline: {
-        base: '',
-      },
+      outline: '',
     },
   },
   slots: {
-    animation: 'bg-primary',
     radio: TEXT_STYLE({
       className:
         'relative flex flex-1 w-full items-center justify-center transition-colors duration-200',
@@ -74,42 +71,42 @@ const SELECTOR_OPTION_STYLES = tv({
   },
   compoundSlots: [
     {
-      slots: ['radio', 'animation', 'base', 'hover'],
+      slots: ['radio', 'base', 'hover'],
       rounded: 'none',
       class: 'rounded-none',
     },
     {
-      slots: ['radio', 'animation', 'base', 'hover'],
+      slots: ['radio', 'base', 'hover'],
       rounded: 'small',
       class: 'rounded-sm',
     },
     {
-      slots: ['radio', 'animation', 'base', 'hover'],
+      slots: ['radio', 'base', 'hover'],
       rounded: 'medium',
       class: 'rounded-md',
     },
     {
-      slots: ['radio', 'animation', 'base', 'hover'],
+      slots: ['radio', 'base', 'hover'],
       rounded: 'large',
       class: 'rounded-lg',
     },
     {
-      slots: ['radio', 'animation', 'base', 'hover'],
+      slots: ['radio', 'base', 'hover'],
       rounded: 'xlarge',
       class: 'rounded-xl',
     },
     {
-      slots: ['radio', 'animation', 'base', 'hover'],
+      slots: ['radio', 'base', 'hover'],
       rounded: 'xxlarge',
       class: 'rounded-2xl',
     },
     {
-      slots: ['radio', 'animation', 'base', 'hover'],
+      slots: ['radio', 'base', 'hover'],
       rounded: 'xxxlarge',
       class: 'rounded-3xl',
     },
     {
-      slots: ['radio', 'animation', 'base', 'hover'],
+      slots: ['radio', 'base', 'hover'],
       rounded: 'full',
       class: 'rounded-full',
     },
@@ -159,6 +156,7 @@ export const SelectorOption = memo(
   ) {
     const {
       label,
+      isSelected,
       value,
       size,
       rounded,
@@ -168,14 +166,10 @@ export const SelectorOption = memo(
       ...radioProps
     } = props
 
-    const styles = variants({ size, rounded, variant })
+    const styles = variants({ size, rounded, variant, isSelected })
 
     return (
-      <AnimatedBackground.Item
-        value={value}
-        className={styles.base()}
-        animationClassName={styles.animation()}
-      >
+      <div className={styles.base()}>
         <Radio
           ref={ref}
           {...radioProps}
@@ -187,14 +181,14 @@ export const SelectorOption = memo(
             })
           }}
         >
-          {({ isHovered, isSelected, isPressed }) => (
+          {({ isHovered, isPressed }) => (
             <>
               <div className={styles.hover({ isHovered, isSelected, isPressed })} />
               <span className="isolate">{label}</span>
             </>
           )}
         </Radio>
-      </AnimatedBackground.Item>
+      </div>
     )
   }),
 )

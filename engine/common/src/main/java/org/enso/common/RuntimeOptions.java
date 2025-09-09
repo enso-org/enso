@@ -35,6 +35,14 @@ public final class RuntimeOptions {
   private static final OptionDescriptor ENABLE_STATIC_ANALYSIS_DESCRIPTOR =
       OptionDescriptor.newBuilder(ENABLE_STATIC_ANALYSIS_KEY, ENABLE_STATIC_ANALYSIS).build();
 
+  public static final String CHECK_CWD = optionName("checkCurrentDirectory");
+  public static final OptionKey<Boolean> CHECK_CWD_KEY = new OptionKey<>(true);
+  private static final OptionDescriptor CHECK_CWD_DESCRIPTOR =
+      OptionDescriptor.newBuilder(CHECK_CWD_KEY, CHECK_CWD)
+          .help("Should Enso check for current working directory")
+          .category(OptionCategory.INTERNAL)
+          .build();
+
   public static final String HOST_CLASS_LOADING = optionName("classLoading");
   public static final String HOST_CLASS_LOADING_HOSTED = "hosted";
   public static final OptionKey<String> HOST_CLASS_LOADING_KEY =
@@ -179,6 +187,7 @@ public final class RuntimeOptions {
               DISABLE_PRIVATE_CHECK_DESCRIPTOR,
               ENABLE_STATIC_ANALYSIS_DESCRIPTOR,
               HOST_CLASS_LOADING_DESCRIPTOR,
+              CHECK_CWD_DESCRIPTOR,
               TREAT_WARNINGS_AS_ERRORS_DESCRIPTOR,
               ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,

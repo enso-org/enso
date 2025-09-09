@@ -192,6 +192,9 @@ export function backendMutationOptions<Method extends BackendMutationMethod>(
       ...options?.meta,
       invalidates,
       awaitInvalidates: options?.meta?.awaitInvalidates ?? true,
+      refetchType:
+        options?.meta?.refetchType ??
+        (invalidates.some((key) => key[1] === 'listDirectory') ? 'all' : 'active'),
     },
   }
 }

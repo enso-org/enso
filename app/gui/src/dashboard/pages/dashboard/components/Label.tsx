@@ -29,7 +29,6 @@ interface InternalLabelProps extends Readonly<PropsWithChildren> {
   readonly label?: BackendLabel
   readonly onPress?: (label?: BackendLabel) => void
   readonly onDelete?: () => Promise<void> | void
-  readonly onContextMenu?: (event: MouseEvent<HTMLElement>) => void
   readonly onDragStart?: (event: DragEvent<HTMLElement>) => void
 }
 
@@ -39,7 +38,7 @@ export default forwardRef(function Label(
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const { active = false, isDisabled = false, color, draggable, title } = props
-  const { onPress, onDragStart, onContextMenu, label, onDelete } = props
+  const { onPress, onDragStart, label, onDelete } = props
   const { children: childrenRaw } = props
   const isLight = color.lightness > MAXIMUM_LIGHTNESS_FOR_DARK_COLORS
 
@@ -73,7 +72,6 @@ export default forwardRef(function Label(
           style={{ backgroundColor: lChColorToCssColor(color) }}
           onClick={onClick}
           onDragStart={onDragStartStableCallback}
-          onContextMenu={onContextMenu}
         >
           {typeof childrenRaw !== 'string' ?
             childrenRaw
