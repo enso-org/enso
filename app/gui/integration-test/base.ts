@@ -20,10 +20,13 @@ export const test = base.extend<{
 }>({
   cloudApi: async ({ page }, use) => use(await mockCloudApi(page)),
   localApi: async ({ page }, use) => use(await mockLocalApi(page)),
-  loginPage: ({ page, cloudApi, localApi }, use) => {
+  loginPage: async ({ page, cloudApi, localApi }, use) => {
     // Only make sure that API mocks are registered, do not actually use the values
     const _ = { cloudApi, localApi }
-    return use(new LoginPageActions(page, {}, registerMocks(page)))
+    await registerMocks(page)
+    await page.goto('/')
+    const loginPage = new LoginPageActions(page, {})
+    return use(loginPage)
   },
   drivePage: ({ loginPage }, use) => use(loginPage.loginIfNeeded()),
 })

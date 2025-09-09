@@ -114,7 +114,7 @@ export default defineConfig({
     {
       name: 'Integration Tests',
       testDir: './integration-test',
-      testMatch: /.*\.spec\.ts/,
+      testMatch: '**/*.spec.ts',
       dependencies: ['Setup'],
       use: {
         storageState: path.join(dirName, './playwright/.auth/user.json'),
