@@ -66,7 +66,7 @@ function createProjection(path: (string | number)[][]) {
 </script>
 
 <template>
-  <div class="JSONVisualization" tabindex="-1">
+  <div class="JSONVisualization" @wheel.stop.passive>
     <JsonValueWidget
       :data="data"
       :onCreateProjection="projectionsEnabled ? createProjection : null"
@@ -77,5 +77,6 @@ function createProjection(path: (string | number)[][]) {
 <style scoped>
 .JSONVisualization {
   padding: 8px;
+  user-select: text;
 }
 </style>
