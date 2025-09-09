@@ -49,6 +49,13 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
   private readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
+  private readonly constructorFields = new ReactiveIndex(this, (id, entry) => {
+    if (entry.kind !== SuggestionKind.Constructor) return []
+    const fields = entry.arguments.map((arg) => arg.name)
+    const path = entry.memberOf
+    const fieldKeys = fields.map((field) => constructorFieldKey(path, field))
+    return Array.from(fieldKeys, (key) => [key, id])
+  })
 
   /** Constructor. */
   constructor() {
@@ -125,6 +132,11 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return entry && entryIsCallable(entry) ? entry : undefined
   }
 
+  /** Get a list of constructors for `type` that have an argument named `field`. */
+  lookupConstructorField(type: ProjectPath, field: string): Set<SuggestionId> {
+    return this.constructorFields.lookup(constructorFieldKey(type, field))
+  }
+
   /** Returns the entry's ancestors, starting with its parent. */
   *ancestors(entry: SuggestionEntry): Iterable<ProjectPath> {
     while (entry.kind === SuggestionKind.Type && entry.parentType) {
@@ -134,6 +146,11 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
       entry = parent
     }
   }
+}
+
+/** Helper for serializing keys of `constructorFields` index. */
+function constructorFieldKey(type: ProjectPath, field: string): string {
+  return `${type.key()}#${field}`
 }
 
 /**
