@@ -53,9 +53,8 @@ export function useWidgetFunctionCallInfo(
 
   const appFuncIsNodeUsage = computed(() => graphDb.isNodeUsage(appFunc.value?.id))
 
-  const subjectInfo = computed(() =>
-    graphDb.getExpressionInfo(getAccessOprSubject(appFunc.value)?.id),
-  )
+  const subject = computed(() => getAccessOprSubject(appFunc.value))
+  const subjectInfo = computed(() => graphDb.getExpressionInfo(subject.value?.id))
 
   const selfArgumentPreapplied = computed(() => {
     const info = methodCallInfo.value
@@ -229,6 +228,7 @@ export function useWidgetFunctionCallInfo(
   return {
     methodCallInfo,
     application,
+    subject,
     subjectInfo,
   }
 }
