@@ -9,7 +9,7 @@ import type { QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { Extension } from '@codemirror/state'
 import { tableExpression, type MethodCompletionInfo } from 'lezer-enso-table-expr'
-import { computed, toRef, toValue, type Ref } from 'vue'
+import { computed, toRef, toValue } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 
 export interface TableExpressionExtensionOptions {
@@ -21,9 +21,8 @@ export interface TableExpressionExtensionOptions {
 /** @returns a lazily initialized extension for the table expression language. */
 export function useTableExpressionExtension(
   options: TableExpressionExtensionOptions,
-): Readonly<Ref<Extension>> {
+): () => Extension {
   const { projectNames } = options
-  const project = toValue(options.project)
   const suggestionDb = toRef(options.suggestionDb)
   const methodInfos = computed(() =>
     suggestionDb.value == null ?
@@ -38,13 +37,17 @@ export function useTableExpressionExtension(
         methodInfoFromEntry,
       ),
   )
-  const columns =
-    project ?
-      useTableColumns({ project, projectNames, expressionId: useTableContext(true)?.externalId })
-    : undefined
-  return computed(() =>
-    tableExpression({ methods: () => methodInfos.value, columns: () => columns?.value ?? [] }),
-  )
+  return () => {
+    const project = toValue(options.project)
+    const columns =
+      project ?
+        useTableColumns({ project, projectNames, expressionId: useTableContext(true)?.externalId })
+      : undefined
+    return tableExpression({
+      methods: () => methodInfos.value,
+      columns: () => columns?.value ?? [],
+    })
+  }
 }
 
 const COLUMN_TYPE = ProjectPath.create(
