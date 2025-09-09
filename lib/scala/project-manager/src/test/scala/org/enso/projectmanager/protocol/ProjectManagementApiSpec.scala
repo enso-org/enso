@@ -1448,4 +1448,26 @@ class ProjectManagementApiSpec
     }
 
   }
+
+  "projects/enso-project" must {
+    "create enso archive" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+      val projName                      = "Proj"
+      val projId                        = createProject(projName)
+      val method                        = s"projects/$projId/enso-project"
+      client.send(json"""
+       {
+         "jsonrpc": "2.0",
+         "method": $method,
+         "id": 0
+       }
+          """)
+      val testDir     = testStorageConfig.userProjectsPath
+      val archivePath = new File(testDir, s"$projName.enso-project")
+      archivePath.exists() shouldBe true
+
+      // cleanup
+      deleteProject(projId)
+    }
+  }
 }
