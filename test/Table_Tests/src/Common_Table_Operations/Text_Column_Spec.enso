@@ -3,7 +3,6 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 
 from Standard.Table import all
 from Standard.Table.Errors import all
-import Standard.Table.Refined_Types.Text_Column.Text_Column
 
 import Standard.Database.Dialects.Feature.Feature
 
