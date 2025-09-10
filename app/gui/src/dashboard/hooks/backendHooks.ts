@@ -368,8 +368,8 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
             'pages' in data &&
             Array.isArray(data.pages)
           ) {
-            data = data.pages.flatMap((page) =>
-              typeof page === 'object' && 'assets' in page ? page.assets : [],
+            data = data.pages.flatMap((page: unknown) =>
+              typeof page === 'object' && page != null && 'assets' in page ? page.assets : [],
             )
           }
           // Some queries store assets arrays
