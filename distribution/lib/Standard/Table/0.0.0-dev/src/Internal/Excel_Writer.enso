@@ -88,9 +88,10 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
                 _ : Excel_Range -> address.java_range
                 _ : Text -> address
 
+    modification_strategy = prepare_file_modification_strategy table section on_existing_file match_columns
     is_dry_run = Context.Output.is_enabled.not
 
-    Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
+    modification_strategy.if_not_error <| Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
         possible_backup_file = if on_existing_file == Existing_File_Behavior.Backup then file_as_java (find_bak_file file) else Nothing
         possible_dry_run_file = if is_dry_run.not then Nothing else
             preexisting_dry_run_file = DryRunFileManager.preExistingTemporaryFile file.absolute.normalize.path
@@ -106,9 +107,7 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
                doesn't exist we also ensure that the temp file is not polluted with data from previous (dry-run) writes.
             Panic.rethrow <|
                 if file.exists then (file.copy_to temp_file replace_existing=True) else (temp_file.delete_if_exists)
-            java_file = file_as_java temp_file
-            java_table = (table:In_Memory_Table).java_table
-            write_helper.writeWorkbook java_file java_range existing_data_mode section.skip_rows java_table java_limit java_headers
+            write_helper.writeWorkbook (file_as_java temp_file) java_range existing_data_mode section.skip_rows (table:In_Memory_Table).java_table java_limit java_headers
             result_file = if is_dry_run then temp_file else
                 needs_backup = on_existing_file == Existing_File_Behavior.Backup
                 if needs_backup && file.exists then
