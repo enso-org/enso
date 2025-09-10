@@ -10,8 +10,7 @@ import project.Runtime.Ref.Ref
 from project.Data.Boolean import False, True
 
 polyglot java import org.slf4j.LoggerFactory
-polyglot java import org.enso.base.ProgressReporter
-polyglot java import org.enso.base.ProgressReporter.Handle
+polyglot java import org.enso.base.ProgressHandle
 
 ## ---
    private: true
@@ -56,7 +55,7 @@ type Progress
         counter = Ref.new step
         max = up_to.max 1
 
-        Managed_Resource.bracket (ProgressReporter.makeHandle handle_name max) _.close handle->
+        Managed_Resource.bracket (ProgressHandle.new handle_name max) _.close handle->
             progress = Progress.Running handle label max logger counter step
             log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress.handle, progress.label, max]
             res = action progress
