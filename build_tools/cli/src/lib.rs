@@ -550,11 +550,7 @@ impl Processor {
     }
 
     fn add_heapdump_opts(&self, config: &mut enso_build::engine::BuildConfigurationFlags) {
-        let hprof_path = self.repo_root.target.dump_hprof.path.clone();
         config.add_java_tool_opt("-XX:+HeapDumpOnOutOfMemoryError");
-        config.add_java_tool_opt(
-            format!("-XX:HeapDumpPath={}", hprof_path.to_string_lossy()).as_str(),
-        );
     }
 
     /// Get a handle to the release by its identifier.

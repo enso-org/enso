@@ -53,10 +53,11 @@ pub fn extra_stdlib_test_reporter((os, arch): Target, graal_edition: graalvm::Ed
 }
 
 /// Upload heap dump of a crashed JVM on OutOfMemoryError.
+/// Note that there may be multiple `*.hprof` files if multiple processes crashed.
 pub fn heapdump_upload((os, arch): Target) -> Step {
-    let artifact_name = format!("Heap dump ({os}, {arch})");
-    let path = "*/*.hprof";
-    let mut step = upload_artifact("Upload Heap Dump")
+    let artifact_name = format!("Heap dumps ({os}, {arch})");
+    let path = "**/*.hprof";
+    let mut step = upload_artifact("Upload Heap Dumps")
         .with_custom_argument("name", artifact_name)
         .with_custom_argument("path", path)
         .with_custom_argument("if-no-files-found", "ignore");

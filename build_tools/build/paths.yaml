@@ -105,9 +105,6 @@
     rust/:
     test-results/:
     small-jdk/:
-    # A heap dump from the last run of the engine tests.
-    # Is created only if the engine test failed with OutOfMemoryError.
-    dump.hprof: 
   test/:
     Benchmarks/:
   tools/:
