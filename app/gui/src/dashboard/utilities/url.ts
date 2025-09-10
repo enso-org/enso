@@ -13,3 +13,7 @@ export function isAbsoluteUrl(url: string) {
     return false
   }
 }
+
+export function isExternalLink(url: string) {
+  return new URL(url, location.href).host !== location.host
+}
