@@ -292,7 +292,13 @@ export class ProjectManager {
     if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
       await this.closeProject({ projectPath: params.projectPath })
     }
-    await this.sendRequest('project/delete', fullParams)
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const enableProjectService = useFeatureFlag('enableProjectService')
+    if (enableProjectService.value) {
+      await this.runProjectServiceCommandJson('project/delete', fullParams)
+    } else {
+      await this.sendRequest('project/delete', fullParams)
+    }
     this.projectIds.delete(params.projectPath)
     this.projects.delete(fullParams.projectId)
     const siblings = this.directories.get(fullParams.projectsDirectory)

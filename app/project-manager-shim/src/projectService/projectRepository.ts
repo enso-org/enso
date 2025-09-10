@@ -4,6 +4,7 @@ import { Path } from 'enso-common/src/utilities/file'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
+import trash from 'trash'
 import * as yaml from 'yaml'
 import * as nameValidation from './nameValidation.js'
 
@@ -32,8 +33,8 @@ export interface ProjectRepository {
   exists(name: string): Promise<boolean>
   findPathForNewProject(normalizedName: string): Promise<Path>
   update(project: Project): Promise<void>
-  delete(projectId: string): Promise<void>
-  moveToTrash(projectId: string): Promise<boolean>
+  delete(path: Path): Promise<void>
+  moveToTrash(path: Path): Promise<void>
   rename(projectId: string, name: string): Promise<void>
   findById(projectId: string): Promise<Project | null>
   find(predicate: (project: Project) => boolean): Promise<readonly Project[]>
@@ -92,28 +93,14 @@ export class ProjectFileRepository implements ProjectRepository {
     await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
   }
 
-  /** Deletes a project by ID. */
-  async delete(projectId: string): Promise<void> {
-    const project = await this.findById(projectId)
-    if (!project) {
-      throw new Error(`Project '${projectId}' not found`)
-    }
-    await fs.rm(project.path, { recursive: true, force: true })
+  /** Deletes a path. */
+  async delete(path: Path): Promise<void> {
+    await fs.rm(path, { recursive: true, force: true })
   }
 
-  /** Moves a project to trash. */
-  async moveToTrash(projectId: string): Promise<boolean> {
-    const project = await this.findById(projectId)
-    if (!project) {
-      throw new Error(`Project '${projectId}' not found`)
-    }
-
-    // TODO: Simple implementation: move to a .trash directory
-    // This should use platform-specific trash APIs
-    const trashPath = path.join(this.projectsPath, '.trash', path.basename(project.path))
-    await fs.mkdir(path.dirname(trashPath), { recursive: true })
-    await fs.rename(project.path, trashPath)
-    return true
+  /** Moves a path to system trash. */
+  async moveToTrash(path: Path): Promise<void> {
+    await trash(path)
   }
 
   /** Renames a project. */

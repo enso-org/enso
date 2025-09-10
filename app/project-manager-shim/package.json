@@ -30,6 +30,7 @@
   "dependencies": {
     "enso-common": "workspace:*",
     "tar": "^6.2.1",
+    "trash": "^9.0.0",
     "yaml": "^2.7.0"
   }
 }

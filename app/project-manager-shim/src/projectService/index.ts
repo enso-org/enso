@@ -4,11 +4,10 @@
  * renaming, opening, closing, and duplicating projects.
  */
 
-import * as crypto from 'node:crypto'
-
 import { UUID } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { Path } from 'enso-common/src/utilities/file'
+import * as crypto from 'node:crypto'
 import {
   type LanguageServerSockets,
   type Runner,
@@ -91,7 +90,6 @@ export class ProjectService {
   async createProject(
     projectName: string,
     projectsDirectory: Path,
-    engineVersion?: string,
     projectTemplate?: string,
   ): Promise<CreateProject> {
     const projectId = this.generateUUID()
@@ -120,7 +118,7 @@ export class ProjectService {
     }
 
     // Create project structure
-    await this.runner.createProject(projectPath, actualName, engineVersion, projectTemplate)
+    await this.runner.createProject(projectPath, actualName, projectTemplate)
 
     // Update metadata
     await repo.update(project)
@@ -133,22 +131,6 @@ export class ProjectService {
       projectNormalizedName: normalizedName,
       projectPath,
     }
-  }
-
-  /** Deletes a user project. */
-  async deleteProject(_projectId: string, _projectsDirectory?: Path): Promise<void> {
-    // TODO: Implement deleteProject
-    throw new Error('deleteProject not implemented yet')
-  }
-
-  /** Renames a project. */
-  async renameProject(
-    _projectId: string,
-    _newName: string,
-    _projectsDirectory?: Path,
-  ): Promise<void> {
-    // TODO: Implement renameProject
-    throw new Error('renameProject not implemented yet')
   }
 
   /** Opens a project and starts its language server. */
@@ -185,7 +167,6 @@ export class ProjectService {
     const sockets = await this.runner.openProject(
       project.path,
       projectId,
-      project.name,
       extraEnv.length > 0 ? extraEnv : undefined,
     )
 
@@ -203,6 +184,36 @@ export class ProjectService {
   async closeProject(projectId: string): Promise<void> {
     this.logger.debug('Closing project', projectId)
     await this.runner.closeProject(projectId)
+  }
+
+  /** Deletes a user project. */
+  async deleteProject(projectId: string, projectsDirectory: Path): Promise<void> {
+    this.logger.debug('Deleting project', projectId)
+
+    const repo = this.getProjectRepository(projectsDirectory)
+    const project = await repo.findById(projectId)
+    if (!project) {
+      throw new Error(`Project '${projectId}' not found`)
+    }
+
+    try {
+      await repo.moveToTrash(project.path)
+      this.logger.debug('Project moved to trash', projectId)
+    } catch (error) {
+      // If moving to trash fails, permanently delete
+      await repo.delete(project.path)
+      this.logger.debug('Project permanently deleted due to trash error', projectId, error)
+    }
+  }
+
+  /** Renames a project. */
+  async renameProject(
+    _projectId: string,
+    _newName: string,
+    _projectsDirectory?: Path,
+  ): Promise<void> {
+    // TODO: Implement renameProject
+    throw new Error('renameProject not implemented yet')
   }
 
   /** Duplicates a user project. */

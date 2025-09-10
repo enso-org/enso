@@ -162,7 +162,6 @@ describe('ProjectService', () => {
       const result = await projectService.createProject(
         projectName,
         projectsDirectory,
-        undefined,
         template,
       )
 
@@ -380,5 +379,90 @@ describe('ProjectService', () => {
       },
       LANGUAGE_SERVER_TEST_TIMEOUT,
     )
+  })
+
+  describe('deleteProject', () => {
+    test('should successfully delete a project', async () => {
+      // Create a project
+      const createResult = await projectService.createProject('ProjectToDelete', projectsDirectory)
+      const projectPath = createResult.projectPath
+
+      // Verify project exists
+      const existsBefore = await fs
+        .access(projectPath)
+        .then(() => true)
+        .catch(() => false)
+      expect(existsBefore).toBe(true)
+
+      // Delete the project
+      await projectService.deleteProject(createResult.projectId, projectsDirectory)
+
+      // Verify project no longer exists at original location
+      const existsAfter = await fs
+        .access(projectPath)
+        .then(() => true)
+        .catch(() => false)
+      expect(existsAfter).toBe(false)
+    })
+
+    test('should fail when deleting non-existent project', async () => {
+      const nonExistentId = 'non-existent-project-id'
+
+      await expect(projectService.deleteProject(nonExistentId, projectsDirectory)).rejects.toThrow(
+        `Project '${nonExistentId}' not found`,
+      )
+    })
+
+    test('should handle multiple projects and only delete the specified one', async () => {
+      // Create multiple projects
+      const project1 = await projectService.createProject('Project1', projectsDirectory)
+      const project2 = await projectService.createProject('Project2', projectsDirectory)
+      const project3 = await projectService.createProject('Project3', projectsDirectory)
+
+      // Delete only project2
+      await projectService.deleteProject(project2.projectId, projectsDirectory)
+
+      // Verify project1 and project3 still exist
+      const project1Exists = await fs
+        .access(project1.projectPath)
+        .then(() => true)
+        .catch(() => false)
+      const project2Exists = await fs
+        .access(project2.projectPath)
+        .then(() => true)
+        .catch(() => false)
+      const project3Exists = await fs
+        .access(project3.projectPath)
+        .then(() => true)
+        .catch(() => false)
+
+      expect(project1Exists).toBe(true)
+      expect(project2Exists).toBe(false)
+      expect(project3Exists).toBe(true)
+    })
+
+    test('should successfully delete a project with special characters in name', async () => {
+      // Create a project with special characters
+      const projectName = 'Test Project #1'
+      const createResult = await projectService.createProject(projectName, projectsDirectory)
+      const projectPath = createResult.projectPath
+
+      // Verify project exists
+      const existsBefore = await fs
+        .access(projectPath)
+        .then(() => true)
+        .catch(() => false)
+      expect(existsBefore).toBe(true)
+
+      // Delete the project
+      await projectService.deleteProject(createResult.projectId, projectsDirectory)
+
+      // Verify project no longer exists
+      const existsAfter = await fs
+        .access(projectPath)
+        .then(() => true)
+        .catch(() => false)
+      expect(existsAfter).toBe(false)
+    })
   })
 })

@@ -11,13 +11,12 @@ export interface Runner {
   createProject(
     path: Path,
     name: string,
-    engineVersion?: string,
     projectTemplate?: string,
   ): Promise<void>
+
   openProject(
     projectPath: Path,
     projectId: string,
-    projectName: string,
     extraEnv?: Array<[string, string]>,
   ): Promise<LanguageServerSockets>
   closeProject(projectId: string): Promise<void>
@@ -46,7 +45,6 @@ export class EnsoRunner implements Runner {
   async createProject(
     projectPath: Path,
     name: string,
-    _engineVersion?: string,
     projectTemplate?: string,
   ): Promise<void> {
     if (!this.ensoPath) {
@@ -92,7 +90,6 @@ export class EnsoRunner implements Runner {
   async openProject(
     projectPath: Path,
     projectId: string,
-    _projectName: string,
     extraEnv?: Array<[string, string]>,
   ): Promise<LanguageServerSockets> {
     if (!this.ensoPath) {
@@ -152,7 +149,9 @@ export class EnsoRunner implements Runner {
       const checkServerHealth = async (): Promise<boolean> => {
         try {
           const response = await fetch(`http://127.0.0.1:${jsonPort}/_health`)
-          logStream.write(`[HEALTH CHECK] Checking readiness at ${new Date().toISOString()}: ${response.status}\n`)
+          logStream.write(
+            `[HEALTH CHECK] Checking readiness at ${new Date().toISOString()}: ${response.status}\n`,
+          )
           return response.ok
         } catch {
           return false

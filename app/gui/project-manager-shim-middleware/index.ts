@@ -278,6 +278,27 @@ export class ProjectManagerShimMiddleware {
             })
           break
         }
+        case 'POST /api/project-service/project/delete': {
+          interface Body {
+            readonly projectId: UUID
+            readonly projectsDirectory: Path
+          }
+          bodyJson<Body>(request)
+            .then(async (body) => {
+              const projectService = await this.getProjectService()
+              return projectService.deleteProject(body.projectId, body.projectsDirectory)
+            })
+            .then(() => {
+              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(null))
+            })
+            .catch((err) => {
+              console.error(err)
+              response
+                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
+                .end(toJSONRPCError('project/delete failed', err))
+            })
+          break
+        }
         default: {
           console.error('Unknown middleware request:', requestPath)
           break
