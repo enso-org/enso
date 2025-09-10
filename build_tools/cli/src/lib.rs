@@ -434,6 +434,9 @@ impl Processor {
                                     "Microsoft_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
+                            // TODO: Remove
+                            let one_hundred_mb = "-XX:MaxHeapSize=104857600";
+                            config.add_java_tool_opt(one_hundred_mb);
                         }
                         Tests::StdSnowflake => {
                             config.test_standard_library =
