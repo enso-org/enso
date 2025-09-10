@@ -6,24 +6,27 @@ import { initializeActions } from '@/providers/action'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
+import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
+
+export interface VisualizationHostParams {
+  visualization?: string | object
+  data?: any
+  size: Vec2
+  nodeType?: ProjectPath | undefined
+  overflow?: boolean
+  toolbarOverflow?: boolean
+  executeExpression: (
+    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
+    timeoutMs?: number,
+  ) => any
+}
 
 // A single prop `params` is important to mitigate a bug in Vue that causes
 // inconsistent state when multiple props are present on the custom elements component.
 // TODO[ib]: Add a link to the issue.
 const props = defineProps<{
-  params: {
-    visualization?: string | object
-    data?: any
-    size: Vec2
-    nodeType?: string | undefined
-    overflow?: boolean
-    toolbarOverflow?: boolean
-    executeExpression: (
-      expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
-      timeoutMs?: number,
-    ) => any
-  }
+  params: VisualizationHostParams
 }>()
 
 const emit = defineEmits<{

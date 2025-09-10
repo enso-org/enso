@@ -13,11 +13,11 @@ from project.Errors import Empty_Sheet, Invalid_Location
 from project.In_Memory_Table import from_java_table
 
 polyglot java import java.io.File as Java_File
-polyglot java import org.apache.poi.poifs.filesystem.NotOLE2FileException
-polyglot java import org.apache.poi.UnsupportedFileFormatException
+polyglot java import java.io.IOException
 polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ExcelHeaders
+polyglot java import org.enso.table.excel.ExcelConnectionPool.ExcelFileFormatMismatchException
 polyglot java import org.enso.table.read.ExcelReader
 
 ## ---
@@ -93,8 +93,8 @@ handle_bad_format file ~action =
    A helper that handles the Java exceptions reported when a malformed XLS file
    is opened.
 handle_bad_format_with_handler handler ~action =
-    Panic.catch UnsupportedFileFormatException handler=handler <|
-        Panic.catch NotOLE2FileException handler=handler <|
+    Panic.catch ExcelFileFormatMismatchException handler=handler <|
+        Panic.catch IOException handler=handler <|
             action
 
 ## ---

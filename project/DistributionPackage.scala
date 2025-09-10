@@ -9,7 +9,9 @@ import sbt.util.{CacheStore, CacheStoreFactory, FileInfo, Tracked}
 import scala.sys.process._
 import org.enso.build.WithDebugCommand
 
+import java.io.File
 import java.nio.file.Paths
+import scala.jdk.javaapi.CollectionConverters.asJava
 import scala.util.Try
 
 object DistributionPackage {
@@ -222,9 +224,10 @@ object DistributionPackage {
     stdLibVersion: String,
     ensoVersion: String,
     stdLibRoot: File,
-    ensoExecutable: File,
+    javaOpts: Seq[String],
     cacheFactory: CacheStoreFactory,
-    log: Logger
+    log: Logger,
+    env: Map[String, String] = Map.empty
   ): Unit = {
     for {
       libMajor <- stdLibRoot.listFiles()
@@ -234,9 +237,10 @@ object DistributionPackage {
         libName,
         stdLibVersion,
         ensoVersion,
-        ensoExecutable,
+        javaOpts,
         cacheFactory,
-        log
+        log,
+        env
       )
     }
   }
@@ -245,9 +249,10 @@ object DistributionPackage {
     libName: File,
     stdLibVersion: String,
     ensoVersion: String,
-    ensoExecutable: File,
+    javaOpts: Seq[String],
     cacheFactory: CacheStoreFactory,
-    log: Logger
+    log: Logger,
+    env: Map[String, String] = Map.empty
   ): Unit = {
     object FileOnlyFilter extends sbt.io.FileFilter {
       def accept(arg: File): Boolean = arg.isFile
@@ -259,92 +264,102 @@ object DistributionPackage {
     ) { diff =>
       if (diff.modified.nonEmpty) {
         log.info(s"Generating index for $libName ")
-        val fileToExecute = new File(
-          ensoExecutable.getParentFile,
-          batOrExeName(ensoExecutable.getName)
-        )
 
-        def assertExecutable(when: String) = {
-          if (!fileToExecute.canExecute()) {
-            log.warn(s"Not an executable file ${fileToExecute} $when")
-            var dir = fileToExecute
-            while (dir != null && !dir.exists()) {
-              dir = dir.getParentFile
-            }
-            var count = 0
-            if (dir != null) {
-              log.warn(s"Content of ${dir}")
-              Option(dir.listFiles).map(_.map { file =>
-                log.warn(s"  ${file}")
-                count += 1
-              })
-            }
-            log.warn(s"Found ${count} files.")
-          }
-        }
-        assertExecutable("before launching")
+        val javaCommand = javaExecutable()
+
         val command = Seq(
-          fileToExecute.getAbsolutePath,
+          javaCommand
+        ) ++ javaOpts ++ Seq(
           "--no-compile-dependencies",
           "--compile",
           path.getAbsolutePath
         )
         log.debug(command.mkString(" "))
-        try {
-          val runningProcess = Process(
-            command,
-            Some(path.getAbsoluteFile.getParentFile),
-            "NO_COLOR" -> "true"
-          ).run
-          // Poor man's solution to stuck index generation
-          val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
-          var current                  = 0
-          var timeout                  = false
-          while (runningProcess.isAlive() && !timeout) {
-            if (current > GENERATING_INDEX_TIMEOUT) {
-              java.lang.System.err
-                .println(
-                  "Reached timeout when generating index. Terminating..."
-                )
-              try {
-                val pidOfProcess = pid(runningProcess)
-                val javaHome     = System.getProperty("java.home")
-                val jstack =
-                  if (javaHome == null) "jstack"
-                  else
-                    Paths.get(javaHome, "bin", "jstack").toAbsolutePath.toString
-                val in = java.lang.Runtime.getRuntime
-                  .exec(Array(jstack, pidOfProcess.toString))
-                  .getInputStream
+        val allEnv = mapAppend(
+          env,
+          "NO_COLOR" -> "true"
+        )
+        val procBldr = new java.lang.ProcessBuilder(asJava(command))
+        procBldr.directory(path.getAbsoluteFile.getParentFile)
+        allEnv.foreach { case (k, v) =>
+          procBldr.environment().put(k, v)
+        }
 
-                System.err.println(IOUtils.toString(in, "UTF-8"))
-              } catch {
-                case e: Throwable =>
-                  java.lang.System.err
-                    .println("Failed to get threaddump of a stuck process", e);
-              } finally {
-                timeout = true
-                runningProcess.destroy()
-              }
-            } else {
-              Thread.sleep(1000)
-              current += 1
+        val runningProcess = Process(procBldr).run()
+        // Poor man's solution to stuck index generation
+        val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
+        var current                  = 0
+        var timeout                  = false
+        while (runningProcess.isAlive() && !timeout) {
+          if (current > GENERATING_INDEX_TIMEOUT) {
+            java.lang.System.err
+              .println(
+                "Reached timeout when generating index. Terminating..."
+              )
+            try {
+              val pidOfProcess = pid(runningProcess)
+              val javaHome     = System.getProperty("java.home")
+              val jstack =
+                if (javaHome == null) "jstack"
+                else
+                  Paths.get(javaHome, "bin", "jstack").toAbsolutePath.toString
+              val in = java.lang.Runtime.getRuntime
+                .exec(Array(jstack, pidOfProcess.toString))
+                .getInputStream
+
+              System.err.println(IOUtils.toString(in, "UTF-8"))
+            } catch {
+              case e: Throwable =>
+                java.lang.System.err
+                  .println("Failed to get threaddump of a stuck process", e);
+            } finally {
+              timeout = true
+              runningProcess.destroy()
             }
+          } else {
+            Thread.sleep(1000)
+            current += 1
           }
-          if (timeout) {
-            throw new RuntimeException(
-              s"TIMEOUT: Failed to compile $libName in $GENERATING_INDEX_TIMEOUT seconds"
-            )
-          }
-          if (runningProcess.exitValue() != 0) {
-            throw new RuntimeException(s"Cannot compile $libName.")
-          }
-        } finally {
-          assertExecutable("after execution")
+        }
+        if (timeout) {
+          throw new RuntimeException(
+            s"TIMEOUT: Failed to compile $libName in $GENERATING_INDEX_TIMEOUT seconds"
+          )
+        }
+        if (runningProcess.exitValue() != 0) {
+          throw new RuntimeException(s"Cannot compile $libName.")
         }
       } else {
         log.debug(s"No modified files. Not generating index for $libName.")
       }
+    }
+  }
+
+  private def mapAppend(
+    dest: Map[String, String],
+    entry: (String, String)
+  ): Map[String, String] = {
+    val newKey = entry._1
+    val newVal = entry._2
+    if (dest.contains(newKey)) {
+      val oldVal      = dest(newKey)
+      val appendedVal = oldVal + " " + newVal
+      dest + (newKey -> appendedVal)
+    } else {
+      dest + entry
+    }
+  }
+
+  private def javaExecutable(): String = {
+    val jHome = System.getProperty("java.home")
+    if (jHome != null) {
+      if (Platform.isWindows) {
+        jHome + File.separator + "bin" + File.separator + "java.exe"
+      } else {
+        jHome + File.separator + "bin" + File.separator + "java"
+      }
+    } else {
+      ProcessHandle.current().info().command().asScala.getOrElse("java")
     }
   }
 

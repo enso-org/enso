@@ -119,8 +119,8 @@ export const ComboBox = forwardRef(function ComboBox<
     size,
     rounded,
     children,
-    toKey,
     toTextValue,
+    toKey = toTextValue,
     toTooltip,
     noResetButton = false,
     variants = COMBO_BOX_STYLES,
@@ -178,6 +178,7 @@ export const ComboBox = forwardRef(function ComboBox<
         name={name}
         render={(renderProps) => (
           <AriaComboBox
+            key={renderProps.field.value}
             aria-label={props['aria-label'] ?? 'Combo box'}
             className={styles.base({ className })}
             // @ts-expect-error Items must not be strings; this is a limitation of `react-aria`.
