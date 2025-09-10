@@ -311,6 +311,19 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
         .map((query) => {
           const data = query.state.data
 
+          let data = query.state.data
+          // Some queries store assets in infinite queries
+          if (
+            typeof data === 'object' &&
+            data != null &&
+            'pages' in data &&
+            Array.isArray(data.pages)
+          ) {
+            data = data.pages.flatMap((page: unknown) =>
+              typeof page === 'object' && page != null && 'assets' in page ? page.assets : [],
+            )
+          }
+          // Some queries store assets arrays
           if (Array.isArray(data)) {
             // eslint-disable-next-line no-restricted-syntax
             const asset = data.find((maybeAsset) => assetSchema.safeParse(maybeAsset).success) as
@@ -322,6 +335,7 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
             }
           }
 
+          // And sometimes we store them directly
           const result = assetSchema.safeParse(data)
 
           if (result.success) {
