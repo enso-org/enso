@@ -35,14 +35,14 @@ export interface ProjectRepository {
   update(project: Project): Promise<void>
   delete(path: Path): Promise<void>
   moveToTrash(path: Path): Promise<void>
-  rename(projectId: string, name: string): Promise<void>
-  findById(projectId: string): Promise<Project | null>
+  rename(projectId: UUID, name: string): Promise<void>
+  findById(projectId: UUID): Promise<Project | null>
   find(predicate: (project: Project) => boolean): Promise<readonly Project[]>
   getAll(): Promise<readonly Project[]>
-  moveProject(projectId: string, newName: string): Promise<Path>
+  moveProject(projectId: UUID, newName: string): Promise<Path>
   copyProject(project: Project, newName: string, newMetadata: ProjectMetadata): Promise<Project>
-  getPackageName(projectId: string): Promise<string>
-  getPackageNamespace(projectId: string): Promise<string>
+  getPackageName(projectId: UUID): Promise<string>
+  getPackageNamespace(projectId: UUID): Promise<string>
   tryLoadProject(directory: Path): Promise<Project | null>
 }
 
@@ -104,7 +104,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Renames a project. */
-  async rename(projectId: string, name: string): Promise<void> {
+  async rename(projectId: UUID, name: string): Promise<void> {
     const project = await this.findById(projectId)
     if (!project) {
       throw new Error(`Project '${projectId}' not found`)
@@ -113,7 +113,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Finds a project by ID. */
-  async findById(projectId: string): Promise<Project | null> {
+  async findById(projectId: UUID): Promise<Project | null> {
     const projects = await this.getAll()
     return projects.find((p) => p.id === projectId) ?? null
   }
@@ -145,7 +145,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Moves a project to a new location. */
-  async moveProject(projectId: string, newName: string): Promise<Path> {
+  async moveProject(projectId: UUID, newName: string): Promise<Path> {
     const project = await this.findById(projectId)
     if (!project) {
       throw new Error(`Project '${projectId}' not found`)
@@ -190,7 +190,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Gets the package name for a project. */
-  async getPackageName(projectId: string): Promise<string> {
+  async getPackageName(projectId: UUID): Promise<string> {
     const project = await this.findById(projectId)
     if (!project) {
       throw new Error(`Project '${projectId}' not found`)
@@ -203,7 +203,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Gets the package namespace for a project. */
-  async getPackageNamespace(projectId: string): Promise<string> {
+  async getPackageNamespace(projectId: UUID): Promise<string> {
     const project = await this.findById(projectId)
     if (!project) {
       throw new Error(`Project '${projectId}' not found`)

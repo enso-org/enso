@@ -1,4 +1,6 @@
+import { UUID } from 'enso-common/src/services/Backend'
 import { Path } from 'enso-common/src/utilities/file'
+import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
@@ -159,11 +161,7 @@ describe('ProjectService', () => {
       const projectName = 'TemplateProject'
       const template = 'default'
 
-      const result = await projectService.createProject(
-        projectName,
-        projectsDirectory,
-        template,
-      )
+      const result = await projectService.createProject(projectName, projectsDirectory, template)
 
       expect(result).toBeDefined()
       expect(result.projectName).toBe(projectName)
@@ -282,7 +280,7 @@ describe('ProjectService', () => {
     )
 
     test('should fail when opening non-existent project', async () => {
-      const nonExistentId = 'non-existent-project-id'
+      const nonExistentId = crypto.randomUUID() as UUID
 
       await expect(projectService.openProject(nonExistentId, projectsDirectory)).rejects.toThrow(
         `Project not found: ${nonExistentId}`,
@@ -406,7 +404,7 @@ describe('ProjectService', () => {
     })
 
     test('should fail when deleting non-existent project', async () => {
-      const nonExistentId = 'non-existent-project-id'
+      const nonExistentId = crypto.randomUUID() as UUID
 
       await expect(projectService.deleteProject(nonExistentId, projectsDirectory)).rejects.toThrow(
         `Project '${nonExistentId}' not found`,

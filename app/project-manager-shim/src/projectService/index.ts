@@ -135,7 +135,7 @@ export class ProjectService {
 
   /** Opens a project and starts its language server. */
   async openProject(
-    projectId: string,
+    projectId: UUID,
     projectsDirectory: Path,
     cloud?: CloudParams,
   ): Promise<OpenProject> {
@@ -181,13 +181,13 @@ export class ProjectService {
   }
 
   /** Closes a project and stops its language server. */
-  async closeProject(projectId: string): Promise<void> {
+  async closeProject(projectId: UUID): Promise<void> {
     this.logger.debug('Closing project', projectId)
     await this.runner.closeProject(projectId)
   }
 
   /** Deletes a user project. */
-  async deleteProject(projectId: string, projectsDirectory: Path): Promise<void> {
+  async deleteProject(projectId: UUID, projectsDirectory: Path): Promise<void> {
     this.logger.debug('Deleting project', projectId)
 
     const repo = this.getProjectRepository(projectsDirectory)
@@ -202,22 +202,18 @@ export class ProjectService {
     } catch (error) {
       // If moving to trash fails, permanently delete
       await repo.delete(project.path)
-      this.logger.debug('Project permanently deleted due to trash error', projectId, error)
+      this.logger.debug('Project permanently deleted', projectId, error)
     }
   }
 
   /** Renames a project. */
-  async renameProject(
-    _projectId: string,
-    _newName: string,
-    _projectsDirectory?: Path,
-  ): Promise<void> {
+  async renameProject(_projectId: UUID, _newName: string, _projectsDirectory: Path): Promise<void> {
     // TODO: Implement renameProject
     throw new Error('renameProject not implemented yet')
   }
 
-  /** Duplicates a user project. */
-  async duplicateUserProject(_projectId: string, _projectsDirectory?: Path): Promise<Project> {
+  /** Duplicates a project. */
+  async duplicateProject(_projectId: UUID, _projectsDirectory: Path): Promise<Project> {
     // TODO: Implement duplicateUserProject
     throw new Error('duplicateUserProject not implemented yet')
   }
