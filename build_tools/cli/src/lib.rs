@@ -385,6 +385,7 @@ impl Processor {
             }
             arg::backend::Command::Test { which } => {
                 let mut config = enso_build::engine::BuildConfigurationFlags::default();
+                self.add_heapdump_opts(&mut config);
                 for arg in which {
                     match arg {
                         Tests::Jvm => {
@@ -543,6 +544,14 @@ impl Processor {
             Ok(enso_build::engine::RunContext { inner, config, paths, external_runtime: None })
         }
         .boxed()
+    }
+
+    fn add_heapdump_opts(&self, config: &mut enso_build::engine::BuildConfigurationFlags) {
+        let hprof_path = self.repo_root.target.dump_hprof.path.clone();
+        config.add_java_tool_opt("-XX:+HeapDumpOnOutOfMemoryError");
+        config.add_java_tool_opt(
+            format!("-XX:HeapDumpPath={}", hprof_path.to_string_lossy()).as_str(),
+        );
     }
 
     /// Get a handle to the release by its identifier.

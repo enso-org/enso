@@ -114,6 +114,7 @@ impl BuiltEnso {
         ir_caches: IrCaches,
         environment_overrides: Vec<(String, String)>,
         extra_args: Option<Vec<String>>,
+        extra_java_tool_opts: Option<Vec<String>>,
         native_image: bool,
     ) -> Result<Command> {
         let mut command = if native_image {
@@ -125,16 +126,20 @@ impl BuiltEnso {
         if let Some(args) = extra_args {
             command.args(args);
         }
+        let mut java_tool_opts: Vec<String> = vec![];
+        // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
+        // failed on Graal/Truffle assertions, so we want to have them triggered.
+        java_tool_opts.push(
+            <&str>::from(ide_ci::programs::java::Option::EnableAssertions.as_ref()).to_string(),
+        );
+        if let Some(opts) = extra_java_tool_opts {
+            java_tool_opts.extend(opts);
+        }
         command
             .arg(ir_caches)
             .arg("--run")
             .arg(test_path.as_ref())
-            // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
-            // failed on Graal/Truffle assertions, so we want to have them triggered.
-            .set_env(
-                JAVA_TOOL_OPTIONS,
-                &ide_ci::programs::java::Option::EnableAssertions.as_ref(),
-            )?;
+            .set_env(JAVA_TOOL_OPTIONS, &java_tool_opts.join(" "))?;
 
         for (k, v) in environment_overrides {
             command.env(k, &v);
@@ -159,6 +164,7 @@ impl BuiltEnso {
         async_policy: AsyncPolicy,
         test_selection: StandardLibraryTestsSelection,
         extra_runner_args: Option<Vec<String>>,
+        extra_java_tool_opts: Option<Vec<String>>,
         native_image: bool,
     ) -> Result {
         let paths = &self.paths;
@@ -289,6 +295,7 @@ impl BuiltEnso {
                 ir_caches,
                 environment_overrides.clone(),
                 extra_runner_args.clone(),
+                extra_java_tool_opts.clone(),
                 native_image,
             );
             async move { command?.run_ok().await }

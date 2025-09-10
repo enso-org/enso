@@ -386,6 +386,7 @@ impl RunContext {
                     PARALLEL_ENSO_TESTS,
                     selection.clone(),
                     self.config.extra_engine_runner_args.clone(),
+                    self.config.extra_java_tool_opts.clone(),
                     self.config.has_native_runner(),
                 )
                 .await?;
