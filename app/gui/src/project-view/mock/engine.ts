@@ -97,6 +97,7 @@ main =
     aggregated = data.aggregate
     autoscoped = data.aggregate [..Group_By]
     selected = data.select_columns
+    table = data.set (expr "")
 
 # To test for regressions in #12476, this line is really long and we test that the code editor doesn't resize to fit it. This line is really really long. This line is really REALLY long.
 `
@@ -219,6 +220,7 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
       ['D', 'E', 'D', 'X', 'Z'],
       [50, 25, 40, 20, 10],
     ]),
+    'Standard.Visualization.Widgets.column_names_json': encodeJSON(['Column A', 'Column B']),
   }
 
 const mockWidgetConfigurations: Map<string, Uint8Array> = new Map([
@@ -375,6 +377,20 @@ const mockWidgetConfigurations: Map<string, Uint8Array> = new Map([
           },
           /* eslint-enable camelcase */
           display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ]),
+  ],
+  [
+    '.expr',
+    encodeJSON([
+      [
+        'expression',
+        {
+          type: 'Widget',
+          constructor: 'Text_Input',
+          syntax: 'enso-table-expression',
+          display: { type: 'Display', constructor: 'When_Modified' },
         },
       ],
     ]),

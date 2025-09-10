@@ -178,9 +178,9 @@ test('Automatic parenthesis', () => {
   const block = Ast.parseModule('main = func arg1 arg2')
   block.module.setRoot(block)
   let arg1: Ast.MutableAst | undefined
-  block.visitRecursive((ast) => {
+  Ast.visitRecursive(block, (ast) => {
     if (ast instanceof Ast.MutableIdent && ast.code() === 'arg1') {
-      assert(!arg1)
+      assert(arg1 == null)
       arg1 = ast
     }
   })

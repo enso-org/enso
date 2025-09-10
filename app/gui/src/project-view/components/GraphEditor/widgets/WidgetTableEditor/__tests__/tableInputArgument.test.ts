@@ -595,8 +595,7 @@ test('Pasted data which would exceed cells limit is truncated', () => {
     const inputAst = update.edit!.getVersion(ast)
     // We expect the table to be fully extended, so the number of cells (numbers or Nothings) should be equal to the limit.
     let cellCount = 0
-    inputAst.visitRecursive((ast: Ast.Ast | Ast.Token) => {
-      if (ast instanceof Ast.Token) return
+    Ast.visitRecursive(inputAst, (ast) => {
       if (ast instanceof Ast.TextLiteral && ast.code().startsWith(`'${DEFAULT_COLUMN_PREFIX}`))
         return
       if (ast instanceof Ast.TextLiteral || ast.code() === 'Nothing') cellCount++

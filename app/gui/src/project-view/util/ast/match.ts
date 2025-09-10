@@ -94,7 +94,7 @@ export class Pattern<T extends Ast.Ast = Ast.Expression> {
 
 function findPlaceholders(ast: Ast.Ast, placeholder: string): Ast.AstId[] {
   const placeholders: Ast.AstId[] = []
-  ast.visitRecursive((child) => {
+  Ast.visitRecursive(ast, (child) => {
     if (child instanceof Ast.Ident && child.code() === placeholder) placeholders.push(child.id)
   })
   return placeholders

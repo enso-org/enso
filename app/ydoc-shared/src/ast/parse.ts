@@ -47,6 +47,7 @@ import {
   TypeAnnotated,
   UnaryOprApp,
   Vector,
+  visitRecursive,
   Wildcard,
 } from './tree'
 
@@ -516,7 +517,7 @@ export function parseModuleWithSpans(
 /** Return the number of `Ast`s in the tree, including the provided root. */
 export function astCount(ast: Ast): number {
   let count = 0
-  ast.visitRecursive((_subtree) => {
+  visitRecursive(ast, (_subtree) => {
     count += 1
   })
   return count
