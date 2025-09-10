@@ -344,7 +344,7 @@ building the native image via the `native-image` tool.
 - `--diagnostics` - generates a report with information about the generated
   image - classes initialized at runtime and buildtime, cmdline options, etc.
 
-### Runtime cmdline options
+### Runtime VM options
 
 When NI is build, there will be a special cmdline option handling procedure
 executed before the `main` method, which ensures that, e.g., `-XX:...` options
