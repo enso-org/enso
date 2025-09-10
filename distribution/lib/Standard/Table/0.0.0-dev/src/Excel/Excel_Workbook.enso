@@ -44,43 +44,6 @@ polyglot java import org.enso.table.excel.ExcelWorkbook
 polyglot java import org.enso.table.excel.ReadOnlyExcelConnection
 polyglot java import org.enso.table.read.ExcelReader
 
-
-type Ref_Counted_Workbook
-    private Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection))
-
-    new file:File format =
-        # The `java_file` depends on the liveness of the possible `Temporary_File` but that is ensured by storing the `file` in the resulting workbook instance.
-        java_file = Java_File.new file.absolute.normalize.path
-        excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openReadOnlyConnection java_file format) close_connection
-        Ref_Counted_Workbook.Value (Ref.new excel_connection_resource)
-
-    close self =
-        case self.excel_connection_resource_ref.get of
-            Nothing -> Nothing
-            resource ->
-                resource.finalize
-                self.excel_connection_resource_ref.put Nothing
-        Nothing
-
-    
-    ## ---
-       private: true
-       ---
-    with_java_workbook : (Workbook -> Any) -> Any ! Illegal_State
-    with_java_workbook self f = Illegal_State.handle_java_exception <| handle_invalid_location <| Empty_Sheet.handle_java_exception <|
-        case self.excel_connection_resource_ref.get of
-            Nothing ->
-                Error.throw (Illegal_State.Error "The workbook is being used after it was closed.")
-            resource -> resource.with connection->
-                connection.withWorkbook f
-
-
-## ---
-   private: true
-   ---
-close_connection c = c.close
-
-
 type Excel_Workbook
     ## ---
        private: true
@@ -98,7 +61,10 @@ type Excel_Workbook
         continuation raw_file =
             format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
             File_Error.handle_java_exceptions raw_file <| Excel_Reader.handle_bad_format file_for_errors <| Illegal_State.handle_java_exception <|
-                Excel_Workbook.Value (Ref_Counted_Workbook.new raw_file format) file xls_format
+                # The `java_file` depends on the liveness of the possible `Temporary_File` but that is ensured by storing the `file` in the resulting workbook instance.
+                java_file = Java_File.new raw_file.absolute.normalize.path
+                excel_connection_resource = Managed_Resource.register (ExcelConnectionPool.INSTANCE.openReadOnlyConnection java_file format) close_connection
+                Excel_Workbook.Value (Ref.new excel_connection_resource) file xls_format
 
         case file of
             tmp : Temporary_File -> tmp.with_file continuation
@@ -123,7 +89,7 @@ type Excel_Workbook
        private: true
        ---
        Creates an Excel_Workbook connection.
-    private Value (excel_connection_resource_ref:Ref_Counted_Workbook) (file:(File|Temporary_File|Nothing)) internal_xls_format:Boolean
+    private Value (excel_connection_resource_ref : Ref (Managed_Resource ReadOnlyExcelConnection)) (file:(File|Temporary_File|Nothing)) internal_xls_format:Boolean
 
     ## ---
        icon: metadata
@@ -390,7 +356,12 @@ type Excel_Workbook
        operation on it will throw an `Illegal_State` error.
     close : Nothing
     close self =
-        self.excel_connection_resource_ref.close
+        case self.excel_connection_resource_ref.get of
+            Nothing -> Nothing
+            resource ->
+                resource.finalize
+                self.excel_connection_resource_ref.put Nothing
+        Nothing
 
     ## ---
        private: true
@@ -428,7 +399,11 @@ type Excel_Workbook
        ---
     with_java_workbook : (ExcelWorkbook -> Any) -> Any ! Illegal_State
     with_java_workbook self f = Illegal_State.handle_java_exception <| handle_invalid_location <| Empty_Sheet.handle_java_exception <|
-        self.excel_connection_resource_ref.with_java_workbook f
+        case self.excel_connection_resource_ref.get of
+            Nothing ->
+                Error.throw (Illegal_State.Error "The workbook is being used after it was closed.")
+            resource -> resource.with connection->
+                connection.withWorkbook f
 
     ## ---
        group: Standard.Base.Input
@@ -468,6 +443,10 @@ type Excel_Workbook
                         unified_tables = Table.from_union valid_tables columns_to_keep=columns_to_keep match_columns=match on_problems=on_problems
                         (_sheet_names_table valid_names valid_tables).zip unified_tables right_prefix="" on_problems=on_problems
 
+## ---
+   private: true
+   ---
+close_connection c = c.close
 
 ## ---
    private: true
