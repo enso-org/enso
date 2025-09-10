@@ -287,7 +287,7 @@ public class AddGroupNumber {
                     "Null value encountered in standard deviation column",
                     idx));
           }
-          return true;
+          return false;
         });
 
     if (accumulator.count == 0) {
