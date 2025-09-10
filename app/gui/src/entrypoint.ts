@@ -17,13 +17,11 @@ const HTTP_STATUS_BAD_REQUEST = 400
 const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
 /** The fraction of non-erroring interactions that should be sampled by Sentry. */
 const SENTRY_SAMPLE_RATE = 0.005
-const SCAM_WARNING_TIMEOUT = 1000
 const INITIAL_URL_KEY = `Enso-initial-url`
 
 markRaw(HttpClient.prototype)
 
 async function main() {
-  setupScamWarning()
   setupSentry()
   const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = createQueryClientOfPersistCache()
@@ -36,43 +34,6 @@ async function main() {
   app.provide('rootDirPath', rootDirPath)
   app.provide('onAuthenticated', onAuthenticated)
   app.mount('#enso-app')
-}
-
-function setupScamWarning() {
-  function printScamWarning() {
-    if (process.env.NODE_ENV === 'development') return
-    const headerCss = `
-      color: white;
-      background: crimson;
-      display: block;
-      border-radius: 8px;
-      font-weight: bold;
-      padding: 10px 20px 10px 20px;
-    `
-      .trim()
-      .replace(/\n\s+/, ' ')
-    const headerCss1 = headerCss + ' font-size: 46px;'
-    const headerCss2 = headerCss + ' font-size: 20px;'
-    const msgCSS = 'font-size: 16px;'
-
-    const msg1 =
-      'This is a browser feature intended for developers. If someone told you to ' +
-      'copy-paste something here, it is a scam and will give them access to your ' +
-      'account and data.'
-    const msg2 = 'See https://enso.org/selfxss for more information.'
-    console.log('%cStop!', headerCss1)
-    console.log('%cYou may be the victim of a scam!', headerCss2)
-    console.log('%c' + msg1, msgCSS)
-    console.log('%c' + msg2, msgCSS)
-  }
-
-  printScamWarning()
-  let scamWarningHandle = 0
-
-  window.addEventListener('resize', () => {
-    window.clearTimeout(scamWarningHandle)
-    scamWarningHandle = window.setTimeout(printScamWarning, SCAM_WARNING_TIMEOUT)
-  })
 }
 
 function setupSentry() {
