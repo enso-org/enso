@@ -1,5 +1,11 @@
 # Next Next Release
 
+#### Enso IDE
+
+- [Fix mouse interactions with JSON visualization][13971]
+
+[13971]: https://github.com/enso-org/enso/pull/13971
+
 #### Enso Language & Runtime
 
 - [Open type check `Type&Any` lets all visible types thru][13225]
