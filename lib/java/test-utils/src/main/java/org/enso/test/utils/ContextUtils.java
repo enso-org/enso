@@ -401,6 +401,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
           .allowAllAccess(true)
           .environment("NO_COLOR", "true")
           .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(RuntimeOptions.CHECK_CWD, "false")
           .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
           .option(RuntimeOptions.STRICT_ERRORS, "true")
           .option(

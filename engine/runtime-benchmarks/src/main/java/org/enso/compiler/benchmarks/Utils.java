@@ -27,6 +27,7 @@ public final class Utils {
                         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                         Paths.get("../../distribution/component").toFile().getAbsolutePath())
                     .option(RuntimeOptions.LOG_LEVEL, Level.INFO.getName())
+                    .option(RuntimeOptions.CHECK_CWD, "false")
                     .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
                     .option(RuntimeOptions.STRICT_ERRORS, "true")
                     .option("engine.CompilationFailureAction", "Print")

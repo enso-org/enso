@@ -66,6 +66,7 @@ class RuntimeErrorsTest
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .logHandler(logHandler)
         .option(RuntimeOptions.LOG_LEVEL, defaultLogLevel.getName)
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()

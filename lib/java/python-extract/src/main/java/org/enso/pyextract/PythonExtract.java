@@ -3,6 +3,7 @@ package org.enso.pyextract;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import org.graalvm.polyglot.Engine;
 
@@ -18,9 +19,6 @@ public final class PythonExtract {
       throw new IllegalArgumentException("Usage: java -jar pyextract.jar <output-directory>");
     }
     var outDir = Path.of(args[0]);
-    if (Files.exists(outDir)) {
-      throw new IllegalStateException("Output directory '" + outDir + "' already exists. ");
-    }
     Files.createDirectories(outDir.getParent());
     unpackPythonResources(outDir);
   }
@@ -72,7 +70,7 @@ public final class PythonExtract {
               sourcePath -> {
                 Path destPath = destDir.resolve(srcDir.relativize(sourcePath));
                 try {
-                  Files.copy(sourcePath, destPath);
+                  Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {
                   throw new RuntimeException(
                       "Failed to copy " + sourcePath + " to " + destPath + ": " + e.getMessage(),

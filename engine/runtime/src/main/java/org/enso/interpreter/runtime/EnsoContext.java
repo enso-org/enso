@@ -176,7 +176,9 @@ public final class EnsoContext {
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
-    checkWorkingDirectory(projectRoot);
+    if (getOption(RuntimeOptions.CHECK_CWD_KEY)) {
+      checkWorkingDirectory(projectRoot);
+    }
     Optional<Package<TruffleFile>> projectPackage =
         projectRoot.map(
             file ->
@@ -235,16 +237,20 @@ public final class EnsoContext {
       var cwd = environment.getCurrentWorkingDirectory().getAbsoluteFile().normalize();
       try {
         if (!cwd.isSameFile(parent)) {
+          var maskedCwd = MaskedPath$.MODULE$.apply(Path.of(cwd.toString()));
           var maskedPath = MaskedPath$.MODULE$.apply(Path.of(parent.toString()));
-          logger.log(
-              Level.WARNING,
-              "Initializing the context in a different working directory than the one containing"
-                  + " the project root. This may lead to relative paths not behaving as advertised"
-                  + " by `File.new`. Please run the engine inside of `{0}` directory.",
-              maskedPath);
+          var templ =
+              """
+              Initializing with unexpected working directory (%s).
+              This may lead to improper relative paths resolution by `File.new`.
+              Change working directory to %s and run the engine again.
+              """;
+          var msg = templ.formatted(maskedCwd, maskedPath);
+          logger.log(Level.WARNING, msg);
+          assert false : msg;
         }
       } catch (IOException e) {
-        logger.severe("Error checking working directory: " + e.getMessage());
+        logger.log(Level.SEVERE, "Error checking working directory: " + e.getMessage(), e);
       }
     }
   }

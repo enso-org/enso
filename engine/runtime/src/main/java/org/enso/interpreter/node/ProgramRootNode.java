@@ -6,6 +6,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.util.LinkedList;
 import org.enso.interpreter.EnsoLanguage;
@@ -34,6 +35,23 @@ public class ProgramRootNode extends RootNode {
     this.sourceCode = sourceCode;
   }
 
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public String getName() {
+    var segs = sourceCode.getName().split("\\.");
+    if (segs.length == 0) {
+      return "Unnamed";
+    } else {
+      return segs[0];
+    }
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public SourceSection getSourceSection() {
+    return sourceCode.createSection(0, sourceCode.getLength());
+  }
+
   /**
    * Constructs the root node.
    *
@@ -56,14 +74,13 @@ public class ProgramRootNode extends RootNode {
     if (module == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       var ctx = EnsoContext.get(this);
-      var srcName = canonicalizeName(sourceCode.getName());
       if (sourceCode.getPath() != null) {
         var src = ctx.getTruffleFile(new File(sourceCode.getPath()));
         var pkg = ctx.getPackageOf(src).orElse(null);
-        var qualifiedName = findQualifiedNameInPackage(pkg, src, srcName);
+        var qualifiedName = findQualifiedNameInPackage(pkg, src, getName());
         module = new Module(qualifiedName, pkg, src);
       } else {
-        var simpleName = QualifiedName.simpleName(srcName);
+        var simpleName = QualifiedName.simpleName(getName());
         module = new Module(simpleName, null, sourceCode.getCharacters().toString());
       }
       ctx.getPackageRepository().registerModuleCreatedInRuntime(module.asCompilerModule());
@@ -96,15 +113,6 @@ public class ProgramRootNode extends RootNode {
       }
     }
     return QualifiedName.simpleName(srcName);
-  }
-
-  private String canonicalizeName(String name) {
-    String[] segs = name.split("\\.");
-    if (segs.length == 0) {
-      return "Unnamed";
-    } else {
-      return segs[0];
-    }
   }
 
   /* Note [Static Passes]

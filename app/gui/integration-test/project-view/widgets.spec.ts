@@ -2,11 +2,14 @@ import test, { type Locator, type Page } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockMethodCallInfo } from './expressionUpdates'
+import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
+import { mockVisualizationDataUpdate, resetMockWidgetConfigurations } from './visualizationUpdates'
 
 class DropDownLocator {
   readonly rootWidget: Locator
   readonly dropDown: Locator
+  readonly dropDownAnyState: Locator
   readonly items: Locator
   readonly selectedItems: Locator
 
@@ -16,6 +19,7 @@ class DropDownLocator {
     // There can be only one open dropdown at a time on a page. We have to filter out the ones that
     // still have leaving animation running.
     this.dropDown = page.locator('.DropdownWidget:not([data-transitioning])')
+    this.dropDownAnyState = page.locator('.DropdownWidget')
     this.items = this.dropDown.locator('.item')
     this.selectedItems = this.dropDown.locator('.item.selected')
   }
@@ -38,7 +42,7 @@ class DropDownLocator {
   }
 
   async expectNotVisible(): Promise<void> {
-    await expect(this.dropDown).toBeHidden()
+    await expect(this.dropDownAnyState).toBeHidden()
   }
 
   async clickOption(option: string): Promise<void> {
@@ -295,6 +299,317 @@ async function dataReadNodeWithMethodCallInfo(page: Page): Promise<Locator> {
   })
   return locate.graphNodeByBinding(page, 'data')
 }
+
+test.describe('Dynamic configuration updates', () => {
+  test.beforeEach(async ({ page }) => {
+    await actions.goToGraph(page)
+    await resetMockWidgetConfigurations(page)
+  })
+
+  /**
+   * Check that dynamic dropdowns (with items provided by widget configuration) are not shown
+   * until dynamic configuration arrives from the engine.
+   * This test uses `format` argument of the `Data.read`, which has both static tags and a
+   * dynamic configuration.
+   * We check that no dropdown is shown until dynamic configuration arrives.
+   */
+  test('Dynamic dropdown', async ({ page }) => {
+    const node = await dataReadNodeWithMethodCallInfo(page)
+    const topLevelArgs = node.locator('.WidgetTopLevelArgument')
+    await node.click()
+    await expect(topLevelArgs).toHaveCount(3)
+
+    // No dropdown is shown until dynamic configuration arrives.
+    await expect(
+      topLevelArgs.filter({ has: page.getByText('format') }).locator('.WidgetSelection'),
+    ).not.toBeVisible()
+
+    // Provide dynamic configuration for `format` arg.
+    await mockVisualizationDataUpdate(page, '.read', [
+      [
+        'format',
+        {
+          type: 'Widget',
+          constructor: 'Single_Choice',
+          label: null,
+          values: [
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: '..Csv',
+              label: 'Csv',
+              parameters: [],
+            },
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: '..Excel',
+              label: 'Excel',
+              parameters: [],
+            },
+          ],
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ])
+
+    const formatArg = topLevelArgs.filter({ has: page.getByText('format') })
+    const formatDropdown = new DropDownLocator(formatArg)
+    await formatArg.click()
+    await formatDropdown.expectVisibleWithOptions(['Csv', 'Excel'])
+  })
+
+  /**
+   * Check that numeric widget is displayed even if dynamic configuration is not provided.
+   * Unlike dynamic dropdowns, numeric widget can work normally without dynamic configuration.
+   */
+  test('Number widget', async ({ page }) => {
+    const node = locate.graphNodeByBinding(page, 'selected')
+    await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
+    await expect(locate.componentBrowser(page)).toBeVisible()
+    const content = locate.componentBrowserInput(page)
+    await page.keyboard.press('End')
+    await page.keyboard.type(` 1`)
+    await expect(content).toHaveText(`select_columns 1`)
+    await page.keyboard.press('Enter')
+    await expect(locate.componentBrowser(page)).toBeHidden()
+    await mockMethodCallInfo(page, 'selected', {
+      methodPointer: {
+        module: 'Standard.Table.Table',
+        definedOnType: 'Standard.Table.Table.Table',
+        name: 'select_columns',
+      },
+      notAppliedArguments: [2, 3, 4, 5],
+    })
+    const topLevelArgs = node.locator('.WidgetTopLevelArgument')
+    await expect(topLevelArgs).toHaveCount(5)
+    await expect(node.locator('.WidgetNumber')).toBeVisible()
+    await expect(node.locator('.WidgetNumber')).toHaveValue('1')
+    // Input has no slider, because there is no limits information.
+    await expect(node.locator('.AutoSizedInput')).not.toHaveClass(/slider/)
+
+    // Provide limits from dynamic configuration.
+    await mockVisualizationDataUpdate(page, '.select_columns', [
+      [
+        'columns',
+        {
+          type: 'Widget',
+          constructor: 'Numeric_Input',
+          maximum: 10,
+          minimum: 0,
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ])
+    // Slider is now displayed.
+    await expect(node.locator('.AutoSizedInput')).toHaveClass(/slider/)
+  })
+
+  /**
+   * File browser widget is weird. We want to match it even when dynamic configuration is not yet provided,
+   * but it also uses a dropdown widget internally. This is why we have a special test case for it.
+   */
+  test('File browser widget', async ({ page }) => {
+    const node = await dataReadNodeWithMethodCallInfo(page)
+    await node.click()
+    await expect(node.locator('.WidgetTopLevelArgument')).toHaveCount(3)
+    const pathArg = node.locator('.WidgetTopLevelArgument').filter({ has: page.getByText('path') })
+    await pathArg.click()
+    const pathDropdown = new DropDownLocator(pathArg)
+    await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS])
+    // Provide dynamic configuration for `path` argument.
+    // (we use Folder_Browser here, and check how dropdown items have changed)
+    await mockVisualizationDataUpdate(page, '.read', [
+      [
+        'path',
+        {
+          type: 'Widget',
+          constructor: 'Folder_Browse',
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ])
+    await pathDropdown.expectVisibleWithOptions(['Choose directory…', 'Choose directory in cloud…'])
+  })
+
+  /**
+   * Some widgets inherit their configuration from a parent widget.
+   * Inherited config has a priority even if newer configuration for the child expression arrives.
+   * We are using `aggregated` node to test this.
+   */
+  test('Inherited configuration', async ({ page }) => {
+    const node = locate.graphNodeByBinding(page, 'aggregated')
+    await mockMethodCallInfo(page, 'aggregated', {
+      methodPointer: {
+        module: 'Standard.Table.Table',
+        definedOnType: 'Standard.Table.Table.Table',
+        name: 'aggregate',
+      },
+      notAppliedArguments: [1, 2, 3, 4],
+    })
+    await node.click()
+    await expect(node.locator('.WidgetTopLevelArgument')).toHaveCount(4)
+    // Top-level configuration, including configuration for child widgets.
+    await mockVisualizationDataUpdate(page, '.aggregate', [
+      [
+        'columns',
+        {
+          type: 'Widget',
+          constructor: 'Single_Choice',
+          label: null,
+          values: [
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
+              label: 'Group By',
+              parameters: [
+                [
+                  'column',
+                  {
+                    type: 'Widget',
+                    constructor: 'Single_Choice',
+                    label: null,
+                    values: [
+                      {
+                        type: 'Choice',
+                        constructor: 'Option',
+                        value: '"column 1"',
+                        label: 'column 1',
+                        parameters: [],
+                      },
+                      {
+                        type: 'Choice',
+                        constructor: 'Option',
+                        value: '"column 2"',
+                        label: 'column 2',
+                        parameters: [],
+                      },
+                    ],
+                    display: { type: 'Display', constructor: 'Always' },
+                  },
+                ],
+              ],
+            },
+          ],
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ])
+    const columnsArg = node
+      .locator('.WidgetTopLevelArgument')
+      .filter({ has: page.getByText('columns', { exact: true }) })
+    await columnsArg.click()
+    const columnsDropdown = new DropDownLocator(columnsArg)
+    await columnsDropdown.expectVisibleWithOptions(['Group By'])
+    await columnsDropdown.clickOption('Group By')
+    await expect(columnsArg.locator('.WidgetToken')).toContainText([
+      'Aggregate_Column',
+      '.',
+      'Group_By',
+    ])
+    await mockMethodCallInfo(
+      page,
+      {
+        binding: 'aggregated',
+        expr: 'Aggregate_Column.Group_By',
+      },
+      {
+        methodPointer: {
+          module: 'Standard.Table.Aggregate_Column',
+          definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
+          name: 'Group_By',
+        },
+        notAppliedArguments: [0, 1],
+      },
+    )
+    const firstItem = columnsArg.locator('.WidgetPort > .WidgetSelection').nth(0)
+    const firstItemDropdown = new DropDownLocator(firstItem)
+    await firstItemDropdown.clickWidget()
+    await firstItemDropdown.expectVisibleWithOptions(['column 1', 'column 2'])
+
+    // Provide dynamic configuration for `column` argument of `Aggregate_Column.Group_By`.
+    // It shouldn’t affect the selectable variants of the dropdown, because parent
+    // config has a priority.
+    await mockVisualizationDataUpdate(page, '.Group_By', [
+      [
+        'column',
+        {
+          type: 'Widget',
+          constructor: 'Single_Choice',
+          label: null,
+          values: [
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: '"column 3"',
+              label: 'column 3',
+              parameters: [],
+            },
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: '"column 4"',
+              label: 'column 4',
+              parameters: [],
+            },
+          ],
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ])
+    await firstItemDropdown.expectVisibleWithOptions(['column 1', 'column 2'])
+
+    // Update parent configuration
+    await mockVisualizationDataUpdate(page, '.aggregate', [
+      [
+        'columns',
+        {
+          type: 'Widget',
+          constructor: 'Single_Choice',
+          label: null,
+          values: [
+            {
+              type: 'Choice',
+              constructor: 'Option',
+              value: 'Standard.Table.Aggregate_Column.Aggregate_Column.Group_By',
+              label: 'Group By',
+              parameters: [
+                [
+                  'column',
+                  {
+                    type: 'Widget',
+                    constructor: 'Single_Choice',
+                    label: null,
+                    values: [
+                      {
+                        type: 'Choice',
+                        constructor: 'Option',
+                        value: '"column 5"',
+                        label: 'column 5',
+                        parameters: [],
+                      },
+                      {
+                        type: 'Choice',
+                        constructor: 'Option',
+                        value: '"column 6"',
+                        label: 'column 6',
+                        parameters: [],
+                      },
+                    ],
+                    display: { type: 'Display', constructor: 'Always' },
+                  },
+                ],
+              ],
+            },
+          ],
+          display: { type: 'Display', constructor: 'Always' },
+        },
+      ],
+    ])
+    await firstItemDropdown.expectVisibleWithOptions(['column 5', 'column 6'])
+  })
+})
 
 test('Selection widgets in Data.read node', async ({ page }) => {
   await actions.goToGraph(page)

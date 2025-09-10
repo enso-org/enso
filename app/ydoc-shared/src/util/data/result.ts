@@ -60,8 +60,11 @@ export function unwrap<T, E>(result: Result<T, E>): T {
   else throw result.error
 }
 
-/** Unwraps the {@link Result} value. If the result is error, an alternative is returned. */
-export function unwrapOr<T, A>(result: Result<T> | undefined, alternative: A): T | A {
+/**
+ * Unwraps the {@link Result} value. If the result is absent or is an error value, an alternative is
+ * returned.
+ */
+export function unwrapOr<T, A>(result: Opt<Result<T>>, alternative: A): T | A {
   return result?.ok ? result.value : alternative
 }
 
@@ -99,13 +102,30 @@ export function mapOkOr<T, U, A>(
   return result && result.ok ? f(result.value) : alternative
 }
 
+export function andThen<T, U, E>(result: Result<T, E>, f: (value: T) => Result<U, E>): Result<U, E>
+export function andThen<T, U, E>(
+  result: Result<T, E> | null,
+  f: (value: T) => Result<U, E> | null,
+): Result<U, E> | null
+export function andThen<T, U, E>(
+  result: Result<T, E> | undefined,
+  f: (value: T) => Result<U, E> | undefined,
+): Result<U, E> | undefined
+export function andThen<T, U, E>(
+  result: Result<T, E> | null | undefined,
+  f: (value: T) => Result<U, E> | null | undefined,
+): Result<U, E> | null | undefined
+export function andThen<T, U, E>(
+  result: Result<T, E> | null | undefined,
+  f: (value: T) => Result<U, E> | null | undefined,
+): Result<U, E> | null | undefined
 /** Maps the {@link Result} value with a function that returns a result. */
 export function andThen<T, U, E>(
-  result: Result<T, E>,
-  f: (value: T) => Result<U, E>,
-): Result<U, E> {
-  if (result.ok) return f(result.value)
-  else return result
+  result: Result<T, E> | null | undefined,
+  f: (value: T) => Result<U, E> | null | undefined,
+): Result<U, E> | null | undefined {
+  if (result == null) return result
+  return result.ok ? f(result.value) : result
 }
 
 /** If the value is nullish, returns {@link Ok} with it. */

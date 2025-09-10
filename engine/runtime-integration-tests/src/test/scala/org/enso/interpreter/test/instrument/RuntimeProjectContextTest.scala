@@ -47,6 +47,7 @@ class RuntimeProjectContextTest
           )
           .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
           .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
+          .option(RuntimeOptions.CHECK_CWD, "false")
           .logHandler(System.err)
           .build()
         context.initialize(LanguageInfo.ID)

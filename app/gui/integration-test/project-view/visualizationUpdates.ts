@@ -7,3 +7,8 @@ export async function mockVisualizationDataUpdate(page: Page, preprocessor: stri
     { preprocessor, data },
   )
 }
+
+/** Clear standard widget configurations. Use `updateMockWidgetConfiguration` to set a specific configuration needed for test. */
+export async function resetMockWidgetConfigurations(page: Page) {
+  await page.evaluate(() => (window as any)._resetMockWidgetConfigurations())
+}

@@ -7,6 +7,7 @@ import * as backend from '#/services/Backend'
 import { getFileName, getFolderPath } from '#/utilities/fileInfo'
 import { omit } from '#/utilities/object'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
+import { useFeatureFlag } from '$/providers/featureFlags'
 import { normalizeName } from '@/util/nameValidation'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import invariant from 'tiny-invariant'
@@ -194,10 +195,17 @@ export class ProjectManager {
 
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
-    const result = await this.sendRequest<Omit<CreateProject, 'projectPath'>>('project/create', {
-      missingComponentAction: MissingComponentAction.install,
-      ...params,
-    })
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const enableProjectService = useFeatureFlag('enableProjectService')
+    let result: Omit<CreateProject, 'projectPath'>
+    if (enableProjectService.value) {
+      result = await this.runProjectServiceCommandJson('project/create', { ...params })
+    } else {
+      result = await this.sendRequest('project/create', {
+        missingComponentAction: MissingComponentAction.install,
+        ...params,
+      })
+    }
     const directoryPath = params.projectsDirectory ?? this.rootDirectory
     // Update `internalDirectories` by listing the project's parent directory, because the
     // directory name of the project is unknown. Deleting the directory is not an option because
@@ -494,6 +502,25 @@ export class ProjectManager {
     ...cliArguments: string[]
   ): Promise<T> {
     const response = await this.runStandaloneCommand(body, name, ...cliArguments)
+    // There is no way to avoid this as `JSON.parse` returns `any`.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const json: JSONRPCResponse<never> = await response.json()
+    if ('result' in json) {
+      return json.result
+    } else {
+      throw new Error(json.error.message)
+    }
+  }
+
+  /** Run the Project Manager binary with the given command-line arguments. */
+  private async runProjectServiceCommandJson<T = void>(
+    name: string,
+    body: object | null,
+  ): Promise<T> {
+    const response = await fetch(`/api/project-service/${name}`, {
+      method: 'POST',
+      body: body && JSON.stringify(body),
+    })
     // There is no way to avoid this as `JSON.parse` returns `any`.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const json: JSONRPCResponse<never> = await response.json()
