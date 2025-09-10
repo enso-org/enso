@@ -114,7 +114,10 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
 
   /** Look up an entry by its path within a project */
   findByProjectPath(projectPath: ProjectPath): SuggestionId | undefined {
-    const [id] = this.pathToId.lookup(projectPath.key())
+    const [id, ...rest] = this.pathToId.lookup(projectPath.key())
+    if (rest.length !== 0) {
+      console.error(`Multiple entries for path ${projectPath.key()}: ${[id, ...rest]}`)
+    }
     return id
   }
 

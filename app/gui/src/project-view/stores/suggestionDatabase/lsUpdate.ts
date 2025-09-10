@@ -583,6 +583,8 @@ export class SuggestionUpdateProcessor {
             const newEntry = this.entryFromLs(update.suggestion)
             if (!newEntry.ok) return newEntry
             entries.set(update.id, newEntry.value)
+            // Assert no duplicates.
+            entries.findByProjectPath(newEntry.value.definitionPath)
             return Ok()
           },
         )
