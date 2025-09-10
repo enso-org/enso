@@ -476,12 +476,12 @@ jobs:
           path-replace-backslashes: true
           reporter: java-junit
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        name: Upload Heap Dump
+        name: Upload Heap Dumps
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dump (linux, amd64)
-          path: "*/*.hprof"
+          name: Heap dumps (linux, amd64)
+          path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -560,12 +560,12 @@ jobs:
           path-replace-backslashes: true
           reporter: java-junit
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        name: Upload Heap Dump
+        name: Upload Heap Dumps
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dump (windows, amd64)
-          path: "*/*.hprof"
+          name: Heap dumps (windows, amd64)
+          path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -644,12 +644,12 @@ jobs:
           path-replace-backslashes: true
           reporter: java-junit
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        name: Upload Heap Dump
+        name: Upload Heap Dumps
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dump (linux, amd64)
-          path: "*/*.hprof"
+          name: Heap dumps (linux, amd64)
+          path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -728,12 +728,12 @@ jobs:
           path-replace-backslashes: true
           reporter: java-junit
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        name: Upload Heap Dump
+        name: Upload Heap Dumps
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dump (windows, amd64)
-          path: "*/*.hprof"
+          name: Heap dumps (windows, amd64)
+          path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -812,12 +812,12 @@ jobs:
           path-replace-backslashes: true
           reporter: java-junit
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        name: Upload Heap Dump
+        name: Upload Heap Dumps
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dump (linux, amd64)
-          path: "*/*.hprof"
+          name: Heap dumps (linux, amd64)
+          path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -896,12 +896,12 @@ jobs:
           path-replace-backslashes: true
           reporter: java-junit
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        name: Upload Heap Dump
+        name: Upload Heap Dumps
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dump (windows, amd64)
-          path: "*/*.hprof"
+          name: Heap dumps (windows, amd64)
+          path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
