@@ -370,11 +370,7 @@ impl JobArchetype for StandardLibraryTests {
             } else {
                 main_step
             };
-            let hprof_path = "target/dump.hprof";
-            let upload_hprof = step::upload_artifact("Upload HeapDump hprof file")
-                .with_custom_argument("name", format!("HeapDump ({}, {})", target.0, target.1))
-                .with_custom_argument("path", hprof_path)
-                .with_custom_argument("if-no-files-found", "ignore");
+            let upload_hprof = step::heapdump_upload(target);
 
             vec![
                 cleanup_engine_distribution,

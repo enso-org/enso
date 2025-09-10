@@ -52,6 +52,19 @@ pub fn extra_stdlib_test_reporter((os, arch): Target, graal_edition: graalvm::Ed
     test_reporter(step_name, report_name, path)
 }
 
+/// Upload heap dump of a crashed JVM on OutOfMemoryError.
+pub fn heapdump_upload((os, arch): Target) -> Step {
+    let artifact_name = format!("Heap dump ({os}, {arch})");
+    let path = "*/*.hprof";
+    let mut step = upload_artifact("Upload Heap Dump")
+        .with_custom_argument("name", artifact_name)
+        .with_custom_argument("path", path)
+        .with_custom_argument("if-no-files-found", "ignore");
+    // This step should be run every time, but not on forks.
+    step.r#if = Some(format!("(success() || failure()) && {}", not_a_fork()));
+    step
+}
+
 pub fn upload_engine_distribution(
     target: Target,
     engine_launcher: engine::EngineLauncher,
