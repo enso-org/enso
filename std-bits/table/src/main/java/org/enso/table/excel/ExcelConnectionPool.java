@@ -91,14 +91,14 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
       this.format = format;
     }
 
-    public void writeWorkbook(File file, Consumer<Workbook> writeAction) throws IOException {
+    public <R> R writeWorkbook(File file, Function<Workbook, R> writeAction) throws IOException {
       boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
 
       try (Workbook workbook =
           preExistingFile
               ? ExcelConnectionPool.openWorkbook(file, format, true)
               : createEmptyWorkbook(format)) {
-        writeAction.accept(workbook);
+        R result = writeAction.apply(workbook);
 
         if (preExistingFile) {
           // Save the file in place.
@@ -128,6 +128,8 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
         if (workbook instanceof SXSSFWorkbook sxssf) {
           sxssf.dispose();
         }
+
+        return result;
       }
     }
   }
