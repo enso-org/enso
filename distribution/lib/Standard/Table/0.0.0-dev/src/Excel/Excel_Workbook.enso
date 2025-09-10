@@ -38,9 +38,9 @@ from project.Internal.Excel_Reader import handle_invalid_location
 from project.Internal.Table_Helpers import duplicate_rows
 
 polyglot java import java.io.File as Java_File
-polyglot java import org.apache.poi.ss.usermodel.Workbook
 polyglot java import org.enso.table.excel.ExcelConnectionPool
 polyglot java import org.enso.table.excel.ExcelFileFormat
+polyglot java import org.enso.table.excel.ExcelWorkbook
 polyglot java import org.enso.table.excel.ReadOnlyExcelConnection
 polyglot java import org.enso.table.read.ExcelReader
 
@@ -397,7 +397,7 @@ type Excel_Workbook
     ## ---
        private: true
        ---
-    with_java_workbook : (Workbook -> Any) -> Any ! Illegal_State
+    with_java_workbook : (ExcelWorkbook -> Any) -> Any ! Illegal_State
     with_java_workbook self f = Illegal_State.handle_java_exception <| handle_invalid_location <| Empty_Sheet.handle_java_exception <|
         case self.excel_connection_resource_ref.get of
             Nothing ->
