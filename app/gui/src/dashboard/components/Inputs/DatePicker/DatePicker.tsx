@@ -175,6 +175,7 @@ export const DatePicker = forwardRef(function DatePicker<
 
   return (
     <Form.Field
+      preventLabelFocus
       form={formInstance}
       name={name}
       fullWidth
