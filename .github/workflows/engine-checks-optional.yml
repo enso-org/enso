@@ -213,6 +213,12 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - name: Upload HeapDump hprof file
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: HeapDump (macos, amd64)
+          path: target/dump.hprof
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -289,6 +295,12 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - name: Upload HeapDump hprof file
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: HeapDump (macos, amd64)
+          path: target/dump.hprof
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -365,6 +377,12 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - name: Upload HeapDump hprof file
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: HeapDump (macos, amd64)
+          path: target/dump.hprof
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean

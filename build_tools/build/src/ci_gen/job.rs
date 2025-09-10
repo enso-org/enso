@@ -370,6 +370,11 @@ impl JobArchetype for StandardLibraryTests {
             } else {
                 main_step
             };
+            let hprof_path = "target/dump.hprof";
+            let upload_hprof = step::upload_artifact("Upload HeapDump hprof file")
+                .with_custom_argument("name", format!("HeapDump ({}, {})", target.0, target.1))
+                .with_custom_argument("path", hprof_path)
+                .with_custom_argument("if-no-files-found", "ignore");
 
             vec![
                 cleanup_engine_distribution,
@@ -378,6 +383,7 @@ impl JobArchetype for StandardLibraryTests {
                 step::unpack_engine_distribution(),
                 updated_main_step,
                 step::stdlib_test_reporter(target, graal_edition),
+                upload_hprof,
             ]
         });
         let mut job = build_job_ensuring_cloud_tests_run_on_github(
