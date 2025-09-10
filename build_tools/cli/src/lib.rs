@@ -435,8 +435,8 @@ impl Processor {
                                 ]));
                             config.use_native_runner = true;
                             // TODO: Remove
-                            let one_hundred_mb = "-XX:MaxHeapSize=104857600";
-                            config.add_java_tool_opt(one_hundred_mb);
+                            let two_mb = "-XX:MaxHeapSize=2097152";
+                            config.add_java_tool_opt(two_mb);
                         }
                         Tests::StdSnowflake => {
                             config.test_standard_library =
