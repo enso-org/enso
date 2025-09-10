@@ -46,7 +46,7 @@ describe('ProjectService', () => {
   afterEach(async () => {
     // Clean up temporary directory
     try {
-      await fs.rm(tempDir, { recursive: true, force: true })
+      await fs.rm(tempDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 1000 })
     } catch (error) {
       console.error('Failed to clean up temp directory:', error)
     }
@@ -461,6 +461,214 @@ describe('ProjectService', () => {
         .then(() => true)
         .catch(() => false)
       expect(existsAfter).toBe(false)
+    })
+  })
+
+  describe('duplicateProject', () => {
+    test('should successfully duplicate a project', async () => {
+      // Create an original project
+      const originalName = 'OriginalProject'
+      const originalResult = await projectService.createProject(originalName, projectsDirectory)
+
+      // Add some content to the original project to verify it gets copied
+      const testFilePath = path.join(originalResult.projectPath, 'src', 'Main.enso')
+      await fs.mkdir(path.dirname(testFilePath), { recursive: true })
+      await fs.writeFile(testFilePath, 'main = "Hello from original"')
+
+      // Duplicate the project
+      const duplicateResult = await projectService.duplicateProject(
+        originalResult.projectId,
+        projectsDirectory,
+      )
+
+      // Verify the duplicate result structure
+      expect(duplicateResult).toBeDefined()
+      expect(duplicateResult.projectId).toBeDefined()
+      expect(duplicateResult.projectName).toBe(`${originalName} (copy)`)
+      expect(duplicateResult.projectNormalizedName).toBe('OriginalProjectcopy')
+      expect(duplicateResult.projectPath).toBeDefined()
+
+      // Verify the duplicate has a different ID
+      expect(duplicateResult.projectId).not.toBe(originalResult.projectId)
+
+      // Verify the duplicate project exists
+      const duplicateExists = await fs
+        .access(duplicateResult.projectPath)
+        .then(() => true)
+        .catch(() => false)
+      expect(duplicateExists).toBe(true)
+
+      // Verify the content was copied
+      const duplicatedFilePath = path.join(duplicateResult.projectPath, 'src', 'Main.enso')
+      const duplicatedContent = await fs.readFile(duplicatedFilePath, 'utf-8')
+      expect(duplicatedContent).toBe('main = "Hello from original"')
+
+      // Verify duplicate metadata
+      const metadataPath = path.join(duplicateResult.projectPath, '.enso', 'project.json')
+      const metadataContent = await fs.readFile(metadataPath, 'utf-8')
+      const metadata = JSON.parse(metadataContent)
+      expect(metadata.id).toBe(duplicateResult.projectId)
+      expect(metadata.created).toBeDefined()
+      expect(metadata.lastOpened).oneOf([undefined, null])
+    })
+
+    test('should handle duplicate names when duplicating multiple times', async () => {
+      // Create an original project
+      const originalName = 'ProjectToDuplicateMultiple'
+      const originalResult = await projectService.createProject(originalName, projectsDirectory)
+
+      // First duplicate
+      const duplicate1 = await projectService.duplicateProject(
+        originalResult.projectId,
+        projectsDirectory,
+      )
+      expect(duplicate1.projectName).toBe(`${originalName} (copy)`)
+
+      // Second duplicate of the same original
+      const duplicate2 = await projectService.duplicateProject(
+        originalResult.projectId,
+        projectsDirectory,
+      )
+      expect(duplicate2.projectName).toBe(`${originalName} (copy)_1`)
+
+      // Third duplicate
+      const duplicate3 = await projectService.duplicateProject(
+        originalResult.projectId,
+        projectsDirectory,
+      )
+      expect(duplicate3.projectName).toBe(`${originalName} (copy)_2`)
+
+      // Verify all projects exist
+      const allExist = await Promise.all([
+        fs
+          .access(originalResult.projectPath)
+          .then(() => true)
+          .catch(() => false),
+        fs
+          .access(duplicate1.projectPath)
+          .then(() => true)
+          .catch(() => false),
+        fs
+          .access(duplicate2.projectPath)
+          .then(() => true)
+          .catch(() => false),
+        fs
+          .access(duplicate3.projectPath)
+          .then(() => true)
+          .catch(() => false),
+      ])
+      expect(allExist).toEqual([true, true, true, true])
+    })
+
+    test('should duplicate a project with special characters in name', async () => {
+      // Create a project with special characters
+      const originalName = 'Test Project #1 & More'
+      const originalResult = await projectService.createProject(originalName, projectsDirectory)
+
+      // Duplicate the project
+      const duplicateResult = await projectService.duplicateProject(
+        originalResult.projectId,
+        projectsDirectory,
+      )
+
+      expect(duplicateResult.projectName).toBe(`${originalName} (copy)`)
+
+      // Verify the duplicate exists
+      const duplicateExists = await fs
+        .access(duplicateResult.projectPath)
+        .then(() => true)
+        .catch(() => false)
+      expect(duplicateExists).toBe(true)
+    })
+
+    test('should fail when duplicating non-existent project', async () => {
+      const nonExistentId = crypto.randomUUID() as UUID
+
+      await expect(
+        projectService.duplicateProject(nonExistentId, projectsDirectory),
+      ).rejects.toThrow(`Project not found: ${nonExistentId}`)
+    })
+
+    test('should preserve project structure when duplicating', async () => {
+      // Create a project with a specific structure
+      const originalName = 'ProjectWithStructure'
+      const originalResult = await projectService.createProject(originalName, projectsDirectory)
+
+      // Add various files and directories to the original
+      const srcDir = path.join(originalResult.projectPath, 'src')
+      const testDir = path.join(originalResult.projectPath, 'test')
+      const configFile = path.join(originalResult.projectPath, 'config.yaml')
+
+      await fs.mkdir(srcDir, { recursive: true })
+      await fs.mkdir(testDir, { recursive: true })
+      await fs.writeFile(path.join(srcDir, 'Main.enso'), 'main = "Hello"')
+      await fs.writeFile(path.join(srcDir, 'Utils.enso'), 'util = "Utility"')
+      await fs.writeFile(path.join(testDir, 'Test.enso'), 'test = "Test"')
+      await fs.writeFile(configFile, 'setting: value')
+
+      // Duplicate the project
+      const duplicateResult = await projectService.duplicateProject(
+        originalResult.projectId,
+        projectsDirectory,
+      )
+
+      // Verify all files and directories were copied
+      const duplicateSrcMain = path.join(duplicateResult.projectPath, 'src', 'Main.enso')
+      const duplicateSrcUtils = path.join(duplicateResult.projectPath, 'src', 'Utils.enso')
+      const duplicateTest = path.join(duplicateResult.projectPath, 'test', 'Test.enso')
+      const duplicateConfig = path.join(duplicateResult.projectPath, 'config.yaml')
+
+      const [mainContent, utilsContent, testContent, configContent] = await Promise.all([
+        fs.readFile(duplicateSrcMain, 'utf-8'),
+        fs.readFile(duplicateSrcUtils, 'utf-8'),
+        fs.readFile(duplicateTest, 'utf-8'),
+        fs.readFile(duplicateConfig, 'utf-8'),
+      ])
+
+      expect(mainContent).toBe('main = "Hello"')
+      expect(utilsContent).toBe('util = "Utility"')
+      expect(testContent).toBe('test = "Test"')
+      expect(configContent).toBe('setting: value')
+    })
+
+    test('should generate new UUID and creation timestamp for duplicate', async () => {
+      // Create an original project
+      const originalResult = await projectService.createProject(
+        'ProjectForMetadataTest',
+        projectsDirectory,
+      )
+
+      // Read original metadata
+      const originalMetadataPath = path.join(originalResult.projectPath, '.enso', 'project.json')
+      const originalMetadataContent = await fs.readFile(originalMetadataPath, 'utf-8')
+      const originalMetadata = JSON.parse(originalMetadataContent)
+
+      // Duplicate the project
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      const beforeDuplicate = new Date()
+      const duplicateResult = await projectService.duplicateProject(
+        originalResult.projectId,
+        projectsDirectory,
+      )
+      const afterDuplicate = new Date()
+
+      // Read duplicate metadata
+      const duplicateMetadataPath = path.join(duplicateResult.projectPath, '.enso', 'project.json')
+      const duplicateMetadataContent = await fs.readFile(duplicateMetadataPath, 'utf-8')
+      const duplicateMetadata = JSON.parse(duplicateMetadataContent)
+
+      // Verify different UUID
+      expect(duplicateMetadata.id).not.toBe(originalMetadata.id)
+      expect(duplicateMetadata.id).toBe(duplicateResult.projectId)
+
+      // Verify new creation timestamp
+      expect(duplicateMetadata.created).not.toBe(originalMetadata.created)
+      const duplicateCreatedDate = new Date(duplicateMetadata.created)
+      expect(duplicateCreatedDate.getTime()).toBeGreaterThanOrEqual(beforeDuplicate.getTime())
+      expect(duplicateCreatedDate.getTime()).toBeLessThanOrEqual(afterDuplicate.getTime())
+
+      // Verify namespace is preserved
+      expect(duplicateMetadata.namespace).toBe(originalMetadata.namespace)
     })
   })
 })

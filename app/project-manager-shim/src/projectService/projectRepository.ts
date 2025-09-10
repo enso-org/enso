@@ -51,6 +51,7 @@ const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 
 interface PackageYaml {
   name?: string
+  normalizedName?: string
   namespace?: string
   edition?: string
   jvmModeEnabled?: boolean
@@ -165,9 +166,8 @@ export class ProjectFileRepository implements ProjectRepository {
   ): Promise<Project> {
     const normalizedName = nameValidation.normalizedName(newName)
     const targetPath = await this.findTargetPath(normalizedName)
-
-    await this.copyDirectory(project.path, targetPath)
-
+    // Copy directory
+    await fs.cp(project.path, targetPath, { recursive: true })
     // Update metadata
     const metadataPath = path.join(targetPath, PROJECT_METADATA_RELATIVE_PATH)
     const metadata: ProjectJson = {
@@ -178,7 +178,6 @@ export class ProjectFileRepository implements ProjectRepository {
     }
     await fs.mkdir(path.dirname(metadataPath), { recursive: true })
     await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
-
     // Update package name
     await this.renamePackage(targetPath, newName)
 
@@ -273,6 +272,7 @@ export class ProjectFileRepository implements ProjectRepository {
     const content = await fs.readFile(packagePath, 'utf-8')
     const pkg = yaml.parse(content) as PackageYaml
     pkg.name = newName
+    delete pkg.normalizedName
     await fs.writeFile(packagePath, yaml.stringify(pkg))
   }
 
@@ -288,22 +288,6 @@ export class ProjectFileRepository implements ProjectRepository {
         suffix += 1
       } catch {
         return Path(candidatePath)
-      }
-    }
-  }
-
-  private async copyDirectory(source: Path, destination: Path): Promise<void> {
-    await fs.mkdir(destination, { recursive: true })
-    const entries = await fs.readdir(source, { withFileTypes: true })
-
-    for (const entry of entries) {
-      const sourcePath = path.join(source, entry.name)
-      const destPath = path.join(destination, entry.name)
-
-      if (entry.isDirectory()) {
-        await this.copyDirectory(Path(sourcePath), Path(destPath))
-      } else {
-        await fs.copyFile(sourcePath, destPath)
       }
     }
   }

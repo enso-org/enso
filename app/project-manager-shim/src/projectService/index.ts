@@ -16,7 +16,12 @@ import {
   findEnsoExecutable,
 } from './ensoRunner.js'
 import * as nameValidation from './nameValidation.js'
-import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository.js'
+import {
+  type Project,
+  type ProjectMetadata,
+  type ProjectRepository,
+  ProjectFileRepository,
+} from './projectRepository.js'
 
 // ==================
 // === Data Types ===
@@ -58,6 +63,14 @@ export interface OpenProject {
   readonly projectName: string
   readonly projectNormalizedName: string
   readonly projectNamespace: string
+}
+
+/** The return value of the "duplicate project" endpoint. */
+export interface DuplicatedProject {
+  readonly projectId: UUID
+  readonly projectName: string
+  readonly projectPath: Path
+  readonly projectNormalizedName: string
 }
 
 // =======================
@@ -206,16 +219,44 @@ export class ProjectService {
     }
   }
 
+  /** Duplicates a project. */
+  async duplicateProject(projectId: UUID, projectsDirectory: Path): Promise<DuplicatedProject> {
+    this.logger.debug('Duplicating project', projectId)
+    const repo = this.getProjectRepository(projectsDirectory)
+    // Get the original project
+    const originalProject = await repo.findById(projectId)
+    if (!originalProject) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+    // Generate a suggested name for the duplicated project
+    const suggestedName = this.getNameForDuplicatedProject(originalProject.name)
+    // Get an available name (checking for conflicts)
+    const newName = await this.getNameForNewProject(suggestedName, repo)
+    // Validate the new name
+    await this.validateProjectName(newName)
+    // Create new metadata
+    const newProjectId = this.generateUUID()
+    const creationTime = toRfc3339(new Date())
+    const newMetadata: ProjectMetadata = {
+      id: newProjectId,
+      name: newName,
+      namespace: originalProject.namespace,
+      created: creationTime,
+    }
+    // Copy the project
+    const newProject = await repo.copyProject(originalProject, newName, newMetadata)
+    return {
+      projectId: newProject.id,
+      projectName: newProject.name,
+      projectNormalizedName: nameValidation.normalizedName(newProject.name),
+      projectPath: newProject.path,
+    }
+  }
+
   /** Renames a project. */
   async renameProject(_projectId: UUID, _newName: string, _projectsDirectory: Path): Promise<void> {
     // TODO: Implement renameProject
     throw new Error('renameProject not implemented yet')
-  }
-
-  /** Duplicates a project. */
-  async duplicateProject(_projectId: UUID, _projectsDirectory: Path): Promise<Project> {
-    // TODO: Implement duplicateUserProject
-    throw new Error('duplicateUserProject not implemented yet')
   }
 
   // ========================
@@ -263,5 +304,9 @@ export class ProjectService {
     if (exists) {
       throw new Error(`Project with name '${name}' already exists.`)
     }
+  }
+
+  private getNameForDuplicatedProject(projectName: string): string {
+    return `${projectName} (copy)`
   }
 }

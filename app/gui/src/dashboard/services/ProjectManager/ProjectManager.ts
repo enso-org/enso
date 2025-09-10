@@ -268,10 +268,14 @@ export class ProjectManager {
     params: WithProjectPath<DuplicateProjectParams>,
   ): Promise<DuplicatedProject> {
     const fullParams: DuplicateProjectParams = this.paramsWithPathToWithId(params)
-    const result = await this.sendRequest<Omit<DuplicatedProject, 'projectPath'>>(
-      'project/duplicate',
-      fullParams,
-    )
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const enableProjectService = useFeatureFlag('enableProjectService')
+    let result: Omit<DuplicatedProject, 'projectPath'>
+    if (enableProjectService.value) {
+      result = await this.runProjectServiceCommandJson('project/duplicate', fullParams)
+    } else {
+      result = await this.sendRequest('project/duplicate', fullParams)
+    }
     // Update `internalDirectories` by listing the project's parent directory, because the
     // directory name of the project is unknown. Deleting the directory is not an option because
     // that will prevent ALL descendants of the parent directory from being updated.
