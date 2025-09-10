@@ -550,8 +550,14 @@ impl Processor {
         .boxed()
     }
 
+    /// Add options to produce heap dumps on OOM errors.
+    /// It is essential to pass the `-XX:+HeapDumpOnOutOfMemoryError` option both via
+    /// `JAVA_TOOL_OPTIONS` env var and as a command line argument to the runner.
+    /// For explanation, see https://github.com/enso-org/enso/pull/13984
     fn add_heapdump_opts(&self, config: &mut enso_build::engine::BuildConfigurationFlags) {
-        config.add_java_tool_opt("-XX:+HeapDumpOnOutOfMemoryError");
+        let dump_arg = "-XX:+HeapDumpOnOutOfMemoryError";
+        config.add_java_tool_opt(dump_arg);
+        config.add_engine_runner_arg(dump_arg);
     }
 
     /// Get a handle to the release by its identifier.
