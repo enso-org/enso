@@ -8,11 +8,7 @@ import { pipeline } from 'node:stream/promises'
 import { extract } from 'tar'
 
 export interface Runner {
-  createProject(
-    path: Path,
-    name: string,
-    projectTemplate?: string,
-  ): Promise<void>
+  createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
 
   openProject(
     projectPath: Path,
@@ -42,11 +38,7 @@ export class EnsoRunner implements Runner {
   constructor(private ensoPath: Path) {}
 
   /** Creates a new Enso project at the specified path. */
-  async createProject(
-    projectPath: Path,
-    name: string,
-    projectTemplate?: string,
-  ): Promise<void> {
+  async createProject(projectPath: Path, name: string, projectTemplate?: string): Promise<void> {
     if (!this.ensoPath) {
       throw new Error('Enso executable not found')
     }
