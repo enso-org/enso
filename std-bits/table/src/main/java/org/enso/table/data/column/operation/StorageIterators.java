@@ -66,28 +66,26 @@ public class StorageIterators {
   }
 
   /**
-   * Iterates over every value of a source Storage, calling an operation for
-   * each step.
-   * Nothing values are skipped (use the override to control this).
+   * Iterates over every value of a source Storage, calling an operation for each step. Nothing
+   * values are skipped (use the override to control this).
+   *
    * @param source the source storage to read from and iterate over.
-   * @param operation a callback to process a single value. Return true to stop
-   *                  iteration early.
+   * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
-   * */
+   */
   public static <S> boolean forEachOverStorage(
       ColumnStorage<S> source, ForEachOperation<S> operation) {
     return forEachOverStorage(source, true, operation);
   }
 
   /**
-   * Iterates over every value of a source Storage, calling an operation for
-   * each step.
+   * Iterates over every value of a source Storage, calling an operation for each step.
+   *
    * @param source the source storage to read from and iterate over.
    * @param skipNothing if true, Nothing values are skipped.
-   * @param operation a callback to process a single value. Return true to stop
-   *                  iteration early.
+   * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
-   * */
+   */
   public static <S> boolean forEachOverStorage(
       ColumnStorage<S> source, boolean skipNothing, ForEachOperation<S> operation) {
     try (var progressReporter =
@@ -108,28 +106,26 @@ public class StorageIterators {
   }
 
   /**
-   * Iterates over every value of a source LongStorage, calling an operation for
-   * each step.
-   * Nothing values are skipped (use the override to control this).
+   * Iterates over every value of a source LongStorage, calling an operation for each step. Nothing
+   * values are skipped (use the override to control this).
+   *
    * @param source the source storage to read from and iterate over.
-   * @param operation a callback to process a single value. Return true to stop
-   *                  iteration early.
+   * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
-   * */
+   */
   public static boolean forEachOverLongStorage(
       ColumnLongStorage source, ForEachLongOperation operation) {
     return forEachOverLongStorage(source, true, operation);
   }
 
   /**
-   * Iterates over every value of a source LongStorage, calling an operation for
-   * each step.
+   * Iterates over every value of a source LongStorage, calling an operation for each step.
+   *
    * @param source the source storage to read from and iterate over.
    * @param skipNothing if true, Nothing values are skipped.
-   * @param operation a callback to process a single value. Return true to stop
-   *                  iteration early.
+   * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
-   * */
+   */
   public static boolean forEachOverLongStorage(
       ColumnLongStorage source, boolean skipNothing, ForEachLongOperation operation) {
     try (var progressReporter =
@@ -153,33 +149,32 @@ public class StorageIterators {
   }
 
   /**
-   * Iterates over every value of a source DoubleStorage, calling an operation
-   * for each step.
+   * Iterates over every value of a source DoubleStorage, calling an operation for each step.
    * Nothing values are skipped (use the override to control this).
+   *
    * @param source the source storage to read from and iterate over.
-   * @param operation a callback to process a single value. Return true to stop
-   *                  iteration early.
+   * @param operationLabel a label for the operation, used in progress reporting.
+   * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
-   * */
+   */
   public static boolean forEachOverDoubleStorage(
-      ColumnDoubleStorage source, ForEachDoubleOperation operation) {
-    return forEachOverDoubleStorage(source, true, operation);
+      ColumnDoubleStorage source, String operationLabel, ForEachDoubleOperation operation) {
+    return forEachOverDoubleStorage(source, true, operationLabel, operation);
   }
 
   /**
-   * Iterates over every value of a source DoubleStorage, calling an operation
-   * for each step.
+   * Iterates over every value of a source DoubleStorage, calling an operation for each step.
+   *
    * @param source the source storage to read from and iterate over.
    * @param skipNothing if true, Nothing values are skipped.
-   * @param operation a callback to process a single value. Return true to stop
-   *                  iteration early.
+   * @param operationLabel a label for the operation, used in progress reporting.
+   * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
-   * */
+   */
   public static boolean forEachOverDoubleStorage(
-      ColumnDoubleStorage source, boolean skipNothing, ForEachDoubleOperation operation) {
+      ColumnDoubleStorage source, boolean skipNothing, String operationLabel, ForEachDoubleOperation operation) {
     try (var progressReporter =
-        ProgressReporter.createWithStep(
-            "forEachOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
+        ProgressReporter.createWithStep(operationLabel, source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (!skipNothing && iterator.isNothing()) {
@@ -198,33 +193,35 @@ public class StorageIterators {
   }
 
   /**
-   * Iterates over every value of a source BooleanStorage, calling an operation
-   * for each step.
+   * Iterates over every value of a source BooleanStorage, calling an operation for each step.
    * Nothing values are skipped (use the override to control this).
+   *
    * @param source the source storage to read from and iterate over.
-   * @param operation a callback to process a single value. Return true to stop
-   *                  iteration early.
+   * @param operationLabel a label for the operation, used in progress reporting.
+   * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
-   * */
+   */
   public static boolean forEachOverBooleanStorage(
-      ColumnBooleanStorage source, ForEachBooleanOperation operation) {
-    return forEachOverBooleanStorage(source, true, operation);
+      ColumnBooleanStorage source, String operationLabel, ForEachBooleanOperation operation) {
+    return forEachOverBooleanStorage(source, true, operationLabel, operation);
   }
 
   /**
-   * Iterates over every value of a source BooleanStorage, calling an operation
-   * for each step.
+   * Iterates over every value of a source BooleanStorage, calling an operation for each step.
+   *
    * @param source the source storage to read from and iterate over.
    * @param skipNothing if true, Nothing values are skipped.
-   * @param operation a callback to process a single value. Return true to stop
-   *                  iteration early.
+   * @param operationLabel a label for the operation, used in progress reporting.
+   * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
-   * */
+   */
   public static boolean forEachOverBooleanStorage(
-      ColumnBooleanStorage source, boolean skipNothing, ForEachBooleanOperation operation) {
+      ColumnBooleanStorage source,
+      boolean skipNothing,
+      String operationLabel,
+      ForEachBooleanOperation operation) {
     try (var progressReporter =
-        ProgressReporter.createWithStep(
-            "forEachOverDoubleStorage", source.getSize(), PROGRESS_STEP)) {
+        ProgressReporter.createWithStep(operationLabel, source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (!skipNothing && iterator.isNothing()) {

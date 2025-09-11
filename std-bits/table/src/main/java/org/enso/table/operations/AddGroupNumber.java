@@ -277,6 +277,7 @@ public class AddGroupNumber {
     StorageIterators.forEachOverDoubleStorage(
         storage,
         true,
+        "addGroupNumber:standardDeviation",
         (idx, d, isNothing) -> {
           if (!isNothing) {
             accumulator.addValue(d);

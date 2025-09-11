@@ -120,8 +120,7 @@ public class CastOperation {
     // Build the min and max length of the text values in the column.
     var accumulator = new TextAccumulator();
     StorageIterators.forEachOverStorage(
-        textType.asTypedStorage(columnStorage),
-        (index, item) -> accumulator.accumulate(item));
+        textType.asTypedStorage(columnStorage), (index, item) -> accumulator.accumulate(item));
 
     // Everything is null or empty, so return the original type.
     if (accumulator.allNull() || accumulator.getMaxLength() == 0) {
@@ -250,6 +249,7 @@ public class CastOperation {
     var endedEarly =
         StorageIterators.forEachOverDoubleStorage(
             floatType.asTypedStorage(columnStorage),
+            "inferFloatType",
             (index, item, isNothing) -> {
               if (item % 1 != 0 || !IntegerType.INT_64.fits(item)) {
                 // If the value is not a whole number or does not fit in a long, we end early.
@@ -421,8 +421,7 @@ public class CastOperation {
     var accumulator = new PrecisionAccumulator();
     switch (storage.getType()) {
       case BigDecimalType bigDecimalType -> StorageIterators.forEachOverStorage(
-          bigDecimalType.asTypedStorage(storage),
-          (index, item) -> accumulator.accumulate(item));
+          bigDecimalType.asTypedStorage(storage), (index, item) -> accumulator.accumulate(item));
       case BigIntegerType bigIntegerType -> StorageIterators.forEachOverStorage(
           bigIntegerType.asTypedStorage(storage),
           (index, item) -> accumulator.accumulate(new BigDecimal(item)));
