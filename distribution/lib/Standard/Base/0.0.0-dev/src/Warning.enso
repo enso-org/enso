@@ -357,3 +357,46 @@ map_attached_warnings_helper mapper value frames_to_drop =
                original (unwrapped) warning instance.
             Nothing -> warning
     Warning.set value mapped_warnings
+
+
+## ---
+   group: Errors
+   icon: metadata
+   ---
+   Checks if any warnings (either all or of a specified type) are attached to
+   the value.
+
+   ## Arguments
+    - `warning_type`: The type to check if attached to the value. Defaults to
+      any warning.
+Any.has_warnings self warning_type=Any =
+    _ = warning_type
+    False
+
+## ---
+   group: Errors
+   icon: warning
+   ---
+   Remove the warnings (either all or of a specified type) attached to the
+   value.
+
+   ## Arguments
+    - `warning_type`: The type to remove if attached to the value. Defaults
+      to all warnings.
+Any.remove_warnings self warning_type=Any =
+    _ = warning_type
+    self
+
+## ---
+   group: Errors
+   icon: error
+   ---
+   Throws the first matching warning (either all or of a specified type) as a
+   data flow error.
+
+   ## Arguments
+    - `warning_type`: The type to throw if attached to the value. Defaults to
+      all warnings.
+Any.throw_on_warning self warning_type=Any =
+    _ = warning_type
+    self

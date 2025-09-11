@@ -1,5 +1,11 @@
 # Next Next Release
 
+#### Enso IDE
+
+- [Fix mouse interactions with JSON visualization][13971]
+
+[13971]: https://github.com/enso-org/enso/pull/13971
+
 #### Enso Language & Runtime
 
 - [Register and `lookup_services` in package.yaml][11868]

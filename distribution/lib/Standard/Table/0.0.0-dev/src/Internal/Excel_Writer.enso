@@ -16,7 +16,6 @@ from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch, Existing
 
 polyglot java import java.io.File as Java_File
 polyglot java import java.lang.IllegalStateException
-polyglot java import org.apache.poi.ss.usermodel.Workbook
 polyglot java import org.enso.base.DryRunFileManager
 polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.InvalidLocationException
@@ -25,6 +24,7 @@ polyglot java import org.enso.table.excel.ExcelConnectionPool
 polyglot java import org.enso.table.excel.ExcelConnectionPool.ConnectionRecord
 polyglot java import org.enso.table.excel.ExcelConnectionPool.WriteHelper
 polyglot java import org.enso.table.excel.ExcelFileFormat
+polyglot java import org.enso.table.excel.ExcelWorkbook
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
 polyglot java import org.enso.table.write.ExistingDataMode
@@ -132,7 +132,7 @@ find_bak_file base_file =
 ## ---
    private: true
    ---
-prepare_file_modification_strategy : Table -> Excel_Section -> Existing_File_Behavior -> Match_Columns -> (Workbook -> Nothing)
+prepare_file_modification_strategy : Table -> Excel_Section -> Existing_File_Behavior -> Match_Columns -> (ExcelWorkbook -> Nothing)
 prepare_file_modification_strategy table section on_existing_file match_columns =
     existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
     case section of
