@@ -155,11 +155,15 @@ jobs:
         id: compile
         run: pnpm run compile
 
+      - name: 📥 Download Enso Engine
+        working-directory: app/project-manager-shim
+        run: pnpm run download-engine
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: 🎭 Playwright Tests
         working-directory: app/gui
         run: pnpm run test:integration --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: ⬆️ Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}
