@@ -730,6 +730,9 @@ importers:
       electron-builder:
         specifier: ^24.13.3
         version: 24.13.3(electron-builder-squirrel-windows@24.13.3)
+      electron-builder-sandbox-fix:
+        specifier: ^1.1.1
+        version: 1.1.1
       enso-gui:
         specifier: workspace:*
         version: link:../../gui
@@ -4612,6 +4615,9 @@ packages:
     resolution: {integrity: sha512-UeJmFfOrAQS8OJWPZ4qtgHyWExa088/MtK5UEyoJGFH67cDEXkZSviOiKRCZ4Xij0zxI3JECgYs3oKx+AizQBA==}
     engines: {node: '>=0.10.0'}
     hasBin: true
+
+  electron-builder-sandbox-fix@1.1.1:
+    resolution: {integrity: sha512-+gSiLZ7KZDRr3ATm89eud96QwURauUXMzB2lbzZffkAYMC4yyF2fqq0W2xoTg38eDVFCJThcoyW1p8Ph/unxoA==}
 
   electron-builder-squirrel-windows@24.13.3:
     resolution: {integrity: sha512-oHkV0iogWfyK+ah9ZIvMDpei1m9ZRpdXcvde1wTpra2U8AFDNNpqJdnin5z+PM1GbQ5BoaKCWas2HSjtR0HwMg==}
@@ -12750,6 +12756,10 @@ snapshots:
   ejs@3.1.10:
     dependencies:
       jake: 10.9.2
+
+  electron-builder-sandbox-fix@1.1.1:
+    dependencies:
+      chalk: 4.1.2
 
   electron-builder-squirrel-windows@24.13.3(dmg-builder@24.13.3):
     dependencies:

@@ -17,6 +17,7 @@ import yargs from 'yargs'
 
 import * as common from 'enso-common'
 
+import sandboxFixHook from 'electron-builder-sandbox-fix'
 import * as fileAssociations from './fileAssociations'
 import * as paths from './paths'
 import computeHashes from './tasks/computeHashes'
@@ -292,7 +293,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
       sign: false,
     },
     afterAllArtifactBuild: computeHashes,
-    afterPack: (context: electronBuilder.AfterPackContext) => {
+    afterPack: async (context: electronBuilder.AfterPackContext) => {
+      await sandboxFixHook(context)
       if (passedArgs.platform === electronBuilder.Platform.MAC) {
         // Make the subtree writable, so we can sign the binaries.
         // This is needed because GraalVM distribution comes with read-only binaries.

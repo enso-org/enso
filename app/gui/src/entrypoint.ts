@@ -6,6 +6,7 @@ import App from '$/App.vue'
 import router from '$/router'
 import { widgetDevtools } from '@/providers/widgetRegistry/devtools'
 import * as sentry from '@sentry/vue'
+import { Vue } from '@sentry/vue/types/types'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import * as detect from 'enso-common/src/detect'
 import { createQueryClient } from 'enso-common/src/queryClient'
@@ -22,12 +23,12 @@ const INITIAL_URL_KEY = `Enso-initial-url`
 markRaw(HttpClient.prototype)
 
 async function main() {
-  setupSentry()
   const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = createQueryClientOfPersistCache()
   const rootDirPath = await getRootDirPath()
 
   const app = createApp(App)
+  setupSentry(app)
   app.use(VueQueryPlugin, { queryClient, enableDevtoolsV6Plugin: true })
   app.use(router)
   app.use(widgetDevtools)
@@ -36,7 +37,7 @@ async function main() {
   app.mount('#enso-app')
 }
 
-function setupSentry() {
+function setupSentry(app: Vue) {
   if (!detect.IS_DEV_MODE && $config.SENTRY_DSN && $config.API_URL != null) {
     sentry.init({
       dsn: $config.SENTRY_DSN,
@@ -48,6 +49,7 @@ function setupSentry() {
         sentry.replayIntegration(),
         new sentry.BrowserProfilingIntegration(),
       ],
+      app,
       profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,
       tracePropagationTargets: [$config.API_URL.split('//')[1] ?? ''],
