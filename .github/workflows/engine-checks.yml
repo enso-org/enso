@@ -480,7 +480,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dumps (linux, amd64)
+          name: Heap dumps (Standard Library Native Tests, linux, amd64)
           path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -564,7 +564,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dumps (windows, amd64)
+          name: Heap dumps (Standard Library Native Tests, windows, amd64)
           path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -648,7 +648,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dumps (linux, amd64)
+          name: Heap dumps (Standard Library JVM Tests, linux, amd64)
           path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -732,7 +732,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dumps (windows, amd64)
+          name: Heap dumps (Standard Library JVM Tests, windows, amd64)
           path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -816,7 +816,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dumps (linux, amd64)
+          name: Heap dumps (Standard Library Microsoft Tests, linux, amd64)
           path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -900,7 +900,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           if-no-files-found: ignore
-          name: Heap dumps (windows, amd64)
+          name: Heap dumps (Standard Library Microsoft Tests, windows, amd64)
           path: "**/*.hprof"
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
