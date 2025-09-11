@@ -1100,9 +1100,9 @@ pub fn to_ast(token: Token) -> Tree {
         token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
         token::Variant::SuspendedDefaultArguments(t) => Tree::suspended_default_arguments(token.with_variant(t)),
         token::Variant::OpenSymbol(s) =>
-            Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
+            Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter."),
         token::Variant::CloseSymbol(s) =>
-            Tree::group(default(), default(), Some(token.with_variant(s))).with_error("Unmatched delimiter"),
+            Tree::group(default(), default(), Some(token.with_variant(s))).with_error("Unmatched delimiter."),
         // These should be unreachable: They are handled when assembling items into blocks,
         // before parsing proper.
         token::Variant::Newline(_)
