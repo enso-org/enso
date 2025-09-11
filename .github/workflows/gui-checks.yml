@@ -89,6 +89,17 @@ jobs:
           fail-on-error: false
           fail-on-warning: false
 
+      - name: 📥 Download Enso Engine
+        continue-on-error: true
+        working-directory: app/project-manager-shim
+        run: |
+          pnpm run download-engine | tee /tmp/download-engine-output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          grep "^ENSO_RUNNER_PATH=" /tmp/download-engine-output.txt >> $GITHUB_ENV
+          exit $EXIT_CODE
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: 🧪 Unit Tests
         id: unit-tests
         continue-on-error: true
@@ -154,16 +165,6 @@ jobs:
       - name: ⚙️ Compile
         id: compile
         run: pnpm run compile
-
-      - name: 📥 Download Enso Engine
-        working-directory: app/project-manager-shim
-        run: |
-          pnpm run download-engine | tee /tmp/download-engine-output.txt
-          EXIT_CODE=${PIPESTATUS[0]}
-          grep "^ENSO_RUNNER_PATH=" /tmp/download-engine-output.txt >> $GITHUB_ENV
-          exit $EXIT_CODE
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🎭 Playwright Tests
         working-directory: app/gui
