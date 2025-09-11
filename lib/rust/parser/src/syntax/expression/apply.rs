@@ -6,6 +6,7 @@ use crate::syntax::expression::section::MaybeSection;
 use crate::syntax::maybe_with_error;
 use crate::syntax::token;
 use crate::syntax::token::TokenOperatorProperties;
+use crate::syntax::SyntaxError;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
@@ -113,7 +114,7 @@ impl<'s> ApplyOperator<'s> {
 pub struct ApplyUnaryOperator<'s> {
     token:    token::UnaryOperator<'s>,
     rhs:      Option<MaybeSection<Tree<'s>>>,
-    error:    Option<Cow<'static, str>>,
+    error:    Option<SyntaxError>,
     warnings: Option<Warnings>,
 }
 
@@ -126,7 +127,7 @@ impl<'s> ApplyUnaryOperator<'s> {
         Self { rhs, ..self }
     }
 
-    pub fn with_error(self, error: Option<Cow<'static, str>>) -> Self {
+    pub fn with_error(self, error: Option<SyntaxError>) -> Self {
         Self { error, ..self }
     }
 
@@ -141,7 +142,7 @@ impl<'s> ApplyUnaryOperator<'s> {
                 Some(rhs) => Tree::unary_opr_app(token, Some(rhs)),
                 None =>
                     Tree::opr_app(None, Ok(token.with_variant(token::variant::Operator())), None)
-                        .with_error("Operator must be applied to an operand."),
+                        .with_error(SyntaxError::SyntacticOperatorMissingOperandUnary),
             };
             if let Some(warnings) = warnings {
                 warnings.apply(&mut tree);
