@@ -157,7 +157,11 @@ jobs:
 
       - name: 📥 Download Enso Engine
         working-directory: app/project-manager-shim
-        run: pnpm run download-engine
+        run: |
+          pnpm run download-engine | tee /tmp/download-engine-output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          grep "^ENSO_RUNNER_PATH=" /tmp/download-engine-output.txt >> $GITHUB_ENV
+          exit $EXIT_CODE
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
