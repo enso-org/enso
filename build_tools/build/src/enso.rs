@@ -127,11 +127,10 @@ impl BuiltEnso {
             command.args(args);
         }
         let mut java_tool_opts: Vec<String> = vec![];
+        let enable_asserts_opt: &str = ide_ci::programs::java::Option::EnableAssertions.as_ref();
         // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
         // failed on Graal/Truffle assertions, so we want to have them triggered.
-        java_tool_opts.push(
-            <&str>::from(ide_ci::programs::java::Option::EnableAssertions.as_ref()).to_string(),
-        );
+        java_tool_opts.push(enable_asserts_opt.to_string());
         if let Some(opts) = extra_java_tool_opts {
             java_tool_opts.extend(opts);
         }
