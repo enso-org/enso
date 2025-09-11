@@ -524,6 +524,15 @@ download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (r
                 False ->
                     response.write file
 
+
+@uris (Vector_Editor item_editor=Text_Input item_default='""' display=..Always)
+@method HTTP_Method.default_fetch_widget
+@format Data_Read_Helpers.format_widget_with_raw_response
+@headers Header.default_widget
+fetch_many : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Cache_Policy -> Any ! Request_Error | HTTP_Error
+fetch_many (uris:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) (cache_policy:Cache_Policy = ..Default) =
+    Nothing
+
 ## If the `format` is set to `Raw_Response`, a raw HTTP `Response` is returned
    that can be then processed further manually.
 type Raw_Response
