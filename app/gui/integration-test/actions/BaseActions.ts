@@ -23,7 +23,20 @@ export interface LocatorCallback<Context> {
 
 export interface BaseActionsClass<Context, Args extends readonly unknown[] = []> {
   // The return type should be `InstanceType<this>`, but that results in a circular reference error.
-  new (page: Page, context: Context, promise: Promise<void>, ...args: Args): any
+  new (page: Page, context: Context, deferred: Deferred, ...args: Args): any
+}
+
+interface Deferred {
+  promise: Promise<void>
+  resolve: () => void
+}
+
+function makeDeferred(): Deferred {
+  let _resolve: () => void
+  const promise = new Promise<void>((resolve) => {
+    _resolve = resolve
+  })
+  return { promise, resolve: _resolve! }
 }
 
 /**
@@ -33,16 +46,21 @@ export interface BaseActionsClass<Context, Args extends readonly unknown[] = []>
  *
  * [`thenable`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
  */
-export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never>
-  implements Promise<void>
-{
+export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never> {
+  // private readonly promise: Promise<void>
+  private readonly promise: Promise<void>
+  private readonly deferredResolve: () => void
+
   /** Create a {@link BaseActions}. */
   constructor(
     protected readonly page: Page,
     protected readonly context: Context,
-    private readonly promise = Promise.resolve(),
+    private readonly deferred = makeDeferred(),
     private readonly parentClass: ParentClass = null!,
-  ) {}
+  ) {
+    this.promise = deferred.promise
+    this.deferredResolve = deferred.resolve
+  }
 
   /**
    * Get the string name of the class of this instance. Required for this class to implement
@@ -90,11 +108,16 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
     )
   }
 
-  /** Proxies the `then` method of the internal {@link Promise}. */
+  // finish(): Promise<void> {
+  //   return this.promise
+  // }
+
+  /** Proxies the `then` method of the internal {@link Promise}. Called on first `await` point. */
   async then<T, E>(
     onfulfilled?: (() => PromiseLike<T> | T) | null | undefined,
     onrejected?: ((reason: unknown) => E | PromiseLike<E>) | null | undefined,
   ) {
+    this.deferredResolve()
     return await this.promise.then(onfulfilled, onrejected)
   }
 
@@ -104,6 +127,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
    * to treat this class as a {@link Promise}.
    */
   async catch<T>(onrejected?: ((reason: unknown) => PromiseLike<T> | T) | null | undefined) {
+    this.deferredResolve()
     return await this.promise.catch(onrejected)
   }
 
@@ -113,6 +137,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
    * to treat this class as a {@link Promise}.
    */
   async finally(onfinally?: (() => void) | null | undefined): Promise<void> {
+    this.deferredResolve()
     await this.promise.finally(onfinally)
   }
 
@@ -126,12 +151,17 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
     T extends new (
       page: Page,
       context: Context,
-      promise: Promise<void>,
+      deferred: Deferred,
       ...args: Args
     ) => InstanceType<T>,
     Args extends readonly unknown[],
   >(clazz: T, ...args: Args): InstanceType<T> {
-    return new clazz(this.page, this.context, this.promise, ...args)
+    return new clazz(
+      this.page,
+      this.context,
+      { promise: this.promise, resolve: this.deferredResolve },
+      ...args,
+    )
   }
 
   /**
@@ -142,11 +172,10 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
   do(callback: PageCallback<Context, this>): this {
     // @ts-expect-error This is SAFE, but only when the constructor of this class has the exact
     // same parameters as `BaseActions`.
-    return new this.constructor(
-      this.page,
-      this.context,
-      this.then(() => callback(this.page, this.context, this)),
-    )
+    return new this.constructor(this.page, this.context, {
+      promise: this.promise.then(() => callback(this.page, this.context, this)),
+      resolve: this.deferredResolve,
+    })
   }
 
   /** Perform an action. */

@@ -24,8 +24,10 @@ export const test = base.extend<{
     // Only make sure that API mocks are registered, do not actually use the values
     const _ = { cloudApi, localApi }
     await registerMocks(page)
-    await page.goto('/')
-    const loginPage = new LoginPageActions(page, {})
+
+    const loginPage = new LoginPageActions(page, {}).do(async () => {
+      await page.goto('/')
+    })
     return use(loginPage)
   },
   drivePage: ({ loginPage }, use) => use(loginPage.loginIfNeeded()),
