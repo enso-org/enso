@@ -1,10 +1,27 @@
+---
+layout: developer-doc
+title: Dual JVM mode
+category: infrastructure
+tags: [infrastructure, build, native, native-image, dual-jvm]
+order: 4
+---
+
 # Dual JVM Mode
 
-## Introduction
-
-Dual JVM mode allows Enso to run both native-compiled code and JVM bytecode in
+_Dual JVM mode_ allows Enso to run both native-compiled code and JVM bytecode in
 the same process. This enables fast startup and efficient execution of libraries
 that require the JVM.
+
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
+
+- [Terminology](#terminology)
+- [How It Works](#how-it-works)
+- [Motivation](#motivation)
+- [When Is Dual JVM Mode Used?](#when-is-dual-jvm-mode-used)
+- [References](#references)
+- [Related Work](#related-work)
+
+<!-- /MarkdownTOC -->
 
 ## Terminology
 

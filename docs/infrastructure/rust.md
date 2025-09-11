@@ -3,7 +3,7 @@ layout: developer-doc
 title: Rust
 category: infrastructure
 tags: [infrastructure, build, rust]
-order: 4
+order: 5
 ---
 
 # Rust
