@@ -3851,8 +3851,9 @@ lazy val `engine-runner` = project
           "org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature"
         ) ++ (if (areStdlibsIncluded) Seq(databaseFeature, azureFeature)
               else Seq())
+        // heapdump monitoring is not supported on Windows
         val enableHeapDumpOpts =
-          if (!GraalVM.EnsoLauncher.release)
+          if (!GraalVM.EnsoLauncher.release && !Platform.isWindows)
             Seq(
               "--enable-monitoring=heapdump"
             )

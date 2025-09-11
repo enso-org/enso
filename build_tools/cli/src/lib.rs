@@ -557,7 +557,10 @@ impl Processor {
     fn add_heapdump_opts(&self, config: &mut enso_build::engine::BuildConfigurationFlags) {
         let dump_arg = "-XX:+HeapDumpOnOutOfMemoryError";
         config.add_java_tool_opt(dump_arg);
-        config.add_engine_runner_arg(dump_arg);
+        if TARGET_OS != OS::Windows {
+            // This flag is not supported on Windows NI.
+            config.add_engine_runner_arg(dump_arg);
+        }
     }
 
     /// Get a handle to the release by its identifier.
