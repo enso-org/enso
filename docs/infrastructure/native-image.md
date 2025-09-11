@@ -364,3 +364,8 @@ Also note that the output of the aforementioned command will be different based
 on how the native image was built. For example, if it was built with
 `--enable-monitoring=heapdump`, the `Debug` section will contain help for
 `HeapDumpOnOutOfMemoryError` flag.
+
+In context of [Dual JVM mode](dual_jvm.md):
+
+- `JAVA_TOOL_OPTIONS` env var is only handled by HotSpot VM.
+  - Substrate VM ignores this env var.

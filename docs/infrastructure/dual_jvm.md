@@ -27,14 +27,15 @@ that require the JVM.
 - Native compilation can make executables very large and slow to build.
 - Maintaining NI configuration is complex, especially for third-party libraries.
 - Fast startup is important, so NI is the entry point.
-- Some components must run as JVM bytecode.
-- Running JVM code in a separate process is not efficient.
+- Some components will only be compiled to the JVM bytecode.
+- Executing JVM bytecode in a separate process is not efficient.
 
 ## When Is Dual JVM Mode Used?
 
-- When the `--jvm` option is passed to the engine runner, NI delegates execution
-  to the HotSpot VM.
-- When a library that is not NI-friendly (contains JAR files) is loaded.
+- When the `--jvm` option is passed to the engine runner, NI immediately
+  delegates execution to the HotSpot VM.
+  - This is called **JVM mode**.
+- When a library that is not NI-ready (contains JAR files) is loaded.
 - A library can require JVM mode by setting `jvm: true` in its descriptor.
 
 ## References
