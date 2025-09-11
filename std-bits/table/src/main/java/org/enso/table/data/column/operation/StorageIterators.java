@@ -70,12 +70,13 @@ public class StorageIterators {
    * values are skipped (use the override to control this).
    *
    * @param source the source storage to read from and iterate over.
+   * @param operationLabel a label for the operation, used in progress reporting.
    * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
    */
   public static <S> boolean forEachOverStorage(
-      ColumnStorage<S> source, ForEachOperation<S> operation) {
-    return forEachOverStorage(source, true, operation);
+      ColumnStorage<S> source, String operationLabel, ForEachOperation<S> operation) {
+    return forEachOverStorage(source, true, operationLabel, operation);
   }
 
   /**
@@ -83,14 +84,17 @@ public class StorageIterators {
    *
    * @param source the source storage to read from and iterate over.
    * @param skipNothing if true, Nothing values are skipped.
+   * @param operationLabel a label for the operation, used in progress reporting.
    * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
    */
   public static <S> boolean forEachOverStorage(
-      ColumnStorage<S> source, boolean skipNothing, ForEachOperation<S> operation) {
+      ColumnStorage<S> source,
+      boolean skipNothing,
+      String operationLabel,
+      ForEachOperation<S> operation) {
     try (var progressReporter =
-        ProgressReporter.createWithStep(
-            "buildObjectOverStorage", source.getSize(), PROGRESS_STEP)) {
+        ProgressReporter.createWithStep(operationLabel, source.getSize(), PROGRESS_STEP)) {
       long idx = 0;
       for (S item : source) {
         if (!skipNothing || item != null) {
@@ -110,12 +114,13 @@ public class StorageIterators {
    * values are skipped (use the override to control this).
    *
    * @param source the source storage to read from and iterate over.
+   * @param operationLabel a label for the operation, used in progress reporting.
    * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
    */
   public static boolean forEachOverLongStorage(
-      ColumnLongStorage source, ForEachLongOperation operation) {
-    return forEachOverLongStorage(source, true, operation);
+      ColumnLongStorage source, String operationLabel, ForEachLongOperation operation) {
+    return forEachOverLongStorage(source, true, operationLabel, operation);
   }
 
   /**
@@ -123,14 +128,17 @@ public class StorageIterators {
    *
    * @param source the source storage to read from and iterate over.
    * @param skipNothing if true, Nothing values are skipped.
+   * @param operationLabel a label for the operation, used in progress reporting.
    * @param operation a callback to process a single value. Return true to stop iteration early.
    * @return True if the operation returned true at any point, false otherwise.
    */
   public static boolean forEachOverLongStorage(
-      ColumnLongStorage source, boolean skipNothing, ForEachLongOperation operation) {
+      ColumnLongStorage source,
+      boolean skipNothing,
+      String operationLabel,
+      ForEachLongOperation operation) {
     try (var progressReporter =
-        ProgressReporter.createWithStep(
-            "forEachOverLongStorage", source.getSize(), PROGRESS_STEP)) {
+        ProgressReporter.createWithStep(operationLabel, source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
       while (iterator.moveNext()) {
         if (!skipNothing && iterator.isNothing()) {
@@ -172,7 +180,10 @@ public class StorageIterators {
    * @return True if the operation returned true at any point, false otherwise.
    */
   public static boolean forEachOverDoubleStorage(
-      ColumnDoubleStorage source, boolean skipNothing, String operationLabel, ForEachDoubleOperation operation) {
+      ColumnDoubleStorage source,
+      boolean skipNothing,
+      String operationLabel,
+      ForEachDoubleOperation operation) {
     try (var progressReporter =
         ProgressReporter.createWithStep(operationLabel, source.getSize(), PROGRESS_STEP)) {
       var iterator = source.iteratorWithIndex();
