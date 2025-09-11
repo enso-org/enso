@@ -309,8 +309,6 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
         .getQueryCache()
         .getAll()
         .map((query) => {
-          const data = query.state.data
-
           let data = query.state.data
           // Some queries store assets in infinite queries
           if (
