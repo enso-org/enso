@@ -18,6 +18,10 @@ public record FramePointer(int parentLevel, int frameSlotIdx, UUID externalId)
     assert frameSlotIdx >= 0;
   }
 
+  public FramePointer(int parentLevel, int frameSlotIdx) {
+    this(parentLevel, frameSlotIdx, null);
+  }
+
   @Override
   public String metadataName() {
     return getClass().getSimpleName();

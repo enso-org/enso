@@ -103,6 +103,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       private final long elapsedTime;
       private final MaterializedFrame materializedFrame;
       private final EnsoRootNode ensoRootNode;
+      private final boolean needsParentInfoUpdate;
 
       /**
        * Create a {@link NodeInfo} for the entered node.
@@ -118,6 +119,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         this.elapsedTime = -1;
         this.materializedFrame = materializedFrame;
         this.ensoRootNode = (EnsoRootNode) node.getRootNode();
+        this.needsParentInfoUpdate = !(node instanceof FunctionCallInstrumentationNode);
       }
 
       /**
@@ -141,7 +143,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         this.result = result;
         this.elapsedTime = elapsedTime;
         this.materializedFrame = materializedFrame;
+
         this.ensoRootNode = (EnsoRootNode) node.getRootNode();
+        this.needsParentInfoUpdate = !(node instanceof FunctionCallInstrumentationNode);
       }
 
       @Override
@@ -171,6 +175,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                 materializedFrame, ensoRootNode.getLocalScope(), ensoRootNode.getModuleScope());
 
         return evalNode.execute(callerInfo, Text.create(code));
+      }
+
+      @Override
+      public boolean shouldUpdateParentInfo() {
+        return needsParentInfoUpdate;
       }
 
       private static UUID getNodeId(Node node) {
@@ -216,7 +225,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           throw context.createUnwind(result);
         }
         EnsoContext.get(this).currentRuntimeAnalysis().enterNode(info.getId());
-        setParentNode(info);
+        if (info.shouldUpdateParentInfo()) {
+          setParentNode(info);
+        }
         setExecutionEnvironment(info);
         nanoTimeElapsed = timer.getTime();
       }
@@ -235,7 +246,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           return;
         }
         Node node = context.getInstrumentedNode();
-        restoreParentNode(node);
         var uuid = NodeInfo.getNodeId(node);
 
         if (node instanceof FunctionCallInstrumentationNode functionCallInstrumentationNode
@@ -249,6 +259,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   node);
           Object cachedResult = callbacks.onFunctionReturn(info);
           resetExecutionEnvironment(uuid);
+          EnsoContext.get(this).currentRuntimeAnalysis().exitNode(uuid);
           if (cachedResult != null) {
             throw context.createUnwind(cachedResult);
           }
@@ -261,12 +272,14 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   nanoTimeElapsed,
                   frame == null ? null : frame.materialize(),
                   node);
+          restoreParentNode(node);
           callbacks.updateCachedResult(info);
           resetExecutionEnvironment(uuid);
           if (info.isPanic()) {
             throw context.createUnwind(result);
           }
         } else {
+          restoreParentNode(node);
           resetExecutionEnvironment(uuid);
         }
       }

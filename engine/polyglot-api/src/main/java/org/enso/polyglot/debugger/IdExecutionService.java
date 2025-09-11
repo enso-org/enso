@@ -40,6 +40,8 @@ public interface IdExecutionService {
      * @return result of the evaluation.
      */
     public abstract Object eval(String code);
+
+    public abstract boolean shouldUpdateParentInfo();
   }
 
   public interface Callbacks {

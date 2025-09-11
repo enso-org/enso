@@ -108,7 +108,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       }
     }
 
-    return result;
+    return null; // Needs to return `null` for the `nextExecutionItem` to be correctly registered
   }
 
   @CompilerDirectives.TruffleBoundary

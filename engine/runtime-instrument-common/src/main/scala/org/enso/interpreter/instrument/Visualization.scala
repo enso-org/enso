@@ -13,7 +13,12 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   * @param id the unique identifier of visualization
   * @param expressionId the identifier of expression that the visualization is
   *                     attached to
+  * @param cache
+  * @param module
+  * @param config
+  * @param visualizationExpressionId
   * @param callback the callable expression used to generate visualization data
+  * @param arguments
   */
 case class Visualization(
   id: VisualizationId,
