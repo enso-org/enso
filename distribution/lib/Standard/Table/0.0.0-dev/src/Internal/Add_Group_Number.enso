@@ -38,6 +38,11 @@ add_group_number (table:Table) (grouping_method:Grouping_Method) (name:Text) (fr
                     ordering = _prepare_ordering table problem_builder order_by
                     result = AddGroupNumber.numberGroupsEqualSum table.row_count on_column.java_column group_count from step (ordering.at 0) (ordering.at 1) java_problem_aggregator
                     [result.storage, _warn_on_fewer_groups group_count result.actualGroupCount]
+            Grouping_Method.Standard_Deviation on population ->
+                Illegal_Argument.handle_java_exception <| _require_default_scale from step <|
+                    on_column = _column_must_exist on <| table.get on
+                    result = AddGroupNumber.numberGroupsStandardDeviation table.row_count on_column.java_column population java_problem_aggregator
+                    [result, identity]
 
         new_storage = new_storage_pair.at 0
         warning_adder = new_storage_pair.at 1
@@ -81,3 +86,6 @@ _warn_on_fewer_groups expected_group_count actual_group_count column =
     if actual_group_count >= expected_group_count then column else
         warning = Not_Enough_Groups.Error expected_group_count actual_group_count
         Warning.attach warning column
+
+_require_default_scale from step ~cont =
+    if from != 0 || step != 1 then Warning.attach (Illegal_Argument.Error "'from' and 'step' parameters are not supported when using Standard_Deviation grouping method. They must be left to their default values of 0 and 1 (repsectively).") cont else cont

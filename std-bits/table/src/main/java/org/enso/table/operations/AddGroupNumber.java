@@ -3,8 +3,12 @@ package org.enso.table.operations;
 import java.util.function.BiFunction;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
+import org.enso.table.data.column.operation.NumericColumnAdapter;
+import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Row;
 import org.enso.table.data.table.Table;
@@ -150,7 +154,6 @@ public class AddGroupNumber {
     private final BuilderForLong builder;
     private final ColumnAggregatedProblemAggregator innerAggregator;
 
-    private final double columnTotal;
     private double currentGroupSubtotal = 0.0;
     private long currentGroupIndex = 0;
     private long highestGroupIndex = 0;
@@ -167,7 +170,7 @@ public class AddGroupNumber {
       this.sumColumn = sumColumn;
       this.builder = Builder.getForLong(IntegerType.INT_64, totalCount, problemAggregator);
 
-      columnTotal = sum();
+      var columnTotal = sum();
       targetGroupSum = columnTotal / numgroups;
 
       innerAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
@@ -223,6 +226,107 @@ public class AddGroupNumber {
       }
       return total;
     }
+  }
+
+  private static final int STANDARD_DEVIATION_GROUP_COUNT = 5;
+  private static final String[] STANDARD_DEVIATION_GROUP_LABELS = {
+    "Low (-2.5 to -1.5 sd)",
+    "Below Average (-1.5 to -0.5 sd)",
+    "Average (-0.5 to 0.5 sd)",
+    "Above Average (0.5 to 1.5 sd)",
+    "High (1.5 to 2.5 sd)"
+  };
+
+  private record StdDevResult(double mean, double stddev) {}
+
+  private static class StdDevAccumulator {
+    public long count = 0;
+    public double sumValues = 0.0;
+    public double sumSquares = 0.0;
+
+    public void addValue(double value) {
+      sumValues += value;
+      sumSquares += value * value;
+      count++;
+    }
+  }
+
+  public static ColumnStorage<?> numberGroupsStandardDeviation(
+      long numRows, Column column, boolean population, ProblemAggregator problemAggregator) {
+    var storage =
+        (ColumnDoubleStorage)
+            NumericColumnAdapter.DoubleColumnAdapter.INSTANCE.asTypedStorage(column.getStorage());
+
+    var stdDevResult =
+        standardDeviation(
+            storage, population, new ColumnAggregatedProblemAggregator(problemAggregator));
+    double mean = stdDevResult.mean();
+    double stddev = stdDevResult.stddev();
+
+    return StorageIterators.mapOverDoubleStorage(
+        storage,
+        Builder.getForText(TextType.VARIABLE_LENGTH, numRows),
+        (idx, d, isNothing) -> calculateGroup(d, mean, stddev));
+  }
+
+  private static StdDevResult standardDeviation(
+      ColumnDoubleStorage storage,
+      boolean population,
+      ColumnAggregatedProblemAggregator aggregator) {
+    var accumulator = new StdDevAccumulator();
+    StorageIterators.forEachOverDoubleStorage(
+        storage,
+        true,
+        (idx, d, isNothing) -> {
+          if (!isNothing) {
+            accumulator.addValue(d);
+          } else {
+            aggregator.reportColumnAggregatedProblem(
+                new IllegalArgumentError(
+                    "Standard_Deviation",
+                    "Null value encountered in standard deviation column",
+                    idx));
+          }
+          return false;
+        });
+
+    if (accumulator.count == 0) {
+      return new StdDevResult(0.0, 0.0);
+    }
+
+    long count = accumulator.count;
+    double sumValues = accumulator.sumValues;
+    double sumSquares = accumulator.sumSquares;
+
+    double mean = sumValues / count;
+    double sumSquaredDiffs = sumSquares - (2 * mean * sumValues) + (count * mean * mean);
+
+    long denominator = population ? count : count - 1;
+    if (denominator == 0) {
+      return new StdDevResult(mean, 0.0);
+    }
+    double standardDeviation = Math.sqrt(sumSquaredDiffs / denominator);
+    return new StdDevResult(mean, standardDeviation);
+  }
+
+  private static String calculateGroup(double value, double mean, double stddev) {
+    // Group numbers are centered around 0, and capped on either side by the group count.
+    long maxPosGroup = (STANDARD_DEVIATION_GROUP_COUNT - 1) / 2;
+    long groupIndex = calculateGroupIndex(value, mean, stddev);
+    groupIndex = Math.max(-maxPosGroup, Math.min(maxPosGroup, groupIndex));
+    return STANDARD_DEVIATION_GROUP_LABELS[(int) (groupIndex + maxPosGroup)];
+  }
+
+  /**
+   * Returns a symmetric bin number: (s = 1 standard deviation) -2.5s .. -1.5s -> group -2 -1.5s ..
+   * -0.5s -> group -1 -0.5s .. 0.5s -> group 0 0.5s .. 1.5s -> group 1 1.5s .. 2.5s -> group 2
+   */
+  private static long calculateGroupIndex(double value, double mean, double stddev) {
+    if (stddev == 0.0) {
+      return 0; // Assign to the first group if value stddev is zero
+    }
+    double zScore = (value - mean) / stddev;
+    return (long) Math.floor(zScore + 0.5);
   }
 
   public static ColumnStorage<?> flaggedGroups(
