@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { rmSync } from 'fs'
 import { dirname, join } from 'path'
+import process from 'process'
 import { fileURLToPath } from 'url'
 import { downloadEnsoEngine } from '../dist/projectService/ensoRunner.js'
 
