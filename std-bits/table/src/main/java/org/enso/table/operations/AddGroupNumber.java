@@ -276,7 +276,7 @@ public class AddGroupNumber {
     var accumulator = new StdDevAccumulator();
     StorageIterators.forEachOverDoubleStorage(
         storage,
-        true,
+        false,
         "addGroupNumber:standardDeviation",
         (idx, d, isNothing) -> {
           if (!isNothing) {
