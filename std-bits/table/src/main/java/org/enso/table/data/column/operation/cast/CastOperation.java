@@ -121,7 +121,6 @@ public class CastOperation {
     var accumulator = new TextAccumulator();
     StorageIterators.forEachOverStorage(
         textType.asTypedStorage(columnStorage),
-        false,
         (index, item) -> accumulator.accumulate(item));
 
     // Everything is null or empty, so return the original type.
@@ -198,7 +197,6 @@ public class CastOperation {
     var accumulator = new LongAccumulator();
     StorageIterators.forEachOverLongStorage(
         integerType.asTypedStorage(columnStorage),
-        false,
         (index, item, isNothing) -> accumulator.accumulate(item));
 
     return accumulator.resolveType();
@@ -216,7 +214,6 @@ public class CastOperation {
     var endedEarly =
         StorageIterators.forEachOverStorage(
             bigIntegerType.asTypedStorage(columnStorage),
-            false,
             (index, item) -> {
               try {
                 return accumulator.accumulate(item.longValueExact());
@@ -253,7 +250,6 @@ public class CastOperation {
     var endedEarly =
         StorageIterators.forEachOverDoubleStorage(
             floatType.asTypedStorage(columnStorage),
-            false,
             (index, item, isNothing) -> {
               if (item % 1 != 0 || !IntegerType.INT_64.fits(item)) {
                 // If the value is not a whole number or does not fit in a long, we end early.
@@ -314,7 +310,6 @@ public class CastOperation {
     var accumulator = new BigDecimalAccumulator();
     StorageIterators.forEachOverStorage(
         bigDecimalType.asTypedStorage(columnStorage),
-        false,
         (index, item) -> accumulator.accumulate(item));
 
     if (accumulator.getOverflowed() || accumulator.getCount() == 0) {
@@ -394,7 +389,6 @@ public class CastOperation {
     var accumulator = new ObjectTypeAccumulator();
     StorageIterators.forEachOverStorage(
         AnyObjectType.INSTANCE.asTypedStorage(columnStorage),
-        false,
         (index, item) -> accumulator.accumulate(item));
     return accumulator.getCurrentType();
   }
@@ -428,11 +422,9 @@ public class CastOperation {
     switch (storage.getType()) {
       case BigDecimalType bigDecimalType -> StorageIterators.forEachOverStorage(
           bigDecimalType.asTypedStorage(storage),
-          false,
           (index, item) -> accumulator.accumulate(item));
       case BigIntegerType bigIntegerType -> StorageIterators.forEachOverStorage(
           bigIntegerType.asTypedStorage(storage),
-          false,
           (index, item) -> accumulator.accumulate(new BigDecimal(item)));
       default -> throw new IllegalArgumentException(
           "Cannot compute max precision for storage type: " + storage.getType());
