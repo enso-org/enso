@@ -172,7 +172,7 @@ read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto
     return_as = Return_As.resolve return
     used_format = File_Format.resolve format
     if paths.paths_to_load.contains Nothing then Error.throw (Illegal_Argument.Error Illegal_Argument.Error "`paths` cannot contain `Nothing`. Use `filter` with `..Not_Nothing` to remove.") else
-        Progress.execute 'Data.read_many' paths.paths_to_load.length 1 pr->
+        Progress.run 'From 0 to '+paths.paths_to_load.length.to_text paths.paths_to_load.length handle_name="Data.read_many" pr->
             loaded_objects = paths.paths_to_load.map on_problems=No_Wrap.Value path->
                 pr.advance
                 Data.read path used_format on_problems . catch Any error->

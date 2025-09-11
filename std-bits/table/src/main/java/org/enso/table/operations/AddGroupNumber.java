@@ -1,8 +1,10 @@
 package org.enso.table.operations;
 
 import java.util.function.BiFunction;
+import org.enso.base.ProgressReporter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
@@ -11,7 +13,6 @@ import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.IllegalArgumentError;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.ProgressHandler;
 
 public class AddGroupNumber {
   public static ColumnStorage<?> numberGroupsUnique(
@@ -238,13 +239,15 @@ public class AddGroupNumber {
       return builder.seal();
     }
 
-    try (var progressHandle = ProgressHandler.init("find_group_number", table.rowCount())) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "find_group_number", table.rowCount(), StorageIterators.PROGRESS_STEP)) {
       var currentRow = new Row(table, 0);
       var newRow = new Row(table, 0);
 
       long currentGroup = start;
       builder.appendLong(currentGroup);
-      progressHandle.advance();
+      progressReporter.advance();
 
       for (long i = 1; i < table.rowCount(); i++) {
         newRow.setRowIndex(i);
@@ -265,7 +268,7 @@ public class AddGroupNumber {
         }
 
         builder.appendLong(currentGroup);
-        progressHandle.advance();
+        progressReporter.advance();
       }
 
       return builder.seal();
