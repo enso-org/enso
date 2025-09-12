@@ -365,17 +365,25 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
 }
 
 /**
- * Downloads the latest Enso engine prerelease from GitHub.
+ * Downloads the latest Enso engine from GitHub.
  *
  * This function automatically detects the current platform (macOS, Linux, or Windows)
  * and architecture (amd64 or aarch64) to download the appropriate engine binary.
- * The engine is downloaded from the latest GitHub prerelease and extracted to
- * the built-distribution directory.
+ * The engine is downloaded from GitHub and extracted to the built-distribution directory.
+ *
+ * The type of release to download is controlled by the DOWNLOAD_ENSO_RUNNER environment variable:
+ * - If set to 'release': downloads the latest stable release
+ * - If set to 'prerelease' or not set: downloads the latest prerelease
+ *
  * @param projectRoot - The root directory of the project where the engine will be installed
  * @returns A promise that resolves to the path where the engine was extracted
  */
 export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
-  console.log('Downloading latest Enso engine...')
+  // Check if we should download release or prerelease
+  const downloadType = process.env.DOWNLOAD_ENSO_RUNNER
+  const useRelease = downloadType === 'release'
+
+  console.log(`Downloading latest Enso engine (${useRelease ? 'release' : 'prerelease'})...`)
 
   // Determine platform and architecture
   const platform = os.platform()
@@ -405,7 +413,7 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
     throw new Error(`Unsupported architecture: ${arch}`)
   }
 
-  // Fetch all releases from GitHub API and find the latest prerelease
+  // Fetch all releases from GitHub API
   const releasesUrl = 'https://api.github.com/repos/enso-org/enso/releases'
   const headers: HeadersInit = {}
   if (process.env.GITHUB_TOKEN) {
@@ -419,32 +427,35 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
 
   const releases = await releasesResponse.json()
 
-  // Find the latest prerelease with the matching asset
-  const prereleases = releases.filter((release: any) => release.prerelease)
+  // Filter based on whether we want releases or prereleases
+  const targetReleases =
+    useRelease ?
+      releases.filter((release: any) => !release.prerelease)
+    : releases.filter((release: any) => release.prerelease)
 
-  if (prereleases.length === 0) {
-    throw new Error('No prereleases found')
+  if (targetReleases.length === 0) {
+    throw new Error(`No ${useRelease ? 'releases' : 'prereleases'} found`)
   }
 
   let releaseData: any = null
   let asset: any = null
   let assetName: string = ''
 
-  // Iterate through prereleases to find one with matching asset
-  for (const prerelease of prereleases) {
-    const version = prerelease.tag_name
+  // Iterate through target releases to find one with matching asset
+  for (const targetRelease of targetReleases) {
+    const version = targetRelease.tag_name
     assetName = `enso-engine-${version}-${platformString}-${archString}${extensionString}`
-    asset = prerelease.assets.find((a: any) => a.name === assetName)
+    asset = targetRelease.assets.find((a: any) => a.name === assetName)
 
     if (asset) {
-      releaseData = prerelease
+      releaseData = targetRelease
       break
     }
   }
 
   if (!releaseData || !asset) {
     throw new Error(
-      `Could not find asset: enso-engine-*-${platformString}-${archString}${extensionString} in any prerelease`,
+      `Could not find asset: enso-engine-*-${platformString}-${archString}${extensionString} in any ${useRelease ? 'release' : 'prerelease'}`,
     )
   }
 

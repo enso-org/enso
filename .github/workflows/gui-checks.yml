@@ -99,6 +99,7 @@ jobs:
           exit $EXIT_CODE
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOWNLOAD_ENSO_RUNNER: release
 
       - name: 🧪 Unit Tests
         id: unit-tests
