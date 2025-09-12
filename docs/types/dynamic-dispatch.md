@@ -165,64 +165,60 @@ primarily as a _container for module (static) methods_.
 
 ## Method Resolution
 
+**Terminology**:
+
+- **eigen type** of a type `My_Type` is a type of type, usually written as
+  `My_Type.type`.
+  - Every type has an eigen type.
+  - Eigen type of an eigen type is itself.
+- **associated type** of a module `My_Module` is a type for the module
+  - It is basically an eigen type for a module.
+- **symbol table**.
+  - Every type has an associated symbol table.
+  - Symbol table maps symbols to their definitions.
+  - All definitions are methods.
+    - Atom constructors are methods.
+    - Atom fields are methods. More specifically, every atom field has an
+      associated getter method.
+
 This section describes the _method resolution_ process, which resolves a
 concrete method definition for a concrete call site. For a method call
 expression `Receiver.symbol`, this section focuses only on a single dispatch
 based on `Receiver` argument. For multiple dispatch, see the
 [Multiple Dispatch](#multiple-dispatch) section.
 
-Method resolution algorithm for `Receiver.symbol`:
+Method resolution algorithm for `Receiver.symbol` first determines the _type_ of
+the `Receiver`, and then finds the method definition in its _symbol table_:
 
-1. **Determine the kind of `Receiver`:**
+1. **Determine the type of `Receiver`:**
 
-   - 1.1. If `Receiver` is a type (type object), go to step 2.
-   - 1.2. If `Receiver` is a value (instance / atom), go to step 3.
-   - 1.3. If `Receiver` is a module, go to step 4.
-   - 1.4. If `Receiver` is a polyglot object, go to step 5.
-   - 1.5. If there is no `Receiver`, go to step 6.
+- 1.1. If `Receiver` is type, the result will be _eigen type_
+- 1.2. If `Receiver` is a value (instance / atom), the result will be the _type
+  of the value_
+- 1.3. If `Receiver` is a module, the result will be the _associated type_ for
+  the module
+- 1.4. If `Receiver` is a polyglot object, method resolution and invocation will
+  be handled according to the [polyglot interoperability](../polyglot/README.md)
+  rules.
+  - Polyglot object can be:
+    - A Java class, imported by `polyglot java import ...` statement.
+    - Java object instance, created by `Java_Class.new ...` expression.
+    - Javascript, Python, or any other allowed foreign language object returned
+      by a foreign method call.
+- 1.5. If there is no `Receiver`, we are just looking for a variable in the
+  current lexical scope or any parent scopes. See
+  [Lexical scope lookup](#lexical-scope-lookup).
 
-2. **`Receiver` is a type. This call site is a _static method call_:**
+2. **Look up symbol in the symbol table of the determined type:**
 
-   - 2.1. We are looking for either a _static method_ or an _instance method_
-     defined on `Receiver` type.
-   - 2.2. If `symbol` is defined on `Receiver`, with or without `self` argument,
-     select it and stop.
-   - 2.3. If `symbol` is defined on `Any`, with or without `self` argument,
-     select it and stop.
-   - 2.4. Otherwise, raise `No_Such_Method` panic and stop.
+- 2.1. If `symbol` is defined in the table, select it and stop.
+- 2.2. If parent type is present, repeat the process with the parent type.
+  - Every type has an implicit parent type `Any`.
+  - Except for `Number` which is a special builtin case with a deeper hierarchy.
+  - `Any` has no parent type.
+- 2.2. No parent type is present. Raise `No_Such_Method` panic and stop.
 
-3. **`Receiver` is a value (instance / atom):**
-
-   - 3.1. We are looking for an _instance method_.
-   - 3.2. If `symbol` is defined on `Receiver` with `self` argument, select it
-     and stop.
-   - 3.3. If `symbol` is defined on `Any` with `self` argument, select it and
-     stop.
-   - 3.4. Otherwise, raise `No_Such_Method` panic and stop.
-
-4. **`Receiver` is a module. We are looking for a _module method_:**
-
-   - 4.1. Module methods are not allowed to be defined with `self` argument.
-   - 4.2. If `symbol` is defined in `Receiver` module, select it and stop.
-   - 4.3. Otherwise, raise `No_Such_Method` panic and stop.
-
-5. **`Receiver` is a polyglot object. A polyglot object can be:**
-
-   - 5.1. A Java class, imported by `polyglot java import ...` statement.
-   - 5.2. Java object instance, created by `Java_Class.new ...` expression.
-   - 5.3. Javascript, Python, or any other allowed foreign language object
-     returned by a foreign method call.
-   - 5.4. Searching for `symbol` on such a `Receiver` is subject to the rules of
-     the [polyglot Interoperability](../polyglot/README.md) chapter.
-
-6. **There is no `Receiver`:**
-   - 6.1. We are looking either for a _module method_ or for a variable in the
-     current scope or any parent scopes.
-   - 6.2. Note that in this case, `symbol` does not have to resolve to a method
-     definition. This is a general _symbol lookup_ rather than a _method
-     resolution_. See [Symbol lookup](#symbol-lookup).
-
-### Symbol lookup
+### Lexical scope lookup
 
 - If `symbol` is defined in the current lexical scope, select it and stop.
 - Iterate parent scopes: from the current lexical scope, up until this module
