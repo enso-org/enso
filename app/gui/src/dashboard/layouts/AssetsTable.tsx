@@ -296,7 +296,8 @@ function AssetsTable(props: AssetsTableProps) {
         pageSize,
       }),
     initialPageParam: ((): PaginationToken | null => null)(),
-    getNextPageParam: (lastPage) => lastPage.paginationToken,
+    getNextPageParam: (lastPage) =>
+      lastPage.assets.length === pageSize ? lastPage.paginationToken : null,
     retry: () => {
       if (queryDirectoryId === queryDirectoryIdRef.current) {
         setDriveLocation(null, category.id)
