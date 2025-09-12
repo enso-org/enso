@@ -9,7 +9,7 @@ import {
   moveAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFileToCloud } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
@@ -62,7 +62,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
   const { getCategoryByDirectoryId } = useCategories()
   const { getText } = useText()
 
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const uploadFileToCloudMutation = useUploadFileToCloud()
   const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(remoteBackend))
   const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
   const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))

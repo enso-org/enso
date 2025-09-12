@@ -10,7 +10,7 @@ import {
 import { useCanRunProjects, useNewProject } from '#/hooks/backendHooks'
 import {
   isUploadableAsset,
-  useUploadFileToCloudMutation,
+  useUploadFileToCloud,
   useUploadFileToLocal,
 } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
@@ -84,7 +84,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const encodedEnsoPath = asset.ensoPath ? encodeURI(asset.ensoPath) : undefined
   const copyMutation = useCopy()
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const uploadFileToCloudMutation = useUploadFileToCloud()
   const uploadFileToLocal = useUploadFileToLocal(category)
   const exportArchive = useExportArchive({ backend })
   const disabledTooltip =
