@@ -189,6 +189,22 @@ packageBuilder := {
   )
 }
 
+lazy val checkIRCacheSizes = taskKey[Unit](
+  "Checks that the IR caches of all standard libraries are within the size limit."
+)
+checkIRCacheSizes := Def
+  .task {
+    val stdLibRoot =
+      engineDistributionRoot.value / "lib" / "Standard"
+    IRCaches.checkCacheSizes(
+      stdLibRoot  = stdLibRoot,
+      ensoVersion = ensoVersion,
+      log         = streams.value.log
+    )
+  }
+  .dependsOn(buildEngineDistribution)
+  .value
+
 Global / onChangedBuildSource := ReloadOnSourceChanges
 Global / excludeLintKeys += logManager
 
