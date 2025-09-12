@@ -18,19 +18,19 @@ import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategories } from '#/layouts/Drive/Categories'
+import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import { useExportArchive } from '#/pages/useExportArchive'
 import { useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import Backend, * as backendModule from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
-import type { RightPanelData } from '$/providers/rightPanel'
+import { useRightPanelData } from '$/providers/rightPanel'
 import {
   TEAMS_DIRECTORY_ID,
   USERS_DIRECTORY_ID,
@@ -40,8 +40,6 @@ import * as React from 'react'
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
   readonly asset: backendModule.AnyAsset
-  readonly backend: Backend
-  readonly category: categoryModule.Category
   readonly triggerRef: React.MutableRefObject<HTMLElement | null>
   readonly currentDirectoryId: backendModule.DirectoryId
   readonly doCopy: () => void
@@ -50,7 +48,6 @@ export interface AssetContextMenuProps {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
-  readonly rightPanel: RightPanelData
   readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
 }
 
@@ -59,21 +56,11 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   props: AssetContextMenuProps,
   ref: React.ForwardedRef<ContextMenuApi>,
 ) {
-  const {
-    asset,
-    triggerRef,
-    currentDirectoryId,
-    rightPanel,
-    initialPosition,
-    backend,
-    category,
-    doCopy,
-    doCut,
-    doPaste,
-  } = props
+  const { asset, triggerRef, currentDirectoryId, initialPosition, doCopy, doCut, doPaste } = props
 
+  const { category, associatedBackend: backend } = useCategoriesAPI()
   const isCloud = categoryModule.isCloudCategory(category)
-
+  const rightPanel = useRightPanelData()
   const { router } = useRouter()
   const { localCategories } = useCategories()
   const driveStore = useDriveStore()
@@ -431,6 +418,9 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
       aria-label={getText('assetContextMenuLabel')}
       entries={entries}
       initialPosition={initialPosition}
+      onClose={() => {
+        driveStore.setState({ contextMenuData: null })
+      }}
     />
   )
 })

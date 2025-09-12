@@ -87,11 +87,18 @@ export interface DirectoryPath {
   readonly name: string
 }
 
+export interface ContextMenuData {
+  readonly triggerRef: React.MutableRefObject<HTMLElement | null>
+  readonly initialContextMenuPosition: Pick<MouseEvent, "pageX" | "pageY"> | null
+}
+
 /** The state of this zustand store. */
 interface DriveStore {
   readonly removeSelection: () => void
   readonly assetToRename: AssetId | null
   readonly setAssetToRename: (assetToRename: AssetId | null) => void
+  readonly contextMenuData: ContextMenuData | null
+  readonly setContextMenuData: (contextMenuData: ContextMenuData | null) => void
   readonly canDownload: boolean
   readonly setCanDownload: (canDownload: boolean) => void
   readonly pasteData: PasteData<DrivePastePayload> | null
@@ -154,6 +161,12 @@ export default function DriveProvider(props: DriveProviderProps) {
       setAssetToRename: (assetToRename) => {
         if (get().assetToRename !== assetToRename) {
           set({ assetToRename })
+        }
+      },
+      contextMenuData: null,
+      setContextMenuData: (contextMenuData) => {
+        if (get().contextMenuData !== contextMenuData) {
+          set({ contextMenuData })
         }
       },
       canDownload: false,

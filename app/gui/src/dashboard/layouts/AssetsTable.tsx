@@ -29,7 +29,7 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
-import { AssetsTableContextMenu } from '#/layouts/AssetsTableContextMenu'
+import { AssetsTableCombinedContextMenu } from '#/layouts/AssetsTableCombinedContextMenu'
 import { type Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories'
@@ -151,7 +151,6 @@ interface DragSelectionInfo {
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
   readonly backend: Backend
-  readonly currentDirectoryId: DirectoryId
   readonly scrollContainerRef: RefObject<HTMLElement>
   readonly category: Category
   readonly sortInfo: SortInfo<AssetSortExpression> | null
@@ -159,9 +158,6 @@ export interface AssetsTableState {
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly hideColumn: (column: Column) => void
-  readonly doCopy: () => void
-  readonly doCut: () => void
-  readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
   readonly getAssetNodeById: (id: AssetId) => AnyAsset | null
 }
 
@@ -218,10 +214,6 @@ function AssetsTable(props: AssetsTableProps) {
   const uploadFiles = useUploadFiles(backend, category)
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
   const paste = usePaste(category)
-
-  const isSingleSelectedItem = useStore(driveStore, (state) => state.selectedIds.size === 1, {
-    unsafeEnableTransition: true,
-  })
 
   const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const { data: userGroups } = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
@@ -775,19 +767,6 @@ function AssetsTable(props: AssetsTableProps) {
     setPasteData(null)
   })
 
-  const contextMenu =
-    isSingleSelectedItem ? null : (
-      <AssetsTableContextMenu
-        ref={contextMenuRef}
-        backend={backend}
-        category={category}
-        currentDirectoryId={currentDirectoryId}
-        doCopy={doCopy}
-        doCut={doCut}
-        doPaste={doPaste}
-      />
-    )
-
   const onDropzoneDragOver = (event: DragEvent<Element>) => {
     const payload = ASSET_ROWS.lookup(event)
     // Unconditionally handle drag event even if drop target is invalid
@@ -807,9 +786,8 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const state = useMemo<AssetsTableState>(
-    () => ({
+    (): AssetsTableState => ({
       backend,
-      currentDirectoryId,
       scrollContainerRef: rootRef,
       category,
       sortInfo,
@@ -817,24 +795,9 @@ function AssetsTable(props: AssetsTableProps) {
       query,
       setQuery,
       hideColumn,
-      doCopy,
-      doCut,
-      doPaste,
       getAssetNodeById,
     }),
-    [
-      backend,
-      category,
-      currentDirectoryId,
-      doCopy,
-      doCut,
-      doPaste,
-      getAssetNodeById,
-      hideColumn,
-      query,
-      setQuery,
-      sortInfo,
-    ],
+    [backend, category, getAssetNodeById, hideColumn, query, setQuery, sortInfo],
   )
 
   const calculateNewSelection = useEventCallback(
@@ -1157,6 +1120,7 @@ function AssetsTable(props: AssetsTableProps) {
             return (
               <AssetRow
                 key={item.id + item.virtualParentsPath}
+                contextMenuRef={contextMenuRef}
                 isPlaceholder={false}
                 isOpened={isOpenedByYou || isOpenedOnTheBackend}
                 columns={columns}
@@ -1255,7 +1219,13 @@ function AssetsTable(props: AssetsTableProps) {
   return (
     <BindingFocusScopeContext.Provider value={rootRef}>
       <div className="relative grow contain-strict">
-        {contextMenu}
+        <AssetsTableCombinedContextMenu
+          ref={contextMenuRef}
+          currentDirectoryId={currentDirectoryId}
+          doCopy={doCopy}
+          doCut={doCut}
+          doPaste={doPaste}
+        />
 
         {hiddenColumns.length !== 0 && (
           <div
