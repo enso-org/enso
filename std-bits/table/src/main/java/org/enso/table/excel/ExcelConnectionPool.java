@@ -11,12 +11,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Function;
+
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
+import org.apache.poi.poifs.filesystem.NotOLE2FileException;
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -67,14 +69,10 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
                   + existingRecord.format
                   + ".");
         }
-
-        existingRecord.refCount++;
-
         return new ReadOnlyExcelConnection(this, key, existingRecord);
       } else {
         // Create the new record
         ConnectionRecord record = new ConnectionRecord();
-        record.refCount = 1;
         record.file = file;
         record.format = format;
         record.reopen(true);
@@ -213,16 +211,6 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
     return file.getCanonicalPath();
   }
 
-  void release(ReadOnlyExcelConnection excelConnection) throws IOException {
-    synchronized (this) {
-      excelConnection.record.refCount--;
-      if (excelConnection.record.refCount <= 0) {
-        excelConnection.record.close();
-        records.remove(excelConnection.key);
-      }
-    }
-  }
-
   private final HashMap<String, ConnectionRecord> records = new HashMap<>();
   private boolean isCurrentlyWriting = false;
 
@@ -248,7 +236,6 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   }
 
   static class ConnectionRecord {
-    private int refCount;
     private File file;
     private ExcelFileFormat format;
     private ExcelWorkbook workbook;
@@ -284,6 +271,10 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
                     ? new XSSFReaderWorkbook(file.getAbsolutePath())
                     : ExcelWorkbook.forPOIUserModel(openWorkbook(file, format, false));
           } catch (OLE2NotOfficeXmlFileException e) {
+            throw new IOException(
+                "Invalid format encountered when opening the file " + file + " as " + format + ".",
+                e);
+          } catch (NotOLE2FileException e) {
             throw new IOException(
                 "Invalid format encountered when opening the file " + file + " as " + format + ".",
                 e);
@@ -331,7 +322,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
             fs.close();
             throw e;
           }
-        } catch (OfficeXmlFileException e) {
+        } catch (OfficeXmlFileException | OLE2NotOfficeXmlFileException e) {
           throw new IOException(
               "Invalid format encountered when opening the file " + file + " as " + format + ".",
               e);

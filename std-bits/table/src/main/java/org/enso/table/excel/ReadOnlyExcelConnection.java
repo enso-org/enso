@@ -1,6 +1,7 @@
 package org.enso.table.excel;
 
 import java.io.IOException;
+
 import org.enso.table.util.FunctionWithException;
 
 public class ReadOnlyExcelConnection implements AutoCloseable {
@@ -22,8 +23,6 @@ public class ReadOnlyExcelConnection implements AutoCloseable {
       // already closed
       return;
     }
-
-    myPool.release(this);
     record = null;
   }
 

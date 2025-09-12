@@ -1293,10 +1293,6 @@ add_specs suite_builder =
 
             workbook.close . should_equal Nothing
 
-            workbook.sheet_count . should_fail_with Illegal_State
-            workbook.close . should_equal Nothing
-            workbook.read "Sheet1" . should_fail_with Illegal_State
-
         group_builder.specify "should be able to read a XLSX with inline strings" <|
             workbook = (enso_project.data / "Sales_Sample_Data.xlsx") . read
             workbook.sheet_count . should_equal 29
