@@ -320,6 +320,28 @@ export class ProjectManagerShimMiddleware {
             })
           break
         }
+        case 'POST /api/project-service/project/rename': {
+          interface Body {
+            readonly projectId: UUID
+            readonly name: string
+            readonly projectsDirectory: Path
+          }
+          bodyJson<Body>(request)
+            .then(async (body) => {
+              const projectService = await this.getProjectService()
+              return projectService.renameProject(body.projectId, body.name, body.projectsDirectory)
+            })
+            .then(() => {
+              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(null))
+            })
+            .catch((err) => {
+              console.error(err)
+              response
+                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
+                .end(toJSONRPCError('project/rename failed', err))
+            })
+          break
+        }
         default: {
           console.error('Unknown middleware request:', requestPath)
           break

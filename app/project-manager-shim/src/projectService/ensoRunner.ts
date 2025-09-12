@@ -9,13 +9,19 @@ import { extract } from 'tar'
 
 export interface Runner {
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
-
   openProject(
     projectPath: Path,
     projectId: string,
     extraEnv?: Array<[string, string]>,
   ): Promise<LanguageServerSockets>
   closeProject(projectId: string): Promise<void>
+  isProjectRunning(projectId: string): Promise<boolean>
+  renameProject(
+    projectId: string,
+    namespace: string,
+    oldPackage: string,
+    newPackage: string,
+  ): Promise<void>
 }
 
 export interface LanguageServerSockets {
@@ -255,6 +261,24 @@ export class EnsoRunner implements Runner {
         process.kill('SIGTERM')
       }
     })
+  }
+
+  /** Checks if a project's language server is currently running. */
+  async isProjectRunning(projectId: string): Promise<boolean> {
+    return this.runningProcesses.has(projectId)
+  }
+
+  /** Renames a project in the language server. */
+  async renameProject(
+    projectId: string,
+    namespace: string,
+    oldPackage: string,
+    newPackage: string,
+  ): Promise<void> {
+    // TODO: Implement when JSON-RPC client is available
+    console.warn(
+      `Project rename refactoring not yet implemented for project ${projectId}: ${namespace}.${oldPackage} -> ${namespace}.${newPackage}`,
+    )
   }
 
   /** Finds an available port starting from the given port number. */

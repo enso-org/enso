@@ -245,7 +245,13 @@ export class ProjectManager {
   /** Rename a project. */
   async renameProject(params: WithProjectPath<RenameProjectParams>): Promise<void> {
     const fullParams: RenameProjectParams = this.paramsWithPathToWithId(params)
-    await this.sendRequest('project/rename', fullParams)
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const enableProjectService = useFeatureFlag('enableProjectService')
+    if (enableProjectService.value) {
+      await this.runProjectServiceCommandJson('project/rename', fullParams)
+    } else {
+      await this.sendRequest('project/rename', fullParams)
+    }
     const state = this.projects.get(fullParams.projectId)
     if (state?.state === backend.ProjectState.opened) {
       this.projects.set(fullParams.projectId, {

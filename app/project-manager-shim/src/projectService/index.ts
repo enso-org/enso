@@ -254,9 +254,44 @@ export class ProjectService {
   }
 
   /** Renames a project. */
-  async renameProject(_projectId: UUID, _newName: string, _projectsDirectory: Path): Promise<void> {
-    // TODO: Implement renameProject
-    throw new Error('renameProject not implemented yet')
+  async renameProject(projectId: UUID, newName: string, projectsDirectory: Path): Promise<void> {
+    this.logger.debug('Renaming project', projectId, 'to', newName)
+    // Validate the new project name
+    await this.validateProjectName(newName)
+    // Get the repository
+    const repo = this.getProjectRepository(projectsDirectory)
+    // Check if project exists
+    const project = await repo.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+    // Check if new name already exists
+    await this.checkIfNameExists(newName, repo)
+    // Get the old package name (normalized)
+    const oldNormalizedName = nameValidation.normalizedName(project.name)
+    // Get the namespace
+    const namespace = project.namespace
+    // Create new package name (normalized)
+    const newNormalizedName = nameValidation.normalizedName(newName)
+    // Rename in the repository (updates metadata)
+    await repo.rename(projectId, newName)
+    // Check if language server is running for this project
+    const isRunning = await this.runner.isProjectRunning(projectId)
+    if (isRunning) {
+      // If server is running, we would need to register a shutdown hook
+      // to rename the directory after the server stops.
+      // For now, we'll just log a warning since the runner doesn't expose this functionality
+      this.logger.warn(
+        'Project directory rename deferred - language server is running for project',
+        projectId,
+      )
+      // In the Scala version, this would register a shutdown hook
+      // For now, we can try to send a rename command to the running server
+      await this.runner.renameProject(projectId, namespace, oldNormalizedName, newNormalizedName)
+    } else {
+      // If server is not running, rename the directory immediately
+      await repo.renameProjectDirectory(project.path, newNormalizedName)
+    }
   }
 
   // ========================

@@ -36,6 +36,7 @@ export interface ProjectRepository {
   delete(path: Path): Promise<void>
   moveToTrash(path: Path): Promise<void>
   rename(projectId: UUID, name: string): Promise<void>
+  renameProjectDirectory(oldPath: Path, newNormalizedName: string): Promise<Path>
   findById(projectId: UUID): Promise<Project | null>
   find(predicate: (project: Project) => boolean): Promise<readonly Project[]>
   getAll(): Promise<readonly Project[]>
@@ -111,6 +112,13 @@ export class ProjectFileRepository implements ProjectRepository {
       throw new Error(`Project '${projectId}' not found`)
     }
     await this.renamePackage(project.path, name)
+  }
+
+  /** Renames the project directory on disk. */
+  async renameProjectDirectory(oldPath: Path, newNormalizedName: string): Promise<Path> {
+    const newPath = await this.findTargetPath(newNormalizedName)
+    await fs.rename(oldPath, newPath)
+    return newPath
   }
 
   /** Finds a project by ID. */
