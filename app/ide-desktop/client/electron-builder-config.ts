@@ -22,6 +22,7 @@ import * as paths from './paths'
 import computeHashes from './tasks/computeHashes'
 import signArchivesMacOs from './tasks/signArchivesMacOs'
 
+import path from 'node:path'
 import BUILD_INFO from './buildInfo'
 
 // =============
@@ -292,7 +293,26 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
       sign: false,
     },
     afterAllArtifactBuild: computeHashes,
-    afterPack: (context: electronBuilder.AfterPackContext) => {
+    afterPack: async (context: electronBuilder.AfterPackContext) => {
+      // Sandbox-fix loader for linux
+      if (passedArgs.platform === electronBuilder.Platform.LINUX) {
+        const executable = path.join(context.appOutDir, context.packager.executableName)
+        const loaderScript = `
+        #!/usr/bin/env bash
+
+        set -u
+
+        SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+        exec "$SCRIPT_DIR/${context.packager.executableName}.bin" --no-sandbox "$@"
+        `
+        try {
+          await fs.rename(executable, executable + '.bin')
+          await fs.writeFile(executable, loaderScript)
+          await fs.chmod(executable, 0o755)
+        } catch (e) {
+          throw new Error('Failed to create loader for sandbox fix', { cause: e })
+        }
+      }
       if (passedArgs.platform === electronBuilder.Platform.MAC) {
         // Make the subtree writable, so we can sign the binaries.
         // This is needed because GraalVM distribution comes with read-only binaries.

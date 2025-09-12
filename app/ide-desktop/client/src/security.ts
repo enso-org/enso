@@ -187,7 +187,7 @@ function disableNewWindowsCreation() {
 
 /** Enable all security settings. */
 export function enableAll() {
-  // enableGlobalSandbox()
+  enableGlobalSandbox()
   rejectPermissionRequests()
   addMissingCorsHeaders()
   limitWebViewCreation()
