@@ -40,7 +40,7 @@ export interface PrefixOpNode<T = Range> {
 }
 
 export function parseNode(cursor: TreeCursor): SyntaxNode | null {
-  const { child, childOpt, siblingOpt, match, anyChild, anySibling } = useParsec(cursor)
+  const { child, childOpt, siblingOpt, match, anyChild, anySibling } = useParserCombinators(cursor)
   return match<SyntaxNode | null>({
     Function: (func) =>
       childOpt('OpenParen', (open) =>
@@ -85,7 +85,7 @@ function optRange(from: number, to: number): Range | undefined {
   return from < to ? { from, to } : undefined
 }
 
-function useParsec(cursor: TreeCursor) {
+function useParserCombinators(cursor: TreeCursor) {
   function pos(cursor: TreeCursor): Range {
     return { from: cursor.from, to: cursor.to }
   }
