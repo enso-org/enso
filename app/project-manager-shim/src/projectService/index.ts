@@ -278,15 +278,17 @@ export class ProjectService {
     // Check if language server is running for this project
     const isRunning = await this.runner.isProjectRunning(projectId)
     if (isRunning) {
-      // If server is running, we would need to register a shutdown hook
-      // to rename the directory after the server stops.
-      // For now, we'll just log a warning since the runner doesn't expose this functionality
-      this.logger.warn(
-        'Project directory rename deferred - language server is running for project',
-        projectId,
-      )
-      // In the Scala version, this would register a shutdown hook
-      // For now, we can try to send a rename command to the running server
+      // Register a shutdown hook to rename the directory after the server stops
+      await this.runner.registerShutdownHook(projectId, 'rename-project-directory', async () => {
+        this.logger.info(`Executing deferred directory rename for project ${projectId}`)
+        try {
+          await repo.renameProjectDirectory(project.path, newNormalizedName)
+          this.logger.info(`Successfully renamed project directory for ${projectId}`)
+        } catch (error) {
+          this.logger.error(`Failed to rename project directory for ${projectId}:`, error)
+        }
+      })
+      // Send rename command to the running server
       await this.runner.renameProject(projectId, namespace, oldNormalizedName, newNormalizedName)
     } else {
       // If server is not running, rename the directory immediately

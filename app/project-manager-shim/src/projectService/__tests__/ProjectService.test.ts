@@ -671,4 +671,343 @@ describe('ProjectService', () => {
       expect(duplicateMetadata.namespace).toBe(originalMetadata.namespace)
     })
   })
+
+  describe('renameProject', () => {
+    test('should successfully rename a project when language server is not running', async () => {
+      // Create a project
+      const originalName = 'OriginalProjectName'
+      const createResult = await projectService.createProject(originalName, projectsDirectory)
+
+      // Add some content to verify it's preserved after rename
+      const testFilePath = path.join(createResult.projectPath, 'src', 'Main.enso')
+      await fs.mkdir(path.dirname(testFilePath), { recursive: true })
+      await fs.writeFile(testFilePath, 'main = "Hello from project"')
+
+      const newName = 'RenamedProjectName'
+
+      // Rename the project
+      await projectService.renameProject(createResult.projectId, newName, projectsDirectory)
+
+      // Verify the directory was renamed
+      const oldDirectoryPath = createResult.projectPath
+      const newDirectoryPath = path.join(path.dirname(oldDirectoryPath), 'RenamedProjectName')
+
+      // Verify metadata is preserved
+      const metadataPath = path.join(newDirectoryPath, '.enso', 'project.json')
+      const metadataContent = await fs.readFile(metadataPath, 'utf-8')
+      const metadata = JSON.parse(metadataContent)
+      expect(metadata.id).toBe(createResult.projectId)
+
+      // Verify package name is updated
+      const packagePath = path.join(newDirectoryPath, 'package.yaml')
+      const packageContent = await fs.readFile(packagePath, 'utf-8')
+      expect(packageContent).contain(newName)
+
+      const oldDirExists = await fs
+        .access(oldDirectoryPath)
+        .then(() => true)
+        .catch(() => false)
+      const newDirExists = await fs
+        .access(newDirectoryPath)
+        .then(() => true)
+        .catch(() => false)
+
+      expect(oldDirExists).toBe(false)
+      expect(newDirExists).toBe(true)
+
+      // Verify content was preserved
+      const renamedTestFilePath = path.join(newDirectoryPath, 'src', 'Main.enso')
+      const content = await fs.readFile(renamedTestFilePath, 'utf-8')
+      expect(content).toBe('main = "Hello from project"')
+    })
+
+    test(
+      'should defer directory rename when language server is running',
+      async () => {
+        // Create a project
+        const originalName = 'RunningProjectToRename'
+        const createResult = await projectService.createProject(originalName, projectsDirectory)
+
+        // Open the project to start the language server
+        await projectService.openProject(createResult.projectId, projectsDirectory)
+
+        // Rename the project while it's running
+        const newName = 'RenamedRunningProject'
+        try {
+          await projectService.renameProject(createResult.projectId, newName, projectsDirectory)
+        } catch {/* Expected error for uninitialized test project */}
+
+        const oldDirectoryPath = createResult.projectPath
+        // Verify metadata is preserved
+        const metadataPath = path.join(oldDirectoryPath, '.enso', 'project.json')
+        const metadataContent = await fs.readFile(metadataPath, 'utf-8')
+        const metadata = JSON.parse(metadataContent)
+        expect(metadata.id).toBe(createResult.projectId)
+
+        // Verify package name is updated
+        const packagePath = path.join(oldDirectoryPath, 'package.yaml')
+        const packageContent = await fs.readFile(packagePath, 'utf-8')
+        expect(packageContent).contain(newName)
+
+        // Verify directory has NOT been renamed yet (deferred)
+        const oldDirExists = await fs
+          .access(createResult.projectPath)
+          .then(() => true)
+          .catch(() => false)
+        expect(oldDirExists).toBe(true)
+
+        // Close the project to trigger the deferred rename
+        await projectService.closeProject(createResult.projectId)
+
+        // Now verify the directory was renamed after closing
+        const newDirectoryPath = path.join(path.dirname(createResult.projectPath), newName)
+        const oldDirExistsAfter = await fs
+          .access(createResult.projectPath)
+          .then(() => true)
+          .catch(() => false)
+        const newDirExistsAfter = await fs
+          .access(newDirectoryPath)
+          .then(() => true)
+          .catch(() => false)
+
+        expect(oldDirExistsAfter).toBe(false)
+        expect(newDirExistsAfter).toBe(true)
+      },
+      LANGUAGE_SERVER_TEST_TIMEOUT,
+    )
+
+    test('should fail when renaming to an existing project name', async () => {
+      // Create two projects
+      const _project1 = await projectService.createProject('Project1', projectsDirectory)
+      const project2 = await projectService.createProject('Project2', projectsDirectory)
+
+      // Try to rename project2 to project1's name
+      await expect(
+        projectService.renameProject(project2.projectId, 'Project1', projectsDirectory),
+      ).rejects.toThrow("Project with name 'Project1' already exists.")
+    })
+
+    test('should fail when renaming non-existent project', async () => {
+      const nonExistentId = crypto.randomUUID() as UUID
+
+      await expect(
+        projectService.renameProject(nonExistentId, 'NewName', projectsDirectory),
+      ).rejects.toThrow(`Project not found: ${nonExistentId}`)
+    })
+
+    test('should reject empty new name', async () => {
+      // Create a project
+      const createResult = await projectService.createProject('ProjectToRename', projectsDirectory)
+
+      // Try to rename with empty name
+      await expect(
+        projectService.renameProject(createResult.projectId, '', projectsDirectory),
+      ).rejects.toThrow('Project name cannot be empty')
+
+      await expect(
+        projectService.renameProject(createResult.projectId, '   ', projectsDirectory),
+      ).rejects.toThrow('Project name cannot be empty')
+    })
+
+    test('should handle special characters in new name', async () => {
+      // Create a project
+      const originalName = 'SimpleProject'
+      const createResult = await projectService.createProject(originalName, projectsDirectory)
+
+      const newName = 'Project #1 & Special'
+
+      // Rename the project
+      await projectService.renameProject(createResult.projectId, newName, projectsDirectory)
+
+      const newDirectoryPath = path.join(path.dirname(createResult.projectPath), 'Project1Special')
+      // Verify metadata is preserved
+      const metadataPath = path.join(newDirectoryPath, '.enso', 'project.json')
+      const metadataContent = await fs.readFile(metadataPath, 'utf-8')
+      const metadata = JSON.parse(metadataContent)
+      expect(metadata.id).toBe(createResult.projectId)
+
+      // Verify package name is updated
+      const packagePath = path.join(newDirectoryPath, 'package.yaml')
+      const packageContent = await fs.readFile(packagePath, 'utf-8')
+      expect(packageContent).contain(newName)
+
+      // Verify the directory was renamed with normalized name
+      const newDirExists = await fs
+        .access(newDirectoryPath)
+        .then(() => true)
+        .catch(() => false)
+      expect(newDirExists).toBe(true)
+    })
+
+    test('should preserve project content after rename', async () => {
+      // Create a project with content
+      const originalName = 'ProjectWithContent'
+      const createResult = await projectService.createProject(originalName, projectsDirectory)
+
+      // Add various files and directories
+      const srcDir = path.join(createResult.projectPath, 'src')
+      const testDir = path.join(createResult.projectPath, 'test')
+      await fs.mkdir(srcDir, { recursive: true })
+      await fs.mkdir(testDir, { recursive: true })
+      await fs.writeFile(path.join(srcDir, 'Main.enso'), 'main = "Main content"')
+      await fs.writeFile(path.join(srcDir, 'Utils.enso'), 'utils = "Utils content"')
+      await fs.writeFile(path.join(testDir, 'Test.enso'), 'test = "Test content"')
+
+      const newName = 'RenamedProjectWithContent'
+
+      // Rename the project
+      await projectService.renameProject(createResult.projectId, newName, projectsDirectory)
+
+      // Verify all content is preserved
+      const newDirectoryPath = path.join(
+        path.dirname(createResult.projectPath),
+        'RenamedProjectWithContent',
+      )
+      const mainContent = await fs.readFile(
+        path.join(newDirectoryPath, 'src', 'Main.enso'),
+        'utf-8',
+      )
+      const utilsContent = await fs.readFile(
+        path.join(newDirectoryPath, 'src', 'Utils.enso'),
+        'utf-8',
+      )
+      const testContent = await fs.readFile(
+        path.join(newDirectoryPath, 'test', 'Test.enso'),
+        'utf-8',
+      )
+
+      expect(mainContent).toBe('main = "Main content"')
+      expect(utilsContent).toBe('utils = "Utils content"')
+      expect(testContent).toBe('test = "Test content"')
+    })
+
+    test(
+      'should allow renaming an opened project multiple times',
+      async () => {
+        // Create a project
+        const originalName = 'ProjectToRenameMultipleTimes'
+        const createResult = await projectService.createProject(originalName, projectsDirectory)
+
+        // Open the project to start the language server
+        await projectService.openProject(createResult.projectId, projectsDirectory)
+
+        // First rename while it's running
+        const firstName = 'FirstRename'
+        try {
+          await projectService.renameProject(createResult.projectId, firstName, projectsDirectory)
+        } catch {/* Expected error for uninitialized test project */}
+
+        // Verify first rename was applied to package.yaml
+        const packagePath1 = path.join(createResult.projectPath, 'package.yaml')
+        const packageContent1 = await fs.readFile(packagePath1, 'utf-8')
+        expect(packageContent1).contain(firstName)
+
+        // Second rename while still running
+        const secondName = 'SecondRename'
+        try {
+          await projectService.renameProject(createResult.projectId, secondName, projectsDirectory)
+        } catch {/* Expected error for uninitialized test project */}
+
+        // Verify second rename was applied
+        const packageContent2 = await fs.readFile(packagePath1, 'utf-8')
+        expect(packageContent2).contain(secondName)
+        expect(packageContent2).not.contain(firstName)
+
+        // Third rename while still running
+        const thirdName = 'ThirdRename'
+        try {
+          await projectService.renameProject(createResult.projectId, thirdName, projectsDirectory)
+        } catch {/* Expected error for uninitialized test project */}
+
+        // Verify third rename was applied
+        const packageContent3 = await fs.readFile(packagePath1, 'utf-8')
+        expect(packageContent3).contain(thirdName)
+        expect(packageContent3).not.contain(secondName)
+
+        // Close the project to trigger the final deferred rename
+        await projectService.closeProject(createResult.projectId)
+
+        // Verify the directory was renamed to the final name
+        const finalDirectoryPath = path.join(path.dirname(createResult.projectPath), thirdName)
+        const finalDirExists = await fs
+          .access(finalDirectoryPath)
+          .then(() => true)
+          .catch(() => false)
+        expect(finalDirExists).toBe(true)
+
+        // Verify the original directory no longer exists
+        const originalDirExists = await fs
+          .access(createResult.projectPath)
+          .then(() => true)
+          .catch(() => false)
+        expect(originalDirExists).toBe(false)
+
+        // Verify metadata is preserved with correct ID
+        const metadataPath = path.join(finalDirectoryPath, '.enso', 'project.json')
+        const metadataContent = await fs.readFile(metadataPath, 'utf-8')
+        const metadata = JSON.parse(metadataContent)
+        expect(metadata.id).toBe(createResult.projectId)
+      },
+      LANGUAGE_SERVER_TEST_TIMEOUT,
+    )
+
+    test(
+      'should handle renaming multiple running projects independently',
+      async () => {
+        // Create two projects
+        const project1 = await projectService.createProject('RunningProject1', projectsDirectory)
+        const project2 = await projectService.createProject('RunningProject2', projectsDirectory)
+
+        // Open both projects
+        await projectService.openProject(project1.projectId, projectsDirectory)
+        await projectService.openProject(project2.projectId, projectsDirectory)
+
+        // Rename both projects while they're running
+        try {
+          await projectService.renameProject(
+            project1.projectId,
+            'RenamedRunning1',
+            projectsDirectory,
+          )
+        } catch {/* Expected error for uninitialized test project */}
+        try {
+          await projectService.renameProject(
+            project2.projectId,
+            'RenamedRunning2',
+            projectsDirectory,
+          )
+        } catch {/* Expected error for uninitialized test project */}
+
+        // Verify package name is updated
+        const package1Path = path.join(project1.projectPath, 'package.yaml')
+        const package1Content = await fs.readFile(package1Path, 'utf-8')
+        expect(package1Content).contain('RenamedRunning1')
+
+        const package2Path = path.join(project2.projectPath, 'package.yaml')
+        const package2Content = await fs.readFile(package2Path, 'utf-8')
+        expect(package2Content).contain('RenamedRunning2')
+
+        // Close both projects
+        await projectService.closeProject(project1.projectId)
+        await projectService.closeProject(project2.projectId)
+
+        // Verify both directories were renamed
+        const newPath1 = path.join(path.dirname(project1.projectPath), 'RenamedRunning1')
+        const newPath2 = path.join(path.dirname(project2.projectPath), 'RenamedRunning2')
+
+        const exists1 = await fs
+          .access(newPath1)
+          .then(() => true)
+          .catch(() => false)
+        const exists2 = await fs
+          .access(newPath2)
+          .then(() => true)
+          .catch(() => false)
+
+        expect(exists1).toBe(true)
+        expect(exists2).toBe(true)
+      },
+      LANGUAGE_SERVER_TEST_TIMEOUT * 2,
+    )
+  })
 })

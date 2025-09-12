@@ -22,6 +22,11 @@ export interface Runner {
     oldPackage: string,
     newPackage: string,
   ): Promise<void>
+  registerShutdownHook(
+    projectId: string,
+    hookType: ShutdownHookType,
+    hook: () => Promise<void>,
+  ): Promise<void>
 }
 
 export interface LanguageServerSockets {
@@ -36,9 +41,19 @@ export interface Socket {
   readonly port: number
 }
 
+export type ShutdownHookType = 'rename-project-directory'
+
+interface RunningProject {
+  process: childProcess.ChildProcess
+  jsonPort: number
+  shutdownHooks: Map<ShutdownHookType, () => Promise<void>>
+}
+
+const DEFAULT_JSONRPC_PORT = 30616
+
 /** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
-  private runningProcesses: Map<string, childProcess.ChildProcess> = new Map()
+  private runningProjects: Map<string, RunningProject> = new Map()
 
   /** Creates a new EnsoRunner with the path to the Enso executable. */
   constructor(private ensoPath: Path) {}
@@ -98,8 +113,8 @@ export class EnsoRunner implements Runner {
     const rootId = crypto.randomUUID()
 
     // Find available ports for the language server
-    const jsonPort = await this.findAvailablePort(30616)
-    const binaryPort = await this.findAvailablePort(30617)
+    const jsonPort = await this.findAvailablePort(DEFAULT_JSONRPC_PORT)
+    const binaryPort = await this.findAvailablePort(jsonPort + 1)
 
     // Create log file for this language server instance (overwrite if exists)
     const logFileName = `language-server-${jsonPort}.log`
@@ -169,8 +184,12 @@ export class EnsoRunner implements Runner {
             clearInterval(pollInterval)
             resolved = true
             logStream.write(`[HEALTH CHECK] Server is ready at ${new Date().toISOString()}\n`)
-            // Store the process for later cleanup
-            this.runningProcesses.set(projectId, serverProcess)
+            // Store the process and port for later cleanup and API calls
+            this.runningProjects.set(projectId, {
+              process: serverProcess,
+              jsonPort: jsonPort,
+              shutdownHooks: new Map(),
+            })
             resolve({
               jsonSocket: { host: '127.0.0.1', port: jsonPort },
               binarySocket: { host: '127.0.0.1', port: binaryPort },
@@ -203,13 +222,29 @@ export class EnsoRunner implements Runner {
         }
       })
 
-      serverProcess.on('close', (code) => {
+      serverProcess.on('close', async (code) => {
         // Log process exit
         logStream.write(`\n[PROCESS EXIT] Code: ${code} at ${new Date().toISOString()}\n`)
         logStream.end()
 
-        // Remove from running processes when it closes
-        this.runningProcesses.delete(projectId)
+        // Execute shutdown hooks if the process exits unexpectedly
+        const runningProject = this.runningProjects.get(projectId)
+        if (runningProject && runningProject.shutdownHooks) {
+          for (const [hookType, hook] of runningProject.shutdownHooks) {
+            try {
+              runningProject.shutdownHooks.delete(hookType)
+              await hook()
+            } catch (error) {
+              console.error(
+                `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
+                error,
+              )
+            }
+          }
+        }
+
+        // Remove from running projects when it closes
+        this.runningProjects.delete(projectId)
 
         if (!resolved) {
           reject(new Error(`Language server process exited with code ${code}. stderr: ${stderr}`))
@@ -229,27 +264,46 @@ export class EnsoRunner implements Runner {
 
   /** Closes a project and stops its language server. */
   async closeProject(projectId: string): Promise<void> {
-    const process = this.runningProcesses.get(projectId)
+    const runningProject = this.runningProjects.get(projectId)
 
-    if (!process) {
+    if (!runningProject) {
       // Project is not running or already closed
       return
     }
 
+    const { process, shutdownHooks } = runningProject
+
     return new Promise((resolve) => {
+      // Function to execute shutdown hooks
+      const executeShutdownHooks = async () => {
+        for (const [hookType, hook] of shutdownHooks) {
+          try {
+            shutdownHooks.delete(hookType)
+            await hook()
+          } catch (error) {
+            console.error(
+              `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
+              error,
+            )
+          }
+        }
+      }
+
       // Set a timeout in case the process doesn't exit gracefully
-      const timeout = setTimeout(() => {
+      const timeout = setTimeout(async () => {
         if (!process.killed) {
           process.kill('SIGKILL')
         }
-        this.runningProcesses.delete(projectId)
+        await executeShutdownHooks()
+        this.runningProjects.delete(projectId)
         resolve()
       }, 30000)
 
       // Listen for the process to exit
-      process.on('exit', () => {
+      process.on('exit', async () => {
         clearTimeout(timeout)
-        this.runningProcesses.delete(projectId)
+        await executeShutdownHooks()
+        this.runningProjects.delete(projectId)
         resolve()
       })
 
@@ -265,20 +319,84 @@ export class EnsoRunner implements Runner {
 
   /** Checks if a project's language server is currently running. */
   async isProjectRunning(projectId: string): Promise<boolean> {
-    return this.runningProcesses.has(projectId)
+    return this.runningProjects.has(projectId)
   }
 
-  /** Renames a project in the language server. */
+  /** Registers an action to be executed when the project is closed. */
+  async registerShutdownHook(
+    projectId: string,
+    hookType: ShutdownHookType,
+    hook: () => Promise<void>,
+  ): Promise<void> {
+    const runningProject = this.runningProjects.get(projectId)
+
+    if (!runningProject) {
+      // If project is not running, execute the hook immediately
+      await hook()
+      return
+    }
+
+    // Add or replace the hook to be executed when the project closes
+    runningProject.shutdownHooks.set(hookType, hook)
+  }
+
+  /** Renames the running language server project. */
   async renameProject(
     projectId: string,
     namespace: string,
     oldPackage: string,
     newPackage: string,
   ): Promise<void> {
-    // TODO: Implement when JSON-RPC client is available
-    console.warn(
-      `Project rename refactoring not yet implemented for project ${projectId}: ${namespace}.${oldPackage} -> ${namespace}.${newPackage}`,
-    )
+    const runningProject = this.runningProjects.get(projectId)
+
+    if (!runningProject) {
+      throw new Error(`Project ${projectId} is not running`)
+    }
+
+    const { jsonPort } = runningProject
+
+    // Prepare the request body
+    const requestBody = {
+      namespace: namespace,
+      oldName: oldPackage,
+      newName: newPackage,
+    }
+
+    try {
+      // Send POST request to the language server's rename endpoint
+      const response = await fetch(`http://127.0.0.1:${jsonPort}/refactoring/renameProject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      if (!response.ok) {
+        const errorBody = await response.text()
+        let errorMessage = `Failed to rename project: ${response.status} ${response.statusText}`
+
+        // Try to parse error message from response
+        try {
+          const errorJson = JSON.parse(errorBody)
+          if (errorJson.error) {
+            errorMessage = `Failed to rename project: ${errorJson.error}`
+          }
+        } catch {
+          // If parsing fails, include the raw error body
+          if (errorBody) {
+            errorMessage += ` - ${errorBody}`
+          }
+        }
+        throw new Error(errorMessage)
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
+      } else {
+        throw new Error(`Failed to rename project: ${error}`)
+      }
+    }
   }
 
   /** Finds an available port starting from the given port number. */
