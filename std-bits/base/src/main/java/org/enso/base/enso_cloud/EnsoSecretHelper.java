@@ -21,7 +21,6 @@ import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
-import org.slf4j.LoggerFactory;
 
 /** Makes HTTP requests with secrets in either header or query string. */
 public final class EnsoSecretHelper extends SecretValueResolver {
@@ -147,8 +146,6 @@ public final class EnsoSecretHelper extends SecretValueResolver {
         }
       }
 
-      LoggerFactory.getLogger(EnsoSecretHelper.class)
-          .warnF("Making HTTP request to {} with headers {}", resolvedURI, resolvedHeaders);
       builder.uri(resolvedURI);
 
       for (Pair<String, String> resolvedHeader : resolvedHeaders) {
