@@ -1,10 +1,13 @@
 import project.Any.Any
 import project.Data.Download.Download_Mode.Download_Mode
+import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Read.Many_Files_List.Many_Files_List
 import project.Data.Read.Return_As.Return_As
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Duration.Duration
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
@@ -28,13 +31,14 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Runtime
 import project.Runtime.Context
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 from project.Data.Boolean import Boolean, False, True
 from project.Meta.Enso_Project import enso_project
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Vector_Editor
+from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Numeric_Input, Vector_Editor
 from project.System.File_Format import Auto_Detect, File_Format
 
 
@@ -173,11 +177,13 @@ read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto
 
     return_as = Return_As.resolve return
     used_format = File_Format.resolve format
+    map_on_problems = if on_problems == Problem_Behavior.Report_Error then on_problems else No_Wrap.Value
     Progress.run 'From 0 to '+paths.paths_to_load.length.to_text paths.paths_to_load.length handle_name="Data.read_many" pr->
-        loaded_objects = paths.paths_to_load.map on_problems=No_Wrap.Value path->
+        loaded_objects = paths.paths_to_load.map on_problems=map_on_problems path->
             pr.advance
-            Data.read path used_format on_problems . catch Any error->
-                Failed_To_Load.Warning path error
+            result = Data.read path used_format on_problems
+            if result.is_error.not || on_problems==Problem_Behavior.Report_Error then result else
+                result.catch Any error-> Failed_To_Load.Warning path error
         result = return_as.make_return paths loaded_objects on_problems
         result.if_not_error <|
             Telemetry.log "Data.read_many" "Read files: count={}, output={}" [paths.paths_to_load.length, result.to Meta.Type . name]
@@ -571,22 +577,36 @@ download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (r
    for more details.
    The cached values are retained as long as the project remains open. Closing a
    project will clear the cache.
-@uris (Vector_Editor item_editor=Text_Input item_default='""' display=..Always)
+@uris Vector_Editor item_editor=Text_Input item_default='""' display=..Always
 @method HTTP_Method.default_fetch_widget
 @format Data_Read_Helpers.format_widget_with_raw_response
 @headers Header.default_widget
-fetch_many : Vector -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Cache_Policy -> Any ! Request_Error | HTTP_Error
+@return Return_As.default_widget
+@time_between_requests Numeric_Input default=0
+fetch_many : Vector -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Return_As -> Integer -> Cache_Policy -> Problem_Behavior -> Any ! Request_Error | HTTP_Error
 fetch_many (uris:Vector=(Missing_Argument.throw "uris")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (format = Auto_Detect) return=..As_Merged_Table time_between_requests:Integer=0 (cache_policy:Cache_Policy = ..Default) (on_problems : Problem_Behavior = ..Report_Warning) =
     if time_between_requests<0 then Error.throw (Illegal_Argument.Error "time_between_requests cannot be negative.")
     if uris.contains Nothing then Error.throw (Illegal_Argument.Error Illegal_Argument.Error "`uris` cannot contain `Nothing`. Use `filter` with `..Not_Nothing` to remove.")
 
     return_as = Return_As.resolve return
     used_format = File_Format.resolve format
+    map_on_problems = if on_problems == Problem_Behavior.Report_Error then on_problems else No_Wrap.Value
     Progress.run 'From 0 to '+uris.length.to_text uris.length handle_name="Data.fetch_many" pr->
-        fetched_objects = uris.map on_problems=No_Wrap.Value uri->
+        fetched_objects = uris.map_with_index on_problems=map_on_problems i->uri->
             pr.advance
-            result = Data.fetch uri method headers used_format cache_policy=cache_policy . catch Any error->
-                Failed_To_Load.Warning uri error
+            start = Date_Time.now
+            result = Data.fetch uri method headers used_format cache_policy=cache_policy
+            caught_result = if result.is_error.not || on_problems==Problem_Behavior.Report_Error then result else
+                result.catch Any error-> Failed_To_Load.Warning uri error
+            if caught_result.is_error.not && (i+1)<uris.length && time_between_requests!=0 then
+                elapsed = Duration.between start Date_Time.now . milliseconds
+                if elapsed < time_between_requests then Runtime.sleep (time_between_requests - elapsed)
+            caught_result
+        result = return_as.make_return uris fetched_objects on_problems
+        result.if_not_error <|
+            Telemetry.log "Data.fetch_many" "Fetched URLs: count={}, output={}" [uris.length, result.to Meta.Type . name]
+            result
+
 
 ## If the `format` is set to `Raw_Response`, a raw HTTP `Response` is returned
    that can be then processed further manually.
