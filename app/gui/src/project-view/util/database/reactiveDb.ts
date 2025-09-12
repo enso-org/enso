@@ -307,13 +307,15 @@ export class ReactiveIndex<K, V, IK, IV> {
     return this.reverse.get(value) ?? set.create()
   }
 
-  /** TODO: Add docs */
+  /** Check if the index has the given key. */
   hasKey(key: IK): boolean {
+    this.effects.flush()
     return this.forward.has(key)
   }
 
-  /** TODO: Add docs */
+  /** Check if the index has the given value. */
   hasValue(value: IV): boolean {
+    this.effects.flush()
     return this.reverse.has(value)
   }
 }

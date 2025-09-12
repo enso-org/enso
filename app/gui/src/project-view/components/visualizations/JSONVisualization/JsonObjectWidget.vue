@@ -1,11 +1,10 @@
 <script lang="ts" setup>
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
+import { Opt } from '@/util/data/opt'
 import { computed } from 'vue'
+import { CreateProjection } from './types'
 
-const props = defineProps<{ data: object }>()
-const emit = defineEmits<{
-  createProjection: [path: (string | number)[][]]
-}>()
+const props = defineProps<{ data: object; createProjectionCb?: Opt<CreateProjection> }>()
 
 const MAX_INLINE_LENGTH = 40
 
@@ -21,6 +20,13 @@ function entryTitle(key: string) {
     return `${singleEntry} Shift-click to create nodes selecting all fields of the object (${escapedKeys.value.join(', ')}).`
   else return singleEntry
 }
+
+function onClick(key: string, event: MouseEvent) {
+  if (props.createProjectionCb) {
+    props.createProjectionCb([event.shiftKey ? Object.keys(props.data) : [key]])
+    event.stopPropagation()
+  }
+}
 </script>
 
 <template>
@@ -28,14 +34,17 @@ function entryTitle(key: string) {
     <span
       v-for="[key, value] in Object.entries(props.data)"
       :key="key"
-      :title="entryTitle(key)"
-      class="field clickable"
-      @click.stop="emit('createProjection', [$event.shiftKey ? Object.keys(props.data) : [key]])"
+      :title="createProjectionCb != null ? entryTitle(key) : ''"
+      class="field"
+      :class="{ clickable: createProjectionCb != null }"
+      @click.stop="onClick(key, $event)"
     >
       <span class="key" v-text="JSON.stringify(key)" />:
       <JsonValueWidget
         :data="value"
-        @createProjection="emit('createProjection', [[key], ...$event])"
+        :createProjectionCb="
+          createProjectionCb && ((path) => createProjectionCb?.([[key], ...path]))
+        "
       />
     </span>
   </span>
@@ -73,10 +82,6 @@ function entryTitle(key: string) {
 }
 .key {
   color: blue;
-
-  &:hover {
-    text-decoration: underline;
-  }
 }
 .viewonly .key {
   color: darkred;

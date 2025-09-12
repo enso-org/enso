@@ -201,7 +201,7 @@ watch(
 )
 
 // Use proxy object instead of computed to keep granular reactive updates across the `params` prop fields.
-const visParams = proxyRefs({
+const visParams: VisualizationHostParams = proxyRefs({
   visualization: effectiveVisualization,
   data: effectiveVisualizationData,
   size: contentElementSize,
@@ -213,7 +213,9 @@ const resizableWidgets = injectResizableWidgetRegistry(true)
 </script>
 
 <script lang="ts">
-import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
+import VisualizationHost, {
+  type VisualizationHostParams,
+} from '@/components/visualizations/VisualizationHost.vue'
 import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { defineCustomElement } from 'vue'
 

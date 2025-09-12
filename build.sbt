@@ -30,6 +30,7 @@ import java.nio.file.Files
 // to IntelliJ.
 import JPMSPlugin.autoImport._
 import PackageListPlugin.autoImport._
+import BazelSupport.autoImport._
 import JarExtractPlugin.autoImport._
 
 import java.io.File
@@ -164,12 +165,29 @@ openLegalReviewReport := {
 lazy val analyzeDependency = inputKey[Unit]("...")
 analyzeDependency := GatherLicenses.analyzeDependency.evaluated
 
-val packageBuilder = new DistributionPackage.Builder(
-  ensoVersion      = ensoVersion,
-  graalVersion     = graalMavenPackagesVersion,
-  graalJavaVersion = graalVersion,
-  artifactRoot     = file("built-distribution")
+lazy val distributionArtifactRoot = SettingKey[File](
+  "root directory where distribution artifacts will be built."
 )
+distributionArtifactRoot := {
+  if ((Bazel / wasStartedFromBazel).value) {
+    (Bazel / outputDir).value.get
+  } else {
+    file("built-distribution")
+  }
+}
+
+lazy val packageBuilder = SettingKey[DistributionPackage.Builder](
+  "create package builder with correct output dir path"
+)
+packageBuilder := {
+  val artifactRoot = distributionArtifactRoot.value
+  new DistributionPackage.Builder(
+    ensoVersion      = ensoVersion,
+    graalVersion     = graalMavenPackagesVersion,
+    graalJavaVersion = graalVersion,
+    artifactRoot     = artifactRoot
+  )
+}
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 Global / excludeLintKeys += logManager
@@ -380,7 +398,12 @@ lazy val enso = (project in file("."))
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
-    commands ++= Seq(packageBuilder.makePackages, packageBuilder.makeBundles)
+    commands ++= {
+      Seq(
+        packageBuilder.value.makePackages,
+        packageBuilder.value.makeBundles
+      )
+    }
   )
   .settings(
     clean := Def.task {
@@ -389,7 +412,7 @@ lazy val enso = (project in file("."))
         engineDistributionRoot.value,
         launcherDistributionRoot.value,
         projectManagerDistributionRoot.value,
-        packageBuilder.artifactRoot
+        packageBuilder.value.artifactRoot
       )
       IO.delete(filesToDelete)
     }.value
@@ -573,82 +596,129 @@ lazy val rustParserTargetDirectory =
 
 val generateRustParserLib =
   TaskKey[Seq[File]]("generateRustParserLib", "Generates parser native library")
-`syntax-rust-definition` / generateRustParserLib := {
-  val log = state.value.log
-  val libGlob =
-    (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
+`syntax-rust-definition` / generateRustParserLib := Def.taskIf {
+  if ((`syntax-rust-definition` / Bazel / wasStartedFromBazel).value) {
+    val libName = System.mapLibraryName("enso_parser")
+    val libDest =
+      (`syntax-rust-definition` / rustParserTargetDirectory).value / libName
+    val libFrombazel =
+      (`syntax-rust-definition` / Bazel / rustParserLib).value
+    IO.copyFile(libFrombazel, libDest)
+    Seq(
+      libDest
+    )
+  } else {
+    val log = state.value.log
+    val libGlob =
+      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
 
-  val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
-  if (
-    sys.env.get("CI").isDefined ||
-    allLibs.isEmpty ||
-    (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
-  ) {
-    val os = System.getProperty("os.name")
-    val target = os.toLowerCase() match {
-      case DistributionPackage.OS.Linux.name =>
-        Some("x86_64-unknown-linux-musl")
-      case _ =>
-        None
+    val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
+    if (
+      sys.env.get("CI").isDefined ||
+      allLibs.isEmpty ||
+      (`syntax-rust-definition` / generateRustParserLib).inputFileChanges.hasChanges
+    ) {
+      val os = System.getProperty("os.name")
+      val target = os.toLowerCase() match {
+        case DistributionPackage.OS.Linux.name =>
+          Some("x86_64-unknown-linux-musl")
+        case _ =>
+          None
+      }
+      target.foreach { t =>
+        Cargo.rustUp(t, log)
+      }
+      val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
+      val arguments = Seq(
+        "build",
+        "-p",
+        "enso-parser-jni",
+        "--profile",
+        profile,
+        "-Z",
+        "unstable-options"
+      ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
+        Seq(
+          "--artifact-dir",
+          (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
+        )
+      val envVars = target
+        .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
+        .getOrElse(Seq())
+      Cargo.run(arguments, log, envVars)
     }
-    target.foreach { t =>
-      Cargo.rustUp(t, log)
-    }
-    val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
-    val arguments = Seq(
-      "build",
-      "-p",
-      "enso-parser-jni",
-      "--profile",
-      profile,
-      "-Z",
-      "unstable-options"
-    ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
-      Seq(
-        "--artifact-dir",
-        (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
-      )
-    val envVars = target
-      .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
-      .getOrElse(Seq())
-    Cargo.run(arguments, log, envVars)
+    FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
   }
-  FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
-}
+}.value
 
-`syntax-rust-definition` / generateRustParserLib / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / ** / "*.rs"
-`syntax-rust-definition` / generateRustParserLib / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
+`syntax-rust-definition` / generateRustParserLib / fileInputs := {
+  if ((`syntax-rust-definition` / Bazel / wasStartedFromBazel).value) {
+    Seq.empty
+  } else {
+    Seq(
+      (`syntax-rust-definition` / baseDirectory).value.toGlob / "jni" / "src" / ** / "*.rs",
+      (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
+    )
+  }
+}
 
 val generateParserJavaSources = TaskKey[Seq[File]](
   "generateParserJavaSources",
   "Generates Java sources for Rust parser"
 )
-`syntax-rust-definition` / generateParserJavaSources := {
-  generateRustParser(
-    (`syntax-rust-definition` / Compile / sourceManaged).value,
-    (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges,
-    state.value.log
-  )
-}
-`syntax-rust-definition` / generateParserJavaSources / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs"
-`syntax-rust-definition` / generateParserJavaSources / fileInputs +=
-  (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
+`syntax-rust-definition` / generateParserJavaSources := Def.taskIf {
+  import scala.jdk.CollectionConverters._
+  if ((`syntax-rust-definition` / Bazel / wasStartedFromBazel).value) {
+    // Copy the generated sources from Bazel directory to our directory
+    val srcsFromBazel =
+      (`syntax-rust-definition` / Bazel / rustParserJavaSources).value
+    val base   = (`syntax-rust-definition` / Compile / sourceManaged).value
+    val outDir = base / "org" / "enso" / "syntax2"
+    if (!outDir.exists()) {
+      outDir.mkdirs()
+      srcsFromBazel.foreach { src =>
+        val fname = src.getName
+        val dest  = outDir / fname
+        IO.copyFile(src, dest)
+      }
+    }
+    FileUtils.listFiles(outDir, Array("scala", "java"), true).asScala.toSeq
+  } else {
+    val base   = (`syntax-rust-definition` / Compile / sourceManaged).value
+    val outDir = base / "org" / "enso" / "syntax2"
+    generateRustParser(
+      outDir,
+      (`syntax-rust-definition` / generateParserJavaSources).inputFileChanges,
+      state.value.log
+    )
+  }
+}.value
 
+`syntax-rust-definition` / generateParserJavaSources / fileInputs := {
+  if ((`syntax-rust-definition` / Bazel / wasStartedFromBazel).value) {
+    Seq.empty
+  } else {
+    Seq(
+      (`syntax-rust-definition` / baseDirectory).value.toGlob / "generate-java" / "src" / ** / "*.rs",
+      (`syntax-rust-definition` / baseDirectory).value.toGlob / "src" / ** / "*.rs"
+    )
+  }
+}
+
+/** Generates Java sources via `enso-parser-generate-java` binary.
+  * That binary must already exist - created via Rust compilation.
+  * @param outDir Base directory where the sources will be put.
+  *             No package hierarchy will be created.
+  */
 def generateRustParser(
-  base: File,
+  outDir: File,
   changes: sbt.nio.FileChanges,
   log: ManagedLogger
 ): Seq[File] = {
   import scala.jdk.CollectionConverters._
-  import java.nio.file.Paths
 
-  val syntaxPkgs = Paths.get("org", "enso", "syntax2").toString
-  val fullPkg    = Paths.get(base.toString, syntaxPkgs).toFile
-  if (!fullPkg.exists()) {
-    fullPkg.mkdirs()
+  if (!outDir.exists()) {
+    outDir.mkdirs()
   }
   if (changes.hasChanges) {
     val args = Seq(
@@ -657,16 +727,16 @@ def generateRustParser(
       "enso-parser-generate-java",
       "--bin",
       "enso-parser-generate-java",
-      fullPkg.toString
+      outDir.toString
     )
     Cargo.run(args, log)
   }
-  FileUtils.listFiles(fullPkg, Array("scala", "java"), true).asScala.toSeq
+  FileUtils.listFiles(outDir, Array("scala", "java"), true).asScala.toSeq
 }
 
 lazy val `syntax-rust-definition` = project
   .in(file("lib/rust/parser"))
-  .enablePlugins(JPMSPlugin)
+  .enablePlugins(BazelSupport && JPMSPlugin)
   .configs(Test)
   .settings(
     javadocSettings,
@@ -769,27 +839,33 @@ lazy val `python-extract` = project
     Compile / run / mainClass := Some("org.enso.pyextract.PythonExtract"),
     Compile / run / javaOptions ++= Seq("--enable-native-access=ALL-UNNAMED"),
     Compile / run / fork := true,
-    extractPythonResources := {
-      val outDir          = target.value / "python-resources"
-      val pyResourcesGlob = target.value.toGlob / "python-resources" / ** / *
-      val logger          = streams.value.log
-      val outs            = FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1)
-      val main            = (Compile / run / mainClass).value
-      val classPath       = (Compile / fullClasspath).value
-      val args = Seq(
-        outDir.getPath
-      )
-      val javaRunner = (Compile / run / runner).value
-      if (outs.isEmpty) {
-        javaRunner.run(
-          main.get,
-          classPath.files,
-          args,
-          logger
+    extractPythonResources := Def.taskIf {
+      if ((Bazel / wasStartedFromBazel).value) {
+        val resDir = (Bazel / extractedPythonResourceDir).value
+        val glob   = resDir.toGlob / ** / *
+        FileTreeView.default.list(Seq(glob)).map(_._1.toFile)
+      } else {
+        val outDir          = target.value / "python-resources"
+        val pyResourcesGlob = target.value.toGlob / "python-resources" / ** / *
+        val logger          = streams.value.log
+        val outs            = FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1)
+        val main            = (Compile / run / mainClass).value
+        val classPath       = (Compile / fullClasspath).value
+        val args = Seq(
+          outDir.getPath
         )
+        val javaRunner = (Compile / run / runner).value
+        if (outs.isEmpty) {
+          javaRunner.run(
+            main.get,
+            classPath.files,
+            args,
+            logger
+          )
+        }
+        FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1.toFile)
       }
-      FileTreeView.default.list(Seq(pyResourcesGlob)).map(_._1.toFile)
-    },
+    }.value,
     clean := {
       val _      = clean.value
       val outDir = target.value / "python-resources"
@@ -3658,7 +3734,6 @@ lazy val `engine-runner` = project
       // files this way.
       Package.ManifestAttributes(("Multi-Release", "true"))
     ),
-    Compile / run / mainClass := Some("org.enso.runner.Main"),
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= GraalVM.modules ++ GraalVM.toolsPkgs ++ jline ++ Seq(
@@ -3731,6 +3806,32 @@ lazy val `engine-runner` = project
       "com.typesafe" % "config" % typesafeConfigVersion
     ),
     run / connectInput := true
+  )
+  .settings(
+    Runtime / javaOptions ++= {
+      val runnerCp   = (Runtime / fullClasspath).value
+      val runtimeCp  = (`runtime` / Runtime / fullClasspath).value
+      val fullCp     = (runnerCp ++ runtimeCp).distinct
+      val modulePath = componentModulesPaths.value
+      Seq(
+        "--module-path",
+        modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
+        "-m",
+        "org.enso.runner/org.enso.runner.Main"
+      )
+    },
+    // For an unknown reason, `Runtime / javaOptions` are appended to `Test / javaOptions`.
+    // So we explicitly need to remove the main module option `-m`
+    Test / javaOptions := {
+      val oldVal = (Test / javaOptions).value
+      val idx    = oldVal.indexOf("-m")
+      if (idx == -1) {
+        throw new IllegalStateException(
+          "Expected -m option in Test / javaOptions"
+        )
+      }
+      oldVal.take(idx) ++ oldVal.drop(idx + 2)
+    }
   )
   .settings(
     NativeImage.smallJdk := Some(buildSmallJdk.value),
@@ -5959,10 +6060,36 @@ lazy val projectManagerDistributionRoot =
   settingKey[File]("Root of built project manager distribution")
 
 engineDistributionRoot :=
-  packageBuilder.localArtifact("engine") / s"enso-$ensoVersion"
-launcherDistributionRoot := packageBuilder.localArtifact("launcher") / "enso"
+  packageBuilder.value.localArtifact("engine") / s"enso-$ensoVersion"
+launcherDistributionRoot := packageBuilder.value.localArtifact(
+  "launcher"
+) / "enso"
 projectManagerDistributionRoot :=
-  packageBuilder.localArtifact("project-manager") / "enso"
+  packageBuilder.value.localArtifact("project-manager") / "enso"
+
+lazy val extraBazelEnvForStdLibIndexes = taskKey[Map[String, String]](
+  "Extra environment variables for subprocesses when running from Bazel - when compiling std libs"
+)
+extraBazelEnvForStdLibIndexes := Def.taskIf {
+  if ((Bazel / wasStartedFromBazel).value) {
+    val home     = (Bazel / homeDir).value.get.getAbsolutePath
+    val repoRoot = (enso / baseDirectory).value
+    val libPath =
+      (engineDistributionRoot.value / "lib" / "Standard").getCanonicalPath
+    val langHome = (engineDistributionRoot.value / "component").getCanonicalPath
+    Map(
+      "HOME"              -> home,
+      "ENSO_HOME"         -> repoRoot.getAbsolutePath,
+      "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath,
+      "JAVA_TOOL_OPTIONS" -> s"-Denso.languageHomeOverride=$langHome"
+    )
+  } else {
+    val langHome = (engineDistributionRoot.value / "component").getCanonicalPath
+    Map(
+      "JAVA_TOOL_OPTIONS" -> s"-Denso.languageHomeOverride=$langHome"
+    )
+  }
+}.value
 
 lazy val createStdLibsIndexes =
   taskKey[Unit]("Creates index files for standard libraries")
@@ -5972,14 +6099,16 @@ createStdLibsIndexes := {
   val distributionRoot = engineDistributionRoot.value
   val log              = streams.value.log
   val cacheFactory     = streams.value.cacheStoreFactory
+  val javaOpts         = (`engine-runner` / Runtime / javaOptions).value
 
   DistributionPackage.indexStdLibs(
-    stdLibVersion  = targetStdlibVersion,
-    ensoVersion    = ensoVersion,
-    stdLibRoot     = distributionRoot / "lib",
-    ensoExecutable = distributionRoot / "bin" / "enso",
-    cacheFactory   = cacheFactory.sub("stdlib"),
-    log            = log
+    stdLibVersion = targetStdlibVersion,
+    ensoVersion   = ensoVersion,
+    stdLibRoot    = distributionRoot / "lib",
+    javaOpts      = javaOpts,
+    env           = extraBazelEnvForStdLibIndexes.value,
+    cacheFactory  = cacheFactory.sub("stdlib"),
+    log           = log
   )
   log.info(s"Standard library indexes create for $distributionRoot")
 }
@@ -6314,13 +6443,15 @@ pkgStdLibInternal := Def.inputTask {
     )
     if (generateIndex) {
       val stdlibStandardRoot = root / "lib" / standardNamespace
+      val javaOpts           = (`engine-runner` / Runtime / javaOptions).value
       DistributionPackage.indexStdLib(
-        libName        = stdlibStandardRoot / lib,
-        stdLibVersion  = defaultDevEnsoVersion,
-        ensoVersion    = defaultDevEnsoVersion,
-        ensoExecutable = root / "bin" / "enso",
-        cacheFactory   = cacheFactory.sub("stdlib"),
-        log            = log
+        libName       = stdlibStandardRoot / lib,
+        stdLibVersion = defaultDevEnsoVersion,
+        ensoVersion   = defaultDevEnsoVersion,
+        javaOpts      = javaOpts,
+        env           = extraBazelEnvForStdLibIndexes.value,
+        cacheFactory  = cacheFactory.sub("stdlib"),
+        log           = log
       )
     }
   }
@@ -6347,6 +6478,29 @@ buildProjectManagerDistribution := {
   DistributionPackage.createProjectManagerPackage(root, cacheFactory)
   log.info(s"Project Manager package created at $root")
 }
+lazy val extraBazelEnvForManifestUpdate = taskKey[Map[String, String]](
+  "Extra environment variables for subprocesses when running from Bazel - manifest update"
+)
+
+/** Note that when updating library manifests, `engineDistributionRoot` does not yet exist.
+  * This is unlike to when running `createStdLibIndexes`.
+  */
+extraBazelEnvForManifestUpdate := Def.taskIf {
+  if ((Bazel / wasStartedFromBazel).value) {
+    val home     = (Bazel / homeDir).value.get.getAbsolutePath
+    val repoRoot = (enso / baseDirectory).value
+    val libPath =
+      (engineDistributionRoot.value / "lib" / "Standard").getCanonicalPath
+    val langHome = (engineDistributionRoot.value / "component").getCanonicalPath
+    Map(
+      "HOME"              -> home,
+      "ENSO_HOME"         -> repoRoot.getAbsolutePath,
+      "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath
+    )
+  } else {
+    Map.empty[String, String]
+  }
+}.value
 
 lazy val updateLibraryManifests =
   taskKey[Unit](
@@ -6362,6 +6516,7 @@ updateLibraryManifests := {
   val runtimeCp  = (`runtime` / Runtime / fullClasspath).value
   val fullCp     = (runnerCp ++ runtimeCp).distinct
   val modulePath = componentModulesPaths.value
+  val env        = extraBazelEnvForManifestUpdate.value
   val javaOpts = (ThisBuild / javaOptions).value ++ Seq(
     "--module-path",
     modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
@@ -6373,6 +6528,7 @@ updateLibraryManifests := {
     file("distribution"),
     log,
     javaOpts,
-    cacheFactory
+    cacheFactory,
+    env
   )
 }
