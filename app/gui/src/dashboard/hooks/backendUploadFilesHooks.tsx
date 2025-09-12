@@ -506,6 +506,8 @@ export function useUploadFileToCloud() {
       ])
     },
   )
+
+  return upload
 }
 
 /**
