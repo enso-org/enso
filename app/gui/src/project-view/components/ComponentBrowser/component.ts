@@ -150,7 +150,7 @@ export function makeComponentLists(
   function* matchSuggestions() {
     for (const [id, entry] of db.entries()) {
       if (!entry) continue
-      const match = filtering.filter(entry)
+      const match = filtering.filter(entry, db)
       if (isSome(match)) {
         const component = makeComponent({ id, entry, match })
         yield { id, entry, match, component }

@@ -7,6 +7,7 @@ import java.io.File;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -36,6 +37,21 @@ public class ProgramRootNodeTest {
       }
     } else {
       fail("" + vector.getMetaQualifiedName());
+    }
+  }
+
+  @Test
+  public void sourceSectionAndName() throws Exception {
+    var code = """
+        main = "Error!
+        """;
+    var src = Source.newBuilder("enso", code, "error_test.enso").build();
+    try {
+      var m = ctx.eval(src);
+      fail("Expecting an error exception: " + m);
+    } catch (PolyglotException ex) {
+      var f = ex.getPolyglotStackTrace().iterator().next();
+      assertEquals("error_test", f.getRootName());
     }
   }
 }

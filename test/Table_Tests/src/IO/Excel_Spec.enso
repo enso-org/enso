@@ -12,6 +12,7 @@ from Standard.Table import Table, Match_Columns, Excel_Range, Excel_Workbook, Va
 from Standard.Table.Errors import Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet, No_Rows, No_Common_Type
 from Standard.Table.Extensions.Excel_Extensions import all
 import Standard.Table.Excel.Excel_Workbook.Return_As as Old_Return_As
+from Standard.Table.Extensions.Column_Vector_Extensions import all
 
 from Standard.Test import all
 
@@ -243,7 +244,6 @@ spec_write suite_builder suffix test_sheet_name =
             t1.write alltypes (..Sheet "AllTypes") . should_succeed
             t2 = alltypes.read (..Sheet "AllTypes")
             t2.should_equal t1
-
 
         group_builder.specify 'should write a table to non-existent file in append mode as a new sheet with headers' <|
             out = data.create_out
@@ -1469,6 +1469,23 @@ add_specs suite_builder =
 
             workbook.close
             big_file.delete_if_exists . should_succeed
+
+        group_builder.specify 'write integers 1 to 1M to xlsx' pending=ci_pending <|
+            oneMInts = enso_project.data / "transient" / ("oneMInts.xlsx")
+            oneMInts.delete_if_exists . should_succeed
+            range1 = 0.up_to 1000000
+            column1 = range1.to_column "C1"
+            column2 = range1.to_column "C2"
+            column3 = range1.to_column "C3"
+            column4 = range1.to_column "C4"
+            column5 = range1.to_column "C5"
+            column6 = range1.to_column "C7"
+            column7 = range1.to_column "C10"
+            column8 = range1.to_column "C9"
+            column9 = range1.to_column "C8"
+            column10 = range1.to_column "C6"
+            t1 = Table.new [column1,column2,column3,column4,column5,column10,column6,column9,column8,column7]
+            t1.write oneMInts (..Sheet "AllTypes") . should_succeed
 
     spec_fmt suite_builder 'XLSX reading' Examples.xlsx
 

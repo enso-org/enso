@@ -2,6 +2,8 @@ load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("//:bazel_scripts/run_engine_distribution.bzl", "run_enso")
+load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
 npm_link_all_packages()
@@ -48,12 +50,185 @@ buildifier(
 ### Engine distribution ###
 ###########################
 
-# This is a test rule just to check if sbt was installed correctly.
-# Without addditional configuration, it will fail to start, but at least we run sbt.
+STDLIB_SOURCES = glob(stdlib_source_patterns())
+
+# TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
+SRCS = STDLIB_SOURCES + [
+    ".scalafmt.conf",
+    "build.sbt",
+    "project/plugins.sbt",
+    "project/build.properties",
+    "distribution/manifest.template.yaml",
+    "distribution/launcher-manifest.yaml",
+    "distribution/enso.bundle.template",
+    "distribution/bin/enso",
+    "distribution/bin/enso.bat",
+    "//lib/java/python-extract:extract_python_resources",
+    "//lib/rust/parser/jni:enso_parser_jni",
+    "//lib/rust/parser:generate_java",
+    "//lib/rust/parser/generate-java:enso_parser_generate_java_srcs",
+] + glob([
+    "engine/common/src/**",
+    "engine/interpreter-dsl-test/src/**",
+    "engine/language-server/src/**",
+    "engine/launcher/src/**",
+    "engine/polyglot-api/src/**",
+    "engine/polyglot-api-macros/src/**",
+    "engine/python-resource-provider/src/**",
+    "engine/runner/src/**",
+    "engine/runner-common/src/**",
+    "engine/runtime/src/**",
+    "engine/runtime-benchmarks/src/**",
+    "engine/runtime-compiler/src/**",
+    "engine/runtime-compiler-dump/src/**",
+    "engine/runtime-compiler-dump-igv/src/**",
+    "engine/runtime-instrument-common/src/**",
+    "engine/runtime-instrument-id-execution/src/**",
+    "engine/runtime-instrument-repl-debugger/src/**",
+    "engine/runtime-instrument-runtime-server/src/**",
+    "engine/runtime-integration-tests/src/**",
+    "engine/runtime-language-arrow/src/**",
+    "engine/runtime-language-epb/src/**",
+    "engine/runtime-parser/src/**",
+    "engine/runtime-parser-dsl/src/**",
+    "engine/runtime-parser-processor/src/**",
+    "engine/runtime-parser-processor-tests/src/**",
+    "engine/runtime-suggestions/src/**",
+    "engine/runtime-test-instruments/src/**",
+    "lib/java/akka-wrapper/src/**",
+    "lib/java/benchmarks-common/src/**",
+    "lib/java/fansi-wrapper/src/**",
+    "lib/java/interpreter-dsl/src/**",
+    "lib/java/jna-wrapper/src/**",
+    "lib/java/jvm-channel/src/**",
+    "lib/java/jvm-interop/src/**",
+    "lib/java/language-server-deps-wrapper/src/**",
+    "lib/java/logging-service-common/src/**",
+    "lib/java/logging-service-opensearch/src/**",
+    "lib/java/logging-service-telemetry/src/**",
+    "lib/java/os-environment/src/**",
+    "lib/java/persistance/src/**",
+    "lib/java/persistance-dsl/src/**",
+    "lib/java/poi-wrapper/src/**",
+    "lib/java/runtime-utils/src/**",
+    "lib/java/scala-libs-wrapper/src/**",
+    "lib/java/test-utils/src/**",
+    "lib/java/ydoc-polyfill/src/**",
+    "lib/java/ydoc-server/src/**",
+    "lib/java/zio-wrapper/src/**",
+    "lib/scala/akka-native/src/**",
+    "lib/scala/bench-processor/src/**",
+    "lib/scala/cli/src/**",
+    "lib/scala/common-polyglot-core-utils/src/**",
+    "lib/scala/connected-lock-manager/src/**",
+    "lib/scala/connected-lock-manager-server/src/**",
+    "lib/scala/distribution-manager/src/**",
+    "lib/scala/downloader/src/**",
+    "lib/scala/edition-updater/src/**",
+    "lib/scala/edition-uploader/src/**",
+    "lib/scala/editions/src/**",
+    "lib/scala/filewatcher/src/**",
+    "lib/scala/json-rpc-server/src/**",
+    "lib/scala/library-manager/src/**",
+    "lib/scala/locking-test-helper/src/**",
+    "lib/scala/logging-config/src/**",
+    "lib/scala/logging-service/src/**",
+    "lib/scala/logging-service-logback/src/**",
+    "lib/scala/logging-truffle-connector/src/**",
+    "lib/scala/logging-utils/src/**",
+    "lib/scala/logging-utils-akka/src/**",
+    "lib/scala/pkg/src/**",
+    "lib/scala/process-utils/src/**",
+    "lib/scala/profiling-utils/src/**",
+    "lib/scala/project-manager/src/**",
+    "lib/scala/refactoring-utils/src/**",
+    "lib/scala/runtime-version-manager/src/**",
+    "lib/scala/searcher/src/**",
+    "lib/scala/semver/src/**",
+    "lib/scala/task-progress-notifications/src/**",
+    "lib/scala/text-buffer/src/**",
+    "lib/scala/version-output/src/**",
+    "lib/scala/yaml/src/**",
+    "project/*.scala",
+    "project/src/**",
+    "std-bits/aws/src/**",
+    "std-bits/base/src/**",
+    "std-bits/benchmarks/src/**",
+    "std-bits/database/src/**",
+    "std-bits/google/src/**",
+    "std-bits/image/src/**",
+    "std-bits/microsoft/src/**",
+    "std-bits/snowflake/src/**",
+    "std-bits/table/src/**",
+    "std-bits/tableau/src/**",
+])
+
+SBT_BOOT_DIR = "$$TMPDIR/.sbt/boot"
+
+SBT_IVY_HOME = "$$TMPDIR/.ivy2"
+
+SBT_GLOBAL_BASE = "$$TMPDIR"
+
+SBT_LOCAL_REPOS = "$$TMPDIR/.sbt/repositories"
+
+SBT_SYSTEM_PROPS = [
+    "-Dsbt.repositories.local=" + SBT_LOCAL_REPOS,
+    "-Dsbt.global.base=" + SBT_GLOBAL_BASE,
+    "-Dsbt.boot.directory=" + SBT_BOOT_DIR,
+    "-Dsbt.ivy.home=" + SBT_IVY_HOME,
+    # Copied from .jvmopts
+    # TODO: Create a rule that reads that file?
+    "-Xss16M",
+    "-Xmx4G",
+    "-XX:+UseCompressedOops",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
+    "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
+    "--add-exports=jdk.graal.compiler/jdk.graal.compiler.graphio=ALL-UNNAMED",
+    "--enable-native-access=ALL-UNNAMED",
+    "--sun-misc-unsafe-memory-access=allow",
+]
+
+# These system properties are needed so that sbt will known that it runs as a subprocess of Bazel.
+# In such case, it will avoid running `cargo` or `pnpm` commands on its own,
+# instead, it will expect that all the necessary artifacts are already provided
+# by Bazel via system properties. See docs in `project/BazelSupport.scala`.
+EXTRA_SYSTEM_PROPS = [
+    "-Denso.BazelSupport.enabled=true",
+    "-Denso.BazelSupport.home=$(BINDIR)/home",
+    "-Denso.BazelSupport.parser.javaSrcDir=$(location //lib/rust/parser:generate_java)",
+    "-Denso.BazelSupport.parser.lib=$(location //lib/rust/parser/jni:enso_parser_jni)",
+    "-Denso.BazelSupport.python.resourceDir=$(location //lib/java/python-extract:extract_python_resources)",
+]
+
+ENV = {
+    "JAVA_HOME": "$(JAVABASE)",
+    "PATH": "$(FLATC_PATH):$(JAVABASE)/bin:$$PATH",
+    "LC_ALL": "C.UTF-8",
+    "SBT_SERVER_FORCESTART": "1",
+}
+
 run_sbt(
-    name = "sbt_version",
-    srcs = [],
-    args = ["--version"],
-    out_dir = "sbt_version",
+    name = "sbt_build_engine_distribution",
+    srcs = SRCS,
+    args = [
+        "buildEngineDistribution",
+    ],
+    env = ENV,
+    out_dir = "built-distribution",
+    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
+)
+
+# This is just a sanity check that runs equivalent of `enso --run test/Base_Tests/**/Maybe_Spec.enso`.
+run_enso(
+    name = "run_enso_test",
+    src = "//test/Base_Tests:maybe_spec",
+    distribution = ":sbt_build_engine_distribution",
+    run_args = [
+        "--no-ir-caches",
+    ],
 )

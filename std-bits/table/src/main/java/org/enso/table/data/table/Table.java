@@ -189,7 +189,7 @@ public class Table {
     var maskBuilder = new LongArrayList((int) Math.min(storage.getSize(), 100000));
     StorageIterators.forEachOverBooleanStorage(
         storage,
-        false,
+        "filter",
         (index, value, isNothing) -> {
           if (value) {
             maskBuilder.add(index);
