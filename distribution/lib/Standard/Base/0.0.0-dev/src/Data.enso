@@ -606,6 +606,114 @@ fetch_many (uris:Vector=(Missing_Argument.throw "uris")) (method:HTTP_Method=..G
             Telemetry.log "Data.fetch_many" "Fetched URLs: count={}, output={}" [uris.length, result.to Meta.Type . name]
             result
 
+## ---
+   private: true
+   advanced: true
+   aliases: [download, http get]
+   group: Web
+   icon: data_download
+   ---
+   Read data from a set of URIs.
+
+   Fetches from the provided URI and returns the response, parsing the body if
+   the content-type is recognised. Returns an  error if the status code does not
+   represent a successful response.
+
+   ## Arguments
+    - `initial_uri`: The first URI to fetch.
+    - `method`: The HTTP method to use. Must be one of `HTTP_Method.Get`,
+      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`. Defaults
+      to `HTTP_Method.Get`.
+    - `headers`: The headers to send with the request. Defaults to an empty
+      vector.
+    - `paginator`: A function that takes the current URI, the page number (from
+       1) and the response from the previous fetch (as a Response.Value), and
+       returns one of a URI, Text, a pair where the first element is the next
+       URI to fetch and the second element is the headers or Nothing to indicate
+       finished.
+    - `max_pages`: The maximum number of pages to fetch. Defaults to 10.
+    - `format`: The format to use for interpreting the response. Defaults to
+      `Auto_Detect`. If `Raw_Response` is selected or if the format cannot be
+      determined automatically, a raw HTTP `Response` will be returned.
+    - `return`: Specifies the shape of the data to return.
+    - `time_between_requests`: The time to wait between requests, in
+      milliseconds. Defaults to 0 (no wait).
+    - `cache_policy`: The caching policy to use. Defaults to `Default`. See
+      `Request Caching` for details.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      function. By default, if one of the uris fails to fetch, a warning is
+      issued and the entry for that uri becomes `Nothing`, but the operation
+      proceeds. If set to `Report_Error`, the operation fails with a dataflow
+      error on the first failing file. If set to `Ignore`, the operation proceeds
+      without errors or warnings, replacing files that fail to load with
+      `Nothing`.
+
+   ## Remarks
+
+   ### Request Caching
+   Responses to HTTP data requests are cached, and additional requests for the
+   same resources will use the cache, saving a round-trip call to the remote
+   server. Two resources are considered the same if the URIs and request headers
+   are the same. Header order does not affect sameness.
+   The cache respects the "max-age" and "Age" response headers; see `Data.fetch`
+   for more details.
+   The cached values are retained as long as the project remains open. Closing a
+   project will clear the cache.
+@initial_uri (Text_Input display=..Always)
+@method HTTP_Method.default_fetch_widget
+@format Data_Read_Helpers.format_widget_with_raw_response
+@headers Header.default_widget
+@return Return_As.default_widget
+@time_between_requests Numeric_Input default=0
+fetch_pages : Vector -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any -> Integer -> File_Format -> Return_As -> Integer -> Cache_Policy -> Problem_Behavior -> Any ! Request_Error | HTTP_Error
+fetch_pages (initial_uri:(URI | Text)=(Missing_Argument.throw "initial_uri")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (paginator=(_->_->_->Nothing)) (max_pages:Integer=10) (format = Auto_Detect) return=..As_Merged_Table time_between_requests:Integer=0 (cache_policy:Cache_Policy = ..Default) (on_problems : Problem_Behavior = ..Report_Warning) =
+    if time_between_requests<0 then Error.throw (Illegal_Argument.Error "time_between_requests cannot be negative.")
+    if max_pages<=0 then Error.throw (Illegal_Argument.Error "max_pages must be positive.")
+
+    return_as = Return_As.resolve return
+    used_format = File_Format.resolve format
+
+    Progress.run 'From '+initial_uri.to_text max_pages handle_name="Data.fetch_pages" pr->
+        pairs = Vector.build initial_capacity=max_pages builder->
+            fetch_page idx uri hdrs =
+                start = Date_Time.now
+
+                result = Data.fetch uri method hdrs Raw_Response cache_policy=cache_policy
+                pr.advance
+
+                caught_result = if result.is_error.not || on_problems==Problem_Behavior.Report_Error then result else
+                    result.catch Any error-> Failed_To_Load.Warning uri error
+
+                format_result = if caught_result.is_error then caught_result else
+                    Data_Read_Helpers.decode_http_response_following_data_links caught_result used_format
+                builder.append [uri, format_result]
+
+                if caught_result.is_error || idx==max_pages then Nothing else
+                    next = paginator uri idx caught_result
+                    next.if_not_error <|
+                        if next == Nothing then Nothing else
+                            next_pair = case next of
+                                _ : URI -> [next, hdrs]
+                                _ : Text -> [next, hdrs]
+                                _ : Pair -> next
+                                _ : Vector -> next
+
+                            if time_between_requests!=0 then
+                                elapsed = Duration.between start Date_Time.now . milliseconds
+                                if elapsed < time_between_requests then Runtime.sleep (time_between_requests - elapsed)
+
+                            @Tail_Call fetch_page (idx+1) next_pair.first next_pair.second
+
+            fetch_page 1 initial_uri headers
+
+        uris = pairs.map (_.first)
+        data = pairs.map (_.second)
+        pr.close
+
+        result = return_as.make_return uris data on_problems
+        result.if_not_error <|
+            Telemetry.log "Data.fetch_pages" "Fetched URLs: count={}, output={}" [uris.length, result.to Meta.Type . name]
+            result
 
 ## If the `format` is set to `Raw_Response`, a raw HTTP `Response` is returned
    that can be then processed further manually.
