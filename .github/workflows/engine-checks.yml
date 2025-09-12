@@ -482,6 +482,7 @@ jobs:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Native Tests, linux, amd64)
           path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -566,6 +567,7 @@ jobs:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Native Tests, windows, amd64)
           path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -650,6 +652,7 @@ jobs:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library JVM Tests, linux, amd64)
           path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -734,6 +737,7 @@ jobs:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library JVM Tests, windows, amd64)
           path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -818,6 +822,7 @@ jobs:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Microsoft Tests, linux, amd64)
           path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -902,6 +907,7 @@ jobs:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Microsoft Tests, windows, amd64)
           path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean

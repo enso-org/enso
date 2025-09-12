@@ -60,6 +60,7 @@ pub fn heapdump_upload(artifact_name: impl Into<String>) -> Step {
     let mut step = upload_artifact("Upload Heap Dumps")
         .with_custom_argument("name", artifact_name.into())
         .with_custom_argument("path", path)
+        .with_custom_argument("retention-days", 3)
         .with_custom_argument("if-no-files-found", "ignore");
     // This step should be run every time, but not on forks.
     step.r#if = Some(format!("(success() || failure()) && {}", not_a_fork()));
