@@ -26,7 +26,7 @@ polyglot java import java.lang.Thread
    advanced: true
    ---
    Pauses the current thread for the specified duration in milliseconds.
-sleep milliseconds:Integer -> result:Any=Nothing -> Any =
+sleep milliseconds:Integer result:Any=Nothing -> Any =
     if milliseconds < 0 then Error.throw (Illegal_Argument.Error "milliseconds must be non-negative")
     Thread.sleep milliseconds
     result
