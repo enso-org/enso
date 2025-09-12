@@ -15,8 +15,7 @@ rmSync(builtDistributionPath, { recursive: true, force: true })
 
 // Download the engine
 downloadEnsoEngine(projectRoot)
-  .then((ensoPath) => {
-    console.log(`ENSO_RUNNER_PATH=${ensoPath}`)
+  .then(() => {
     process.exit(0)
   })
   .catch((error) => {

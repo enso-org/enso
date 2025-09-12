@@ -92,14 +92,9 @@ jobs:
       - name: 📥 Download Enso Engine
         continue-on-error: true
         working-directory: app/project-manager-shim
-        run: |
-          pnpm run download-engine | tee /tmp/download-engine-output.txt
-          EXIT_CODE=${PIPESTATUS[0]}
-          grep "^ENSO_RUNNER_PATH=" /tmp/download-engine-output.txt >> $GITHUB_ENV
-          exit $EXIT_CODE
+        run: pnpm run download-engine
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOWNLOAD_ENSO_RUNNER: release
 
       - name: 🧪 Unit Tests
         id: unit-tests

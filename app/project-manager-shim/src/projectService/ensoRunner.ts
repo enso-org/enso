@@ -374,7 +374,6 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
  * The type of release to download is controlled by the DOWNLOAD_ENSO_RUNNER environment variable:
  * - If set to 'release': downloads the latest stable release
  * - If set to 'prerelease' or not set: downloads the latest prerelease
- *
  * @param projectRoot - The root directory of the project where the engine will be installed
  * @returns A promise that resolves to the path where the engine was extracted
  */
