@@ -681,28 +681,30 @@ fetch_pages (initial_uri:(URI | Text)=(Missing_Argument.throw "initial_uri")) (m
                 result = Data.fetch uri method hdrs Raw_Response cache_policy=cache_policy
                 pr.advance
 
-                caught_result = if result.is_error.not || on_problems==Problem_Behavior.Report_Error then result else
-                    result.catch Any error-> Failed_To_Load.Warning uri error
+                case result.is_error of
+                    True ->
+                        ## Pagination stops on an error
+                        if on_problems==Problem_Behavior.Report_Error then builder.append result
+                        Nothing
+                    False ->
+                        format_result = Data_Read_Helpers.decode_http_response_following_data_links result used_format
+                        builder.append [uri, format_result]
 
-                format_result = if caught_result.is_error then caught_result else
-                    Data_Read_Helpers.decode_http_response_following_data_links caught_result used_format
-                builder.append [uri, format_result]
+                        if idx==max_pages then Nothing else
+                            next = paginator uri idx result
+                            next.if_not_error <|
+                                if next == Nothing then Nothing else
+                                    next_pair = case next of
+                                        _ : URI -> [next, hdrs]
+                                        _ : Text -> [next, hdrs]
+                                        _ : Pair -> next
+                                        _ : Vector -> next
 
-                if caught_result.is_error || idx==max_pages then Nothing else
-                    next = paginator uri idx caught_result
-                    next.if_not_error <|
-                        if next == Nothing then Nothing else
-                            next_pair = case next of
-                                _ : URI -> [next, hdrs]
-                                _ : Text -> [next, hdrs]
-                                _ : Pair -> next
-                                _ : Vector -> next
+                                    if time_between_requests!=0 then
+                                        elapsed = Duration.between start Date_Time.now . milliseconds
+                                        if elapsed < time_between_requests then Runtime.sleep (time_between_requests - elapsed)
 
-                            if time_between_requests!=0 then
-                                elapsed = Duration.between start Date_Time.now . milliseconds
-                                if elapsed < time_between_requests then Runtime.sleep (time_between_requests - elapsed)
-
-                            @Tail_Call fetch_page (idx+1) next_pair.first next_pair.second
+                                    @Tail_Call fetch_page (idx+1) next_pair.first next_pair.second
 
             fetch_page 1 initial_uri headers
 
