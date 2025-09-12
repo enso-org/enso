@@ -56,7 +56,6 @@
     "cross-env": "^7.0.3",
     "electron": "37.2.1",
     "electron-builder": "^24.13.3",
-    "electron-builder-sandbox-fix": "^1.1.1",
     "enso-common": "workspace:*",
     "enso-gui": "workspace:*",
     "enso-runner": "workspace:*",

@@ -273,11 +273,18 @@ class App {
       add('ignore-certificate-errors')
       addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
       addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
-      addIf(perfOpts.disableSandbox, 'no-sandbox')
       addIf(perfOpts.disableSmoothScrolling, 'disable-smooth-scrolling')
       addIf(perfOpts.enableNativeGpuMemoryBuffers, 'enable-native-gpu-memory-buffers')
       addIf(perfOpts.forceHighPerformanceGpu, 'force_high_performance_gpu')
       addIf(perfOpts.ignoreGpuBlocklist, 'ignore-gpu-blocklist')
+      // AppImage is known to have sandboxing issues, for example:
+      // https://github.com/enso-org/enso/issues/3801 or
+      // https://github.com/enso-org/enso/issues/11035
+      // This does not lower security, because Enso processes have access to user's filesystem
+      // anyway.
+      if (os.platform() === 'linux') {
+        add('no-sandbox')
+      }
       add('use-angle', perfOpts.angleBackend.value)
       chromeOptions.sort((a, b) => a.name.localeCompare(b.name))
       if (chromeOptions.length > 0) {
