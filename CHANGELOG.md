@@ -113,6 +113,7 @@
   [13554]
 - [In-memory table `add_group_number` supports `Equal_Sum`.][13819]
 - [In-memory table `add_group_number` supports `Standard_Deviation`.][13895]
+- [Added `Data.fetch_many` to allow throttle fetching of APIs.][13999]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -132,6 +133,7 @@
 [13554]: https://github.com/enso-org/enso/pull/13554
 [13819]: https://github.com/enso-org/enso/pull/13819
 [13895]: https://github.com/enso-org/enso/pull/13895
+[13999]: https://github.com/enso-org/enso/pull/13999
 
 #### Enso Language & Runtime
 
