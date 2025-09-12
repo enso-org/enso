@@ -349,14 +349,11 @@ type Excel_Workbook
        private: true
        advanced: true
        ---
-       Closes the workbook, releasing any resources it holds.
-       This method may be used to release the underlying workbook file, e.g. to
-       be able to delete it.
-       After this method is called, this instance is not usable any more - any
-       operation on it will throw an `Illegal_State` error.
+       This method has been deprecated
     close : Nothing
     close self =
-        Nothing
+        Warning.attach (Deprecated.Warning "Standard.Table.Excel.Excel_Workbook.Close" "Close" "Deprecated: it is no longer required") <|
+             Nothing
 
     ## ---
        private: true
