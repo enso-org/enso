@@ -15,7 +15,6 @@ import { AssetContextMenu } from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUtils'
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
 import {
@@ -29,7 +28,6 @@ import type { Label } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
-import * as object from '#/utilities/object'
 import {
   canPermissionModifyDirectoryContents,
   isTeamPath,
@@ -48,8 +46,6 @@ import invariant from 'tiny-invariant'
 export interface AssetRowInnerProps {
   readonly asset: backendModule.AnyAsset
   readonly state: assetsTable.AssetsTableState
-  readonly rowState: assetsTable.AssetRowState
-  readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
 }
 
 /** Props for an {@link AssetRow}. */
@@ -200,14 +196,8 @@ export function RealAssetRow(props: RealAssetRowProps) {
   const setDragTargetAssetId = useSetDragTargetAssetId()
   const rootRef = React.useRef<HTMLElement | null>(null)
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
-  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
-    assetRowUtils.INITIAL_ROW_STATE,
-  )
 
-  const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === item.id)
-  const isEditingName = innerRowState.isEditingName || isNewlyCreated
-
-  const rowState = object.merge(innerRowState, { isEditingName })
+  const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
 
   const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
@@ -329,12 +319,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
     case backendModule.AssetType.file:
     case backendModule.AssetType.datalink:
     case backendModule.AssetType.secret: {
-      const innerProps: AssetRowInnerProps = {
-        asset: item,
-        state,
-        rowState,
-        setRowState,
-      }
+      const innerProps: AssetRowInnerProps = { asset: item, state }
 
       return (
         <>
@@ -370,7 +355,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               if (
                 item.type === backendModule.AssetType.directory &&
                 eventModule.isDoubleClick(event) &&
-                !rowState.isEditingName
+                !isEditingName
               ) {
                 // This must be processed on the next tick, otherwise it will be overridden
                 // by the default click handler.
@@ -398,7 +383,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               }
             }}
             onDragStart={(event) => {
-              if (rowState.isEditingName) {
+              if (isEditingName) {
                 event.preventDefault()
               }
 
@@ -458,8 +443,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
                     item={item}
                     setSelected={setSelected}
                     state={state}
-                    rowState={rowState}
-                    setRowState={setRowState}
                     isEditable={state.category.type !== 'trash'}
                     renameAsset={renameAsset}
                     closeProject={closeProject}
@@ -473,7 +456,9 @@ export function RealAssetRow(props: RealAssetRowProps) {
           {isSoleSelected && (
             <AssetContextMenu
               ref={contextMenuRef}
-              innerProps={innerProps}
+              asset={item}
+              backend={backend}
+              category={category}
               currentDirectoryId={currentDirectoryId}
               triggerRef={rootRef}
               doCopy={doCopy}

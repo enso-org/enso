@@ -22,12 +22,10 @@ import { useCategories } from '#/layouts/Drive/Categories'
 import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
-import type * as assetRow from '#/pages/dashboard/components/AssetRow'
 import { useExportArchive } from '#/pages/useExportArchive'
-import { usePasteData } from '#/providers/DriveProvider'
+import { useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import * as backendModule from '#/services/Backend'
-import * as object from '#/utilities/object'
+import Backend, * as backendModule from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
@@ -41,7 +39,9 @@ import * as React from 'react'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
-  readonly innerProps: assetRow.AssetRowInnerProps
+  readonly asset: backendModule.AnyAsset
+  readonly backend: Backend
+  readonly category: categoryModule.Category
   readonly triggerRef: React.MutableRefObject<HTMLElement | null>
   readonly currentDirectoryId: backendModule.DirectoryId
   readonly doCopy: () => void
@@ -59,15 +59,24 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   props: AssetContextMenuProps,
   ref: React.ForwardedRef<ContextMenuApi>,
 ) {
-  const { innerProps, triggerRef, currentDirectoryId, rightPanel, initialPosition } = props
-  const { doCopy, doCut, doPaste } = props
-  const { asset, state, setRowState } = innerProps
-  const { backend, category } = state
+  const {
+    asset,
+    triggerRef,
+    currentDirectoryId,
+    rightPanel,
+    initialPosition,
+    backend,
+    category,
+    doCopy,
+    doCut,
+    doPaste,
+  } = props
 
   const isCloud = categoryModule.isCloudCategory(category)
 
   const { router } = useRouter()
   const { localCategories } = useCategories()
+  const driveStore = useDriveStore()
 
   const getAsset = useGetAsset()
   const canRunProjects = useCanRunProjects()
@@ -264,7 +273,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
                 id: asset.id,
                 title: asset.title,
                 parentId: asset.parentId,
-                type: state.backend.type,
+                type: backend.type,
               })
             },
           },
@@ -335,7 +344,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             action: 'rename',
             doAction: () => {
               void goToDrive()
-              setRowState(object.merger({ isEditingName: true }))
+              driveStore.setState({ assetToRename: asset.id })
             },
           },
         (asset.type === backendModule.AssetType.secret ||

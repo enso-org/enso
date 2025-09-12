@@ -52,8 +52,8 @@ import { BindingFocusScopeContext } from '#/providers/BindingFocusScopeProvider'
 import {
   setDriveLocation,
   useDriveStore,
+  useSetAssetToRename,
   useSetCanDownload,
-  useSetNewestFolderId,
   useSetPasteData,
   useSetSelectedAssets,
   useSetVisuallySelectedKeys,
@@ -165,11 +165,6 @@ export interface AssetsTableState {
   readonly getAssetNodeById: (id: AssetId) => AnyAsset | null
 }
 
-/** Data associated with a {@link AssetRow}, used for rendering. */
-export interface AssetRowState {
-  readonly isEditingName: boolean
-}
-
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
   readonly query: AssetQuery
@@ -215,7 +210,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const [sortInfo, setSortInfo] = useState<SortInfo<AssetSortExpression> | null>(null)
   const driveStore = useDriveStore()
-  const setNewestFolderId = useSetNewestFolderId()
+  const setNewestFolderId = useSetAssetToRename()
   const setSelectedAssets = useSetSelectedAssets()
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const setPasteData = useSetPasteData()

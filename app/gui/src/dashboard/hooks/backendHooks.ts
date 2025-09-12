@@ -2,7 +2,7 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
-import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
+import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -503,12 +503,10 @@ function useDeleteAsset(backend: Backend, category: Category) {
 /** A function to create a new folder. */
 export function useNewFolder(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const setNewestFolderId = useSetNewestFolderId()
+  const setNewestFolderId = useSetAssetToRename()
   const setSelectedAssets = useSetSelectedAssets()
 
-  const createDirectoryMutation = useMutationCallback(
-    backendMutationOptions(backend, 'createDirectory'),
-  )
+  const createDirectory = useMutationCallback(backendMutationOptions(backend, 'createDirectory'))
 
   return useEventCallback(async (parentId: DirectoryId) => {
     const siblings = await ensureListDirectory(parentId)
@@ -521,7 +519,7 @@ export function useNewFolder(backend: Backend, category: Category) {
 
     const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
 
-    return await createDirectoryMutation([{ parentId, title }]).then((result) => {
+    return await createDirectory([{ parentId, title }]).then((result) => {
       setNewestFolderId(result.id)
       setSelectedAssets([{ type: AssetType.directory, ...result }])
       return result
@@ -537,9 +535,7 @@ export function useNewProject(backend: Backend, category: Category) {
   const canRunProjects = useCanRunProjects()
   const deleteAsset = useDeleteAsset(backend, category)
 
-  const createProjectMutation = useMutationCallback(
-    backendMutationOptions(backend, 'createProject'),
-  )
+  const createProject = useMutationCallback(backendMutationOptions(backend, 'createProject'))
 
   return useEventCallback(
     async (
@@ -566,7 +562,7 @@ export function useNewProject(backend: Backend, category: Category) {
 
       const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
 
-      return await createProjectMutation([
+      return await createProject([
         {
           parentDirectoryId: placeholderItem.parentId,
           projectName: placeholderItem.title,
@@ -605,7 +601,7 @@ export function useNewProject(backend: Backend, category: Category) {
 export function useRemoveSelfPermissionMutation(backend: Backend) {
   const { user } = useFullUserSession()
 
-  const createPermissionMutation = useMutationCallback(
+  const createPermission = useMutationCallback(
     backendMutationOptions(backend, 'createPermission', {
       meta: {
         invalidates: [
@@ -618,7 +614,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   )
 
   const mutate = useEventCallback((id: AssetId) => {
-    void createPermissionMutation([
+    void createPermission([
       {
         action: null,
         resourceId: id,
@@ -628,7 +624,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   })
 
   const mutateAsync = useEventCallback(async (id: AssetId) => {
-    await createPermissionMutation([
+    await createPermission([
       {
         action: null,
         resourceId: id,
@@ -637,7 +633,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
     ])
   })
 
-  return { ...createPermissionMutation, mutate, mutateAsync }
+  return { ...createPermission, mutate, mutateAsync }
 }
 
 /** Build a query options object to list executions for a project. */
