@@ -73,7 +73,7 @@ fn validate_spans(code: &str, ast: &enso_parser::syntax::Tree) {
 
 fn validate_parse(code: &str, ast: &enso_parser::syntax::Tree) {
     validate_spans(code, ast);
-    expect_tree_representing_code(code, &ast);
+    expect_tree_representing_code(code, ast);
 }
 
 
@@ -105,7 +105,7 @@ impl Errors {
 
 /// Returns the message of the first `Invalid` node encountered in a preorder DFS.
 pub fn first_error(ast: &enso_parser::syntax::Tree) -> Option<Cow<'static, str>> {
-    let errors = Errors::collect(&ast);
+    let errors = Errors::collect(ast);
     errors.invalid_node
 }
 

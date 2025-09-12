@@ -178,7 +178,7 @@ impl Parser {
     fn run<'s>(&self, code: &'s str, root_context: RootContext) -> syntax::Tree<'s> {
         let resolver = macros::resolver::Resolver::new(&self.macros, root_context);
         let ParseResult { value, internal_error } = Lexer::new(code, resolver).finish();
-        if let Some(_) = internal_error {
+        if internal_error.is_some() {
             return value.with_error(SyntaxError::Internal);
         }
         value
