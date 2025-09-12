@@ -857,8 +857,22 @@ export class Server {
   ) {
     try {
       // This is SAFE because it is wrapped in a try-catch.
-      // If the body is invalid, an error will be thrown and handled.
-      const { assetIds } = (await streamConsumers.json(request)) as { assetIds: readonly AssetId[] }
+      // If the body is not valid JSON, an error will be thrown and handled.
+      const body = await streamConsumers.json(request)
+      const assetIds =
+        (
+          typeof body === 'object' &&
+          body &&
+          'assetIds' in body &&
+          Array.isArray(body.assetIds) &&
+          body.assetIds.every((id) => typeof id === 'string')
+        ) ?
+          body.assetIds.map((id) => AssetId(id))
+        : null
+      if (!assetIds) {
+        this.httpError(response, 'Asset IDs invalid or missing.')
+        return
+      }
       const filePath = params.get('filePath')
       const archive = this.apiArchiveStream(assetIds)
       let promise: Promise<void> | undefined
