@@ -156,6 +156,7 @@ impl BuiltEnso {
         Ok(command)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn run_tests(
         &self,
         ir_caches: IrCaches,
