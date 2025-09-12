@@ -181,8 +181,10 @@ read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto
         loaded_objects = paths.paths_to_load.map on_problems=map_on_problems path->
             result = Data.read path used_format on_problems
             pr.advance
-            if result.is_error.not || on_problems==Problem_Behavior.Report_Error then result else
-                result.catch Any error-> Failed_To_Load.Warning path error
+            if result.is_error.not then result else
+                result.catch Any error->
+                    new_error = Failed_To_Load.Warning path error
+                    if on_problems == Problem_Behavior.Report_Error then Error.throw new_error else new_error
         result = return_as.make_return paths loaded_objects on_problems
         result.if_not_error <|
             Telemetry.log "Data.read_many" "Read files: count={}, output={}" [paths.paths_to_load.length, result.to Meta.Type . name]
