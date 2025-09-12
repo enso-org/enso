@@ -63,10 +63,7 @@ type Excel_Workbook
                 java_file = Java_File.new raw_file.absolute.normalize.path
                 internal_sheet_names = Vector.from_polyglot_array (ExcelReader.readSheetNames java_file (_java_format xls_format))
                 internal_range_names = Vector.from_polyglot_array (ExcelReader.readRangeNames java_file (_java_format xls_format))
-                wb = Excel_Workbook.Value java_file file xls_format internal_sheet_names internal_range_names
-                sheets = wb.sheet_names
-                if sheets.is_error then (Error.throw sheets)
-                wb
+                Excel_Workbook.Value java_file file xls_format internal_sheet_names internal_range_names
 
         case file of
             tmp : Temporary_File -> tmp.with_file continuation
