@@ -41,7 +41,6 @@ from project.Metadata.Choice import Option
 from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Numeric_Input, Vector_Editor
 from project.System.File_Format import Auto_Detect, File_Format
 
-
 ## ---
    aliases: [load, open]
    macros:
@@ -180,8 +179,8 @@ read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto
     map_on_problems = if on_problems == Problem_Behavior.Report_Error then on_problems else No_Wrap.Value
     Progress.run 'From 0 to '+paths.paths_to_load.length.to_text paths.paths_to_load.length handle_name="Data.read_many" pr->
         loaded_objects = paths.paths_to_load.map on_problems=map_on_problems path->
-            pr.advance
             result = Data.read path used_format on_problems
+            pr.advance
             if result.is_error.not || on_problems==Problem_Behavior.Report_Error then result else
                 result.catch Any error-> Failed_To_Load.Warning path error
         result = return_as.make_return paths loaded_objects on_problems
@@ -593,9 +592,9 @@ fetch_many (uris:Vector=(Missing_Argument.throw "uris")) (method:HTTP_Method=..G
     map_on_problems = if on_problems == Problem_Behavior.Report_Error then on_problems else No_Wrap.Value
     Progress.run 'From 0 to '+uris.length.to_text uris.length handle_name="Data.fetch_many" pr->
         fetched_objects = uris.map_with_index on_problems=map_on_problems i->uri->
-            pr.advance
             start = Date_Time.now
             result = Data.fetch uri method headers used_format cache_policy=cache_policy
+            pr.advance
             caught_result = if result.is_error.not || on_problems==Problem_Behavior.Report_Error then result else
                 result.catch Any error-> Failed_To_Load.Warning uri error
             if caught_result.is_error.not && (i+1)<uris.length && time_between_requests!=0 then
