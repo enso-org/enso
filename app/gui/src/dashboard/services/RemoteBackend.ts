@@ -342,6 +342,9 @@ export default class RemoteBackend extends Backend {
     query: backend.ListDirectoryRequestParams,
     title: string,
   ): Promise<backend.ListDirectoryResponseBody> {
+    if (query.recentProjects && query.from) {
+      return { assets: [], paginationToken: null }
+    }
     const paramsString = new URLSearchParams(
       query.recentProjects ?
         [['recent_projects', String(true)]]
