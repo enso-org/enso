@@ -16,8 +16,6 @@
 - [Implement `Text_Column.to_case` for in-memnory backend.][13769]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
-[13819]: https://github.com/enso-org/enso/pull/13819
-[13895]: https://github.com/enso-org/enso/pull/13895
 
 #### Enso Language & Runtime
 
