@@ -1,12 +1,20 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
-import project.Runtime.GC_Example
+from Standard.Base.Errors.Common import Unsupported_Argument_Types
 
 from Standard.Test import all
 
+import project.Runtime.GC_Example
+
+polyglot java import org.enso.interpreter.runtime.error.PanicException
+
+
+type My_Value
+    Value value
 
 add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
     group_builder.specify "should call the destructor even if the action fails" <|
@@ -125,8 +133,40 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         if msg_text != exp_text then
             Test.fail (msg_text)
 
+    group_builder.specify "should not allow non-truffle objects to be registered" <|
+        cleanup _ = Nothing
+        Test.expect_panic Unsupported_Argument_Types (Managed_Resource.register 2 cleanup)
+
+    group_builder.specify "should not allow a resource to be registered more than once at the same time" <|
+        value = My_Value.Value 10
+        cleanup _ = Nothing
+        mr0 = Managed_Resource.register value cleanup
+        Test.expect_panic Illegal_Argument (Managed_Resource.register value cleanup)
+        mr0 . should_succeed  # Here to prevent collection
+        mr0.take
+
+    group_builder.specify "should allow two object resources that are equal but not the same instance to be registered at the same time" <|
+        value = My_Value.Value 10
+        value2 = My_Value.Value 10
+        cleanup _ = Nothing
+        mr0 = Managed_Resource.register value cleanup
+        mr1 = Managed_Resource.register value2 cleanup
+        mr0 . should_succeed  # Here to prevent collection
+        mr1 . should_succeed  # Here to prevent collection
+        mr0.take
+        mr1.take
+
+    group_builder.specify "should allow a resource to be registered more than once, but not at the same time" <|
+        v = My_Value.Value 10
+        cleanup _ = Nothing
+        mr0 = Managed_Resource.register v cleanup
+        mr0.take
+        mr1 = Managed_Resource.register v cleanup
+        mr0 . should_succeed
+        mr1 . should_succeed
+        mr1.take
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

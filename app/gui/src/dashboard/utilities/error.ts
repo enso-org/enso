@@ -1,13 +1,8 @@
 /** @file Contains useful error types common across the module. */
 import { ErrorWithDisplayMessage } from 'enso-common/src/utilities/errors'
-import isNetworkErrorLib from 'is-network-error'
 import type * as toastify from 'react-toastify'
 
 export * from 'enso-common/src/utilities/errors'
-
-// =====================
-// === tryGetMessage ===
-// =====================
 
 /** Evaluates the given type only if it the exact same type as `Expected`. */
 type MustBe<T, Expected> =
@@ -109,10 +104,6 @@ export function render(f: (message: string) => string): toastify.UpdateOptions {
   return { render: ({ data }) => f(getMessageOrToString(data)) }
 }
 
-// ============================
-// === UnreachableCaseError ===
-// ============================
-
 /**
  * An error used to indicate when an unreachable case is hit in a `switch` or `if` statement.
  *
@@ -139,10 +130,6 @@ export class UnreachableCaseError extends Error {
 export function unreachable(value: never): never {
   throw new UnreachableCaseError(value)
 }
-
-// ==============
-// === assert ===
-// ==============
 
 /**
  * Assert that a value is truthy.
@@ -179,27 +166,6 @@ export function isJSError(error: unknown): boolean {
     return true
   } else if (error instanceof EvalError) {
     return true
-  } else {
-    return false
-  }
-}
-
-/**
- * Checks if the given error is a network error.
- * Wraps the `is-network-error` library to add additional network errors to the check.
- */
-export function isNetworkError(error: unknown): error is TypeError {
-  const customNetworkErrors = new Set([
-    // aws amplify network error
-    'Network error',
-  ])
-
-  if (error instanceof Error) {
-    if (customNetworkErrors.has(error.message)) {
-      return true
-    } else {
-      return isNetworkErrorLib(error)
-    }
   } else {
     return false
   }

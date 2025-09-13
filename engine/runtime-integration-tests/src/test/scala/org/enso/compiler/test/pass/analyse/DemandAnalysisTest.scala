@@ -141,8 +141,8 @@ class DemandAnalysisTest extends CompilerTest {
         .asInstanceOf[CallArgument.Specified]
         .value shouldBe an[Name]
 
-      app
-        .arguments(1)
+      app.arguments
+        .apply(1)
         .asInstanceOf[CallArgument.Specified]
         .value shouldBe an[Name]
     }
@@ -160,9 +160,9 @@ class DemandAnalysisTest extends CompilerTest {
         .body
         .asInstanceOf[Application.Sequence]
 
-      vec.items(0) shouldBe an[Application.Force]
-      vec.items(1) shouldBe an[Application.Force]
-      vec.items(2) shouldBe an[Application.Force]
+      vec.items.apply(0) shouldBe an[Application.Force]
+      vec.items.apply(1) shouldBe an[Application.Force]
+      vec.items.apply(2) shouldBe an[Application.Force]
 
     }
   }
@@ -234,7 +234,7 @@ class DemandAnalysisTest extends CompilerTest {
       oprCall.function.asInstanceOf[Name].name shouldEqual "<|"
       oprCall.arguments.length shouldEqual 2
 
-      val xArg = oprCall.arguments(1).asInstanceOf[CallArgument.Specified]
+      val xArg = oprCall.arguments.apply(1).asInstanceOf[CallArgument.Specified]
 
       xArg.value shouldBe an[Expression.Block]
       xArg.value

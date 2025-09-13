@@ -1,30 +1,24 @@
-/**
- * @file
- *
- * A styled button that shows that a feature is behind a paywall
- */
+/** @file A styled button that shows that a feature is behind a paywall. */
+import PaywallBlocked from '#/assets/lock.svg'
+import { Button, type ButtonProps } from '#/components/Button'
+import * as billingHooks from '#/hooks/billing'
+import { useText } from '$/providers/react'
 import * as React from 'react'
 
-import PaywallBlocked from '#/assets/lock.svg'
-
-import * as billingHooks from '#/hooks/billing'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
 /** Props for {@link PaywallButton}. */
-export type PaywallButtonProps = ariaComponents.ButtonProps & {
+export type PaywallButtonProps<IconType extends string> = ButtonProps<IconType> & {
   readonly feature: billingHooks.PaywallFeatureName
   readonly iconOnly?: boolean
   readonly showIcon?: boolean
 }
 
 /** A styled button that shows that a feature is behind a paywall */
-export function PaywallButton(props: PaywallButtonProps) {
+export function PaywallButton<IconType extends string>(
+  props: PaywallButtonProps<IconType>,
+): React.JSX.Element {
   const { feature, iconOnly = false, showIcon = true, children, ...buttonProps } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const { getFeature } = billingHooks.usePaywallFeatures()
 
@@ -35,7 +29,7 @@ export function PaywallButton(props: PaywallButtonProps) {
   const childrenContent = children ?? getText('upgradeTo', levelLabel)
 
   return (
-    <ariaComponents.Button
+    <Button
       variant="primary"
       size="medium"
       icon={showIcon ? PaywallBlocked : null}
@@ -46,6 +40,6 @@ export function PaywallButton(props: PaywallButtonProps) {
       {...(buttonProps as any)}
     >
       {showChildren && childrenContent}
-    </ariaComponents.Button>
+    </Button>
   )
 }

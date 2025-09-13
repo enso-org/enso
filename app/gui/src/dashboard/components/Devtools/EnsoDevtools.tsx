@@ -1,34 +1,24 @@
-/**
- * @file
- *
- * A component that provides a UI for toggling paywall features.
- */
+/** @file UI for editing application state. */
 import * as React from 'react'
-
-import * as authProvider from '#/providers/AuthProvider'
 import { useShowEnsoDevtools } from './EnsoDevtoolsProvider'
 
-const EnsoDevtoolsImpl = React.lazy(() =>
-  import('./EnsoDevtoolsImpl').then((mod) => ({ default: mod.EnsoDevtools })),
-)
+const EnsoDevtoolsImpl =
+  process.env.NODE_ENV === 'development' ?
+    React.lazy(() => import('./EnsoDevtoolsImpl').then((mod) => ({ default: mod.EnsoDevtools })))
+  : () => null
+const EnsoDevStatus =
+  process.env.NODE_ENV === 'development' ?
+    React.lazy(() => import('./EnsoDevtoolsImpl').then((mod) => ({ default: mod.EnsoDevStatus })))
+  : () => null
 
-/** A component that provides a UI for toggling paywall features. */
+/** UI for editing application state */
 export function EnsoDevtools() {
-  const { isEnsoTeamMember } = authProvider.useUser()
-
   const showEnsoDevtools = useShowEnsoDevtools()
 
-  const shouldDisplayDevtools = (() => {
-    if (showEnsoDevtools == null) {
-      return isEnsoTeamMember
-    }
-
-    return showEnsoDevtools
-  })()
-
-  if (!shouldDisplayDevtools) {
-    return null
-  }
-
-  return <EnsoDevtoolsImpl />
+  return (
+    <>
+      {showEnsoDevtools && <EnsoDevtoolsImpl />}
+      <EnsoDevStatus />
+    </>
+  )
 }

@@ -1,0 +1,7 @@
+{
+    "resources":{
+        "includes":[{
+            "pattern":"org.enso.pkg:\\Qdefault/src/Main.enso\\E"
+        }]},
+    "bundles":[]
+}

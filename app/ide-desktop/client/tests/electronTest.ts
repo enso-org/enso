@@ -1,67 +1,105 @@
 /** @file Commonly used functions for electron tests */
+/* eslint-disable no-empty-pattern */
 
-import { _electron, ElectronApplication, expect, type Page, test } from '@playwright/test'
 import { TEXTS } from 'enso-common/src/text'
-import * as random from 'lib0/random'
+import fs from 'node:fs/promises'
 import os from 'node:os'
-import pathModule from 'node:path'
+import path from 'node:path'
+import {
+  _electron,
+  test as base,
+  expect,
+  Locator,
+  type ElectronApplication,
+  type Page,
+} from 'playwright/test'
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
 export const CONTROL_KEY = os.platform() === 'darwin' ? 'Meta' : 'Control'
+const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
+
+const credentials = JSON.parse(
+  await fs.readFile(TEST_USER_FILE, { encoding: 'utf-8' }).catch((err) => {
+    throw Error('Cannot read Test User credentials.', { cause: err })
+  }),
+)
+
+const electronExecutablePath = await (async () => {
+  const POSSIBLE_EXEC_PATHS = [
+    '../../../../dist/ide/linux-unpacked/enso',
+    '../../../../dist/ide/win-unpacked/Enso.exe',
+    '../../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
+    '../../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
+  ].map((p) => path.resolve(import.meta.dirname, p))
+  try {
+    const promises = POSSIBLE_EXEC_PATHS.map((p) => fs.access(p, fs.constants.X_OK).then(() => p))
+    return await Promise.any(promises)
+  } catch {
+    throw Error('Cannot find Enso package')
+  }
+})()
 
 /**
  * Tests run on electron executable.
  *
  * Similar to playwright's test, but launches electron, and passes Page of the main window.
  */
-export function electronTest(
-  name: string,
-  body: (args: {
-    page: Page
-    app: ElectronApplication
-    projectsDir: string
-  }) => Promise<void> | void,
-) {
-  test(name, async () => {
-    const uuid = random.uuidv4()
-    const projectsDir = pathModule.join(os.tmpdir(), 'enso-test-projects', `${name}-${uuid}`)
-    console.log('Running Application; projects dir is', projectsDir)
+export const test = base.extend<{
+  testRunId: string
+  projectsDir: string
+  app: ElectronApplication
+  page: Page
+}>({
+  testRunId: async function ({}, use, testInfo) {
+    await use(`${testInfo.testId}-${Date.now()}`)
+  },
+  projectsDir: async function ({ testRunId }, use) {
+    const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testRunId)
+    await use(projectsDir)
+  },
+
+  /**
+   * Setup for all tests: Create an electron-based app instance.
+   */
+  app: async function ({ projectsDir, testRunId, viewport }, use) {
+    const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
+    if (viewport) args.push(`--window.size=${viewport.width}x${viewport.height}`)
     const app = await _electron.launch({
-      executablePath: process.env.ENSO_TEST_EXEC_PATH ?? '',
-      args: process.env.ENSO_TEST_APP_ARGS != null ? process.env.ENSO_TEST_APP_ARGS.split(',') : [],
-      env: { ...process.env, ENSO_TEST: name, ENSO_TEST_PROJECTS_DIR: projectsDir },
+      executablePath: electronExecutablePath,
+      args,
+      env: { ...process.env, ENSO_TEST: 'true', ENSO_TEST_PROJECTS_DIR: projectsDir },
     })
-    const page = await app.firstWindow()
+    // Set the password as global var before turning on tracing.
+    // This way it will be not disclosed to anyone downloading traces of failed tests.
+    ;(await app.firstWindow()).evaluate((password) => {
+      ;(window as any).passwordOverride = password
+    }, credentials.password)
     await app.context().tracing.start({ screenshots: true, snapshots: true, sources: true })
-    // Wait until page will be finally loaded: we expect login screen.
-    // There's bigger timeout, because the page may load longer on CI machines.
-    await expect(page.getByText('Login to your account')).toBeVisible({ timeout: LOADING_TIMEOUT })
-    try {
-      await body({ page, app, projectsDir })
-    } finally {
-      await app.context().tracing.stop({ path: `test-traces/${name}.zip` })
-      await app.close()
-    }
-  })
-}
+    await use(app)
+    await app.context().tracing.stop({ path: `test-traces/${testRunId}.zip` })
+    await app.close()
+  },
+  page: async function ({ app, viewport }, use) {
+    const innerPage = await app.firstWindow()
+    if (viewport) innerPage.setViewportSize(viewport)
+    await use(innerPage)
+  },
+})
 
 /**
  * Login as test user. This function asserts that page is the login page, and uses
- * credentials from ENSO_TEST_USER and ENSO_TEST_USER_PASSWORD env variables.
+ * credentials from playwright/.auth/user.json file.
  */
 export async function loginAsTestUser(page: Page) {
   // Login screen
+  await expect(page.getByText('Login to your account')).toBeVisible({ timeout: LOADING_TIMEOUT })
   await expect(page.getByRole('textbox', { name: 'email' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'password' })).toBeVisible()
-  if (process.env.ENSO_TEST_USER == null || process.env.ENSO_TEST_USER_PASSWORD == null) {
-    throw Error(
-      'Cannot log in; `ENSO_TEST_USER` and `ENSO_TEST_USER_PASSWORD` env variables are not provided',
-    )
-  }
-  await page.getByRole('textbox', { name: 'email' }).fill(process.env.ENSO_TEST_USER)
-  await page.getByRole('textbox', { name: 'password' }).fill(process.env.ENSO_TEST_USER_PASSWORD)
-  await page.getByTestId('form-submit-button').click()
+  await page.getByRole('textbox', { name: 'email' }).fill(credentials.user)
+  // Put some placeholder - the actual password was set in fixture (see above).
+  await page.getByRole('textbox', { name: 'password' }).fill('mellon')
+  await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
   await page
     .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
@@ -72,5 +110,58 @@ export async function loginAsTestUser(page: Page) {
     .getByText(TEXT.privacyPolicyCheckbox)
     .click()
 
-  await page.getByTestId('form-submit-button').click()
+  await page.getByRole('button', { name: TEXT.accept }).click()
+}
+
+/**
+ * The funcion creates a new Enso project
+ */
+export async function createNewProject(page: Page) {
+  const newProjectTab = page.getByRole('button', { name: 'New Project', exact: true })
+
+  await expect(newProjectTab).toBeVisible()
+  await newProjectTab.click()
+  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
+
+  const tableViz = page.locator('.TableVisualization')
+  await expect(tableViz).toBeVisible({ timeout: 30000 })
+  await expect(tableViz).toContainText('Welcome To Enso!')
+}
+
+/**
+ * If welcome project is to be opened, this function takes you back to your dashboard
+ */
+export async function closeWelcome(page: Page) {
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
+  if (await welcomeProjectTab.isVisible()) {
+    await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  }
+}
+
+/**
+ * Finds the "newest" project (highest numbered "New Project N") in the user dasboard.
+ * @param page - The Playwright Page instance
+ * @returns Locator for the newest project
+ */
+export async function getNewestProject(page: Page): Promise<Locator> {
+  // Returning back to the data catalog
+  const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
+  await expect(dataCatalogTab).toBeVisible()
+  await dataCatalogTab.click()
+
+  const projects = await page
+    .getByTestId('drive-view')
+    .getByText(/New Project \d+/)
+    .all()
+
+  const numbered = await Promise.all(
+    projects.map(async (p) => {
+      const text = await p.innerText()
+      const num = parseInt(text.replace('New Project ', ''), 10)
+      return { locator: p, num }
+    }),
+  )
+
+  return numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
 }

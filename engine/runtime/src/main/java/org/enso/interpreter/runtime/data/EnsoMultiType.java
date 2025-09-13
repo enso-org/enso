@@ -12,9 +12,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.enso.interpreter.runtime.EnsoContext;
 
 /**
- * Internal representation of {@code Type[]} that supports identity comparision with {@code ==} to
+ * Internal representation of {@code Type[]} that supports identity comparison with {@code ==} to
  * support inline caching of {@link EnsoMultiValue}. This is a separate and hidden concept from
- * {@link Type} which is used thru out the Enso codebase.
+ * {@link Type} which is used throughout the codebase.
  *
  * <p>Think twice before opening this type to public!
  */
@@ -26,7 +26,18 @@ final class EnsoMultiType {
   private final Type[] types;
 
   private EnsoMultiType(Type[] types) {
+    assert checkNonNull(types);
+    assert isUnique(types);
     this.types = types;
+  }
+
+  private static boolean checkNonNull(Type[] types) {
+    for (var t : types) {
+      if (t == null) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -84,12 +95,22 @@ final class EnsoMultiType {
     return "MultiType{" + "types=" + Arrays.toString(types) + '}';
   }
 
+  private static boolean isUnique(Type[] types) {
+    var set = new HashSet<>(Arrays.asList(types));
+    return set.size() == types.length;
+  }
+
   @CompilerDirectives.TruffleBoundary
   final boolean hasIntersectionWith(EnsoMultiType other) {
     var my = new HashSet<>(Arrays.asList(types));
     var their = Arrays.asList(other.types);
-    my.removeAll(their);
-    return my.size() < types.length;
+    // removeAll returns true if any element from 'their' was removed from 'my' - meaning there is
+    // an intersection.
+    return my.removeAll(their);
+  }
+
+  Type[] getTypes() {
+    return Arrays.copyOf(types, types.length);
   }
 
   @GenerateUncached
@@ -182,9 +203,9 @@ final class EnsoMultiType {
         System.arraycopy(next.types, 0, concat, self.types.length, next.types.length);
       }
       if (moveToFirst != 0) {
-        var first = concat[0];
-        concat[0] = concat[moveToFirst];
-        concat[moveToFirst] = first;
+        var toFirst = concat[moveToFirst];
+        System.arraycopy(concat, 0, concat, 1, moveToFirst);
+        concat[0] = toFirst;
       }
       return concat;
     }

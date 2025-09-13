@@ -38,13 +38,12 @@ abstract class Handler {
     executionService: ExecutionService,
     truffleContext: TruffleContext
   ): Unit = {
-    val interpreterCtx =
-      InterpreterContext(
-        executionService,
-        contextManager,
-        endpoint,
-        truffleContext
-      )
+    val interpreterCtx = new InterpreterContext(
+      executionService,
+      contextManager,
+      endpoint,
+      truffleContext
+    )
     val commandProcessor = new CommandExecutionEngine(interpreterCtx)
     ctx = HandlersContext(
       executionService,
@@ -81,6 +80,10 @@ abstract class Handler {
           )
         }
     }
+  }
+
+  def close(): Unit = {
+    contextManager.close();
   }
 
   def cmdFactory: CommandFactory

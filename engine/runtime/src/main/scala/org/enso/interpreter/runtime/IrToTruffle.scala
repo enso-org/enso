@@ -1,6 +1,6 @@
 package org.enso.interpreter.runtime
 
-import com.oracle.truffle.api.source.{Source, SourceSection}
+import com.oracle.truffle.api.source.Source
 import com.oracle.truffle.api.interop.InteropLibrary
 import org.enso.compiler.common.{
   BuildScopeFromModuleAlgorithm,
@@ -14,6 +14,7 @@ import org.enso.compiler.core.ConstantsNames
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
+  AscriptionReason,
   CallArgument,
   DefinitionArgument,
   Empty,
@@ -21,10 +22,10 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Literal,
+  Location,
   Module,
   Name,
   Pattern,
-  `type`,
   Type => Tpe
 }
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -56,9 +57,7 @@ import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
   GenericAnnotations,
   GlobalNames,
-  MethodDefinitions,
   Patterns,
-  TypeNames,
   TypeSignatures
 }
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
@@ -99,8 +98,9 @@ import org.enso.interpreter.runtime.callable.{
   Annotation => RuntimeAnnotation
 }
 import org.enso.interpreter.runtime.data.Type
-import org.enso.interpreter.runtime.scope.{ImportExportScope, ModuleScope}
+import org.enso.interpreter.runtime.scope.ImportExportScope
 import org.enso.interpreter.{Constants, EnsoLanguage}
+import org.enso.interpreter.runtime.builtin.Builtins
 
 import java.math.BigInteger
 import java.util.function.Supplier
@@ -119,19 +119,40 @@ import scala.jdk.OptionConverters._
   * with each lowering pass operating solely on a single module.
   *
   * @param context        the language context instance for which this is executing
+  * @param pkg            the library this module belongs to
   * @param source         the source code that corresponds to the text for which code
   *                       is being generated
   * @param scopeBuilder   the scope's builder of the module for which code is being generated
   * @param compilerConfig the configuration for the compiler
   */
-class IrToTruffle(
+private[runtime] class IrToTruffle(
   val context: EnsoContext,
-  val source: Source,
-  val scopeBuilder: ModuleScope.Builder,
+  val pkg: org.enso.pkg.Package[_],
+  private val sourceSupplier: Supplier[Source],
+  val scopeBuilder: TruffleCompilerModuleScopeBuilder,
   val compilerConfig: CompilerConfig
 ) {
+  private def getBuiltins: Builtins = {
+    Builtins.get(context)
+  }
+
+  lazy val source = sourceSupplier.get
 
   val language: EnsoLanguage = context.getLanguage
+
+  def this(
+    context: EnsoContext,
+    pkg: org.enso.pkg.Package[_],
+    sourceSupplier: Supplier[Source],
+    mod: CompilerContext.Module,
+    compilerConfig: CompilerConfig
+  ) = this(
+    context,
+    pkg,
+    sourceSupplier,
+    TruffleCompilerModuleScopeBuilder.fromCompilerModule(mod),
+    compilerConfig
+  )
 
   // ==========================================================================
   // === Top-Level Runners ====================================================
@@ -193,7 +214,7 @@ class IrToTruffle(
 
     val builderAlgorithm = new BuildModuleScopeFromModule
     builderAlgorithm.processModule(module, bindingsMap)
-    scopeBuilder.build()
+    scopeBuilder.finish()
   }
 
   final private class BuildModuleScopeFromModule
@@ -220,7 +241,7 @@ class IrToTruffle(
     ): Unit =
       scopeBuilder.registerPolyglotSymbol(
         visibleName,
-        () => context.lookupJavaClass(javaClassName)
+        () => context.lookupJavaClass(pkg, javaClassName)
       )
 
     override protected def processConversion(
@@ -239,15 +260,16 @@ class IrToTruffle(
         "Method definition missing frame information."
       )
 
-      val toOpt =
+      val toType =
         conversion.methodReference.typePointer match {
-          case Some(tpePointer) =>
-            getTypeResolution(tpePointer)
+          case Some(tpePointer) => getTypeResolution(tpePointer)
           case None =>
-            Some(scopeAssociatedType)
+            throw new CompilerError(
+              s"Conversion (${where()}) missing type pointer."
+            )
         }
-      val fromOpt = getTypeResolution(conversion.sourceTypeName)
-      toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
+      val fromType = getTypeResolution(conversion.sourceTypeName)
+      if (fromType != null && toType != null) {
         val expressionProcessor = new ExpressionProcessor(
           toType.getName ++ Constants.SCOPE_SEPARATOR ++ conversion.methodName.name,
           () => scopeInfo().graph,
@@ -257,42 +279,47 @@ class IrToTruffle(
           frameInfo
         )
 
-        val function = conversion.body match {
-          case fn: Function =>
-            val bodyBuilder =
-              new expressionProcessor.BuildFunctionBody(
-                conversion.methodName.name,
-                fn.arguments,
-                fn.body,
-                TypeCheckValueNode.single("conversion", toType),
-                None,
-                true
+        val function: Supplier[RuntimeFunction] = () =>
+          conversion.body match {
+            case fn: Function =>
+              val bodyBuilder =
+                new expressionProcessor.BuildFunctionBody(
+                  conversion.methodName.name,
+                  fn.arguments,
+                  fn.body,
+                  TypeCheckValueNode.single(
+                    AscriptionReason.forFunctionResult("conversion"),
+                    toType
+                  ),
+                  None,
+                  true
+                )
+              val rootNode = MethodRootNode.build(
+                language,
+                expressionProcessor.scope,
+                scopeBuilder.asModuleScope(),
+                () => bodyBuilder.bodyNode(),
+                makeSource(scopeBuilder.getModule),
+                makeLocation(conversion.location),
+                toType,
+                conversion.methodName.name
               )
-            val rootNode = MethodRootNode.build(
-              language,
-              expressionProcessor.scope,
-              scopeBuilder.asModuleScope(),
-              () => bodyBuilder.bodyNode(),
-              makeSection(scopeBuilder.getModule, conversion.location),
-              toType,
-              conversion.methodName.name
-            )
-            val callTarget = rootNode.getCallTarget
-            val arguments  = bodyBuilder.args()
-            val funcSchema = FunctionSchema
-              .newBuilder()
-              .argumentDefinitions(arguments: _*)
-              .build()
-            new RuntimeFunction(
-              callTarget,
-              null,
-              funcSchema
-            )
-          case _ =>
-            throw new CompilerError(
-              s"Conversion bodies must be functions at the point of codegen (conversion $fromType to $toType)."
-            )
-        }
+              val callTarget = rootNode.getCallTarget
+              val arguments  = bodyBuilder.args()
+              val funcSchema = FunctionSchema
+                .newBuilder()
+                .argumentDefinitions(arguments: _*)
+                .build()
+              new RuntimeFunction(
+                callTarget,
+                null,
+                funcSchema
+              )
+            case _ =>
+              throw new CompilerError(
+                s"Conversion bodies must be functions at the point of codegen (conversion $fromType to $toType)."
+              )
+          }
         scopeBuilder.registerConversionMethod(toType, fromType, function)
       }
     }
@@ -359,7 +386,7 @@ class IrToTruffle(
     override protected def processTypeDefinition(typ: Definition.Type): Unit = {
       val atomDefs = typ.members
       val asType =
-        scopeBuilder.asModuleScope().getType(typ.name.name, true)
+        scopeBuilder.getType(typ.name.name, true)
       val atomConstructors =
         atomDefs.map(cons => asType.getConstructors.get(cons.name.name))
       atomConstructors
@@ -491,7 +518,8 @@ class IrToTruffle(
             expressionProcessor.scope,
             scopeBuilder.asModuleScope(),
             expressionNode,
-            makeSection(scopeBuilder.getModule, annotation.location),
+            makeSource(scopeBuilder.getModule),
+            makeLocation(annotation.location),
             closureName,
             true,
             false
@@ -500,7 +528,8 @@ class IrToTruffle(
         }
 
         AtomConstructor.newInitializationBuilder(
-          makeSection(scopeBuilder.getModule, atomDefn.location),
+          makeSource(scopeBuilder.getModule),
+          makeLocation(atomDefn.location),
           localScope,
           assignments.toArray,
           reads.toArray,
@@ -512,7 +541,7 @@ class IrToTruffle(
       val fieldNames = atomDefn.arguments.map(_.name.name).toArray
       atomCons.initializeFields(
         language,
-        scopeBuilder,
+        scopeBuilder.toCompilerBuilder(),
         initializationBuilderSupplier,
         fieldNames
       )
@@ -602,7 +631,8 @@ class IrToTruffle(
           () => bodyBuilder.argsExpr._1(0),
           () => bodyBuilder.argsExpr._1(1),
           () => bodyBuilder.argsExpr._2,
-          makeSection(scopeBuilder.getModule, methodDef.location),
+          makeSource(scopeBuilder.getModule),
+          makeLocation(methodDef.location),
           cons,
           methodDef.methodName.name
         )
@@ -612,7 +642,8 @@ class IrToTruffle(
           expressionProcessor.scope,
           scopeBuilder.asModuleScope(),
           () => bodyBuilder.bodyNode(),
-          makeSection(scopeBuilder.getModule, methodDef.location),
+          makeSource(scopeBuilder.getModule),
+          makeLocation(methodDef.location),
           cons,
           methodDef.methodName.name
         )
@@ -664,10 +695,8 @@ class IrToTruffle(
               expressionProcessor.scope,
               scopeBuilder.asModuleScope(),
               expressionNode,
-              makeSection(
-                scopeBuilder.getModule,
-                annotation.location
-              ),
+              makeSource(scopeBuilder.getModule),
+              makeLocation(annotation.location),
               closureName,
               true,
               false
@@ -723,7 +752,7 @@ class IrToTruffle(
 
     val staticWrapper = methodDef.isStaticWrapperForInstanceMethod
 
-    val builtinFunction = context.getBuiltins
+    val builtinFunction = getBuiltins
       .getBuiltinFunction(
         methodOwnerName,
         methodName,
@@ -740,7 +769,7 @@ class IrToTruffle(
       .left
       .flatMap { l =>
         // Builtin Types Number and Integer have methods only for documentation purposes
-        val number = context.getBuiltins.number()
+        val number = getBuiltins.number()
         val ok =
           staticWrapper && (cons == number.getNumber.getEigentype || cons == number.getInteger.getEigentype) ||
           !staticWrapper && (cons == number.getNumber             || cons == number.getInteger)
@@ -803,71 +832,14 @@ class IrToTruffle(
   // === Utility Functions ====================================================
   // ==========================================================================
 
-  private def extractAscribedType(
-    comment: String,
-    t: Expression
-  ): TypeCheckValueNode = t match {
-    case u: `type`.Set.Union =>
-      val oneOf = u.operands.map(extractAscribedType(comment, _))
-      if (oneOf.contains(null)) {
-        null
-      } else {
-        val arr: Array[TypeCheckValueNode] = oneOf.toArray
-        TypeCheckValueNode.oneOf(comment, arr: _*)
-      }
-    case i: `type`.Set.Intersection =>
-      TypeCheckValueNode.allOf(
-        comment,
-        extractAscribedType(comment, i.left),
-        extractAscribedType(comment, i.right)
-      )
-    case p: Application.Prefix => extractAscribedType(comment, p.function)
-    case _: Tpe.Function =>
-      TypeCheckValueNode.single(
-        comment,
-        context.getTopScope().getBuiltins().function()
-      )
-    case typeWithError: Tpe.Error =>
-      // When checking a `a ! b` type, we ignore the error part as it is only used for documentation purposes and is not checked.
-      extractAscribedType(comment, typeWithError.typed)
-    case typeInContext: Tpe.Context =>
-      // Type contexts aren't currently really used. But we should still check the base type.
-      extractAscribedType(comment, typeInContext.typed)
-    case t => {
-      val res = t.getMetadata(TypeNames)
-      res match {
-        case Some(
-              BindingsMap
-                .Resolution(binding @ BindingsMap.ResolvedType(_, _))
-            ) =>
-          val typeOrAny = asType(binding)
-          if (context.getBuiltins().any() == typeOrAny) {
-            null
-          } else {
-            TypeCheckValueNode.single(comment, typeOrAny)
-          }
-        case Some(
-              BindingsMap
-                .Resolution(BindingsMap.ResolvedPolyglotSymbol(mod, symbol))
-            ) =>
-          TypeCheckValueNode.meta(
-            comment,
-            asScope(
-              mod.unsafeAsModule().asInstanceOf[TruffleCompilerContext.Module]
-            ).getPolyglotSymbolSupplier(symbol.name)
-          )
-        case _ => null
-      }
-    }
-  }
-
   private def checkAsTypes(
     arg: DefinitionArgument
   ): TypeCheckValueNode = {
-    val comment = "`" + arg.name.name + "`"
     arg.ascribedType
       .map { t =>
-        TypeCheckValueNode.allTypes(false, extractAscribedType(comment, t))
+        val reason    = AscriptionReason.forParameter(arg.name.name)
+        val checkNode = IrTruffleUtils.extractAscribedType(context, reason, t)
+        TypeCheckValueNode.allTypes(false, checkNode)
       }
       .getOrElse(null)
   }
@@ -891,57 +863,28 @@ class IrToTruffle(
     * @param location the location to turn into a section
     * @return the source section corresponding to `location`
     */
-  private def makeSection(
-    module: org.enso.interpreter.runtime.Module,
-    location: Option[IdentifiedLocation]
-  ): SourceSection = {
-    location
-      .map(loc => {
-        val m = module
-        if (m.isModuleSource(source)) {
-          module.createSection(loc.start, loc.length)
-        } else {
-          source.createSection(loc.start, loc.length)
-        }
-      })
-      .getOrElse(source.createUnavailableSection())
+  private def makeSource(
+    module: org.enso.interpreter.runtime.Module
+  ): Supplier[Source] = { () =>
+    {
+      val m = module
+      if (m.isModuleSource(source)) {
+        module.getSource()
+      } else {
+        source
+      }
+    }
   }
 
-  private def getTypeResolution(expr: IR): Option[Type] =
-    expr
-      .getMetadata(MethodDefinitions.INSTANCE, classOf[BindingsMap.Resolution])
-      .map { res =>
-        res.target match {
-          case binding @ BindingsMap.ResolvedType(_, _) =>
-            asType(binding)
-          case BindingsMap.ResolvedModule(module) =>
-            asAssociatedType(module.unsafeAsModule())
-          case BindingsMap.ResolvedConstructor(_, _) =>
-            throw new CompilerError(
-              "Impossible here, should be caught by MethodDefinitions pass."
-            )
-          case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-            throw new CompilerError(
-              "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
-            )
-          case BindingsMap.ResolvedPolyglotField(_, _) =>
-            throw new CompilerError(
-              "Impossible polyglot field, should be caught by MethodDefinitions pass."
-            )
-          case _: BindingsMap.ResolvedModuleMethod =>
-            throw new CompilerError(
-              "Impossible module method here, should be caught by MethodDefinitions pass."
-            )
-          case _: BindingsMap.ResolvedExtensionMethod =>
-            throw new CompilerError(
-              "Impossible static method here, should be caught by MethodDefinitions pass."
-            )
-          case _: BindingsMap.ResolvedConversionMethod =>
-            throw new CompilerError(
-              "Impossible conversion method here, should be caught by MethodDefinitions pass."
-            )
-        }
-      }
+  private def makeLocation(
+    location: Option[IdentifiedLocation]
+  ): Location = {
+    if (location.isDefined) {
+      location.get.location
+    } else {
+      null
+    }
+  }
 
   private def getTailStatus(
     expression: Expression
@@ -1151,10 +1094,12 @@ class IrToTruffle(
                         s"Source type should be defined in module ${module.getName}"
                       )
                       val conversionFun =
-                        actualScope.lookupConversionDefinition(
-                          sourceTp,
-                          targetTp
-                        )
+                        actualScope
+                          .asModuleScope()
+                          .lookupConversionDefinition(
+                            sourceTp,
+                            targetTp
+                          )
                       org.enso.common.Asserts.assertInJvm(
                         conversionFun != null,
                         s"Conversion method `$conversionMethod` should be defined in module ${module.getName}"
@@ -1272,7 +1217,11 @@ class IrToTruffle(
           processCase(caseExpr, subjectToInstrumentation)
         case asc: Tpe.Ascription =>
           val checkNode =
-            extractAscribedType(asc.comment.orNull, asc.signature)
+            IrTruffleUtils.extractAscribedType(
+              context,
+              asc.reason,
+              asc.signature
+            )
           if (checkNode != null) {
             val body = run(asc.typed, binding, subjectToInstrumentation)
             TypeCheckValueNode.wrap(body, checkNode)
@@ -1287,7 +1236,7 @@ class IrToTruffle(
             "Comments should not be present during codegen."
           )
         case err: Error => processError(err)
-        case Foreign.Definition(_, _, _, _) =>
+        case _: Foreign.Definition =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
           )
@@ -1301,7 +1250,11 @@ class IrToTruffle(
             ir.getMetadata(TypeSignatures)
           types.foreach { tpe =>
             val checkNode =
-              extractAscribedType(tpe.comment.orNull, tpe.signature)
+              IrTruffleUtils.extractAscribedType(
+                context,
+                tpe.reason,
+                tpe.signature
+              )
             if (checkNode != null) {
               runtimeExpression =
                 TypeCheckValueNode.wrap(runtimeExpression, checkNode)
@@ -1354,7 +1307,8 @@ class IrToTruffle(
           childScope,
           scopeBuilder.asModuleScope(),
           blockNode,
-          makeSection(scopeBuilder.getModule, block.location),
+          makeSource(scopeBuilder.getModule),
+          makeLocation(block.location),
           currentVarName,
           false,
           false
@@ -1379,7 +1333,7 @@ class IrToTruffle(
     def processType(value: Tpe): RuntimeExpression = {
       setLocation(
         ErrorNode.build(
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeSyntaxError(
               "Type operators are not currently supported at runtime"
@@ -1399,10 +1353,11 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       caseExpr match {
-        case caseExpr @ Case.Expr(scrutinee, branches, isNested, location, _) =>
-          val scrutineeNode = this.run(scrutinee, subjectToInstrumentation)
+        case caseExpr: Case.Expr =>
+          val scrutineeNode =
+            this.run(caseExpr.scrutinee, subjectToInstrumentation)
 
-          val maybeCases    = branches.map(processCaseBranch)
+          val maybeCases    = caseExpr.branches.map(processCaseBranch)
           val allCasesValid = maybeCases.forall(_.isRight)
 
           if (allCasesValid) {
@@ -1416,9 +1371,9 @@ class IrToTruffle(
             val matchExpr = CaseNode.build(
               scrutineeNode,
               cases,
-              isNested
+              caseExpr.isNested
             )
-            setLocation(matchExpr, location)
+            setLocation(matchExpr, caseExpr.location())
           } else {
             val invalidBranches = maybeCases.collect { case Left(x) =>
               x
@@ -1426,7 +1381,7 @@ class IrToTruffle(
 
             val message = invalidBranches.map(_.message).mkString(", ")
 
-            val error = context.getBuiltins
+            val error = getBuiltins
               .error()
               .makeCompileError(message)
 
@@ -1515,13 +1470,13 @@ class IrToTruffle(
                     ) =>
                   val atomCons =
                     asType(tp).getConstructors.get(cons.name)
-                  val r = if (atomCons == context.getBuiltins.bool().getTrue) {
+                  val r = if (atomCons == getBuiltins.bool().getTrue) {
                     BooleanBranchNode.build(
                       true,
                       branchCodeNode.getCallTarget,
                       branch.terminalBranch
                     )
-                  } else if (atomCons == context.getBuiltins.bool().getFalse) {
+                  } else if (atomCons == getBuiltins.bool().getFalse) {
                     BooleanBranchNode.build(
                       false,
                       branchCodeNode.getCallTarget,
@@ -1542,7 +1497,7 @@ class IrToTruffle(
                     ) =>
                   val tpe =
                     asType(binding)
-                  val polyglot = context.getBuiltins.polyglot
+                  val polyglot = getBuiltins.polyglot
                   val branchNode = if (tpe == polyglot) {
                     PolyglotBranchNode.build(
                       tpe,
@@ -1708,15 +1663,14 @@ class IrToTruffle(
               Option(asType(binding)) match {
                 case Some(tpe) =>
                   val argOfType = List(
-                    new DefinitionArgument.Specified(
-                      typePattern.name,
-                      None,
-                      None,
-                      suspended = false,
-                      typePattern.identifiedLocation,
-                      passData    = typePattern.name.passData,
-                      diagnostics = typePattern.name.diagnostics
-                    )
+                    DefinitionArgument.Specified
+                      .builder()
+                      .name(typePattern.name)
+                      .suspended(false)
+                      .location(typePattern.identifiedLocation)
+                      .passData(typePattern.name.passData)
+                      .diagnostics(typePattern.name.diagnostics)
+                      .build()
                   )
 
                   val branchCodeNode = childProcessor.processFunctionBody(
@@ -1745,15 +1699,16 @@ class IrToTruffle(
                   .get()
               if (polySymbol != null) {
                 val argOfType = List(
-                  new DefinitionArgument.Specified(
-                    typePattern.name,
-                    None,
-                    None,
-                    suspended = false,
-                    typePattern.identifiedLocation,
-                    passData    = typePattern.name.passData,
-                    diagnostics = typePattern.name.diagnostics
-                  )
+                  DefinitionArgument.Specified
+                    .builder()
+                    .name(typePattern.name)
+                    .ascribedType(None)
+                    .defaultValue(None)
+                    .suspended(false)
+                    .location(typePattern.identifiedLocation)
+                    .passData(typePattern.name.passData)
+                    .diagnostics(typePattern.name.diagnostics)
+                    .build()
                 )
 
                 val branchCodeNode = childProcessor.processFunctionBody(
@@ -1809,15 +1764,14 @@ class IrToTruffle(
       * @return `name` as a function definition argument.
       */
     private def genArgFromMatchField(name: Pattern.Name): DefinitionArgument = {
-      new DefinitionArgument.Specified(
-        name.name,
-        None,
-        None,
-        suspended = false,
-        name.identifiedLocation,
-        passData    = name.name.passData,
-        diagnostics = name.name.diagnostics
-      )
+      DefinitionArgument.Specified
+        .builder()
+        .name(name.name)
+        .suspended(false)
+        .location(name.identifiedLocation)
+        .passData(name.name.passData)
+        .diagnostics(name.name.diagnostics)
+        .build()
     }
 
     /** Generates code for an Enso binding expression.
@@ -2000,7 +1954,7 @@ class IrToTruffle(
             ConstantObjectNode.build(t)
           } else {
             ErrorNode.build(
-              context.getBuiltins
+              getBuiltins
                 .error()
                 .makeSyntaxError(
                   s"Type for $tp is null"
@@ -2087,47 +2041,47 @@ class IrToTruffle(
         case Error.InvalidIR(_, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: errors.Syntax =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeSyntaxError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Binding =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Method =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.MethodClashWithAtom =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Conversion =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Type =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.SelfArg =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Redefined.Arg =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Unexpected.TypeSignature =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Resolution =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case err: errors.Conversion =>
-          context.getBuiltins
+          getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
         case _: errors.Pattern =>
@@ -2147,7 +2101,7 @@ class IrToTruffle(
       * @return the Nothing builtin
       */
     private def processEmpty(): RuntimeExpression = {
-      LiteralNode.build(context.getBuiltins.nothing())
+      LiteralNode.build(getBuiltins.nothing())
     }
 
     /** Processes function arguments, generates arguments reads and creates
@@ -2185,11 +2139,11 @@ class IrToTruffle(
         val (argSlotIdxs, _, argExpressions) = slots
 
         val bodyExpr = body match {
-          case Foreign.Definition(lang, code, _, _) =>
+          case foreignDef: Foreign.Definition =>
             buildForeignBody(
-              lang,
+              foreignDef.lang,
               body.location,
-              code,
+              foreignDef.code,
               arguments.map(_.name.name),
               argSlotIdxs
             )
@@ -2226,11 +2180,13 @@ class IrToTruffle(
               )
               .asInstanceOf[FramePointer]
             val slotIdx = fp.frameSlotIdx()
-            val readArgNoCheck =
+            val readArgNoCheck0 =
               ReadArgumentNode.build(
                 idx,
                 arg.getDefaultValue.orElse(null)
               )
+            val readArgNoCheck =
+              setLocation(readArgNoCheck0, unprocessedArg.name().location())
             val readArg   = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
             val assignArg = AssignmentNode.build(readArg, slotIdx)
 
@@ -2266,14 +2222,17 @@ class IrToTruffle(
       val name = scopeName.replace('.', '_') + "." + language
       val b    = Source.newBuilder("epb", language + ":" + line + "#" + code, name)
       b.uri(source.getURI())
-      val src       = b.build()
-      val foreignCt = context.parseInternal(src, argumentNames: _*)
+      val src = b.build()
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>
           ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
         )
         .toArray[RuntimeExpression]
-      ForeignMethodCallNode.build(argumentReaders, foreignCt)
+      ForeignMethodCallNode.buildDeferred(
+        src,
+        argumentNames.toArray,
+        argumentReaders
+      )
     }
 
     /** Generates code for an Enso function body.
@@ -2297,7 +2256,8 @@ class IrToTruffle(
         scope,
         scopeBuilder.asModuleScope(),
         bodyBuilder.bodyNode(),
-        makeSection(scopeBuilder.getModule, location),
+        makeSource(scopeBuilder.getModule),
+        makeLocation(location),
         scopeName,
         false,
         binding
@@ -2343,22 +2303,27 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       application match {
-        case Application.Prefix(fn, Nil, true, _, _) =>
-          run(fn, subjectToInstrumentation)
+        case app: Application.Prefix
+            if app.arguments.isEmpty && app.hasDefaultsSuspended =>
+          run(app.function, subjectToInstrumentation)
         case app: Application.Prefix =>
           processApplicationWithArgs(app, subjectToInstrumentation)
-        case Application.Force(expr, location, _) =>
+        case force: Application.Force =>
           setLocation(
-            ForceNode.build(this.run(expr, subjectToInstrumentation)),
-            location
+            ForceNode.build(this.run(force.target, subjectToInstrumentation)),
+            force.identifiedLocation
           )
-        case Application.Sequence(items, location, _) =>
-          val itemNodes = items.map(run(_, subjectToInstrumentation)).toArray
-          setLocation(SequenceLiteralNode.build(itemNodes), location)
+        case seq: Application.Sequence =>
+          val itemNodes =
+            seq.items.map(run(_, subjectToInstrumentation)).toArray
+          setLocation(
+            SequenceLiteralNode.build(itemNodes),
+            seq.identifiedLocation
+          )
         case _: Application.Typeset =>
           setLocation(
             ErrorNode.build(
-              context.getBuiltins
+              getBuiltins
                 .error()
                 .makeSyntaxError(
                   "Typeset literals are not yet supported at runtime"
@@ -2381,12 +2346,10 @@ class IrToTruffle(
       application: Application.Prefix,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression = {
-      val Application.Prefix(fn, args, hasDefaultsSuspended, loc, _) =
-        application
       val callArgFactory =
         new CallArgumentProcessor(scope, scopeName, currentVarName)
 
-      val arguments = args
+      val arguments = application.arguments
       val callArgs  = new ArrayBuffer[callable.argument.CallArgument]()
 
       for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
@@ -2395,19 +2358,19 @@ class IrToTruffle(
         callArgs.append(arg)
       }
 
-      val defaultsExecutionMode = if (hasDefaultsSuspended) {
+      val defaultsExecutionMode = if (application.hasDefaultsSuspended) {
         InvokeCallableNode.DefaultsExecutionMode.IGNORE
       } else {
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE
       }
 
       val appNode = ApplicationNode.build(
-        this.run(fn, subjectToInstrumentation),
+        this.run(application.function, subjectToInstrumentation),
         callArgs.toArray,
         defaultsExecutionMode
       )
 
-      setLocation(appNode, loc)
+      setLocation(appNode, application.identifiedLocation)
     }
 
   }
@@ -2487,7 +2450,7 @@ class IrToTruffle(
               s"${scopeName}<arg-${name.map(_.name).getOrElse(String.valueOf(position))}>"
 
             val section = value.location
-              .map(loc => source.createSection(loc.start, loc.length))
+              .map(loc => loc.location)
               .orNull
 
             val closureRootNode = ClosureRootNode.build(
@@ -2495,6 +2458,7 @@ class IrToTruffle(
               childScope,
               scopeBuilder.asModuleScope(),
               argumentExpression,
+              () => source,
               section,
               displayName,
               subjectToInstrumentation,
@@ -2581,10 +2545,8 @@ class IrToTruffle(
               scope,
               scopeBuilder.asModuleScope(),
               defaultExpression,
-              makeSection(
-                scopeBuilder.getModule,
-                arg.defaultValue.get.location()
-              ),
+              makeSource(scopeBuilder.getModule),
+              makeLocation(arg.defaultValue.get.location()),
               s"<default::$scopeName::${arg.name.showCode()}>",
               false,
               false
@@ -2613,24 +2575,26 @@ class IrToTruffle(
       }
   }
 
-  private def asScope(module: CompilerContext.Module): ModuleScope = {
-    val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
-    m.getScope()
+  private def asScope(
+    module: CompilerContext.Module
+  ): TruffleCompilerModuleScopeBuilder = {
+    TruffleCompilerModuleScopeBuilder.fromCompilerModule(module)
   }
 
   private def asType(
     typ: BindingsMap.ResolvedType
   ): Type = {
-    val m = org.enso.interpreter.runtime.Module
-      .fromCompilerModule(typ.module.unsafeAsModule())
-    m.getScope().getType(typ.tp.name, true)
+    val sb = TruffleCompilerModuleScopeBuilder.fromCompilerModule(
+      typ.module.unsafeAsModule()
+    )
+    sb.getType(typ.tp.name, true)
   }
 
   private def asAssociatedType(
     module: CompilerContext.Module
   ): Type = {
-    val m = org.enso.interpreter.runtime.Module.fromCompilerModule(module)
-    m.getScope().getAssociatedType()
+    val sb = TruffleCompilerModuleScopeBuilder.fromCompilerModule(module)
+    sb.getAssociatedType()
   }
 
   private def scopeAssociatedType =

@@ -140,7 +140,7 @@ public final class PrivateModuleAnalysis implements MiniPassFactory {
           .foreach(
               expModule -> {
                 var expModuleRef = expModule.module().module().unsafeAsModule("should succeed");
-                if (expModuleRef.isPrivate() && !isSynthetic) {
+                if (expModuleRef.isPrivate() && !expModuleRef.isSynthetic() && !isSynthetic) {
                   var associatedExportIR = findExportIRByName(moduleIr, expModuleRef.getName());
                   assert associatedExportIR.isDefined();
                   exportErrors.add(

@@ -1,0 +1,24 @@
+## Enso Signatures 1.0
+## module Standard.Table.Internal.Value_Type_Helpers
+- type Addition_Kind
+    - Numeric_Add
+    - Text_Concat
+- type Subtraction_Kind
+    - Date_Difference
+    - Date_Time_Difference
+    - Numeric_Subtract
+    - Time_Of_Day_Difference
+- check_binary_boolean_op arg1:Standard.Base.Any.Any arg2:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- check_binary_numeric_op arg1:Standard.Base.Any.Any arg2:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- check_multi_argument_comparable_op column:Standard.Base.Any.Any arg_or_args:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- find_argument_type value:Standard.Base.Any.Any infer_precise_type:Standard.Base.Data.Boolean.Boolean= -> Standard.Table.Value_Type.Value_Type
+- find_common_date_types types:(Standard.Base.Data.Vector.Vector Standard.Table.Value_Type.Value_Type) related_column_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) problem_builder:Standard.Table.Internal.Problem_Builder.Problem_Builder -> (Standard.Table.Value_Type.Value_Type|Standard.Base.Nothing.Nothing)
+- find_common_numeric_boolean_type types:(Standard.Base.Data.Vector.Vector Standard.Table.Value_Type.Value_Type) -> (Standard.Table.Value_Type.Value_Type|Standard.Base.Nothing.Nothing)
+- find_common_type types:(Standard.Base.Data.Vector.Vector Standard.Table.Value_Type.Value_Type) strict:Standard.Base.Data.Boolean.Boolean -> (Standard.Table.Value_Type.Value_Type|Standard.Base.Nothing.Nothing)
+- find_common_type_for_arguments arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- max_size a:Standard.Base.Any.Any b:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- most_specific_value_type value:Standard.Base.Any.Any use_smallest:Standard.Base.Data.Boolean.Boolean= -> Standard.Table.Value_Type.Value_Type
+- raise_unexpected_type expected_type:Standard.Base.Any.Any argument:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- reconcile_types current:Standard.Table.Value_Type.Value_Type new:Standard.Table.Value_Type.Value_Type -> Standard.Table.Value_Type.Value_Type
+- resolve_addition_kind arg1:Standard.Base.Any.Any arg2:Standard.Base.Any.Any -> (Standard.Table.Internal.Value_Type_Helpers.Addition_Kind|Standard.Base.Nothing.Nothing)
+- resolve_subtraction_kind arg1:Standard.Base.Any.Any arg2:Standard.Base.Any.Any -> (Standard.Table.Internal.Value_Type_Helpers.Subtraction_Kind|Standard.Base.Nothing.Nothing)

@@ -2,11 +2,14 @@ import project.Data.Text.Text
 
 ## An error representing that the collection is empty.
 type Empty_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Error collection
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The " + self.collection.to_text + " is empty."

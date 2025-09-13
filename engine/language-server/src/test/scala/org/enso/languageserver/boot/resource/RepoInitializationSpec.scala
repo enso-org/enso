@@ -94,7 +94,7 @@ class RepoInitializationSpec
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
       ProjectDirectoriesConfig.initialize(root.file),
-      ProfilingConfig(),
+      ProfilingConfig.none(),
       StartupConfig(),
       None
     )

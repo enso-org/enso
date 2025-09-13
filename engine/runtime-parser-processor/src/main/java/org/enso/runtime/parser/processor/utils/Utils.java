@@ -14,6 +14,8 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import org.enso.runtime.parser.dsl.GenerateIR;
+import org.enso.runtime.parser.processor.GenerateIRAnnotationVisitor;
 import org.enso.runtime.parser.processor.IRProcessingException;
 
 public final class Utils {
@@ -25,6 +27,7 @@ public final class Utils {
   private static final String EXPRESSION_FQN = "org.enso.compiler.core.ir.Expression";
   private static final String SCALA_LIST = "scala.collection.immutable.List";
   private static final String SCALA_OPTION = "scala.Option";
+  private static final String PERSISTANCE_REFERENCE = "org.enso.persist.Persistance.Reference";
   private static final String DIAGNOSTIC_STORAGE_FQN =
       "org.enso.compiler.core.ir.DiagnosticStorage";
   private static final String IDENTIFIED_LOCATION_FQN =
@@ -36,6 +39,9 @@ public final class Utils {
 
   /** Returns true if the given {@code type} is a subtype of {@code org.enso.compiler.core.IR}. */
   public static boolean isSubtypeOfIR(TypeElement type, ProcessingEnvironment processingEnv) {
+    if (isAnnotatedAndNotYetCompiled(type)) {
+      return true;
+    }
     var irIfaceFound =
         iterateSuperInterfaces(
             type,
@@ -52,6 +58,22 @@ public final class Utils {
               return null;
             });
     return irIfaceFound != null;
+  }
+
+  /**
+   * Returns true if the given type is annotated with {@link
+   * org.enso.runtime.parser.dsl.GenerateIR}, and has no super class compiled yet. This can happen
+   * if the currently processed compilation unit contains more than one class annotated with {@link
+   * GenerateIR}.
+   *
+   * @param type
+   * @return
+   */
+  private static boolean isAnnotatedAndNotYetCompiled(TypeElement type) {
+    var anot = type.getAnnotation(GenerateIR.class);
+    var superClass = type.getSuperclass();
+    var superClassDoesNotExist = superClass.getKind() == TypeKind.ERROR;
+    return anot != null && superClassDoesNotExist;
   }
 
   /** Returns true if the given {@code type} is an {@code org.enso.compiler.core.IR} interface. */
@@ -153,6 +175,10 @@ public final class Utils {
         .collect(Collectors.joining(System.lineSeparator()));
   }
 
+  public static String indent(String code) {
+    return indent(code, 2);
+  }
+
   /**
    * Returns null if the given {@code typeMirror} is not a declared type and thus has no associated
    * {@link TypeElement}.
@@ -185,6 +211,50 @@ public final class Utils {
     return false;
   }
 
+  public static TypeMirror getTypeArgument(TypeMirror type) {
+    if (type instanceof DeclaredType declaredType) {
+      Utils.hardAssert(declaredType.getTypeArguments().size() == 1);
+      return declaredType.getTypeArguments().get(0);
+    }
+    return null;
+  }
+
+  public static boolean isPersistanceReference(TypeMirror type, ProcessingEnvironment procEnv) {
+    var elem = procEnv.getTypeUtils().asElement(type);
+    if (elem instanceof TypeElement typeElem) {
+      var listType = procEnv.getElementUtils().getTypeElement(PERSISTANCE_REFERENCE);
+      return procEnv.getTypeUtils().isSameType(listType.asType(), typeElem.asType());
+    }
+    return false;
+  }
+
+  /**
+   * Returns {@link GenerateIR#interfaces()} field as a list of {@link TypeElement}. Note that we
+   * cannot access that field directly.
+   *
+   * @param annotatedClazz
+   * @return
+   */
+  private static List<TypeElement> getGenerateIRInterfacesField(
+      TypeElement annotatedClazz, ProcessingEnvironment processingEnv) {
+    hardAssert(hasAnnotation(annotatedClazz, GenerateIR.class));
+    List<TypeElement> allInterfacesToImplement = List.of();
+    for (var annotMirror : annotatedClazz.getAnnotationMirrors()) {
+      if (annotMirror.getAnnotationType().toString().equals(GenerateIR.class.getName())) {
+        var annotMirrorElemValues =
+            processingEnv.getElementUtils().getElementValuesWithDefaults(annotMirror);
+        for (var entry : annotMirrorElemValues.entrySet()) {
+          if (entry.getKey().getSimpleName().toString().equals("interfaces")) {
+            var annotValueVisitor = new GenerateIRAnnotationVisitor(processingEnv, entry.getKey());
+            entry.getValue().accept(annotValueVisitor, null);
+            allInterfacesToImplement = annotValueVisitor.getAllInterfaces();
+          }
+        }
+      }
+    }
+    return allInterfacesToImplement;
+  }
+
   /**
    * Finds a method in the interface hierarchy. The interface hierarchy processing starts from
    * {@code interfaceType} and iterates until {@code org.enso.compiler.core.IR} interface type is
@@ -199,21 +269,32 @@ public final class Utils {
       TypeElement interfaceType,
       ProcessingEnvironment procEnv,
       Predicate<ExecutableElement> methodPredicate) {
-    var foundMethod =
-        iterateSuperInterfaces(
-            interfaceType,
-            procEnv,
-            (TypeElement superInterface) -> {
-              for (var enclosedElem : superInterface.getEnclosedElements()) {
-                if (enclosedElem instanceof ExecutableElement execElem) {
-                  if (methodPredicate.test(execElem)) {
-                    return execElem;
+    if (isAnnotatedAndNotYetCompiled(interfaceType)) {
+      var ifaces = getGenerateIRInterfacesField(interfaceType, procEnv);
+      for (var iface : ifaces) {
+        var method = findMethod(iface, procEnv, methodPredicate);
+        if (method != null) {
+          return method;
+        }
+      }
+      return null;
+    } else {
+      var foundMethod =
+          iterateSuperInterfaces(
+              interfaceType,
+              procEnv,
+              (TypeElement superInterface) -> {
+                for (var enclosedElem : superInterface.getEnclosedElements()) {
+                  if (enclosedElem instanceof ExecutableElement execElem) {
+                    if (methodPredicate.test(execElem)) {
+                      return execElem;
+                    }
                   }
                 }
-              }
-              return null;
-            });
-    return foundMethod;
+                return null;
+              });
+      return foundMethod;
+    }
   }
 
   /**
@@ -292,7 +373,7 @@ public final class Utils {
         return iterationResult;
       }
       // Add all super interfaces to the queue
-      for (var superInterface : current.getInterfaces()) {
+      for (var superInterface : InterfaceCollector.collect(current, processingEnv.getTypeUtils())) {
         var superInterfaceElem = processingEnv.getTypeUtils().asElement(superInterface);
         if (superInterfaceElem instanceof TypeElement superInterfaceTypeElem) {
           interfacesToProcess.add(superInterfaceTypeElem);

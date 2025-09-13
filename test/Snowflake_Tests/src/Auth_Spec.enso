@@ -1,0 +1,135 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+from Standard.Database import all
+
+from Standard.Snowflake import all
+import Standard.Snowflake.Connection.Key_Pair_Credentials.Key_Pair_Credentials
+from Standard.Snowflake.Connection.Key_Pair_Credentials import generate_alter_user_query
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+
+from project.Snowflake_Spec import get_configured_connection_details
+
+polyglot java import org.enso.snowflake_helpers.TestKeyGenerator
+
+
+with_temp_user base_connection callback =
+     user_name = "temporary-test-user-" + (Date_Time.now.format "yyyy-MM-dd_HH-mm") + "-" + (Random.uuid.take 5)
+     Panic.rethrow <| base_connection.execute_update ('CREATE USER "' + user_name + '"')
+     Panic.with_finalizer (base_connection.execute_update ('DROP USER "' + user_name + '"')) <|
+         callback user_name
+
+generate_local_key_pair passphrase:Text =
+    public_key_file = File.create_temporary_file "snowflake-key" ".pub"
+    private_key_file = File.create_temporary_file "snowflake-key" ".p8"
+    TestKeyGenerator.generateKeyPairForTest private_key_file.path public_key_file.path passphrase
+    Pair.new private_key_file public_key_file
+
+make_connection_details_with_credentials credentials =
+    base_details = get_configured_connection_details
+    Snowflake_Details.Snowflake base_details.account credentials base_details.database base_details.schema base_details.warehouse
+
+add_specs suite_builder ~default_connection =
+    suite_builder.group "[Snowflake] Key-pair authentication" group_builder->
+        group_builder.specify "using local private key" <|
+            key_pair = generate_local_key_pair passphrase=""
+            private_key_file = key_pair.first
+
+            with_temp_user default_connection user_name->
+                default_connection.execute_update (generate_alter_user_query user_name key_pair.second.read_text) . should_succeed
+
+                key_credentials = Key_Pair_Credentials.Key_Pair username=user_name private_key=private_key_file
+                new_connection = Database.connect (make_connection_details_with_credentials key_credentials)
+                Panic.with_finalizer new_connection.close <|
+                    new_connection.query (..Raw_SQL "SELECT 2+3") . read . at 0 . at 0 . should_equal 5
+
+        group_builder.specify "using local private key encrypted with passphrase" <|
+            passphrase = "not-a-safe-passphrase-1234"
+            key_pair = generate_local_key_pair passphrase=passphrase
+            private_key_file = key_pair.first
+
+            table = with_temp_user default_connection user_name->
+                default_connection.execute_update (generate_alter_user_query user_name key_pair.second.read_text) . should_succeed
+
+                key_credentials = Key_Pair_Credentials.Key_Pair username=user_name private_key=private_key_file passphrase=passphrase
+                new_connection = Database.connect (make_connection_details_with_credentials key_credentials)
+                Panic.with_finalizer new_connection.close <|
+                    new_connection.query (..Raw_SQL "SELECT 2+3") . read
+            table.at 0 . at 0 . should_equal 5
+
+        cloud_setup = Cloud_Tests_Setup.prepare
+        test_root = Temporary_Directory.make "Snowflake-Auth"
+        group_builder.teardown test_root.cleanup
+        group_builder.specify "via the Cloud flow using secrets" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
+            generated_key = Key_Pair_Credentials.generate_key_pair location=test_root.get name="snowflake-key" if_exists=..Overwrite
+            generated_key.should_succeed
+            generated_key.public_key_file.exists . should_be_true
+
+            table = with_temp_user default_connection user_name->
+                default_connection.execute_update (generated_key.alter_user_query user_name) . should_succeed
+
+                key_credentials = Key_Pair_Credentials.Key_Pair username=user_name private_key=generated_key
+                new_connection = Database.connect (make_connection_details_with_credentials key_credentials)
+                Panic.with_finalizer new_connection.close <|
+                    new_connection.query (..Raw_SQL "SELECT 2+3") . read
+            table.at 0 . at 0 . should_equal 5
+
+        group_builder.specify "using local private key encrypted with passphrase stored in secret" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
+            passphrase = "not-a-safe-passphrase-1234"
+            key_pair = generate_local_key_pair passphrase=passphrase
+            private_key_file = key_pair.first
+            
+            existing_secret = Enso_Secret.get "snowflake-passphrase" test_root.get
+            secret_exists = existing_secret.is_error.not
+            secret = case secret_exists of
+                True -> existing_secret.update_value passphrase
+                False -> Enso_Secret.create "snowflake-passphrase" passphrase test_root.get
+
+            table = with_temp_user default_connection user_name->
+                default_connection.execute_update (generate_alter_user_query user_name key_pair.second.read_text) . should_succeed
+                
+                key_credentials = Key_Pair_Credentials.Key_Pair username=user_name private_key=private_key_file passphrase=secret
+                new_connection = Database.connect (make_connection_details_with_credentials key_credentials)
+                Panic.with_finalizer new_connection.close <|
+                    new_connection.query (..Raw_SQL "SELECT 2+3") . read
+            table.at 0 . at 0 . should_equal 5
+
+        group_builder.specify "correctly handle existing key files" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
+            # Generate the first key
+            name = "snowflake-key-exist-check"
+            generated_key = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Error
+            generated_key.should_succeed
+
+            remembered_public_key = generated_key.public_key_file.read_text
+            remembered_public_key.should_succeed
+
+            # Second key with ..Error should fail
+            r2 = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Error
+            r2.should_fail_with Illegal_State
+            r2.to_display_text.should_contain "already exists"
+
+            # Second key with ..Use_Existing will just return the current key
+            r3 = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Use_Existing
+            r3.should_succeed
+            r3.public_key_file.read_text.should_equal remembered_public_key
+
+            # Second key with ..Overwrite will overwrite the key
+            r4 = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Overwrite
+            r4.should_succeed
+            r4.public_key_file.read_text.should_not_equal remembered_public_key
+
+        group_builder.specify "fail if existing key is broken" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
+            name = "snowflake-key-broken"
+            "broken".write (test_root.get / (name + ".pub")) . should_succeed
+            r1 = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Use_Existing
+            r1.should_fail_with Illegal_State
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder (Database.connect get_configured_connection_details)
+    suite.run_with_filter filter

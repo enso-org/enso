@@ -1,0 +1,32 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Mixed_Signed_And_Unsigned_Bytes
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Ref.Ref
+
+## ---
+   private: true
+   ---
+   Convert an array of Integers in the unsigned byte range [128..255] to
+   the signed byte range. Numbers outside this range, and non-Integers, will
+   throw Illegal_Argument.  The converted array is passed to the action, and if a
+   value is converted, a warning is attached to the result of the action.
+convert_unsigned_byte_array_to_signed v:Vector ~action =
+    # Values [0..127] are not distinctly signed or unsigned.
+    # byte > 127
+    seen_unsigned_byte = Ref.new False
+    # byte < 0
+    seen_signed_byte = Ref.new False
+
+    converted = v.map x->
+        case x of
+            _ : Integer ->
+                if x < -128 || x > 255 then Error.throw (Illegal_Argument.Error "Value is outside the valid signed [-128, 127] and unsigned [0..255] byte ranges: "+x.to_text) else
+                    if x < 0 then
+                        seen_signed_byte.put True
+                    if x > 127 then
+                        seen_unsigned_byte.put True
+                    if x <= 127 then x else -(256 - x)
+            _ -> (Illegal_Argument.Error "Value is not an Integer: "+x.to_text)
+    result = action converted
+    should_warn = seen_signed_byte.get && seen_unsigned_byte.get
+    if should_warn then (Warning.attach Mixed_Signed_And_Unsigned_Bytes.Error result) else result

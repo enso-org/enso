@@ -41,8 +41,7 @@ public abstract class BranchNode extends BaseNode {
    */
   protected void accept(VirtualFrame frame, Object state, Object[] args) {
     // Note [Caller Info For Case Branches]
-    var result =
-        callNode.call(Function.ArgumentsHelper.buildArguments(frame.materialize(), state, args));
+    var result = callNode.call(Function.ArgumentsHelper.buildArguments(frame.materialize(), args));
 
     if (finalBranchProfiler.profile(terminalBranch)) {
       throw new BranchSelectedException(ensureWrapped(result));

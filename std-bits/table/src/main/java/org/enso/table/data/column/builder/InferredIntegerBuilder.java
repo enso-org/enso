@@ -2,7 +2,7 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -32,7 +32,7 @@ public final class InferredIntegerBuilder implements Builder {
   }
 
   @Override
-  public void append(Object o) {
+  public InferredIntegerBuilder append(Object o) {
     if (o == null) {
       appendNulls(1);
     } else if (o instanceof BigInteger bi) {
@@ -53,37 +53,39 @@ public final class InferredIntegerBuilder implements Builder {
         }
       }
     }
+    return this;
   }
 
   @Override
-  public void appendNulls(int count) {
+  public InferredIntegerBuilder appendNulls(int count) {
     if (bigIntegerBuilder != null) {
       bigIntegerBuilder.appendNulls(count);
     } else {
       longBuilder.appendNulls(count);
     }
+    return this;
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof NullType) {
-      appendNulls(storage.size());
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
-      for (int i = 0; i < storage.size(); i++) {
+      for (long i = 0; i < storage.getSize(); i++) {
         append(storage.getItemBoxed(i));
       }
     }
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return bigIntegerBuilder != null
         ? bigIntegerBuilder.getCurrentSize()
         : longBuilder.getCurrentSize();
   }
 
   @Override
-  public Storage<?> seal() {
+  public ColumnStorage<?> seal() {
     if (bigIntegerBuilder != null) {
       return bigIntegerBuilder.seal();
     } else {
@@ -92,7 +94,7 @@ public final class InferredIntegerBuilder implements Builder {
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<?> getType() {
     if (bigIntegerBuilder != null) {
       return BigIntegerType.INSTANCE;
     } else {

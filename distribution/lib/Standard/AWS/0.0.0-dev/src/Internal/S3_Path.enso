@@ -5,16 +5,21 @@ import project.Errors.S3_Error
 import project.Internal.Decomposed_S3_Path.Decomposed_S3_Path
 import project.S3.S3
 
-## PRIVATE
+## ---
+   private: true
+   ---
    An abstraction for S3 paths, holding the bucket name and the key.
-
-   This helper implements resolving paths in a folder-like structure as
-   described at https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
+   This helper implements resolving paths in a folder-like structure as described
+   at https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-folders.html
 type S3_Path
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (bucket : Text) (key : Text)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     parse (uri : Text) -> S3_Path ! Illegal_Argument =
         if uri.starts_with S3.uri_prefix . not then Error.throw (Illegal_Argument.Error "An S3 path must start with `"+S3.uri_prefix+"`.") else
             if uri.length == S3.uri_prefix.length then S3_Path.Value "" "" else
@@ -27,22 +32,32 @@ type S3_Path
                             key = (without_prefix.drop first_slash_index+1)
                             S3_Path.Value bucket key
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self -> Text =
         S3.uri_prefix + (if self.bucket == "" then "" else self.bucket + S3_Path.delimiter + self.key)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text self -> Text = self.to_text.to_display_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if this path represents the root directory of a bucket.
     is_root self -> Boolean = self.key.is_empty
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks if this path represents a directory.
     is_directory self -> Boolean = self.is_root || (self.key.ends_with S3_Path.delimiter)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private set_new_path self new_path:Decomposed_S3_Path -> S3_Path =
         # Handle the edge case of resolving `s3://` path without bucket - first part of the key becomes the bucket name
         has_no_bucket = self.bucket == ""
@@ -56,57 +71,70 @@ type S3_Path
                 new_key = new_path.normalize.key
                 S3_Path.Value self.bucket new_key
 
-    ## PRIVATE
-       Resolves a subdirectory entry.
-       This only makes logical sense for paths for which `path.is_directory == True`,
-       but it is not forbidden to call it on other types of paths.
-
+    ## ---
+       private: true
+       ---
+       Resolves a subdirectory entry. This only makes logical sense for paths for
+       which `path.is_directory == True`, but it is not forbidden to call it on
+       other types of paths.
        Note that the newly returned path will be a directory or not depending on
        if `subpath` ends with the delimiter.
     resolve self (subpath : Text) -> S3_Path =
         joined = Decomposed_S3_Path.join [Decomposed_S3_Path.parse self.key, Decomposed_S3_Path.parse subpath]
         self.set_new_path joined
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     join self (subpaths : Vector) -> S3_Path =
         joined = Decomposed_S3_Path.join (([self.key]+subpaths).map Decomposed_S3_Path.parse)
         self.set_new_path joined
 
-    ## PRIVATE
-       Returns the parent directory.
-       It will return `Nothing` for the root directory.
+    ## ---
+       private: true
+       ---
+       Returns the parent directory. It will return `Nothing` for the root
+       directory.
     parent self -> S3_Path | Nothing =
         if self.is_root then Nothing else
             decomposed = Decomposed_S3_Path.parse self.key
             S3_Path.Value self.bucket decomposed.parent.key
 
-    ## PRIVATE
-       Returns the 'file name' of this path.
-       If the path is a regular file, it will be its name.
-       If the path is a directory, it will be the name of that directory,
-       without the trailing delimiter.
+    ## ---
+       private: true
+       ---
+       Returns the 'file name' of this path. If the path is a regular file, it
+       will be its name. If the path is a directory, it will be the name of that
+       directory, without the trailing delimiter.
     file_name self -> Text =
         if self.is_root then S3_Path.delimiter else
             trimmed = if self.key.ends_with S3_Path.delimiter then self.key.drop (..Last 1) else self.key
             last_index = trimmed.last_index_of S3_Path.delimiter
             if last_index == Nothing then trimmed else trimmed.drop (..First last_index+1)
 
-    ## PRIVATE
-       Checks if the given other path is inside of this path.
-       A directory is not a descendant of itself.
+    ## ---
+       private: true
+       ---
+       Checks if the given other path is inside of this path. A directory is not
+       a descendant of itself.
     is_descendant_of self (other : S3_Path) -> Boolean =
         (self != other) && other.is_directory && self.to_text.starts_with other.to_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        The delimiter used for path emulation.
-
-       S3 does not treat `/` in any special way, it allows using any character as a
-       path delimiter. In the future we could allow customizing it.
+       S3 does not treat `/` in any special way, it allows using any character as
+       a path delimiter. In the future we could allow customizing it.
     delimiter -> Text = "/"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     bucket_root self -> S3_Path = S3_Path.Value self.bucket ""
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     without_trailing_slash self -> S3_Path =
         if self.key.ends_with S3_Path.delimiter then S3_Path.Value self.bucket (self.key.drop (..Last 1)) else self

@@ -1,30 +1,39 @@
 package org.enso.interpreter.instrument.job
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
 import java.util.UUID
 import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.runtime.state.ExecutionEnvironment
 import org.enso.polyglot.runtime.Runtime.Api
 
-import java.util.logging.Level
+import java.util.concurrent.ExecutionException
 
 /** A job responsible for executing a call stack for the provided context.
   *
   * @param contextId an identifier of a context to execute
   * @param stack a call stack to execute
   * @param executionEnvironment the execution environment to use
+  * @param visualizationTriggered the UUID of an expression that triggered this execution when executing an expression
   */
 class ExecuteJob(
   contextId: UUID,
   stack: List[InstrumentFrame],
   val executionEnvironment: Option[Api.ExecutionEnvironment],
-  val visualizationTriggered: Boolean = false
+  triggerContext: String,
+  val visualizationTriggered: Option[UUID] = None
 ) extends Job[Unit](
       List(contextId),
-      isCancellable = true,
+      isCancellable = executionEnvironment.forall(ee =>
+        ee.name != Api.ExecutionEnvironment.Live().name
+      ),
       // Interruptions may turn out to be problematic in enterprise edition of GraalVM
       // until https://github.com/oracle/graal/issues/3590 is resolved
-      mayInterruptIfRunning = true
+      mayInterruptIfRunning = executionEnvironment.forall(ee =>
+        ee.name != Api.ExecutionEnvironment.Live().name
+      )
     ) {
 
   private var _threadName: String            = "<unknown>"
@@ -44,15 +53,15 @@ class ExecuteJob(
     _hasStarted = true
     _threadName = Thread.currentThread().getName
     try {
-      ctx.executionService.getLogger.log(
-        Level.INFO,
-        "Starting ExecuteJob[{}]",
-        _jobId
+      ExecuteJob.logger.debug(
+        "Starting ExecuteJob[{}, trigger={}]",
+        _jobId,
+        triggerContext
       )
       execute
     } catch {
       case t: Throwable =>
-        ctx.executionService.getLogger.log(Level.SEVERE, "Failed to execute", t)
+        ExecuteJob.logger.error("Failed to execute", t)
         val errorMsg = if (t.getMessage == null) {
           if (t.getCause == null) {
             t.getClass.getSimpleName
@@ -75,9 +84,8 @@ class ExecuteJob(
           )
         )
     } finally {
-      ctx.executionService.getLogger.log(
-        Level.FINEST,
-        "Finished ExecuteJob[{0}]",
+      ExecuteJob.logger.trace(
+        "Finished ExecuteJob[{}]",
         _jobId
       )
     }
@@ -86,82 +94,100 @@ class ExecuteJob(
   private def execute(implicit ctx: RuntimeContext): Unit = {
     ctx.state.executionHooks.run()
 
-    ctx.locking.withContextLock(
+    ctx.locking.withReadContextLock(
       ctx.locking.getOrCreateContextLock(contextId),
       this.getClass,
       () =>
         ctx.locking.withReadCompilationLock(
           this.getClass,
-          () => {
-            val context = ctx.executionService.getContext
-            val originalExecutionEnvironment =
-              executionEnvironment.map(_ =>
-                context.getGlobalExecutionEnvironment
-              )
-            executionEnvironment.foreach(env =>
-              context.setExecutionEnvironment(
-                ExecutionEnvironment.forName(env.name)
-              )
-            )
-            val outcome =
-              try ProgramExecutionSupport.runProgram(contextId, stack)
-              finally {
-                originalExecutionEnvironment.foreach(
-                  context.setExecutionEnvironment
-                )
-              }
-            outcome match {
-              case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
-                if (diagnostic.isError) {
-                  ctx.endpoint.sendToClient(
-                    Api.Response(Api.ExecutionFailed(contextId, diagnostic))
+          () =>
+            try {
+              val originalExecutionEnvironment = executionEnvironment.map(env =>
+                ctx.executionService
+                  .setExecutionInstrument(
+                    ExecutionEnvironment.forName(env.name)
                   )
-                } else {
-                  ctx.endpoint.sendToClient(
-                    Api.Response(
-                      Api.ExecutionUpdate(contextId, Seq(diagnostic))
+                  .toCompletableFuture
+                  .get()
+              )
+              val outcome =
+                try ProgramExecutionSupport.runProgram(contextId, stack)
+                finally {
+                  originalExecutionEnvironment.foreach(original =>
+                    ctx.executionService
+                      .setExecutionInstrument(original)
+                      .toCompletableFuture
+                      .get()
+                  )
+                }
+              outcome match {
+                case Some(diagnostic: Api.ExecutionResult.Diagnostic) =>
+                  if (diagnostic.isError) {
+                    ctx.endpoint.sendToClient(
+                      Api.Response(Api.ExecutionFailed(contextId, diagnostic))
                     )
+                  } else {
+                    ctx.endpoint.sendToClient(
+                      Api.Response(
+                        Api.ExecutionUpdate(contextId, Seq(diagnostic))
+                      )
+                    )
+                    ctx.endpoint.sendToClient(
+                      Api.Response(Api.ExecutionComplete(contextId))
+                    )
+                  }
+                case Some(failure: Api.ExecutionResult.Failure) =>
+                  ctx.endpoint.sendToClient(
+                    Api.Response(Api.ExecutionFailed(contextId, failure))
                   )
+                case None =>
                   ctx.endpoint.sendToClient(
                     Api.Response(Api.ExecutionComplete(contextId))
                   )
-                }
-              case Some(failure: Api.ExecutionResult.Failure) =>
+              }
+            } catch {
+              case e: ExecutionException =>
                 ctx.endpoint.sendToClient(
-                  Api.Response(Api.ExecutionFailed(contextId, failure))
+                  Api.Response(
+                    Api.ExecutionFailed(
+                      contextId,
+                      Api.ExecutionResult.Failure(e.getMessage, None)
+                    )
+                  )
                 )
-              case None =>
-                ctx.endpoint.sendToClient(
-                  Api.Response(Api.ExecutionComplete(contextId))
-                )
+                throw e;
             }
-          }
         )
     )
   }
 
   override def toString(): String = {
-    s"ExecuteJob(contextId=$contextId, jobId=${_jobId})"
+    s"ExecuteJob(contextId=$contextId, jobId=${_jobId}, triggeredByVisualization=${visualizationTriggered})"
   }
 
 }
 
 object ExecuteJob {
+  final private lazy val logger: Logger =
+    LoggerFactory.getLogger(classOf[ExecuteJob])
 
   /** Create execute job from the executable.
     *
     * @param executable the executable to run
-    * @param visualizationTriggered true if execution is triggered by a visualization request, false otherwise
+    * @param visualizationTriggered the UUID of an expression that triggered this execution when executing an expression, empty otherwise
+    * @param triggerContext human-readable explanation for execution job
     * @return the new execute job
     */
   def apply(
     executable: Executable,
-    visualizationTriggered: Boolean = false
+    triggerContext: String,
+    visualizationTriggered: Option[UUID] = None
   ): ExecuteJob =
     new ExecuteJob(
       executable.contextId,
       executable.stack.toList,
       None,
+      triggerContext,
       visualizationTriggered
     )
 
@@ -169,8 +195,13 @@ object ExecuteJob {
     *
     * @param contextId the contextId to execute
     * @param stack the stack to execute
+    * @param triggerContext human-readable explanation for execution job
     * @return new execute job
     */
-  def apply(contextId: UUID, stack: List[InstrumentFrame]): ExecuteJob =
-    new ExecuteJob(contextId, stack, None)
+  def apply(
+    contextId: UUID,
+    stack: List[InstrumentFrame],
+    triggerContext: String
+  ): ExecuteJob =
+    new ExecuteJob(contextId, stack, None, triggerContext)
 }

@@ -12,7 +12,7 @@ import * as toast from 'react-toastify'
 
 import * as offlineHooks from '#/hooks/offlineHooks'
 
-import * as textProvider from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 
 /** Props for {@link OfflineNotificationManager} */
 export type OfflineNotificationManagerProps = Readonly<React.PropsWithChildren>
@@ -30,7 +30,7 @@ const OfflineNotificationManagerContext =
 export function OfflineNotificationManager(props: OfflineNotificationManagerProps) {
   const { children } = props
   const toastId = 'offline'
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   offlineHooks.useOfflineChange(
     (isOffline) => {

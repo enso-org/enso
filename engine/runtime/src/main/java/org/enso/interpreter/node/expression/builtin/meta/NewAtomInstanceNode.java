@@ -2,7 +2,6 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
@@ -16,8 +15,13 @@ public final class NewAtomInstanceNode extends Node {
   @Child private ArrayLikeCoerceToArrayNode coerce = ArrayLikeCoerceToArrayNode.build();
   @Child private AtomNewInstanceNode newNode = AtomNewInstanceNode.create();
 
-  Atom execute(AtomConstructor constructor, Object fields) {
-    Object[] args = coerce.execute(fields);
-    return newNode.newInstance(constructor, args);
+  Object execute(AtomConstructor cons, Object fields) {
+    var withCheck = FindAtomConstructorNode.findAtomConstructor(this, cons, null);
+    if (withCheck == cons) {
+      Object[] args = coerce.execute(fields);
+      return newNode.newInstance(cons, args);
+    } else {
+      return withCheck;
+    }
   }
 }

@@ -3,8 +3,10 @@ package org.enso.runtime.parser.processor.test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.fail;
 
 import com.google.testing.compile.Compilation;
+import com.google.testing.compile.Compilation.Status;
 import com.google.testing.compile.CompilationSubject;
 import com.google.testing.compile.Compiler;
 import com.google.testing.compile.JavaFileObjects;
@@ -26,10 +28,7 @@ public class TestIRProcessorInline {
    * @return
    */
   private static String generatedClass(String name, String src) {
-    var srcObject = JavaFileObjects.forSourceString(name, src);
-    var compiler = Compiler.javac().withProcessors(new IRProcessor());
-    var compilation = compiler.compile(srcObject);
-    CompilationSubject.assertThat(compilation).succeeded();
+    var compilation = expectCompilationSuccessful(name, src);
     assertThat("Generated just one source", compilation.generatedSourceFiles().size(), is(1));
     var generatedSrc = compilation.generatedSourceFiles().get(0);
     try {
@@ -37,6 +36,21 @@ public class TestIRProcessorInline {
     } catch (IOException e) {
       throw new AssertionError(e);
     }
+  }
+
+  private static Compilation expectCompilationSuccessful(String name, String src) {
+    var srcObject = JavaFileObjects.forSourceString(name, src);
+    var compiler = Compiler.javac().withProcessors(new IRProcessor());
+    var compilation = compiler.compile(srcObject);
+    if (compilation.status() != Status.SUCCESS) {
+      var failureMsg = new StringBuilder();
+      failureMsg.append("Compilation failed with diagnostics: ");
+      for (var diag : compilation.diagnostics()) {
+        failureMsg.append("  ").append(diag.toString()).append(System.lineSeparator());
+      }
+      fail(failureMsg.toString());
+    }
+    return compilation;
   }
 
   private static void expectCompilationFailure(String src) {
@@ -66,6 +80,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
@@ -80,13 +99,16 @@ public class TestIRProcessorInline {
             "JName",
             """
         import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
         @GenerateIR
-        public class JName {}
+        public class JName extends JNameGen {
+          @GenerateFields
+          public JName() {}
+        }
         """);
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
     var compilation = compiler.compile(src);
     CompilationSubject.assertThat(compilation).failed();
-    CompilationSubject.assertThat(compilation).hadErrorCount(1);
     CompilationSubject.assertThat(compilation).hadErrorContaining("final");
   }
 
@@ -118,6 +140,11 @@ public class TestIRProcessorInline {
         public final class JName {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var compilation = compile("JName", src);
@@ -139,6 +166,11 @@ public class TestIRProcessorInline {
         public final class MyIR extends MyIRGen {
           @GenerateFields
           public MyIR() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
   """;
     var generatedClass = generatedClass("MyIR", src);
@@ -159,6 +191,12 @@ public class TestIRProcessorInline {
     public final class MyIR extends MyIRGen {
       @GenerateFields
       public MyIR() {}
+
+      @Override
+      public String showCode(int indent) {
+        return "";
+      }
+
     }
 """;
     var generatedClass = generatedClass("MyIR", src);
@@ -180,6 +218,11 @@ public class TestIRProcessorInline {
           public JName(@IRField String name) {
             super(name);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -198,6 +241,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -223,6 +271,11 @@ public class TestIRProcessorInline {
           public JName() {
             super();
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var compilation = compile("JName", src);
@@ -242,6 +295,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public JName(@IRField boolean suspended, @IRField String name) {
             super(suspended, name);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
         """;
@@ -263,6 +321,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public JName(DiagnosticStorage diag, IdentifiedLocation loc) {
             super(diag, loc);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
         """;
@@ -286,6 +349,11 @@ public class TestIRProcessorInline {
           public JName(DiagnosticStorage diag, IdentifiedLocation loc, @IRField boolean suspended) {
             super(diag, loc, suspended);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var compilation = compile("JName", src);
@@ -303,6 +371,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -320,6 +393,11 @@ public class TestIRProcessorInline {
         public final class JName extends MySuperGeneratedClass {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -341,6 +419,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -359,6 +442,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -376,6 +464,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -393,6 +486,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -410,6 +508,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName(int param) {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var compilation = compile("JName", src);
@@ -430,6 +533,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public JName(MetadataStorage passData) {
             super(passData);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
         """;
@@ -454,6 +562,11 @@ public class TestIRProcessorInline {
           public MyIR(@IRChild Expression expression) {
             super(expression);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     assertThat(genSrc, containsString("Expression expression()"));
@@ -475,6 +588,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public MyIR(@IRField boolean suspended) {
             super(suspended);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
         """);
@@ -502,6 +620,11 @@ public class TestIRProcessorInline {
           public MyIR(@IRField boolean suspended) {
             super(suspended);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     assertThat(src, containsString("boolean suspended()"));
@@ -527,6 +650,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public MyIR(@IRField boolean suspended) {
             super(suspended);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
 
@@ -558,6 +686,11 @@ public class TestIRProcessorInline {
           public MyIR(@IRField boolean suspended) {
             super(suspended);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     assertThat(src, containsString("boolean suspended()"));
@@ -582,6 +715,11 @@ public class TestIRProcessorInline {
             @GenerateFields
             public JBlank(@IRField String name) {
               super(name);
+            }
+
+            @Override
+              public String showCode(int indent) {
+              return "";
             }
           }
         }
@@ -608,10 +746,78 @@ public class TestIRProcessorInline {
           public JName(@IRChild List<IR> expressions) {
             super(expressions);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     assertThat(src, containsString("class JNameGen"));
     assertThat(src, containsString("List<IR> expressions"));
+  }
+
+  @Test
+  public void fieldCanBeScalaList_NotRequired() {
+    var src =
+        generatedClass(
+            "JName",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+        import scala.collection.immutable.List;
+
+        @GenerateIR
+        public final class JName extends JNameGen {
+          @GenerateFields
+          public JName(@IRChild(required = false) List<IR> expressions) {
+            super(expressions);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
+        }
+        """);
+    assertThat(src, containsString("class JNameGen"));
+    assertThat(src, containsString("List<IR> expressions"));
+    // expressions child is not required, so there must be somewhere a check
+    // that it is not null.
+    assertThat(src, containsString("expressions != null"));
+  }
+
+  @Test
+  public void fieldCanBeScalaOptionList() {
+    var src =
+        generatedClass(
+            "JName",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+        import scala.collection.immutable.List;
+        import scala.Option;
+
+        @GenerateIR
+        public final class JName extends JNameGen {
+          @GenerateFields
+          public JName(@IRChild Option<List<IR>> expressions) {
+            super(expressions);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
+        }
+        """);
+    assertThat(src, containsString("class JNameGen"));
+    assertThat(src, containsString("Option<List<IR>> expressions"));
+    assertThat(src, containsString("expressions.isDefined"));
   }
 
   @Test
@@ -632,9 +838,91 @@ public class TestIRProcessorInline {
           public JName(@IRChild Option<IR> expression) {
             super(expression);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     assertThat(src, containsString("class JNameGen"));
     assertThat("has getter method for expression", src, containsString("Option<IR> expression()"));
+  }
+
+  @Test
+  public void fieldCanBePersistanceReference() {
+    var src =
+        generatedClass(
+            "JName",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.persist.Persistance;
+        import org.enso.compiler.core.IR;
+
+        @GenerateIR
+        public final class JName extends JNameGen {
+          @GenerateFields
+          public JName(@IRChild Persistance.Reference<IR> expression) {
+            super(expression);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
+        }
+        """);
+    assertThat(src, containsString("class JNameGen"));
+    assertThat(
+        "has getter method for expression with the same return type",
+        src,
+        containsString("Reference<IR> expression()"));
+  }
+
+  /** JCase contains JExpr and JBranch, JExpr references JBranch as its IRChild. */
+  @Test
+  public void canReferenceSiblingInterfaceInIRChild() {
+    var compilation =
+        expectCompilationSuccessful(
+            "JCase",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+
+        public interface JCase extends IR {
+
+          @GenerateIR(interfaces = {JCase.class})
+          final class JExpr extends JExprGen {
+            @GenerateFields
+            public JExpr(@IRChild JBranch branch) {
+              super(branch);
+            }
+
+            @Override
+            public String showCode(int indent) {
+              return "";
+            }
+          }
+
+          @GenerateIR(interfaces = {JCase.class})
+          final class JBranch extends JBranchGen {
+            @GenerateFields
+            public JBranch() {
+              super();
+            }
+
+            @Override
+            public String showCode(int indent) {
+              return "";
+            }
+          }
+        }
+        """);
+    var generatedSrcs = compilation.generatedSourceFiles();
+    assertThat(generatedSrcs.size(), is(2));
   }
 }

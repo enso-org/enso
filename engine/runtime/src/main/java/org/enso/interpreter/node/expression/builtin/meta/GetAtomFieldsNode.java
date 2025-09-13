@@ -27,24 +27,33 @@ public abstract class GetAtomFieldsNode extends Node {
 
   abstract EnsoObject execute(Atom atom);
 
+  final AtomConstructor findAtomConstructor(Atom atom) {
+    var maybeCons = FindAtomConstructorNode.findAtomConstructor(this, atom.getConstructor(), null);
+    return maybeCons instanceof AtomConstructor cons ? cons : null;
+  }
+
   @Specialization(
       limit = LIMIT,
-      guards = {"atom.getConstructor() == cons"})
+      guards = {"findAtomConstructor(atom) == cons"})
   @ExplodeLoop
   EnsoObject doStruct(
       Atom atom,
-      @Cached("atom.getConstructor()") AtomConstructor cons,
+      @Cached("findAtomConstructor(atom)") AtomConstructor cons,
       @CachedLibrary(limit = LIMIT) StructsLibrary structs) {
-    var arr = new Object[cons.getArity()];
-    for (var i = 0; i < arr.length; i++) {
-      arr[i] = structs.getField(atom, i);
+    if (cons != null) {
+      var arr = new Object[cons.getArity()];
+      for (var i = 0; i < arr.length; i++) {
+        arr[i] = structs.getField(atom, i);
+      }
+      return ArrayLikeHelpers.asVectorWithCheckAt(arr);
+    } else {
+      return ArrayLikeHelpers.asVectorEmpty();
     }
-    return ArrayLikeHelpers.asVectorWithCheckAt(arr);
   }
 
   @Specialization
   @TruffleBoundary
   final EnsoObject doOther(Atom atom) {
-    return doStruct(atom, atom.getConstructor(), StructsLibrary.getUncached());
+    return doStruct(atom, findAtomConstructor(atom), StructsLibrary.getUncached());
   }
 }

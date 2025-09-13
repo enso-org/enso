@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import { type AnyIcon } from '@/util/icons'
 import SvgButton from './SvgButton.vue'
 
 const props = defineProps<{
-  icon?: Icon | URLString | undefined
+  icon?: AnyIcon | undefined
   label?: string | undefined
   disabled?: boolean
   title?: string | undefined
 }>()
+const emit = defineEmits<{ activate: [] }>()
 </script>
 
 <template>
-  <div class="StandaloneButton">
-    <SvgButton v-bind="{ ...$attrs, ...props }" :name="icon" />
+  <div class="StandaloneButton" @click.stop="emit('activate')">
+    <SvgButton v-bind="{ ...$attrs, ...props }" :name="icon" @activate="emit('activate')" />
   </div>
 </template>
 

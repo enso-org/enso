@@ -42,7 +42,8 @@ class LanguageServerGatewayImpl[
     progressTracker: ActorRef,
     clientId: UUID,
     project: Project,
-    version: SemVer
+    version: SemVer,
+    extraEnv: Seq[(String, String)]
   ): F[ServerStartupFailure, LanguageServerSockets] = {
     implicit val timeout: Timeout = Timeout(2 * timeoutConfig.bootTimeout)
 
@@ -55,7 +56,8 @@ class LanguageServerGatewayImpl[
           project,
           version,
           progressTracker,
-          engineUpdate = false
+          engineUpdate = false,
+          extraEnv
         )).mapTo[ServerStartupResult]
       }
       .mapError(_ => ServerBootTimedOut)

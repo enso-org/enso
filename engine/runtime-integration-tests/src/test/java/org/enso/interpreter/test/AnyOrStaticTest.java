@@ -3,30 +3,15 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AnyOrStaticTest {
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
-  private Context ctx;
-
-  @Before
-  public void prepareCtx() {
-    ctx = ContextUtils.createDefaultContext(out);
-    out.reset();
-  }
-
-  @After
-  public void disposeCtx() {
-    ctx.close();
-  }
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
   @Test
   public void methodOnModuleAny() throws Exception {
@@ -41,7 +26,7 @@ public class AnyOrStaticTest {
     """;
     var src = Source.newBuilder(LanguageInfo.ID, code, "Checker.enso").build();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var dispatch = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "dispatch");
     var where = dispatch.execute("FirstArg", "SecondArg");
@@ -64,7 +49,7 @@ public class AnyOrStaticTest {
     """;
     var src = Source.newBuilder(LanguageInfo.ID, code, "Typer.enso").build();
 
-    var module = ctx.eval(src);
+    var module = ctxRule.eval(src);
 
     var dispatch = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "dispatch");
     var where = dispatch.execute("FirstArg");

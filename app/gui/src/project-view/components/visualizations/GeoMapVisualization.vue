@@ -444,7 +444,7 @@ config.setToolbarOverlay(true)
 </script>
 
 <template>
-  <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop></div>
+  <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop.passive></div>
 </template>
 
 <style scoped>

@@ -17,8 +17,8 @@ public class ContextIsEnabledNode extends Node {
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
   private @Child HasContextEnabledNode hasContextEnabledNode = HasContextEnabledNode.create();
 
-  Object execute(Atom self, Object environmentName) {
-    String envName = expectStringNode.execute(environmentName);
+  Object execute(Object self, Atom context, Object env) {
+    String envName = expectStringNode.execute(env);
     ExecutionEnvironment currentEnv = EnsoContext.get(this).getExecutionEnvironment();
     if (!currentEnv.getName().equals(envName)) {
       Atom error =
@@ -28,6 +28,6 @@ public class ContextIsEnabledNode extends Node {
               .makeUnimplemented("execution environment mismatch");
       throw new PanicException(error, this);
     }
-    return hasContextEnabledNode.executeHasContextEnabled(currentEnv, self.getConstructor());
+    return hasContextEnabledNode.executeHasContextEnabled(currentEnv, context.getConstructor());
   }
 }

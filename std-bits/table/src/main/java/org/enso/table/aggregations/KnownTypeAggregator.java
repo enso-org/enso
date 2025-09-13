@@ -9,9 +9,9 @@ import org.enso.table.problems.ProblemAggregator;
  * builder.
  */
 public abstract class KnownTypeAggregator extends Aggregator {
-  private final StorageType type;
+  private final StorageType<?> type;
 
-  protected KnownTypeAggregator(String name, StorageType type) {
+  protected KnownTypeAggregator(String name, StorageType<?> type) {
     super(name);
     this.type = type;
   }
@@ -26,7 +26,7 @@ public abstract class KnownTypeAggregator extends Aggregator {
    *
    * @return The type of the new column.
    */
-  public StorageType getType() {
+  public StorageType<?> getType() {
     return type;
   }
 }

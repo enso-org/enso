@@ -1,13 +1,32 @@
-/** @file A function to initiate a download. */
+/** @file Functions to initiate a download. */
 
-// ================
-// === download ===
-// ================
+import type { DownloadUrlOptions, SystemApi } from '../../../env'
+
+/** Options for `download` function. */
+export interface DownloadOptions {
+  readonly url: string
+  readonly name?: string | null | undefined
+  readonly electronOptions?: Omit<DownloadUrlOptions, 'name' | 'url'>
+}
 
 /** Initiate a download for the specified url. */
-export function download(url: string, name?: string | null) {
+export async function download(options: DownloadOptions) {
+  let { url } = options
+  const { name, electronOptions } = options
+
   url = new URL(url, location.toString()).toString()
-  // Avoid using `window.systemApi` because the name is lost.
+  const systemApi = window.systemApi
+
+  if (systemApi != null) {
+    await downloadUsingElectron({
+      url,
+      name,
+      downloadURL: systemApi.downloadURL,
+      ...electronOptions,
+    })
+    return
+  }
+
   const link = document.createElement('a')
   link.href = url
   link.download = name ?? url.match(/[^/]+$/)?.[0] ?? ''
@@ -16,10 +35,6 @@ export function download(url: string, name?: string | null) {
   document.body.removeChild(link)
 }
 
-// ===========================
-// === downloadWithHeaders ===
-// ===========================
-
 /** Initiate a download with the specified headers, for the specified url. */
 export async function downloadWithHeaders(
   url: string,
@@ -27,10 +42,20 @@ export async function downloadWithHeaders(
   name?: string,
 ) {
   url = new URL(url, location.toString()).toString()
-  // Avoid using `window.systemApi` because the name is lost.
-  // Also, `systemApi.downloadURL` seems to not work at all currently.
   const response = await fetch(url, { headers })
   const body = await response.blob()
   const objectUrl = URL.createObjectURL(body)
-  download(objectUrl, name)
+
+  return download({ url: objectUrl, name })
+}
+
+/** Options for `downloadUsingElectron`. */
+export interface DownloadUsingElectronOptions extends DownloadUrlOptions {
+  readonly downloadURL: SystemApi['downloadURL']
+}
+
+/** Initiate a download for the specified url using Electron's download API. */
+export async function downloadUsingElectron(options: DownloadUsingElectronOptions) {
+  const { downloadURL, ...rest } = options
+  await downloadURL(rest)
 }

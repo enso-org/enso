@@ -26,6 +26,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
+import org.enso.persist.Persistance
 
 /** This pass handles the desugaring of long-form function and method
   * definitions into standard bindings using lambdas.
@@ -95,29 +96,34 @@ case object FunctionBinding extends IRPass {
     * @return `ir`, with any function definition sugar removed
     */
   def desugarExpression(ir: Expression): Expression = {
-    ir.transformExpressions {
-      case functionBinding @ Function.Binding(
-            _,
-            args,
-            body,
-            _,
-            _,
-            canBeTCO,
-            _
-          ) =>
-        if (args.isEmpty) {
-          throw new CompilerError("The arguments list should not be empty.")
-        }
+    ir.transformExpressions { case functionBinding: Function.Binding =>
+      if (functionBinding.arguments.isEmpty) {
+        throw new CompilerError("The arguments list should not be empty.")
+      }
 
-        val lambda = args
-          .map(_.mapExpressions(desugarExpression))
-          .foldRight(desugarExpression(body))((arg, body) =>
-            new Function.Lambda(List(arg), body, null)
-          )
-          .asInstanceOf[Function.Lambda]
-          .copy(canBeTCO = canBeTCO, location = functionBinding.location())
+      val lambdaBeforeCopy = functionBinding.arguments
+        .map(_.mapExpressions(desugarExpression))
+        .foldRight(desugarExpression(functionBinding.body))((arg, body) =>
+          Function.Lambda
+            .builder()
+            .arguments(List(arg))
+            .bodyReference(Persistance.Reference.of(body, true))
+            .build()
+        )
+        .asInstanceOf[Function.Lambda]
 
-        new Expression.Binding(functionBinding, lambda)
+      val lambda = Function.Lambda
+        .builder(lambdaBeforeCopy)
+        .canBeTCO(functionBinding.canBeTCO)
+        .location(functionBinding.identifiedLocation())
+        .build()
+
+      Expression.Binding(
+        name               = functionBinding.name,
+        expression         = lambda,
+        identifiedLocation = functionBinding.identifiedLocation,
+        passData           = functionBinding.passData
+      )
     }
   }
 
@@ -168,7 +174,11 @@ case object FunctionBinding extends IRPass {
           val newBody = args
             .map(_.mapExpressions(desugarExpression))
             .foldRight(desugarExpression(body))((arg, body) =>
-              new Function.Lambda(List(arg), body, null)
+              Function.Lambda
+                .builder()
+                .arguments(List(arg))
+                .bodyReference(Persistance.Reference.of(body, true))
+                .build()
             )
 
           new definition.Method.Explicit(methodBinding, newBody)
@@ -261,7 +271,11 @@ case object FunctionBinding extends IRPass {
                   val newBody = (requiredArgs ::: remainingArgs)
                     .map(_.mapExpressions(desugarExpression))
                     .foldRight(desugarExpression(body))((arg, body) =>
-                      new Function.Lambda(List(arg), body, null)
+                      Function.Lambda
+                        .builder()
+                        .arguments(List(arg))
+                        .bodyReference(Persistance.Reference.of(body, true))
+                        .build()
                     )
                   Right(
                     new definition.Method.Conversion(

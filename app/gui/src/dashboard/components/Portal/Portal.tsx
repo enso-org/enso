@@ -1,9 +1,6 @@
 /** @file Render elements outside the current DOM hierarchy. */
-import * as React from 'react'
-
-import * as reactDom from 'react-dom'
-
-import type * as types from './types'
+import { createPortal } from 'react-dom'
+import type { PortalProps } from './types'
 import { usePortal } from './usePortal'
 
 /**
@@ -27,14 +24,8 @@ import { usePortal } from './usePortal'
  *  </div>
  * ```
  */
-export default function Portal(props: types.PortalProps): React.JSX.Element | null {
+export default function Portal(props: PortalProps) {
   const { children, mountRoot, isDisabled } = usePortal(props)
 
-  if (isDisabled) {
-    return <>{children}</>
-  } else if (mountRoot) {
-    return reactDom.createPortal(children, mountRoot)
-  } else {
-    return null
-  }
+  return isDisabled ? children : createPortal(children, mountRoot)
 }

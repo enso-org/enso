@@ -1,6 +1,5 @@
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as map from 'lib0/map'
-import * as Y from 'yjs'
 import { assert } from '../util/assert'
 import type { IdMap } from '../yjsModel'
 import { abstractMarkdown } from './documentation'
@@ -45,6 +44,7 @@ import {
   parentId,
   PropertyAccess,
   TextLiteral,
+  TypeAnnotated,
   UnaryOprApp,
   Vector,
   Wildcard,
@@ -87,10 +87,12 @@ export function abstract(
   code: string,
   substitutor?: (key: NodeKey) => Owned | undefined,
 ): { root: Owned; spans: SpanMap } {
-  const abstractor = new Abstractor(module, code, substitutor)
-  const root = abstractor.abstractTree(tree).node
-  const spans = { tokens: abstractor.tokens, nodes: abstractor.nodes }
-  return { root: root as Owned<MutableBodyBlock>, spans }
+  return module.transact(() => {
+    const abstractor = new Abstractor(module, code, substitutor)
+    const root = abstractor.abstractTree(tree).node
+    const spans = { tokens: abstractor.tokens, nodes: abstractor.nodes }
+    return { root: root as Owned<MutableBodyBlock>, spans }
+  })
 }
 
 /** Produces `Ast` types from `RawAst` parser output. */
@@ -303,6 +305,13 @@ class Abstractor {
         node = Vector.concrete(this.module, left, elements, right)
         break
       }
+      case RawAst.Tree.Type.TypeAnnotated: {
+        const expression = this.abstractExpression(tree.expression)
+        const operator = this.abstractToken(tree.operator)
+        const type = this.abstractExpression(tree.typeNode)
+        node = TypeAnnotated.concrete(this.module, expression, operator, type)
+        break
+      }
       default: {
         node = Generic.concrete(this.module, this.abstractChildren(tree))
       }
@@ -351,7 +360,7 @@ class Abstractor {
     return FunctionDef.concrete(this.module, {
       docLine,
       docLineMarkdownHash,
-      docMarkdown: new Y.Text(docMarkdown),
+      docMarkdown,
       annotationLines,
       signatureLine,
       private_,
@@ -385,6 +394,7 @@ class Abstractor {
       } else {
         child.visitChildren(visitor)
       }
+      return false
     }
     tree.visitChildren(visitor)
     return children

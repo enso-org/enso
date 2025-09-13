@@ -55,6 +55,7 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap: Sync](
         clientId               = clientId,
         projectId              = params.projectId,
         missingComponentAction = missingComponentAction,
+        cloud                  = params.cloud,
         projectsDirectory      = projectsDirectory
       )
     } yield ProjectOpen.Result(

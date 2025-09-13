@@ -4,6 +4,9 @@
  * monkeypatching on `window` and generated code.
  */
 
+import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
+import type { FileFilter } from './fileBrowser'
+
 // =============
 // === Types ===
 // =============
@@ -84,17 +87,27 @@ interface NavigationApi {
 /** `window.menuApi` exposes functionality related to the system menu. */
 interface MenuApi {
   /** Set the callback to be called when the "about" entry is clicked in the "help" menu. */
-  readonly setShowAboutModalHandler: (callback: () => void) => void
+  readonly setMenuItemHandler: (name: MenuItem, callback: MenuItemHandler) => void
 }
 
 // ==================
 // === System API ===
 // ==================
 
+/** Options for downloading a URL. */
+export type DownloadUrlOptions = {
+  url: string
+  path?: string | null
+  name?: string | null
+  shouldUnpackProject?: boolean
+  showFileDialog?: boolean
+}
+
 /** `window.systemApi` exposes functionality related to the operating system. */
 interface SystemApi {
-  readonly downloadURL: (url: string, headers?: Record<string, string>) => void
+  readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
+  readonly getFilePath: (item: File) => string
 }
 
 // ========================
@@ -106,6 +119,7 @@ interface FileBrowserApi {
   readonly openFileBrowser: (
     kind: 'any' | 'directory' | 'file' | 'filePath',
     defaultPath?: string,
+    filters?: FileFilter[],
   ) => Promise<unknown>
 }
 
@@ -114,9 +128,10 @@ interface FileBrowserApi {
 // ==============================
 
 /** Metadata for a newly imported project. */
-interface ProjectInfo {
+export interface ProjectInfo {
   readonly id: string
   readonly name: string
+  readonly projectRoot: string
   readonly parentDirectory: string
 }
 
@@ -158,7 +173,6 @@ declare global {
     readonly projectManagementApi?: ProjectManagementApi
     readonly versionInfo?: VersionInfo
     readonly mapBoxApiToken: () => string
-    toggleDevtools: () => void
   }
 
   namespace NodeJS {
@@ -198,7 +212,6 @@ declare global {
       readonly ENSO_TEST_PROJECTS_DIR?: string
       readonly ENSO_TEST_APP_ARGS?: string
       readonly ENSO_TEST_USER?: string
-      readonly ENSO_TEST_USER_PASSWORD?: string
       ENSO_TEST_EXEC_PATH?: string
 
       // === Electron watch script variables ===

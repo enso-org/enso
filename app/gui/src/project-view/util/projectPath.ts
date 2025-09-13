@@ -1,22 +1,34 @@
+import { Err, Ok, Result, unwrap } from '@/util/data/result'
 import {
   qnJoin,
   qnSplit,
+  tryQualifiedName,
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { assert, assertDefined } from 'ydoc-shared/util/assert'
+import type { Opt } from 'ydoc-shared/util/data/opt'
 
 export type ProjectName = QualifiedName
 
 /** Parses the qualified name as a literal project path. */
-export function parseAbsoluteProjectPath(path: QualifiedName): ProjectPath {
+export function parseAbsoluteProjectPath(path: QualifiedName): Result<AbsoluteProjectPath> {
   const parts = /^([^.]+\.[^.]+)(?:\.(.+))?$/.exec(path)
-  assert(parts != null)
+  if (parts == null) return Err(`${path} is not absolute project path`)
   assertDefined(parts[1])
-  return ProjectPath.create(
-    parts[1] as QualifiedName,
-    parts[2] ? (parts[2] as QualifiedName) : undefined,
+  return Ok(
+    ProjectPath.create(
+      parts[1] as QualifiedName,
+      parts[2] ? (parts[2] as QualifiedName) : undefined,
+    ),
   )
+}
+
+/** Parses the string as a literal project path. */
+export function parseAbsoluteProjectPathRaw(path: string): Result<AbsoluteProjectPath> {
+  const qn = tryQualifiedName(path)
+  if (!qn.ok) return qn
+  return parseAbsoluteProjectPath(qn.value)
 }
 
 /** Prints a literal project path. */
@@ -50,8 +62,8 @@ export class ProjectPath {
   }
 
   /** Checks for equality */
-  equals(b: ProjectPath): boolean {
-    return this.path === b.path && this.project === b.project
+  equals(b: Opt<ProjectPath>): boolean {
+    return b != null && this.path === b.path && this.project === b.project
   }
 
   /** Returns the path with the given qualified name appended */
@@ -91,9 +103,30 @@ export class ProjectPath {
   toJSON(): object {
     return { project: this.project || null, path: this.path || null }
   }
+
+  /**
+   * Create a string representation of project path that is suitable for usage as a hashmap key.
+   */
+  key() {
+    const normalized = this.normalized()
+    const projectKey = normalized.project ?? '$'
+    return normalized.path ? `${projectKey}.${normalized.path}` : projectKey
+  }
 }
+
+/** A hardcoded path to Main module of Enso standard library. */
+export const standardBaseMainPath: AbsoluteProjectPath = ProjectPath.create(
+  'Standard.Base' as QualifiedName,
+  'Main' as QualifiedName,
+)
 
 /** A project path with a literal project name. */
 export interface AbsoluteProjectPath extends ProjectPath {
   readonly project: QualifiedName
+}
+
+/** A helper function to create a standard library path. */
+export function stdPath(path: string): AbsoluteProjectPath {
+  assert(path.startsWith('Standard.'))
+  return unwrap(parseAbsoluteProjectPathRaw(path))
 }

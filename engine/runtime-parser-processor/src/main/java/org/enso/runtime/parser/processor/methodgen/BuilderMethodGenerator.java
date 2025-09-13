@@ -67,6 +67,8 @@ public class BuilderMethodGenerator {
 
           Builder() {}
 
+        $copyConstructor
+
         $fieldSetters
 
         $buildMethod
@@ -77,10 +79,56 @@ public class BuilderMethodGenerator {
         }
         """
             .replace("$fieldDeclarations", Utils.indent(fieldDeclarations, 2))
+            .replace("$copyConstructor", Utils.indent(copyConstructor(), 2))
             .replace("$fieldSetters", Utils.indent(fieldSetters, 2))
             .replace("$buildMethod", Utils.indent(buildMethod(), 2))
             .replace("$validationCode", Utils.indent(validationCode, 4));
     return code;
+  }
+
+  private String copyConstructor() {
+    var sb = new StringBuilder();
+    var docs =
+        """
+        /**
+         * Copy builder. Creates a <i>shallow</i> copy of the given object.
+         *
+         * <p>Using this copy builder is equivalent to calling {@code copy} method,
+         * with appropriate parameters set to different values.
+         *
+         * <p>For more information about the copy semantics, see
+         * {@link org.enso.compiler.core.IR}.
+         *
+         * @param obj the object from which the <emph>shallow</emph> copy is made.
+         */
+        """;
+    sb.append(docs);
+    sb.append("Builder(")
+        .append(generatedClassContext.getProcessedClass().getClazz().getSimpleName())
+        .append(" obj) {")
+        .append(System.lineSeparator());
+    // Meta fields are accessed directly.
+    for (var metaField : generatedClassContext.getMetaFields()) {
+      sb.append("  ")
+          .append("this.")
+          .append(metaField.name())
+          .append(" = obj.")
+          .append(metaField.name())
+          .append(";")
+          .append(System.lineSeparator());
+    }
+    // Most user fields are accessed via getters
+    for (var userField : generatedClassContext.getUserFields()) {
+      sb.append("  ")
+          .append("this.")
+          .append(userField.getName())
+          .append(" = obj.")
+          .append(userField.getName())
+          .append("();")
+          .append(System.lineSeparator());
+    }
+    sb.append("}");
+    return sb.toString();
   }
 
   private String buildMethod() {

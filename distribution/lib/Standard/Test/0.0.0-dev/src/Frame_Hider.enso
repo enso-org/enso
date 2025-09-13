@@ -1,0 +1,145 @@
+## Frame_Hider is used in test utilities to hide uninteresting stack frames from
+   users when reporting the location of test failures.
+   In a test utility such as `Any.should_equal`, the failure of a test assertion
+   is accompanied by the location of the failure. The location should not be a
+   stack frame inside `Any.should_equal`, but rather should be at the location
+   that called `Any.should_equal`. This means identifying stack frames we don't
+   want to bother the user with, and omitting them when we're looking for the
+   correct stack frame to use.
+   The problem is more complicated when test utilities call other utilities, or
+   when test utilities invoke callbacks provided by user test code.
+   The `hide` and `unhide*` methods are simple wrappers. `get_top_stack_frame`
+   identifies these on the stack, and uses them to remove the uninteresting
+   frames from consideration.
+   A `hide` call should be wrapped around the body of every test utility.
+   An `unhide*` call should be wrapped around any call from a test utility to a
+   user-supplied callback, depending on the number of arguments. If one test
+   utility forwards a callback to another test utility, the callback should be
+   wrapped at the forward site as well.
+
+   ## Remarks
+
+   ### Partial Application
+   Partial application can prevent the `unhide*` methods from existing in the
+   stack trace, so test callbacks should have explicit parameters:
+
+   Do not use partial application:
+
+   ```
+       tester = expect_column_names ["A", "B"]
+   ```
+
+   Use explicit parameters:
+   ```
+      tester t = expect_column_names ["A", "B"] t
+   ```
+
+   ### Tail Calls
+   Tail calls can result in changes to the stack that prevent
+   `get_top_stack_frame` from working properly. For this reason, uses of `hide`
+   and `unhide` should be within the tail call:
+
+   ```
+          go i = Frame_Hider.hide <|
+              # ...
+              @Tail_Call go (i+1)
+          go 1
+   ```
+
+from Standard.Base import all
+
+## ---
+   private: true
+   ---
+   Hides the stack frames of the contained code from `get_top_stack_frame`.
+
+   ## Examples
+   ### Wrap the body of a test utility to hide its stack frames.
+
+   ```
+       Any.should_equal self that = Frame_Hider.hide <| ...
+       Error.throw ("Not equal at " + Frame_Hider.get_top_stack_frame)
+   ```
+hide ~action =
+    action
+
+## ---
+   private: true
+   ---
+   Unhides the stack frames of the call to the user-supplied callback
+   application.
+
+   ## Examples
+   ### Wrap a callback invocation to unhide its stack frames
+
+   ```
+       test_utility test_predicate x = ...
+       Frame_Hider.unhide (test_predicate x)
+   ```
+unhide ~action =
+    action
+
+## ---
+   private: true
+   ---
+   Unhides the stack frames of the call to the user-supplied callback
+   application, uncurried for one argument.
+   `unhide_1 f x` is Equivalent to `unhide (f x)`.
+
+   ## Examples
+   ### Wrap a callback invocation to unhide its stack frames.
+
+   ```
+       test_utility test_predicate x = ...
+       Frame_Hider.unhide_1 test_predicate x
+   ```
+unhide_1 f x =
+    f x
+
+## ---
+   private: true
+   ---
+   Unhides the stack frames of the call to the user-supplied callback
+   application, uncurried for two arguments.
+   `unhide_1 f x y` is Equivalent to `unhide (f x y)`.
+
+   ## Examples
+   ### Wrap a callback invocation to unhide its stack frames.
+
+   ```
+       test_utility test_predicate x y = ...
+       Frame_Hider.unhide_2 test_predicate x y
+   ```
+unhide_2 f x y =
+    f x y
+
+## ---
+   private: true
+   ---
+   Identify the correct top stack frame by skipping over the stack frames inside
+   test utilities.
+get_top_stack_frame -> Text =
+    stack_trace = Runtime.get_stack_trace
+    reversed_stack_trace = stack_trace.reverse
+
+    ## Iterate through stack frames from bottom to top, determining how many
+        `hide` calls each one is nested inside. Each `hide` frame increases
+        the nesting level by 1, and each `unhide` decreases it by one.
+
+        The stack frame we are looking for is the one before the last frame
+        that has a nesting level of 0 -- this is the most recent user-level
+        call, and the one that triggered the test assertion failure.
+
+        If we cannot find such a frame, we simply return the top of the
+        stack. (In this case, some test code is missing a call to `unhide*`.)
+    delta_for_frame frame =
+        name = frame.name
+        if name.starts_with "Frame_Hider.hide" then 1 else
+            if name.starts_with "Frame_Hider.unhide" then -1 else 0
+    nesting_levels = reversed_stack_trace.map delta_for_frame . running_fold 0 (+)
+    index =
+        i = nesting_levels.last_index_of 0
+        if i.is_nothing || i == 0 then 0 else i-1
+
+    top = reversed_stack_trace . at index . source_location
+    top.to_display_text

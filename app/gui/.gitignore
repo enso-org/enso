@@ -35,8 +35,5 @@ src/project-view/stores/visualization/metadata.json
 src/project-view/util/iconList.json
 src/project-view/util/iconName.ts
 
-*storybook.log
-storybook-static
-
 # Sentry Config File
 .env.sentry-build-plugin

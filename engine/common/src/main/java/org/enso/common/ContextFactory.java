@@ -3,16 +3,15 @@ package org.enso.common;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import org.enso.logger.Converter;
-import org.enso.logger.JulHandler;
-import org.enso.logging.config.LoggerSetup;
+import java.util.logging.Handler;
+import java.util.logging.Level;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.io.MessageTransport;
-import org.slf4j.event.Level;
 
 /**
  * Builder to create a new Graal polyglot context.
@@ -42,15 +41,17 @@ public final class ContextFactory {
   private MessageTransport messageTransport;
   private Level logLevel = Level.INFO;
   private boolean logMasking;
+  private Handler logHandler;
   private boolean enableIrCaches;
   private boolean disablePrivateCheck;
-  private boolean enableStaticAnalysis;
+  private boolean enableStaticAnalysis = false;
+  private boolean treatWarningsAsErrors = false;
   private boolean strictErrors;
   private boolean disableLinting;
-  private boolean useGlobalIrCacheLocation = true;
   private boolean enableAutoParallelism;
   private String executionEnvironment;
   private String checkForWarnings;
+  private String pythonResourceDir;
   private int warningsLimit = 100;
   private java.util.Map<String, String> options = new HashMap<>();
   private String runtimerServerKey;
@@ -97,6 +98,12 @@ public final class ContextFactory {
     return this;
   }
 
+  /** Overwrites the {@link JulHandler default} logging handler. */
+  public ContextFactory logHandler(Handler handler) {
+    this.logHandler = handler;
+    return this;
+  }
+
   public ContextFactory enableIrCaches(boolean enableIrCaches) {
     this.enableIrCaches = enableIrCaches;
     return this;
@@ -112,6 +119,11 @@ public final class ContextFactory {
     return this;
   }
 
+  public ContextFactory treatWarningsAsErrors(boolean treatWarningsAsErrors) {
+    this.treatWarningsAsErrors = treatWarningsAsErrors;
+    return this;
+  }
+
   public ContextFactory strictErrors(boolean strictErrors) {
     this.strictErrors = strictErrors;
     return this;
@@ -119,11 +131,6 @@ public final class ContextFactory {
 
   public ContextFactory disableLinting(boolean disableLinting) {
     this.disableLinting = disableLinting;
-    return this;
-  }
-
-  public ContextFactory useGlobalIrCacheLocation(boolean useGlobalIrCacheLocation) {
-    this.useGlobalIrCacheLocation = useGlobalIrCacheLocation;
     return this;
   }
 
@@ -157,6 +164,17 @@ public final class ContextFactory {
     return this;
   }
 
+  /**
+   * Path to the Python resources directory. The directory must exist and must contain subdirectory
+   * {@code python-home}.
+   *
+   * <p>See {@link Engine#copyResources(Path, String...)}.
+   */
+  public ContextFactory pythonResourceDir(String resourceDir) {
+    this.pythonResourceDir = resourceDir;
+    return this;
+  }
+
   public ContextFactory enableDebugServer(boolean b) {
     this.enableDebugServer = b;
     return this;
@@ -166,9 +184,7 @@ public final class ContextFactory {
     if (executionEnvironment != null) {
       options.put("enso.ExecutionEnvironment", executionEnvironment);
     }
-    var julLogLevel = Converter.toJavaLevel(logLevel);
-    var logLevelName = julLogLevel.getName();
-    var inAOTMode = java.lang.Boolean.getBoolean("com.oracle.graalvm.isaot");
+    var inAOTMode = HostEnsoUtils.isAot();
     java.util.Map<String, String> engineOptions = null;
     if (runtimerServerKey != null) {
       if (!inAOTMode) {
@@ -178,6 +194,9 @@ public final class ContextFactory {
         engineOptions.put(runtimerServerKey, "true");
       }
     }
+    if (pythonResourceDir != null) {
+      System.setProperty("polyglot.engine.resourcePath.python", pythonResourceDir);
+    }
     var builder =
         Context.newBuilder()
             .allowExperimentalOptions(true)
@@ -186,12 +205,11 @@ public final class ContextFactory {
             .option(RuntimeOptions.STRICT_ERRORS, Boolean.toString(strictErrors))
             .option(RuntimeOptions.DISABLE_LINTING, Boolean.toString(disableLinting))
             .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true")
-            .option(
-                RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION,
-                Boolean.toString(useGlobalIrCacheLocation))
             .option(RuntimeOptions.DISABLE_IR_CACHES, Boolean.toString(!enableIrCaches))
             .option(RuntimeOptions.DISABLE_PRIVATE_CHECK, Boolean.toString(disablePrivateCheck))
             .option(RuntimeOptions.ENABLE_STATIC_ANALYSIS, Boolean.toString(enableStaticAnalysis))
+            .option(
+                RuntimeOptions.TREAT_WARNINGS_AS_ERRORS, Boolean.toString(treatWarningsAsErrors))
             .option(RuntimeOptions.LOG_MASKING, Boolean.toString(logMasking))
             .options(options)
             .option(RuntimeOptions.ENABLE_AUTO_PARALLELISM, Boolean.toString(enableAutoParallelism))
@@ -206,19 +224,8 @@ public final class ContextFactory {
     if (enableDebugServer) {
       builder.option(DebugServerInfo.ENABLE_OPTION, "true");
     }
-    builder.option(RuntimeOptions.LOG_LEVEL, logLevelName);
-    var logHandler = JulHandler.get();
-    var logLevels = LoggerSetup.get().getConfig().getLoggers();
-    if (logLevels.hasEnsoLoggers()) {
-      logLevels
-          .entrySet()
-          .forEach(
-              (entry) ->
-                  builder.option(
-                      "log." + LanguageInfo.ID + "." + entry.getKey() + ".level",
-                      Converter.toJavaLevel(entry.getValue()).getName()));
-    }
-    builder.logHandler(logHandler);
+
+    ContextLoggingConfigurator.DEFAULT.prepareBuilderForLogging(builder, logLevel, logHandler);
 
     if (projectRoot != null) {
       builder.option(RuntimeOptions.PROJECT_ROOT, projectRoot);
@@ -227,6 +234,9 @@ public final class ContextFactory {
               new File(new File(new File(new File(projectRoot), "polyglot"), "python"), "bin"),
               "graalpy");
       if (graalpy.exists()) {
+        if (inAOTMode) {
+          throw new IllegalStateException("Cannot use Python in AOT mode. Run with --jvm");
+        }
         builder.option("python.Executable", graalpy.getAbsolutePath());
       }
     }
@@ -242,7 +252,7 @@ public final class ContextFactory {
           .allowCreateThread(true);
     }
 
-    if (inAOTMode) {
+    if (engineOptions != null) {
       // In AOT mode one must not use a shared engine; the latter causes issues when initializing
       // message transport - it is set to `null`.
       var eng = Engine.newBuilder().allowExperimentalOptions(true).options(engineOptions);

@@ -4,10 +4,6 @@
  * This file MUST NOT `export {}` so that the modules are visible to other files.
  */
 
-// ===========================
-// === Module declarations ===
-// ===========================
-
 declare module 'eslint-plugin-react' {
   /** An ESLint configuration. */
   interface Config {

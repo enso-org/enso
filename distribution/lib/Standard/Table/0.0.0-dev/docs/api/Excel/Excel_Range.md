@@ -1,0 +1,25 @@
+## Enso Signatures 1.0
+## module Standard.Table.Excel.Excel_Range
+- type Excel_Range
+    - address self -> Standard.Base.Any.Any
+    - bottom_row self -> Standard.Base.Any.Any
+    - column_index column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - column_index_for_name name:Standard.Base.Data.Text.Text -> Standard.Base.Data.Numbers.Integer
+    - column_name_for_index index:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Text.Text
+    - for_cell sheet:Standard.Base.Any.Any column:Standard.Base.Any.Any row:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - for_columns sheet:Standard.Base.Any.Any left:Standard.Base.Any.Any right:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - for_range sheet:Standard.Base.Any.Any left:Standard.Base.Any.Any top:Standard.Base.Any.Any right:Standard.Base.Any.Any bottom:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - for_rows sheet:Standard.Base.Any.Any top:Standard.Base.Any.Any bottom:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - from_address address:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - is_single_cell self -> Standard.Base.Any.Any
+    - is_valid_column column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - is_valid_row row:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - left_column self -> Standard.Base.Any.Any
+    - right_column self -> Standard.Base.Any.Any
+    - sheet_name self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - top_row self -> Standard.Base.Any.Any
+- excel_2007_column_limit -> Standard.Base.Any.Any
+- excel_2007_row_limit -> Standard.Base.Any.Any
+- validate validation:Standard.Base.Any.Any ~error_message:Standard.Base.Any.Any ~wrapped:Standard.Base.Any.Any -> Standard.Base.Any.Any

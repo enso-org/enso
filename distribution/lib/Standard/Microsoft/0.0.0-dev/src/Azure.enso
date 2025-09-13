@@ -1,0 +1,19 @@
+from Standard.Base import all
+
+import project.Azure_Credential.Azure_Credential
+import project.Azure_Credential.Azure_Subscription
+import project.Azure_Credential.Azure_Tenant
+import project.Azure_Environment.Azure_Environment
+
+## Top level Azure functions
+type Azure
+    ## Creates an Azure credential.
+    login cred:Azure_Credential=..Default -> Azure_Credential = cred
+
+    ## Lists the Tenants in the given Azure credential.
+    tenants cred:Azure_Credential=..Default environment:Azure_Environment=..Default -> Vector Azure_Tenant =
+        cred.tenants environment
+
+    ## Lists the Subscriptions in the given Azure credential.
+    subscriptions cred:Azure_Credential=..Default environment:Azure_Environment=..Default -> Vector Azure_Subscription =
+        cred.subscriptions environment

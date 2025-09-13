@@ -7,13 +7,14 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "negate", description = "Negation for numbers.")
-public abstract class NegateNode extends IntegerNode {
+public abstract class NegateNode extends IntegerNode.Unary {
+
+  @Override
+  abstract Object executeUnary(Object own);
 
   static NegateNode build() {
     return NegateNodeGen.create();
   }
-
-  abstract Object execute(Object own);
 
   @Specialization(rewriteOn = ArithmeticException.class)
   long doNormal(long self) {
@@ -22,12 +23,12 @@ public abstract class NegateNode extends IntegerNode {
 
   @Specialization
   Object doBigInt(EnsoBigInteger self) {
-    return toEnsoNumberNode.execute(BigIntegerOps.negate(self.getValue()));
+    return toEnsoNumberNode().execute(BigIntegerOps.negate(self.getValue()));
   }
 
   @Specialization
   Object doOverflow(long self) {
-    return toEnsoNumberNode.execute(BigIntegerOps.negate(self));
+    return toEnsoNumberNode().execute(BigIntegerOps.negate(self));
   }
 
   @Fallback

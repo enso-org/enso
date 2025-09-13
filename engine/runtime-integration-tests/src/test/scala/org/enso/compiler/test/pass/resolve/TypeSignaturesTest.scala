@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Expression
+import org.enso.compiler.core.ir.Literal
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Type
@@ -210,7 +211,7 @@ class TypeSignaturesTest extends CompilerTest {
   "Resolution of type signatures for blocks" should {
     implicit val ctx: InlineContext = mkInlineContext
 
-    val ir =
+    lazy val ir =
       """
         |block =
         |    ## Doc f
@@ -228,7 +229,7 @@ class TypeSignaturesTest extends CompilerTest {
         |""".stripMargin.preprocessExpression.get.resolve
         .asInstanceOf[Expression.Binding]
 
-    val block = ir.expression.asInstanceOf[Expression.Block]
+    lazy val block = ir.expression.asInstanceOf[Expression.Block]
 
     "associate signatures with bindings" in {
       val head = block.expressions.head
@@ -258,7 +259,7 @@ class TypeSignaturesTest extends CompilerTest {
   "Resolution of inline type signatures" should {
     implicit val ctx: InlineContext = mkInlineContext
 
-    val ir =
+    lazy val ir =
       """
         |f a (b = 1 : Int) : Double
         |""".stripMargin.preprocessExpression.get.resolve
@@ -271,7 +272,8 @@ class TypeSignaturesTest extends CompilerTest {
     }
 
     "work recursively" in {
-      val arg2Value     = ir.asInstanceOf[Application.Prefix].arguments(1).value
+      val arg2Value =
+        ir.asInstanceOf[Application.Prefix].arguments.apply(1).value
       val arg2Signature = arg2Value.getMetadata(TypeSignatures)
       arg2Signature shouldBe defined
       arg2Signature.get.signature.showCode() shouldEqual "Int"
@@ -279,10 +281,28 @@ class TypeSignaturesTest extends CompilerTest {
       // But arg1 has no signature:
       val arg1Signature = ir
         .asInstanceOf[Application.Prefix]
-        .arguments(0)
+        .arguments
+        .apply(0)
         .value
         .getMetadata(TypeSignatures)
       arg1Signature shouldBe empty
     }
+  }
+
+  "Resolution of ascribed expressions" should {
+    implicit val ctx: InlineContext = mkInlineContext
+
+    "associate correct spans" in {
+      val ir =
+        """
+          |42 : Number
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[Literal.Number]
+      val signature = ir.getMetadata(TypeSignatures)
+      signature shouldBe defined
+      signature.get.signature.showCode() shouldEqual "Number"
+    }
+
   }
 }

@@ -5,7 +5,9 @@ import Standard.Table.Internal.Naming_Properties.Unlimited_Naming_Properties
 
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 
-## PRIVATE
+## ---
+   private: true
+   ---
 new : Entity_Naming_Properties
 new =
     default = Unlimited_Naming_Properties.Instance is_case_sensitive=False

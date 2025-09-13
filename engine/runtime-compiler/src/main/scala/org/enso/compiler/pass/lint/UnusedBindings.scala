@@ -112,7 +112,7 @@ case object UnusedBindings extends IRPass {
         "Aliasing information is required for linting."
       )
       .unsafeAs[AliasInfo.Occurrence]
-    val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
+    val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
     if (!isIgnored && !isUsed) {
       binding
@@ -136,9 +136,12 @@ case object UnusedBindings extends IRPass {
     context: InlineContext
   ): Function = {
     function match {
-      case Function.Lambda(_, _: Foreign.Definition, _, _, _, _) =>
+      case lam: Function.Lambda
+          if lam.body().isInstanceOf[Foreign.Definition] =>
         function
-      case lam @ Function.Lambda(args, body, _, _, _, _) =>
+      case lam: Function.Lambda =>
+        val args      = lam.arguments()
+        val body      = lam.body()
         val isBuiltin = isBuiltinMethod(body)
         val lintedArgs =
           if (isBuiltin) args
@@ -156,9 +159,9 @@ case object UnusedBindings extends IRPass {
             }
           else body1
 
-        lam.copy(
-          arguments = lintedArgs,
-          body      = lintedBody
+        lam.copyWithArgumentsAndBody(
+          lintedArgs,
+          lintedBody
         )
       case _: Function.Binding =>
         throw new CompilerError(
@@ -191,27 +194,22 @@ case object UnusedBindings extends IRPass {
         "required for linting."
       )
       .unsafeAs[AliasInfo.Occurrence]
-    val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
+    val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
     argument match {
-      case s @ DefinitionArgument.Specified(
-            _: Name.Self,
-            _,
-            _,
-            _,
-            _,
-            _
-          ) =>
+      case s: DefinitionArgument.Specified if s.name.isInstanceOf[Name.Self] =>
         s
-      case s @ DefinitionArgument.Specified(name, _, default, _, _, _) =>
+      case s: DefinitionArgument.Specified =>
+        val name    = s.name
+        val default = s.defaultValue
         if (!isIgnored && !isUsed) {
           val nameToReport = name match {
             case literal: Name.Literal =>
               literal.originalName.getOrElse(literal)
             case _ => name
           }
-          s.copy(
-            defaultValue = default.map(runExpression(_, context))
+          s.copyWithDefaultValue(
+            default.map(runExpression(_, context))
           ).addDiagnostic(warnings.Unused.FunctionArgument(nameToReport))
         } else s
     }
@@ -225,10 +223,10 @@ case object UnusedBindings extends IRPass {
     */
   def lintCase(cse: Case, context: InlineContext): Case = {
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr: Case.Expr =>
         expr.copy(
-          scrutinee = runExpression(scrutinee, context),
-          branches  = branches.map(lintCaseBranch(_, context))
+          runExpression(expr.scrutinee, context),
+          expr.branches.map(lintCaseBranch(_, context))
         )
       case _: Case.Branch => throw new CompilerError("Unexpected case branch.")
     }
@@ -245,8 +243,9 @@ case object UnusedBindings extends IRPass {
     context: InlineContext
   ): Case.Branch = {
     branch.copy(
-      pattern    = lintPattern(branch.pattern),
-      expression = runExpression(branch.expression, context)
+      lintPattern(branch.pattern),
+      runExpression(branch.expression, context),
+      branch.terminalBranch()
     )
   }
 
@@ -272,7 +271,7 @@ case object UnusedBindings extends IRPass {
             "required for linting."
           )
           .unsafeAs[AliasInfo.Occurrence]
-        val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
+        val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
         if (!isIgnored && !isUsed) {
           n.addDiagnostic(warnings.Unused.PatternBinding(name))
@@ -302,7 +301,7 @@ case object UnusedBindings extends IRPass {
             "required for linting."
           )
           .unsafeAs[AliasInfo.Occurrence]
-        val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
+        val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
         if (!isIgnored && !isUsed) {
           typed.addDiagnostic(warnings.Unused.PatternBinding(name))

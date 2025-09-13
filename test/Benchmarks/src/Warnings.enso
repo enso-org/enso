@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Data.Array_Proxy import Array_Proxy
 
 from Standard.Test import Bench
 

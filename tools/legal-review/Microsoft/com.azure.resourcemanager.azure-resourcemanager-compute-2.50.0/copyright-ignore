@@ -1,0 +1,2 @@
+public static final PolicyViolationCategory COPYRIGHT_VALIDATION = fromString("CopyrightValidation");
+Static value CopyrightValidation for PolicyViolationCategory.

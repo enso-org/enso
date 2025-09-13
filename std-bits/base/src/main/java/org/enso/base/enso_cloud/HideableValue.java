@@ -7,6 +7,7 @@ import java.util.Base64;
 public sealed interface HideableValue
     permits HideableValue.Base64EncodeValue,
         HideableValue.ConcatValues,
+        InterpretAsPrivateKey,
         HideableValue.PlainValue,
         HideableValue.SecretValue {
 

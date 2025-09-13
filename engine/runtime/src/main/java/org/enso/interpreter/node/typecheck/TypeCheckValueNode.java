@@ -1,29 +1,41 @@
 package org.enso.interpreter.node.typecheck;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.enso.compiler.core.ir.AscriptionReason;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.util.CachingSupplier;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /** A node and a factory for nodes performing type checks (including necessary conversions). */
 public final class TypeCheckValueNode extends Node {
   private @Child AbstractTypeCheckNode check;
+  private @Child WarningsLibrary warnings;
+  private @Child AppendWarningNode append;
   private final boolean allTypes;
 
   TypeCheckValueNode(AbstractTypeCheckNode check, boolean allTypes) {
     assert check != null;
     this.check = check;
     this.allTypes = allTypes;
+    this.warnings = WarningsLibrary.getFactory().createDispatched(3);
   }
 
   /**
@@ -47,13 +59,42 @@ public final class TypeCheckValueNode extends Node {
    *
    * @param frame frame requesting the conversion
    * @param value the value to convert
-   * @param expr the expression node that produced the {@code value}
    * @return {@code null} when the check isn't satisfied and conversion isn't possible or non-{@code
    *     null} value that can be used as a result
    */
-  public final Object handleCheckOrConversion(
-      VirtualFrame frame, Object value, ExpressionNode expr) {
-    var result = check.executeCheckOrConversion(frame, value, expr);
+  public final Object handleCheckOrConversion(VirtualFrame frame, Object value) {
+    if (isAllFitValue(value)) {
+      return value;
+    }
+    if (warnings.hasWarnings(value)) {
+      if (append == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        append = insert(AppendWarningNode.build());
+      }
+      try {
+        var plainValue = warnings.removeWarnings(value);
+        var result = handleCheckOrConversionImpl(frame, plainValue);
+        if (result == plainValue) {
+          return value;
+        } else {
+          var warnMap = warnings.getWarnings(value, false);
+          return append.executeAppend(frame, result, warnMap);
+        }
+      } catch (UnsupportedMessageException ex) {
+        var ctx = EnsoContext.get(this);
+        throw ctx.raiseAssertionPanic(this, null, ex);
+      }
+    } else {
+      return handleCheckOrConversionImpl(frame, value);
+    }
+  }
+
+  private final Object handleCheckOrConversionImpl(VirtualFrame frame, Object value) {
+    var direct = check.findDirectMatch(frame, value);
+    if (direct != null) {
+      return direct;
+    }
+    var result = check.executeConversion(frame, value);
     if (result == null) {
       throw panicAtTheEnd(value);
     }
@@ -67,27 +108,42 @@ public final class TypeCheckValueNode extends Node {
    * @param checks existing type checks
    * @return node the composed check or {@code null} if no check is needed
    */
-  public static TypeCheckValueNode allOf(String comment, TypeCheckValueNode... checks) {
+  public static TypeCheckValueNode allOf(AscriptionReason comment, TypeCheckValueNode... checks) {
     if (checks == null) {
       return null;
     }
-    var list = Arrays.asList(checks);
-    var flatten =
-        list.stream()
-            .filter(n -> n != null)
-            .map(n -> n.check)
-            .flatMap(
-                n ->
-                    n instanceof AllOfTypesCheckNode all
-                        ? Arrays.asList(all.getChecks()).stream()
-                        : Stream.of(n))
-            .toList();
-    var arr = toArray(flatten);
-    return switch (arr.length) {
-      case 0 -> null;
-      case 1 -> new TypeCheckValueNode(arr[0], true);
-      default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, arr), true);
-    };
+    var collect = new ArrayList<AbstractTypeCheckNode>();
+    var allowThru = false;
+    for (var ch : Arrays.asList(checks)) {
+      if (ch == null) {
+        allowThru = true;
+      } else {
+        switch (ch.check) {
+          case AllOfTypesCheckNode all -> {
+            if (all.allowThru) {
+              allowThru = true;
+            }
+            collect.addAll(Arrays.asList(all.getChecks()));
+          }
+          case AbstractTypeCheckNode n -> collect.add(n);
+        }
+      }
+    }
+    var arr = toArray(collect);
+    var allTypes = comment.isAllTypes();
+    if (allowThru) {
+      var checkNode = new AllOfTypesCheckNode(comment.comment(), allowThru, arr);
+      return new TypeCheckValueNode(checkNode, allTypes);
+    } else {
+      return switch (arr.length) {
+        case 0 -> null;
+        case 1 -> new TypeCheckValueNode(arr[0], true);
+        default -> {
+          var checkNode = new AllOfTypesCheckNode(comment.comment(), allowThru, arr);
+          yield new TypeCheckValueNode(checkNode, allTypes);
+        }
+      };
+    }
   }
 
   /**
@@ -97,7 +153,7 @@ public final class TypeCheckValueNode extends Node {
    * @param checks existing type checks
    * @return node the composed check or {@code null} if no check is needed
    */
-  public static TypeCheckValueNode oneOf(String comment, TypeCheckValueNode... checks) {
+  public static TypeCheckValueNode oneOf(AscriptionReason comment, TypeCheckValueNode... checks) {
     if (checks == null) {
       return null;
     }
@@ -108,9 +164,14 @@ public final class TypeCheckValueNode extends Node {
       default -> {
         var abstractTypeCheckList = list.stream().map(n -> n.check).toList();
         var abstractTypeCheckArr = toArray(abstractTypeCheckList);
-        yield new TypeCheckValueNode(new OneOfTypesCheckNode(comment, abstractTypeCheckArr), true);
+        yield new TypeCheckValueNode(
+            new OneOfTypesCheckNode(comment.comment(), abstractTypeCheckArr), comment.isAllTypes());
       }
     };
+  }
+
+  public static TypeCheckValueNode fail(String comment) {
+    return new TypeCheckValueNode(new FailCheckNode(comment), true);
   }
 
   /**
@@ -120,9 +181,10 @@ public final class TypeCheckValueNode extends Node {
    * @param expectedType the type to check for - it shouldn't be {@code Any}
    * @return node performing the check
    */
-  public static TypeCheckValueNode single(String comment, Type expectedType) {
-    var typeCheckNodeImpl = SingleTypeCheckNodeGen.create(comment, expectedType);
-    return new TypeCheckValueNode(typeCheckNodeImpl, true);
+  public static TypeCheckValueNode single(AscriptionReason comment, Type expectedType) {
+    var checkNode = SingleTypeCheckNodeGen.create(comment.comment(), expectedType);
+    var allTypes = comment.isAllTypes();
+    return new TypeCheckValueNode(checkNode, allTypes);
   }
 
   /**
@@ -133,10 +195,10 @@ public final class TypeCheckValueNode extends Node {
    * @return node performing the check
    */
   public static TypeCheckValueNode meta(
-      String comment, Supplier<? extends Object> metaObjectSupplier) {
+      AscriptionReason comment, Supplier<? extends Object> metaObjectSupplier) {
     var cachingSupplier = CachingSupplier.wrap(metaObjectSupplier);
-    var typeCheckNodeImpl = MetaTypeCheckNodeGen.create(comment, cachingSupplier);
-    return new TypeCheckValueNode(typeCheckNodeImpl, true);
+    var typeCheckNodeImpl = new MetaTypeCheckNode(comment.comment(), cachingSupplier);
+    return new TypeCheckValueNode(typeCheckNodeImpl, comment.isAllTypes());
   }
 
   /**
@@ -181,26 +243,21 @@ public final class TypeCheckValueNode extends Node {
       msg = check.getComment();
     }
     var err = ctx.getBuiltins().error().makeTypeErrorOfComment(expectedTypeMessage, v, msg);
-    throw new PanicException(err, this);
+    return new PanicException(err, this);
   }
 
   private static AbstractTypeCheckNode[] toArray(List<AbstractTypeCheckNode> list) {
     if (list == null) {
       return new AbstractTypeCheckNode[0];
     }
-    var cnt = (int) list.stream().filter(n -> n != null).count();
-    var arr = new AbstractTypeCheckNode[cnt];
-    var it = list.iterator();
-    for (int i = 0; i < cnt; ) {
-      var element = it.next();
-      if (element != null) {
-        arr[i++] = element;
-      }
-    }
-    return arr;
+    return list.stream().filter(Objects::nonNull).toArray(AbstractTypeCheckNode[]::new);
   }
 
   final boolean isAllTypes() {
     return allTypes;
+  }
+
+  private static boolean isAllFitValue(Object v) {
+    return v instanceof DataflowError || AtomWithAHoleNode.isHole(v);
   }
 }

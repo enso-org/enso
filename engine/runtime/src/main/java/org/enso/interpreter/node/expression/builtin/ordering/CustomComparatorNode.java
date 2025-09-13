@@ -15,7 +15,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
-import org.enso.interpreter.runtime.state.State;
 
 /**
  * Helper node for invocation of {@code Comparable.has_custom_comparator atom}. Note that emulating
@@ -48,7 +47,7 @@ public abstract class CustomComparatorNode extends Node {
       @Cached(value = "createConversion()", allowUncached = true) UnresolvedConversion conversion) {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
-    var state = State.create(ctx);
+    var state = ctx.currentState();
     Object rawRes =
         convertNode.execute(
             null, state, conversion, comparableType, atom, new Object[] {comparableType, atom});

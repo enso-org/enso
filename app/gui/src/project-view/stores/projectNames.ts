@@ -1,32 +1,39 @@
-import { createContextStore } from '@/providers'
+import { Ok, Result } from '@/util/data/result'
+import { normalizeName } from '@/util/nameValidation'
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
-import { normalizeQualifiedName, qnJoin } from '@/util/qualifiedName'
+import { normalizeQualifiedName, qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
-import { computed, readonly, ref, toRef, toValue } from 'vue'
+import { computed, ref, toValue } from 'vue'
 import { type Identifier, type QualifiedName } from 'ydoc-shared/ast'
 
-export type ProjectNameStore = ReturnType<typeof injectProjectNames>
+export type ProjectNameStore = ReturnType<typeof createProjectNameStore>
 
 /** Manages the state of the project's name. */
-function useProjectNameStore(
-  namespace: ToValue<string | undefined>,
-  initialName: string,
-  displayName: ToValue<string>,
-) {
+export function createProjectNameStore({
+  projectNamespace,
+  projectInitialName,
+  projectDisplayedName,
+}: {
+  projectNamespace: ToValue<string | undefined>
+  projectInitialName: string
+  projectDisplayedName: ToValue<string>
+}) {
   const ns = computed(() => {
-    if (import.meta.env.PROD && namespace == null) {
+    if (import.meta.env.PROD && projectNamespace == null) {
       console.warn(
         'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
       )
     }
-    return (toValue(namespace) ?? 'local') as Identifier
+    return (toValue(projectNamespace) ?? 'local') as Identifier
   })
-  const synchronizedName = ref(initialName as Identifier)
-  const pendingName = ref<Identifier>()
+  const synchronizedName = ref(projectInitialName as Identifier)
+  const pendingName = ref<string>()
+
+  const displayedName = computed(() => pendingName.value ?? toValue(projectDisplayedName))
 
   const inboundProject = computed(() => qnJoin(ns.value, synchronizedName.value))
   const outboundProject = computed(() =>
-    pendingName.value ? qnJoin(ns.value, pendingName.value) : inboundProject.value,
+    pendingName.value ? qnJoin(ns.value, normalizeName(pendingName.value)) : inboundProject.value,
   )
 
   /**
@@ -36,11 +43,23 @@ function useProjectNameStore(
    * To ensure that QNs are interpreted correctly during and after project renames, this should be applied to data
    * from the backend as it is received.
    */
-  function parseProjectPath(path: QualifiedName): ProjectPath {
+  function parseProjectPath(path: QualifiedName): Result<ProjectPath> {
     const parsed = parseAbsoluteProjectPath(path)
-    return parsed.project === inboundProject.value ?
-        ProjectPath.create(undefined, parsed.path)
+    if (!parsed.ok) return parsed
+    return parsed.value.project === inboundProject.value ?
+        Ok(ProjectPath.create(undefined, parsed.value.path))
       : parsed
+  }
+
+  /**
+   * Interpret a string as a project path.
+   *
+   * Same as {@link parseProjectPath}, but the path is also checked for being an actual Qualified Name.
+   */
+  function parseProjectPathRaw(path: string): Result<ProjectPath> {
+    const qn = tryQualifiedName(path)
+    if (!qn.ok) return qn
+    return parseProjectPath(qn.value)
   }
 
   /**
@@ -51,25 +70,33 @@ function useProjectNameStore(
     return normalizeQualifiedName(serializeUnnormalized(path))
   }
 
-  /**
-   * Serialize the path, including the `Main` segment if applicable. This is appropriate when the backend will be the
-   * direct consumer of the result, e.g. when serializing a `StackItem` to send to the language server.
-   */
-  function serializeProjectPathForBackend(path: ProjectPath): QualifiedName {
-    return serializeUnnormalized(path)
-  }
-
-  function serializeUnnormalized(path: ProjectPath): QualifiedName {
+  function serializeUnnormalized(path: ProjectPath): QualifiedName
+  function serializeUnnormalized<Nullish extends null | undefined>(
+    path: ProjectPath | Nullish,
+  ): QualifiedName | Nullish
+  function serializeUnnormalized<Nullish extends null | undefined>(
+    path: ProjectPath | Nullish,
+  ): QualifiedName | Nullish {
+    if (path == null) return path
     const project = path.project ?? outboundProject.value
     return path.path ? qnJoin(project, path.path) : project
   }
 
   return {
     parseProjectPath,
+    parseProjectPathRaw,
     printProjectPath,
-    serializeProjectPathForBackend,
-    onProjectRenameRequested: (newName: Identifier) => {
+    /**
+     * Serialize the path, including the `Main` segment if applicable. This is appropriate when the
+     * backend will be the direct consumer of the result, e.g. when serializing a `StackItem` to
+     * send to the language server.
+     */
+    serializeProjectPathForBackend: serializeUnnormalized,
+    onProjectRenameRequested: (newName: string) => {
       pendingName.value = newName
+    },
+    onProjectRenameFailed: () => {
+      pendingName.value = undefined
     },
     onProjectRenamed: (oldName: string, newName: string) => {
       if ((oldName as Identifier) === synchronizedName.value) {
@@ -77,7 +104,7 @@ function useProjectNameStore(
         pendingName.value = undefined
       }
     },
-    displayName: readonly(toRef(displayName)),
+    displayName: displayedName,
   }
 }
 
@@ -87,10 +114,9 @@ export function mockProjectNameStore(
   initialName: string = 'Mock_Project',
   displayName: ToValue<string> = 'Mock Project',
 ) {
-  return useProjectNameStore(namespace, initialName, displayName)
+  return createProjectNameStore({
+    projectNamespace: namespace,
+    projectInitialName: initialName,
+    projectDisplayedName: displayName,
+  })
 }
-
-export const [provideProjectNames, injectProjectNames] = createContextStore(
-  'projectNames',
-  useProjectNameStore,
-)

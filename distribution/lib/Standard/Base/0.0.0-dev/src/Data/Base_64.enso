@@ -9,14 +9,18 @@ polyglot java import java.util.Base64.Encoder
 
 ## A helper utility for handling base64 encoding.
 type Base_64
-    ## ICON convert
+    ## ---
+       icon: convert
+       ---
        Converts a string to bytes using the specified encoding, and encodes that
        to base64.
     @encoding Encoding.default_widget
     encode_text (text : Text) (encoding : Encoding = Encoding.utf_8) -> Text =
         Base64.getEncoder.encodeToString (text.bytes encoding)
 
-    ## ICON convert
+    ## ---
+       icon: convert
+       ---
        Decodes a base64 encoded string, using the provided encoding.
     @encoding Encoding.default_widget
     decode_text (encoded_text : Text) (encoding : Encoding = Encoding.utf_8) -> Text ! Encoding_Error =

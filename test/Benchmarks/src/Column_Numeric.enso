@@ -110,10 +110,10 @@ collect_benches = Bench.build builder->
         group_builder.specify "floor_decimals" <|
             data.decimals.floor
 
-        [True, False].each use_bankers->
+        [Rounding_Mode.Half_Up, Rounding_Mode.Bankers].each rounding_mode->
             [0, -2, 2].map decimal_places->
-                name = create_name "round_decimal_places_" decimal_places use_bankers
-                fun x = x.round decimal_places use_bankers
+                name = create_name "round_decimal_places_" decimal_places rounding_mode
+                fun x = x.round decimal_places rounding_mode
 
                 group_builder.specify ("ints_" + name) <|
                     fun data.ints
@@ -133,12 +133,12 @@ collect_benches = Bench.build builder->
 
 
 ## Creates a valid name for the benchmark
-create_name : Text -> Integer -> Boolean -> Text
-create_name prefix dec_places use_bankers =
-    use_bankers_str = "_use_bankers_" + (use_bankers.to_text.to_case Case.Lower)
+create_name : Text -> Integer -> Rounding_Mode -> Text
+create_name prefix dec_places rounding_mode =
+    rounding_mode_str = "_rounding_mode_" + (rounding_mode.to_text.to_case Case.Lower)
     case dec_places >= 0 of
-        True -> prefix + dec_places.to_text + use_bankers_str
-        False -> prefix + "minus_" + (dec_places.abs.to_text) + use_bankers_str
+        True -> prefix + dec_places.to_text + rounding_mode_str
+        False -> prefix + "minus_" + (dec_places.abs.to_text) + rounding_mode_str
 
 
 main = collect_benches . run_main

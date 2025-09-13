@@ -1,4 +1,4 @@
-const IGNORED_DEPS = ['react-native-url-polyfill', 'react-native-get-random-values']
+const IGNORED_DEPS = ['react-native-url-polyfill', 'react-native-get-random-values', 'pug']
 
 const unusedIgnores = new Set(IGNORED_DEPS)
 module.exports.hooks = {

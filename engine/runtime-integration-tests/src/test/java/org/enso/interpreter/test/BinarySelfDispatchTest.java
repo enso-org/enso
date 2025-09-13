@@ -7,22 +7,20 @@ import static org.junit.Assert.fail;
 
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class BinarySelfDispatchTest {
-  private static Context ctx;
+  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
   private static Value module;
 
   @BeforeClass
   public static void initCtx() throws Exception {
-    ctx = ContextUtils.createDefaultContext();
-
     var prelude =
         Source.newBuilder(
                 "enso",
@@ -43,14 +41,12 @@ public class BinarySelfDispatchTest {
                 """,
                 "error.enso")
             .build();
-    module = ctx.eval(prelude);
+    module = ctxRule.eval(prelude);
   }
 
   @AfterClass
   public static void closeCtx() {
     module = null;
-    ctx.close();
-    ctx = null;
   }
 
   @Test

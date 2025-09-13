@@ -169,14 +169,14 @@ final class ContextRegistry(
       case DestroyContextResponse(_) =>
       // Initiated by *this* registry. Ignore
 
-      case PushContextRequest(client, contextId, stackItem) =>
+      case PushContextRequest(client, contextId, stackItem, execute) =>
         if (store.hasContext(client.clientId, contextId)) {
           val item = getRuntimeStackItem(stackItem)
           val handler =
             context.actorOf(
               PushContextHandler.props(runtimeFailureMapper, timeout, runtime)
             )
-          handler.forward(Api.PushContextRequest(contextId, item))
+          handler.forward(Api.PushContextRequest(contextId, item, execute))
 
         } else {
           sender() ! AccessDenied
@@ -397,8 +397,8 @@ final class ContextRegistry(
     expressions match {
       case InvalidatedExpressions.All =>
         Api.InvalidatedExpressions.All()
-      case InvalidatedExpressions.Expressions(es) =>
-        Api.InvalidatedExpressions.Expressions(es)
+      case InvalidatedExpressions.Expressions(es, reason) =>
+        Api.InvalidatedExpressions.Expressions(es, reason)
     }
 
 }

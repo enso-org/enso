@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A base class for all classes annotated with @BuiltinType */
 public abstract class Builtin {
@@ -18,7 +18,7 @@ public abstract class Builtin {
       this(name, Arrays.asList(params));
     }
 
-    private AtomConstructor build(EnsoLanguage language, ModuleScope.Builder scope, Type type) {
+    private AtomConstructor build(EnsoLanguage language, ModuleScopeBuilder scope, Type type) {
       var res = new AtomConstructor(name, scope.getModule(), type, true);
       res.initializeFields(
           language,
@@ -33,14 +33,32 @@ public abstract class Builtin {
     }
   }
 
+  private final Class<?> representationType;
   private final String name;
 
-  public Builtin() {
-    name = this.getClass().getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
+  protected Builtin(String representationType) {
+    this(findType(representationType));
+  }
+
+  protected Builtin(Class<?> representationType) {
+    this.representationType = representationType;
+    this.name = this.getClass().getSimpleName().replaceAll("([^_A-Z])([A-Z])", "$1_$2");
+  }
+
+  private static Class<?> findType(String fqn) {
+    try {
+      return Class.forName(fqn);
+    } catch (ClassNotFoundException ex) {
+      throw new IllegalArgumentException(ex);
+    }
   }
 
   private @CompilerDirectives.CompilationFinal Type type;
   private @CompilerDirectives.CompilationFinal(dimensions = 1) AtomConstructor[] constructors;
+
+  public final boolean isRepresentedBy(Class<?> clazz) {
+    return representationType == clazz;
+  }
 
   protected Class<? extends Builtin> getSuperType() {
     return Any.class;
@@ -52,7 +70,7 @@ public abstract class Builtin {
 
   public final void initialize(
       EnsoLanguage language,
-      ModuleScope.Builder scope,
+      ModuleScopeBuilder scope,
       Map<Class<? extends Builtin>, Builtin> builtins) {
     if (type == null) {
       Type supertype = null;

@@ -8,9 +8,10 @@ test --test_output=errors
 build --show_result=20
 build --reuse_sandbox_directories
 build --nolegacy_external_runfiles
-build --noexperimental_check_output_files --experimental_allow_tags_propagation
-fetch --noexperimental_check_output_files --experimental_allow_tags_propagation
-query --noexperimental_check_output_files --experimental_allow_tags_propagation
+build --incompatible_strict_action_env
+build --noexperimental_check_output_files
+fetch --noexperimental_check_output_files
+query --noexperimental_check_output_files
 build --nobuild_runfile_links
 coverage --build_runfile_links
 
@@ -29,20 +30,18 @@ common --@aspect_rules_ts//ts:default_to_tsc_transpiler
 # Docs: https://bazel.build/reference/command-line-reference#flag--host_jvm_args
 startup --host_jvm_args=-DBAZEL_TRACK_SOURCE_DIRECTORIES=1
 
-## GraalVM toolchain
-build --extra_toolchains=@graalvm//:bootstrap_runtime_toolchain
-
 ## GraalVM versions
-common --tool_java_runtime_version=graalvm_21
-common --tool_java_language_version=21
+common --tool_java_runtime_version=graalvm_24
+common --tool_java_language_version=24
 
-common --java_runtime_version=graalvm_21
-common --java_language_version=21
+common --java_runtime_version=graalvm_24
+common --java_language_version=24
 
 ## Rust
 startup --windows_enable_symlinks
 build --enable_runfiles
 build --@rules_rust//rust/toolchain/channel=nightly
+build --compilation_mode=opt
 
 ## Allow local overrides of bazel configuration
 try-import %workspace%/.bazelrc.local

@@ -12,7 +12,7 @@ public class Polyglot_Utils {
    * it converts it to {@code long}.
    */
   public static Object convertPolyglotValue(Value item) {
-    if (item == null) {
+    if (item == null || item.isNull()) {
       return null;
     }
 

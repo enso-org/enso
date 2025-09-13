@@ -37,7 +37,7 @@ class DestroyContextCmd(
     ctx.jobControlPlane.abortJobs(request.contextId, "destroy context", false)
     val contextLock = ctx.locking.getOrCreateContextLock(request.contextId)
     try {
-      ctx.locking.withContextLock(
+      ctx.locking.withWriteContextLock(
         contextLock,
         this.getClass,
         () => {

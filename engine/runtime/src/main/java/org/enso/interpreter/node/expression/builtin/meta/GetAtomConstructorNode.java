@@ -20,7 +20,7 @@ public abstract class GetAtomConstructorNode extends Node {
 
   @Specialization
   Object doAtom(Atom atom) {
-    return atom.getConstructor();
+    return FindAtomConstructorNode.findAtomConstructor(this, atom.getConstructor(), null);
   }
 
   @Specialization

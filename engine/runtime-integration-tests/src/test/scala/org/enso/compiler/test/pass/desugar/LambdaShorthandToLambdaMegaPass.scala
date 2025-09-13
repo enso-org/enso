@@ -33,6 +33,7 @@ import org.enso.compiler.pass.resolve.{
   IgnoredBindings,
   OverloadsResolution
 }
+import org.enso.persist.Persistance.Reference
 
 /** Original implementation of [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]].
   * Now serves as the test verification of the new [[org.enso.compiler.pass.desugar.LambdaShorthandToLambdaMini]] mini pass version.
@@ -148,23 +149,26 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
       case blank: Name.Blank =>
         val newName = supply.newName()
 
-        new Function.Lambda(
-          List(
-            DefinitionArgument.Specified(
-              name = Name.Literal(
-                newName.name,
-                isMethod = false,
-                null
-              ),
-              ascribedType       = None,
-              defaultValue       = None,
-              suspended          = false,
-              identifiedLocation = null
+        Function.Lambda
+          .builder()
+          .arguments(
+            List(
+              DefinitionArgument.Specified
+                .builder()
+                .name(
+                  Name.Literal(
+                    newName.name,
+                    isMethod = false,
+                    null
+                  )
+                )
+                .suspended(false)
+                .build()
             )
-          ),
-          newName,
-          blank.location.orNull
-        )
+          )
+          .bodyReference(Reference.of(newName))
+          .location(blank.location().orNull)
+          .build()
       case _ => name
     }
   }
@@ -180,17 +184,17 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
     freshNameSupply: FreshNameSupply
   ): Expression = {
     application match {
-      case p @ Application.Prefix(fn, args, _, _, _) =>
+      case p: Application.Prefix =>
         // Determine which arguments are lambda shorthand
-        val argIsUnderscore = determineLambdaShorthand(args)
+        val argIsUnderscore = determineLambdaShorthand(p.arguments)
 
         // Generate a new name for the arg value for each shorthand arg
         val updatedArgs =
-          args
+          p.arguments
             .zip(argIsUnderscore)
             .map(updateShorthandArg(_, freshNameSupply))
             .map { case s: CallArgument.Specified =>
-              s.copy(value = desugarExpression(s.value, freshNameSupply))
+              s.copy(desugarExpression(s.value, freshNameSupply))
             }
 
         // Generate a definition arg instance for each shorthand arg
@@ -202,65 +206,70 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         }
 
         // Determine whether or not the function itself is shorthand
-        val functionIsShorthand = fn.isInstanceOf[Name.Blank]
+        val functionIsShorthand = p.function.isInstanceOf[Name.Blank]
         val (updatedFn, updatedName) = if (functionIsShorthand) {
           val newFn = freshNameSupply
             .newName()
             .copy(
-              location    = fn.location,
-              passData    = fn.passData,
-              diagnostics = fn.diagnostics
+              location    = p.function.location,
+              passData    = p.function.passData,
+              diagnostics = p.function.diagnostics
             )
           val newName = newFn.name
           (newFn, Some(newName))
         } else {
-          val newFn = desugarExpression(fn, freshNameSupply)
+          val newFn = desugarExpression(p.function, freshNameSupply)
           (newFn, None)
         }
 
         val processedApp = p.copy(
-          function  = updatedFn,
-          arguments = updatedArgs
+          updatedFn,
+          updatedArgs
         )
 
         // Wrap the app in lambdas from right to left, 1 lambda per shorthand
         // arg
         val appResult =
           actualDefArgs.foldRight(processedApp: Expression)((arg, body) =>
-            new Function.Lambda(List(arg), body, null)
+            Function.Lambda
+              .builder()
+              .arguments(List(arg))
+              .bodyReference(Reference.of(body))
+              .build()
           )
 
         // If the function is shorthand, do the same
         val resultExpr = if (functionIsShorthand) {
-          new Function.Lambda(
-            List(
-              DefinitionArgument.Specified(
-                Name
-                  .Literal(
-                    updatedName.get,
-                    isMethod = false,
-                    fn.location.orNull
-                  ),
-                None,
-                None,
-                suspended = false,
-                null
+          Function.Lambda
+            .builder()
+            .arguments(
+              List(
+                DefinitionArgument.Specified
+                  .builder()
+                  .name(
+                    Name.Literal(
+                      updatedName.get,
+                      isMethod = false,
+                      p.function.location.orNull
+                    )
+                  )
+                  .build()
               )
-            ),
-            appResult,
-            null
-          )
+            )
+            .bodyReference(Reference.of(appResult))
+            .build()
         } else appResult
 
         resultExpr match {
-          case lam: Function.Lambda => lam.copy(location = p.location)
-          case result               => result
+          case lam: Function.Lambda =>
+            Function.Lambda.builder(lam).location(p.location().orNull).build()
+          case result => result
         }
-      case f @ Application.Force(tgt, _, _) =>
-        f.copy(target = desugarExpression(tgt, freshNameSupply))
-      case vector @ Application.Sequence(items, _, _) =>
+      case f: Application.Force =>
+        f.copyWithTarget(desugarExpression(f.target, freshNameSupply))
+      case vector: Application.Sequence =>
         var bindings: List[Name] = List()
-        val newItems = items.map {
+        val newItems = vector.items.map {
           case blank: Name.Blank =>
             val name = freshNameSupply
               .newName()
@@ -273,21 +282,26 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
             name
           case it => desugarExpression(it, freshNameSupply)
         }
-        val newVec = vector.copy(newItems)
+        val newVec = vector.copyWithItems(newItems)
         val locWithoutId =
           newVec.location.map(l => new IdentifiedLocation(l.location()))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
-          val defArg = DefinitionArgument.Specified(
-            bindingName,
-            ascribedType       = None,
-            defaultValue       = None,
-            suspended          = false,
-            identifiedLocation = null
-          )
-          new Function.Lambda(List(defArg), body, locWithoutId.orNull)
+          val defArg = DefinitionArgument.Specified
+            .builder()
+            .name(bindingName)
+            .suspended(false)
+            .build()
+          Function.Lambda
+            .builder()
+            .arguments(List(defArg))
+            .bodyReference(Reference.of(body))
+            .location(locWithoutId.orNull)
+            .build()
         }
-      case tSet @ Application.Typeset(expr, _, _) =>
-        tSet.copy(expression = expr.map(desugarExpression(_, freshNameSupply)))
+      case tSet: Application.Typeset =>
+        tSet.copyWithExpression(
+          tSet.expression.map(desugarExpression(_, freshNameSupply))
+        )
       case _: Operator =>
         throw new CompilerError(
           "Operators should be desugared by the point of underscore " +
@@ -340,7 +354,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
               diagnostics = s.value.diagnostics
             )
 
-          s.copy(value = newName)
+          s.copy(newName)
         } else s
     }
   }
@@ -369,15 +383,13 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
             )
 
           Some(
-            new DefinitionArgument.Specified(
-              defArgName,
-              None,
-              None,
-              suspended = false,
-              null,
-              specified.passData.duplicate,
-              specified.diagnosticsCopy
-            )
+            DefinitionArgument.Specified
+              .builder()
+              .name(defArgName)
+              .suspended(false)
+              .passData(specified.passData().duplicate())
+              .diagnostics(specified.diagnosticsCopy())
+              .build()
           )
       }
     } else None
@@ -418,29 +430,30 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
               diagnostics = nameBlank.diagnostics
             )
 
-        val lambdaArg = DefinitionArgument.Specified(
-          scrutineeName.copy(id = null),
-          None,
-          None,
-          suspended = false,
-          null
-        )
+        val lambdaArg = DefinitionArgument.Specified
+          .builder()
+          .name(scrutineeName.copy(id = null))
+          .suspended(false)
+          .build()
 
         val newCaseExpr = caseExpr.copy(
-          scrutinee = scrutineeName,
-          branches  = newBranches
+          scrutineeName,
+          newBranches
         )
 
-        new Function.Lambda(
-          caseExpr,
-          List(lambdaArg),
-          newCaseExpr,
-          caseExpr.location.orNull
-        )
+        Function.Lambda
+          .builder()
+          .arguments(List(lambdaArg))
+          .bodyReference(Reference.of(newCaseExpr, true))
+          .passData(caseExpr.passData().duplicate())
+          .location(caseExpr.location().orNull)
+          .diagnostics(caseExpr.diagnostics())
+          .canBeTCO(true)
+          .build()
       case x =>
         caseExpr.copy(
-          scrutinee = desugarExpression(x, freshNameSupply),
-          branches  = newBranches
+          desugarExpression(x, freshNameSupply),
+          newBranches
         )
     }
   }

@@ -1,5 +1,6 @@
 package org.enso.tools.enso4igv;
 
+import java.net.URI;
 import java.net.URL;
 import java.net.MalformedURLException;
 import javax.swing.event.ChangeListener;
@@ -35,7 +36,7 @@ public class GraalVMSourceForBinaryQuery implements SourceForBinaryQueryImplemen
     }
     if (srcZipS != null) {
       try {
-        URL srcZip = FileUtil.getArchiveRoot(new URL(srcZipS));
+        URL srcZip = FileUtil.getArchiveRoot(URI.create(srcZipS).toURL());
         FileObject fo = URLMapper.findFileObject(srcZip);
         if (fo != null) {
           if (srcZipIn != null) {

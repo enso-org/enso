@@ -1,8 +1,6 @@
 package org.enso.compiler.benchmarks.module;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -13,7 +11,7 @@ import org.enso.compiler.benchmarks.CodeGenerator;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Type;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -63,16 +61,14 @@ public class ManyNestedBlocksBenchmark {
   private final CodeGenerator codeGen = new CodeGenerator();
   private final StringBuilder sb = new StringBuilder();
 
-  private Context context;
+  private ContextUtils context;
   private Compiler compiler;
   private Module module;
-  private OutputStream out;
 
   @Setup
   public void setup(BenchmarkParams params) throws IOException {
-    this.out = new ByteArrayOutputStream();
-    this.context = Utils.createDefaultContextBuilder().logHandler(out).out(out).err(out).build();
-    var ensoCtx = Utils.leakEnsoContext(context);
+    this.context = Utils.createDefaultContextBuilder().build();
+    var ensoCtx = context.ensoContext();
     sb.append("main = ").append(System.lineSeparator());
     createNestedBlocks(1);
 
@@ -187,10 +183,9 @@ public class ManyNestedBlocksBenchmark {
 
   @TearDown
   public void tearDown() throws IOException {
-    if (!out.toString().isEmpty()) {
-      throw new AssertionError("Unexpected output from the compiler: " + out.toString());
+    if (!context.getOut().isEmpty()) {
+      throw new AssertionError("Unexpected output from the compiler: " + context.getOut());
     }
-    out.close();
     context.close();
   }
 

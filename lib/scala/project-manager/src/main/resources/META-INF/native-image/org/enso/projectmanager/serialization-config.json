@@ -25,10 +25,16 @@
       "name":"java.lang.String"
     },
     {
+      "name":"java.net.SocketException"
+    },
+    {
       "name":"java.util.ArrayList"
     },
     {
       "name":"java.util.Collections$EmptyMap"
+    },
+    {
+      "name":"java.util.Collections$UnmodifiableMap"
     },
     {
       "name":"java.util.HashMap"

@@ -7,7 +7,9 @@ use clap::Subcommand;
 
 #[derive(Subcommand, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Command {
-    /// Check syntax of all Enso source files.
+    /// Run enso parser on Enso source files.
+    CheckSyntax,
+    /// Run a linter on Enso source files.
     Lint,
 }
 

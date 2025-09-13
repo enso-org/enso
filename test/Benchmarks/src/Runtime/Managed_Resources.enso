@@ -1,0 +1,46 @@
+from Standard.Base import all
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+
+from Standard.Test import Bench
+
+
+options = Bench.options . set_warmup (Bench.phase_conf 2 3) . set_measure (Bench.phase_conf 2 3)
+
+type My_Value
+    Value x:Integer
+
+    foo self =
+        Nothing
+
+type Data
+    Value
+        ~my_value_mrs_50
+        ~my_values_10000
+
+    create =
+        Data.Value
+            <| make_mrs 50
+            <| make_values 10000
+
+nop_cleanup _ = Nothing
+
+make_values count = 0.up_to count . map (i-> My_Value.Value i)
+
+make_mrs count = make_values count . map (v-> Managed_Resource.register v nop_cleanup)
+
+collect_benches = Bench.build builder->
+    builder.group "Managed_Resource" options group_builder->
+        data = Data.create
+
+        group_builder.specify "register_and_unregister" <|
+            mrs = data.my_values_10000.map v->
+                Managed_Resource.register v nop_cleanup
+            mrs.map .take
+
+        ## Note: this benchmark does not immediately clean up its registered
+           values.
+        group_builder.specify "with" <|
+            data.my_value_mrs_50.map mr-> mr.with .foo
+            Nothing
+
+main = collect_benches . run_main

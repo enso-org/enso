@@ -1,0 +1,17 @@
+private
+
+from Standard.Base.Logging import all
+from Standard.Test import all
+
+type Type_In_Private_Module
+
+add_specs suite_builder = suite_builder.group "Logging" group_builder->
+    value = 42
+
+    group_builder.specify "should do nothing on logging" <|
+        value.log_message "Hidden message" Log_Level.Finest
+        value.log_message "Less hidden message" Log_Level.Fine
+
+    group_builder.specify "should do nothing on logging" <|
+        Type_In_Private_Module.log_message "Hidden message" Log_Level.Finest
+        Type_In_Private_Module.log_message "Less hidden message" Log_Level.Fine

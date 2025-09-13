@@ -5,10 +5,6 @@ import electronIsDev from 'electron-is-dev'
 
 import * as common from 'enso-common'
 
-import * as contentConfig from '@/contentConfig'
-
-const logger = contentConfig.logger
-
 // ============================
 // === Protocol Association ===
 // ============================
@@ -24,17 +20,11 @@ const logger = contentConfig.logger
  */
 export function registerAssociations() {
   if (!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
-    if (electronIsDev) {
-      logger.log('Not registering protocol client in dev mode.')
-    } else if (process.platform === 'darwin') {
+    if (process.platform === 'darwin') {
       // Registration is handled automatically there thanks to electron-builder.
-      logger.log('Not registering protocol client on macOS.')
-    } else {
-      logger.log('Registering protocol client.')
+    } else if (!electronIsDev) {
       electron.app.setAsDefaultProtocolClient(common.DEEP_LINK_SCHEME)
     }
-  } else {
-    logger.log('Protocol client already registered.')
   }
 }
 
@@ -55,17 +45,15 @@ export function registerAssociations() {
 export function argsDenoteUrlOpenAttempt(clientArgs: readonly string[]): URL | null {
   const arg = clientArgs[0]
   let result: URL | null = null
-  logger.log(`Checking if '${clientArgs.toString()}' denotes a URL to open.`)
   // Check if the first argument parses as a URL using our deep link scheme.
   if (clientArgs.length === 1 && typeof arg !== 'undefined') {
     try {
       const url = new URL(arg)
-      logger.log(`Parsed '${arg}' as URL: ${url.toString()}. Protocol: ${url.protocol}.`)
       if (url.protocol === `${common.DEEP_LINK_SCHEME}:`) {
         result = url
       }
-    } catch (e) {
-      logger.log(`The single argument '${arg}' does not denote a valid URL: ${String(e)}`)
+    } catch {
+      // Do nothing.
     }
   }
   return result
@@ -80,7 +68,6 @@ let initialUrl: URL | null = null
  * @param openedUrl - The URL to open.
  */
 export function handleOpenUrl(openedUrl: URL) {
-  logger.log(`Opening URL '${openedUrl.toString()}'.`)
   // We must wait for the application to be ready and then send the URL to the renderer process.
   initialUrl = openedUrl
 }
@@ -95,13 +82,11 @@ export function handleOpenUrl(openedUrl: URL) {
  */
 export function registerUrlCallback(callback: (url: URL) => void) {
   if (initialUrl != null) {
-    logger.log(`Got URL from command line: '${initialUrl.toString()}'.`)
     callback(initialUrl)
   }
 
   // First, register the callback for the `open-url` event. This is used on macOS.
   electron.app.on('open-url', (event, url) => {
-    logger.log(`Got URL from 'open-url' event: '${url}'.`)
     event.preventDefault()
     callback(new URL(url))
   })
@@ -119,7 +104,6 @@ export function registerUrlCallback(callback: (url: URL) => void) {
         additionalData.urlToOpen
       : null
     if (url) {
-      logger.log(`Got URL from second instance: '${url.toString()}'.`)
       event.preventDefault()
       callback(url)
     }

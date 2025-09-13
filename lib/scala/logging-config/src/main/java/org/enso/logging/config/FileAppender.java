@@ -116,6 +116,8 @@ public final class FileAppender extends Appender {
         + pattern
         + ", immediate-flush - "
         + immediateFlush
+        + ", append -"
+        + append
         + ", rolling-policy - "
         + (rollingPolicy == null ? "no" : rollingPolicy.toString());
   }

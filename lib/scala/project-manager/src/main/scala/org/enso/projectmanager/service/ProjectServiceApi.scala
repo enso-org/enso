@@ -4,6 +4,7 @@ import java.util.UUID
 import akka.actor.ActorRef
 import org.enso.semver.SemVer
 import org.enso.projectmanager.data.{
+  CloudParams,
   LanguageServerStatus,
   MissingComponentActions,
   ProjectMetadata,
@@ -65,6 +66,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     * @param clientId the requester id
     * @param projectId the project id
     * @param missingComponentAction specifies how to handle missing components
+    * @param cloud extra parameters required when running project in hybrid mode
     * @return either failure or a socket of the Language Server
     */
   def openProject(
@@ -72,6 +74,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentActions.MissingComponentAction,
+    cloud: Option[CloudParams],
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo]
 

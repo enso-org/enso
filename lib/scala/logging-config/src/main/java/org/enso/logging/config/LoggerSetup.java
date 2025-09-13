@@ -1,5 +1,6 @@
 package org.enso.logging.config;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.ServiceLoader;
 import org.slf4j.event.Level;
@@ -7,12 +8,11 @@ import org.slf4j.event.Level;
 /** Base class to be implemented by the underlying logging implementation. */
 public abstract class LoggerSetup {
   private static volatile LoggerSetup _instance;
-  private static Object _lock = new Object();
 
   public static LoggerSetup get() {
     LoggerSetup result = _instance;
     if (result == null) {
-      synchronized (_lock) {
+      synchronized (LoggerSetup.class) {
         result = _instance;
         if (result == null) {
           // Can't initialize in static initializer because Config has to be able to read runtime
@@ -66,15 +66,18 @@ public abstract class LoggerSetup {
    */
   public abstract boolean setupMemoryAppender(Level logLevel);
 
+  public abstract boolean setupTelemetryAppender(URI logsEndpoint, boolean logConnectionFailures);
+
   /**
-   * Setup forwarding logger's log event to a sentry,io service. Requires the presence of the
-   * sentry's dependency appropriate to the logging implementation.
+   * Setup forwarding logger's log events to an opensearch endpoint.
    *
    * @param logLevel the maximal level of logs that will be displayed
-   * @param logRoot the root directory where logs are located
+   * @param logsEndpoint the URI of the endpoint where logs will be sent
+   * @param logConnectionFailures if true, any encountered connection failures will be reported
    * @return true if logger was setup correctly, false otherwise
    */
-  public abstract boolean setupSentryAppender(Level logLevel, Path logRoot);
+  public abstract boolean setupOpenSearchAppender(
+      Level logLevel, URI logsEndpoint, boolean logConnectionFailures);
 
   /**
    * Sets up loggers so that all events are being discarded.

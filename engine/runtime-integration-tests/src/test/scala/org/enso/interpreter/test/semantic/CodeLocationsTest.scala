@@ -6,7 +6,6 @@ import org.enso.interpreter.node.controlflow.caseexpr.CaseNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
-import org.enso.common.MethodNames
 
 class CodeLocationsTest extends InterpreterTest {
 
@@ -228,15 +227,11 @@ class CodeLocationsTest extends InterpreterTest {
       val mod    = interpreterContext.executionContext.evalModule(code, "Test")
       val tpe    = mod.getAssociatedType
       val method = mod.getMethod(tpe, "foo").get
-      method.value.invokeMember(
-        MethodNames.Function.GET_SOURCE_START
-      ) should (
+      method.value.getSourceLocation().getCharIndex() should (
         equal(44) or
         equal(45)
       )
-      method.value.invokeMember(
-        MethodNames.Function.GET_SOURCE_LENGTH
-      ) should (
+      method.value.getSourceLocation().getCharLength() should (
         equal(24) or
         equal(25)
       )

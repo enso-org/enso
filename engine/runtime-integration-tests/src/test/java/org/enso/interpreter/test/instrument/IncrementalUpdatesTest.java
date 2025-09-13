@@ -263,7 +263,8 @@ public class IncrementalUpdatesTest {
                 new Runtime$Api$StackItem$ExplicitCall(
                     new Runtime$Api$MethodPointer(MODULE_NAME, "Enso_Test.Test.Main", "main"),
                     None(),
-                    new Vector1<>(new String[] {"0"})))));
+                    new Vector1<>(new String[] {"0"})),
+                true)));
 
     assertSameElements(
         context.receiveNIgnorePendingExpressionUpdates(4, 60, emptySet()),
@@ -280,14 +281,14 @@ public class IncrementalUpdatesTest {
     Assert.assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
     var allNodesAfterException =
-        nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 30, 40);
+        nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 30, 41);
 
     // push foo call
     context.send(
         Request(
             requestId,
             new Runtime$Api$PushContextRequest(
-                contextId, new Runtime$Api$StackItem$LocalCall(mainFoo))));
+                contextId, new Runtime$Api$StackItem$LocalCall(mainFoo), true)));
     assertSameElements(
         context.receiveNIgnorePendingExpressionUpdates(4, 60, emptySet()),
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),

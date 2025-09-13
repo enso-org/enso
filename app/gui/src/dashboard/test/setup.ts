@@ -1,16 +1,10 @@
-/**
- * @file Global setup for dashboard tests.
- */
-
-import * as matchers from '@testing-library/jest-dom/matchers'
+/** @file Global setup for dashboard tests. */
+import '$/config'
+import * as jestDomMatchers from '@testing-library/jest-dom/matchers'
 import { cleanup } from '@testing-library/react'
-import { MotionGlobalConfig } from 'framer-motion'
-
 import { afterEach, expect } from 'vitest'
 
-MotionGlobalConfig.skipAnimations = true
-
-expect.extend(matchers)
+expect.extend(jestDomMatchers)
 
 afterEach(() => {
   cleanup()

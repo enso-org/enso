@@ -1,0 +1,12 @@
+{
+  "reflection": [
+    {
+      "type": "scala.Symbol",
+      "reason": "NI is not able to include this by default",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredFields": true,
+      "allDeclaredMethods": true
+    }
+  ]
+}

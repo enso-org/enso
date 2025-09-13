@@ -33,5 +33,5 @@ export enum Channel {
   showItemInFolder = 'show-item-in-folder',
   /** Download a file using its URL. */
   downloadURL = 'download-url',
-  showAboutModal = 'show-about-modal',
+  handleMenuItem = 'handle-menu-item',
 }

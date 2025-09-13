@@ -1,0 +1,21 @@
+private
+
+## Conversions that are used for type refinements.
+   They should never be exported or used elsewhere.
+
+from Standard.Base import all
+
+from Standard.Table import Column, Table
+
+import project.DB_Column.DB_Column
+import project.DB_Table.DB_Table
+from project.Internal.Type_Refinements.DB_Table_Conversions import all
+
+## This conversion is internal and should never be exported.
+DB_Column.from (that : DB_Table) -> DB_Column =
+    Runtime.assert ((that:Table).column_count == 1)
+    (that:Table).at 0
+
+## This conversion is internal and should never be exported.
+Column.from (that : DB_Table) =
+    Column.from (DB_Column.from that)

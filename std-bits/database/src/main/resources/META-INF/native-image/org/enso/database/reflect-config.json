@@ -9,9 +9,6 @@
     ]
   },
       {
-        "name": "org.enso.database.DatabaseConnectionDetailsSPI"
-      },
-      {
         "name": "org.enso.database.JDBCProxy"
       },
       {
@@ -45,9 +42,6 @@
         "name":"java.sql.PreparedStatement"
       },
       {
-        "name":"java.sql.ResultSet"
-      },
-      {
         "name":"java.sql.ResultSetMetaData"
       },
       {
@@ -61,5 +55,14 @@
       },
       {
         "name":"java.sql.Types"
+      },
+      {
+        "name":"java.sql.SQLWarning",
+        "methods": [
+          {
+            "name": "getNextWarning"
+          }
+        ]
+
       }
 ]

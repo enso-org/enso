@@ -1,5 +1,5 @@
-import { test } from '@playwright/test'
 import assert from 'assert'
+import { test } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import * as locate from './locate'

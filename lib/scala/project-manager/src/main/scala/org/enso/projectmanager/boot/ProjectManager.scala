@@ -208,10 +208,28 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         )
       }
 
+    val parseJvmMode = ZIO
+      .attempt {
+        if (options.hasOption(Cli.JVM_MODE)) {
+          Some(
+            Option(options.getOptionValue(Cli.JVM_MODE))
+              .map(Paths.get(_).toAbsolutePath)
+          )
+        } else {
+          None
+        }
+      }
+      .catchAll { err =>
+        printLineError(s"Invalid ${Cli.JVM_MODE} argument.") *> ZIO.fail(
+          err
+        )
+      }
+
     for {
       profilingPath <- parseProfilingPath
       profilingTime <- parseProfilingTime
-    } yield ProjectManagerOptions(profilingPath, profilingTime)
+      jvmMode       <- parseJvmMode
+    } yield ProjectManagerOptions(profilingPath, profilingTime, jvmMode)
   }
 
   /** The main function of the application, which will be passed the command-line
@@ -297,7 +315,9 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         procConf = MainProcessConfig(
           logLevel,
           opts.profilingPath,
-          opts.profilingTime
+          opts.profilingTime,
+          opts.jvm,
+          Seq()
         )
         exitCode <- mainProcess(procConf).fold(
           th => {
@@ -306,6 +326,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
           },
           _ => SuccessExitCode
         )
+        _ <- teardownLogging()
       } yield exitCode
     }
   }
@@ -329,6 +350,13 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         printLineError(s"Failed to setup logger: ${exception.getMessage}")
       }
       .as(level)
+  }
+
+  private def teardownLogging(): ZIO[ZAny, Throwable, Unit] = {
+    ZIO.attempt {
+      Logging.tearDown()
+      ()
+    }
   }
 
   private def displayVersion(

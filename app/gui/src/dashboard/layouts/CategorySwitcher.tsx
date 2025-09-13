@@ -1,42 +1,37 @@
 /** @file Switcher to choose the currently visible assets table category. */
-import * as React from 'react'
-
-import { useSearchParams } from 'react-router-dom'
-
-import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
-import FolderAddIcon from '#/assets/folder_add.svg'
-import Minus2Icon from '#/assets/minus2.svg'
-import SettingsIcon from '#/assets/settings.svg'
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
+import { Button, BUTTON_STYLES } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Text } from '#/components/Text'
 import * as mimeTypes from '#/data/mimeTypes'
+import { useAriaDragDelayAction } from '#/hooks/dragDelayHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import {
   areCategoriesEqual,
+  ASSETS_DATA_TRANSFER_PAYLOAD,
   canTransferBetweenCategories,
+  dropOperationBetweenCategories,
   useTransferBetweenCategories,
   type Category,
-} from '#/layouts/CategorySwitcher/Category'
+} from '#/layouts/Drive/Categories'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-import type * as backend from '#/services/Backend'
+import { setDriveLocation } from '#/providers/DriveProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { Path } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
+import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
+import * as authProvider from '$/providers/react'
+import { useBackends, useRouter, useText } from '$/providers/react'
+import * as React from 'react'
 import { twJoin } from 'tailwind-merge'
-import { AnimatedBackground } from '../components/AnimatedBackground'
-import { useEventCallback } from '../hooks/eventCallbackHooks'
 
-import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
-
-/** Metadata for a categoryModule.categoryType. */
+/** Metadata for a category. */
 interface CategoryMetadata {
   readonly isNested?: boolean
   readonly category: Category
-  readonly icon: string
-  readonly label: string
   readonly buttonLabel: string
   readonly dropZoneLabel: string
   readonly className?: string
@@ -45,15 +40,15 @@ interface CategoryMetadata {
 
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps extends CategoryMetadata {
-  readonly currentCategory: Category
-  readonly setCategoryId: (categoryId: Category['id']) => void
   readonly badgeContent?: React.ReactNode
   readonly isDisabled: boolean
+  readonly disabledReason?: string | null | undefined
+  readonly onPress?: (() => void) | undefined
 }
 
 const CATEGORY_SWITCHER_VARIANTS = tv({
-  extend: ariaComponents.BUTTON_STYLES,
-  base: 'group opacity-50 transition-opacity group-hover:opacity-100 w-auto max-w-full',
+  extend: BUTTON_STYLES,
+  base: 'group opacity-90 transition-opacity group-hover:bg-white/100 w-auto max-w-full',
   slots: {
     wrapper: 'w-full',
     text: 'flex-1 min-w-0 w-auto items-start justify-start',
@@ -62,105 +57,110 @@ const CATEGORY_SWITCHER_VARIANTS = tv({
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { currentCategory, setCategoryId, badgeContent, isDisabled: isDisabledRaw } = props
-  const { isNested = false, category, icon, label, buttonLabel, dropZoneLabel } = props
+  const {
+    badgeContent,
+    isDisabled = false,
+    disabledReason,
+    isNested = false,
+    category,
+    buttonLabel,
+    dropZoneLabel,
+  } = props
+  const { icon, label } = category
+  const { category: currentCategory } = useCategoriesAPI()
 
   const [isTransitioning, startTransition] = React.useTransition()
 
-  const { user } = authProvider.useFullUserSession()
-  const { unsetModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
-  const localBackend = backendProvider.useLocalBackend()
-  const { isOffline } = offlineHooks.useOffline()
+  const { getText } = useText()
 
   const isCurrent = areCategoriesEqual(currentCategory, category)
 
   const transferBetweenCategories = useTransferBetweenCategories(currentCategory)
 
-  const getCategoryError = useEventCallback((otherCategory: Category) => {
-    switch (otherCategory.type) {
-      case 'local':
-      case 'local-directory': {
-        if (localBackend == null) {
-          return getText('localBackendNotDetectedError')
-        } else {
-          return null
-        }
-      }
-      case 'cloud':
-      case 'recent':
-      case 'trash':
-      case 'user':
-      case 'team': {
-        if (isOffline) {
-          return getText('unavailableOffline')
-        } else if (!user.isEnabled) {
-          return getText('notEnabledSubtitle')
-        } else {
-          return null
-        }
-      }
-    }
-  })
-  const error = getCategoryError(category)
-  const isDisabled = error != null || isDisabledRaw
-  const tooltip = error ?? false
+  const tooltip = (isDisabled && disabledReason) ?? false
 
   const isDropTarget =
     !areCategoriesEqual(currentCategory, category) &&
-    canTransferBetweenCategories(currentCategory, category, user)
+    canTransferBetweenCategories(currentCategory, category)
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = useEventCallback(() => {
-    if (error == null && !areCategoriesEqual(category, currentCategory)) {
+    if (!isDisabled) {
       // We use startTransition to trigger a background transition between categories.
       // and to not invoke the Suspense boundary.
       // This makes the transition feel more responsive and natural.
       startTransition(() => {
-        setCategoryId(category.id)
+        props.onPress?.()
+        setDriveLocation(null, category.id)
       })
     }
   })
 
-  const onDrop = useEventCallback((event: aria.DropEvent) => {
+  const onDrop = useEventCallback(async (event: aria.DropEvent) => {
     unsetModal()
-    void Promise.all(
-      event.items.flatMap(async (item) => {
-        if (item.kind === 'text') {
+    if (event.dropOperation === 'cancel') return
+    const payloads = await Promise.all(
+      event.items
+        .filter((item) => item.kind === 'text')
+        .map(async (item) => {
           const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
-          const payload: unknown = JSON.parse(text)
-          return Array.isArray(payload) ?
-              payload.flatMap((key) =>
-                // This is SAFE, assuming only this app creates payloads with
-                // the specific mimetype above.
-                // eslint-disable-next-line no-restricted-syntax
-                typeof key === 'string' ? [key as backend.AssetId] : [],
+          const parsedPayload = ASSETS_DATA_TRANSFER_PAYLOAD.safeParse(JSON.parse(text))
+          return parsedPayload.success ? parsedPayload.data : null
+        }),
+    ).then((items) => items.filter((payload) => payload != null))
+    const firstItem = payloads[0]?.items[0]
+
+    const transfer = async () => {
+      await Promise.all(
+        payloads.map((payload) =>
+          transferBetweenCategories(
+            payload.category,
+            category,
+            payload.items,
+            null,
+            event.dropOperation,
+          ),
+        ),
+      )
+    }
+
+    if (category.type === 'trash') {
+      setModal(
+        <ConfirmDeleteModal
+          defaultOpen
+          actionText={
+            payloads[0]?.items.length === 1 && firstItem != null ?
+              getText('deleteSelectedAssetActionText', firstItem.title)
+            : getText(
+                'deleteSelectedAssetsActionText',
+                payloads.flatMap(({ items }) => items).length,
               )
-            : []
-        } else {
-          return []
-        }
-      }),
-    ).then((keys) => {
-      transferBetweenCategories(currentCategory, category, keys.flat(1))
-    })
+          }
+          onConfirm={transfer}
+        />,
+      )
+    } else {
+      await transfer()
+    }
   })
+
+  const dragDelayProps = useAriaDragDelayAction(onPress)
 
   const element = (
     <aria.DropZone
       aria-label={dropZoneLabel}
-      getDropOperation={(types) =>
-        acceptedDragTypes.some((type) => types.has(type)) ? 'move' : 'cancel'
-      }
+      getDropOperation={(types) => {
+        if (acceptedDragTypes.some((type) => types.has(type))) {
+          return dropOperationBetweenCategories(currentCategory, category)
+        }
+
+        return 'cancel'
+      }}
       className="group relative flex w-full min-w-0 flex-auto items-start rounded-full drop-target-after"
-      onDrop={onDrop}
+      {...aria.mergeProps<aria.DropZoneProps>()({ onDrop }, dragDelayProps)}
     >
-      <AnimatedBackground.Item
-        isSelected={isCurrent}
-        className="w-auto max-w-[calc(100%-24px)]"
-        animationClassName="bg-invert rounded-full"
-      >
-        <ariaComponents.Button
+      <div className={twJoin('w-auto max-w-full', isCurrent && 'rounded-full bg-invert')}>
+        <Button
           size="medium"
           variant="custom"
           tooltip={tooltip}
@@ -182,16 +182,11 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
             )
           }
         >
-          <ariaComponents.Text
-            disableLineHeightCompensation
-            weight="semibold"
-            color="current"
-            truncate="1"
-          >
+          <Text disableLineHeightCompensation weight="semibold" color="current" truncate="1">
             {label}
-          </ariaComponents.Text>
-        </ariaComponents.Button>
-      </AnimatedBackground.Item>
+          </Text>
+        </Button>
+      </div>
       <div className="absolute left-full ml-2 hidden group-focus-visible:block">
         {getText('drop')}
       </div>
@@ -208,191 +203,177 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
 
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
-  readonly category: Category
-  readonly setCategoryId: (categoryId: Category['id']) => void
+  readonly onChange?: (() => void) | undefined
 }
 
 /** A switcher to choose the currently visible assets table categoryModule.categoryType. */
 function CategorySwitcher(props: CategorySwitcherProps) {
-  const { category, setCategoryId } = props
+  const { onChange } = props
 
-  const { getText } = textProvider.useText()
-  const [, setSearchParams] = useSearchParams()
+  const { router } = useRouter()
+  const { getText } = useText()
 
   const { isOffline } = offlineHooks.useOffline()
+  const { localBackend } = useBackends()
+  const { user } = authProvider.useFullUserSession()
 
-  const cloudCategories = useCloudCategoryList()
-  const localCategories = useLocalCategoryList()
+  const { cloudCategories, localCategories } = useCategoriesAPI()
 
-  const itemProps = { currentCategory: category, setCategoryId }
-
-  const { cloudCategory, recentCategory, trashCategory, userCategory, teamCategories } =
-    cloudCategories
+  const { cloudCategory, recentCategory, trashCategory, teamCategories } = cloudCategories
   const { localCategory, directories, addDirectory, removeDirectory } = localCategories
 
+  const cloudDisabledReason = React.useMemo(() => {
+    if (isOffline) {
+      return getText('unavailableOffline')
+    } else if (!user.isEnabled) {
+      return getText('notEnabledSubtitle')
+    } else {
+      return null
+    }
+  }, [isOffline, user, getText])
+  const isCloudDisabled = cloudDisabledReason != null
+
+  const localDisabledReason = React.useMemo(() => {
+    if (localBackend == null) {
+      return getText('localBackendNotDetectedError')
+    } else {
+      return null
+    }
+  }, [localBackend, getText])
+  const isLocalDisabled = localDisabledReason != null
+
   return (
-    <div className="flex flex-col gap-2 py-1">
-      <AnimatedBackground>
-        <ariaComponents.Text variant="subtitle" weight="semibold" className="px-2">
-          {getText('category')}
-        </ariaComponents.Text>
-
-        <div
-          aria-label={getText('categorySwitcherMenuLabel')}
-          role="grid"
-          className="flex flex-col items-start"
-        >
+    <div
+      aria-label={getText('categorySwitcherMenuLabel')}
+      role="grid"
+      className="flex flex-col items-start text-primary"
+    >
+      <CategorySwitcherItem
+        category={cloudCategory}
+        isDisabled={isCloudDisabled}
+        disabledReason={cloudDisabledReason}
+        buttonLabel={getText('cloudCategoryButtonLabel')}
+        dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
+        badgeContent={getText('cloudCategoryBadgeContent')}
+        onPress={onChange}
+      />
+      {teamCategories.map((teamCategory) => (
+        <CategorySwitcherItem
+          key={teamCategory.id}
+          isNested
+          category={teamCategory}
+          isDisabled={isCloudDisabled}
+          disabledReason={cloudDisabledReason}
+          buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.name)}
+          dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.name)}
+          onPress={onChange}
+        />
+      ))}
+      <CategorySwitcherItem
+        isNested
+        category={recentCategory}
+        isDisabled={isCloudDisabled}
+        disabledReason={cloudDisabledReason}
+        buttonLabel={getText('recentCategoryButtonLabel')}
+        dropZoneLabel={getText('recentCategoryDropZoneLabel')}
+        onPress={onChange}
+      />
+      <CategorySwitcherItem
+        isNested
+        category={trashCategory}
+        isDisabled={isCloudDisabled}
+        disabledReason={cloudDisabledReason}
+        buttonLabel={getText('trashCategoryButtonLabel')}
+        dropZoneLabel={getText('trashCategoryDropZoneLabel')}
+        onPress={onChange}
+      />
+      {localCategory != null && (
+        <div className="group flex items-center gap-2 self-stretch drop-target-after">
           <CategorySwitcherItem
-            {...itemProps}
-            key={cloudCategory.id}
-            category={cloudCategory}
-            icon={cloudCategory.icon}
-            label={cloudCategory.label}
-            isDisabled={isOffline}
-            buttonLabel={getText('cloudCategoryButtonLabel')}
-            dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
-            badgeContent={getText('cloudCategoryBadgeContent')}
+            category={localCategory}
+            isDisabled={isLocalDisabled}
+            disabledReason={localDisabledReason}
+            buttonLabel={getText('localCategoryButtonLabel')}
+            dropZoneLabel={getText('localCategoryDropZoneLabel')}
+            onPress={onChange}
           />
 
-          {/* Self user space */}
-          {userCategory != null && (
-            <CategorySwitcherItem
-              {...itemProps}
-              isNested
-              category={userCategory}
-              icon={userCategory.icon}
-              label={userCategory.label}
-              isDisabled={isOffline}
-              buttonLabel={getText('myFilesCategoryButtonLabel')}
-              dropZoneLabel={getText('myFilesCategoryDropZoneLabel')}
-            />
-          )}
-
-          {teamCategories.map((teamCategory) => (
-            <CategorySwitcherItem
-              key={teamCategory.id}
-              {...itemProps}
-              isNested
-              category={teamCategory}
-              icon={teamCategory.icon}
-              label={teamCategory.label}
-              isDisabled={isOffline}
-              buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.name)}
-              dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.name)}
-            />
-          ))}
-
-          <CategorySwitcherItem
-            {...itemProps}
-            key={recentCategory.id}
-            isNested
-            category={recentCategory}
-            icon={recentCategory.icon}
-            label={recentCategory.label}
-            isDisabled={isOffline}
-            buttonLabel={getText('recentCategoryButtonLabel')}
-            dropZoneLabel={getText('recentCategoryDropZoneLabel')}
+          <Button
+            size="medium"
+            variant="icon"
+            extraClickZone="small"
+            icon="settings"
+            aria-label={getText('changeLocalRootDirectoryInSettings')}
+            className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
+            onPress={() => {
+              void router.push({
+                path: '/settings',
+                query: { [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local') },
+              })
+            }}
           />
-
-          <CategorySwitcherItem
-            {...itemProps}
-            key={trashCategory.id}
-            isNested
-            category={trashCategory}
-            icon={trashCategory.icon}
-            label={trashCategory.label}
-            isDisabled={isOffline}
-            buttonLabel={getText('trashCategoryButtonLabel')}
-            dropZoneLabel={getText('trashCategoryDropZoneLabel')}
-          />
-
-          {localCategory != null && (
-            <div className="group flex items-center gap-2 self-stretch drop-target-after">
-              <CategorySwitcherItem
-                {...itemProps}
-                category={localCategory}
-                icon={localCategory.icon}
-                label={localCategory.label}
-                isDisabled={false}
-                buttonLabel={getText('localCategoryButtonLabel')}
-                dropZoneLabel={getText('localCategoryDropZoneLabel')}
-              />
-
-              <ariaComponents.Button
-                size="medium"
-                variant="icon"
-                extraClickZone="small"
-                icon={SettingsIcon}
-                aria-label={getText('changeLocalRootDirectoryInSettings')}
-                className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
-                onPress={() => {
-                  setSearchParams({
-                    [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
-                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
-                  })
-                }}
-              />
-            </div>
-          )}
-          {directories != null &&
-            directories.map((directory) => (
-              <div key={directory.id} className="group flex items-center gap-2 self-stretch">
-                <CategorySwitcherItem
-                  {...itemProps}
-                  isNested
-                  category={directory}
-                  icon={directory.icon}
-                  label={directory.label}
-                  isDisabled={false}
-                  buttonLabel={getText('localCategoryButtonLabel')}
-                  dropZoneLabel={getText('localCategoryDropZoneLabel')}
-                />
-
-                <ariaComponents.DialogTrigger>
-                  <ariaComponents.Button
-                    size="medium"
-                    variant="icon"
-                    extraClickZone={false}
-                    icon={Minus2Icon}
-                    aria-label={getText('removeDirectoryFromFavorites')}
-                    className="hidden group-hover:block"
-                  />
-
-                  <ConfirmDeleteModal
-                    actionText={getText('removeTheLocalDirectoryXFromFavorites', directory.label)}
-                    actionButtonLabel={getText('remove')}
-                    doDelete={async () => {
-                      removeDirectory(directory.id)
-                      await Promise.resolve()
-                    }}
-                  />
-                </ariaComponents.DialogTrigger>
-              </div>
-            ))}
-
-          {directories != null && window.fileBrowserApi && (
-            <div className="flex">
-              <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
-
-              <ariaComponents.Button
-                size="medium"
-                variant="icon"
-                icon={FolderAddIcon}
-                loaderPosition="icon"
-                onPress={async () => {
-                  const [newDirectory] =
-                    (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
-                  if (newDirectory != null) {
-                    addDirectory(newDirectory)
-                  }
-                }}
-              >
-                {getText('addLocalDirectory')}
-              </ariaComponents.Button>
-            </div>
-          )}
         </div>
-      </AnimatedBackground>
+      )}
+      {directories != null &&
+        directories.map((directory) => (
+          <div key={directory.id} className="group flex items-center gap-2 self-stretch">
+            <CategorySwitcherItem
+              isNested
+              category={directory}
+              isDisabled={isLocalDisabled}
+              disabledReason={localDisabledReason}
+              buttonLabel={getText('localCategoryButtonLabel')}
+              dropZoneLabel={getText('localCategoryDropZoneLabel')}
+              onPress={onChange}
+            />
+
+            <Dialog.Trigger>
+              <Button
+                size="medium"
+                variant="icon"
+                extraClickZone={false}
+                icon="minus"
+                aria-label={getText('removeDirectoryFromFavorites')}
+                showIconOnHover
+              />
+
+              <ConfirmDeleteModal
+                actionText={getText('removeTheLocalDirectoryXFromFavorites', directory.label)}
+                actionButtonLabel={getText('remove')}
+                onConfirm={() => {
+                  removeDirectory(directory.id)
+                }}
+              />
+            </Dialog.Trigger>
+          </div>
+        ))}
+
+      {directories != null && window.fileBrowserApi && (
+        <div className="flex">
+          <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
+
+          <Button
+            size="medium"
+            variant="icon"
+            icon="folder_add_small"
+            loaderPosition="icon"
+            onPress={async () => {
+              const [newDirectory] =
+                (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+
+              if (newDirectory != null) {
+                const addedDirectory = directories.find(
+                  (directory) => directory.rootPath === newDirectory,
+                )
+                const newCategory = addedDirectory ?? addDirectory(Path(newDirectory))
+                setDriveLocation(null, newCategory.id)
+              }
+            }}
+          >
+            {getText('addLocalDirectory')}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

@@ -75,3 +75,12 @@ export function findExpressions<T extends StringsWithTypeValues>(
   for (const key of Object.keys(expressions)) assert(key in result)
   return result as any
 }
+
+/** TODO: Add docs */
+export function findExpression(
+  root: Ast.Ast,
+  expression: string,
+  type: any,
+): InstanceType<typeof type> {
+  return findExpressions(root, { [expression]: type })[expression] as any
+}

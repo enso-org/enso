@@ -1,7 +1,7 @@
 package org.enso.table.data.table.problems;
 
 public class UnquotedCharactersInOutput extends ColumnAggregatedProblem {
-  public UnquotedCharactersInOutput(String columnName, int row) {
+  public UnquotedCharactersInOutput(String columnName, long row) {
     super(columnName, row);
   }
 

@@ -6,6 +6,7 @@ import org.apache.commons.lang3.concurrent.BasicThreadFactory
 import org.enso.logger.masking.Masking
 import org.enso.logging.service.LoggingServiceManager
 import org.enso.projectmanager.boot.Cli.{PROFILING_PATH, PROFILING_TIME}
+import org.enso.projectmanager.service.ProjectService
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
@@ -83,12 +84,22 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     val inheritedLogLevel =
       LoggingServiceManager.currentLogLevelForThisApplication()
     val options = LanguageServerOptions(
-      rootId         = descriptor.rootId,
+      rootId    = descriptor.rootId,
+      projectId = descriptor.projectId,
+      projectCloudId = findProperty(
+        ProjectService.ENSO_CLOUD_PROJECT_ID_ENV_NAME,
+        descriptor.extraEnv
+      ),
+      projectCloudSessionId = findProperty(
+        ProjectService.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME,
+        descriptor.extraEnv
+      ),
       interface      = descriptor.networkConfig.interface,
       rpcPort        = rpcPort,
       secureRpcPort  = secureRpcPort,
       dataPort       = dataPort,
-      secureDataPort = secureDataPort
+      secureDataPort = secureDataPort,
+      jvm            = descriptor.jvm
     )
     val configurationManager = new GlobalRunnerConfigurationManager(
       versionManager,
@@ -122,7 +133,8 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
         version             = descriptor.engineVersion,
         logLevel            = inheritedLogLevel,
         logMasking          = Masking.isMaskingEnabled,
-        additionalArguments = additionalArguments
+        additionalArguments = additionalArguments,
+        extraEnv            = descriptor.extraEnv
       )
       .get
     runner.withCommand(runSettings, descriptor.jvmSettings) { command =>
@@ -149,6 +161,12 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       lifecycleListener.onTerminated(exitCode)
     }
   }
+
+  private def findProperty(
+    key: String,
+    extraEnv: Seq[(String, String)]
+  ): Option[String] =
+    extraEnv.find(_._1 == key).map(_._2)
 
   private class LanguageServerProcessHandle(private val process: Process)
       extends LanguageServerExecutor.ProcessHandle {

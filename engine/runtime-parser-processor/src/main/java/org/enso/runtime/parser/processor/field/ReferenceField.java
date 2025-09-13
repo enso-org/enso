@@ -3,6 +3,7 @@ package org.enso.runtime.parser.processor.field;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.type.TypeMirror;
 
+/** Field of Java reference type, as opposed to {@link PrimitiveField}. */
 final class ReferenceField extends Field {
   private final boolean nullable;
   private final boolean isChild;

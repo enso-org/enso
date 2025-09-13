@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import { usePointer } from '@/composables/events'
+import { clamp } from 'enso-common/src/utilities/data/math'
 import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import { isNumericLiteral } from 'ydoc-shared/ast/tree'
-import AutoSizedInput from './AutoSizedInput.vue'
 
 const props = defineProps<{
   modelValue: number | undefined
@@ -24,14 +25,18 @@ const MIN_CONTENT_WIDTH = 56
 const editedValue = ref('')
 // Last value which is a parseable number. It's a string, because the Enso number literals differ from js
 // representations.
-const lastValidValue = ref<string>()
-watch(editedValue, (newValue) => {
-  if (newValue == '' || isNumericLiteral(newValue)) {
-    lastValidValue.value = newValue
-  } else if (isNumericLiteral('0' + newValue)) {
-    lastValidValue.value = '0' + newValue
-  }
-})
+const lastValidValue = ref<string>('')
+watch(
+  editedValue,
+  (newValue) => {
+    if (newValue == '' || isNumericLiteral(newValue)) {
+      lastValidValue.value = newValue
+    } else if (isNumericLiteral('0' + newValue)) {
+      lastValidValue.value = '0' + newValue
+    }
+  },
+  { flush: 'sync', immediate: true },
+)
 const valueString = computed(() => (props.modelValue != null ? props.modelValue.toString() : ''))
 watch(valueString, (newValue) => (editedValue.value = newValue), { immediate: true })
 const inputFieldActive = ref(false)
@@ -63,7 +68,7 @@ const dragPointer = usePointer(
     const { min, max } = props.limits
     const rect = slider.getBoundingClientRect()
     const fractionRaw = (position.absolute.x - rect.left) / (rect.right - rect.left)
-    const fraction = Math.max(0, Math.min(1, fractionRaw))
+    const fraction = clamp(fractionRaw, 0, 1)
     const newValue = min + Math.round(fraction * (max - min))
     editedValue.value = `${newValue}`
     if (eventType === 'stop') emitUpdate()
@@ -111,7 +116,7 @@ function emitUpdate() {
 
 function blurred() {
   inputFieldActive.value = false
-  editedValue.value = lastValidValue.value?.toString() ?? ''
+  editedValue.value = lastValidValue.value
   emit('blur')
   emitUpdate()
 }
@@ -135,8 +140,7 @@ defineExpose({
   <AutoSizedInput
     ref="inputComponent"
     v-model="editedValue"
-    autoSelect
-    class="NumericInputWidget"
+    class="NumericInputWidget widgetRounded widgetPill"
     :class="{ slider: sliderWidth != null }"
     :style="{ ...inputStyle, '--slider-width': sliderWidth }"
     :placeholder="placeholder ?? DEFAULT_PLACEHOLDER"
@@ -152,23 +156,8 @@ defineExpose({
 .NumericInputWidget {
   position: relative;
   overflow: clip;
-  border-radius: var(--radius-full);
   user-select: none;
   padding: 0 4px;
-  background: var(--color-widget);
-  &:focus {
-    background: var(--color-widget-focus);
-  }
-  &::selection {
-    background: var(--color-widget-selection);
-  }
-}
-
-.selected .NumericInputWidget {
-  background: var(--color-widget-unfocus);
-  &:focus {
-    background: var(--color-widget-focus);
-  }
 }
 
 .NumericInputWidget.slider {

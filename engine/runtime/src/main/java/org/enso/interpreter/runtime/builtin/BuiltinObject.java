@@ -84,7 +84,7 @@ public abstract class BuiltinObject extends EnsoObject {
         limit = "1")
     public static Type doItCached(
         BuiltinObject receiver,
-        @Bind("$node") Node node,
+        @Bind Node node,
         @Cached("receiver.getClass()") Class<? extends BuiltinObject> cachedReceiverClass,
         @Cached(value = "getCtx(node)", allowUncached = true) EnsoContext cachedCtx,
         @Cached(value = "getBuiltinType(receiver, cachedCtx)", allowUncached = true)
@@ -93,7 +93,7 @@ public abstract class BuiltinObject extends EnsoObject {
     }
 
     @Specialization(replaces = "doItCached")
-    public static Type uncached(BuiltinObject receiver, @Bind("$node") Node node) {
+    public static Type uncached(BuiltinObject receiver, @Bind Node node) {
       var ctx = getCtx(node);
       return getBuiltinType(receiver, ctx).getType();
     }

@@ -10,7 +10,7 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{EditionResolver, Editions}
-import org.enso.filewatcher.WatcherAdapterFactory
+import org.enso.filewatcher.WatcherFactory
 import org.enso.filewatcher.test.NoopWatcherFactory
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
@@ -54,7 +54,7 @@ import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.profiling.events.NoopEventsMonitor
+import org.enso.profiling.events.EventsMonitor
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   TestableThreadSafeFileLockManager
@@ -72,7 +72,6 @@ import java.nio.file.{Files, Path}
 import java.util.UUID
 import java.util.concurrent.{Executors, ThreadFactory}
 import java.util.concurrent.atomic.AtomicInteger
-
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import org.slf4j.LoggerFactory
@@ -116,7 +115,7 @@ abstract class BaseServerTest
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
       ProjectDirectoriesConfig(testContentRoot.file),
-      ProfilingConfig(),
+      ProfilingConfig.none(),
       StartupConfig(),
       None
     )
@@ -269,7 +268,7 @@ abstract class BaseServerTest
         s"buffer-registry-${UUID.randomUUID()}"
       )
     val watcherFactory =
-      if (isFileWatcherEnabled) new WatcherAdapterFactory
+      if (isFileWatcherEnabled) WatcherFactory.createDefault()
       else new NoopWatcherFactory
     val fileEventRegistry = system.actorOf(
       ReceivesTreeUpdatesHandler.props(
@@ -379,7 +378,7 @@ abstract class BaseServerTest
     )
 
     val eventsMonitor = system.actorOf(
-      EventsMonitorActor.props(new NoopEventsMonitor)
+      EventsMonitorActor.props(EventsMonitor.NOOP)
     )
 
     val profilingManager = system.actorOf(
@@ -395,7 +394,8 @@ abstract class BaseServerTest
       localLibraryManager      = localLibraryManager,
       editionReferenceResolver = editionReferenceResolver,
       editionManager           = editionManager,
-      localLibraryProvider     = DefaultLocalLibraryProvider.make(libraryLocations),
+      localLibraryProvider =
+        DefaultLocalLibraryProvider.make(libraryLocations, false),
       publishedLibraryCache =
         PublishedLibraryCache.makeReadOnlyCache(libraryLocations),
       installerConfig = LibraryInstallerConfig(
@@ -448,8 +448,9 @@ abstract class BaseServerTest
     if (initializeProjectPackage) {
       PackageManager.Default.create(
         config.projectContentRoot.file,
-        name    = "TestProject",
-        edition = customEdition
+        name            = "TestProject",
+        edition         = customEdition,
+        keepDevVersions = true
       )
     }
   }

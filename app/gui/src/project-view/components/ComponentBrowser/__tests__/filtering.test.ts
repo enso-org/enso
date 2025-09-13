@@ -1,4 +1,6 @@
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
   makeConstructor,
@@ -9,12 +11,10 @@ import {
   makeModuleMethod,
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/mockSuggestion'
-import { assert } from '@/util/assert'
-import { parseAbsoluteProjectPath } from '@/util/projectPath'
-import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { expect, test } from 'vitest'
+import { stdPath } from '@/util/projectPath'
+import { qnLastSegment } from '@/util/qualifiedName'
+import { describe, expect, test } from 'vitest'
 import { type Opt } from 'ydoc-shared/util/data/opt'
-import { unwrap } from 'ydoc-shared/util/data/result'
 
 test.each([
   makeModuleMethod('Standard.Base.Data.read', { group: 'Standard.Base.MockGroup1' }),
@@ -25,7 +25,8 @@ test.each([
   makeStaticMethod('local.Project.Internalization.internalize'),
 ])('$name entry is in the CB main view', (entry) => {
   const filtering = new Filtering({})
-  expect(filtering.filter(entry, [])).not.toBeNull()
+  const db = new SuggestionDb()
+  expect(filtering.filter(entry, db)).not.toBeNull()
 })
 
 test.each([
@@ -37,33 +38,46 @@ test.each([
   makeStaticMethod('Standard.Base.Internal.Foo.bar'), // Internal method
 ])('$name entry is not in the CB main view', (entry) => {
   const filtering = new Filtering({})
-  expect(filtering.filter(entry, [])).toBeNull()
+  const db = new SuggestionDb()
+  expect(filtering.filter(entry, db)).toBeNull()
 })
 
-function stdPath(path: string) {
-  assert(path.startsWith('Standard.'))
-  return parseAbsoluteProjectPath(unwrap(tryQualifiedName(path)))
-}
+test.each`
+  visibleTypes                                                        | entry1Matched | entry2Matched
+  ${['Standard.Base.Data.Table']}                                     | ${false}      | ${true}
+  ${['Standard.Base.Data.Vector.Vector']}                             | ${true}       | ${false}
+  ${['Standard.Base.Data.Vector.Vector', 'Standard.Base.Data.Table']} | ${true}       | ${true}
+  ${['Standard.Base.Data.Table', 'Standard.Base.Data.Vector.Vector']} | ${true}       | ${true}
+`(
+  `Visible types are taken into account when filtering: $visibleTypes`,
+  ({ visibleTypes, entry1Matched, entry2Matched }) => {
+    const entry1 = makeMethod('Standard.Base.Data.Vector.Vector.get')
+    const entry2 = makeMethod('Standard.Base.Data.Table.get')
+    const filtering = new Filtering({
+      selfArg: {
+        type: 'known',
+        typeInfo: TypeInfo.fromParsedTypes(visibleTypes.map(stdPath), [])!,
+        ancestors: [],
+      },
+    })
+    const db = new SuggestionDb()
+    expect(filtering.filter(entry1, db)).toEqual(entry1Matched ? { score: 0 } : null)
+    expect(filtering.filter(entry2, db)).toEqual(entry2Matched ? { score: 0 } : null)
+  },
+)
 
-test('An Instance method is shown when self arg matches', () => {
+test('Filtering methods with no self type information', () => {
   const entry1 = makeMethod('Standard.Base.Data.Vector.Vector.get')
   const entry2 = makeMethod('Standard.Base.Data.Table.get')
-  const filteringWithSelfType = new Filtering({
-    selfArg: {
-      type: 'known',
-      typename: stdPath('Standard.Base.Data.Vector.Vector'),
-    },
-  })
-  expect(filteringWithSelfType.filter(entry1, [])).not.toBeNull()
-  expect(filteringWithSelfType.filter(entry2, [])).toBeNull()
   const filteringWithAnySelfType = new Filtering({
     selfArg: { type: 'unknown' },
   })
-  expect(filteringWithAnySelfType.filter(entry1, [])).not.toBeNull()
-  expect(filteringWithAnySelfType.filter(entry2, [])).not.toBeNull()
+  const db = new SuggestionDb()
+  expect(filteringWithAnySelfType.filter(entry1, db)).not.toBeNull()
+  expect(filteringWithAnySelfType.filter(entry2, db)).not.toBeNull()
   const filteringWithoutSelfType = new Filtering({ pattern: 'get' })
-  expect(filteringWithoutSelfType.filter(entry1, [])).toBeNull()
-  expect(filteringWithoutSelfType.filter(entry2, [])).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry1, db)).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry2, db)).toBeNull()
 })
 
 test('`Any` type methods taken into account when filtering', () => {
@@ -72,33 +86,56 @@ test('`Any` type methods taken into account when filtering', () => {
   const filtering = new Filtering({
     selfArg: {
       type: 'known',
-      typename: stdPath('Standard.Base.Data.Vector.Vector'),
+      typeInfo: TypeInfo.fromParsedTypes([stdPath('Standard.Base.Data.Vector.Vector')], [])!,
+      ancestors: [],
     },
   })
-  expect(filtering.filter(entry1, [])).not.toBeNull()
-  expect(filtering.filter(entry2, [])).not.toBeNull()
+  const db = new SuggestionDb()
+  expect(filtering.filter(entry1, db)).not.toBeNull()
+  expect(filtering.filter(entry2, db)).not.toBeNull()
 
   const filteringWithoutSelfType = new Filtering({})
-  expect(filteringWithoutSelfType.filter(entry1, [])).toBeNull()
-  expect(filteringWithoutSelfType.filter(entry2, [])).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry1, db)).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry2, db)).toBeNull()
 })
 
-test('Additional self types are taken into account when filtering', () => {
+test('Hidden self types and ancestors are taken into account when filtering', () => {
   const entry1 = makeMethod('Standard.Base.Data.Numbers.Float.abs')
   const entry2 = makeMethod('Standard.Base.Data.Numbers.Number.sqrt')
-  const additionalSelfType = stdPath('Standard.Base.Data.Numbers.Number')
-  const filtering = new Filtering({
-    selfArg: { type: 'known', typename: stdPath('Standard.Base.Data.Numbers.Float') },
+  const hiddenSelfType = 'Standard.Base.Data.Numbers.Number'
+  const filteringWithHiddenSelfType = new Filtering({
+    selfArg: {
+      type: 'known',
+      typeInfo: TypeInfo.fromParsedTypes(
+        [stdPath('Standard.Base.Data.Numbers.Float')],
+        [stdPath(hiddenSelfType)],
+      )!,
+      ancestors: [],
+    },
   })
-  expect(filtering.filter(entry1, [additionalSelfType])).not.toBeNull()
-  expect(filtering.filter(entry2, [additionalSelfType])).not.toBeNull()
-  expect(filtering.filter(entry2, [])).toBeNull()
+  const db = new SuggestionDb()
+  expect(filteringWithHiddenSelfType.filter(entry1, db)).toEqual({ score: 0 })
+  expect(filteringWithHiddenSelfType.filter(entry2, db)).toEqual({
+    score: 1,
+    fromType: stdPath(hiddenSelfType),
+  })
 
   const filteringWithoutSelfType = new Filtering({})
-  expect(filteringWithoutSelfType.filter(entry1, [additionalSelfType])).toBeNull()
-  expect(filteringWithoutSelfType.filter(entry2, [additionalSelfType])).toBeNull()
-  expect(filteringWithoutSelfType.filter(entry1, [])).toBeNull()
-  expect(filteringWithoutSelfType.filter(entry2, [])).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry1, db)).toBeNull()
+  expect(filteringWithoutSelfType.filter(entry2, db)).toBeNull()
+
+  const filteringWithAncestors = new Filtering({
+    selfArg: {
+      type: 'known',
+      typeInfo: TypeInfo.fromParsedTypes([stdPath('Standard.Base.Data.Numbers.Float')], [])!,
+      ancestors: [stdPath(hiddenSelfType)],
+    },
+  })
+  expect(filteringWithAncestors.filter(entry1, db)).toEqual({ score: 0 })
+  expect(filteringWithAncestors.filter(entry2, db)).toEqual({
+    score: 1,
+    fromType: undefined,
+  })
 })
 
 test.each([
@@ -113,10 +150,12 @@ test.each([
   const filtering = new Filtering({
     selfArg: {
       type: 'known',
-      typename: stdPath('Standard.Base.Data.Vector.Vector'),
+      typeInfo: TypeInfo.fromParsedTypes([stdPath('Standard.Base.Data.Vector.Vector')], [])!,
+      ancestors: [],
     },
   })
-  expect(filtering.filter(entry, [])).toBeNull()
+  const db = new SuggestionDb()
+  expect(filtering.filter(entry, db)).toBeNull()
 })
 
 test.each`
@@ -131,19 +170,14 @@ test.each`
 `('$name is not matched by pattern $pattern', ({ name, pattern }) => {
   const entry = makeModuleMethod(`local.Project.${name}`)
   const filtering = new Filtering({ pattern })
-  expect(filtering.filter(entry, [])).toBeNull()
+  const db = new SuggestionDb()
+  expect(filtering.filter(entry, db)).toBeNull()
 })
 
 function matchedText(ownerName: string, name: string, matchResult: MatchResult) {
   name = matchResult.matchedAlias ?? name
-  const ownerPart = matchResult.ownerNameRanges?.reduce(
-    (acc, range) => acc + ownerName.slice(range.start, range.end),
-    '',
-  )
-  const namePart = matchResult.nameRanges?.reduce(
-    (acc, range) => acc + name.slice(range.start, range.end),
-    '',
-  )
+  const ownerPart = matchResult.ownerNameRanges?.map((range) => range.slice(ownerName)).join('')
+  const namePart = matchResult.nameRanges?.map((range) => range.slice(name)).join('')
   return ownerPart ? `${ownerPart}.${namePart}` : `${namePart}`
 }
 
@@ -245,7 +279,8 @@ test.each<MatchingTestCase>([
   const matchedSortedEntries = matchedSorted.map(({ name, aliases, module }) =>
     makeModuleMethod(`${module ?? 'local.Project'}.${name}`, { aliases: aliases ?? [] }),
   )
-  const matchResults = matchedSortedEntries.map((entry) => filtering.filter(entry, []))
+  const db = new SuggestionDb()
+  const matchResults = matchedSortedEntries.map((entry) => filtering.filter(entry, db))
   // Checking matching entries
   function checkResult(entry: SuggestionEntry, result: Opt<MatchResult>) {
     expect(result, `Matching entry ${JSON.stringify(entry.definitionPath)}`).not.toBeNull()
@@ -280,6 +315,73 @@ test.each<MatchingTestCase>([
     const entry = makeModuleMethod(`${module ?? 'local.Project'}.${name}`, {
       aliases: aliases ?? [],
     })
-    expect(filtering.filter(entry, []), JSON.stringify(entry.definitionPath)).toBeNull()
+    const db = new SuggestionDb()
+    expect(filtering.filter(entry, db), JSON.stringify(entry.definitionPath)).toBeNull()
   }
+})
+
+describe('Constructor fields accessors', () => {
+  function createConstructor(name: string, isPrivate: boolean) {
+    const res = makeConstructor(name, {
+      args: [
+        {
+          name: 'object_node',
+          reprType: 'Standard.Base.Any.Any',
+          isSuspended: false,
+          hasDefault: false,
+        },
+      ],
+      ...(isPrivate ? { documentation: '---\nprivate: true\n---\n\n' } : {}),
+    })
+    expect(res.isPrivate).toBe(isPrivate)
+    return res
+  }
+
+  const filtering = new Filtering({
+    selfArg: {
+      type: 'known',
+      typeInfo: TypeInfo.fromParsedTypes([stdPath('Standard.Base.Data.Json.JS_Object')], [])!,
+      ancestors: [],
+    },
+  })
+
+  test('Public constructor fields are not filtered out', () => {
+    const constructor = createConstructor('Standard.Base.Data.Json.JS_Object.Value', false)
+    const fieldAccessor = makeMethod('Standard.Base.Data.Json.JS_Object.object_node')
+    const typeMethod = makeMethod('Standard.Base.Data.Json.JS_Object.some_method')
+    const db = new SuggestionDb()
+    db.set(0, constructor)
+    db.set(1, fieldAccessor)
+    db.set(2, typeMethod)
+    expect(filtering.filter(fieldAccessor, db)).not.toBeNull()
+    expect(filtering.filter(typeMethod, db)).not.toBeNull()
+  })
+
+  test('Private constructor fields are filtered out', () => {
+    const constructor = createConstructor('Standard.Base.Data.Json.JS_Object.Value', true)
+    const fieldAccessor = makeMethod('Standard.Base.Data.Json.JS_Object.object_node')
+    const typeMethod = makeMethod('Standard.Base.Data.Json.JS_Object.some_method')
+    const db = new SuggestionDb()
+    db.set(0, constructor)
+    db.set(1, fieldAccessor)
+    db.set(2, typeMethod)
+    expect(filtering.filter(fieldAccessor, db)).toBeNull()
+    expect(filtering.filter(typeMethod, db)).not.toBeNull()
+  })
+
+  test('At least one public constructor is enough to not filter out the accessor', () => {
+    const constructor1 = createConstructor('Standard.Base.Data.Json.JS_Object.Value', true)
+    const constructor2 = createConstructor('Standard.Base.Data.Json.JS_Object.PublicValue', false)
+    const fieldAccessor = makeMethod('Standard.Base.Data.Json.JS_Object.object_node')
+    const typeMethod = makeMethod('Standard.Base.Data.Json.JS_Object.some_method')
+    const db = new SuggestionDb()
+    db.set(0, constructor1)
+    db.set(1, fieldAccessor)
+    db.set(2, typeMethod)
+    expect(filtering.filter(fieldAccessor, db)).toBeNull()
+    expect(filtering.filter(typeMethod, db)).not.toBeNull()
+    db.set(3, constructor2)
+    expect(filtering.filter(fieldAccessor, db)).not.toBeNull()
+    expect(filtering.filter(typeMethod, db)).not.toBeNull()
+  })
 })

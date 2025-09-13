@@ -13,7 +13,6 @@ import {
 import { AsyncQueue, type AbortScope } from '@/util/net'
 import * as array from 'lib0/array'
 import { ObservableV2 } from 'lib0/observable'
-import * as random from 'lib0/random'
 import { reactive } from 'vue'
 import {
   ErrorCode,
@@ -67,15 +66,16 @@ function visualizationConfigEqual(
 /** Same as {@link visualizationConfigEqual}, but ignores differences in {@link NodeVisualizationConfiguration.positionalArgumentsExpressions}. */
 export function visualizationConfigPreprocessorEqual(
   a: NodeVisualizationConfiguration,
-  b: NodeVisualizationConfiguration,
+  b: Opt<NodeVisualizationConfiguration>,
 ): boolean {
   return (
-    a == b ||
-    (a.visualizationModule === b.visualizationModule &&
-      (a.expression === b.expression ||
-        (typeof a.expression === 'object' &&
-          typeof b.expression === 'object' &&
-          methodPointerEquals(a.expression, b.expression))))
+    b != null &&
+    (a == b ||
+      (a.visualizationModule === b.visualizationModule &&
+        (a.expression === b.expression ||
+          (typeof a.expression === 'object' &&
+            typeof b.expression === 'object' &&
+            methodPointerEquals(a.expression, b.expression)))))
   )
 }
 
@@ -123,7 +123,7 @@ enum SyncStatus {
  * run only when the previous call is done.
  */
 export class ExecutionContext extends ObservableV2<ExecutionContextNotification> {
-  readonly id: ContextId = random.uuidv4() as ContextId
+  readonly id: ContextId = crypto.randomUUID() as ContextId
   private queue: AsyncQueue<ExecutionContextState>
   private syncStatus = SyncStatus.NOT_SYNCED
   private clearScheduled = false
@@ -224,7 +224,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   /** TODO: Add docs */
   pop() {
     if (this._desiredStack.length === 1) {
-      console.debug('Cannot pop last item from execution context stack')
+      console.info('Cannot pop last item from execution context stack')
       return
     }
     this._desiredStack.pop()

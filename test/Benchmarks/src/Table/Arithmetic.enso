@@ -100,6 +100,10 @@ collect_benches = Bench.build builder->
     Runtime.assert ((column_arithmetic_plus_nothing data . to_vector) == (arrow_arithmetic_plus_nothing data)) "Column and arrow correctness check three"
 
     builder.group ("Column_Arithmetic_" + num_rows.to_text) options group_builder->
+        group_builder.specify "Plus_Constant" <|
+            (data.table.at "X") + 5
+        group_builder.specify "Plus_Constant_Gaps" <|
+            (data.table.at "Z") + 5
         group_builder.specify "Plus_Fitting" <|
             column_arithmetic_plus_fitting data
         group_builder.specify "Plus_Overflowing" <|
@@ -107,6 +111,10 @@ collect_benches = Bench.build builder->
         group_builder.specify "Plus_Nothing" <|
             column_arithmetic_plus_nothing data
 
+        group_builder.specify "Multiply_Constant" <|
+            (data.table.at "X") * 2
+        group_builder.specify "Multiply_Constant_Gaps" <|
+            (data.table.at "Z") * 2
         group_builder.specify "Multiply_Fitting" <|
             column_arithmetic_multiply_fitting data
         group_builder.specify "Multiply_Overflowing" <|

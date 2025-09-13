@@ -2,12 +2,128 @@
 
 import type * as queryCore from '@tanstack/query-core'
 
-import type Backend from './services/Backend'
-import * as backendModule from './services/Backend'
-import * as object from './utilities/data/object'
+import type Backend from './services/Backend.js'
+import * as backendModule from './services/Backend.js'
+import { type ExtractKeys, type MethodOf, omit } from './utilities/data/object.js'
 
 /** The properties of the Backend type that are methods. */
-export type BackendMethods = object.ExtractKeys<Backend, object.MethodOf<Backend>>
+export type BackendMethods = ExtractKeys<Backend, MethodOf<Backend>>
+
+/** Ensure that the given type contains only names of backend methods. */
+type DefineBackendMethods<T extends BackendMethods> = T
+
+/** Names of methods corresponding to mutations. */
+export type BackendMutationMethod = DefineBackendMethods<
+  | 'acceptInvitation'
+  | 'associateTag'
+  | 'changeUserGroup'
+  | 'closeProject'
+  | 'copyAsset'
+  | 'cancelSubscription'
+  | 'createCheckoutSession'
+  | 'createCredential'
+  | 'createDatalink'
+  | 'createDirectory'
+  | 'createPermission'
+  | 'createProject'
+  | 'createProjectExecution'
+  | 'createSecret'
+  | 'createTag'
+  | 'createUser'
+  | 'createUserGroup'
+  | 'declineInvitation'
+  | 'deleteAsset'
+  | 'deleteDatalink'
+  | 'deleteInvitation'
+  | 'deleteProjectExecution'
+  | 'deleteTag'
+  | 'deleteUser'
+  | 'deleteUserGroup'
+  | 'duplicateProject'
+  | 'exportArchive'
+  | 'inviteUser'
+  | 'logEvent'
+  | 'openProject'
+  | 'removeUser'
+  | 'resendInvitation'
+  | 'restoreUser'
+  | 'syncProjectExecution'
+  | 'undoDeleteAsset'
+  | 'updateAsset'
+  | 'updateDirectory'
+  | 'updateFile'
+  | 'updateOrganization'
+  | 'updateProject'
+  | 'updateProjectExecution'
+  | 'updateSecret'
+  | 'updateUser'
+  | 'uploadFileChunk'
+  | 'uploadFileEnd'
+  | 'uploadFileStart'
+  | 'uploadOrganizationPicture'
+  | 'uploadUserPicture'
+>
+
+/** Names of methods corresponding to queries. */
+export type BackendQueryMethod = Exclude<BackendMethods, BackendMutationMethod>
+
+/** A value for {@link INVALIDATION_MAP} representing all queries. */
+export const INVALIDATE_ALL_QUERIES = Symbol('invalidate all queries')
+/** A mapping between mutation methods and queries invalidated by them. */
+export const INVALIDATION_MAP: Partial<
+  Record<BackendMutationMethod, readonly (BackendQueryMethod | typeof INVALIDATE_ALL_QUERIES)[]>
+> = {
+  createUser: ['usersMe'],
+  updateUser: [INVALIDATE_ALL_QUERIES],
+  deleteUser: [
+    'usersMe',
+    'listUsers',
+    'listUserGroups',
+    'listDirectory',
+    'searchDirectory',
+    'getAssetDetails',
+  ],
+  removeUser: [
+    'usersMe',
+    'listUsers',
+    'listUserGroups',
+    'listDirectory',
+    'searchDirectory',
+    'getAssetDetails',
+  ],
+  restoreUser: ['usersMe'],
+  uploadUserPicture: ['usersMe'],
+  updateOrganization: ['getOrganization'],
+  uploadOrganizationPicture: ['getOrganization'],
+  createUserGroup: [INVALIDATE_ALL_QUERIES],
+  deleteUserGroup: [INVALIDATE_ALL_QUERIES],
+  changeUserGroup: [INVALIDATE_ALL_QUERIES],
+  createTag: ['listTags'],
+  deleteTag: ['listTags'],
+  associateTag: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  acceptInvitation: [INVALIDATE_ALL_QUERIES],
+  declineInvitation: ['usersMe'],
+  createProject: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  duplicateProject: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  createDirectory: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  createSecret: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  updateSecret: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  updateProject: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  updateFile: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  updateDirectory: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  createDatalink: ['listDirectory', 'searchDirectory', 'getDatalink', 'getAssetDetails'],
+  uploadFileEnd: ['listDirectory', 'searchDirectory', 'listAssetVersions', 'getAssetDetails'],
+  copyAsset: ['listDirectory', 'searchDirectory', 'listAssetVersions', 'getAssetDetails'],
+  deleteAsset: ['listDirectory', 'searchDirectory', 'listAssetVersions', 'getAssetDetails'],
+  undoDeleteAsset: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  updateAsset: ['listDirectory', 'searchDirectory', 'listAssetVersions', 'getAssetDetails'],
+  openProject: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  closeProject: ['listDirectory', 'searchDirectory', 'listAssetVersions', 'getAssetDetails'],
+  createProjectExecution: ['listProjectExecutions'],
+  updateProjectExecution: ['listProjectExecutions'],
+  syncProjectExecution: ['listProjectExecutions'],
+  deleteProjectExecution: ['listProjectExecutions'],
+}
 
 /** For each backend method, an optional function defining how to create a query key from its arguments. */
 type BackendQueryNormalizers = {
@@ -17,7 +133,7 @@ type BackendQueryNormalizers = {
 }
 
 const NORMALIZE_METHOD_QUERY: BackendQueryNormalizers = {
-  listDirectory: (query) => [query.parentId, object.omit(query, 'parentId')],
+  listDirectory: (query) => [query.parentId, omit(query, 'parentId')],
   getFileDetails: (fileId) => [fileId],
 }
 
@@ -46,12 +162,15 @@ export function backendQueryOptions<Method extends BackendMethods>(
 }
 
 /** Returns the QueryKey to use for the given backend method invocation. */
-export function backendQueryKey<Method extends BackendMethods>(
+export function backendQueryKey<
+  Method extends BackendMethods,
+  TQueryKey extends queryCore.QueryKey = queryCore.QueryKey,
+>(
   backend: Backend | null,
   method: Method,
   args: Readonly<Parameters<Backend[Method]>>,
-  keyExtra?: queryCore.QueryKey | undefined,
-): queryCore.QueryKey {
+  keyExtra?: TQueryKey | undefined,
+) {
   return [backend?.type, method, ...normalizeMethodQuery(method, args), ...(keyExtra ?? [])]
 }
 

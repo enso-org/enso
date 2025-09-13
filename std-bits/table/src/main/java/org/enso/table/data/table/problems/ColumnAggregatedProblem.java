@@ -7,9 +7,9 @@ import org.enso.table.problems.Problem;
 
 public abstract class ColumnAggregatedProblem implements Problem {
   private final String locationName;
-  protected final List<Integer> rows;
+  protected final List<Long> rows;
 
-  protected ColumnAggregatedProblem(String locationName, Integer row) {
+  protected ColumnAggregatedProblem(String locationName, Long row) {
     this.locationName = locationName;
     this.rows = new ArrayList<>();
     this.rows.add(row);
@@ -19,8 +19,8 @@ public abstract class ColumnAggregatedProblem implements Problem {
     return locationName;
   }
 
-  public int[] getRows() {
-    return rows.stream().mapToInt(Integer::intValue).toArray();
+  public List<Long> getRows() {
+    return rows;
   }
 
   public int count() {

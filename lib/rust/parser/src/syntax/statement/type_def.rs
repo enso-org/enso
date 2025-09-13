@@ -1,8 +1,9 @@
 use crate::prelude::*;
 
+use crate::syntax::expression::ExpressionParser;
+use crate::syntax::expression::Spacing;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
-use crate::syntax::operator::Precedence;
 use crate::syntax::statement::apply_excess_private_keywords;
 use crate::syntax::statement::compound_lines;
 use crate::syntax::statement::function_def::parse_args;
@@ -20,7 +21,6 @@ use crate::syntax::tree;
 use crate::syntax::tree::block;
 use crate::syntax::tree::ArgumentDefinition;
 use crate::syntax::tree::SyntaxError;
-use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
@@ -30,7 +30,7 @@ use crate::syntax::Tree;
 pub fn try_parse_type_def<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
-    precedence: &mut Precedence<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> Option<Tree<'s>> {
     match items.get(start) {
@@ -41,8 +41,8 @@ pub fn try_parse_type_def<'s>(
         Some(Item::Token(Token { variant: token::Variant::Ident(ident), .. })) if ident.is_type => {
         }
         _ =>
-            return precedence
-                .resolve_non_section_offset(start, items)
+            return expression_parser
+                .parse_non_section_offset(start, items)
                 .unwrap()
                 .with_error(SyntaxError::TypeDefExpectedTypeName)
                 .into(),
@@ -59,14 +59,14 @@ pub fn try_parse_type_def<'s>(
                     token.variant = token::Variant::Ident(opr_ident);
                 }
             }
-            parse_type_body_statement(prefixes, line, precedence, args_buffer)
+            parse_type_body_statement(prefixes, line, expression_parser, args_buffer)
         });
         block::compound_lines(lines).collect()
     } else {
         default()
     };
 
-    let params = parse_args(items, start + 2, precedence, args_buffer);
+    let params = parse_args(items, start + 2, expression_parser, args_buffer);
 
     let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
 
@@ -81,7 +81,7 @@ pub fn try_parse_type_def<'s>(
 fn parse_type_body_statement<'s>(
     prefixes: &mut StatementPrefixes<'s>,
     mut line: item::Line<'s>,
-    precedence: &mut Precedence<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> Line<'s, StatementOrPrefix<'s>> {
     let private_keywords = scan_private_keywords(&line.items);
@@ -97,7 +97,7 @@ fn parse_type_body_statement<'s>(
                 line,
                 0,
                 private_keywords,
-                precedence,
+                expression_parser,
                 args_buffer,
             )
             .map_content(StatementOrPrefix::from),
@@ -110,7 +110,7 @@ fn parse_type_body_statement<'s>(
             )
             .map(StatementOrPrefix::from),
         },
-        _ => parse_statement(prefixes, line, precedence, args_buffer, StatementContext {
+        _ => parse_statement(prefixes, line, expression_parser, args_buffer, StatementContext {
             evaluation_context: EvaluationContext::Lazy,
             visibility_context: VisibilityContext::Public,
             tail_expression:    false,

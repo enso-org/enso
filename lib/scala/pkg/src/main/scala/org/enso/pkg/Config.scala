@@ -3,6 +3,7 @@ package org.enso.pkg
 import org.yaml.snakeyaml.nodes.Tag
 import org.enso.semver.SemVer
 import org.enso.editions.{EditionName, Editions}
+import org.enso.pkg.QualifiedName
 import org.enso.pkg.validation.NameValidation
 import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
 import org.enso.version.BuildVersion
@@ -13,6 +14,60 @@ import org.yaml.snakeyaml.nodes.{MappingNode, Node}
 import java.io.{Reader, StringReader}
 import java.util
 import scala.util.Try
+import java.io.IOException
+
+/** Information about registered service.
+  *
+  * @param provides name of SPI type
+  * @param with name of implementation type
+  */
+case class ProvidesWith(
+  val provides: QualifiedName,
+  val `with`: QualifiedName
+) {}
+
+object ProvidesWith {
+
+  /** Fields for use when serializing the [[ProvidesWith]]. */
+  object Fields {
+    val Provides = "provides"
+    val With     = "with"
+  }
+
+  implicit val decoderSnake: YamlDecoder[ProvidesWith] =
+    new YamlDecoder[ProvidesWith] {
+      override def decode(node: Node): Either[Throwable, ProvidesWith] =
+        node match {
+          case mappingNode: MappingNode =>
+            val str      = implicitly[YamlDecoder[String]]
+            val bindings = mappingKV(mappingNode)
+            for {
+              p <- bindings
+                .get(Fields.Provides)
+                .map(str.decode)
+                .getOrElse(Left(new IOException("Missing `provides` field")))
+              w <- bindings
+                .get(Fields.With)
+                .map(str.decode)
+                .getOrElse(Left(new IOException("Missing `with` field")))
+            } yield {
+              val qp = QualifiedName.fromString(p)
+              val qw = QualifiedName.fromString(w)
+              ProvidesWith(qp, qw)
+            }
+        }
+    }
+
+  implicit val encoderSnake: YamlEncoder[ProvidesWith] =
+    new YamlEncoder[ProvidesWith] {
+      override def encode(value: ProvidesWith) = {
+        val elements = new util.ArrayList[(String, Object)]()
+        elements.add((Fields.Provides, value.provides))
+        elements.add((Fields.With, value.`with`))
+        toMap(elements)
+      }
+    }
+}
 
 /** Contact information to a user.
   *
@@ -95,7 +150,8 @@ object Contact {
   *                             local libraries over what is defined in the
   *                             edition
   * @param componentGroups the description of component groups provided by this
-  *                        package
+  *                        package,
+  * @param jvm determines whether JVM mode should be enabled for the project
   */
 case class Config(
   name: String,
@@ -107,24 +163,28 @@ case class Config(
   maintainers: List[Contact],
   edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
-  componentGroups: Option[ComponentGroups]
+  componentGroups: Option[ComponentGroups],
+  services: List[ProvidesWith],
+  jvm: Option[Boolean]
 ) {
 
-  /** Converts the configuration into a YAML representation. */
-  def toYaml: String = {
-    val config: Config = this
-    val noDevEdition: Config =
+  /** Converts the configuration into a YAML representation.
+    *
+    * @param keepDevVersion true if default dev versions should be stored
+    */
+  def toYaml(keepDevVersions: Boolean = false): String = {
+    val config: Config =
       if (
-        config.edition.exists(
+        !keepDevVersions && edition.exists(
           _.parent
-            .exists(p => p.toString == BuildVersion.defaultDevEnsoVersion())
+            .exists(p => p == BuildVersion.defaultDevEnsoVersion())
         )
       ) {
-        config.copy(edition = None)
+        copy(edition = None)
       } else {
-        config
+        this
       }
-    val node          = implicitly[YamlEncoder[Config]].encode(noDevEdition)
+    val node          = implicitly[YamlEncoder[Config]].encode(config)
     val dumperOptions = new DumperOptions()
     dumperOptions.setIndent(2)
     dumperOptions.setPrettyFlow(true)
@@ -157,6 +217,8 @@ object Config {
     val Edition: String        = "edition"
     val PreferLocalLibraries   = "prefer-local-libraries"
     val ComponentGroups        = "component-groups"
+    val Services: String       = "services"
+    val Jvm: String            = "jvm"
   }
 
   implicit val yamlDecoder: YamlDecoder[Config] =
@@ -168,6 +230,7 @@ object Config {
           val normalizedNameDecoder =
             implicitly[YamlDecoder[Option[String]]]
           val contactDecoder     = implicitly[YamlDecoder[List[Contact]]]
+          val servicesDecoder    = implicitly[YamlDecoder[List[ProvidesWith]]]
           val editionNameDecoder = implicitly[YamlDecoder[EditionName]]
           val editionDecoder =
             implicitly[YamlDecoder[Option[Editions.RawEdition]]]
@@ -230,6 +293,15 @@ object Config {
               .get(JsonFields.ComponentGroups)
               .map(componentGroups.decode)
               .getOrElse(Right(None))
+            services <- clazzMap
+              .get(JsonFields.Services)
+              .map(servicesDecoder.decode)
+              .getOrElse(Right(Nil))
+            jvmMode <- clazzMap
+              .get(JsonFields.Jvm)
+              .flatMap(v => booleanDecoder.decode(v).toOption)
+              .map(v => Right(Some(v)))
+              .getOrElse(Right(None))
           } yield Config(
             name,
             normalizedName,
@@ -240,7 +312,9 @@ object Config {
             maintainers,
             edition,
             preferLocalLibraries,
-            componentGroups
+            componentGroups,
+            services,
+            jvmMode
           )
       }
     }
@@ -278,7 +352,6 @@ object Config {
             (JsonFields.Maintainer, contactsEncoder.encode(value.maintainers))
           )
         }
-
         value.edition.foreach { edition =>
           if (edition.isDerivingWithoutOverrides)
             elements.add((JsonFields.Edition, edition.parent.get))
@@ -297,6 +370,11 @@ object Config {
             (JsonFields.ComponentGroups, componentGroupsEncoder.encode(v))
           )
         )
+        if (value.jvm.nonEmpty) {
+          elements.add(
+            (JsonFields.Jvm, booleanEncoder.encode(value.jvm.get))
+          )
+        }
 
         toMap(elements)
       }
@@ -337,4 +415,6 @@ object Config {
     repositories  = Map(),
     libraries     = Map()
   )
+
+  def ensoPackageConfigName: String = "package.yaml"
 }

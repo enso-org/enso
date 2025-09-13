@@ -21,15 +21,13 @@ import {
 // ========================
 
 /** Read imports from given module block */
-export function readImports(ast: Ast.BodyBlock): RawImport[] {
-  const imports: RawImport[] = []
+export function* readImports(ast: Ast.BodyBlock): Generator<RawImport> {
   for (const stmt of ast.statements()) {
     if (stmt instanceof Ast.Import) {
       const recognized = recognizeImport(stmt)
-      if (recognized) imports.push(recognized)
+      if (recognized) yield recognized
     }
   }
-  return imports
 }
 
 /** Parse import statement. */
@@ -62,14 +60,19 @@ export function recognizeImport(ast: Ast.Import): RawImport | null {
 }
 
 /** Read the imports and transform their literal project paths to logical project paths. */
-export function analyzeImports(
+export function* analyzeImports(
   ast: Ast.BodyBlock,
   projectNames: ProjectNameStore,
-): AbstractImport[] {
-  return readImports(ast).map(({ from, imported }) => ({
-    from: projectNames.parseProjectPath(normalizeQualifiedName(from)),
-    imported,
-  }))
+): Generator<AbstractImport> {
+  for (const { from, imported } of readImports(ast)) {
+    const parsed = projectNames.parseProjectPath(normalizeQualifiedName(from))
+    if (parsed.ok) {
+      yield {
+        from: parsed.value,
+        imported,
+      }
+    }
+  }
 }
 
 /** Information about parsed import statement. */
@@ -130,6 +133,15 @@ export function addImports(
   const imports = importsToAdd.map((info) => requiredImportToAst(info, projectNames, scope.module))
   const position = newImportsLocation(scope)
   scope.insert(position, ...imports)
+}
+
+/**
+ * Create a non user-facing string representation of a required import.
+ * Meant for key generation and debugging, does not generate a valid code representation.
+ */
+export function printRequiredImport(i: RequiredImport): string {
+  if (i.kind === 'Qualified') return `${i.kind}:${i.module}`
+  return `${i.kind}:${i.from}(${i.import})`
 }
 
 /**

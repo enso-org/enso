@@ -95,7 +95,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     public static Object doLong(
         ArrowFixedArrayInt receiver,
         long index,
-        @Bind("$node") Node node,
+        @Bind Node node,
         @CachedLibrary("receiver") InteropLibrary iop,
         @Cached InlinedExactClassProfile bufferClazz)
         throws UnsupportedMessageException, InvalidArrayIndexException {
@@ -143,7 +143,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
 
     @ExportMessage
     Object getIteratorNextElement(
-        @Bind("$node") Node node,
+        @Bind Node node,
         @Cached("this.step") int step,
         @Cached InlinedExactClassProfile bufferTypeProfile)
         throws StopIterationException {
@@ -187,7 +187,7 @@ public final class ArrowFixedArrayInt implements TruffleObject {
 
     @ExportMessage(limit = "3")
     Object getIteratorNextElement(
-        @Bind("$node") Node node,
+        @Bind Node node,
         @CachedLibrary("this.it()") InteropLibrary iopIt,
         @Cached InlinedExactClassProfile bufferTypeProfile)
         throws StopIterationException, UnsupportedMessageException {

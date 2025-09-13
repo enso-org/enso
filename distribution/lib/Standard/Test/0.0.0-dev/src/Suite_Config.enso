@@ -7,7 +7,9 @@ import Standard.Base.Runtime.Stack_Trace_Element
 
 polyglot java import java.lang.NullPointerException
 
-## PRIVATE
+## ---
+   private: true
+   ---
 find_project_root : File -> File
 find_project_root path =
     if path.is_nothing then Nothing else
@@ -16,7 +18,9 @@ find_project_root path =
             if path.name == "src" then path.parent else
                 @Tail_Call find_project_root path.parent
 
-## PRIVATE
+## ---
+   private: true
+   ---
 find_caller_script : Vector Stack_Trace_Element -> File
 find_caller_script stack =
     find_main idx = if idx >= stack.length then Error.throw (Illegal_State.Error "Could not find `main` method.") else
@@ -36,15 +40,17 @@ find_caller_script stack =
 
 ## Holds configuration for a Test_Suite
 type Suite_Config
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Construct a configuration
 
-       Arguments:
-       - print_only_failures: Should only failures be printed.
-       - output_path: The path to the JUnit XML file to write to. If Nothing, no JUnit XML file
-         will be written.
-       - use_ansi_colors: Should ANSI colors be used in the output.
-       - caller_project_root: The root project path of the caller.
+       ## Arguments
+        - `print_only_failures`: Should only failures be printed.
+        - `output_path`: The path to the JUnit XML file to write to. If Nothing,
+          no JUnit XML file will be written.
+        - `use_ansi_colors`: Should ANSI colors be used in the output.
+        - `caller_project_root`: The root project path of the caller.
     Value (print_only_failures : Boolean) (output_path : (File | Nothing)) (use_ansi_colors : Boolean) (caller_project_root : File | Nothing)
 
     ## Creates an Suite_Config based off environment and caller location

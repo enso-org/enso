@@ -4,34 +4,40 @@ import project.Panic.Panic
 
 @Builtin_Type
 type Unimplemented
-    ## PRIVATE
-       UNSTABLE
-
+    ## ---
+       private: true
+       unstable: true
+       ---
        A type used to represent that something has not yet been implemented.
 
-       Arguments:
-       - message: The message describing what implementation is missing.
+       ## Arguments
+        - `message`: The message describing what implementation is missing.
     Error message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Converts the unimplemented error to a human-readable error message.
     to_display_text : Text
     to_display_text self = "An implementation is missing: " + self.message
 
-    ## PRIVATE
-       ADVANCED
-
+    ## ---
+       private: true
+       advanced: true
+       ---
        A function that can be used to indicate that something hasn't been
        implemented yet.
 
-       Arguments:
-       - message: A description of what implementation is missing.
+       ## Arguments
+        - `message`: A description of what implementation is missing.
 
-       > Example
-         Throwing an error to show that something is unimplemented.
+       ## Examples
+       ### Throwing an error to show that something is unimplemented.
 
+       ```
              import Standard.Base.Errors.Common as Errors
 
              example_unimplemented = Errors.Unimplemented.throw
+       ```
     throw : Text -> Nothing
     throw message="" = Panic.throw (Unimplemented.Error message)

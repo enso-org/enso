@@ -21,7 +21,7 @@ import { styleTags, tags } from '@lezer/highlight'
 import { type Ref } from 'vue'
 import { spanMapToSpanGetter, tokenSpanGetter } from 'ydoc-shared/ast/idMap'
 import { assertDefined } from 'ydoc-shared/util/assert'
-import { rangeLength, type SourceRange } from 'ydoc-shared/util/data/text'
+import { type SourceRange } from 'ydoc-shared/util/data/text'
 
 const treeTypeNames = Ast.astTypes
 const tokenTypeNames = Ast.tokenTypes.map((name) => `Token${name}`)
@@ -118,7 +118,7 @@ function tokenToCodeMirrorTree(token: Ast.Token, span: SourceRange): Tree | unde
   if (token.typeName === 'Raw') return
   const type = typeByName.get(`Token${token.typeName}`)
   assertDefined(type)
-  return new Tree(type, [], [], rangeLength(span), [[astProp, token]])
+  return new Tree(type, [], [], span.length, [[astProp, token]])
 }
 
 const facet = defineLanguageFacet()
@@ -158,9 +158,7 @@ class EnsoParser extends Parser {
   }
 }
 
-/** TODO: Add docs */
-export function ensoSyntax(moduleRoot: Readonly<Ref<Ast.BodyBlock | undefined>>): Extension {
-  return new LanguageSupport(new Language(facet, new EnsoParser(moduleRoot)), [
-    indentUnit.of('    '),
-  ])
+/** CodeMirror extension that adds support for parsing enso language. */
+export function ensoSyntax(astRoot: Readonly<Ref<Ast.BodyBlock | undefined>>): Extension {
+  return new LanguageSupport(new Language(facet, new EnsoParser(astRoot)), [indentUnit.of('    ')])
 }

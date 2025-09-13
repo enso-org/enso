@@ -6,11 +6,16 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
+import java.util.List;
 import java.util.concurrent.Executor;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManagerFactory;
+import org.enso.shttp.cloud_mock.CloudAuthRenew;
+import org.enso.shttp.cloud_mock.CloudRoot;
+import org.enso.shttp.cloud_mock.EventsService.LogEvent;
 
 public class HybridHTTPServer {
 
@@ -18,6 +23,8 @@ public class HybridHTTPServer {
   private final HttpsServer sslServer;
   private final Path keyStorePath;
   private volatile boolean isStarted = false;
+  private CloudRoot cloudRoot;
+  private CloudAuthRenew cloudAuthRenew;
 
   HybridHTTPServer(
       String hostname,
@@ -41,6 +48,15 @@ public class HybridHTTPServer {
     }
   }
 
+  public List<LogEvent> getLogs() {
+    return cloudRoot.getEvents();
+  }
+
+  /** Returns count successful requests for token refresh. */
+  public int getRefreshedTokensCount() {
+    return cloudAuthRenew.getRefreshedTokensCount();
+  }
+
   private static class SimpleHttpsConfigurator extends HttpsConfigurator {
     public SimpleHttpsConfigurator(SSLContext context) {
       super(context);
@@ -50,10 +66,11 @@ public class HybridHTTPServer {
     public void configure(HttpsParameters params) {
       SSLContext ctx = getSSLContext();
       SSLEngine engine = ctx.createSSLEngine();
-      params.setNeedClientAuth(false);
-      params.setCipherSuites(engine.getEnabledCipherSuites());
-      params.setProtocols(engine.getEnabledProtocols());
-      params.setSSLParameters(ctx.getDefaultSSLParameters());
+      SSLParameters sslParams = ctx.getDefaultSSLParameters();
+      sslParams.setNeedClientAuth(false);
+      sslParams.setCipherSuites(engine.getEnabledCipherSuites());
+      sslParams.setProtocols(engine.getEnabledProtocols());
+      params.setSSLParameters(sslParams);
     }
   }
 
@@ -150,5 +167,13 @@ public class HybridHTTPServer {
     if (sslServer != null) {
       sslServer.createContext(path, handler);
     }
+  }
+
+  void addCloudRoot(CloudRoot cloudRoot) {
+    this.cloudRoot = cloudRoot;
+  }
+
+  void addCloudAuthRenew(CloudAuthRenew cloudAuthRenew) {
+    this.cloudAuthRenew = cloudAuthRenew;
   }
 }

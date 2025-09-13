@@ -1,6 +1,6 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -8,26 +8,24 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Objects;
-import java.util.function.BiFunction;
-import java.util.logging.Level;
-import org.enso.common.LanguageInfo;
+import java.util.function.Supplier;
 import org.enso.compiler.context.LocalScope;
+import org.enso.compiler.core.ir.Location;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 
 /** A common base class for all kinds of root node in Enso. */
 @NodeInfo(shortName = "Root", description = "A root node for Enso computations")
 public abstract class EnsoRootNode extends RootNode {
-  private static final TruffleLogger LOGGER = TruffleLogger.getLogger(LanguageInfo.ID);
-
   private final String name;
   private final int sourceStartIndex;
   private final int sourceLength;
   private final LocalScope localScope;
   private final ModuleScope moduleScope;
-  private final Source inlineSource;
+  private final CachingSupplier<Source> source;
 
   /**
    * Constructs the root node.
@@ -36,29 +34,26 @@ public abstract class EnsoRootNode extends RootNode {
    * @param localScope a reference to the construct local scope
    * @param moduleScope a reference to the construct module scope. May be {@code null}.
    * @param name the name of the construct
-   * @param sourceSection a reference to the source code being executed. May be {@code null}.
+   * @param sourceSupplier a reference to the source code being executed. May be {@code null}.
+   * @param location in the (to be supplied) source. May be {@code null}
    */
   protected EnsoRootNode(
       EnsoLanguage language,
       LocalScope localScope,
       ModuleScope moduleScope,
       String name,
-      SourceSection sourceSection) {
-    super(language, buildFrameDescriptor(name, localScope, LOGGER));
+      Supplier<Source> sourceSupplier,
+      Location location) {
+    super(language, buildFrameDescriptor(name, localScope));
     Objects.requireNonNull(language);
     Objects.requireNonNull(localScope);
     Objects.requireNonNull(moduleScope);
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;
-    if (sourceSection == null
-        || moduleScope.getModule().isModuleSource(sourceSection.getSource())) {
-      this.inlineSource = null;
-    } else {
-      this.inlineSource = sourceSection.getSource();
-    }
-    this.sourceStartIndex = sourceSection == null ? NO_SOURCE : sourceSection.getCharIndex();
-    this.sourceLength = sourceSection == null ? NO_SOURCE : sourceSection.getCharLength();
+    this.source = sourceSupplier == null ? null : CachingSupplier.wrap(sourceSupplier);
+    this.sourceStartIndex = location == null ? NO_SOURCE : location.start();
+    this.sourceLength = location == null ? NO_SOURCE : location.length();
   }
 
   /**
@@ -67,19 +62,11 @@ public abstract class EnsoRootNode extends RootNode {
    *
    * @return {@link FrameDescriptor} built from the variable definitions in the local localScope.
    */
-  private static FrameDescriptor buildFrameDescriptor(
-      String name, LocalScope localScope, TruffleLogger log) {
+  private static FrameDescriptor buildFrameDescriptor(String name, LocalScope localScope) {
     var descriptorBuilder = FrameDescriptor.newBuilder();
     descriptorBuilder.addSlot(FrameSlotKind.Object, LocalScope.monadicStateSlotName(), null);
 
-    BiFunction<String, Object[], Void> logFnOrNull =
-        log.isLoggable(Level.FINE)
-            ? (msg, args) -> {
-              log.log(Level.FINE, msg, args);
-              return null;
-            }
-            : null;
-    var allDefs = localScope.allSymbols(name, logFnOrNull);
+    var allDefs = localScope.allSymbols(name, null);
     for (var definition : allDefs) {
       descriptorBuilder.addSlot(FrameSlotKind.Illegal, definition, null);
     }
@@ -129,19 +116,22 @@ public abstract class EnsoRootNode extends RootNode {
 
   static final int NO_SOURCE = -1;
 
+  @TruffleBoundary
   static SourceSection findSourceSection(final RootNode n, int sourceStartIndex, int sourceLength) {
     if (sourceStartIndex != NO_SOURCE && n instanceof EnsoRootNode rootNode) {
-      if (rootNode.inlineSource == null) {
-        if (rootNode.sourceStartIndex == NO_SOURCE) {
-          return null;
-        } else {
-          return rootNode
-              .getModuleScope()
-              .getModule()
-              .createSection(sourceStartIndex, sourceLength);
-        }
+      if (rootNode.source == null) {
+        return null;
+      }
+      var src = rootNode.source.get();
+      assert src != null;
+      var module = rootNode.getModuleScope().getModule();
+      var ownedByModule = module.isModuleSource(src);
+      if (ownedByModule) {
+        // ask the module for a (patched) section
+        return module.createSection(sourceStartIndex, sourceLength);
       } else {
-        return rootNode.inlineSource.createSection(sourceStartIndex, sourceLength);
+        // ask the source itself
+        return src.createSection(sourceStartIndex, sourceLength);
       }
     }
     return null;

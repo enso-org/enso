@@ -56,8 +56,8 @@ describe('WidgetRegistry', () => {
     }),
   )
 
-  const someAst = WidgetInput.FromAst(Ast.parseExpression('foo'))
-  const blankAst = WidgetInput.FromAst(Ast.parseExpression('_'))
+  const someAst = WidgetInput.FromAst(Ast.parseExpression('foo')!)
+  const blankAst = WidgetInput.FromAst(Ast.parseExpression('_')!)
   const someArgPlaceholder: WidgetInput = {
     portId: '57d429dc-df85-49f8-b150-567c7d1fb502' as PortId,
     value: 'bar',

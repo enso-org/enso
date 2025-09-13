@@ -1,6 +1,7 @@
 /** @file Axis-aligned rectangle. Defined in terms of a top-left point and a size. */
 
 import { Vec2 } from '@/util/data/vec2'
+import { markRaw } from 'vue'
 
 /** Axis-aligned rectangle. Defined in terms of a top-left point and a size. */
 export class Rect {
@@ -34,17 +35,24 @@ export class Rect {
     return new Rect(Vec2.FromXY(domRect), Vec2.FromSize(domRect))
   }
 
-  /** TODO: Add docs */
-  static Bounding(...rects: Rect[]): Rect {
-    let left = NaN
-    let top = NaN
-    let right = NaN
-    let bottom = NaN
+  /** Create a minimum rectangle that contains all passed-in rectangles. */
+  static Bounding(): undefined
+  /** Create a minimum rectangle that contains all passed-in rectangles. */
+  static Bounding(rect: Rect, ...rects: Rect[]): Rect
+  /** Create a minimum rectangle that contains all passed-in rectangles. */
+  static Bounding(...rects: Rect[]): Rect | undefined
+  /** Create a minimum rectangle that contains all passed-in rectangles. */
+  static Bounding(...rects: Rect[]): Rect | undefined {
+    if (rects.length === 0) return
+    let left = Infinity
+    let top = Infinity
+    let right = -Infinity
+    let bottom = -Infinity
     for (const rect of rects) {
-      if (!(rect.left >= left)) left = rect.left
-      if (!(rect.top >= top)) top = rect.top
-      if (!(rect.right <= right)) right = rect.right
-      if (!(rect.bottom <= bottom)) bottom = rect.bottom
+      left = Math.min(left, rect.left)
+      top = Math.min(top, rect.top)
+      right = Math.max(right, rect.right)
+      bottom = Math.max(bottom, rect.bottom)
     }
     return this.FromBounds(left, top, right, bottom)
   }
@@ -237,6 +245,9 @@ export class Rect {
     return new Rect(this.pos.sub(padVector), this.size.add(padVector).add(padVector))
   }
 }
+
+// All Rect instances are immutable, therefore we don't need to track them with reactivity.
+markRaw(Rect.prototype)
 
 Rect.Zero = new Rect(Vec2.Zero, Vec2.Zero)
 

@@ -49,27 +49,17 @@ public interface CallArgument extends IR {
         @IRChild Expression value,
         @IRField boolean isSynthetic,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      super(name, value, isSynthetic, identifiedLocation, passData);
+        MetadataStorage passData,
+        DiagnosticStorage diagnostics) {
+      super(name, value, isSynthetic, identifiedLocation, passData, diagnostics);
     }
 
-    public Specified(
-        Option<Name> name,
-        Expression value,
-        boolean isSynthetic,
-        IdentifiedLocation identifiedLocation) {
-      this(name, value, isSynthetic, identifiedLocation, new MetadataStorage());
+    public static Builder builder() {
+      return new Builder();
     }
 
     public Specified copy(Expression value) {
-      return copy(
-          this.diagnostics,
-          this.passData,
-          this.location,
-          this.id,
-          this.name(),
-          value,
-          this.isSynthetic());
+      return new Builder(this).value(value).build();
     }
 
     @Override

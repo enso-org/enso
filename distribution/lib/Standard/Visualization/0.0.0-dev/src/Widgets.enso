@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Not_Invokable
 import Standard.Base.Metadata.Widget
 from Standard.Base.Logging import all
 
@@ -7,12 +6,15 @@ from Standard.Table import all
 
 from Standard.Database import all
 
-## PRIVATE
-   Basic preprocessor for widgets metadata visualization.
+from project.Helpers import time_visualization
 
+## ---
+   private: true
+   ---
+   Basic preprocessor for widgets metadata visualization.
    Returns full annotation data for all requested arguments.
 get_widget_json : Any -> Any -> Vector Text -> Text -> Text
-get_widget_json value call_name argument_names uuids="{}" =
+get_widget_json value call_name argument_names uuids="{}" = time_visualization Widgets (value.to_display_text + ":" + (call_name.to_text.replace (regex "^.*<|>$") "") + argument_names.pretty) <|
     other_args = uuids.parse_json
 
     cache (name_or_index:Text|Integer) -> Any =
@@ -25,11 +27,24 @@ get_widget_json value call_name argument_names uuids="{}" =
         Widget.log_message "Failed for "+argument+": "+err.payload.to_display_text ..Warning
         Nothing
 
+    # We need to clear the warnings, otherwise the Not_Invokable panic will not have the cause
+    no_warnings = Warning.clear value
     read_annotation argument = Panic.catch Any handler=(log_panic argument) <|
-        annotation = Warning.clear <| Meta.get_annotation value call_name argument
-        return_target err = err.payload.target
-        Panic.catch Not_Invokable handler=return_target
-            annotation value cache=cache
+        annotation = Meta.get_annotation no_warnings call_name argument
+        case annotation of
+            # The annotation is a function that is taking the 'self' value and _maybe_ a cache parameter.
+            f : Function ->
+                with_cache = Meta.meta f . arguments pending=True defaulted=True . contains "cache"
+                fwc = if with_cache then f cache=cache else f
+                fwc no_warnings
+            # The annotation is a constant, so we just return it.
+            _ -> annotation
 
-    annotations = argument_names.map (arg -> [arg, read_annotation arg])
-    annotations.to_json
+    annotations = argument_names.map (arg -> '[' + arg.to_json + ',' + (read_annotation arg).to_json + ']')
+    '[' + (annotations.join ',') + ']'
+
+## ---
+   private: true
+   ---
+   Preprocessor for table column names.
+column_names_json table = table.column_names.to_json

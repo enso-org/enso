@@ -1,10 +1,6 @@
 /** @file `tailwind-merge` with a custom configuration. */
 import * as tailwindMerge from 'tailwind-merge'
 
-// =================
-// === Constants ===
-// =================
-
 export const TAILWIND_MERGE_CONFIG = {
   extend: {
     classGroups: {
@@ -19,10 +15,6 @@ export const TAILWIND_MERGE_CONFIG = {
     },
   },
 }
-
-// ===============
-// === twMerge ===
-// ===============
 
 /** `twMerge` with a custom configuration. */
 // This is a function, even though it does not contain function syntax.

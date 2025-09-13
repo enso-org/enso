@@ -17,3 +17,26 @@ export function* syntaxNodeAncestors(syn: SyntaxNode | null) {
     currentSyn = currentSyn.parent
   }
 }
+
+/** Represents the structure of a @{link Tree} in a JSON-compatible format. */
+export type DebugTree = (string | DebugTree)[]
+
+/** @returns A debug representation of the provided {@link Tree} */
+export function debugTree(tree: { cursor: () => TreeCursor }, doc: string): DebugTree {
+  const cursor = tree.cursor()
+  let current: (string | DebugTree)[] = []
+  const stack: (string | DebugTree)[][] = []
+  cursor.iterate(
+    (node) => {
+      const child: (string | DebugTree)[] = [node.name]
+      current.push(child)
+      stack.push(current)
+      current = child
+    },
+    (node) => {
+      if (current.length === 1) current.push(doc.slice(node.from, node.to))
+      current = stack.pop()!
+    },
+  )
+  return current[0]! as DebugTree
+}

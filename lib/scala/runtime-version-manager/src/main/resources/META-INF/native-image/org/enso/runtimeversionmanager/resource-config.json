@@ -1,0 +1,7 @@
+{
+  "resources":{
+  "includes":[{
+    "pattern":"\\Qorg/apache/tika/mime/tika-mimetypes.xml\\E"
+  }]},
+  "bundles":[]
+}

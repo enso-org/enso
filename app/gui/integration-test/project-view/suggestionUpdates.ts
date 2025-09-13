@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { Page } from 'playwright/test'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 
 /** Add an entry to the suggestion database. */

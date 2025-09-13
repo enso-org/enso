@@ -15,7 +15,7 @@ import org.enso.runtime.parser.processor.utils.Utils;
 public abstract class Field {
   protected final TypeMirror type;
   protected final String name;
-  private final ProcessingEnvironment procEnv;
+  protected final ProcessingEnvironment procEnv;
 
   protected Field(TypeMirror type, String name, ProcessingEnvironment procEnv) {
     this.type = type;
@@ -71,6 +71,15 @@ public abstract class Field {
   /** Returns true if this field is {@code scala.Option}. */
   public boolean isOption() {
     return Utils.isScalaOption(type, procEnv);
+  }
+
+  /**
+   * Returns true if this field is {@code org.enso.persistance.Persistance.Reference}.
+   *
+   * @return
+   */
+  public boolean isPersistanceReference() {
+    return Utils.isPersistanceReference(type, procEnv);
   }
 
   /** Returns true if the type of this field is Java primitive. */

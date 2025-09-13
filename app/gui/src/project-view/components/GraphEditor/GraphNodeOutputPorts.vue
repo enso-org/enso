@@ -1,33 +1,54 @@
 <script setup lang="ts">
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import CreateNodeFromPortButton from '@/components/GraphEditor/CreateNodeFromPortButton.vue'
 import { useApproach } from '@/composables/animation'
+import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphEditorState } from '@/providers/graphEditorState'
-import { useGraphStore, type NodeId } from '@/stores/graph'
+import { injectGraphSelection } from '@/providers/graphSelection'
+import type { NodeId } from '@/stores/graph'
+import type { Vec2 } from '@/util/data/vec2'
 import { isDef } from '@vueuse/core'
+import { setsIntersect } from 'enso-common/src/utilities/data/set'
 import { setIfUndefined } from 'lib0/map'
 import {
   computed,
   effectScope,
   onScopeDispose,
   ref,
-  watch,
+  toRef,
   watchEffect,
   type EffectScope,
 } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
-import CreateNodeFromPortButton from './CreateNodeFromPortButton.vue'
 
-const props = defineProps<{ nodeId: NodeId; forceVisible: boolean }>()
+const props = defineProps<{ nodeId: NodeId }>()
 
 const emit = defineEmits<{
   portClick: [event: PointerEvent, portId: AstId]
   portDoubleClick: [event: PointerEvent, portId: AstId]
-  newNodeClick: [portId: AstId]
-  'update:hoverAnim': [progress: number]
-  'update:nodeHovered': [hovered: boolean]
+  newNodeClick: [portId: AstId, position: Vec2]
 }>()
 
-const graph = useGraphStore()
+const { graph } = useCurrentProject().storesRefs
+
+const nodeRect = computed(() => graph.value?.nodeRects.get(props.nodeId))
+const nodeHovered = computed(
+  (): boolean => graph.value != null && graph.value.nodeHovered.get(props.nodeId),
+)
+const nodeExtended = computed(
+  (): boolean => graph.value != null && graph.value.nodeExtended.get(props.nodeId),
+)
+const otherNodeHovered = computed(
+  (): boolean => graph.value != null && !nodeHovered.value && graph.value.nodeHovered.exists.value,
+)
+
+const selection = injectGraphSelection(true)
+const { baseColor, selected, pending } = useComponentColors(
+  () => graph.value?.db,
+  selection,
+  toRef(props, 'nodeId'),
+)
 
 // === Ports ===
 
@@ -37,10 +58,11 @@ interface PortData {
   portId: AstId
 }
 
-const outputPortsSet = computed(() => {
-  const bindings = graph.db.nodeOutputPorts.lookup(props.nodeId)
+const outputPortsSet = computed((): Set<AstId> => {
+  if (!graph.value) return new Set()
+  const bindings = graph.value.db.nodeOutputPorts.lookup(props.nodeId)
   if (bindings.size === 0) {
-    const astId = graph.db.idFromExternal(props.nodeId)
+    const astId = graph.value.db.idFromExternal(props.nodeId)
     return new Set([astId].filter(isDef))
   }
   return bindings
@@ -54,7 +76,7 @@ const outputPorts = computed((): PortData[] => {
   return Array.from(ports, (portId, index): PortData => {
     return {
       clipRange: [index / numPorts, (index + 1) / numPorts],
-      label: numPorts > 1 ? graph.db.getOutputPortIdentifier(portId) : undefined,
+      label: numPorts > 1 ? graph.value?.db.getOutputPortIdentifier(portId) : undefined,
       portId,
     }
   })
@@ -63,20 +85,21 @@ const outputPorts = computed((): PortData[] => {
 // === Interactivity ===
 
 const mouseOverOutput = ref<AstId>()
+// This is a counter rather than a boolean to ensure it remains accurate in the presence of multiple
+// output ports, without relying on the order of events.
+const mouseOverCreateNodeFromPortButton = ref(0)
 
-const outputHovered = computed(() => (graph.mouseEditedEdge ? undefined : mouseOverOutput.value))
-watch(outputHovered, (newVal, oldVal) => {
-  if ((newVal != null) !== (oldVal != null)) {
-    emit('update:nodeHovered', newVal != null)
-  }
-})
+const outputHovered = computed(() =>
+  graph.value?.mouseEditedEdge ? undefined : mouseOverOutput.value,
+)
 
-const anyPortDisconnected = computed(() => {
-  for (const port of outputPortsSet.value) {
-    if (graph.unconnectedEdgeSources.has(port)) return true
-  }
-  return false
-})
+function isPortDisconnected(portId: AstId): boolean {
+  return graph.value != null && !graph.value.isConnectedSource(portId)
+}
+
+const anyPortDisconnected = computed(() =>
+  setsIntersect(outputPortsSet.value, graph.value?.unconnectedEdgeSources),
+)
 
 const handlePortClick = useDoubleClick(
   (event: PointerEvent, portId: AstId) => emit('portClick', event, portId),
@@ -87,14 +110,18 @@ const handlePortClick = useDoubleClick(
 
 const portsVisible = computed(
   () =>
-    props.forceVisible ||
+    (nodeExtended.value && !otherNodeHovered.value) ||
+    nodeHovered.value ||
     (outputHovered.value && outputPortsSet.value.has(outputHovered.value)) ||
-    anyPortDisconnected.value,
+    anyPortDisconnected.value ||
+    mouseOverCreateNodeFromPortButton.value !== 0,
 )
 
 const portsHoverAnimation = useApproach(() => (portsVisible.value ? 1 : 0), 50, 0.01)
 
-watchEffect(() => emit('update:hoverAnim', portsHoverAnimation.value))
+watchEffect(() => graph.value?.nodeOutputVisible.set(props.nodeId, portsVisible.value))
+watchEffect(() => graph.value?.nodeOutputHovered.set(props.nodeId, outputHovered.value != null))
+watchEffect(() => graph.value?.nodeOutputAnimations.set(props.nodeId, portsHoverAnimation.value))
 
 const hoverAnimations = new Map<AstId, [ReturnType<typeof useApproach>, EffectScope]>()
 watchEffect(() => {
@@ -120,43 +147,72 @@ watchEffect(() => {
 // Clean up dynamically created detached scopes.
 onScopeDispose(() => hoverAnimations.forEach(([_, scope]) => scope.stop()))
 
+const nodeStyle = computed(() => ({
+  '--hover-animation': portsHoverAnimation.value,
+  '--node-size-x': `${nodeRect.value?.size.x ?? 0}px`,
+  '--node-size-y': `${nodeRect.value?.size.y ?? 0}px`,
+  '--node-group-color': baseColor.value,
+}))
+
+const nodeTransform = computed(
+  () => `translate(${nodeRect.value?.pos.x ?? 0}px, ${nodeRect.value?.pos.y ?? 0}px)`,
+)
+
 function portGroupStyle(port: PortData) {
   const [start, end] = port.clipRange
   return {
-    '--hover-animation': portsHoverAnimation.value,
     '--direct-hover-animation': hoverAnimations.get(port.portId)?.[0].value ?? 0,
     '--port-clip-start': start,
     '--port-clip-end': end,
-    '--port-label-transform-x': `calc(${((end - start) / 2 + start) * 100}%)`,
-    transform: 'var(--output-port-transform)',
+    '--port-label-transform-x': `${((end - start) / 2 + start) * 100}%`,
   }
 }
 
-graph.suggestEdgeFromOutput(outputHovered)
+graph.value?.suggestEdgeFromOutput(outputHovered)
 </script>
 
 <template>
-  <template v-for="port of outputPorts" :key="port.portId">
-    <g :style="portGroupStyle(port)">
-      <g
-        class="portClip"
-        @pointerenter="mouseOverOutput = port.portId"
-        @pointerleave="mouseOverOutput = undefined"
-      >
-        <rect
-          class="outputPortHoverArea clickable"
-          @pointerdown.stop.prevent="handlePortClick($event, port.portId)"
-        />
-        <rect class="outputPort" />
-      </g>
-      <text class="outputPortLabel">{{ port.label }}</text>
-      <CreateNodeFromPortButton
-        v-if="!componentBrowserOpened"
-        :portId="port.portId"
-        @click="emit('newNodeClick', port.portId)"
-      />
+  <g
+    class="GraphNodeOutputPorts define-node-colors"
+    :style="nodeStyle"
+    :class="{ selected, pending }"
+    :data-output-ports-node-id="props.nodeId"
+  >
+    <g :style="{ transform: nodeTransform }">
+      <template v-for="port of outputPorts" :key="port.portId">
+        <g :style="portGroupStyle(port)">
+          <g
+            class="portClip"
+            @pointerenter="mouseOverOutput = port.portId"
+            @pointerleave="mouseOverOutput = undefined"
+          >
+            <g
+              class="clickable"
+              @pointerdown.stop="handlePortClick($event, port.portId)"
+              @click.stop
+            >
+              <rect class="outputPortHoverArea" />
+              <rect
+                v-if="!componentBrowserOpened && isPortDisconnected(port.portId)"
+                class="createNodeButtonApproachZone"
+              ></rect>
+            </g>
+            <rect class="outputPort" />
+          </g>
+          <text class="outputPortLabel">{{ port.label }}</text>
+        </g>
+      </template>
     </g>
-  </template>
+    <template v-for="port of outputPorts" :key="port.portId">
+      <CreateNodeFromPortButton
+        v-if="!componentBrowserOpened && isPortDisconnected(port.portId)"
+        :portId="port.portId"
+        :nodeId="nodeId"
+        @update:hovered="mouseOverCreateNodeFromPortButton += $event ? 1 : -1"
+        @newNodeClick="(port, position) => emit('newNodeClick', port, position)"
+      />
+    </template>
+  </g>
 </template>
 
 <style scoped>
@@ -169,7 +225,7 @@ graph.suggestEdgeFromOutput(outputHovered)
   rx: calc(var(--node-border-radius) + var(--output-port-width) / 2);
 
   fill: none;
-  stroke: var(--color-node-edge);
+  stroke: var(--color-edge-from-node);
   stroke-width: calc(var(--output-port-width) + var(--output-port-overlap-anim));
   transition: stroke 0.2s ease;
   --horizontal-line: calc(var(--node-size-x) - var(--node-border-radius) * 2);
@@ -220,5 +276,29 @@ graph.suggestEdgeFromOutput(outputHovered)
     var(--port-label-transform-x),
     calc(var(--node-size-y) + var(--output-port-max-width) + 16px)
   );
+}
+
+/**
+ * Extension of the output port's hover area, to ensure the button doesn't disappear as the mouse is
+ * moved toward it.
+ */
+.createNodeButtonApproachZone {
+  --margin: 4px;
+  --topOffset: 40px;
+  --leftOffset: 16px;
+  --radius: 10px;
+  --width: calc(var(--radius) * 2 + var(--margin) * 2);
+  pointer-events: fill;
+  fill: transparent;
+  width: var(--width);
+  height: calc(
+    var(--node-vertical-gap) + var(--output-port-max-width) + var(--margin) * 2 + var(--topOffset) +
+      var(--radius)
+  );
+  transform: translate(
+    calc(var(--port-clip-start) * (100% + 1px) + var(--leftOffset) - var(--width) / 2),
+    calc(var(--node-size-y) + var(--output-port-max-width))
+  );
+  cursor: pointer;
 }
 </style>

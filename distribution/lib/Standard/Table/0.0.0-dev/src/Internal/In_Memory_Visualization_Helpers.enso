@@ -1,0 +1,22 @@
+private
+
+from Standard.Base import all
+
+import project.In_Memory_Column.In_Memory_Column
+
+polyglot java import org.enso.table.data.column.DataQualityMetrics
+
+type In_Memory_Visualization_Helpers
+    ## ---
+       private: true
+       ---
+       Awaits completion of the metrics computation for a column.
+    await_metrics this_column -> Dictionary =
+        DataQualityMetrics.join (this_column:In_Memory_Column).java_column
+
+    ## ---
+       private: true
+       ---
+       Gets the computed metrics for a column.
+    get_metrics this_column -> Dictionary =
+        DataQualityMetrics.get (this_column:In_Memory_Column).java_column

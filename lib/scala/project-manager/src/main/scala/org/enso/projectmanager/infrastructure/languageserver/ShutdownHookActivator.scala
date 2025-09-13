@@ -50,11 +50,13 @@ class ShutdownHookActivator[F[+_, +_]: Exec: CovariantFlatMap]
         context.become(running(hooks - projectId, projectId :: scheduled))
       } else if (scheduled.contains(projectId)) {
         logger.debug(
-          s"Request for starting shutdown hooks has already been filed for project ${projectId}. Ignoring"
+          "Request for starting shutdown hooks has already been filed for project {}. Ignoring",
+          projectId
         )
       } else {
         logger.warn(
-          s"Shutdown hook activator has no recollection of project ${projectId}. Either it was closed already or it never existed. Ignoring"
+          "Shutdown hook activator has no recollection of project {}. Either it was closed already or it never existed. Ignoring",
+          projectId
         )
       }
 

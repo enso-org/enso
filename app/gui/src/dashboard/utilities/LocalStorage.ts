@@ -1,11 +1,14 @@
 /** @file A LocalStorage data manager. */
-import type * as z from 'zod'
+import * as z from 'zod'
 
 import * as common from 'enso-common'
 
 import * as object from '#/utilities/object'
+import { useVueValue } from '$/providers/react/common'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { useCallback } from 'react'
 import invariant from 'tiny-invariant'
+import { shallowReactive, toRaw } from 'vue'
 
 const KEY_DEFINITION_STACK_TRACES = new Map<string, string>()
 
@@ -20,10 +23,6 @@ function isSourceChanged(key: string) {
   return isChanged
 }
 
-// ===============================
-// === LocalStorageKeyMetadata ===
-// ===============================
-
 /** Metadata describing runtime behavior associated with a {@link LocalStorageKey}. */
 export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
   readonly isUserSpecific?: boolean
@@ -35,44 +34,40 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
   readonly schema: z.ZodType<LocalStorageData[K]>
 }
 
-// ========================
-// === LocalStorageData ===
-// ========================
-
 /**
  * The data that can be stored in a {@link LocalStorage}.
  * Declaration merge into this interface to add a new key.
  */
-export interface LocalStorageData {}
-
-// =======================
-// === LocalStorageKey ===
-// =======================
+export interface LocalStorageData {
+  // Add a dummy key to avoid type errors for configurations that don't import
+  // any files that merge declarations into `LocalStorageData`.
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  readonly _dummyLocalStorageKey: true
+}
 
 /** All possible keys of a {@link LocalStorage}. */
 export type LocalStorageKey = keyof LocalStorageData
 
-// ====================
-// === LocalStorage ===
-// ====================
+/** Metadata for each storage key. */
+type KeyMetadata = {
+  [K in LocalStorageKey]: LocalStorageKeyMetadata<K>
+}
+
+/** Compute the actual storage key from `LocalStorage` entry key. */
+function getItemKey(key: LocalStorageKey) {
+  return `${common.PRODUCT_NAME}::${key}`
+}
 
 /** A LocalStorage data manager. */
 export default class LocalStorage {
-  // This is UNSAFE. It is assumed that `LocalStorage.register` is always called
-  // when `LocalStorageData` is declaration merged into.
-  // eslint-disable-next-line no-restricted-syntax
-  private static keyMetadata = {} as Record<
-    LocalStorageKey,
-    LocalStorageKeyMetadata<LocalStorageKey>
-  >
+  private static readonly keyMetadata: Partial<KeyMetadata> = {}
   private static instance: LocalStorage | null = null
-  localStorageKey = common.PRODUCT_NAME.toLowerCase()
-  protected values: Partial<LocalStorageData>
+  private values: Partial<LocalStorageData>
   private readonly eventTarget = new EventTarget()
 
   /** Create a {@link LocalStorage}. */
   private constructor() {
-    this.values = {}
+    this.values = shallowReactive<Partial<LocalStorageData>>({})
   }
 
   /**
@@ -86,11 +81,8 @@ export default class LocalStorage {
     return LocalStorage.instance
   }
 
-  /**
-   * Get all registered keys.
-   */
-  static getAllKeys() {
-    // This is SAFE because `LocalStorage.keyMetadata` is a statically known set of keys.
+  /** Get all {@link LocalStorageKey} variants that has been registered using {@link registerKey} method so far. */
+  static getAllRegisteredKeys(): LocalStorageKey[] {
     // eslint-disable-next-line no-restricted-syntax
     return Object.keys(LocalStorage.keyMetadata) as LocalStorageKey[]
   }
@@ -103,14 +95,16 @@ export default class LocalStorage {
         `Local storage key '${key}' has already been registered.`,
       )
     }
-    LocalStorage.keyMetadata[key] = metadata
+    Object.assign(LocalStorage.keyMetadata, { [key]: metadata })
   }
 
-  /** Register runtime behavior associated with a {@link LocalStorageKey}. */
-  static register<K extends LocalStorageKey>(metadata: { [K_ in K]: LocalStorageKeyMetadata<K_> }) {
-    for (const key in metadata) {
-      LocalStorage.registerKey(key, metadata[key])
-    }
+  /**
+   * Get the metadata for a key.
+   */
+  static getKeyMetadata<K extends LocalStorageKey>(key: K): LocalStorageKeyMetadata<K> {
+    const meta = LocalStorage.keyMetadata[key]
+    invariant(meta != null, `Local storage key '${key}' is not yet registered.`)
+    return meta
   }
 
   /** Retrieve an entry from the stored data. */
@@ -119,10 +113,7 @@ export default class LocalStorage {
 
     if (!(key in this.values)) {
       const value = this.readValueFromLocalStorage(key)
-
-      if (value != null) {
-        this.values[key] = value
-      }
+      if (value != null) this.values[key] = value
     }
 
     return this.values[key]
@@ -134,34 +125,92 @@ export default class LocalStorage {
 
     this.values[key] = value
 
+    this.save(key)
     this.eventTarget.dispatchEvent(new Event(key))
-    this.eventTarget.dispatchEvent(new Event('_change'))
-
-    this.save()
   }
 
-  /** Delete an entry from the stored data, and save. */
+  /**
+   * Set an entry in the stored data from an untrusted source.
+   * This is useful for setting the state from a clipboard or from a remote source/user input.
+   */
+  setFromUntrustedSource(key: unknown, value: unknown) {
+    const schema = z
+      .object({
+        key: z
+          .custom<LocalStorageKey>()
+          .refine((unknownKey) => typeof unknownKey === 'string')
+          .refine((unknownKey) => unknownKey in LocalStorage.keyMetadata),
+        value: z.any(),
+      })
+      .transform((data) => {
+        const valueSchema = LocalStorage.getKeyMetadata(data.key).schema
+        const parsedValue = valueSchema.safeParse(data.value)
+
+        if (parsedValue.success) {
+          return { key: data.key, value: parsedValue.data }
+        }
+
+        throw new Error('Invalid key or value')
+      })
+
+    const parsed = schema.safeParse({ key, value })
+
+    if (parsed.success) {
+      this.set(parsed.data.key, parsed.data.value)
+    }
+  }
+
+  /**
+   * Set all entries in the stored data from an untrusted source.
+   * This is useful for setting the state from a clipboard or from a remote source/user input.
+   */
+  setManyFromUntrustedSource(values: unknown) {
+    if (typeof values !== 'object' || values == null) {
+      return
+    }
+
+    const keys = LocalStorage.getAllRegisteredKeys()
+
+    for (const key of keys) {
+      // This is safe because we asserted that `values` is an object.
+      // eslint-disable-next-line no-restricted-syntax
+      const value: unknown = key in values ? (values as Record<string, unknown>)[key] : null
+      this.setFromUntrustedSource(key, value)
+    }
+  }
+
+  /**
+   * Delete an entry from the stored data, and save.
+   */
   delete<K extends LocalStorageKey>(key: K) {
     this.assertRegisteredKey(key)
-
-    const oldValue = this.values[key]
-    // The key being deleted is one of a statically known set of keys.
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.values[key]
+    this.save(key)
     this.eventTarget.dispatchEvent(new Event(key))
-    this.eventTarget.dispatchEvent(new Event('_change'))
-    this.save()
+  }
 
-    return oldValue
+  /**
+   * Read a value from the stored data, and delete it after reading.
+   */
+  consume<K extends LocalStorageKey>(key: K) {
+    const value = this.get(key)
+    this.delete(key)
+    return value
   }
 
   /** Delete user-specific entries from the stored data, and save. */
   clearUserSpecificEntries() {
     for (const [key, metadata] of object.unsafeEntries(LocalStorage.keyMetadata)) {
-      if (metadata.isUserSpecific === true) {
+      if (metadata?.isUserSpecific === true) {
         this.delete(key)
       }
     }
+  }
+
+  /** Delete all entries from the stored data. */
+  clearAll() {
+    LocalStorage.getAllRegisteredKeys().forEach((key) => this.delete(key))
   }
 
   /** Add an event listener to a specific key. */
@@ -179,21 +228,19 @@ export default class LocalStorage {
     }
   }
 
-  /** Add an event listener to all keys. */
-  subscribeAll(callback: (value: Partial<LocalStorageData>) => void) {
-    const onChange = () => {
-      callback(this.values)
-    }
-    this.eventTarget.addEventListener('_change', onChange)
-
-    return () => {
-      this.eventTarget.removeEventListener('_change', onChange)
-    }
-  }
-
   /** Save the current value of the stored data.. */
-  protected save() {
-    localStorage.setItem(this.localStorageKey, JSON.stringify(this.values))
+  protected save(key: LocalStorageKey) {
+    // Make values raw, so any watchEffect setting values will not be triggered unnecessarily.
+    const rawValues = toRaw(this.values)
+    const valueToSave = rawValues[key]
+    const itemKey = getItemKey(key)
+    try {
+      if (valueToSave == null) localStorage.removeItem(itemKey)
+      else localStorage.setItem(itemKey, JSON.stringify(valueToSave))
+    } catch (error) {
+      // eslint-disable-next-line no-restricted-properties
+      console.warn('LocalStorage failed to persist data', { key, error })
+    }
   }
 
   /**
@@ -211,34 +258,39 @@ export default class LocalStorage {
   }
 
   /** Read a value from the stored data. */
-  private readValueFromLocalStorage<
-    Key extends LocalStorageKey,
-    Value extends LocalStorageData[Key],
-  >(key: Key): Value | null {
+  private readValueFromLocalStorage<Key extends LocalStorageKey>(
+    key: Key,
+  ): LocalStorageData[Key] | null {
     this.assertRegisteredKey(key)
 
-    const storedValues = localStorage.getItem(this.localStorageKey)
-    const savedValues: unknown = JSON.parse(storedValues ?? '{}')
+    const storedJson = localStorage.getItem(getItemKey(key))
+    let storedValue: unknown
 
-    if (typeof savedValues === 'object' && savedValues != null && key in savedValues) {
-      // @ts-expect-error This is SAFE, as it is guarded by the `key in savedValues` check.
-      const savedValue: unknown = savedValues[key]
-      const parsedValue = LocalStorage.keyMetadata[key].schema.safeParse(savedValue)
-
-      if (parsedValue.success) {
-        // This is safe because the schema is validated before this code is reached.
-        // eslint-disable-next-line no-restricted-syntax
-        return parsedValue.data as Value
-      }
-
+    try {
+      storedValue = storedJson != null ? JSON.parse(storedJson) : null
+    } catch (error) {
       // eslint-disable-next-line no-restricted-properties
-      console.warn('LocalStorage failed to parse value', {
-        key,
-        savedValue,
-        error: parsedValue.error,
-      })
+      console.warn('LocalStorage failed to parse JSON', { key, error })
     }
+
+    if (storedValue == null) return null
+
+    const valueSchema = LocalStorage.getKeyMetadata(key).schema
+    const parsedValue = valueSchema.safeParse(storedValue)
+    if (parsedValue.success) return parsedValue.data
+
+    const error = parsedValue.error
+    // eslint-disable-next-line no-restricted-properties
+    console.warn('LocalStorage failed to parse value', { key, storedValue, error })
 
     return null
   }
+}
+
+/** React hook for viewing whole `LocalStorage` contents as a state variable. */
+export function useLocalStorageValues(storage: LocalStorage): Partial<LocalStorageData> {
+  return useVueValue(
+    useCallback(() => storage['values'], [storage]),
+    true,
+  )
 }

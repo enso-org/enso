@@ -149,7 +149,8 @@ main =
   obj.pub_method # OK
 
   # This constructor is private, we have to use factory method.
-  opaque = Closed_Type.Constructor field=42
+  # Note that directly calling `Closed_Type.Constructor` would fail.
+  opaque = Closed_Type.factory field=42
   opaque.field # Runtime failure - Constructor is private, therefore, no getter is generated
   opaque.priv_method # Runtime failure - priv_method is private
   Closed_Type.priv_method self=opaque # Runtime failure

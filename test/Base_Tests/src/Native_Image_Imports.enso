@@ -1,0 +1,7 @@
+# This module contains imports that are necessary for building NI for tests with
+# `env ENSO_LAUNCHER=test sbt buildEngineDistribution`.
+# This module is not actually used - it is scanned by `EnsoLibraryFeature` when NI is built.
+private
+
+polyglot java import java.lang.Process as J_Process
+

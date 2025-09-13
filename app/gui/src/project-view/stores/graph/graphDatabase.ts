@@ -1,21 +1,24 @@
 import { computeNodeColor } from '@/composables/nodeColors'
-import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
+import {
+  ComputedValueRegistry,
+  translateMethodCall,
+  type ExpressionInfo,
+} from '@/stores/project/computedValueRegistry'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
 import { type CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
 import { analyzeBindings, type BindingInfo } from '@/util/ast/bindings'
 import { inputNodeFromAst, nodeFromAst, nodeRootExpr } from '@/util/ast/node'
-import { tryGetIndex } from '@/util/data/array'
+import { arrayEquals, tryGetIndex } from '@/util/data/array'
 import { recordEqual } from '@/util/data/object'
 import { unwrap } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import {
   methodPointerEquals,
-  parseMethodPointer,
   type MethodCall,
   type MethodPointer,
   type StackItem,
@@ -38,7 +41,6 @@ import {
   type WatchStopHandle,
 } from 'vue'
 import { type SourceDocument } from 'ydoc-shared/ast/sourceDocument'
-import type { MethodCall as LSMethodCall } from 'ydoc-shared/languageServerTypes'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
@@ -64,7 +66,7 @@ export class GraphDb {
   /** Constructor. */
   constructor(
     private readonly suggestionDb: SuggestionDb,
-    private readonly groups: Ref<DeepReadonly<Group[]>>,
+    private readonly groups: Ref<DeepReadonly<GroupInfo[]>>,
     private readonly valuesRegistry: ComputedValueRegistry,
     private readonly projectNames: ProjectNameStore,
   ) {}
@@ -142,7 +144,7 @@ export class GraphDb {
     return computeNodeColor(
       () => entry.type,
       () => tryGetIndex(this.groups.value, this.getNodeMainSuggestion(id)?.groupIndex),
-      () => this.getExpressionInfo(id)?.rawTypename,
+      () => this.getExpressionInfo(id)?.typeInfo?.primaryType,
     )
   })
 
@@ -157,6 +159,12 @@ export class GraphDb {
     for (const outputPort of outputPorts) {
       yield* this.connections.lookup(outputPort)
     }
+  }
+
+  /** @returns True if the identified expression is the destination of a graph connection. */
+  isNodeUsage(id: AstId | undefined): boolean {
+    if (!id) return false
+    return this.connections.reverseLookup(id).size != 0
   }
 
   /** TODO: Add docs */
@@ -178,7 +186,7 @@ export class GraphDb {
   /** TODO: Add docs */
   getExpressionInfo(id: AstId | ExternalId | undefined): ExpressionInfo | undefined {
     const externalId = isUuid(id) ? id : this.idToExternal(id)
-    return externalId && this.valuesRegistry.getExpressionInfo(externalId)
+    return this.valuesRegistry.getExpressionInfo(externalId)
   }
 
   /** TODO: Add docs */
@@ -210,12 +218,16 @@ export class GraphDb {
   getMethodCall(id: AstId): MethodCall | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
-    return (
-      info.methodCall ??
-      (info.payload.type === 'Value' && info.payload.functionSchema ?
-        translateMethodCall(info.payload.functionSchema, this.projectNames)
-      : undefined)
-    )
+    if (info.methodCall) return info.methodCall
+    if (info.payload.type === 'Value' && info.payload.functionSchema) {
+      const translated = translateMethodCall(info.payload.functionSchema, this.projectNames)
+      if (translated.ok) return translated.value
+      else
+        translated.error.log(
+          "Ignoring MethodCall value in functionSchema, because it' ill formatted",
+        )
+    }
+    return
   }
 
   /** TODO: Add docs */
@@ -350,7 +362,7 @@ export class GraphDb {
         pattern,
         rootExpr,
         innerExpr,
-        primarySubject,
+        primaryApplication,
         prefixes,
         conditionalPorts,
         argIndex,
@@ -363,7 +375,20 @@ export class GraphDb {
       }
       const astFields: NodeAstField[] = ['outerAst', 'pattern', 'rootExpr', 'innerExpr']
       astFields.forEach(updateAst)
-      if (oldNode.primarySubject !== primarySubject) node.primarySubject = primarySubject
+      if (oldNode.primaryApplication.function !== newNode.primaryApplication.function) {
+        node.primaryApplication.function = newNode.primaryApplication.function
+      }
+      if (oldNode.primaryApplication.selfArgument !== newNode.primaryApplication.selfArgument) {
+        node.primaryApplication.selfArgument = newNode.primaryApplication.selfArgument
+      }
+      if (
+        !arrayEquals(
+          (oldNode.primaryApplication.accessChain as AstId[] | null) ?? [],
+          newNode.primaryApplication.accessChain ?? [],
+        )
+      ) {
+        node.primaryApplication.accessChain = newNode.primaryApplication.accessChain
+      }
       if (!recordEqual(oldNode.prefixes, prefixes)) node.prefixes = prefixes
       syncSetDiff(node.conditionalPorts, oldNode.conditionalPorts, conditionalPorts)
       // Ensure new fields can't be added to `NodeAstData` without this code being updated.
@@ -373,7 +398,7 @@ export class GraphDb {
         pattern,
         rootExpr,
         innerExpr,
-        primarySubject,
+        primaryApplication,
         prefixes,
         conditionalPorts,
         argIndex,
@@ -515,7 +540,7 @@ export class GraphDb {
       position: Vec2.Zero,
       vis: undefined,
       prefixes: { enableRecording: undefined },
-      primarySubject: undefined,
+      primaryApplication: { function: null, accessChain: null, selfArgument: null },
       colorOverride: undefined,
       conditionalPorts: new Set(),
       outerAst,
@@ -529,13 +554,6 @@ export class GraphDb {
     this.nodeIdToNode.set(id, node)
     this.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
-  }
-}
-
-function translateMethodCall(ls: LSMethodCall, projectNames: ProjectNameStore): MethodCall {
-  return {
-    methodPointer: parseMethodPointer(ls.methodPointer, projectNames),
-    notAppliedArguments: ls.notAppliedArguments,
   }
 }
 
@@ -595,7 +613,10 @@ interface AllNodeFieldsFromAst {
    * Nodes for the function's inputs have (pattern) expressions as their outer ASTs.
    */
   outerAst: Ast.Statement | Ast.Expression
-  /** The left side of the assignment expression, if `outerAst` is an assignment expression. */
+  /**
+   * The bound expression. If `outerAst` is an assignment statement, this will be part of the side
+   * to the left of its operator. If this is an input node, it will inside the argument definition.
+   */
   pattern: Ast.Expression | undefined
   /**
    * The value of the node. The right side of the assignment, if `outerAst` is an assignment
@@ -611,8 +632,8 @@ interface AllNodeFieldsFromAst {
    Prefixes that are present in `rootExpr` but omitted in `innerExpr` to ensure a clean output.
    */
   prefixes: Record<'enableRecording', Ast.AstId[] | undefined>
-  /** A child AST in a syntactic position to be a self-argument input to the node. */
-  primarySubject: Ast.AstId | undefined
+  /** An optional information about the primary application of the node. */
+  primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; they can be targeted while holding the modifier key. */
   conditionalPorts: Set<Ast.AstId>
   /** The index of the argument in the function's argument list, if the node is an input node. */
@@ -650,3 +671,33 @@ export type Node = NodeDataFromAst &
   NodeDataFromMetadata & {
     zIndex: number
   }
+
+export interface PrimaryApplication {
+  /**
+   * A child AST in a syntactic position to be a self-argument input to the node.
+   * Usually it is either an Ident or a Wildcard, but consult `primaryApplication` function for details.
+   */
+  selfArgument: Ast.AstId | null
+  /** The function that is the subject of the primary application. */
+  function: Ast.AstId | null
+  /** All components of the property access chain from {@link function}. */
+  accessChain: Ast.AstId[] | null
+}
+
+/** Custom equality check for {@link PrimaryApplication}. */
+export function primaryApplicationEquals(a: PrimaryApplication, b: PrimaryApplication) {
+  return (
+    a.selfArgument === b.selfArgument &&
+    a.function === b.function &&
+    arrayEquals(a.accessChain ?? [], b.accessChain ?? [])
+  )
+}
+
+/** Returns an empty {@link PrimaryApplication}. */
+export function emptyPrimaryApplication(): PrimaryApplication {
+  return {
+    selfArgument: null,
+    function: null,
+    accessChain: null,
+  }
+}

@@ -6,7 +6,7 @@ import org.enso.table.problems.ProblemAggregator;
 
 public class CastProblemAggregator extends ProblemAggregator {
   private final String columnName;
-  private final StorageType targetType;
+  private final StorageType<?> targetType;
   private int failedConversionsCount = 0;
   private int numberOutOfRangeCount = 0;
   private int textTooLongCount = 0;
@@ -17,7 +17,7 @@ public class CastProblemAggregator extends ProblemAggregator {
   private final ArrayList<String> textTooLongExamples = new ArrayList<>(MAX_EXAMPLES_COUNT);
 
   public CastProblemAggregator(
-      ProblemAggregator parent, String columnName, StorageType targetType) {
+      ProblemAggregator parent, String columnName, StorageType<?> targetType) {
     super(parent);
     this.columnName = columnName;
     this.targetType = targetType;

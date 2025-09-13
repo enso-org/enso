@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
+import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { type URLString } from '@/util/data/urlString'
-import { type Icon } from '@/util/iconMetadata/iconName'
+import { type AnyWidgetIcon } from '@/util/icons'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -17,9 +16,10 @@ export const DisplayIcon: unique symbol = Symbol.for('WidgetInput:DisplayIcon')
 declare module '@/providers/widgetRegistry' {
   export interface WidgetInput {
     [DisplayIcon]?: {
-      icon: Icon | URLString | '$evaluating'
+      icon: AnyWidgetIcon
       allowChoice?: boolean
       showContents?: boolean
+      noGap?: boolean
     }
   }
 }
@@ -35,13 +35,14 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetIcon">
+  <div :class="{ WidgetIcon: true, noGap: props.input[DisplayIcon].noGap === true }">
     <div class="iconContainer">
       <Transition>
-        <LoadingSpinner
+        <GrowingSpinner
           v-if="icon === '$evaluating'"
           class="nodeCategoryIcon grab-handle"
           :size="16"
+          phase="loading-medium"
         />
         <SvgIcon v-else class="nodeCategoryIcon grab-handle" :name="icon" />
       </Transition>
@@ -56,6 +57,9 @@ export const widgetDefinition = defineWidget(
   flex-direction: row;
   align-items: center;
   gap: var(--widget-token-pad-unit);
+  &.noGap {
+    gap: 0;
+  }
 }
 .iconContainer {
   position: relative;
@@ -67,15 +71,8 @@ export const widgetDefinition = defineWidget(
   position: absolute;
 }
 .LoadingSpinner {
-  border: 4px solid;
   border-radius: 100%;
   border-color: rgba(255, 255, 255, 90%) #0000;
-  animation: s1 0.8s infinite;
-}
-@keyframes s1 {
-  to {
-    transform: rotate(0.5turn);
-  }
 }
 .v-enter-active,
 .v-leave-active {

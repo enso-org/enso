@@ -46,17 +46,13 @@ abstract class TypePropagation {
   private final ModuleResolver moduleResolver;
   private final MethodTypeResolver methodTypeResolver;
 
-  TypePropagation(
-      TypeResolver typeResolver,
-      TypeCompatibility compatibilityChecker,
-      Module currentModule,
-      ModuleResolver moduleResolver) {
+  TypePropagation(TypeResolver typeResolver, Module currentModule, ModuleResolver moduleResolver) {
     this.typeResolver = typeResolver;
-    this.compatibilityChecker = compatibilityChecker;
     this.moduleResolver = moduleResolver;
 
     var currentModuleScope = StaticModuleScope.forIR(currentModule);
     this.methodTypeResolver = new MethodTypeResolver(moduleResolver, currentModuleScope);
+    this.compatibilityChecker = new TypeCompatibility(this.methodTypeResolver);
   }
 
   /**
@@ -91,6 +87,8 @@ abstract class TypePropagation {
    */
   protected abstract void encounteredNoSuchConstructor(
       IR relatedIr, TypeRepresentation type, String constructorName);
+
+  protected abstract void encounteredDiscardedValue(IR relatedIr, TypeRepresentation type);
 
   enum MethodCallKind {
     MEMBER,
@@ -142,7 +140,16 @@ abstract class TypePropagation {
           case Expression.Block b -> {
             // Even though we discard the result, we run the type inference on each expression to
             // ensure any bindings inside of it get registered:
-            b.expressions().foreach((expr) -> tryInferringType(expr, localBindingsTyping));
+            b.expressions()
+                .foreach(
+                    (expr) -> {
+                      var exprType = tryInferringType(expr, localBindingsTyping);
+                      boolean isDiscarded = !(expr instanceof Expression.Binding);
+                      if (isDiscarded && !canBeDiscarded(exprType)) {
+                        encounteredDiscardedValue(expr, exprType);
+                      }
+                      return exprType;
+                    });
             yield tryInferringType(b.returnValue(), localBindingsTyping);
           }
           case Function.Lambda f -> processLambda(f, localBindingsTyping);
@@ -162,6 +169,47 @@ abstract class TypePropagation {
     // We now override the inferred type on the expression, preferring the ascribed type if it is
     // present.
     return ascribedType != null ? ascribedType : inferredType;
+  }
+
+  private boolean canBeDiscarded(TypeRepresentation type) {
+    if (type == null || type instanceof TypeRepresentation.TopType) {
+      // If the type is unknown then we allow it to be discarded as we don't know enough yet
+      return true;
+    }
+
+    if (type.equals(BuiltinTypes.NOTHING)) {
+      // Nothing is the type that side-effectful functions should return - it is most often meant to
+      // be discarded.
+      return true;
+    }
+
+    // Sometimes Nothing is inferred as `type Nothing`. Maybe we should fix it, but for now:
+    if (type instanceof TypeRepresentation.TypeObject typeObject) {
+      if (typeObject.instanceType().equals(BuiltinTypes.NOTHING)) {
+        return true;
+      }
+    }
+
+    if (type instanceof TypeRepresentation.ArrowType) {
+      // Under all scenarios, discarding a not-fully applied function is an error - such an
+      // operation is essentially a no-op.
+      // (in fact there are exceptions due to currying, but in 99% cases this is an error)
+      return false;
+    }
+
+    return canNonFunctionsBeDiscarded();
+  }
+
+  /**
+   * Drives the `canBeDiscarded` method.
+   *
+   * <ol>
+   *   <li>If true, then only a not-fully-applied function will raise discarded value warnings.
+   *   <li>If false, any non-Nothing value will raise a warning.
+   * </ol>
+   */
+  protected boolean canNonFunctionsBeDiscarded() {
+    return true;
   }
 
   private TypeRepresentation processCaseExpression(
@@ -218,12 +266,6 @@ abstract class TypePropagation {
       Function.Lambda lambda, LocalBindingsTyping localBindingsTyping) {
     boolean hasAnyDefaults =
         lambda.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
-    if (hasAnyDefaults) {
-      // Inferring function types with default arguments is not supported yet.
-      // TODO we will need to mark defaults in the TypeRepresentation to know when they may be
-      // FORCEd
-      return null;
-    }
 
     scala.collection.immutable.List<TypeRepresentation> argTypesScala =
         lambda
@@ -231,19 +273,29 @@ abstract class TypePropagation {
             .filter((arg) -> !(arg.name() instanceof Name.Self))
             .map(
                 (arg) -> {
+                  var resolvedTyp = TypeRepresentation.UNKNOWN;
                   if (arg.ascribedType().isDefined()) {
                     Expression typeExpression = arg.ascribedType().get();
-                    var resolvedTyp = typeResolver.resolveTypeExpression(typeExpression);
+                    resolvedTyp = typeResolver.resolveTypeExpression(typeExpression);
                     if (resolvedTyp != null) {
                       // We register the type of the argument in the local bindings map, so that it
                       // can be used by expressions that refer to this argument.
                       // No need to fork it, because there is just one code path.
                       registerBinding(arg, resolvedTyp, localBindingsTyping);
-                      return resolvedTyp;
                     }
                   }
 
-                  return TypeRepresentation.UNKNOWN;
+                  // If default value is present, make sure that its type is compatible with the
+                  // ascription.
+                  if (arg.defaultValue().isDefined()) {
+                    var defaultValue = arg.defaultValue().get();
+                    var defaultValueTyp = tryInferringType(defaultValue, localBindingsTyping);
+                    if (defaultValueTyp != null && resolvedTyp != null) {
+                      checkTypeCompatibility(defaultValue, resolvedTyp, defaultValueTyp);
+                    }
+                  }
+
+                  return resolvedTyp;
                 });
 
     TypeRepresentation returnType = tryInferringType(lambda.body(), localBindingsTyping);
@@ -251,6 +303,11 @@ abstract class TypePropagation {
     if (returnType == null && argTypesScala.isEmpty()) {
       // If the return type is unknown and we have no arguments, we do not infer anything useful -
       // so we withdraw.
+      return null;
+    }
+
+    if (hasAnyDefaults) {
+      // TODO we don't yet have ability to return a signature with default arguments
       return null;
     }
 
@@ -354,6 +411,17 @@ abstract class TypePropagation {
         if (isConstructorOrType(function.name())) {
           return resolveConstructorOnType(typeObject, function.name(), relatedWholeApplicationIR);
         } else {
+          // Calling `Type.method` - first we check if `method` is defined on `Any` and call that as
+          // member method on _value_ `Type`.
+          if (!BuiltinTypes.isAny(typeObject.name())) {
+            var resolvedAnyMethod =
+                methodTypeResolver.resolveMethod(TypeScopeReference.ANY, function.name());
+            if (resolvedAnyMethod != null) {
+              return resolvedAnyMethod;
+            }
+          }
+
+          // Then we resolve the _static_ `method` on the `Type` - by looking at the eigen type.
           // We resolve static calls on the eigen type. It should also contain registrations of the
           // static variants of member methods, so we don't need to inspect member scope.
           var staticScope = TypeScopeReference.atomEigenType(typeObject.name());
@@ -565,10 +633,6 @@ abstract class TypePropagation {
         logger.trace(
             "type ascription: {} - overwriting inferred type {}", ir.showCode(), inferredType);
       }
-
-      // If the inferred type implies the ascription will fail at runtime, we can report a warning
-      // here.
-      checkTypeCompatibility(ir, ascribedType, inferredType);
     }
   }
 }

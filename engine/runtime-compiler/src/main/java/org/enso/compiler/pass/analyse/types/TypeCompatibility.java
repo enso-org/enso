@@ -2,7 +2,11 @@ package org.enso.compiler.pass.analyse.types;
 
 /** A class that helps with computing compatibility between types. */
 class TypeCompatibility {
-  TypeCompatibility() {}
+  TypeCompatibility(MethodTypeResolver methodTypeResolver) {
+    this.conversionResolver = methodTypeResolver;
+  }
+
+  private final MethodTypeResolver conversionResolver;
 
   /** Denotes if a given provided type can fit into an expected type. */
   enum Compatibility {
@@ -81,26 +85,49 @@ class TypeCompatibility {
       return Compatibility.NEVER_COMPATIBLE;
     }
 
-    if (expected instanceof TypeRepresentation.AtomType
-        && provided instanceof TypeRepresentation.AtomType) {
-      // If both are atom types, but they were not == above, that means they are not compatible.
-      // TODO we have to check if there might be a conversion in the scope, see
-      // `noTypeErrorIfConversionExists` test
-      // return TypeCompatibility.NEVER_COMPATIBLE;
-      return Compatibility.UNKNOWN;
+    if (expected instanceof TypeRepresentation.AtomType expectedAtom
+        && provided instanceof TypeRepresentation.AtomType providedAtom) {
+      assert !expected.equals(provided)
+          : "Equal types should already have been handled by one of conditions above.";
+      boolean existsConversionInScope =
+          conversionResolver.findConversion(providedAtom, expectedAtom);
+      return existsConversionInScope
+          ? Compatibility.ALWAYS_COMPATIBLE
+          : Compatibility.NEVER_COMPATIBLE;
     }
 
-    if (isFunctionLike(expected) != isFunctionLike(provided)) {
+    boolean gotFunction = isFunctionLike(provided);
+    boolean expectingFunction = isFunctionLike(expected);
+    if (expectingFunction != gotFunction) {
       // If we are matching a function-like type with a non-function-like type, they are not
       // compatible.
       // TODO later check: this may not work well with a function that has all-default arguments
-      // TODO also here we have to check if there exists a conversion (TypeOf{expected}.from (that :
-      // Function) = ...) if {provided} is a function
-      // return TypeCompatibility.NEVER_COMPATIBLE;
-      return Compatibility.UNKNOWN;
+
+      if (gotFunction && expected instanceof TypeRepresentation.AtomType expectedAtom) {
+        return isConvertibleToFunction(expectedAtom)
+            ? Compatibility.ALWAYS_COMPATIBLE
+            : Compatibility.NEVER_COMPATIBLE;
+      }
+
+      if (expectingFunction && provided instanceof TypeRepresentation.AtomType providedAtom) {
+        // TODO for later: can we return ALWAYS_COMPATIBLE here?
+        return isConvertibleFromFunction(providedAtom)
+            ? Compatibility.UNKNOWN
+            : Compatibility.NEVER_COMPATIBLE;
+      }
+
+      return Compatibility.NEVER_COMPATIBLE;
     }
 
     return Compatibility.UNKNOWN;
+  }
+
+  private boolean isConvertibleToFunction(TypeRepresentation.AtomType type) {
+    return conversionResolver.findConversion(type, BuiltinTypes.functionTypeAsAtomType);
+  }
+
+  private boolean isConvertibleFromFunction(TypeRepresentation.AtomType type) {
+    return conversionResolver.findConversion(BuiltinTypes.functionTypeAsAtomType, type);
   }
 
   /** Checks if a given type is function-like, i.e. it can be used as a target of an application. */

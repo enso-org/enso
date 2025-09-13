@@ -35,7 +35,7 @@ final class RuntimeConnector(
 
   override def receive: Receive = {
     case RuntimeConnector.Initialize(engine) =>
-      logger.debug(
+      logger.trace(
         "Runtime connector established connection with the message endpoint"
       )
       unstashAll()
@@ -48,7 +48,7 @@ final class RuntimeConnector(
       case MessageFromRuntime(
             Runtime.Api.Response(None, Api.InitializedNotification())
           ) =>
-        logger.debug(
+        logger.trace(
           "Message endpoint [{}] is initialized. Runtime connector can accept messages",
           engine
         )
@@ -122,7 +122,8 @@ final class RuntimeConnector(
         case None =>
           logger.warn(
             "No sender has been found associated with request id [{}], the response [{}] will be dropped",
-            Array[Any](correlationId, payload.getClass.getCanonicalName)
+            correlationId,
+            payload.getClass.getCanonicalName
           )
           payload match {
             case msg: ToLogString =>

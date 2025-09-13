@@ -8,8 +8,6 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.common.LanguageInfo;
-import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
 import org.junit.Test;
 
@@ -22,13 +20,8 @@ public class ResourceManagerTest {
     var obj = new ResourceToGc();
     var fn = new FnCallback();
 
-    try (var ctx = ContextUtils.createDefaultContext()) {
-      ctx.enter();
-      var ensoContext =
-          (EnsoContext)
-              ctx.getBindings(LanguageInfo.ID)
-                  .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-                  .asHostObject();
+    try (var ctx = ContextUtils.createDefault()) {
+      var ensoContext = ctx.ensoContext();
 
       ensoContext.getResourceManager().register(obj, fn);
       assertNull("Not invoked yet", fn.args);

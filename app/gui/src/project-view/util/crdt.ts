@@ -1,6 +1,7 @@
 import type { Opt } from '@/util/data/opt'
+import { type ToValue } from '@/util/reactivity'
 import { ObservableV2 } from 'lib0/observable'
-import { watchEffect, type Ref } from 'vue'
+import { ref, toValue, watchEffect, type Ref } from 'vue'
 import type { Awareness } from 'y-protocols/awareness'
 import { WebsocketProvider } from 'y-websocket'
 import * as Y from 'yjs'
@@ -142,4 +143,19 @@ export class MockYdocProvider extends ObservableV2<MockYdocProviderMessages> {
   disconnect() {
     this.emit('client-disconnected', [])
   }
+}
+
+/** @returns a reactive view of the given Yjs text object's content. */
+export function useYText(text: ToValue<Y.Text>) {
+  const content = ref<string>()
+
+  watchEffect((onCleanup) => {
+    const textValue = toValue(text)
+    const update = () => (content.value = textValue.toJSON())
+    update()
+    textValue.observe(update)
+    onCleanup(() => textValue.unobserve(update))
+  })
+
+  return content
 }

@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.immutable;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCopyToArrayNode;
@@ -19,7 +20,8 @@ public abstract class InsertBuiltinVectorNode extends Node {
     return InsertBuiltinVectorNodeGen.create();
   }
 
-  abstract EnsoObject execute(Object vec, long index, Object values);
+  abstract EnsoObject execute(
+      @AcceptsWarning Object vec, long index, @AcceptsWarning Object values);
 
   @Specialization
   EnsoObject fromObject(

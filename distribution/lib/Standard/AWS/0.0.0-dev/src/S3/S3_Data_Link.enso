@@ -13,12 +13,18 @@ import project.AWS_Credential.AWS_Credential
 import project.S3.S3_File.S3_File
 from project.Internal.Data_Link_Helpers import decode_aws_credential
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type S3_Data_Link
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (uri : Text) format_json (credentials : AWS_Credential)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     parse json source -> S3_Data_Link =
         _ = source
         uri = get_required_field "uri" json expected_type=Text
@@ -26,37 +32,57 @@ type S3_Data_Link
         format_json = get_optional_field "format" json
         S3_Data_Link.Value uri format_json auth
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     as_file self -> S3_File = S3_File.new self.uri self.credentials
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     default_format self -> Any ! Illegal_State =
         parse_format self.format_json
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
         effective_format = if format != Auto_Detect then format else self.default_format
         self.as_file.read effective_format on_problems
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
         self.as_file.with_input_stream open_options action
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     with_output_stream self (open_options : Vector) (action : Output_Stream -> Any) -> Any =
         self.as_file.with_output_stream open_options action
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     as_writable_file self -> Writable_File = Writable_File.from self.as_file
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Data_Link_With_Input_Stream.from (that:S3_Data_Link) = Data_Link_With_Input_Stream.Value that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Data_Link_With_Output_Stream.from (that:S3_Data_Link) = Data_Link_With_Output_Stream.Value that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Writable_Data_Link.from (that:S3_Data_Link) = Writable_Data_Link.Value that
 
-## PRIVATE
+## ---
+   private: true
+   ---
 File_Like_Data_Link.from (that:S3_Data_Link) = File_Like_Data_Link.Value that that.as_file

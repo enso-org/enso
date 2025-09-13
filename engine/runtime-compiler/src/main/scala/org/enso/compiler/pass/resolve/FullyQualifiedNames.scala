@@ -102,29 +102,25 @@ case object FullyQualifiedNames extends IRPass {
               val allStarting = moduleContext.pkgRepo
                 .map(
                   _.getLoadedModules.filter(m =>
-                    exportedModuleRef.getName != m.getName && m
-                      .getName()
-                      .toString
+                    exportedModuleRef.getName != m.getName && m.getName.toString
                       .startsWith(exportedModuleRef.getName.toString + ".")
                   )
                 )
                 .getOrElse(Nil)
               if (allStarting.nonEmpty) {
-                ir.exports.foreach { export =>
-                  export match {
-                    case m: Export.Module
-                        if m.name.name == resolution.qualifiedName.toString =>
-                      m.addDiagnostic(
-                        warnings.Shadowed.TypeInModuleNameConflicts(
-                          exportedModule.getName.toString,
-                          tpeName,
-                          allStarting.head.getName.toString,
-                          m,
-                          m.identifiedLocation
-                        )
+                ir.exports.foreach {
+                  case m: Export.Module
+                      if m.name.name == resolution.qualifiedName.toString =>
+                    m.addDiagnostic(
+                      warnings.Shadowed.TypeInModuleNameConflicts(
+                        exportedModule.getName.toString,
+                        tpeName,
+                        allStarting.head.getName.toString,
+                        m,
+                        m.identifiedLocation
                       )
-                    case _ =>
-                  }
+                    )
+                  case _ =>
                 }
               }
             }
@@ -235,16 +231,12 @@ case object FullyQualifiedNames extends IRPass {
   ): Expression =
     ir.transformExpressions {
       case lit: Name.Literal =>
-        val isTypeName = typeParams.find(_.name == lit.name).nonEmpty
+        val isTypeName = typeParams.exists(_.name == lit.name)
         if (!lit.isMethod && !isLocalVar(lit) && !isTypeName) {
           val resolution = bindings.resolveName(lit.name)
           resolution match {
             case Left(_) =>
-              if (
-                pkgRepo
-                  .map(_.isNamespaceRegistered(lit.name))
-                  .getOrElse(false)
-              ) {
+              if (pkgRepo.exists(_.isNamespaceRegistered(lit.name))) {
                 lit.updateMetadata(
                   new MetadataPair(
                     this,
@@ -260,7 +252,7 @@ case object FullyQualifiedNames extends IRPass {
         } else {
           lit
         }
-      case app @ Application.Prefix(_, List(_), _, _, _) =>
+      case app: Application.Prefix if app.arguments.nonEmpty =>
         app.function match {
           case lit: Name.Literal =>
             if (lit.isMethod)
@@ -351,7 +343,7 @@ case object FullyQualifiedNames extends IRPass {
     }
 
     processedApp.getOrElse(
-      app.copy(function = processedFun, arguments = processedArgs)
+      app.copy(processedFun, processedArgs)
     )
   }
 
@@ -409,14 +401,13 @@ case object FullyQualifiedNames extends IRPass {
   }
 
   private def isLocalVar(name: Name.Literal): Boolean = {
-    val aliasInfo = name
-      .unsafeGetMetadata(
-        AliasAnalysis,
-        "no alias analysis info on a name"
-      )
-      .unsafeAs[AliasInfo.Occurrence]
-    val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
-    defLink.isDefined
+    name.getMetadata(AliasAnalysis) match {
+      case None => false
+      case Some(aliasMeta) =>
+        val aliasInfo = aliasMeta.unsafeAs[AliasInfo.Occurrence]
+        val defLink   = aliasInfo.graph.defLinkFor(aliasInfo.id)
+        defLink.isDefined
+    }
   }
 
   /** The FQN resolution metadata for a node.

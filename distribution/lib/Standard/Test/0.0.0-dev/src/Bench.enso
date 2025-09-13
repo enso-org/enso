@@ -4,14 +4,18 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 
 ## Configuration for a measurement phase or a warmup phase of a benchmark.
 type Phase_Conf
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
 
-       Arguments:
-       - iterations: The number of iterations of the phase.
-       - seconds: The minimal number of seconds per one iteration.
+       ## Arguments
+        - `iterations`: The number of iterations of the phase.
+        - `seconds`: The minimal number of seconds per one iteration.
     Impl (iterations:Integer) (seconds:Integer)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self =
         self.iterations.to_text + " iterations, " + self.seconds.to_text + " seconds each"
 
@@ -22,11 +26,13 @@ type Phase_Conf
         if self.iterations < 0 then Panic.throw (Illegal_Argument.Error "Iterations must be positive")
 
 
-## The benchmark options for a `Bench_Group`. These options roughly corresponds to the options
-   defined in the JMH benchmarking library. See the JMH documentation for more details:
-   https://javadoc.io/doc/org.openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/package-summary.html
+## The benchmark options for a `Bench_Group`. These options roughly corresponds
+   to the options defined in the JMH benchmarking library. See the JMH
+   documentation for [more details](https://javadoc.io/doc/org.openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/package-summary.html).
 type Bench_Options
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Impl (warmup:Phase_Conf) (measure:Phase_Conf)
 
     ## Sets the warmup phase.
@@ -37,7 +43,9 @@ type Bench_Options
     set_measure : Phase_Conf -> Bench_Options
     set_measure self (meas:Phase_Conf) = Bench_Options.Impl self.warmup meas
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self = "[warmup={" + self.warmup.to_text + "}, measurement={" + self.measure.to_text + "}]"
 
     ## Validates the config and throws a Panic if it is invalid.
@@ -48,7 +56,9 @@ type Bench_Options
 
 ## Builder to create benchmark run.
 type Bench_Builder
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Impl builder
 
     ## Add a group to the builder.
@@ -61,13 +71,15 @@ type Bench_Builder
 
 ## Builder to create a group of benchmarks.
 type Group_Builder
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Impl name builder
 
     ## Adds a benchmark specification to the group.
 
-       Arguments:
-       - name: The name of the benchmark. Must be a valid Java identifier.
+       ## Arguments
+        - `name`: The name of the benchmark. Must be a valid Java identifier.
     specify : Text -> Any -> Bench
     specify self (name:Text) ~benchmark =
         validate_name name
@@ -96,13 +108,12 @@ type Bench
     options = Bench_Options.Impl Bench.phase_conf Bench.phase_conf
 
     ## Returns the default phase configuration.
+       The default used for the JMH library are 5 iterations for 10 seconds each.
+       However, our defaults are lower to make the benchmarks run faster.
 
-       The default used for the JMH library are 5 iterations for 10 seconds
-       each. However, our defaults are lower to make the benchmarks run faster.
-
-       Arguments:
-       - iterations: The number of iterations of the phase.
-       - seconds: The minimal number of seconds per one iteration.
+       ## Arguments
+        - `iterations`: The number of iterations of the phase.
+        - `seconds`: The minimal number of seconds per one iteration.
     phase_conf : Integer -> Integer -> Phase_Conf
     phase_conf iterations=2 seconds=3 =
         Phase_Conf.Impl iterations seconds
@@ -183,21 +194,23 @@ type Bench
 
     ## Measure the amount of time it takes to execute a given computation.
 
-       Arguments:
-       - label: A name for the benchmark.
-       - warmup_conf: Warmup phase configuration.
-       - measure_conf: Measurement phase configuration.
-       - act: The action to perform.
+       ## Arguments
+        - `label`: A name for the benchmark.
+        - `warmup_conf`: Warmup phase configuration.
+        - `measure_conf`: Measurement phase configuration.
+        - `act`: The action to perform.
 
-       > Example
-         Measure a computation called "foo" with an iteration size of 2 and a number
+       ## Examples
+       ### Measure a computation called "foo" with an iteration size of 2 and a number
          of iterations of 1.
 
+       ```
              import Standard.Examples
              from Standard.Test import Bench
 
              example_measure =
                  Bench.measure "foo" warmup_iters=2 measurement_iters=1 Examples.get_boolean
+       ```
     measure : Text -> Phase_Conf -> Phase_Conf -> Any -> Nothing
     measure (label:Text) (warmup_conf:Phase_Conf) (measure_conf:Phase_Conf) ~act =
         dry_run = Environment.get "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
@@ -228,15 +241,14 @@ type Bench
         end - start
 
     ## Run a single phase of the benchmark.
+       The total run time of the phase is computed as `conf.seconds *
+       conf.iterations`, so that it is the same as in JMH.
 
-       The total run time of the phase is computed as `conf.seconds * conf.iterations`,
-       so that it is the same as in JMH.
-
-       Arguments:
-       - label: A name for the benchmark.
-       - phase_name: The name of the phase.
-       - conf: The phase configuration.
-       - act: Method that should be measured - benchmark body.
+       ## Arguments
+        - `label`: A name for the benchmark.
+        - `phase_name`: The name of the phase.
+        - `conf`: The phase configuration.
+        - `act`: Method that should be measured - benchmark body.
     run_phase : Text -> Text -> Phase_Conf -> (Any -> Any) -> Nothing
     run_phase (label:Text) (phase_name:Text) (conf:Phase_Conf) ~act =
         duration_ns = conf.iterations * conf.seconds * 1000000000
@@ -259,10 +271,10 @@ type Bench
         phase_duration = Duration.new nanoseconds=(phase_end - phase_start)
         Bench.summarize_phase label phase_name run_iters avg stddev phase_duration
 
-    ## PRIVATE
-       This is a very simple implementation of summarizing the benchmark
-       results.
-
+    ## ---
+       private: true
+       ---
+       This is a very simple implementation of summarizing the benchmark results.
        We may want to improve it later, but it gets the job done to give us
        simple summary that can be analysed more easily than logs.
     summarize_phase (label:Text) (phase_name:Text) (invocations:Integer) (average_time:Float) (time_stddev:Float) (phase_duration:Duration) =
@@ -278,10 +290,11 @@ type Bench
                 line = '\n"'+label+'","'+phase_name+'",'+invocations.to_text+','+avg_fmt+','+stddev_fmt
                 line.write path on_existing_file=Existing_File_Behavior.Append
 
-## PRIVATE
-
-   Checks whether the given name is a valid benchmark name - either group name
-   or a spec name. The name should be a valid Java identifier.
+## ---
+   private: true
+   ---
+   Checks whether the given name is a valid benchmark name - either group name or
+   a spec name. The name should be a valid Java identifier.
    Throw a Panic error if the validation fails.
 validate_name : Text -> Nothing
 validate_name name =
@@ -290,6 +303,8 @@ validate_name name =
     if valid_java_identifier_regex.matches name then Nothing else
         Panic.throw (Illegal_Argument.Error ("Invalid benchmark name: '" + name + "'"))
 
-## PRIVATE
+## ---
+   private: true
+   ---
 get_benchmark_report_path : Text | Nothing
 get_benchmark_report_path = Environment.get "ENSO_BENCHMARK_REPORT_PATH"

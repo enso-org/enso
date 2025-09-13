@@ -4,7 +4,10 @@ import sbt.internal.LogManager
 import sbt.internal.util.ConsoleAppender.{noSuppressedMessage, Properties}
 
 object CustomLogManager {
-  def excludeMsg(msgPrefix: String, level: sbt.Level.Value): LogManager = {
+  def excludeMsg(
+    msgPrefix: List[String],
+    level: sbt.Level.Value
+  ): LogManager = {
     sbt.internal.LogManager.withLoggers((_, _) =>
       new CustomAppender(level, msgPrefix, ConsoleOut.systemOut)
     )
@@ -24,7 +27,7 @@ object CustomLogManager {
     */
   final private class CustomAppender(
     excludeLevel: sbt.Level.Value,
-    prefix: String,
+    prefixes: List[String],
     out: ConsoleOut
   ) extends ConsoleAppender(
         "out",
@@ -33,7 +36,10 @@ object CustomLogManager {
         noSuppressedMessage
       ) {
     override def appendLog(level: sbt.Level.Value, message: => String): Unit = {
-      if (excludeLevel != level || !message.startsWith(prefix)) {
+      if (
+        excludeLevel != level || prefixes
+          .forall(prefix => !message.startsWith(prefix))
+      ) {
         super.appendLog(level, message)
       }
     }

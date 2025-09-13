@@ -6,7 +6,6 @@ import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.logger.masking.MaskedPath
 import org.enso.polyglot.runtime.Runtime.Api
 
-import java.util.logging.Level
 import scala.concurrent.ExecutionContext
 
 /** A command that performs edition of a file.
@@ -24,7 +23,6 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Unit = {
-    val logger = ctx.executionService.getLogger
     ctx.locking.withFileLock(
       request.path,
       this.getClass,
@@ -32,14 +30,11 @@ class EditFileCmd(request: Api.EditFileNotification)
         ctx.locking.withPendingEditsLock(
           this.getClass,
           () => {
-            logger.log(
-              Level.FINEST,
-              "Adding pending file [{0}] edits [{1}] and IdMap of length {2}",
-              Array[Any](
-                MaskedPath(request.path.toPath),
-                request.edits.map(e => (e.range, e.text.length)),
-                request.idMap.map(_.values.length)
-              )
+            logger.trace(
+              "Adding pending file [{}] edits [{}] and IdMap of length {}",
+              MaskedPath(request.path.toPath),
+              request.edits.map(e => (e.range, e.text.length)),
+              request.idMap.map(_.values.length)
             )
             val edits =
               request.edits.map(edit =>
@@ -47,7 +42,17 @@ class EditFileCmd(request: Api.EditFileNotification)
               )
             ctx.state.pendingEdits.enqueue(request.path, edits)
             request.idMap.foreach { idMap =>
-              ctx.state.pendingEdits.updateIdMap(request.path, idMap)
+              {
+                logger.trace(
+                  "IdMap update: {}",
+                  idMap.values
+                    .map(v =>
+                      "(" + v._2 + " -> " + v._1.start + ":" + v._1.end + ")"
+                    )
+                    .mkString(",")
+                )
+                ctx.state.pendingEdits.updateIdMap(request.path, idMap)
+              }
             }
             if (request.execute) {
               ctx.jobControlPlane.abortAllJobs("edit file")
@@ -72,7 +77,7 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx.contextManager.getAllContexts
       .collect {
         case (contextId, stack) if stack.nonEmpty =>
-          ExecuteJob(contextId, stack.toList)
+          ExecuteJob(contextId, stack.toList, "edit file cmd")
       }
   }
 

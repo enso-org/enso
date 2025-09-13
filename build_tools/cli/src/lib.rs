@@ -29,9 +29,11 @@ use crate::arg::WatchJob;
 use anyhow::Context;
 use arg::BuildDescription;
 use clap::Parser;
+use enso_build::cloud_tests;
 use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
+use enso_build::engine::BenchmarkType;
 use enso_build::engine::Benchmarks;
 use enso_build::engine::StandardLibraryTestsSelection;
 use enso_build::engine::Tests;
@@ -58,7 +60,6 @@ use enso_build::source::Source;
 use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
-use futures_util::future::try_join;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
 use ide_ci::fs::remove_if_exists;
@@ -134,12 +135,9 @@ impl Processor {
     {
         let span = info_span!("Resolving.", ?target, ?source).entered();
         let destination = source.output_path.output_path;
-        let should_upload_artifact = source.build_args.upload_artifact;
         let source = match source.source {
             arg::SourceKind::Build => T::resolve(self, source.build_args.input)
-                .map_ok(move |input| {
-                    Source::BuildLocally(BuildSource { input, should_upload_artifact })
-                })
+                .map_ok(move |input| Source::BuildLocally(BuildSource { input }))
                 .boxed(),
             arg::SourceKind::Local =>
                 ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path))),
@@ -209,16 +207,10 @@ impl Processor {
         &self,
         job: BuildJob<T>,
     ) -> BoxFuture<'static, Result<BuildTargetJob<T>>> {
-        let BuildJob { input: BuildDescription { input, upload_artifact }, output_path } = job;
+        let BuildJob { input: BuildDescription { input, .. }, output_path } = job;
         let input = self.resolve_inputs::<T>(input);
         async move {
-            Ok(WithDestination::new(
-                BuildSource {
-                    input:                  input.await?,
-                    should_upload_artifact: upload_artifact,
-                },
-                output_path.output_path,
-            ))
+            Ok(WithDestination::new(BuildSource { input: input.await? }, output_path.output_path))
         }
         .boxed()
     }
@@ -285,6 +277,32 @@ impl Processor {
                 let root = self.repo_root.to_path_buf();
                 async move { project::wasm::test(root, &wasm_browsers, !no_native).await }.boxed()
             }
+            arg::wasm::Command::Lint => {
+                let repo_root = self.repo_root.clone();
+                async move {
+                    Cargo
+                        .cmd()?
+                        .current_dir(&repo_root)
+                        .arg(cargo::clippy::COMMAND)
+                        .apply(&cargo::Options::Workspace)
+                        .apply(&cargo::Options::Package("enso-integration-test".into()))
+                        .apply(&cargo::Options::AllTargets)
+                        .apply(&cargo::Color::Always)
+                        .arg("--")
+                        .apply(&rustc::Option::Deny(rustc::Lint::Warnings))
+                        .run_ok()
+                        .await?;
+
+                    Cargo
+                        .cmd()?
+                        .current_dir(&repo_root)
+                        .arg("fmt")
+                        .args(["--", "--check"])
+                        .run_ok()
+                        .await
+                }
+                .boxed()
+            }
         }
     }
 
@@ -327,6 +345,7 @@ impl Processor {
                 let input = Backend::resolve(self, input);
                 let repo = self.remote_repo.clone();
                 let context = self.context();
+                let small_jdk_dir = context.repo_root.target.small_jdk.path.clone();
                 async move {
                     let input = input.await?;
                     let operation = enso_build::engine::Operation::Release(
@@ -339,6 +358,8 @@ impl Processor {
                         build_engine_package: true,
                         build_launcher_bundle: true,
                         build_project_manager_bundle: true,
+                        build_small_jdk: true,
+                        small_jdk_dir: Some(small_jdk_dir),
                         verify_packages: true,
                         ..default()
                     };
@@ -348,9 +369,9 @@ impl Processor {
                 }
                 .boxed()
             }
-            arg::backend::Command::Benchmark { which, minimal_run } => {
+            arg::backend::Command::Benchmark { minimal_run, bench_type, bench_name } => {
                 let config = enso_build::engine::BuildConfigurationFlags {
-                    execute_benchmarks: which.into_iter().collect(),
+                    execute_benchmarks: Some(Benchmarks { bench_name, bench_type }),
                     execute_benchmarks_once: minimal_run,
                     ..default()
                 };
@@ -364,33 +385,95 @@ impl Processor {
             }
             arg::backend::Command::Test { which } => {
                 let mut config = enso_build::engine::BuildConfigurationFlags::default();
+                self.add_heapdump_opts(&mut config);
                 for arg in which {
                     match arg {
                         Tests::Jvm => {
                             config.test_jvm = true;
                             // We also test the Java parser integration when running the JVM tests.
                             config.test_java_generated_from_rust = true;
+                            config.build_native_ydoc = TARGET_OS == OS::Linux;
+                            // Benchmarks are only checked on Linux because:
+                            // * they are then run only on Linux;
+                            // * checking takes time;
+                            // * this rather verifies the Enso code correctness which should not be
+                            //   platform specific.
+                            // Checking benchmarks on Windows has caused some CI issues, see
+                            // https://github.com/enso-org/enso/issues/8777#issuecomment-1895749820 for the
+                            // possible explanation.
+                            config.build_benchmarks = TARGET_OS == OS::Linux;
+                            config.execute_benchmarks_once = true;
+                            config.execute_benchmarks = if TARGET_OS == OS::Linux {
+                                Some(Benchmarks {
+                                    bench_name: None,
+                                    bench_type: BenchmarkType::Runtime,
+                                })
+                            } else {
+                                None
+                            };
+                            config.check_enso_benchmarks = TARGET_OS == OS::Linux;
                         }
-                        Tests::StandardLibrary => config.add_standard_library_test_selection(
-                            StandardLibraryTestsSelection::All,
-                        ),
-                        Tests::StdSnowflake => config.add_standard_library_test_selection(
-                            StandardLibraryTestsSelection::Selected(vec![
-                                "Snowflake_Tests".to_string()
-                            ]),
-                        ),
-                        Tests::StdCloudRelated => config.add_standard_library_test_selection(
-                            StandardLibraryTestsSelection::Selected(vec![
-                                "Base_Tests".to_string(),
-                                // Table tests check integration of e.g. Postgres datalinks
-                                "Table_Tests".to_string(),
-                                // AWS tests check copying between Cloud and S3
-                                "AWS_Tests".to_string(),
-                                // Image tests check interaction between Image read/write and
-                                // datalinks
-                                "Image_Tests".to_string(),
-                            ]),
-                        ),
+                        Tests::StandardLibrary => {
+                            config.build_small_jdk = true;
+                            let small_jdk_dir =
+                                self.context.repo_root.target.small_jdk.path.clone();
+                            config.small_jdk_dir = Some(small_jdk_dir.clone());
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::blacklist(vec![
+                                    "Microsoft_Tests".to_string(),
+                                ]));
+                            config.add_engine_runner_arg("--jvm");
+                            config.add_engine_runner_arg(
+                                small_jdk_dir.to_string_lossy().to_string().as_str(),
+                            );
+                            config.use_native_runner = true;
+                        }
+                        Tests::StandardLibraryInNative => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::blacklist(vec![
+                                    "Microsoft_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = true;
+                        }
+                        Tests::StdSnowflake => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Snowflake_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = false;
+                        }
+                        Tests::StdSnowflakeJVM => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Snowflake_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = false;
+                            config.extra_engine_runner_args = Some(vec!["--jvm".to_string()])
+                        }
+                        Tests::StdCloudRelated => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Base_Tests".to_string(),
+                                    // Base Internal tests contain some cloud tests that need
+                                    // access to cloud internals
+                                    "Base_Internal_Tests".to_string(),
+                                    // Table tests check integration of e.g. Postgres datalinks
+                                    "Table_Tests".to_string(),
+                                    // AWS tests check copying between Cloud and S3
+                                    "AWS_Tests".to_string(),
+                                    // Image tests check interaction between Image read/write and
+                                    // datalinks
+                                    "Image_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = true;
+                        }
+                        Tests::StdMicrosoft => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Microsoft_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = true;
+                        }
                     }
                 }
                 let context = self.prepare_backend_context(config);
@@ -405,31 +488,29 @@ impl Processor {
                 }
                 .boxed()
             }
-            arg::backend::Command::CiCheck {} => {
+            arg::backend::Command::StdlibApiCheck {} => {
                 let config = enso_build::engine::BuildConfigurationFlags {
-                    build_benchmarks: true,
+                    stdlib_api_check: true,
+                    ..default()
+                };
+                let context = self.prepare_backend_context(config);
+                async move {
+                    let context = context.await?;
+                    context.build().await
+                }
+                .void_ok()
+                .boxed()
+            }
+            arg::backend::Command::GenerateCloudCredentials {} => async move {
+                let auth_config = cloud_tests::build_auth_config_from_environment()?;
+                let path = Path::new("enso.credentials");
+                cloud_tests::build_credentials_file(auth_config, path).await
+            }
+            .boxed(),
+            arg::backend::Command::CiBuildEngineDistribution {} => {
+                let config = enso_build::engine::BuildConfigurationFlags {
+                    build_engine_package: true,
                     build_native_runner: true,
-                    // Espresso+NI needs to be checked only on a single platform.
-                    build_espresso_runner: TARGET_OS == OS::Linux,
-                    build_native_ydoc: TARGET_OS == OS::Linux,
-                    execute_benchmarks: {
-                        // Run benchmarks only on Linux.
-                        let mut ret = BTreeSet::new();
-                        if TARGET_OS == OS::Linux {
-                            ret.insert(Benchmarks::Runtime);
-                        }
-                        ret
-                    },
-                    execute_benchmarks_once: true,
-                    // Benchmarks are only checked on Linux because:
-                    // * they are then run only on Linux;
-                    // * checking takes time;
-                    // * this rather verifies the Enso code correctness which should not be platform
-                    //   specific.
-                    // Checking benchmarks on Windows has caused some CI issues, see
-                    // https://github.com/enso-org/enso/issues/8777#issuecomment-1895749820 for the
-                    // possible explanation.
-                    check_enso_benchmarks: TARGET_OS == OS::Linux,
                     verify_packages: true,
                     ..default()
                 };
@@ -463,6 +544,19 @@ impl Processor {
             Ok(enso_build::engine::RunContext { inner, config, paths, external_runtime: None })
         }
         .boxed()
+    }
+
+    /// Add options to produce heap dumps on OOM errors.
+    /// It is essential to pass the `-XX:+HeapDumpOnOutOfMemoryError` option both via
+    /// `JAVA_TOOL_OPTIONS` env var and as a command line argument to the runner.
+    /// For explanation, see https://github.com/enso-org/enso/pull/13984
+    fn add_heapdump_opts(&self, config: &mut enso_build::engine::BuildConfigurationFlags) {
+        let dump_arg = "-XX:+HeapDumpOnOutOfMemoryError";
+        config.add_java_tool_opt(dump_arg);
+        if TARGET_OS != OS::Windows {
+            // This flag is not supported on Windows NI.
+            config.add_engine_runner_arg(dump_arg);
+        }
     }
 
     /// Get a handle to the release by its identifier.
@@ -551,16 +645,7 @@ impl Processor {
         };
 
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
-        let artifact_name_prefix = input.artifact_name.clone();
-        let build_job = target.build(&self.context, input, output_path);
-        async move {
-            let artifacts = build_job.await?;
-            if is_in_env() {
-                artifacts.upload_as_ci_artifact(artifact_name_prefix).await?;
-            }
-            Ok(artifacts)
-        }
-        .boxed()
+        target.build(&self.context, input, output_path)
     }
 
     pub fn target<Target: Resolvable>(&self) -> Result<Target> {
@@ -586,9 +671,10 @@ impl Resolvable for Gui {
         ctx: &Processor,
         from: <Self as IsTargetSource>::BuildInput,
     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-        let arg::gui::BuildInput {} = from;
+        let arg::gui::BuildInput { mode } = from;
         ok_ready_boxed(project::gui::BuildInput {
-            version:     ctx.triple.versions.version.clone(),
+            mode,
+            version: ctx.triple.versions.version.clone(),
             commit_hash: ctx.commit(),
         })
     }
@@ -693,6 +779,12 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             }
 
             if !dry_run {
+                enso_build::web::install(&ctx.repo_root).await?;
+                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean)
+                    .await?;
+            }
+
+            if !dry_run {
                 // On Windows, `npm` uses junctions as symbolic links for in-workspace dependencies.
                 // Unfortunately, Git for Windows treats those as hard links. That then leads to
                 // `git clean` recursing into those linked directories, happily deleting sources of
@@ -713,31 +805,8 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 }
                 Result::Ok(())
             };
-            try_join(git_clean, clean_cache).await?;
-        }
-        Target::Lint => {
-            Cargo
-                .cmd()?
-                .current_dir(&ctx.repo_root)
-                .arg(cargo::clippy::COMMAND)
-                .apply(&cargo::Options::Workspace)
-                .apply(&cargo::Options::Package("enso-integration-test".into()))
-                .apply(&cargo::Options::AllTargets)
-                .apply(&cargo::Color::Always)
-                .arg("--")
-                .apply(&rustc::Option::Deny(rustc::Lint::Warnings))
-                .run_ok()
-                .await?;
 
-            Cargo
-                .cmd()?
-                .current_dir(&ctx.repo_root)
-                .arg("fmt")
-                .args(["--", "--check"])
-                .run_ok()
-                .await?;
-
-            enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
+            try_join!(git_clean, clean_cache)?;
         }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;
@@ -817,8 +886,16 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             enso_build::changelog::check::check(ctx.repo_root.clone(), ci_context).await?;
         }
         Target::Libraries(command) => match command.action {
+            libraries::Command::CheckSyntax => {
+                enso_build::rust::enso_linter::check_syntax(ctx.repo_root.clone()).await?;
+            }
             libraries::Command::Lint => {
-                enso_build::rust::enso_linter::lint_all(ctx.repo_root.clone()).await?;
+                let config = enso_build::engine::BuildConfigurationFlags {
+                    run_enso_lint: true,
+                    ..default()
+                };
+                let backend_context = ctx.prepare_backend_context(config).await?;
+                backend_context.build().await?;
             }
         },
     };

@@ -32,7 +32,8 @@ public class PrivateCheckDisabledTest {
     var mainDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Main", mainSrc, mainDir);
     var ctxBuilder =
-        ContextUtils.defaultContextBuilder().option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true");
+        ContextUtils.newBuilder()
+            .withModifiedContext(bldr -> bldr.option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true"));
     ProjectUtils.testProjectRun(
         ctxBuilder,
         mainDir,

@@ -1,13 +1,11 @@
 package org.enso.compiler.benchmarks.inline;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.benchmarks.Utils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -43,17 +41,16 @@ public class InlineCompilerBenchmark {
 
   private static final int LONG_EXPR_SIZE = 5;
 
-  private final OutputStream out = new ByteArrayOutputStream();
   private Compiler compiler;
-  private Context ctx;
+  private ContextUtils ctx;
   private InlineSource inlineSource;
   private String longExpression;
   private Set<String> localVarNames;
 
   @Setup
   public void setup() throws IOException {
-    ctx = Utils.createDefaultContextBuilder().out(out).err(out).logHandler(out).build();
-    var ensoCtx = Utils.leakEnsoContext(ctx);
+    ctx = Utils.createDefaultContextBuilder().build();
+    var ensoCtx = ctx.ensoContext();
     compiler = ensoCtx.getCompiler();
     localVarNames = InlineContextUtils.localVarNames(LOCAL_VARS_CNT);
     longExpression = InlineContextUtils.createLongExpression(localVarNames, LONG_EXPR_SIZE);
@@ -62,15 +59,10 @@ public class InlineCompilerBenchmark {
 
   @TearDown
   public void tearDown() {
-    ctx.close();
-    try {
-      if (!out.toString().isEmpty()) {
-        throw new AssertionError("Unexpected output from the compiler: " + out);
-      }
-      out.close();
-    } catch (IOException e) {
-      throw new AssertionError("Failed to close the output stream", e);
+    if (!ctx.getOut().isEmpty()) {
+      throw new AssertionError("Unexpected output from the compiler: " + ctx.getOut());
     }
+    ctx.close();
   }
 
   @Benchmark

@@ -16,10 +16,10 @@ import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.enso.base.Stream_Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * LRUCache is a cache for data presented via InputStreams. Files are deleted on JVM exit.
@@ -50,8 +50,8 @@ import org.enso.base.Stream_Utils;
  *
  * @param <M> Additional metadata to associate with the data.
  */
-public class LRUCache<M> {
-  private static final Logger logger = Logger.getLogger(LRUCache.class.getName());
+public class LRUCache<M> implements ReloadDetector.HasClearableCache {
+  private static final Logger LOGGER = LoggerFactory.getLogger(LRUCache.class);
 
   /**
    * An upper limit on the total cache size. If the cache size limit specified by the other
@@ -73,9 +73,6 @@ public class LRUCache<M> {
   /** Used to get the current free disk space; mockable. */
   private final DiskSpaceGetter diskSpaceGetter;
 
-  /** Used to clear the cache on reload. */
-  private final ReloadDetector reloadDetector = new ReloadDetector();
-
   public LRUCache() {
     this(LRUCacheSettings.getDefault(), new NowGetter(), new DiskSpaceGetter());
   }
@@ -84,6 +81,7 @@ public class LRUCache<M> {
     this.settings = settings;
     this.nowGetter = nowGetter;
     this.diskSpaceGetter = diskSpaceGetter;
+    ReloadDetector.register(this);
   }
 
   /**
@@ -92,7 +90,7 @@ public class LRUCache<M> {
    */
   public CacheResult<M> getResult(ItemBuilder<M> itemBuilder)
       throws IOException, InterruptedException, ResponseTooLargeException {
-    clearOnReload();
+    ReloadDetector.clearOnReload(this);
 
     String cacheKey = itemBuilder.makeCacheKey();
 
@@ -107,10 +105,8 @@ public class LRUCache<M> {
       // We don't re-attempt to store the cache file and entry. In some cases
       // (such as a cache file deleted from the outside), we could, but this is
       // a rare case so it seems unnecessary.
-      logger.log(
-          Level.WARNING,
-          "Error in cache file handling; will re-execute without caching: {0}",
-          e.getMessage());
+      LOGGER.warn(
+          "Error in cache file handling; will re-execute without caching: {}", e.getMessage());
       Item<M> rerequested = itemBuilder.buildItem();
       return new CacheResult<>(rerequested.stream(), rerequested.metadata());
     }
@@ -204,7 +200,7 @@ public class LRUCache<M> {
       outputStream.close();
       if (!successful) {
         if (!temp.delete()) {
-          logger.log(Level.WARNING, "Unable to delete cache file (key {})", cacheKey);
+          LOGGER.warn("Unable to delete cache file (key {})", cacheKey);
         }
       }
     }
@@ -224,12 +220,6 @@ public class LRUCache<M> {
   /** Remove all cache entries (and their files). */
   public void clear() {
     removeCacheEntriesByPredicate(e -> true);
-  }
-
-  private void clearOnReload() {
-    if (reloadDetector.hasReloadOccurred()) {
-      clear();
-    }
   }
 
   /** Remove all cache entries (and their cache files) that match the predicate. */
@@ -264,7 +254,7 @@ public class LRUCache<M> {
   private void removeCacheFile(String key, CacheEntry<M> cacheEntry) {
     boolean removed = cacheEntry.responseData.delete();
     if (!removed) {
-      logger.log(Level.WARNING, "Unable to delete cache file for key {0}", key);
+      LOGGER.warn("Unable to delete cache file for key {}", key);
     }
   }
 
@@ -363,11 +353,6 @@ public class LRUCache<M> {
     return settings;
   }
 
-  /** Public for testing. */
-  public void simulateReloadTestOnly() {
-    reloadDetector.simulateReloadTestOnly();
-  }
-
   private record CacheEntry<M>(File responseData, M metadata, long size, ZonedDateTime expiry) {}
 
   /**
@@ -384,6 +369,11 @@ public class LRUCache<M> {
     public boolean shouldCache() {
       return ttl.isPresent();
     }
+  }
+
+  @Override /* HasClearableCache */
+  public void clearCache() {
+    cache.clear();
   }
 
   public record CacheResult<M>(InputStream inputStream, M metadata) {}

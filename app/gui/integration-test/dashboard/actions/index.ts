@@ -1,31 +1,21 @@
 /** @file Various actions, locators, and constants used in end-to-end tests. */
-
-import { TEXTS, getText as baseGetText, type Replacements, type TextId } from 'enso-common/src/text'
-
+import { getText as baseGetText, type Replacements, type TextId } from 'enso-common/src/text'
 import path from 'node:path'
 import url from 'node:url'
-
-import { expect, test, type Page } from '@playwright/test'
-
-import {
-  INITIAL_CALLS_OBJECT,
-  mockApi,
-  type MockApi,
-  type SetupAPI,
-  type TrackedCalls,
-} from './api'
+import { expect, test, type Page } from 'playwright/test'
+import { INITIAL_CALLS_OBJECT, mockApi, type MockApi, type TrackedCalls } from './api'
+// Also necessary as a hack to avoid circular import errors.
 import DrivePageActions from './DrivePageActions'
 import LATEST_GITHUB_RELEASES from './latestGithubReleases.json' with { type: 'json' }
+import {
+  INITIAL_LOCAL_CALLS_OBJECT,
+  mockLocalApi,
+  type LocalMockApi,
+  type LocalTrackedCalls,
+} from './localApi'
 import LoginPageActions from './LoginPageActions'
-import StartModalActions from './StartModalActions'
-
-/** An example password that does not meet validation requirements. */
-export const INVALID_PASSWORD = 'password'
-/** An example password that meets validation requirements. */
-export const VALID_PASSWORD = 'Password0!'
-/** An example valid email address. */
-export const VALID_EMAIL = 'email@example.com'
-export const TEXT = TEXTS.english
+import { passAgreementsDialog, TEXT, type MockParams } from './utilities'
+export * from './utilities'
 
 export const getText = (key: TextId, ...replacements: Replacements[TextId]) => {
   return baseGetText(TEXT, key, ...replacements)
@@ -38,41 +28,30 @@ export function getAuthFilePath() {
 }
 
 /** Perform a successful login. */
-async function login({ page }: MockParams, email = 'email@example.com', password = VALID_PASSWORD) {
+async function loginIfNeeded(page: Page, actions: LoginPageActions<Context>) {
   const authFile = getAuthFilePath()
-
-  await waitForLoaded(page)
   const isLoggedIn = (await page.getByTestId('before-auth-layout').count()) === 0
-
   if (isLoggedIn) {
     test.info().annotations.push({
       type: 'skip',
       description: 'Already logged in',
     })
-    return
-  }
-
-  return test.step('Login', async () => {
-    test.info().annotations.push({
-      type: 'Login',
-      description: 'Performing login',
-    })
-    await page.getByPlaceholder(TEXT.emailPlaceholder).fill(email)
-    await page.getByPlaceholder(TEXT.passwordPlaceholder).fill(password)
-    await page.getByRole('button', { name: TEXT.login, exact: true }).getByText(TEXT.login).click()
-
-    await expect(page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
-
-    await passAgreementsDialog({ page })
-
+    const agreementModalVisible = (await page.locator('#agreements-modal').count()) > 0
+    if (agreementModalVisible) {
+      await passAgreementsDialog({ page })
+      await page.context().storageState({ path: authFile })
+    }
+  } else {
+    await actions.login()
     await page.context().storageState({ path: authFile })
-  })
+  }
 }
 
 /** Wait for the page to load. */
 async function waitForLoaded(page: Page) {
   await page.waitForLoadState()
 
+  await expect(page.getByTestId(/^(before|after)-auth-layout$/)).toBeAttached({ timeout: 30_000 })
   await expect(page.getByTestId('loading-screen')).toHaveCount(0, { timeout: 30_000 })
 }
 
@@ -84,12 +63,6 @@ async function waitForDashboardToLoad(page: Page) {
 
 /** A placeholder date for visual regression testing. */
 const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
-
-/** Parameters for {@link mockDate}. */
-interface MockParams {
-  readonly page: Page
-  readonly setupAPI?: SetupAPI | undefined
-}
 
 /** Replace `Date` with a version that returns a fixed time. */
 async function mockDate({ page }: MockParams) {
@@ -112,32 +85,20 @@ async function mockDate({ page }: MockParams) {
   })
 }
 
-/** Pass the Agreements dialog. */
-export async function passAgreementsDialog({ page }: MockParams) {
-  await test.step('Accept Terms and Conditions', async () => {
-    await page.waitForSelector('#agreements-modal')
-    await page
-      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
-      .getByText(TEXT.licenseAgreementCheckbox)
-      .click()
-    await page
-      .getByRole('group', { name: TEXT.privacyPolicyCheckbox })
-      .getByText(TEXT.privacyPolicyCheckbox)
-      .click()
-    await page.getByRole('button', { name: TEXT.accept }).click()
-  })
-}
-
 interface Context {
   readonly api: MockApi
+  readonly localApi: LocalMockApi
   calls: TrackedCalls
+  localCalls: LocalTrackedCalls
 }
 
 /** Set up all mocks, without logging in. */
-export function mockAll({ page, setupAPI }: MockParams) {
+export function mockAll({ page, setupAPI, setupLocalAPI }: MockParams) {
   const context: { -readonly [K in keyof Context]: Context[K] } = {
     api: undefined!,
+    localApi: undefined!,
     calls: INITIAL_CALLS_OBJECT,
+    localCalls: INITIAL_LOCAL_CALLS_OBJECT,
   }
   return new LoginPageActions<Context>(page, context)
     .step('Execute all mocks', async (page) => {
@@ -145,8 +106,10 @@ export function mockAll({ page, setupAPI }: MockParams) {
         mockApi({ page, setupAPI }).then((api) => {
           context.api = api
         }),
+        mockLocalApi({ page, setupLocalAPI }).then((localApi) => {
+          context.localApi = localApi
+        }),
         mockDate({ page }),
-        mockAllAnimations({ page }),
         mockUnneededUrls({ page }),
       ])
     })
@@ -156,33 +119,22 @@ export function mockAll({ page, setupAPI }: MockParams) {
     })
 }
 
-/** Set up all mocks, and log in with dummy credentials. */
-export function mockAllAndLogin({ page, setupAPI }: MockParams) {
-  const actions = mockAll({ page, setupAPI })
-  return actions
-    .step('Login', (page) => login({ page }))
-    .step('Wait for dashboard to load', waitForDashboardToLoad)
-    .step('Check if start modal is shown', async (page) => {
-      // @ts-expect-error This is the only place in which the private member `.context`
-      // should be accessed.
-      const context = actions.context
-      await new StartModalActions(page, context).close()
-    })
-    .into(DrivePageActions<Context>)
-}
+export interface MockAllAndLoginParams extends MockParams {}
 
-/** Mock all animations. */
-async function mockAllAnimations({ page }: MockParams) {
-  await test.step('Mock all animations', async () => {
-    await page.addInitScript({
-      content: `
-        window.DISABLE_ANIMATIONS = true;
-        document.addEventListener('DOMContentLoaded', () => {
-          document.documentElement.classList.add('disable-animations')
-        })
-      `,
-    })
-  })
+/** Set up all mocks, and log in with dummy credentials. */
+export function mockAllAndLogin({
+  page,
+  setupAPI,
+  setupLocalAPI,
+  goToCloudFirst = true,
+}: MockAllAndLoginParams) {
+  const actions = mockAll({ page, setupAPI, setupLocalAPI })
+
+  const driveActions = actions
+    .step('Pass login screen', (page, _ctx, actions) => loginIfNeeded(page, actions))
+    .step('Wait for dashboard to load', waitForDashboardToLoad)
+    .into(DrivePageActions<Context>)
+  return goToCloudFirst ? driveActions.goToCategory.cloud() : driveActions
 }
 
 /** Mock unneeded URLs. */

@@ -7,6 +7,7 @@ import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -36,10 +37,14 @@ public abstract class GetUnresolvedSymbolNameNode extends Node {
     return fromText;
   }
 
+  @Specialization
+  Text doConversion(UnresolvedConstructor cons) {
+    return Text.create(cons.getName());
+  }
+
   @Fallback
   Text doFallback(Object symbol) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
-    throw new PanicException(
-        builtins.error().makeTypeError("Unresolved_Symbol", symbol, "symbol"), this);
+    throw new PanicException(builtins.error().makeTypeError("Unresolved", symbol, "symbol"), this);
   }
 }

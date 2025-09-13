@@ -18,22 +18,30 @@
       "url": "https://community.ensoanalytics.com/",
       "menu": [
         {
+          "name": "gettingStarted",
+          "url": "https://community.ensoanalytics.com/c/start-here/welcome-to-enso-community"
+        },
+        {
           "name": "askAQuestion",
           "url": "https://community.ensoanalytics.com/c/q_and_a/"
         },
         {
-          "name": "enso101",
-          "url": "https://community.ensoanalytics.com/c/enso101/"
-        },
-        {
           "name": "componentExamples",
           "url": "https://community.ensoanalytics.com/c/enso-component-examples/"
+        },
+        {
+          "name": "exampleWorkflows",
+          "url": "https://community.ensoanalytics.com/c/example-workflows/"
         }
       ]
     },
     {
       "name": "docs",
       "url": "https://help.enso.org/"
+    },
+    {
+      "name": "contactUs",
+      "url": "https://ensoanalytics.com/contact"
     }
   ]
 }

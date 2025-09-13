@@ -1,75 +1,39 @@
+import './beforeMain' // Keep newline below to ensure that this import is always first.
+
 import '#/styles.css'
 import '#/tailwind.css'
-import * as sentry from '@sentry/react'
+import App from '$/App.vue'
+import router from '$/router'
+import { widgetDevtools } from '@/providers/widgetRegistry/devtools'
+import * as sentry from '@sentry/vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import * as detect from 'enso-common/src/detect'
 import { createQueryClient } from 'enso-common/src/queryClient'
-import { MotionGlobalConfig } from 'framer-motion'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as idbKeyval from 'idb-keyval'
-import { useEffect } from 'react'
-import {
-  createRoutesFromChildren,
-  matchRoutes,
-  useLocation,
-  useNavigationType,
-} from 'react-router-dom'
-import { createApp } from 'vue'
-import App from './App.vue'
+import { createApp, markRaw } from 'vue'
 
 const HTTP_STATUS_BAD_REQUEST = 400
 const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
 /** The fraction of non-erroring interactions that should be sampled by Sentry. */
 const SENTRY_SAMPLE_RATE = 0.005
-const SCAM_WARNING_TIMEOUT = 1000
 const INITIAL_URL_KEY = `Enso-initial-url`
 
-function main() {
-  setupScamWarning()
+markRaw(HttpClient.prototype)
+
+async function main() {
   setupSentry()
-  configureAnimations()
-  const appProps = imNotSureButPerhapsFixingRefreshingWithAuthentication()
+  const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = createQueryClientOfPersistCache()
+  const rootDirPath = await getRootDirPath()
 
-  const app = createApp(App, appProps)
-  app.use(VueQueryPlugin, { queryClient })
+  const app = createApp(App)
+  app.use(VueQueryPlugin, { queryClient, enableDevtoolsV6Plugin: true })
+  app.use(router)
+  app.use(widgetDevtools)
+  app.provide('rootDirPath', rootDirPath)
+  app.provide('onAuthenticated', onAuthenticated)
   app.mount('#enso-app')
-}
-
-function setupScamWarning() {
-  function printScamWarning() {
-    if (process.env.NODE_ENV === 'development') return
-    const headerCss = `
-      color: white;
-      background: crimson;
-      display: block;
-      border-radius: 8px;
-      font-weight: bold;
-      padding: 10px 20px 10px 20px;
-    `
-      .trim()
-      .replace(/\n\s+/, ' ')
-    const headerCss1 = headerCss + ' font-size: 46px;'
-    const headerCss2 = headerCss + ' font-size: 20px;'
-    const msgCSS = 'font-size: 16px;'
-
-    const msg1 =
-      'This is a browser feature intended for developers. If someone told you to ' +
-      'copy-paste something here, it is a scam and will give them access to your ' +
-      'account and data.'
-    const msg2 = 'See https://enso.org/selfxss for more information.'
-    console.log('%cStop!', headerCss1)
-    console.log('%cYou may be the victim of a scam!', headerCss2)
-    console.log('%c' + msg1, msgCSS)
-    console.log('%c' + msg2, msgCSS)
-  }
-
-  printScamWarning()
-  let scamWarningHandle = 0
-
-  window.addEventListener('resize', () => {
-    window.clearTimeout(scamWarningHandle)
-    scamWarningHandle = window.setTimeout(printScamWarning, SCAM_WARNING_TIMEOUT)
-  })
 }
 
 function setupSentry() {
@@ -79,13 +43,7 @@ function setupSentry() {
       environment: $config.ENVIRONMENT ?? 'dev',
       release: $config.VERSION ?? 'dev',
       integrations: [
-        sentry.reactRouterV6BrowserTracingIntegration({
-          useEffect,
-          useLocation,
-          useNavigationType,
-          createRoutesFromChildren,
-          matchRoutes,
-        }),
+        sentry.browserTracingIntegration({ router }),
         sentry.extraErrorDataIntegration({ captureErrorCause: true }),
         sentry.replayIntegration(),
         new sentry.BrowserProfilingIntegration(),
@@ -112,21 +70,6 @@ function setupSentry() {
         return event
       },
     })
-  }
-}
-
-function configureAnimations() {
-  const areAnimationsDisabled =
-    window.DISABLE_ANIMATIONS === true ||
-    localStorage.getItem('disableAnimations') === 'true' ||
-    false
-
-  MotionGlobalConfig.skipAnimations = areAnimationsDisabled
-
-  if (areAnimationsDisabled) {
-    document.documentElement.classList.add('disable-animations')
-  } else {
-    document.documentElement.classList.remove('disable-animations')
   }
 }
 
@@ -164,18 +107,25 @@ function imNotSureButPerhapsFixingRefreshingWithAuthentication() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
-  return {
-    onAuthenticated() {
-      if (isInAuthenticationFlow) {
-        const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
-        if (initialUrl != null) {
-          // This is not used past this point, however it is set to the initial URL
-          // to make refreshing work as expected.
-          history.replaceState(null, '', initialUrl)
-        }
+  function onAuthenticated() {
+    if (isInAuthenticationFlow) {
+      const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
+      if (initialUrl != null) {
+        // This is not used past this point, however it is set to the initial URL
+        // to make refreshing work as expected.
+        history.replaceState(null, '', initialUrl)
       }
-    },
+    }
   }
+  return onAuthenticated
+}
+
+async function getRootDirPath() {
+  const supportsLocalBackend =
+    window.overrideFeatureFlags?.enableLocalBackend ?? $config.CLOUD_BUILD !== 'true'
+  if (!supportsLocalBackend) return undefined
+  const rootDirRequest = await fetch(`/api/root-directory-path`)
+  return await rootDirRequest.text()
 }
 
 main()

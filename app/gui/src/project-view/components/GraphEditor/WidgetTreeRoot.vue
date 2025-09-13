@@ -1,23 +1,26 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
-import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
+import { useLayoutAnimationsState } from '@/providers/animationCounter'
+import { UpdateHandler, WidgetInput } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
+import { emptyPrimaryApplication, type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
-import { toRef, watch } from 'vue'
-import { AstId } from 'ydoc-shared/ast'
+import { Opt } from '@/util/data/opt'
+import { templateRef } from '@vueuse/core'
+import { computed, toRef, watch } from 'vue'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
 const props = defineProps<{
-  externalId: string & ExternalId
+  externalId?: (string & ExternalId) | undefined
   input: WidgetInput
-  rootElement: HTMLElement | undefined
-  potentialSelfArgumentId?: AstId | undefined
+  rootElement?: Opt<HTMLElement>
+  primaryApplication?: Opt<PrimaryApplication>
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined
-  extended: boolean
-  onUpdate: (update: WidgetUpdate) => boolean
+  extended?: boolean
+  updateCallback: UpdateHandler
 }>()
 const emit = defineEmits<{
   currentEditChanged: [WidgetEditHandlerParent | undefined]
@@ -37,14 +40,24 @@ const layoutTransitions = useTransitioning(
     'height',
   ]),
 )
+const layoutAnimations = useLayoutAnimationsState()
 
+const anyLayoutAnimationActive = computed(
+  () => layoutTransitions.active.value || layoutAnimations.anyAnimationActive,
+)
+
+const treeRoot = templateRef('treeRoot')
+const rootElementWithFallback = computed(() => props.rootElement ?? treeRoot.value)
+
+const primaryApplication = computed(() => props.primaryApplication ?? emptyPrimaryApplication())
+const extended = computed(() => props.extended ?? false)
 const tree = provideWidgetTree(
   toRef(props, 'externalId'),
-  toRef(props, 'rootElement'),
+  rootElementWithFallback,
   toRef(props, 'conditionalPorts'),
-  toRef(props, 'extended'),
-  layoutTransitions.active,
-  toRef(props, 'potentialSelfArgumentId'),
+  extended,
+  anyLayoutAnimationActive,
+  primaryApplication,
 )
 watch(toRef(tree, 'currentEdit'), (edit) => emit('currentEditChanged', edit))
 </script>
@@ -55,8 +68,13 @@ export const ICON_WIDTH = 16
 </script>
 
 <template>
-  <div class="WidgetTreeRoot widgetRounded" spellcheck="false" v-on="layoutTransitions.events">
-    <NodeWidget :input="input" :onUpdate="onUpdate" />
+  <div
+    ref="treeRoot"
+    class="WidgetTreeRoot widgetRounded"
+    spellcheck="false"
+    v-on="layoutTransitions.events"
+  >
+    <NodeWidget :input="input" :updateCallback="updateCallback" />
   </div>
 </template>
 
@@ -108,13 +126,12 @@ export const ICON_WIDTH = 16
    * children of a widget. That way, only the innermost left/right deep child of a rounded widget will
    * receive the propagated paddings.
    */
-  *:not(:nth-child(1 of :not(.widgetOutOfLayout, [data-transitioning='leave']))) {
+  *:nth-child(n + 2 of :not(.widgetOutOfLayout, [data-transitioning='leave'])) {
     --widget-token-pad-left: 0px;
   }
-  *:not(:nth-last-child(1 of :not(.widgetOutOfLayout, [data-transitioning='leave']))) {
+  *:nth-last-child(n + 2 of :not(.widgetOutOfLayout, [data-transitioning='leave'])) {
     --widget-token-pad-right: 0px;
   }
-
   /*
    * Any rounded widget sets expected padding variable, which is automatically inherited
    * by all its children.
@@ -125,16 +142,17 @@ export const ICON_WIDTH = 16
     --widget-token-pad-left: var(--widget-token-pad-unit);
     --widget-token-pad-right: var(--widget-token-pad-unit);
   }
-
   :deep(.widgetResetRounding.widgetResetPadding) {
     --widget-token-pad-left: 0px;
     --widget-token-pad-right: 0px;
   }
-
   :deep(.widgetApplyPadding.widgetApplyPadding) {
     margin-left: var(--widget-token-pad-left, 0);
     margin-right: var(--widget-token-pad-right, 0);
     transition: margin 0.2s ease-out;
+  }
+  &::selection {
+    background: var(--color-widget-selection);
   }
 }
 </style>

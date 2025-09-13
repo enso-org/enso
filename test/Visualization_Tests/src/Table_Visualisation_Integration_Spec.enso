@@ -1,0 +1,57 @@
+from Standard.Base import all
+
+from Standard.Table import all
+from Standard.Test import all
+import Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
+import Standard.Visualization.Table.Visualization
+
+## These tests pair with the Playwright tests found at app/gui/integration-test/project-view/tableVisualisation.spec.ts
+   These tests check the json produced by prepare_visualization matches a baseline
+   The Playwright tests check that json data then renders correctly in an AG Grid in the GUI
+   If you change the json API you can regen the reference json by commenting in the line of code in check_equal
+   Then run these tests and then run the js prettier
+   Remember to comment the write back out
+
+json_dir = enso_project.data . parent . parent . parent / 'app/gui/integration-test/project-view/table-vis-json'
+type TestData
+    Value ~data
+
+    t self = self.data
+  
+    setup = TestData.Value <|
+        vector1 = Data.list json_dir '{*.json}'
+        files = Data.read_many vector1 ..Plain_Text
+        values = files.at 'Value' . map x->(x.parse_json)
+        keys = files.at 'Path' . map x->((File.new x).name.split '.' . at 0)
+        Dictionary.from_keys_and_values keys values
+
+    check_equal self vis filename =
+        ## Comment this line in and run the tests to regen the test data if you change the API
+        ## But don't commit with the next line commented in
+        ## vis.write (json_dir / (filename + '.json')) on_existing_file=..Overwrite
+        vis . should_equal (self.data.at filename)
+
+add_specs suite_builder =
+    suite_builder.group "Table Visualization Integration" group_builder->
+        data = TestData.setup
+
+        group_builder.specify "single column of datetimes" <|
+            vis = _get_vis_data (Table.new [["Value", [Date_Time.new 2025 1 2 12 13 14 123 4 5 zone=(Time_Zone.parse 'MET'), Date_Time.new 2025 1 1 12 13 14 123 4 5 zone=(Time_Zone.parse 'MET'), Date_Time.new 2025 1 3 12 13 14 123 4 5 zone=(Time_Zone.parse 'MET')]]])
+            data.check_equal vis 'singleColumnDatetimes'
+        
+        group_builder.specify "single column of dates" <|
+            vis = _get_vis_data (Table.new [["Value", [Date.new 2025 1 2, Date.new 2025 1 1, Date.new 2025 1 3]]])
+            data.check_equal vis 'singleColumnDates'
+        
+        group_builder.specify "single column of times" <|
+            vis = _get_vis_data (Table.new [["Value", [Time_Of_Day.new 12 14 14 123 4 5, Time_Of_Day.new 12 13 14 123 4 5, Time_Of_Day.new 12 15 14 123 4 5]]])
+            data.check_equal vis 'singleColumnTimes'
+
+_get_vis_data table =
+    table.columns.each c-> (c:Visualization_Helpers).await_metrics
+    Visualization.prepare_visualization table . parse_json
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

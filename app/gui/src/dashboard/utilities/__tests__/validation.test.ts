@@ -3,10 +3,6 @@ import * as v from 'vitest'
 
 import * as validation from '#/utilities/validation'
 
-// =============
-// === Tests ===
-// =============
-
 /** Runs all tests. */
 v.test('password validation', () => {
   const regex = validation.PASSWORD_REGEX
@@ -36,34 +32,4 @@ v.test('password validation', () => {
   v.expect(basicPassword, `'${basicPassword}' passes validation`).toMatch(regex)
   const issue7498Password = 'ÑéFÛÅÐåÒ.ú¿¼\u00b4N@aö¶U¹jÙÇ3'
   v.expect(issue7498Password, `'${issue7498Password}' passes validation`).toMatch(regex)
-})
-
-v.test.each([
-  { name: 'foo', valid: true },
-  { name: 'foo/', valid: false },
-  { name: 'foo\\', valid: false },
-  { name: 'foo/bar', valid: false },
-  { name: 'foo\\bar', valid: false },
-  { name: '/bar', valid: false },
-  { name: '\\bar', valid: false },
-  { name: '\\', valid: false },
-  { name: '/', valid: false },
-  { name: '......', valid: false },
-  { name: '..', valid: false },
-  { name: '.', valid: true },
-  { name: 'a.a.a.a.a.a.a.a.', valid: true },
-  { name: 'a.a.a.a.a.a.a.a.a', valid: true },
-  { name: '.a.a.a.a.a.a.a.a', valid: true },
-  { name: 'a.a.a.a.a.a.a.a..', valid: false },
-  { name: './', valid: false },
-  { name: '//', valid: false },
-  { name: '/\\', valid: false },
-  { name: '\\/', valid: false },
-])('directory name validation', (args) => {
-  const { name, valid } = args
-
-  v.expect(
-    !validation.isDirectoryNameContainInvalidCharacters(name),
-    `'${name}' is a valid directory name`,
-  ).toBe(valid)
 })

@@ -1,25 +1,35 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import { junctionPoints, pathElements, toSvgPath } from '@/components/GraphEditor/GraphEdge/layout'
 import { useComponentColors } from '@/composables/componentColors'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import type { Edge } from '@/stores/graph'
-import { isConnected, useGraphStore } from '@/stores/graph'
+import { isConnected } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme'
-import { computed, ref } from 'vue'
+import { computed, type CSSProperties, ref } from 'vue'
 
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 const graph = useGraphStore()
 
-const { edge, maskSource, animateFromSourceHover } = defineProps<{
+const {
+  edge,
+  maskSource,
+  animateFromSourceHover,
+  arrow = true,
+} = defineProps<{
   edge: Edge
   maskSource?: boolean
   animateFromSourceHover?: boolean
+  arrow?: boolean
 }>()
+defineOptions({
+  inheritAttrs: false,
+})
 
 // The padding added around the masking rect for nodes with visible output port. The actual padding
 // is animated together with node's port opening. Required to correctly not draw the edge in space
@@ -126,7 +136,7 @@ const sourceMask = computed<NodeMask | undefined>(() => {
   if (!nodeRect) return
   const animProgress =
     startsInPort.value ?
-      ((sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0)
+      ((sourceNode.value && graph.nodeOutputAnimations.get(sourceNode.value)) ?? 0)
     : 0
   const padding = animProgress * VISIBLE_PORT_MASK_PADDING
   if (!maskSource && padding === 0) return
@@ -266,6 +276,7 @@ const backwardEdgeArrowTransform = computed<string | undefined>(() => {
 const arrowHeight = 9
 const arrowYOffset = 0
 const arrowTransform = computed<string | undefined>(() => {
+  if (!arrow) return
   const arrowTopOffset = 1
   const arrowWidth = 12
   const target = targetPos.value
@@ -285,14 +296,23 @@ const arrowPath = [
   'Z',
 ].join('')
 
-const sourceHoverAnimationStyle = computed(() => {
-  if (!animateFromSourceHover || !base.value || !sourceNode.value) return {}
-  const progress = graph.nodeHoverAnimations.get(sourceNode.value) ?? 0
-  if (progress === 1) return {}
-  const currentLength = progress * base.value.getTotalLength()
-  return {
-    strokeDasharray: `${currentLength}px 1000000px`,
-  }
+const VISIBILITY_HIDDEN = {
+  visibility: 'hidden',
+} as const
+
+function truncateStrokeToLength(lengthPx: number) {
+  return { strokeDasharray: `${lengthPx}px 1000000px` }
+}
+
+const sourceHoverAnimationStyle = computed((): CSSProperties => {
+  if (!animateFromSourceHover) return {}
+  if (!base.value || !sourceNode.value) return VISIBILITY_HIDDEN
+  const progress = graph.nodeOutputAnimations.get(sourceNode.value)
+  return (
+    !progress ? VISIBILITY_HIDDEN
+    : progress === 1 ? {}
+    : truncateStrokeToLength(progress * base.value.getTotalLength())
+  )
 })
 
 const baseClass = computed(() => {
@@ -331,7 +351,7 @@ const colorClasses = computed(() => {
         fill="black"
       />
     </mask>
-    <g v-bind="sourceMask && { mask: `url('#${sourceMask.id}')` }">
+    <g v-bind="{ ...$attrs, ...(sourceMask ? { mask: `url('#${sourceMask.id}')` } : {}) }">
       <path
         ref="base"
         :d="basePath"

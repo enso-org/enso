@@ -161,7 +161,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  Function resolveFunction(
+  public static Function resolveFunction(
       UnresolvedSymbol symbol, Type selfTpe, MethodResolverNode methodResolverNode) {
     Function function = methodResolverNode.executeResolution(selfTpe, symbol);
     if (function == null) {
@@ -173,7 +173,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       // If both Any and the type where `function` is declared, define `symbol`
       // and the method is invoked statically, i.e. type of self is the eigentype,
       // then we want to disambiguate method resolution by always resolved to the one in Any.
-      var ctx = EnsoContext.get(this);
+      var ctx = EnsoContext.get(methodResolverNode);
       if (where instanceof MethodRootNode node && typeCanOverride(node, ctx)) {
         Type any = ctx.getBuiltins().any();
         Function anyFun = symbol.getScope().lookupMethodDefinition(any, symbol.getName());
@@ -185,7 +185,33 @@ public abstract class InvokeMethodNode extends BaseNode {
     return function;
   }
 
-  private boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
+  /**
+   * Returns true if synthetic Self argument should be prepended to the arguments passed to the
+   * function.
+   *
+   * <p>Static method calls on Any are resolved to `Any.type.method`. Such methods take one
+   * additional self argument (with Any.type) as opposed to static method calls resolved on any
+   * other types.
+   *
+   * @param resolvedFunctionSchema Schema of the function that was resolved to be invoked.
+   * @param argumentCount Count of the arguments passed to the function.
+   * @return True if synthetic self argument should be prepended to the arguments.
+   */
+  public static boolean shouldPrependSyntheticSelfArg(
+      FunctionSchema resolvedFunctionSchema, int argumentCount) {
+    var resolvedFuncArgCount = resolvedFunctionSchema.getArgumentsCount();
+    long argsWithDefaultValCount = 0;
+    for (var argDef : resolvedFunctionSchema.getArgumentInfos()) {
+      if (argDef.hasDefaultValue()) {
+        argsWithDefaultValCount++;
+      }
+    }
+    boolean shouldPrependSyntheticSelfArg =
+        resolvedFuncArgCount - argsWithDefaultValCount == argumentCount + 1;
+    return shouldPrependSyntheticSelfArg;
+  }
+
+  private static boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
     Type methodOwnerType = node.getType();
     Builtins builtins = ctx.getBuiltins();
     Type any = builtins.any();
@@ -218,22 +244,11 @@ public abstract class InvokeMethodNode extends BaseNode {
       if (imported != null) {
         return imported;
       }
-      throw methodNotFound(symbol, self);
+      throw methodNotFound(this, onBoundary, symbol, self);
     }
-    var resolvedFuncArgCount = function.getSchema().getArgumentsCount();
     CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
-    long argsWithDefaultValCount = 0;
-    for (var argDef : function.getSchema().getArgumentInfos()) {
-      if (argDef.hasDefaultValue()) {
-        argsWithDefaultValCount++;
-      }
-    }
-    // Static method calls on Any are resolved to `Any.type.method`. Such methods take one
-    // additional
-    // self argument (with Any.type) as opposed to static method calls resolved on any other
-    // types. This case is handled in the following block.
-    boolean shouldPrependSyntheticSelfArg =
-        resolvedFuncArgCount - argsWithDefaultValCount == arguments.length + 1;
+    var shouldPrependSyntheticSelfArg =
+        shouldPrependSyntheticSelfArg(function.getSchema(), arguments.length);
     if (isAnyEigenType(selfTpe) && shouldPrependSyntheticSelfArg) {
       // function is a static method on Any, so the first two arguments in `invokeFuncSchema`
       // represent self arguments.
@@ -257,7 +272,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
       if (invokeAnyStaticFunctionNode == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        assert resolvedFuncArgCount >= 2
+        assert function.getSchema().getArgumentsCount() >= 2
             : "Resolved function should be on Any.type, therefore, should have at least two self"
                 + " arguments";
         // Prepend self=Any to the arguments and shift
@@ -282,11 +297,12 @@ public abstract class InvokeMethodNode extends BaseNode {
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  private PanicException methodNotFound(UnresolvedSymbol symbol, Object self)
-      throws PanicException {
+  static PanicException methodNotFound(
+      Node where, boolean onBoundary, UnresolvedSymbol symbol, Object self) throws PanicException {
     var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
-    var payload = EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol);
-    throw new PanicException(payload, cause, this);
+    var ctx = EnsoContext.get(where);
+    var payload = ctx.getBuiltins().error().makeNoSuchMethod(self, symbol);
+    throw new PanicException(ctx, payload, cause, where);
   }
 
   @Specialization
@@ -302,7 +318,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     if (fnAndType != null) {
       var ctx = EnsoContext.get(this);
       if (ctx.getBuiltins().any() != fnAndType.getRight()) {
-        var unwrapSelf = castTo.findTypeOrNull(fnAndType.getRight(), self, false, false);
+        var unwrapSelf = castTo.findTypeOrNull(fnAndType.getRight(), self, true, false);
         if (unwrapSelf != null) {
           assert arguments[0] == self;
           arguments[0] = unwrapSelf;
@@ -310,7 +326,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
       return invokeFunctionNode.execute(fnAndType.getLeft(), frame, state, arguments);
     }
-    throw methodNotFound(symbol, self);
+    throw methodNotFound(this, onBoundary, symbol, self);
   }
 
   @Specialization
@@ -516,7 +532,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared @Cached AppendWarningNode appendWarningNode,
       @Cached HashMapSizeNode mapSizeNode,
       @Cached HashMapInsertAllNode mapInsertAllNode) {
-    Object[] args = new Object[argExecutors.length];
+    var args = new Object[argExecutors.length];
     boolean anyWarnings = false;
     var accumulatedWarnings = EnsoHashMap.empty();
     for (int i = 0; i < argExecutors.length; i++) {
@@ -543,7 +559,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         args[i] = r;
       }
     }
-    Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
+    var res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
     if (anyWarnings) {
       anyWarningsProfile.enter();
       res = appendWarningNode.executeAppend(null, res, accumulatedWarnings);

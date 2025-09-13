@@ -1,0 +1,80 @@
+from Standard.Base import all
+from Standard.Test import all
+
+from project.Enso_Bin_Utils import create_tmp_dir, enso_run, create_new_project
+
+polyglot java import java.lang.System as J_System
+
+
+add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
+    test_jvm_mode relative:Boolean =
+        tmp_root = create_tmp_dir
+
+        cleanup =
+            tmp_root.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            proj_parent_dir = tmp_root / "NeedsJvm"
+            proj_parent_dir.create_directory
+
+            expected_version = J_System.getProperty "java.vm.version"
+
+            proj_dir = create_new_project proj_parent_dir "Proj" """
+                polyglot java import java.lang.System
+                import Standard.Base.IO
+
+                main =
+                    IO.println <| System.getProperty "java.vm.version"
+                    IO.println <| System.getProperty "java.vm.name"
+
+            yaml_file = proj_dir / "package.yaml"
+            yaml_file.exists . should_be_true
+            yaml_basic = Data.read_text yaml_file
+            yaml_with_jvm = yaml_basic + """
+
+                jvm: true
+
+            yaml_with_jvm.write yaml_file
+
+
+            proj_dir.exists . should_be_true
+            proj_dir.is_directory . should_be_true
+            out = enso_run cwd=tmp_root.path args=["--run", if relative then "NeedsJvm/Proj" else proj_dir.to_text ]
+            clue = "Output from subprocess: " + out.to_text
+            Test.with_clue clue <|
+                clue . should_contain expected_version
+                # Should be true for both GraalVM CE and GraalVM EE
+                is_expected_name = clue.contains "OpenJDK" || clue.contains "Java HotSpot"
+                is_expected_name . should_be_true
+                clue . should_contain "Server VM"
+
+    group_builder.specify "package.yaml JVM mode (relative)" <|
+        test_jvm_mode True
+
+    group_builder.specify "package.yaml JVM mode  (absolute)" <|
+        test_jvm_mode False
+
+    group_builder.specify "should be able to run a project specified with relative path" <|
+        tmp_root = create_tmp_dir
+
+        cleanup =
+            tmp_root.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            proj_parent_dir = tmp_root / "Dir1" / "Dir2"
+            proj_parent_dir.create_directory
+            proj_dir = create_new_project proj_parent_dir "Proj" "main = 42"
+            proj_dir.exists . should_be_true
+            proj_dir.is_directory . should_be_true
+            # The spawned subprocess will try to run the newly created project
+            # via a relative path
+            out = enso_run cwd=tmp_root.path args=["--vm.D", "org.enso.runner.Main.Logger.level=trace", "--run", "Dir1/Dir2/Proj"]
+            clue = "Output from subprocess: " + out.to_text
+            Test.with_clue clue <|
+                clue . should_contain "org.enso.runner.Main"
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

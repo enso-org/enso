@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.optimise
 
+import scala.jdk.CollectionConverters._
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{CompilerError, IR, Identifier}
@@ -29,6 +30,7 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
+import org.enso.persist.Persistance
 
 import java.util.UUID
 
@@ -138,8 +140,8 @@ case object LambdaConsolidate extends IRPass {
     freshNameSupply: FreshNameSupply
   ): Function = {
     function match {
-      case lam @ Function.Lambda(_, body, _, _, _, _) =>
-        val chainedLambdas = lam :: gatherChainedLambdas(body)
+      case lam: Function.Lambda =>
+        val chainedLambdas = lam :: gatherChainedLambdas(lam.body())
         val chainedArgList =
           chainedLambdas.foldLeft(List[DefinitionArgument]())(
             _ ::: _.arguments
@@ -175,22 +177,23 @@ case object LambdaConsolidate extends IRPass {
 
         val newLocation = chainedLambdas.head.location match {
           case Some(location) =>
-            Some(
-              new IdentifiedLocation(
-                location.start,
-                chainedLambdas.last.location.getOrElse(location).location.end,
-                location.uuid
-              )
+            new IdentifiedLocation(
+              location.start,
+              chainedLambdas.last.location.getOrElse(location).location.end,
+              location.uuid
             )
-          case None => None
+          case None => null
         }
 
-        lam.copy(
-          arguments = consolidatedArgs,
-          body      = runExpression(newBody, inlineContext),
-          location  = newLocation,
-          canBeTCO  = chainedLambdas.last.canBeTCO
-        )
+        Function.Lambda
+          .builder(lam)
+          .arguments(consolidatedArgs)
+          .bodyReference(
+            Persistance.Reference.of(runExpression(newBody, inlineContext))
+          )
+          .location(newLocation)
+          .canBeTCO(chainedLambdas.last.canBeTCO)
+          .build()
       case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during lambda consolidation."
@@ -219,10 +222,11 @@ case object LambdaConsolidate extends IRPass {
       if (isShadowed) {
         val restArgs = args.drop(ix + 1)
         arg match {
-          case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _) =>
+          case spec: DefinitionArgument.Specified =>
+            val argName = spec.name
             val mShadower = restArgs.collectFirst {
-              case s @ DefinitionArgument.Specified(sName, _, _, _, _, _)
-                  if sName.name == argName.name =>
+              case s: DefinitionArgument.Specified
+                  if s.name.name == argName.name =>
                 s
             }
 
@@ -253,8 +257,8 @@ case object LambdaConsolidate extends IRPass {
       case Expression.Block(expressions, lam: Function.Lambda, _, _, _)
           if expressions.isEmpty =>
         lam :: gatherChainedLambdas(lam.body)
-      case l @ Function.Lambda(_, body, _, _, _, _) =>
-        l :: gatherChainedLambdas(body)
+      case l: Function.Lambda =>
+        l :: gatherChainedLambdas(l.body())
       case _ => List()
     }
   }
@@ -391,19 +395,27 @@ case object LambdaConsolidate extends IRPass {
         // Empty set is used to indicate that it isn't shadowed
         val usageIds =
           if (isShadowed) {
-            aliasInfo.graph
+            val occurs = aliasInfo.graph
               .linksFor(aliasInfo.id)
+              .stream
               .filter(_.target == aliasInfo.id)
               .map(link => aliasInfo.graph.getOccurrence(link.source))
-              .collect {
+              .map {
                 case Some(
                       GraphOccurrence.Use(_, _, identifier, _)
                     ) =>
-                  identifier
+                  Some(identifier)
+                case _ => None
               }
+              .filter(_.isDefined)
+              .map(_.get)
+              .toList
+            val res: Set[UUID @Identifier] = occurs.asScala.toList.toSet
+            res
           } else Set[UUID @Identifier]()
 
         usageIds
+      case _ => Set[UUID @Identifier]()
     }
   }
 
@@ -434,7 +446,8 @@ case object LambdaConsolidate extends IRPass {
               )
           } else oldName
 
-        spec.copy(name = newName)
+        spec.withName(newName)
+      case (arg, _) => arg
     }
   }
 
@@ -467,7 +480,8 @@ case object LambdaConsolidate extends IRPass {
 
     val processedArgList = args.zip(newDefaults).map {
       case (spec: DefinitionArgument.Specified, default) =>
-        spec.copy(defaultValue = default)
+        spec.copyWithDefaultValue(default)
+      case (arg, _) => arg
     }
 
     (processedArgList, newBody)

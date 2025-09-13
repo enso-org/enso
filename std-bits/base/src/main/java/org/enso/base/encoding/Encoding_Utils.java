@@ -100,7 +100,7 @@ public class Encoding_Utils {
    */
   public static boolean canDecodeWithoutErrors(InputStream stream, Charset charset)
       throws IOException {
-    DecodingProblemAggregator problemAggregator = new DecodingProblemAggregator();
+    DecodingProblemAggregator problemAggregator = new SimpleDecodingProblemAggregator();
     try (var decoder = new ReportingStreamDecoder(stream, charset, problemAggregator, true)) {
       char[] tmpBuffer = new char[1024];
       while (decoder.read(tmpBuffer) >= 0) {

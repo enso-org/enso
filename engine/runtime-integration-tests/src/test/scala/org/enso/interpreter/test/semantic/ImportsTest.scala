@@ -11,7 +11,7 @@ class ImportsTest extends PackageTest {
         exception.getLocalizedMessage
     }
 
-  private def isDiagnosticLine(line: String): Boolean = {
+  private def shouldSkipLine(line: String): Boolean = {
     line.contains(" | ")
   }
 
@@ -34,7 +34,7 @@ class ImportsTest extends PackageTest {
       "Test_Bad_Imports"
     )
     ex.getMessage should include("The package could not be resolved")
-    val outLines = consumeOut.filterNot(isDiagnosticLine)
+    val outLines = consumeOut.filterNot(shouldSkipLine)
     outLines should have size 2
     outLines(0) should include(
       "Package containing the module Surely_This.Does_Not_Exist.My_Module " +
@@ -53,7 +53,7 @@ class ImportsTest extends PackageTest {
     ex.getMessage should include("The name `Mk_X` could not be found.")
     val outLines = consumeOut
     outLines
-      .filterNot(isDiagnosticLine)
+      .filterNot(shouldSkipLine)
       .head should include("The name `Mk_X` could not be found.")
   }
 
@@ -63,7 +63,7 @@ class ImportsTest extends PackageTest {
     )
     ex.getMessage should include("The name `X` could not be found.")
     consumeOut
-      .filterNot(isDiagnosticLine)
+      .filterNot(shouldSkipLine)
       .head should include("The name `X` could not be found.")
   }
 
@@ -81,7 +81,7 @@ class ImportsTest extends PackageTest {
     )
     ex.getMessage should include("The name `Atom` could not be found.")
     consumeOut
-      .filterNot(isDiagnosticLine)
+      .filterNot(shouldSkipLine)
       .head should include("The name `Atom` could not be found.")
   }
 
@@ -151,7 +151,7 @@ class ImportsTest extends PackageTest {
     ex.getMessage should include(
       "Main.enso:5:16: error: The name `Long` could not be found."
     )
-    val outLines = consumeOut.filterNot(isDiagnosticLine)
+    val outLines = consumeOut.filterNot(shouldSkipLine)
     outLines should have length 1
     outLines.head should include(
       "Main.enso:5:16: error: The name `Long` could not be found."
@@ -173,7 +173,7 @@ class ImportsTest extends PackageTest {
     ex.getMessage should include(
       "Main.enso:2:14: error: Fully qualified name references a library Standard.Base but an import statement for it is missing."
     )
-    val outLines = consumeOut.filterNot(isDiagnosticLine)
+    val outLines = consumeOut.filterNot(shouldSkipLine)
     outLines should have length 1
     outLines.head should include(
       "Main.enso:2:14: error: Fully qualified name references a library Standard.Base but an import statement for it is missing."
@@ -193,7 +193,7 @@ class ImportsTest extends PackageTest {
     evalTestProject(
       "Test_Fully_Qualified_Name_Conflict"
     ).toString shouldEqual "Foo"
-    val outLines = consumeOut.filterNot(isDiagnosticLine)
+    val outLines = consumeOut.filterNot(shouldSkipLine)
     outLines.head should include(
       "Main.enso:2:1: warning: The exported type `Atom` in `local.Test_Fully_Qualified_Name_Conflict.Atom` module will cause name conflict when attempting to use a fully qualified name of the `local.Test_Fully_Qualified_Name_Conflict.Atom.Foo` module."
     )
@@ -235,7 +235,7 @@ class ImportsTest extends PackageTest {
       "Test_Private_Modules_3"
     )
     ex.getMessage should include("error: Cannot import private module")
-    val outLines = consumeOut.filterNot(isDiagnosticLine)
+    val outLines = consumeOut.filterNot(shouldSkipLine)
     outLines should have length 1
     outLines.head should include(
       "Main.enso:2:1: error: Cannot import private module"

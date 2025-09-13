@@ -1,35 +1,70 @@
 /** @file The React provider (and associated hooks) for Data Catalog state. */
-import * as React from 'react'
-
-import { createStore, useStore, type StoreApi } from '#/utilities/zustand'
-import invariant from 'tiny-invariant'
-
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
-import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
+import { useOffline } from '#/hooks/offlineHooks'
+import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
+import type { Category, CategoryId } from '#/layouts/CategorySwitcher/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
-import type {
-  AnyAsset,
-  AssetId,
-  BackendType,
-  DirectoryAsset,
-  DirectoryId,
-  LabelName,
+import { createStore, resetStoreOnLogout, useStore, type StoreApi } from '#/utilities/zustand'
+import { useFullUserSession } from '$/providers/react'
+import {
+  type AnyAsset,
+  type AssetId,
+  type BackendType,
+  type DirectoryId,
+  type LabelName,
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
-import { unsafeMutable } from 'enso-common/src/utilities/data/object'
+import * as React from 'react'
+import invariant from 'tiny-invariant'
+import { persist } from 'zustand/middleware'
+import {
+  isCloudCategory,
+  useCategories,
+  type TransferrableAsset,
+} from '../layouts/Drive/Categories'
 
-// ==================
-// === DriveStore ===
-// ==================
+/** State for {@link driveLocationStore}. */
+interface CurrentDirectoryIdStoreState {
+  readonly categoryId: CategoryId | null
+  readonly directoryId: DirectoryId | null
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const driveLocationStore = createStore<CurrentDirectoryIdStoreState>()(
+  persist((): CurrentDirectoryIdStoreState => ({ categoryId: null, directoryId: null }), {
+    name: 'enso-drive-location',
+    version: 1,
+  }),
+)
+
+resetStoreOnLogout(driveLocationStore)
+
+/** Return the full drive location. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useCategoryId() {
+  return useStore(driveLocationStore, (store) => store.categoryId, { unsafeEnableTransition: true })
+}
+
+/** Return the full drive location. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function getDriveLocation() {
+  return driveLocationStore.getState()
+}
+
+/** Safely update the drive location. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function setDriveLocation(directoryId: DirectoryId | null, categoryId?: CategoryId | null) {
+  driveLocationStore.setState({
+    ...(categoryId !== undefined ? { categoryId } : {}),
+    directoryId,
+  })
+}
 
 /** Attached data for a paste payload. */
 export interface DrivePastePayload {
   readonly backendType: BackendType
   readonly category: Category
-  readonly ids: ReadonlySet<AssetId>
+  readonly assets: readonly TransferrableAsset[]
 }
 
 /** The subset of asset information required for selections. */
@@ -46,89 +81,79 @@ export interface LabelsDragPayload {
   readonly labels: readonly LabelName[]
 }
 
+/** A single directory in the breadcrumbs. */
+export interface DirectoryPath {
+  readonly id: DirectoryId
+  readonly name: string
+}
+
 /** The state of this zustand store. */
 interface DriveStore {
-  readonly resetAssetTableState: () => void
-  readonly targetDirectory: AssetTreeNode<DirectoryAsset> | null
-  readonly setTargetDirectory: (targetDirectory: AssetTreeNode<DirectoryAsset> | null) => void
+  readonly removeSelection: () => void
   readonly newestFolderId: DirectoryId | null
   readonly setNewestFolderId: (newestFolderId: DirectoryId | null) => void
-  readonly canCreateAssets: boolean
-  readonly setCanCreateAssets: (canCreateAssets: boolean) => void
   readonly canDownload: boolean
   readonly setCanDownload: (canDownload: boolean) => void
   readonly pasteData: PasteData<DrivePastePayload> | null
   readonly setPasteData: (pasteData: PasteData<DrivePastePayload> | null) => void
-  readonly expandedDirectoryIds: readonly DirectoryId[]
-  readonly setExpandedDirectoryIds: (selectedKeys: readonly DirectoryId[]) => void
-  readonly selectedKeys: ReadonlySet<AssetId>
+  readonly selectedIds: ReadonlySet<AssetId>
+  readonly setSelectedIds: (selectedIds: ReadonlySet<AssetId>) => void
+  /** @deprecated Use `selectedIds` instead. */
   readonly selectedAssets: readonly SelectedAssetInfo[]
   readonly setSelectedAssets: (selectedAssets: readonly SelectedAssetInfo[]) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
   readonly setVisuallySelectedKeys: (visuallySelectedKeys: ReadonlySet<AssetId> | null) => void
-  readonly labelsDragPayload: LabelsDragPayload | null
-  readonly setLabelsDragPayload: (labelsDragPayload: LabelsDragPayload | null) => void
-  readonly isDraggingOverSelectedRow: boolean
-  readonly setIsDraggingOverSelectedRow: (isDraggingOverSelectedRow: boolean) => void
   readonly dragTargetAssetId: AssetId | null
   readonly setDragTargetAssetId: (dragTargetAssetId: AssetId | null) => void
-  readonly nodeMap: { readonly current: ReadonlyMap<AssetId, AnyAssetTreeNode> }
-  readonly setNodeMap: (nodeMap: ReadonlyMap<AssetId, AnyAssetTreeNode>) => void
 }
 
-// =======================
-// === ProjectsContext ===
-// =======================
+/** State contained in a `DriveContext`. */
+export type DriveContextType = StoreApi<DriveStore>
 
-/** State contained in a `ProjectsContext`. */
-export type ProjectsContextType = StoreApi<DriveStore>
-
-const DriveContext = React.createContext<ProjectsContextType | null>(null)
+const DriveContext = React.createContext<DriveContextType | null>(null)
 
 /** Props for a {@link DriveProvider}. */
-export interface ProjectsProviderProps {
-  readonly children:
-    | React.ReactNode
-    | ((context: {
-        readonly store: ProjectsContextType
-        readonly resetAssetTableState: () => void
-      }) => React.ReactNode)
-}
-
-// ========================
-// === ProjectsProvider ===
-// ========================
+export interface DriveProviderProps extends React.PropsWithChildren {}
 
 /** A React provider for Drive-specific metadata. */
-export default function DriveProvider(props: ProjectsProviderProps) {
+export default function DriveProvider(props: DriveProviderProps) {
   const { children } = props
+
+  const { findCategoryById } = useCategories()
+  const { user } = useFullUserSession()
+  const { isOffline } = useOffline()
+
+  const [currentDirectoryId, privateSetDirectoryId] = useSearchParamsState<DirectoryId | null>(
+    'currentDirectoryId',
+    () => driveLocationStore.getState().directoryId,
+  )
+
+  const [currentCategoryId, privateSetCategoryId, privateResetCategoryId] =
+    useSearchParamsState<CategoryId | null>(
+      'driveCategory',
+      () => {
+        const id = getDriveLocation().categoryId
+        if (id == null) return null
+        const category = findCategoryById(id)
+        if (category == null) return null
+        const unavailable = (!user.isEnabled || isOffline) && isCloudCategory(category)
+        if (unavailable) return null
+        return id
+      },
+      // This is safe, because we confirm the type inside the function.
+      // eslint-disable-next-line no-restricted-syntax
+      (value): value is CategoryId => findCategoryById(value as CategoryId) != null,
+    )
 
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
-      resetAssetTableState: () => {
-        set({
-          targetDirectory: null,
-          selectedKeys: EMPTY_SET,
-          visuallySelectedKeys: null,
-          expandedDirectoryIds: EMPTY_ARRAY,
-        })
-      },
-      targetDirectory: null,
-      setTargetDirectory: (targetDirectory) => {
-        if (get().targetDirectory !== targetDirectory) {
-          set({ targetDirectory })
-        }
+      removeSelection: () => {
+        set({ selectedIds: new Set(), visuallySelectedKeys: null, selectedAssets: [] })
       },
       newestFolderId: null,
       setNewestFolderId: (newestFolderId) => {
         if (get().newestFolderId !== newestFolderId) {
           set({ newestFolderId })
-        }
-      },
-      canCreateAssets: true,
-      setCanCreateAssets: (canCreateAssets) => {
-        if (get().canCreateAssets !== canCreateAssets) {
-          set({ canCreateAssets })
         }
       },
       canDownload: false,
@@ -143,13 +168,10 @@ export default function DriveProvider(props: ProjectsProviderProps) {
           set({ pasteData })
         }
       },
-      expandedDirectoryIds: EMPTY_ARRAY,
-      setExpandedDirectoryIds: (expandedDirectoryIds) => {
-        if (get().expandedDirectoryIds !== expandedDirectoryIds) {
-          set({ expandedDirectoryIds })
-        }
+      selectedIds: EMPTY_SET,
+      setSelectedIds: (selectedIds) => {
+        set({ selectedIds })
       },
-      selectedKeys: EMPTY_SET,
       selectedAssets: EMPTY_ARRAY,
       setSelectedAssets: (selectedAssets) => {
         if (selectedAssets.length === 0) {
@@ -158,7 +180,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
         if (get().selectedAssets !== selectedAssets) {
           set({
             selectedAssets,
-            selectedKeys:
+            selectedIds:
               selectedAssets.length === 0 ?
                 EMPTY_SET
               : new Set(selectedAssets.map((asset) => asset.id)),
@@ -169,44 +191,43 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       setVisuallySelectedKeys: (visuallySelectedKeys) => {
         set({ visuallySelectedKeys })
       },
-      labelsDragPayload: null,
-      setLabelsDragPayload: (labelsDragPayload) => {
-        if (get().labelsDragPayload !== labelsDragPayload) {
-          set({ labelsDragPayload })
-        }
-      },
-      isDraggingOverSelectedRow: false,
-      setIsDraggingOverSelectedRow: (isDraggingOverSelectedRow) => {
-        if (get().isDraggingOverSelectedRow !== isDraggingOverSelectedRow) {
-          set({ isDraggingOverSelectedRow })
-        }
-      },
       dragTargetAssetId: null,
       setDragTargetAssetId: (dragTargetAssetId) => {
         if (get().dragTargetAssetId !== dragTargetAssetId) {
           set({ dragTargetAssetId })
         }
       },
-      nodeMap: { current: new Map() },
-      setNodeMap: (nodeMap) => {
-        if (get().nodeMap.current !== nodeMap) {
-          unsafeMutable(get().nodeMap).current = nodeMap
-          set({ nodeMap: get().nodeMap })
-        }
-      },
     })),
   )
 
-  const resetAssetTableState = useStore(store, (state) => state.resetAssetTableState)
+  React.useEffect(() => {
+    setDriveLocation(currentDirectoryId, currentCategoryId)
+  }, [currentCategoryId, currentDirectoryId])
 
-  return (
-    <DriveContext.Provider value={store}>
-      {typeof children === 'function' ? children({ store, resetAssetTableState }) : children}
-    </DriveContext.Provider>
+  React.useEffect(
+    () =>
+      driveLocationStore.subscribe(({ directoryId, categoryId }, oldState) => {
+        if (directoryId !== oldState.directoryId) {
+          privateSetDirectoryId(directoryId)
+          store.getState().removeSelection()
+        }
+        if (categoryId !== oldState.categoryId) {
+          if (categoryId != null) {
+            privateSetCategoryId(categoryId)
+          } else {
+            privateResetCategoryId()
+          }
+          store.getState().removeSelection()
+        }
+      }),
+    [privateResetCategoryId, privateSetCategoryId, privateSetDirectoryId, store],
   )
+
+  return <DriveContext.Provider value={store}>{children}</DriveContext.Provider>
 }
 
 /** The drive store. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDriveStore() {
   const store = React.useContext(DriveContext)
 
@@ -215,179 +236,112 @@ export function useDriveStore() {
   return store
 }
 
-/** The target directory of the Asset Table selection. */
-export function useTargetDirectory() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.targetDirectory)
-}
-
-/** A function to set the target directory of the Asset Table selection. */
-export function useSetTargetDirectory() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setTargetDirectory)
-}
-
 /** The ID of the most newly created folder. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useNewestFolderId() {
   const store = useDriveStore()
   return useStore(store, (state) => state.newestFolderId)
 }
 
 /** A function to set the ID of the most newly created folder. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetNewestFolderId() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setNewestFolderId)
 }
 
-/** Whether assets can be created in the current directory. */
-export function useCanCreateAssets() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.canCreateAssets)
-}
-
-/** A function to set whether assets can be created in the current directory. */
-export function useSetCanCreateAssets() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setCanCreateAssets)
-}
-
 /** Whether the current Asset Table selection is downloadble. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCanDownload() {
   const store = useDriveStore()
   return useStore(store, (state) => state.canDownload)
 }
 
 /** A function to set whether the current Asset Table selection is downloadble. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetCanDownload() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setCanDownload)
 }
 
 /** The paste data for the Asset Table. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePasteData() {
   const store = useDriveStore()
   return useStore(store, (state) => state.pasteData)
 }
 
 /** A function to set the paste data for the Asset Table. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetPasteData() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setPasteData)
 }
 
-/** The expanded directories in the Asset Table. */
-export function useExpandedDirectoryIds() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.expandedDirectoryIds)
-}
-
-/** A function to set the expanded directoyIds in the Asset Table. */
-export function useSetExpandedDirectoryIds() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setExpandedDirectoryIds, {
-    unsafeEnableTransition: true,
-  })
-}
-
 /** The selected keys in the Asset Table. */
-export function useSelectedKeys() {
+// eslint-disable-next-line react-refresh/only-export-components
+export function useSelectedIds() {
   const store = useDriveStore()
-  return useStore(store, (state) => state.selectedKeys)
+  return useStore(store, (state) => state.selectedIds)
 }
 
-/** The selected assets in the Asset Table. */
+/** A function to set the selected keys in the Asset Table. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useSetSelectedIds() {
+  const store = useDriveStore()
+  return useStore(store, (state) => state.setSelectedIds)
+}
+
+/**
+ * The selected assets in the Asset Table.
+ * @deprecated Use `useSelectedIds` instead.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSelectedAssets() {
   const store = useDriveStore()
   return useStore(store, (state) => state.selectedAssets)
 }
 
-/** A function to set the selected assets in the Asset Table. */
+/**
+ * A function to set the selected assets in the Asset Table.
+ * @deprecated Use `useSetSelectedIds` instead.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetSelectedAssets() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setSelectedAssets)
 }
 
 /** The visually selected keys in the Asset Table. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useVisuallySelectedKeys() {
   const store = useDriveStore()
-  return useStore(store, (state) => state.selectedKeys, { unsafeEnableTransition: true })
+  return useStore(store, (state) => state.selectedIds, { unsafeEnableTransition: true })
 }
 
 /** A function to set the visually selected keys in the Asset Table. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetVisuallySelectedKeys() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setVisuallySelectedKeys, { unsafeEnableTransition: true })
 }
 
-/** The drag payload of labels. */
-export function useLabelsDragPayload() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.labelsDragPayload)
-}
-
-/** A function to set the drag payload of labels. */
-export function useSetLabelsDragPayload() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setLabelsDragPayload)
-}
-
-/** The map of keys to {@link AssetTreeNode}s. */
-export function useNodeMap() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.nodeMap)
-}
-
-/** A function to set the map of keys to {@link AssetTreeNode}s. */
-export function useSetNodeMap() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setNodeMap)
-}
-
-/**
- * Whether dragging is currently active for a selected row.
- * This is true if and only if this row, or another selected row, is being dragged over.
- */
-export function useIsDraggingOverSelectedRow(selected: boolean) {
-  const store = useDriveStore()
-  return useStore(store, (state) => selected && state.isDraggingOverSelectedRow)
-}
-
-/** A function to set whether dragging is currently over a selected row. */
-export function useSetIsDraggingOverSelectedRow() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setIsDraggingOverSelectedRow)
-}
-
 /** Whether the given {@link AssetId} is the one currently being dragged over. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useIsDragTargetAssetId(assetId: AssetId) {
   const store = useDriveStore()
   return useStore(store, (state) => assetId === state.dragTargetAssetId)
 }
 
 /** A function to set which {@link AssetId} is the one currently being dragged over. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetDragTargetAssetId() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setDragTargetAssetId)
 }
 
-/** Toggle whether a specific directory is expanded. */
-export function useToggleDirectoryExpansion() {
-  const driveStore = useDriveStore()
-  const setExpandedDirectoryIds = useSetExpandedDirectoryIds()
-
-  return useEventCallback((directoryId: DirectoryId, override?: boolean) => {
-    const expandedDirectoryIds = driveStore.getState().expandedDirectoryIds
-    const isExpanded = expandedDirectoryIds.includes(directoryId)
-    const shouldExpand = override ?? !isExpanded
-
-    if (shouldExpand !== isExpanded) {
-      React.startTransition(() => {
-        if (shouldExpand) {
-          setExpandedDirectoryIds([...expandedDirectoryIds, directoryId])
-        } else {
-          setExpandedDirectoryIds(expandedDirectoryIds.filter((id) => id !== directoryId))
-        }
-      })
-    }
-  })
+/** The current directory ID. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useCurrentDirectoryId() {
+  return useStore(driveLocationStore, (store) => store.directoryId)
 }

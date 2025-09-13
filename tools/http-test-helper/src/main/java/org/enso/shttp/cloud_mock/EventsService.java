@@ -5,6 +5,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class EventsService {
+
+  /**
+   * @param organizationId
+   * @param userEmail
+   * @param timestamp
+   * @param metadata
+   * @param message
+   * @param projectId May be null
+   */
   public record LogEvent(
       String organizationId,
       String userEmail,

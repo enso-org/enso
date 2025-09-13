@@ -102,6 +102,11 @@ export const CONFIG = contentConfig.OPTIONS.merge(
         value: true,
         description: 'Start the engine process.',
       }),
+      jvm: new contentConfig.Option({
+        passToWebApplication: false,
+        value: false,
+        description: 'Start engine in JVM mode.',
+      }),
       inspect: new contentConfig.Option({
         passToWebApplication: false,
         primary: false,

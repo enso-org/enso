@@ -7,8 +7,8 @@
 
 export const {
   is_ident_or_operator,
+  self_arg_separator,
   is_numeric_literal,
-  parse_doc_to_json,
   parse_block,
   parse_module,
   xxHash128,

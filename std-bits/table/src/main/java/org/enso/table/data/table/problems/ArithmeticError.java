@@ -3,7 +3,7 @@ package org.enso.table.data.table.problems;
 public class ArithmeticError extends ColumnAggregatedProblem {
   private final String message;
 
-  public ArithmeticError(String locationName, String message, Integer row) {
+  public ArithmeticError(String locationName, String message, long row) {
     super(locationName, row);
     this.message = message;
   }

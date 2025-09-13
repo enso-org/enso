@@ -1,0 +1,11 @@
+private
+
+from project.Semantic.Type_Refinement.Types import A, B, X
+
+## This conversion should only be imported in `Type_Refinement.Types` and nowhere else.
+B.from (that : A) -> B =
+    B.B_Ctor that
+
+## This conversion should only be imported in `Type_Refinement.Types` and nowhere else.
+X.from (that : A) -> X =
+    X.X_Ctor that

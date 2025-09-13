@@ -3,10 +3,6 @@ import type * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-// =============================
-// === Mouse event utilities ===
-// =============================
-
 /** Returns `true` if and only if the event is a single click event. */
 export function isSingleClick(event: React.MouseEvent) {
   return event.detail === 1
@@ -24,10 +20,6 @@ export function isDoubleClick(event: React.MouseEvent) {
 export function isModKey(event: React.KeyboardEvent | React.MouseEvent) {
   return detect.isOnMacOS() ? event.metaKey : event.ctrlKey
 }
-
-// ================================
-// === Keyboard event utilities ===
-// ================================
 
 /**
  * A {@link RegExp} that matches {@link KeyboardEvent.code}s corresponding to non-printable
@@ -62,14 +54,19 @@ export function isTextInputKey(event: KeyboardEvent | React.KeyboardEvent) {
   return (
     !SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
     event.key === 'Backspace' ||
-    event.key === 'Delete'
+    event.key === 'Delete' ||
+    event.key === 'ArrowLeft' ||
+    event.key === 'ArrowRight'
   )
 }
 
 /** Whether `event` will produce text. This excludes shortcutManager, as they do not produce text. */
 export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
   // Allow `alt` key to be pressed in case it is being used to enter special characters.
-  return !event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)
+  return (
+    (!event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)) ||
+    (!event.shiftKey && !event.metaKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight'))
+  )
 }
 
 /** Whether the element accepts text input. */
@@ -106,10 +103,6 @@ export function isElementSingleLineTextInput(
   )
 }
 
-// =============================
-// === isElementPartOfMonaco ===
-// =============================
-
 /** Whether the element is part of a Monaco editor. */
 export function isElementPartOfMonaco(element: EventTarget | null) {
   const recursiveCheck = (htmlElement: HTMLElement | null): boolean => {
@@ -127,10 +120,6 @@ export function isElementPartOfMonaco(element: EventTarget | null) {
   return element != null && element instanceof HTMLElement && recursiveCheck(element)
 }
 
-// =========================
-// === isElementInBounds ===
-// =========================
-
 /** Whether the event occurred within the given {@link DOMRect}. */
 export function isElementInBounds(
   event: Pick<MouseEvent, 'clientX' | 'clientY'>,
@@ -144,10 +133,6 @@ export function isElementInBounds(
     event.clientY <= bounds.bottom + margin
   )
 }
-
-// ==================
-// === submitForm ===
-// ==================
 
 /** An event with an {@link Element} as its target. */
 interface EventWithElementTarget {

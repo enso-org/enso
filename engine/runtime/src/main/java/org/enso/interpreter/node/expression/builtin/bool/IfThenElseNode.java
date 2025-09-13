@@ -7,7 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(
     type = "Boolean",
@@ -20,17 +20,13 @@ public final class IfThenElseNode extends Node {
   private final CountingConditionProfile condProfile = CountingConditionProfile.create();
 
   public Object execute(
-      VirtualFrame frame,
-      State state,
-      boolean self,
-      @Suspend Object if_true,
-      @Suspend Object if_false) {
+      VirtualFrame frame, boolean self, @Suspend Object if_true, @Suspend Object if_false) {
     if (condProfile.profile(self)) {
       return leftThunkExecutorNode.executeThunk(
-          frame, if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
+          frame, if_true, EnsoContext.get(this).currentState(), BaseNode.TailStatus.TAIL_DIRECT);
     } else {
       return rightThunkExecutorNode.executeThunk(
-          frame, if_false, state, BaseNode.TailStatus.TAIL_DIRECT);
+          frame, if_false, EnsoContext.get(this).currentState(), BaseNode.TailStatus.TAIL_DIRECT);
     }
   }
 }

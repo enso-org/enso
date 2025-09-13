@@ -1,5 +1,5 @@
 /** @file Test the login flow. */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from 'playwright/test'
 
 import { TEXT, mockAll } from './actions'
 
@@ -20,8 +20,6 @@ test.use({ storageState: { cookies: [], origins: [] } })
 test('login and logout', ({ page }) =>
   mockAll({ page })
     .login()
-    .expectStartModal()
-    .close()
     .withDriveView(async (driveView) => {
       await expect(driveView).toBeVisible()
     })

@@ -1,35 +1,26 @@
-/**
- * @file
- *
- * StepperProvider component
- */
-import * as React from 'react'
-
+/** @file A provider for Stepper context. */
+import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 
-import type { StepperState } from './useStepperState'
-
-/** StepperProvider props */
+/** Props for {@link StepperProvider}. */
 export interface StepperContextType {
   readonly currentStep: number
   readonly goToStep: (step: number) => void
   readonly totalSteps: number
   readonly nextStep: () => void
   readonly previousStep: () => void
-  readonly state: StepperState
 }
 
-const StepperContext = React.createContext<StepperContextType | null>(null)
+const StepperContext = createContext<StepperContextType | null>(null)
 
 /**
  * Hook to use the stepper context
  * @internal
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useStepperContext() {
-  const context = React.useContext(StepperContext)
-
+  const context = useContext(StepperContext)
   invariant(context, 'useStepper must be used within a StepperProvider')
-
   return context
 }
 

@@ -25,7 +25,8 @@ interpreter. In basing Enso's runtime on GraalVM, we not only have access to a
 comprehensive toolkit for building high-performance language interpreters, but
 also to the ecosystems of all the other languages (e.g. C++, Python, R) that can
 run on top of it. GraalVM also brings some additional important tooling, such as
-the JVM ecosystem's performance monitoring, analysis, and debugging toolsets.
+the JVM ecosystem's performance monitoring, analysis, and debugging toolsets -
+all based upon _instrumentation capabilities_ built into GraalVM framework.
 
 The runtime described below is a complex beast, so this document is broken up
 into a number of sections. These aim to provide an architectural overview, and
@@ -43,6 +44,7 @@ then describe the design of each component in detail.
   - [Typechecker](#typechecker)
   - [Optimiser](#optimiser)
   - [Interpreter and JIT](#interpreter-and-jit)
+  - [Linting and Static Checking](#linting-and-static-checking)
 - [Cross-Cutting Concerns](#cross-cutting-concerns)
   - [Caching](#caching)
   - [Profiling and Debugging](#profiling-and-debugging)
@@ -60,7 +62,7 @@ section provides an overview of how it fits into the broader ecosystem, with a
 particular focus on how it enables workflows for Enso Studio, the Enso CLI, and
 Language Server integration. In addition, this section also explores the
 architecture of the runtime itself, breaking down the opaque 'runtime' label
-into the
+into many flavors.
 
 ## The Broader Enso Ecosystem
 
@@ -88,7 +90,7 @@ understanding how the runtime fits into the ecosystem.
   - **Double Representation Manager:** This component handles the encoding and
     decoding of the Enso program to and from the intermediate representation.
   - **Undo/Redo Manager:** This component handles undo and redo for the graph, a
-    somewhat novel operation as it does not not always have a 1:1 correspondence
+    somewhat novel operation as it does not always have a 1:1 correspondence
     with textual editing.
 - **CLI:** This provides a command-line (specifically a terminal) interface to
   the Enso runtime. This allows both for the CLI invocation of Enso, as well as
@@ -130,11 +132,11 @@ being considered.
 - **JVM:** The [JVM](https://openjdk.java.net/) is a high-performance virtual
   machine that includes sophisticated garbage collection, profiling tools, and a
   JIT compiler.
-- **GraalVM:** A universal virtual machine and language development toolkit,
-  [GraalVM](https://www.graalvm.org/) provides a framework for building language
-  interpreters, as well as a JIT compiler. Most importantly, it provides tools
-  for seamless interoperability between languages that can run on Graal, which
-  include Python and R.
+- **GraalVM:** A universal virtual machine (which extends **JVM**) and language
+  development toolkit, [GraalVM](https://www.graalvm.org/) provides a framework
+  for building language interpreters, as well as a JIT compiler. Most
+  importantly, it provides tools for seamless interoperability between languages
+  that can run on Graal, which include Python and R.
 
 The decision to build Enso's runtime using GraalVM was primarily motivated by
 business concerns, but these concerns did not override the technical as well.
@@ -143,30 +145,29 @@ was made.
 
 Overall, it is clear that GraalVM is an optimal choice for Enso at this stage of
 the language's development. While the other potential targets do have their
-upsides (e.g. the JVM's sophisticated garbage collection machinery), they all
-had at least one 'fatal flaw' for Enso's use case.
+upsides, they all had at least one 'fatal flaw' for Enso's use case.
 
 ### Speed of Development
 
 A language runtime is a complex beast, so any solution that could remove some of
 the implementation burden would be beneficial to Enso as a product.
 
-Where LLVM provides comprehensive tools for compiling languages, it provides no
-actual runtime. This would require significant implementation effort, requiring
-the implementation of facilities for concurrency, as well as garbage collection,
-neither of which are simple tasks.
+Where LLVM provides comprehensive tools for compiling languages, it **provides
+no actual runtime**. This would require significant implementation effort,
+requiring the implementation of facilities for concurrency, as well as garbage
+collection, neither of which are simple tasks.
 
 GHC, on the other hand, provides a comprehensive runtime system that includes
 both a garbage collector and sophisticated concurrency system. However, while it
-does provide language-agnostic intermediate representations, these are tied to
-Haskell from a development perspective. Unlike LLVM, GraalVM, or even the JVM,
+does provide language-agnostic intermediate representations, these are **tied to
+Haskell** from a development perspective. Unlike LLVM, GraalVM, or even the JVM,
 if GHC Haskell requires a change to these representations, that change will be
-made.
+made without attempts to remain compatible.
 
 With many languages already targeting the JVM it also seemed like an attractive
-option. The stable bytecode target would be useful, but other languages have
-proven the challenges of generating sensible bytecode to provide good language
-performance.
+option. The stable bytecode target would be useful, but other languages (_JRuby_
+and _Nashorn_ JavaScript implementation) have demonstrtaed challenges associated
+with generating sensible bytecode to provide exceptional language performance.
 
 GraalVM manages to provide excellent performance with a sensible, high-level
 interface, thereby enabling rapid development of a performant runtime without
@@ -199,11 +200,11 @@ ensuring that an interactive environment like Enso doesn't slow down as it does
 so requires a high level of performance.
 
 GraalVM's partially-evaluated-interpreter based approach allows the developers
-to write a 'naive interpreter' and automatically have the platform provide
-better performance. This is a stark contrast to all of the other listed options,
-each of which would require significant complexity around generating the right
-intermediate representation structures, as well as significant work on front-end
-language optimisations.
+to write a **naive interpreter** and automatically have the platform provide
+**good enough performance**. This is a stark contrast to all of the other listed
+options, each of which would require significant complexity around generating
+the right intermediate representation structures, as well as significant work on
+front-end language optimisations.
 
 In essence, GraalVM provides for the best performance with the smallest amount
 of effort, while still providing comprehensive facilities to improve performance
@@ -249,16 +250,14 @@ It communicates with other portions of the ecosystem (such as the REPL and the
 Enso Studio backend) via a protocol. While this protocol is based on the
 [Language Server Protocol](https://microsoft.github.io/language-server-protocol/specification),
 it has been extended significantly to better support Enso's use-cases.
+Description of the [Enso Language Server Protocol](../language-server/README.md)
+can be found in a
+[dedicated document](../language-server/protocol-language-server.md).
 
 <!-- TODO
-- A description of the protocol format.
 - A description of bidirectional protocol operation. This means that Enso's
   runtime is not purely a server, but can also push data to the client.
 - A description of how the protocol design admits extensibility.
-- An informal description of each of the protocol messages, for example \
-  (`expandOptionalArgs`, which expands all defaulted arguments in a call with
-  the defaults as the values). Needs to account for on-demand opt, metadata
-  handling.
 - A description of how a Enso process should manage source files in server mode,
   including a description of changesets (dual payload, text diff or AST diff).
 -->
@@ -267,8 +266,8 @@ it has been extended significantly to better support Enso's use-cases.
 
 This component of the runtime deals with access from the runtime to external
 devices. This includes the Enso code files on disk, but is also responsible for
-watching filesystem resources (such as databases, files, and sockets) that are
-used by Enso programs.
+watching resources (such as databases, files, and sockets) that are used by Enso
+programs.
 
 <!-- TODO
 - A diagram of the interactive file-system watching.
@@ -294,20 +293,12 @@ of [the type system](../types/README.md).
 
 ## Optimiser
 
-With much of Enso's performance relying on the JIT optimiser built into Graal,
-the native language optimiser instead relies on handling more front-end specific
-optimisations.
+With higly performing JIT compiler capable of running the interpreter code at
+**full speed** it makes no sense to invest in static optimizations. They only
+slow down the initialization of the interpreter and waste time by processing
+code which may not even _"get hot"_.
 
-<!-- TODO
-- A diagram of the optimisation process.
-- A description of its architecture.
-- A description of the optimisations that it needs to perform to generate a
-  sensible input to GraalVM.
-- A description of additional transformations it needs to perform (e.g. for
-  the handling of strictness).
-- A design for hierarchical description of optimisation passes.
-- A design for parallel local optimisation.
--->
+The less static compiler optimizations, the better!
 
 ## Interpreter and JIT
 
@@ -325,6 +316,16 @@ compiled by GraalVM.
 - A description of support for library precompilation.
 - An analysis of how the interpreter is involved in the typechecking process.
 -->
+
+## Linting and Static Checking
+
+While static _Optimizer_ isn't necessary for achieving good enough runtime
+performance, static type checking and overall linting is still useful during
+development. It helps with early error discovery, improves editing experience
+and ensure code quality by enabling continuous integration checks.
+
+More about such checks in a
+[dedicated document](/../types/inference-and-checking.md).
 
 # Cross-Cutting Concerns
 
@@ -370,20 +371,17 @@ using standard and non-standard debugging paradigms.
 ## Foreign Language Interoperability
 
 This component deals with using the GraalVM language interoperability features
-to provide a seamless interface to foreign code from inside Enso.
-
-<!-- TODO
-- A design for standard, unsafe, C-level FFI using JNI.
-- A design for what types can be exposed across the C-FFI boundary.
-- A design for how to expose foreign languages to Enso in a safe fashion.
-- An analysis of how Enso can minimise the conversions that take place when
-  going between languages.
--->
+to provide a seamless interface to foreign code from inside Enso. Read more in
+[polyglot document](../polyglot/README.md).
 
 ## Lightweight Concurrency
 
 Though not strictly a component, this section deals with how Enso can provide
-its users with lightweight concurrency primitives in the form of green threads.
+its users with lightweight concurrency primitives. Currently Enso is mostly
+single-threaded. Work on using multiple threads is in progress:
+
+- [#13219](https://github.com/enso-org/enso/pull/13219) - parallelizing
+  visualizations
 
 <!-- TODO
 - Examine how the JVM's basic concurrency primitives can be used in Enso.
@@ -391,18 +389,6 @@ its users with lightweight concurrency primitives in the form of green threads.
 - An examination of how Project Loom could be employed to provide users with
   lightweight concurrency in Enso, thereby avoiding async/await 'colouring' of
   functions.
--->
-
-# The Initial Version of the Runtime
-
-In order to have a working version of the new runtime as quickly as possible, it
-was decided to design and build an initial, stripped-down version of the final
-design. This design focused on development of a minimal working subset of the
-runtime that would allow Enso to run.
-
-<!-- TODO
-- Describe a design for a dynamic-only runtime
-- Describe hardcoded support for IO, State, Exception (!) monads
 -->
 
 # Development Considerations

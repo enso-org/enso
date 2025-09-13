@@ -5,16 +5,13 @@
  * Improves Layout recalculation performance.
  */
 import { useMeasureCallback } from '#/hooks/measureHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { tv } from '#/utilities/tailwindVariants'
 import type { ForwardedRef } from 'react'
 import { forwardRef, useRef, type ReactNode } from 'react'
-import { mergeRefs } from '../utilities/mergeRefs'
-import { tv } from '../utilities/tailwindVariants'
 
-/**
- * Props for the {@link IsolateLayout} component.
- */
+/** Props for the {@link IsolateLayout} component. */
 export interface IsolateLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
-  readonly useRAF?: boolean
   readonly debounce?: number
   readonly maxWait?: number
   readonly children: ReactNode
@@ -35,7 +32,6 @@ export const IsolateLayout = forwardRef(function IsolateLayout(
     className,
     children,
     style,
-    useRAF = false,
     debounce = DEBOUNCE_TIME,
     maxWait = DEBOUNCE_TIME,
     ...rest
@@ -55,7 +51,6 @@ export const IsolateLayout = forwardRef(function IsolateLayout(
     },
     debounce,
     maxWait,
-    useRAF,
   })
 
   const svgRef = useRef<SVGSVGElement>(null)

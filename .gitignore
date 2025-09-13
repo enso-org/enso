@@ -150,12 +150,14 @@ build-cache
 ######################
 ## Enso-Development ##
 ######################
+*.local
 dist/
 distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
 distribution/editions
 distribution/lib/Standard/Table/*/polyglot/
 distribution/lib/Standard/Database/*/polyglot/
+distribution/lib/Standard/Microsoft/*/polyglot/
 distribution/lib/Standard/Examples/*/data/spreadsheet.xls
 distribution/lib/Standard/Examples/*/data/spreadsheet.xlsx
 distribution/lib/*/*/*/manifest.yaml
@@ -163,8 +165,8 @@ distribution/lib/*/*/*/manifest.yaml
 # Resources that are downloaded during the build.
 /lib/scala/pkg/src/main/resources/*
 
-test/Google_Api_Test/data/secret.json
 test/Database_Tests/data/redshift_credentials.json
+test/Temporary_*
 
 /resources/
 
@@ -184,6 +186,12 @@ test-results
 ##################
 
 .direnv
+
+########################
+## Nix-specific shims ##
+########################
+
+nix/shims/
 
 ##########################
 ## Playwright artifacts ##

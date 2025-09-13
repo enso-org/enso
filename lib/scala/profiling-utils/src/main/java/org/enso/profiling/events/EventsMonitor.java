@@ -5,6 +5,8 @@ import java.nio.ByteBuffer;
 
 /** Diagnostic tool that processes event messages. Used for debugging or performance review. */
 public interface EventsMonitor extends Closeable {
+  /** no operation events monitor */
+  static final EventsMonitor NOOP = new NoopEventsMonitor();
 
   /**
    * Process the event message.

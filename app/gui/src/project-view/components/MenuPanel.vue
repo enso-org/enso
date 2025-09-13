@@ -9,7 +9,7 @@
   display: flex;
   flex-direction: column;
   border-radius: 13px;
-  background: var(--color-frame-bg);
+  background: var(--color-frame-selected-bg);
   backdrop-filter: var(--blur-app-bg);
   margin: 0 -4px;
   z-index: 1;

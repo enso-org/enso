@@ -1,6 +1,7 @@
 //! Environment variables used by the engine's SBT-based build system.
 
 //use crate::prelude::*;
+
 use crate::engine;
 
 use ide_ci::cache::goodie::graalvm;
@@ -20,4 +21,7 @@ define_env_var! {
 
     /// Type of the launcher - either 'native', 'debugnative' or 'shell'
     ENSO_LAUNCHER, engine::EngineLauncher;
+
+    //// path to JUnit output directory
+    ENSO_TEST_JUNIT_DIR, String;
 }

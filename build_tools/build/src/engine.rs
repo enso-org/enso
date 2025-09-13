@@ -31,113 +31,14 @@ pub mod sbt;
 
 pub use context::RunContext;
 
-
-
 /// Whether pure Enso tests should be run in parallel.
 const PARALLEL_ENSO_TESTS: AsyncPolicy = AsyncPolicy::Sequential;
 
-/// Download template projects from GitHub.
-pub async fn download_project_templates(client: reqwest::Client, enso_root: PathBuf) -> Result {
-    // Download Project Template Files
-    let output_base = enso_root.join("lib/scala/pkg/src/main/resources/");
-    let url_base = Url::parse("https://github.com/enso-org/project-templates/raw/main/")?;
-    let to_handle = [
-        ("Orders", vec![
-            "data/store_data.xlsx",
-            "src/eaep.png",
-            "src/excel1.png",
-            "src/excel2.png",
-            "src/excel3.png",
-            "src/eyeball_viz.png",
-            "src/Main.enso",
-        ]),
-        ("Restaurants", vec![
-            "data/la_districts.csv",
-            "data/mapcolors.json",
-            "data/restaurants.csv",
-            "src/eaep.png",
-            "src/Main.enso",
-            "src/map1.png",
-            "src/map2.png",
-            "src/table1.png",
-        ]),
-        ("Stargazers", vec!["src/Main.enso"]),
-        ("Colorado_COVID", vec![
-            "data/CDPHE_COVID19_County_Status_Metrics.csv",
-            "data/ColoradoGeoData.db",
-            "src/eaep.png",
-            "src/Main.enso",
-            "src/map.png",
-            "src/table1.png",
-            "src/table2.png",
-        ]),
-        ("Monthly_Sales", vec![
-            "data/Sales_Sample_Data.xlsx",
-            "src/eaep.png",
-            "src/excel1.png",
-            "src/Main.enso",
-        ]),
-        ("Bank_Holiday_Rain", vec!["src/bankholiday.png", "src/eaep.png", "src/Main.enso"]),
-        ("KMeans", vec!["src/Main.enso"]),
-        ("NASDAQReturns", vec!["src/Main.enso"]),
-        ("Getting_Started_Reading", vec![
-            "src/eags.png",
-            "src/loadfile.gif",
-            "src/Main.enso",
-            "src/sheets.gif",
-            "src/showdata.gif",
-            "src/simpleexpression.gif",
-            "src/table_solution.png",
-            "src/table_viz.png",
-        ]),
-        ("Getting_Started_Aggregating", vec![
-            "data/sample_bank_data.xlsx",
-            "src/answer_table.png",
-            "src/eags.png",
-            "src/Main.enso",
-            "src/set.gif",
-            "src/table1.png",
-        ]),
-        ("Getting_Started_Cleansing", vec!["data/crm_data.csv", "src/eags.png", "src/Main.enso"]),
-        ("Getting_Started_Selecting", vec![
-            "data/crm_data.csv",
-            "data/Customer_Data.xlsx",
-            "src/eags.png",
-            "src/Main.enso",
-            "src/table1.png",
-            "src/table2.png",
-        ]),
-    ];
-
-    let mut futures = Vec::<BoxFuture<'static, Result>>::new();
-    for (project_name, relative_paths) in to_handle {
-        for relative_path in relative_paths {
-            let relative_url_base = url_base.join(&format!("{project_name}/"))?;
-            let relative_output_base = output_base.join(project_name.to_lowercase());
-            let client = client.clone();
-            let future = async move {
-                ide_ci::io::web::client::download_relative(
-                    &client,
-                    &relative_url_base,
-                    &relative_output_base,
-                    &PathBuf::from(relative_path),
-                )
-                .await?;
-                Ok(())
-            };
-            futures.push(future.boxed());
-        }
-    }
-
-    let _result = futures::future::try_join_all(futures).await?;
-    debug!("Completed downloading templates");
-    Ok(())
-}
-
 /// Describe, which benchmarks should be run.
-#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
-pub enum Benchmarks {
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum, Default)]
+pub enum BenchmarkType {
     /// Run all SBT-exposed benchmarks. Does *not* including pure [`Benchmarks::Enso`] benchmarks.
+    #[default]
     All,
     /// Run the runtime benchmark (from `sbt`).
     Runtime,
@@ -146,6 +47,34 @@ pub enum Benchmarks {
     /// Run Enso benchmarks via JMH
     EnsoJMH,
 }
+
+#[derive(Clone, Debug, Default)]
+pub struct Benchmarks {
+    /// Name of a single benchmark, if a single benchmark should be run.
+    /// If None, all the benchmarks of the given type are executed
+    pub bench_name: Option<String>,
+    pub bench_type: BenchmarkType,
+}
+
+impl Benchmarks {
+    fn sbt_task(&self) -> Option<String> {
+        match &self.bench_type {
+            BenchmarkType::All => Some("bench".to_string()),
+            BenchmarkType::Runtime => match &self.bench_name {
+                Some(name) if !name.is_empty() =>
+                    Some(format!("runtime-benchmarks/benchOnly {}", name)),
+                _ => Some("runtime-benchmarks/bench".to_string()),
+            },
+            BenchmarkType::Enso => None,
+            BenchmarkType::EnsoJMH => match &self.bench_name {
+                Some(name) if !name.is_empty() =>
+                    Some(format!("std-benchmarks/benchOnly {}", name)),
+                _ => Some("std-benchmarks/bench".to_string()),
+            },
+        }
+    }
+}
+
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Tests {
@@ -156,22 +85,21 @@ pub enum Tests {
     #[clap(alias = "stdlib")]
     StandardLibrary,
 
+    /// Run all Standard Library tests with native-image.
+    #[clap(alias = "stdlib-native")]
+    StandardLibraryInNative,
+
     /// Run the Snowflake tests.
     StdSnowflake,
 
+    /// Run the Snowflake tests in `--jvm` mode.
+    StdSnowflakeJVM,
+
     /// Run a subset of Standard Library tests that deals with Cloud-related functionality.
     StdCloudRelated,
-}
 
-impl Benchmarks {
-    pub fn sbt_task(self) -> Option<&'static str> {
-        match self {
-            Benchmarks::All => Some("bench"),
-            Benchmarks::Runtime => Some("runtime-benchmarks/bench"),
-            Benchmarks::Enso => None,
-            Benchmarks::EnsoJMH => Some("std-benchmarks/bench"),
-        }
-    }
+    /// Run Microsoft tests.
+    StdMicrosoft,
 }
 
 /// Configuration for how the binary inside the engine distribution should be built.
@@ -179,6 +107,9 @@ impl Benchmarks {
 pub enum EngineLauncher {
     /// The binary inside the engine distribution will be built as an optimized native image
     Native,
+    /// The binary inside the engine distribution will be built as an optimized native image
+    /// without language server.
+    NativeWithoutLS,
     /// The binary inside the engine distribution will be built as native image with assertions
     /// enabled but no debug information
     TestNative,
@@ -189,6 +120,7 @@ pub enum EngineLauncher {
     #[default]
     Shell,
 }
+
 impl FromStr for EngineLauncher {
     type Err = anyhow::Error;
 
@@ -201,12 +133,19 @@ impl Display for EngineLauncher {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         let str = match self {
             EngineLauncher::Native => "native".to_string(),
+            EngineLauncher::NativeWithoutLS => "native,-ls".to_string(),
             EngineLauncher::TestNative => "native,test".to_string(),
             EngineLauncher::TestDebugNative => "native,test,debug".to_string(),
             EngineLauncher::Shell => "shell".to_string(),
         };
 
         write!(f, "{}", str)
+    }
+}
+
+impl From<EngineLauncher> for String {
+    fn from(value: EngineLauncher) -> Self {
+        value.to_string()
     }
 }
 
@@ -219,26 +158,34 @@ pub struct BuildConfigurationFlags {
     pub test_jvm: bool,
     /// Whether the Enso standard library should be tested.
     pub test_standard_library: Option<StandardLibraryTestsSelection>,
+    pub extra_engine_runner_args: Option<Vec<String>>,
+    /// Extra options passed via `JAVA_TOOL_OPTIONS` env var for the engine runner process.
+    pub extra_java_tool_opts: Option<Vec<String>>,
     /// Whether benchmarks are compiled.
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
     pub build_benchmarks: bool,
+    /// Whether the small JDK should be build with `jlink` before running
+    /// any tests.
+    pub build_small_jdk: bool,
+    /// If `build_small_jdk` is true, this is the directory where the small JDK will be placed.
+    pub small_jdk_dir: Option<PathBuf>,
     /// Whether the Enso-written benchmarks should be checked whether they compile.
     ///
     /// Note that this does not run benchmark, only ensures that they are buildable.
     /// Also, this does nothing if `execute_benchmarks` contains `Benchmarks::Enso`.
     pub check_enso_benchmarks: bool,
     /// Which benchmarks should be run.
-    pub execute_benchmarks: BTreeSet<Benchmarks>,
+    pub execute_benchmarks: Option<Benchmarks>,
     /// Used to check that benchmarks do not fail on runtime, rather than obtaining the results.
     pub execute_benchmarks_once: bool,
     pub build_engine_package: bool,
+    /// Use the NI Engine Runner during the build.
+    pub use_native_runner: bool,
     /// Build the NI Engine Runner.
     pub build_native_runner: bool,
     /// Build the Ydoc Native Image
     pub build_native_ydoc: bool,
-    /// Build the experimental Espresso+NI Engine Runner.
-    pub build_espresso_runner: bool,
     pub build_launcher_package: bool,
     pub build_project_manager_package: bool,
     pub build_launcher_bundle: bool,
@@ -247,13 +194,58 @@ pub struct BuildConfigurationFlags {
     pub test_java_generated_from_rust: bool,
     /// Verify License Packages in Distributions.
     pub verify_packages: bool,
+    pub stdlib_api_check: bool,
+    pub run_enso_lint: bool,
 }
 
 #[derive(Clone, Debug)]
-pub enum StandardLibraryTestsSelection {
-    All,
-    Selected(Vec<String>),
+pub enum Filter<T> {
+    Whitelist(HashSet<T>),
+    Blacklist(HashSet<T>),
 }
+
+impl<T> Filter<T>
+where T: Eq + Hash
+{
+    pub fn whitelist(items: impl IntoIterator<Item = T>) -> Self {
+        Self::Whitelist(items.into_iter().collect())
+    }
+
+    pub fn blacklist(items: impl IntoIterator<Item = T>) -> Self {
+        Self::Blacklist(items.into_iter().collect())
+    }
+
+    pub fn allow(&mut self, item: T) {
+        match self {
+            Self::Whitelist(ref mut set) => {
+                set.insert(item);
+            }
+            Self::Blacklist(ref mut set) => {
+                set.remove(&item);
+            }
+        }
+    }
+
+    pub fn deny(&mut self, item: T) {
+        match self {
+            Self::Whitelist(ref mut set) => {
+                set.remove(&item);
+            }
+            Self::Blacklist(ref mut set) => {
+                set.insert(item);
+            }
+        }
+    }
+
+    pub fn is_allowed(&self, item: &T) -> bool {
+        match self {
+            Self::Whitelist(set) => set.contains(item),
+            Self::Blacklist(set) => !set.contains(item),
+        }
+    }
+}
+
+pub type StandardLibraryTestsSelection = Filter<String>;
 
 impl From<BuildConfigurationFlags> for BuildConfigurationResolved {
     fn from(value: BuildConfigurationFlags) -> Self {
@@ -276,18 +268,13 @@ impl BuildConfigurationResolved {
             config.build_engine_package = true;
         }
 
-        // Check for components that require Enso Engine runner. Basically everything that needs to
-        // run pure Enso code.
-        if config.test_standard_library.is_some()
-            || config.execute_benchmarks.contains(&Benchmarks::Enso)
-            || config.check_enso_benchmarks
-        {
-            config.build_engine_package = true;
+        // If we are about to run pure Enso benchmarks, there is no reason to try them in dry run.
+        if Self::should_run_enso_benchmarks(&config) {
+            config.check_enso_benchmarks = false;
         }
 
-        // If we are about to run pure Enso benchmarks, there is no reason to try them in dry run.
-        if config.execute_benchmarks.contains(&Benchmarks::Enso) {
-            config.check_enso_benchmarks = false;
+        if Self::should_run_enso_jmh_benchmarks(&config) {
+            config.build_native_runner = true;
         }
 
         if config.test_java_generated_from_rust {
@@ -296,15 +283,25 @@ impl BuildConfigurationResolved {
 
         Self(config)
     }
+
+    fn should_run_enso_benchmarks(config: &BuildConfigurationFlags) -> bool {
+        match &config.execute_benchmarks {
+            Some(benchmark) => benchmark.bench_type == BenchmarkType::Enso,
+            None => false,
+        }
+    }
+
+    fn should_run_enso_jmh_benchmarks(config: &BuildConfigurationFlags) -> bool {
+        match &config.execute_benchmarks {
+            Some(benchmark) => benchmark.bench_type == BenchmarkType::EnsoJMH,
+            None => false,
+        }
+    }
 }
 
 impl BuildConfigurationFlags {
-    pub fn build_engine_package(&self) -> bool {
-        self.build_engine_package
-            || self.build_launcher_bundle
-            || self.build_project_manager_bundle
-            || self.test_standard_library.is_some()
-            || self.build_native_runner
+    pub fn has_native_runner(&self) -> bool {
+        self.build_native_runner || self.use_native_runner
     }
 
     pub fn build_project_manager_package(&self) -> bool {
@@ -315,20 +312,20 @@ impl BuildConfigurationFlags {
         self.build_launcher_package || self.build_launcher_bundle
     }
 
-    pub fn add_standard_library_test_selection(
-        &mut self,
-        selection: StandardLibraryTestsSelection,
-    ) {
-        use StandardLibraryTestsSelection::*;
-        let combined_selection = match (self.test_standard_library.take(), selection) {
-            (None, selection) => selection,
-            (Some(All), _) | (_, All) => All,
-            (Some(Selected(mut selection)), Selected(new_selection)) => {
-                selection.extend(new_selection);
-                Selected(selection)
-            }
-        };
-        self.test_standard_library = Some(combined_selection);
+    pub fn add_engine_runner_arg(&mut self, flag: &str) {
+        if let Some(engine_runner_args) = &mut self.extra_engine_runner_args {
+            engine_runner_args.push(flag.into());
+        } else {
+            self.extra_engine_runner_args = Some(vec![flag.into()]);
+        }
+    }
+
+    pub fn add_java_tool_opt(&mut self, flag: &str) {
+        if let Some(java_tool_opts) = &mut self.extra_java_tool_opts {
+            java_tool_opts.push(flag.into());
+        } else {
+            self.extra_java_tool_opts = Some(vec![flag.into()]);
+        }
     }
 }
 
@@ -337,21 +334,27 @@ impl Default for BuildConfigurationFlags {
         Self {
             test_jvm: false,
             test_standard_library: None,
+            extra_engine_runner_args: None,
+            extra_java_tool_opts: None,
+            build_small_jdk: false,
+            small_jdk_dir: None,
             build_benchmarks: false,
             check_enso_benchmarks: false,
             execute_benchmarks: default(),
             execute_benchmarks_once: false,
             build_engine_package: false,
             build_launcher_package: false,
+            use_native_runner: false,
             build_native_runner: false,
             build_native_ydoc: false,
-            build_espresso_runner: false,
             build_project_manager_package: false,
             build_launcher_bundle: false,
             build_project_manager_bundle: false,
             generate_java_from_rust: false,
             test_java_generated_from_rust: false,
             verify_packages: false,
+            stdlib_api_check: false,
+            run_enso_lint: false,
         }
     }
 }
@@ -431,14 +434,14 @@ impl BuiltArtifacts {
 
 pub async fn deduce_graal(
     client: Octocrab,
-    build_sbt: &generated::RepoRootBuildSbt,
+    deps: &generated::RepoRootProjectDependenciesScala,
 ) -> Result<ide_ci::cache::goodie::graalvm::GraalVM> {
-    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
     let graal_edition = env::GRAAL_EDITION.get().map_or(Edition::default(), |e| e);
 
     Ok(ide_ci::cache::goodie::graalvm::GraalVM {
         client,
-        graal_version: get_graal_version(&build_sbt_content)?,
+        graal_version: get_graal_version(&deps_content)?,
         edition: graal_edition,
         os: TARGET_OS,
         arch: TARGET_ARCH,
@@ -446,17 +449,19 @@ pub async fn deduce_graal(
 }
 
 pub async fn deduce_graal_bundle(
-    build_sbt: &generated::RepoRootBuildSbt,
+    deps: &generated::RepoRootProjectDependenciesScala,
 ) -> Result<GraalVmVersion> {
-    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
+    let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
     Ok(GraalVmVersion {
-        graal:    get_graal_version(&build_sbt_content)?,
-        packages: get_graal_packages_version(&build_sbt_content)?,
+        graal:    get_graal_version(&deps_content)?,
+        packages: get_graal_packages_version(&deps_content)?,
     })
 }
 
 /// Version of `flatc` (the FlatBuffers compiler) that Engine requires.
-pub async fn deduce_flatbuffers(build_sbt: &generated::RepoRootBuildSbt) -> Result<Version> {
-    let build_sbt_content = ide_ci::fs::tokio::read_to_string(build_sbt).await?;
-    get_flatbuffers_version(&build_sbt_content)
+pub async fn deduce_flatbuffers(
+    deps: &generated::RepoRootProjectDependenciesScala,
+) -> Result<Version> {
+    let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
+    get_flatbuffers_version(&deps_content)
 }

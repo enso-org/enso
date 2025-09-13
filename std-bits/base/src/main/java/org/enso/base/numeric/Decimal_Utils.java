@@ -4,20 +4,28 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.util.Locale;
 
 /** Utils for the Enso Decmial type. */
 public class Decimal_Utils {
   private static final BigDecimal MIN_LONG_BIGDECIMAL = BigDecimal.valueOf(Long.MIN_VALUE);
   private static final BigDecimal MAX_LONG_BIGDECIMAL = BigDecimal.valueOf(Long.MAX_VALUE);
 
-  public static BigDecimal fromString(String s) {
-    return new BigDecimal(s);
+  public static Number fromString(String s) throws ParseException {
+    try {
+      return new BigDecimal(s);
+    } catch (NumberFormatException e) {
+      var df = (DecimalFormat)DecimalFormat.getInstance(Locale.ROOT);
+      df.setParseBigDecimal(true);
+      return df.parse(s);
+    }
   }
 
-  public static ConversionResult fromString(String s, MathContext mc) {
-    BigDecimal bd = new BigDecimal(s, mc);
-    BigDecimal withoutMC = new BigDecimal(s);
-    return new ConversionResult(bd, bd.compareTo(withoutMC) != 0);
+  public static ConversionResult applyMathContext(BigDecimal bd, MathContext mc) {
+    BigDecimal rounded = bd.round(mc);
+    return new ConversionResult(rounded, bd.compareTo(rounded) != 0);
   }
 
   public static BigDecimal fromInteger(Object o) {

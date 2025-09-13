@@ -5,6 +5,8 @@ from Standard.Base.Errors.Common import Unsupported_Argument_Types, Uninitialize
 
 from Standard.Test import all
 
+polyglot java import org.enso.base_test_helpers.CallbackHelper
+
 type Lazy_Data
     private Value ~lazy_field
 
@@ -47,6 +49,14 @@ add_specs suite_builder = suite_builder.group "State" group_builder->
             data.lazy_field
 
         fourty_two . should_equal 42
+
+    group_builder.specify "State from Enso to Java to Enso" <|
+        s = State.run Test 42 <|
+            obtain_state delta =
+                State.get Test + delta
+
+            CallbackHelper.runCallbackInt obtain_state -1
+        s . should_equal 41
 
 main filter=Nothing =
     suite = Test.build suite_builder->

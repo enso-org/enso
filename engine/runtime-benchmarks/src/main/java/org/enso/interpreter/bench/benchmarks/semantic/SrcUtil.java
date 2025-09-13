@@ -5,7 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Objects;
 import org.enso.common.MethodNames.Module;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.infra.BenchmarkParams;
@@ -34,7 +34,7 @@ final class SrcUtil {
     return Source.newBuilder("enso", url).name(resource).build();
   }
 
-  static Value getMainMethod(Context context, String benchmarkName, String code)
+  static Value getMainMethod(ContextUtils context, String benchmarkName, String code)
       throws IOException {
     var src = source(benchmarkName, code);
     var module = context.eval(src);

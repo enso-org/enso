@@ -5,6 +5,7 @@ import Standard.Base.Runtime.Context
 
 from Standard.Test import all
 
+polyglot java import java.io.File as JFile
 
 type My_Type
 
@@ -143,6 +144,18 @@ add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
             deep_stack_trace = deep_a.stack_trace
             (deep_stack_trace.length > 5) . should_be_true
             deep_stack_trace.take 5 . map .name . should_equal names
+
+    group_builder.specify "source location to Text" <|
+        stack = Runtime.get_stack_trace
+        el = stack.at 0
+
+        el . should_be_a Standard.Base.Runtime.Stack_Trace_Element
+
+        where = el.source_location
+        where . should_be_a Standard.Base.Runtime.Source_Location.Source_Location
+
+        exp = "Base_Tests/src/Runtime/Stack_Traces_Spec.enso:149:17-39".replace '/' JFile.separator
+        where.to_display_text . should_contain exp
 
 main =
     suite = Test.build suite_builder->

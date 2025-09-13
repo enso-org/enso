@@ -8,7 +8,7 @@ import org.enso.common.MethodNames;
 import org.enso.compiler.benchmarks.CodeGenerator;
 import org.enso.compiler.benchmarks.Utils;
 import org.enso.interpreter.runtime.data.Type;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 
 class InlineContextUtils {
@@ -31,7 +31,7 @@ class InlineContextUtils {
    * @param localVarNames local variables that should be initialized in the main method
    * @return Body of the main method
    */
-  static InlineSource createMainMethodWithLocalVars(Context ctx, Set<String> localVarNames)
+  static InlineSource createMainMethodWithLocalVars(ContextUtils ctx, Set<String> localVarNames)
       throws IOException {
     var sb = new StringBuilder();
     sb.append("main = ").append(System.lineSeparator());
@@ -49,7 +49,7 @@ class InlineContextUtils {
     var lastExpr =
         localVarNames.stream().reduce((acc, varName) -> acc + " + " + varName).orElseThrow();
     sb.append("    ").append(lastExpr).append(System.lineSeparator());
-    var ensoCtx = Utils.leakEnsoContext(ctx);
+    var ensoCtx = ctx.ensoContext();
     var srcFile = Utils.createSrcFile(sb.toString(), "inlineBenchmark.enso");
     var src = Source.newBuilder(LanguageInfo.ID, srcFile).build();
     var module = ctx.eval(src);

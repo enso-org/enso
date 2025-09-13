@@ -5,10 +5,6 @@ import { useMonitorDependencies } from '#/hooks/debugHooks'
 
 /* eslint-disable no-restricted-properties */
 
-// =============
-// === Debug ===
-// =============
-
 let nextMountId = 0
 let nextRenderId = 0
 
@@ -24,7 +20,7 @@ interface DebugProps {
 }
 
 /** A component that adds debugging info to its direct child. */
-export default function Debug(props: DebugProps) {
+export function Debug(props: DebugProps) {
   const {
     name,
     monitorAll = false,

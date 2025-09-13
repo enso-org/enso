@@ -84,3 +84,68 @@ add_specs suite_builder =
             r1 = expect_test_failure <|
                 "abc".should_end_with "d"
             r1.message.should_contain "Extensions_Spec.enso:85"
+
+    suite_builder.group "stack trace location and frame hiding" group_builder->
+        group_builder.specify "should be able to get a stack trace without test helper frames" <|
+            r1 = expect_test_failure <|
+                "ab".should_equal "ac"
+            r1.message.should_contain "Extensions_Spec.enso:91"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting)" <|
+            should_equal_2 x y = Frame_Hider.hide <|
+                x.should_equal y
+            should_equal_3 x y = Frame_Hider.hide <|
+                should_equal_2 x y
+
+            r1 = expect_test_failure <|
+                should_equal_3 "ab" "ac"
+            r1.message.should_contain "Extensions_Spec.enso:101"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a no-arg callback)" <|
+            ## This test is here because of differences in stack traces with no-arg calls.
+            should_equal_a checker _ _ = Frame_Hider.hide <|
+                Frame_Hider.unhide checker
+            should_equal_b checker x y = Frame_Hider.hide <|
+                should_equal_a (Frame_Hider.unhide checker) x y
+
+            my_checker =
+                False . should_be_true
+
+            r1 = expect_test_failure <|
+                should_equal_b my_checker "ab" "ac"
+            r1.message.should_contain "Extensions_Spec.enso:112"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a one-arg callback)" <|
+            should_equal_a checker x = Frame_Hider.hide <|
+                Frame_Hider.unhide (checker x)
+            should_equal_b checker x = Frame_Hider.hide <|
+                should_equal_a (Frame_Hider.unhide_1 checker x)
+
+            my_checker x =
+                x . should_equal "ac"
+
+            r1 = expect_test_failure <|
+                should_equal_b my_checker "ab"
+            r1.message.should_contain "Extensions_Spec.enso:125"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a two-arg callback)" <|
+            should_equal_a checker x y = Frame_Hider.hide <|
+                Frame_Hider.unhide (checker x y)
+            should_equal_b checker x y = Frame_Hider.hide <|
+                should_equal_a (Frame_Hider.unhide_2 checker x y)
+
+            my_checker x y =
+                x.should_equal y
+
+            r1 = expect_test_failure <|
+                should_equal_b my_checker "ab" "ac"
+            r1.message.should_contain "Extensions_Spec.enso:138"
+
+        location_pending = case Platform.os of
+            Platform.OS.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
+            _ -> Nothing
+
+        group_builder.specify "should allow to get the source location of a frame" pending=location_pending <|
+            src = Frame_Hider.get_top_stack_frame
+            loc = "Extensions_Spec.enso:149:19-49"
+            src.take (..Last loc.length) . should_equal loc

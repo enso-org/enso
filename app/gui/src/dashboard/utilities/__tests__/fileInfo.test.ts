@@ -1,11 +1,7 @@
 /** @file Tests for `fileInfo.ts`. */
 import * as v from 'vitest'
 
-import * as fileInfo from '#/utilities/fileInfo'
-
-// =============
-// === Tests ===
-// =============
+import * as fileInfo from 'enso-common/src/utilities/file'
 
 v.test('fileExtension', () => {
   v.expect(fileInfo.fileExtension('image.png')).toBe('png')

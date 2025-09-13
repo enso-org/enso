@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import org.enso.common.CompilationStage;
 import org.enso.common.LanguageInfo;
@@ -37,6 +38,7 @@ import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
+import org.enso.interpreter.node.expression.builtin.debug.DebugEvalNode;
 import org.enso.interpreter.runtime.builtin.BuiltinFunction;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -51,13 +53,18 @@ import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.data.TypeGraph;
 import org.enso.text.buffer.Rope;
+import org.slf4j.LoggerFactory;
 
-/** Represents a source module with a known location. */
+/**
+ * Represents a source module with a known location. The state of {@link Module} may change as the
+ * user manipulates it source in the Enso Studio. The immutable state is captured inside of {@link
+ * ModuleScope}. Snapshot of the scope can be obtained via {@link #getScope()}.
+ */
 @ExportLibrary(InteropLibrary.class)
 public final class Module extends EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
-  private ModuleScope.Builder scopeBuilder;
+  private ModuleScope scope;
   private final Package<TruffleFile> pkg;
   private final Cache<ModuleCache.CachedModule, ModuleCache.Metadata> cache;
   private boolean wasLoadedFromCache;
@@ -91,11 +98,14 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = false;
+  }
+
+  final void updateModuleScope(ModuleScope scope) {
+    this.scope = scope;
   }
 
   /**
@@ -110,7 +120,6 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -130,7 +139,6 @@ public final class Module extends EnsoObject {
     ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
@@ -142,30 +150,39 @@ public final class Module extends EnsoObject {
    * Creates a new module.
    *
    * @param name the qualified name of this module.
+   * @param fillWith a code to run to initialize module scope or {@code null} to leave the module
+   *     scope empty
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
    */
   private Module(
-      QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
+      QualifiedName name,
+      Package<TruffleFile> pkg,
+      boolean synthetic,
+      Consumer<ModuleScopeBuilder> fillWith,
+      Rope literalSource) {
     ensureConsistentName(name, pkg);
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
-    this.scopeBuilder = new ModuleScope.Builder(this);
+    var scopeBuilder = TruffleCompilerContext.findCompilerModule(this).newScopeBuilder();
     this.pkg = pkg;
     this.cache = ModuleCache.create(this);
     this.wasLoadedFromCache = false;
     this.synthetic = synthetic;
     if (synthetic) {
       this.compilationStage = CompilationStage.INITIAL;
-      scopeBuilder.build();
     } else {
+      if (fillWith != null) {
+        fillWith.accept(scopeBuilder);
+      }
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
     }
+    scopeBuilder.finish();
   }
 
   private void ensureConsistentName(QualifiedName name, Package<TruffleFile> pkg) {
-    if (name.toString().equals(Builtins.MODULE_NAME)) {
+    if (name.toString().equals(MethodNames.Builtins.MODULE_NAME)) {
       return;
     }
     if (pkg != null && name.isSimple()) {
@@ -201,10 +218,24 @@ public final class Module extends EnsoObject {
    * @param name the qualified name of the newly created module.
    * @param pkg the package this module belongs to. May be {@code null}, if the module does not
    *     belong to a package.
+   * @param fillWith to fill in the scope
+   * @return the module with scope filled by provided with code
+   */
+  public static Module emptyWith(
+      QualifiedName name, Package<TruffleFile> pkg, Consumer<ModuleScopeBuilder> fillWith) {
+    return new Module(name, pkg, false, fillWith, null);
+  }
+
+  /**
+   * Creates an empty module.
+   *
+   * @param name the qualified name of the newly created module.
+   * @param pkg the package this module belongs to. May be {@code null}, if the module does not
+   *     belong to a package.
    * @return the module with empty scope.
    */
   public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
-    return new Module(name, pkg, false, null);
+    return new Module(name, pkg, false, null, null);
   }
 
   /**
@@ -217,7 +248,7 @@ public final class Module extends EnsoObject {
    * @return the synthetic module
    */
   public static Module synthetic(QualifiedName name, Package<TruffleFile> pkg, Rope source) {
-    return new Module(name, pkg, true, source);
+    return new Module(name, pkg, true, null, source);
   }
 
   /** Clears any literal source set for this module. */
@@ -245,7 +276,7 @@ public final class Module extends EnsoObject {
    * @return true iff this module is private (project-private).
    */
   public boolean isPrivate() {
-    return ir.isPrivate();
+    return ir == null || isSynthetic() || ir.isPrivate();
   }
 
   /**
@@ -344,7 +375,9 @@ public final class Module extends EnsoObject {
   }
 
   /**
-   * Parses the module sources. The results of this operation are cached.
+   * Parses the module sources. The results of this operation are cached. If module needs to be
+   * compiled, an appropriate write compilation lock needs to be acquired before calling this
+   * method.
    *
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
@@ -352,11 +385,28 @@ public final class Module extends EnsoObject {
   public ModuleScope compileScope(EnsoContext context) {
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
-        compile(context);
+        var cm = TruffleCompilerContext.findCompilerModule(this);
+        cm.compile(context.getCompiler());
       } catch (IOException ignored) {
       }
     }
-    return scopeBuilder.build();
+    //    var cm = TruffleCompilerContext.findCompilerModule(this);
+    //    var sb = TruffleCompilerModuleScopeBuilder.fromCompilerModule(cm);
+    //    assert sb == scopeBuilder;
+    //    sb.finish();
+    var sb = getScopeBuilder(false);
+    sb.finish();
+    assert scope == sb.asModuleScope();
+    return scope;
+  }
+
+  /**
+   * Signals if this module requires compilation before its scope is ready for consumption.
+   *
+   * @return true if compilation is required, false otherwise
+   */
+  public boolean needsCompilation() {
+    return !compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN);
   }
 
   /**
@@ -381,12 +431,16 @@ public final class Module extends EnsoObject {
    * @param sourceLength length at the time compilation was performed
    * @return
    */
+  @TruffleBoundary
   public final SourceSection createSection(int sourceStartIndex, int sourceLength) {
-    var src = sources.source();
-    if (src == null) {
+    Source src;
+    try {
+      src = getSource();
+    } catch (IOException e) {
+      var logger = LoggerFactory.getLogger(Module.class);
+      logger.warn("Failed to retrieve sources of the module: {}", e.getMessage(), e);
       return null;
     }
-    allSources.put(src, this);
     var startDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex, false);
     var endDelta =
         patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex + sourceLength, true);
@@ -402,21 +456,16 @@ public final class Module extends EnsoObject {
   }
 
   /**
-   * Check whether given source has ever been associated with this module.
+   * Check whether given source has ever been associated with this module. For example {@link
+   * DebugEvalNode} likes to create sources in a context of some module, but those are not
+   * associated with the module itself.
    *
    * @param s source to check
    * @return {@code true} if the source has been created for this module
    */
+  @TruffleBoundary
   public final boolean isModuleSource(Source s) {
     return allSources.containsKey(s);
-  }
-
-  private void compile(EnsoContext context) throws IOException {
-    Source source = getSource();
-    if (source == null) return;
-    scopeBuilder = newScopeBuilder(false);
-    compilationStage = CompilationStage.INITIAL;
-    context.getCompiler().run(asCompilerModule());
   }
 
   /**
@@ -449,7 +498,7 @@ public final class Module extends EnsoObject {
   /**
    * @return the current compilation stage of this module.
    */
-  public CompilationStage getCompilationStage() {
+  final CompilationStage getCompilationStage() {
     return compilationStage;
   }
 
@@ -489,23 +538,29 @@ public final class Module extends EnsoObject {
   }
 
   /**
-   * @return the runtime scope of this module.
+   * The current scope of the module. Module instance lives <em>"forever"</em> and its source code
+   * can change as a result of use operations in the Enso Studio. On the other hand the Enso
+   * language prefers immutability. To accomodate such a need for stability with a need for a
+   * change, there is an immutable {@link ModuleScope}. Each module is associated with a single
+   * scope instance at given time. Over time the scope instance may change as a result of {@link
+   * ModuleScopeBuilder#finish()} call.
+   *
+   * @return the current runtime scope of this module, future calls may yield different instance if
+   *     the code/state of the module was modified
    */
-  public ModuleScope getScope() {
-    return scopeBuilder.asModuleScope();
+  public final ModuleScope getScope() {
+    return scope;
   }
 
-  public ModuleScope.Builder getScopeBuilder() {
-    return scopeBuilder;
-  }
-
-  public ModuleScope.Builder newScopeBuilder(boolean inheritTypes) {
-    if (inheritTypes) {
-      this.scopeBuilder = this.scopeBuilder.newBuilderInheritingTypes();
-    } else {
-      this.scopeBuilder = new ModuleScope.Builder(this);
-    }
-    return this.scopeBuilder;
+  /**
+   * Gets current or reset builder for this module.
+   *
+   * @param reset should any existing builder be reset?
+   * @return
+   */
+  final ModuleScopeBuilder getScopeBuilder(boolean reset) {
+    var sb = TruffleCompilerContext.findCompilerModule(this).getScopeBuilder(reset);
+    return sb;
   }
 
   /**
@@ -515,6 +570,11 @@ public final class Module extends EnsoObject {
     return name;
   }
 
+  /**
+   * Package (e.g. project/library) associated with the module, if any.
+   *
+   * @return {@code null} or package associated with the module
+   */
   public Package<TruffleFile> getPackage() {
     return pkg;
   }
@@ -576,7 +636,7 @@ public final class Module extends EnsoObject {
    * @return instance of {@link CompilerContext.Module} that delegates to this module
    */
   public final CompilerContext.Module asCompilerModule() {
-    return new TruffleCompilerContext.Module(this);
+    return TruffleCompilerContext.findCompilerModule(this);
   }
 
   /**
@@ -634,7 +694,8 @@ public final class Module extends EnsoObject {
       module.disposeInteractive();
       module.wasLoadedFromCache = false;
       try {
-        module.compile(context);
+        var cm = TruffleCompilerContext.findCompilerModule(module);
+        cm.compile(context.getCompiler());
       } catch (IOException ignored) {
       }
       return module;
@@ -678,18 +739,18 @@ public final class Module extends EnsoObject {
         throw UnsupportedTypeException.create(args, "First argument must be a string");
       }
       String expr = iop.asString(args[0]);
-      Builtins builtins = context.getBuiltins();
+      Builtins builtins = Builtins.get(context);
       BuiltinFunction eval =
           builtins
               .getBuiltinFunction(
-                  builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
+                  builtins.debug(), MethodNames.Builtins.EVAL, context.getLanguage())
               .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.empty(), scope);
       return callOptimiserNode.executeDispatch(
           null,
           eval.getFunction(),
           callerInfo,
-          context.emptyState(),
+          context.currentState(),
           new Object[] {builtins.debug(), Text.create(expr)},
           null);
     }
@@ -727,7 +788,7 @@ public final class Module extends EnsoObject {
           scope = module.compileScope(context);
           Function result = getMethod(scope, arguments);
           if (result == null || result.getSchema().isProjectPrivate()) {
-            return context.getBuiltins().nothing();
+            return Builtins.get(context).nothing();
           } else {
             return result;
           }

@@ -118,6 +118,12 @@ object PackageRepository {
   /** A trait representing errors reported by this system */
   sealed trait Error
 
+  def packageLoadingError(
+    cause: String
+  ): Error = {
+    Error.PackageLoadingError(cause)
+  }
+
   object Error {
 
     /** Indicates that a resolution error has happened, for example the package

@@ -1,0 +1,7 @@
+## Describes what to convert an empty field to in a fixed-width format file. An empty field in a fixed width file is a field that consists entirely of whitespace.
+type On_Empty_Field
+    ## Turn an empty field into `Nothing`.
+    As_Nothing
+
+    ## Turn an empty field into the empty string.
+    As_Empty_String

@@ -12,7 +12,6 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap.DefinedEntity;
 import org.enso.compiler.data.BindingsMap.ResolvedImport;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
-import org.graalvm.polyglot.Context;
 import scala.jdk.javaapi.CollectionConverters;
 
 /** Helper utility methods for manipulating with {@link org.enso.interpreter.runtime.Module}. */
@@ -26,20 +25,20 @@ public class ModuleUtils {
    * @see {@link BindingsMap#exportedSymbols()}
    */
   public static Map<String, List<ResolvedName>> getExportedSymbolsFromModule(
-      Context ctx, String modName) {
-    var ensoCtx = ContextUtils.leakContext(ctx);
+      ContextUtils ctx, String modName) {
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return getExportedSymbols(mod);
   }
 
-  public static List<ResolvedImport> getResolvedImports(Context ctx, String modName) {
-    var ensoCtx = ContextUtils.leakContext(ctx);
+  public static List<ResolvedImport> getResolvedImports(ContextUtils ctx, String modName) {
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return CollectionConverters.asJava(mod.getBindingsMap().resolvedImports());
   }
 
-  public static List<DefinedEntity> getDefinedEntities(Context ctx, String modName) {
-    var ensoCtx = ContextUtils.leakContext(ctx);
+  public static List<DefinedEntity> getDefinedEntities(ContextUtils ctx, String modName) {
+    var ensoCtx = ctx.ensoContext();
     var mod = ensoCtx.getPackageRepository().getLoadedModule(modName).get();
     return CollectionConverters.asJava(mod.getBindingsMap().definedEntities());
   }
@@ -50,9 +49,10 @@ public class ModuleUtils {
    * @param modName Fully qualified name of the module
    * @return module with the given name, or null if no such module exist
    */
-  public static org.enso.interpreter.runtime.Module getLoadedModule(Context ctx, String modName) {
+  public static org.enso.interpreter.runtime.Module getLoadedModule(
+      ContextUtils ctx, String modName) {
     assert modName.contains(".") : "Module name must be fully qualified";
-    var ensoCtx = ContextUtils.leakContext(ctx);
+    var ensoCtx = ctx.ensoContext();
     var loadedModuleOpt = ensoCtx.getPackageRepository().getLoadedModule(modName);
     if (loadedModuleOpt.isDefined()) {
       return org.enso.interpreter.runtime.Module.fromCompilerModule(loadedModuleOpt.get());

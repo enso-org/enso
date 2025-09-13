@@ -1,10 +1,10 @@
-import type { Page } from '@playwright/test'
+import type { Page } from 'playwright/test'
 import type { ExpressionUpdate, MethodCall } from 'ydoc-shared/languageServerTypes'
 
 export type ExpressionLocator = string | { binding: string; expr: string }
 
-/** Provide method call info for collapsed function call. */
-export async function mockCollapsedFunctionInfo(
+/** Provide method call info for User Defined Function call. */
+export async function mockUserDefinedFunctionInfo(
   page: Page,
   expression: ExpressionLocator,
   functionName: string,

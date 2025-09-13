@@ -25,12 +25,12 @@ jobs:
           fetch-depth: 2
       - name: Get changed files
         id: wasm-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: |
             .cargo/**
             app/rust-ffi/**
-            build/**
+            build_tools/**
             lib/rust/**
             tools/language-server/logstat/**
             tools/language-server/wstest/**

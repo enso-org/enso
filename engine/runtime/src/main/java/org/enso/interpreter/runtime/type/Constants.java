@@ -7,5 +7,5 @@ public class Constants {
   // but refer to builtin-related internals
   public static final String MODULE_SCOPE = BUILTIN_NAMESPACE + ".Module_Scope";
   public static final String THUNK = BUILTIN_NAMESPACE + ".Thunk";
-  public static final String UNRESOLVED_SYMBOL = BUILTIN_NAMESPACE + ".Unresolved_Symbol";
+  public static final String UNRESOLVED_SYMBOL = BUILTIN_NAMESPACE + ".Unresolved";
 }

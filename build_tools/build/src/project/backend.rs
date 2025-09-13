@@ -144,13 +144,18 @@ impl IsTarget for Backend {
         let WithDestination { inner, destination } = job;
         let target_os = self.target_os;
         let this = *self;
+        let small_jdk_dir = context.repo_root.target.small_jdk.clone().to_path_buf();
         async move {
             ensure!(
                 target_os == TARGET_OS,
                 "Enso Project Manager cannot be built on '{target_os}' for target '{TARGET_OS}'.",
             );
-            let config =
-                BuildConfigurationFlags { build_project_manager_bundle: true, ..default() };
+            let config = BuildConfigurationFlags {
+                build_project_manager_bundle: true,
+                build_small_jdk: true,
+                small_jdk_dir: Some(small_jdk_dir),
+                ..default()
+            };
             let context = inner.prepare_context(context, config)?;
             let artifacts = context.build().await?;
             let project_manager =

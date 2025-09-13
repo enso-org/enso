@@ -10,12 +10,13 @@ import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner._
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.launcher.project.ProjectManager
-import org.enso.logger.TestLogger
+import org.enso.logger.ObservedMessage
 import org.slf4j.event.Level
 
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.Future
+import org.slf4j.LoggerFactory
 
 /** We test integration of both the underlying [[Runner]] and the
   * [[LauncherRunner]] in a single suite.
@@ -63,6 +64,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
 
       val runSettings = RunSettings(
         SemVer.of(0, 0, 0),
+        jvm = Some(None),
         Seq("arg1", "--flag2"),
         workingDirectory         = None,
         connectLoggerIfAvailable = true
@@ -125,6 +127,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = projectPath,
           name                = "ProjectName",
           engineVersion       = defaultEngineVersion,
+          jvm                 = None,
           normalizedName      = None,
           projectTemplate     = None,
           authorName          = Some(authorName),
@@ -153,6 +156,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           path                = projectPath,
           name                = "ProjectName",
           engineVersion       = defaultEngineVersion,
+          jvm                 = None,
           normalizedName      = Some(normalizedName),
           projectTemplate     = None,
           authorName          = None,
@@ -176,28 +180,35 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       val runner         = makeFakeRunner()
       val projectPath    = getTestDirectory / "project2"
       val nightlyVersion = SemVer.of(0, 0, 0, "SNAPSHOT.2000-01-01")
-      val (_, logs) = TestLogger.gather[Any, Runner](
-        classOf[Runner], {
-          runner
-            .newProject(
-              path                = projectPath,
-              name                = "ProjectName2",
-              engineVersion       = nightlyVersion,
-              normalizedName      = None,
-              projectTemplate     = None,
-              authorName          = None,
-              authorEmail         = None,
-              additionalArguments = Seq()
-            )
-            .get
-        }
+      val logger         = LoggerFactory.getLogger(classOf[Runner])
+      val action: Runnable = () => {
+        runner
+          .newProject(
+            path                = projectPath,
+            name                = "ProjectName2",
+            engineVersion       = nightlyVersion,
+            jvm                 = None,
+            normalizedName      = None,
+            projectTemplate     = None,
+            authorName          = None,
+            authorEmail         = None,
+            additionalArguments = Seq()
+          )
+          .get
+      }
+      val logs = ObservedMessage.collect(
+        logger,
+        action
       )
       assert(
-        logs.exists(msg =>
-          msg.level == Level.WARN && msg.msg.contains(
-            "Consider using a stable version."
+        logs.stream
+          .filter(msg =>
+            msg.getLevel == Level.WARN && msg.getMessage.contains(
+              "Consider using a stable version."
+            )
           )
-        )
+          .findAny
+          .isPresent
       )
     }
 
@@ -209,7 +220,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq("arg", "--flag"),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvm                 = None
         )
         .get
 
@@ -235,7 +247,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvm                 = None
         )
         .get
 
@@ -251,7 +264,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvm                 = None
         )
         .get
 
@@ -267,7 +281,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvm                 = None
         )
         .get
 
@@ -284,12 +299,16 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       newProject("test", projectPath, version)
 
       val options = LanguageServerOptions(
-        rootId         = UUID.randomUUID(),
-        interface      = "127.0.0.2",
-        rpcPort        = 1234,
-        secureRpcPort  = None,
-        dataPort       = 4321,
-        secureDataPort = None
+        rootId                = UUID.randomUUID(),
+        projectId             = UUID.randomUUID(),
+        projectCloudId        = None,
+        projectCloudSessionId = None,
+        interface             = "127.0.0.2",
+        rpcPort               = 1234,
+        secureRpcPort         = None,
+        dataPort              = 4321,
+        secureDataPort        = None,
+        jvm                   = None
       )
       val runSettings = runner
         .languageServer(
@@ -341,7 +360,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvm                 = None
         )
         .get
 
@@ -357,7 +377,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvm                 = None
         )
         .get
 
@@ -372,7 +393,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvm                 = None
         )
         .get
 
@@ -387,7 +409,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
             versionOverride     = None,
             additionalArguments = Seq(),
             logLevel            = Level.INFO,
-            logMasking          = true
+            logMasking          = true,
+            jvm                 = None
           )
           .isFailure,
         "Running outside project without providing any paths should be an error"
@@ -414,7 +437,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvm                 = None
         )
         .get
 
@@ -439,7 +463,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
           versionOverride     = None,
           additionalArguments = Seq(),
           logLevel            = Level.INFO,
-          logMasking          = true
+          logMasking          = true,
+          jvm                 = None
         )
         .get
 

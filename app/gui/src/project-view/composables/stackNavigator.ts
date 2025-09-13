@@ -13,6 +13,8 @@ export function useStackNavigator(
 ) {
   const breadcrumbs = ref<StackItem[]>([])
 
+  const hasBreadcrumbsBeyondRoot = computed(() => breadcrumbs.value.length > 1)
+
   const breadcrumbLabels = computed(() => {
     const activeStackLength = projectStore.executionContext.desiredStack.length
     return breadcrumbs.value.map((item, index) => {
@@ -78,6 +80,7 @@ export function useStackNavigator(
 
   return {
     breadcrumbs,
+    hasBreadcrumbsBeyondRoot,
     breadcrumbLabels,
     allowNavigationLeft,
     allowNavigationRight,

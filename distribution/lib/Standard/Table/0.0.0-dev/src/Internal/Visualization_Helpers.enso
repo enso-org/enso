@@ -1,0 +1,139 @@
+from Standard.Base import all
+
+from project.Internal.Storage import java_to_enso
+
+polyglot java import org.enso.table.data.column.DataQualityMetrics
+
+## ---
+   private: true
+   ---
+type Visualization_Helpers
+    ## ---
+       private: true
+       ---
+    Value column implementation
+
+    ## ---
+       private: true
+       ---
+       Is sampled column name
+    sampled_column = DataQualityMetrics.SAMPLED
+
+    ## ---
+       private: true
+       ---
+       Count of Nothing column name
+    count_nothing_column = DataQualityMetrics.NOTHING_COUNT
+
+    ## ---
+       private: true
+       ---
+       Awaits completion of the metrics calculation.
+    await_metrics : Dictionary
+    await_metrics self =
+        self.implementation.await_metrics self.column
+
+    ## ---
+       private: true
+       ---
+       Checks if the calculation of metrics is finished for the column.
+    is_incomplete : Text | Nothing
+    is_incomplete self =
+        if self.implementation.get_metrics self.column . get DataQualityMetrics.IS_INCOMPLETE False then "Still computing indicators..." else Nothing
+
+    ## ---
+       private: true
+       ---
+       Counts the number of Nothing values.
+    count_nothing : Integer | Nothing
+    count_nothing self =
+        self.implementation.get_metrics self.column . get DataQualityMetrics.NOTHING_COUNT Nothing
+
+    ## ---
+       private: true
+       ---
+       Counts the number of distinct values.
+    count_distinct_values : Integer | Nothing
+    count_distinct_values self =
+        self.implementation.get_metrics self.column . get DataQualityMetrics.DISTINCT_COUNT Nothing
+
+    ## ---
+       private: true
+       ---
+       Checks the number of distinct values versus a threshold (100).
+       Used for determining which filters should be used.
+    check_distinct_values : Boolean
+    check_distinct_values self  =
+        (self.count_distinct_values.if_nothing 0) < DataQualityMetrics.DISTINCT_THRESHOLD
+
+    ## ---
+       private: true
+       ---
+       Gets the JSON representation of distinct values.
+    distinct_values : Text | Nothing
+    distinct_values self =
+        self.implementation.get_metrics self.column . get DataQualityMetrics.DISTINCT_JSON Nothing
+
+    ## ---
+       private: true
+       ---
+       Gets the range for displaying the column in table viz.
+    range : Text | Nothing
+    range self =
+        metrics = self.implementation.get_metrics self.column
+        minimum = java_to_enso (metrics.get DataQualityMetrics.MINIMUM Nothing)
+        if minimum.is_nothing then Nothing else
+            if metrics.get DataQualityMetrics.SINGLE_VALUE False then minimum.to_display_text else
+                maximum = java_to_enso (metrics.get DataQualityMetrics.MAXIMUM Nothing)
+                if maximum.is_nothing then Nothing else
+                    minimum.to_display_text + " - " + maximum.to_display_text
+
+    ## ---
+       private: true
+       ---
+       Counts the number of distinct values.
+    type_record : Text | Nothing
+    type_record self =
+        self.implementation.get_metrics self.column . get DataQualityMetrics.TYPE_RECORD Nothing
+
+    ## ---
+       private: true
+       ---
+       Indicates if sampling was used for non-trivial metrics.
+    sampled : Boolean
+    sampled self =
+        self.implementation.get_metrics self.column . get DataQualityMetrics.SAMPLED False
+
+    ## ---
+       private: true
+       ---
+       Counts the number of Nothing values.
+    count_empty : Integer | Nothing
+    count_empty self =
+        self.implementation.get_metrics self.column . get DataQualityMetrics.EMPTY_COUNT Nothing
+
+    ## ---
+       private: true
+       ---
+       Counts the number of text values with leading or trailing whitespace.
+       Used for data quality indicator in Table Viz.
+    count_untrimmed : Integer | Nothing
+    count_untrimmed self =
+        self.implementation.get_metrics self.column . get DataQualityMetrics.UNTRIMMED_COUNT Nothing
+
+    ## ---
+       private: true
+       ---
+       Counts the number of text values with non trivial whitespace.
+       Used for data quality indicator in Table Viz.
+    count_non_trivial_whitespace : Integer | Nothing
+    count_non_trivial_whitespace self =
+        self.implementation.get_metrics self.column . get DataQualityMetrics.ODD_SPACE_COUNT Nothing
+
+    ## ---
+       private: true
+       ---
+       Indicates if a numeric column requires formatting in table viz
+    requires_numeric_formatter_check : Boolean
+    requires_numeric_formatter_check self =
+        self.implementation.get_metrics self.column . get DataQualityMetrics.NEEDS_FORMATTING False

@@ -5,37 +5,36 @@ import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredIntegerBuilder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing the total value in a group. */
 public class Sum extends Aggregator {
-  private final Storage<?> inputStorage;
-  private final StorageType inputType;
+  private final ColumnStorage<?> inputStorage;
+  private final StorageType<?> inputType;
 
   public Sum(String name, Column column) {
     super(name);
-    this.inputStorage = column.getStorage();
-    inputType = inputStorage.inferPreciseType();
+    inputStorage = ColumnStorageWithInferredStorage.resolveStorage(column.getStorage());
+    inputType = inputStorage.getType();
   }
 
   @Override
   public Builder makeBuilder(int size, ProblemAggregator problemAggregator) {
     return switch (inputType) {
       case IntegerType integerType -> new InferredIntegerBuilder(size, problemAggregator);
-      case BigIntegerType bigIntegerType -> Builder.getForType(
-          bigIntegerType, size, problemAggregator);
+      case BigIntegerType bigIntegerType -> Builder.getForBigInteger(size, problemAggregator);
       case FloatType floatType -> Builder.getForDouble(floatType, size, problemAggregator);
       case NullType nullType -> Builder.getForType(nullType, size, problemAggregator);
       default -> throw new IllegalStateException(
@@ -64,7 +63,7 @@ public class Sum extends Aggregator {
   }
 
   private abstract static class SumAccumulator {
-    abstract void accumulate(List<Integer> indexes, Storage<?> storage);
+    abstract void accumulate(List<Integer> indexes, ColumnStorage<?> storage);
 
     abstract Object summarize();
   }
@@ -88,18 +87,19 @@ public class Sum extends Aggregator {
     }
 
     @Override
-    void accumulate(List<Integer> indexes, Storage<?> storage) {
+    void accumulate(List<Integer> indexes, ColumnStorage<?> storage) {
       Context context = Context.getCurrent();
-      if (storage instanceof AbstractLongStorage longStorage) {
+      if (storage instanceof ColumnLongStorage longStorage) {
         for (int row : indexes) {
           if (!longStorage.isNothing(row)) {
-            addLong(longStorage.getItem(row));
+            addLong(longStorage.getItemAsLong(row));
           }
           context.safepoint();
         }
-      } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
+      } else if (storage.getType() instanceof BigIntegerType bigIntegerType) {
+        var typedStorage = bigIntegerType.asTypedStorage(storage);
         for (int row : indexes) {
-          BigInteger value = bigIntegerStorage.getItem(row);
+          BigInteger value = typedStorage.getItemBoxed(row);
           if (value != null) {
             addBigInteger(value);
           }
@@ -167,12 +167,12 @@ public class Sum extends Aggregator {
     }
 
     @Override
-    void accumulate(List<Integer> indexes, Storage<?> storage) {
+    void accumulate(List<Integer> indexes, ColumnStorage<?> storage) {
       Context context = Context.getCurrent();
-      if (storage instanceof DoubleStorage doubleStorage) {
+      if (storage instanceof ColumnDoubleStorage doubleStorage) {
         for (int row : indexes) {
           if (!doubleStorage.isNothing(row)) {
-            addDouble(doubleStorage.getItem(row));
+            addDouble(doubleStorage.getItemAsDouble(row));
           }
           context.safepoint();
         }
@@ -199,7 +199,7 @@ public class Sum extends Aggregator {
 
   private static final class NullAccumulator extends SumAccumulator {
     @Override
-    void accumulate(List<Integer> indexes, Storage<?> storage) {
+    void accumulate(List<Integer> indexes, ColumnStorage<?> storage) {
       assert storage.getType() instanceof NullType;
     }
 

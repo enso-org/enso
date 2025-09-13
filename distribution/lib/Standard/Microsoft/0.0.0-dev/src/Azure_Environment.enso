@@ -1,0 +1,22 @@
+from Standard.Base import all
+
+polyglot java import com.azure.core.management.AzureEnvironment
+
+type Azure_Environment
+    ## The default Azure environment.
+    Default
+
+    ## The Azure US Government environment.
+    US_Government
+
+    ## The Azure China environment.
+    China
+
+    ## ---
+       private: true
+       ---
+       Gets the Java version of the Azure environment.
+    private to_java self -> AzureEnvironment = case self of
+        Azure_Environment.Default -> AzureEnvironment.AZURE
+        Azure_Environment.US_Government -> AzureEnvironment.AZURE_US_GOVERNMENT
+        Azure_Environment.China -> AzureEnvironment.AZURE_CHINA

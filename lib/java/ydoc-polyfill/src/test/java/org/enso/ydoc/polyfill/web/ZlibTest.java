@@ -1,5 +1,8 @@
 package org.enso.ydoc.polyfill.web;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.concurrent.CompletableFuture;
 import org.enso.ydoc.polyfill.ExecutorSetup;
 import org.graalvm.polyglot.Context;
@@ -50,6 +53,116 @@ public class ZlibTest extends ExecutorSetup {
     var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
 
     Assert.assertEquals(TEXT, result.asString());
+  }
+
+  @Test
+  public void bufferToHexString() throws Exception {
+    var code =
+        """
+    const buf = Buffer.from('hello world', 'utf8');
+    // Prints: 68656c6c6f20776f726c64
+    buf.toString('hex')
+    """;
+
+    var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+
+    assertEquals("68656c6c6f20776f726c64", result.asString());
+  }
+
+  @Test
+  public void bufferFromArrayNoArgs() throws Exception {
+    var code =
+        """
+    const arr = new Uint16Array(2);
+
+    arr[0] = 5000;
+    arr[1] = 4000;
+
+    // Shares memory with `arr`.
+    const buf = Buffer.from(arr.buffer);
+
+    const t1 = buf.toString("hex"); // Prints: <Buffer 88 13 a0 0f>
+
+    // Changing the original Uint16Array changes the Buffer also.
+    arr[1] = 6000;
+
+    const t2 = buf.toString("hex"); // Prints: <Buffer 88 13 70 17>
+    [buf, t1, t2]
+    """;
+
+    var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+    assertTrue("It is an array", result.hasArrayElements());
+    assertEquals("Has three elements", 3, result.getArraySize());
+
+    var buf = result.getArrayElement(0);
+    assertEquals("It is a buffer", "Buffer", buf.getMetaObject().getMetaSimpleName());
+
+    Assert.assertEquals("8813a00f", result.getArrayElement(1).asString());
+    Assert.assertEquals("88137017", result.getArrayElement(2).asString());
+  }
+
+  @Test
+  public void bufferFromArrayOneArg() throws Exception {
+    var code =
+        """
+    const arr = new Uint16Array(2);
+
+    arr[0] = 5000;
+    arr[1] = 4000;
+
+    // Shares memory with `arr`.
+    const buf = Buffer.from(arr.buffer, 1);
+
+    const t1 = buf.toString("hex"); // Prints: <Buffer 13 a0 0f>
+
+    // Changing the original Uint16Array changes the Buffer also.
+    arr[1] = 6000;
+
+    const t2 = buf.toString("hex"); // Prints: <Buffer 13 70 17>
+    [buf, t1, t2]
+    """;
+
+    var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+    assertTrue("It is an array", result.hasArrayElements());
+    assertEquals("Has three elements", 3, result.getArraySize());
+
+    var buf = result.getArrayElement(0);
+    assertEquals("It is a buffer", "Buffer", buf.getMetaObject().getMetaSimpleName());
+
+    Assert.assertEquals("13a00f", result.getArrayElement(1).asString());
+    Assert.assertEquals("137017", result.getArrayElement(2).asString());
+  }
+
+  @Test
+  public void bufferFromArrayTwoArgs() throws Exception {
+    var code =
+        """
+    const arr = new Uint16Array(2);
+
+    arr[0] = 5000;
+    arr[1] = 4000;
+
+    // Shares memory with `arr`.
+    const buf = Buffer.from(arr.buffer, 1, 2);
+
+    const t1 = buf.toString("hex"); // Prints: <Buffer 13 a0>
+
+    // Changing the original Uint16Array changes the Buffer also.
+    arr[1] = 6000;
+
+    const t2 = buf.toString("hex"); // Prints: <Buffer 13 70>
+    [buf, t1, t2]
+    """;
+
+    var result = CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+    assertTrue("It is an array", result.hasArrayElements());
+    assertEquals("Has three elements", 3, result.getArraySize());
+
+    var buf = result.getArrayElement(0);
+    assertEquals("It is a buffer", "Buffer", buf.getMetaObject().getMetaSimpleName());
+
+    Assert.assertEquals("13a0", result.getArrayElement(1).asString());
+    Assert.assertEquals("1370", result.getArrayElement(2).asString());
   }
 
   @Test

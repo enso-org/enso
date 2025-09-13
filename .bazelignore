@@ -13,12 +13,15 @@ app/ide-desktop/lib/esbuild-plugin-copy-directories/node_modules
 app/ide-desktop/lib/icons/node_modules
 app/ide-desktop/lib/ts-plugin-namespace-auto-import/node_modules
 app/ide-desktop/node_modules
+app/lang-markdown/node_modules
+app/lezer-markdown/node_modules
+app/project-manager-shim/node_modules
+app/table-expression/node_modules
 app/rust-ffi/node_modules
 app/ydoc-server/node_modules
 app/ydoc-server-nodejs/node_modules
 app/ydoc-server-polyglot/node_modules
 app/ydoc-shared/node_modules
-app/ydoc-shared/parser-codegen/generated
 app/ydoc-shared/parser-codegen/node_modules
 lib/js/runner/node_modules
 

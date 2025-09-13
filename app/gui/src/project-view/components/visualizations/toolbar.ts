@@ -1,5 +1,4 @@
-import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import { AnyIcon } from '@/util/icons'
 import type { ToValue } from '@/util/reactivity'
 import type { Ref } from 'vue'
 
@@ -7,7 +6,7 @@ export interface Button {
   iconStyle?: Record<string, string>
   title?: string
   dataTestid?: string
-  icon: Icon | URLString
+  icon: AnyIcon
 }
 
 export interface ActionButton extends Button {
@@ -21,7 +20,14 @@ export interface ToggleButton extends Button {
 }
 
 export interface SelectionMenuOption extends Button {
-  label?: string
+  label?: string | undefined
+  labelExtension?: string | undefined
+  disabled?: ToValue<boolean> | undefined
+  /**
+   * If `true`, the option will never be shown in the list, but can be rendered as the heading if it
+   * is the current model-value.
+   */
+  hidden?: ToValue<boolean> | undefined
 }
 
 export interface SelectionMenu {

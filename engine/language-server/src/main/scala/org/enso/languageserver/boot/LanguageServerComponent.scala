@@ -1,5 +1,6 @@
 package org.enso.languageserver.boot
 
+import java.nio.file.Files
 import akka.http.scaladsl.Http
 import akka.pattern.ask
 import akka.util.Timeout
@@ -14,11 +15,7 @@ import org.enso.languageserver.runtime.RuntimeKiller.{
   RuntimeShutdownResult,
   ShutDownRuntime
 }
-import org.enso.profiling.sampler.{
-  MethodsSampler,
-  NoopSampler,
-  OutputStreamSampler
-}
+import org.enso.profiling.sampler.MethodsSampler
 import org.slf4j.event.Level
 
 import scala.concurrent.duration._
@@ -43,12 +40,12 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     val sampler = startSampling(config)
-    logger.debug("Started [{}]", sampler.getClass.getName)
+    logger.trace("Started [{}]", sampler.getClass.getName)
     val module = new MainModule(config, logLevel)
     val bindJsonServer =
       for {
         binding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
-        _       <- Future { logger.debug("Server for JSON RPC is initialized") }
+        _       <- Future { logger.trace("Server for JSON RPC is initialized") }
       } yield binding
     val bindSecureJsonServer: Future[Option[Http.ServerBinding]] = {
       config.secureRpcPort match {
@@ -64,7 +61,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
       for {
         binding <- module.binaryServer.bind(config.interface, config.dataPort)
         _ <- Future {
-          logger.debug("Server for Binary WebSocket is initialized")
+          logger.trace("Server for Binary WebSocket is initialized")
         }
       } yield binding
 
@@ -112,13 +109,12 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
   private def startSampling(config: LanguageServerConfig): MethodsSampler = {
     val sampler = config.profilingConfig.profilingPath match {
       case Some(path) =>
-        OutputStreamSampler.ofFile(path.toFile)
-      case None =>
-        new NoopSampler()
+        MethodsSampler.create(Files.newOutputStream(path), null)
+      case None => MethodsSampler.NOOP
     }
     sampler.start()
     config.profilingConfig.profilingTime.foreach(timeout =>
-      sampler.scheduleStop(timeout.length, timeout.unit, ec)
+      sampler.scheduleStop(timeout)
     )
 
     sampler
@@ -141,7 +137,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
     }
 
   private def stopSampling(serverContext: ServerContext): Future[Unit] =
-    Future(serverContext.sampler.stop()).recover(logError)
+    Future(serverContext.sampler.close()).recover(logError)
 
   private def releaseResources(serverContext: ServerContext): Future[Unit] =
     for {
@@ -164,7 +160,7 @@ class LanguageServerComponent(config: LanguageServerConfig, logLevel: Level)
             2.seconds
           )
           .recover(logError)
-      _ <- Future { logger.debug("Terminated actor system") }
+      _ <- Future { logger.trace("Terminated actor system") }
     } yield ()
   }
 

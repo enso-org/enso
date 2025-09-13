@@ -2,22 +2,31 @@
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
+import { initializeActions } from '@/providers/action'
 import { provideVisualizationConfig } from '@/providers/visualizationConfig'
+import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
+import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
+
+export interface VisualizationHostParams {
+  visualization?: string | object
+  data?: any
+  size: Vec2
+  nodeType?: ProjectPath | undefined
+  overflow?: boolean
+  toolbarOverflow?: boolean
+  executeExpression: (
+    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
+    timeoutMs?: number,
+  ) => any
+}
 
 // A single prop `params` is important to mitigate a bug in Vue that causes
 // inconsistent state when multiple props are present on the custom elements component.
 // TODO[ib]: Add a link to the issue.
 const props = defineProps<{
-  params: {
-    visualization?: string | object
-    data?: any
-    size: Vec2
-    nodeType?: string | undefined
-    overflow?: boolean
-    toolbarOverflow?: boolean
-  }
+  params: VisualizationHostParams
 }>()
 
 const emit = defineEmits<{
@@ -51,7 +60,13 @@ provideVisualizationConfig({
   setToolbar: (items) => emit('updateToolbar', items),
   setToolbarOverlay: (overlay) => emit('updateToolbarOverlay', overlay),
   createNodes: (...nodes) => emit('createNodes', nodes),
+  executeExpression: (
+    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
+    timeoutMs?: number,
+  ) => props.params.executeExpression(expressionFunction, timeoutMs),
 })
+
+initializeActions()
 </script>
 
 <template>
@@ -79,13 +94,13 @@ provideVisualizationConfig({
 
 /* Base style for visualizations. */
 :host {
-  --color-text: rgb(118 118 118);
   --font-sans: 'M PLUS 1', /* System sans-serif font stack */ system-ui, -apple-system,
     BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
     'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'DejaVu Sans Mono', /* System monospace font stack */ ui-monospace, Menlo, Monaco,
     'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', 'Oxygen Mono', 'Ubuntu Monospace',
     'Source Code Pro', 'Fira Mono', 'Droid Sans Mono', 'Courier New', monospace;
+  --color-text: rgba(0, 0, 0, 0.9);
   color: var(--color-text);
   font-family: var(--font-sans);
   font-weight: 500;

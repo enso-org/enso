@@ -29,15 +29,14 @@ export interface StepperState {
   readonly totalSteps: number
   readonly nextStep: () => void
   readonly previousStep: () => void
-  readonly direction: Direction
   readonly percentComplete: number
 }
 
 /** Result of {@link useStepperState} */
 export interface UseStepperStateResult {
   readonly stepperState: StepperState
-  readonly direction: Direction
   readonly currentStep: number
+  readonly steps: number[]
   readonly setCurrentStep: (step: number | ((current: number) => number)) => void
   readonly isCurrentStep: (step: number) => boolean
   readonly isFirstStep: boolean
@@ -117,15 +116,14 @@ export function useStepperState(props: StepperStateProps): UseStepperStateResult
   return {
     stepperState: {
       currentStep: currentStep.current,
-      direction: currentStep.direction,
       onStepChange: setCurrentStep,
       totalSteps: steps,
       nextStep,
       previousStep,
       percentComplete,
     },
+    steps: Array.from({ length: steps }, (_, i) => i),
     currentStep: currentStep.current,
-    direction: currentStep.direction,
     setCurrentStep,
     isCurrentStep,
     isFirstStep: currentStep.current === 0,

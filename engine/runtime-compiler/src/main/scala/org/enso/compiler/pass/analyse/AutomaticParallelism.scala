@@ -237,8 +237,12 @@ object AutomaticParallelism extends IRPass {
         {
           case n: Name.Literal =>
             for {
-              occ @ alias.AliasMetadata.Occurrence(_, _) <-
-                n.getMetadata(AliasAnalysis)
+              raw <- Option(n.getMetadata(AliasAnalysis))
+              occ <- raw
+                .filter(_.isInstanceOf[alias.AliasMetadata.Occurrence])
+                .map(
+                  _.asInstanceOf[alias.AliasMetadata.Occurrence]
+                )
               link <- occ.graph.defLinkFor(occ.id)
               id   <- depMap.get(link.target)
               if id != line.id
@@ -302,12 +306,11 @@ object AutomaticParallelism extends IRPass {
       Expression
         .Binding(
           _,
-          Application.Prefix(
-            Name.Special(Name.Special.NewRef, null),
-            List(),
-            false,
-            null
-          ),
+          Application.Prefix
+            .builder()
+            .function(Name.Special(Name.Special.NewRef, null))
+            .arguments(List())
+            .build(),
           null
         )
         .updateMetadata(
@@ -319,41 +322,43 @@ object AutomaticParallelism extends IRPass {
       val blockBody =
         exprs.map(_.ir).flatMap {
           case bind: Expression.Binding =>
-            val refWrite = Application.Prefix(
-              Name.Special(Name.Special.WriteRef, null),
-              List(
-                new CallArgument.Specified(
-                  None,
-                  refVars(bind.name).duplicate(),
-                  true,
-                  null
-                ),
-                new CallArgument.Specified(
-                  None,
-                  bind.name.duplicate(),
-                  true,
-                  null
+            val refWrite = Application.Prefix
+              .builder()
+              .function(Name.Special(Name.Special.WriteRef, null))
+              .arguments(
+                List(
+                  CallArgument.Specified
+                    .builder()
+                    .name(None)
+                    .value(refVars(bind.name).duplicate())
+                    .isSynthetic(true)
+                    .build(),
+                  CallArgument.Specified
+                    .builder()
+                    .name(None)
+                    .value(bind.name.duplicate())
+                    .isSynthetic(true)
+                    .build()
                 )
-              ),
-              false,
-              null
-            )
+              )
+              .build()
             List(bind, refWrite)
           case other => List(other)
         }
-      val spawn = Application.Prefix(
-        Name.Special(Name.Special.RunThread, null),
-        List(
-          new CallArgument.Specified(
-            None,
-            Expression.Block(blockBody.init, blockBody.last, null),
-            true,
-            null
+      val spawn = Application.Prefix
+        .builder()
+        .function(Name.Special(Name.Special.RunThread, null))
+        .arguments(
+          List(
+            CallArgument.Specified
+              .builder()
+              .name(None)
+              .value(Expression.Block(blockBody.init, blockBody.last, null))
+              .isSynthetic(true)
+              .build()
           )
-        ),
-        false,
-        null
-      )
+        )
+        .build()
       Expression
         .Binding(freshNameSupply.newName(), spawn, null)
         .updateMetadata(
@@ -362,26 +367,40 @@ object AutomaticParallelism extends IRPass {
     }
 
     val threadJoins = threadSpawns.map { bind =>
-      Application.Prefix(
-        Name.Special(Name.Special.JoinThread, null),
-        List(
-          new CallArgument.Specified(None, bind.name.duplicate(), true, null)
-        ),
-        false,
-        null
-      )
+      Application.Prefix
+        .builder()
+        .function(Name.Special(Name.Special.JoinThread, null))
+        .arguments(
+          List(
+            CallArgument.Specified
+              .builder()
+              .name(None)
+              .value(bind.name.duplicate())
+              .isSynthetic(true)
+              .build()
+          )
+        )
+        .build()
     }
 
     val varReads = refVars.map { case (name, ref) =>
       Expression
         .Binding(
           name.duplicate(),
-          Application.Prefix(
-            Name.Special(Name.Special.ReadRef, null),
-            List(new CallArgument.Specified(None, ref.duplicate(), true, null)),
-            false,
-            null
-          ),
+          Application.Prefix
+            .builder()
+            .function(Name.Special(Name.Special.ReadRef, null))
+            .arguments(
+              List(
+                CallArgument.Specified
+                  .builder()
+                  .name(None)
+                  .value(ref.duplicate())
+                  .isSynthetic(true)
+                  .build()
+              )
+            )
+            .build(),
           null
         )
         .updateMetadata(
@@ -537,9 +556,9 @@ object AutomaticParallelism extends IRPass {
   )(fn: Expression.Block => Expression.Block): Expression =
     expr match {
       case fun: Function.Binding =>
-        fun.copy(body = withBodyBlock(fun.body)(fn))
+        fun.copyWithBody(withBodyBlock(fun.body)(fn))
       case fun: Function.Lambda =>
-        fun.copy(body = withBodyBlock(fun.body)(fn))
+        fun.copyWithBody(withBodyBlock(fun.body)(fn))
       case block: Expression.Block if block.expressions.nonEmpty =>
         fn(block)
       case _ => expr

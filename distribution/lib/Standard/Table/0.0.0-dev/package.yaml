@@ -8,3 +8,12 @@ authors:
 maintainers:
   - name: Enso Team
     email: contact@enso.org
+
+services:
+  - provides: Standard.Base.System.File_Format.File_Format_SPI
+    with: Standard.Table.Internal.Table_Services.Impl
+
+  # Return_As.SPI definitions
+
+  - provides: Standard.Base.Data.Read.Return_As.SPI
+    with: Standard.Table.Internal.Table_Services.Impl

@@ -1,5 +1,7 @@
 package org.enso.ydoc.polyfill;
 
+import java.net.URL;
+import java.util.function.Function;
 import org.enso.syntax2.Parser;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
@@ -22,10 +24,17 @@ public final class ParserPolyfill implements ProxyExecutable {
   public ParserPolyfill() {}
 
   public void initialize(Context ctx) {
-    Source parserJs =
-        Source.newBuilder("js", ParserPolyfill.class.getResource(PARSER_JS)).buildLiteral();
+    Function<URL, Value> eval =
+        (url) -> {
+          var src = Source.newBuilder("js", url).buildLiteral();
+          return ctx.eval(src);
+        };
+    initialize(eval);
+  }
 
-    ctx.eval(parserJs).execute(this);
+  public void initialize(Function<URL, Value> eval) {
+    final Value fn = eval.apply(getClass().getResource(PARSER_JS));
+    fn.execute(this);
   }
 
   @Override

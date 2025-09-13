@@ -5,8 +5,8 @@ import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.polyglot.common_utils.Core_Math_Utils;
 
 @BuiltinMethod(
     type = "Float",
@@ -17,7 +17,7 @@ public class FloorNode extends FloatNode {
 
   Object execute(double own) {
     double floor = Math.floor(own);
-    if (fitsProfile.profile(BigIntegerOps.fitsInLong(floor))) {
+    if (fitsProfile.profile(Core_Math_Utils.fitsInLongSafeRange(floor))) {
       return (long) floor;
     } else {
       return new EnsoBigInteger(floor(floor));

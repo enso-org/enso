@@ -16,8 +16,10 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import org.enso.compiler.core.ir.Function.Binding;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.Error;
+import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.junit.Test;
 import scala.jdk.javaapi.CollectionConverters;
@@ -1491,6 +1493,39 @@ public class EnsoParserTest {
     parseTest("""
     main =
     """);
+  }
+
+  @Test
+  public void testAnnotatedExpression() {
+    String code = """
+        type A
+        main = 42 : A
+        """;
+    Module ir = compile(code);
+    expectNoErrorsInIr(ir);
+    var typeAscription =
+        (org.enso.compiler.core.ir.Type.Ascription)
+            CollectionConverters.asJava(ir.preorder()).stream()
+                .filter(child -> child instanceof org.enso.compiler.core.ir.Type.Ascription)
+                .findFirst()
+                .get();
+    assertTrue(typeAscription.typed() instanceof org.enso.compiler.core.ir.Literal.Number);
+    var location = typeAscription.location().get().location();
+    assertEquals(14, location.start());
+    assertEquals(20, location.end());
+  }
+
+  @Test
+  public void testSugaredTypeBodyHasLocation() {
+    var code = """
+        type My_Type
+            f self = self
+        """;
+    var ir = compile(code);
+    expectNoErrorsInIr(ir);
+    var sugaredType = (Definition.SugaredType) ir.bindings().head();
+    var funcBinding = (Binding) sugaredType.body().head();
+    assertThat(funcBinding.location().isDefined(), is(true));
   }
 
   private static void parseTest(String code) {

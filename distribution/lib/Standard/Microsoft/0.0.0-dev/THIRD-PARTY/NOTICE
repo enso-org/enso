@@ -1,7 +1,387 @@
 Enso
 Copyright 2020 - 2025 New Byte Order sp. z o. o.
 
+'azure-core', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-core-1.55.3`.
+
+
+'azure-core-http-netty', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-core-http-netty-1.15.11`.
+
+
+'azure-core-management', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-core-management-1.17.0`.
+
+
+'azure-identity', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-identity-1.16.1`.
+
+
+'azure-json', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-json-1.5.0`.
+
+
+'azure-security-keyvault-keys', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-security-keyvault-keys-4.9.4`.
+
+
+'azure-security-keyvault-secrets', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-security-keyvault-secrets-4.9.4`.
+
+
+'azure-storage-blob', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-storage-blob-12.30.0`.
+
+
+'azure-storage-common', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-storage-common-12.29.0`.
+
+
+'azure-storage-file-share', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-storage-file-share-12.26.0`.
+
+
+'azure-storage-internal-avro', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-storage-internal-avro-12.15.0`.
+
+
+'azure-xml', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.azure-xml-1.2.0`.
+
+
+'azure-resourcemanager', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-2.50.0`.
+
+
+'azure-resourcemanager-appplatform', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-appplatform-2.50.0`.
+
+
+'azure-resourcemanager-appservice', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-appservice-2.50.0`.
+
+
+'azure-resourcemanager-authorization', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-authorization-2.50.0`.
+
+
+'azure-resourcemanager-cdn', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-cdn-2.50.0`.
+
+
+'azure-resourcemanager-compute', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-compute-2.50.0`.
+
+
+'azure-resourcemanager-containerinstance', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-containerinstance-2.50.0`.
+
+
+'azure-resourcemanager-containerregistry', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-containerregistry-2.50.0`.
+
+
+'azure-resourcemanager-containerservice', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-containerservice-2.50.0`.
+
+
+'azure-resourcemanager-cosmos', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-cosmos-2.50.0`.
+
+
+'azure-resourcemanager-dns', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-dns-2.50.0`.
+
+
+'azure-resourcemanager-eventhubs', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-eventhubs-2.50.0`.
+
+
+'azure-resourcemanager-keyvault', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-keyvault-2.50.0`.
+
+
+'azure-resourcemanager-monitor', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-monitor-2.50.0`.
+
+
+'azure-resourcemanager-msi', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-msi-2.50.0`.
+
+
+'azure-resourcemanager-network', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-network-2.50.0`.
+
+
+'azure-resourcemanager-privatedns', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-privatedns-2.50.0`.
+
+
+'azure-resourcemanager-redis', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-redis-2.50.0`.
+
+
+'azure-resourcemanager-resources', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-resources-2.50.0`.
+
+
+'azure-resourcemanager-search', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-search-2.50.0`.
+
+
+'azure-resourcemanager-servicebus', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-servicebus-2.50.0`.
+
+
+'azure-resourcemanager-sql', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-sql-2.50.0`.
+
+
+'azure-resourcemanager-storage', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-storage-2.50.0`.
+
+
+'azure-resourcemanager-trafficmanager', licensed under the The MIT License (MIT), is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.azure.resourcemanager.azure-resourcemanager-trafficmanager-2.50.0`.
+
+
+'jackson-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.18.1`.
+
+
+'jackson-core', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-core-2.18.1`.
+
+
+'jackson-databind', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-databind-2.18.1`.
+
+
+'jackson-datatype-jsr310', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.datatype.jackson-datatype-jsr310-2.17.2`.
+
+
+'jcip-annotations', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.github.stephenc.jcip.jcip-annotations-1.0-1`.
+
+
+'msal4j', licensed under the MIT License, is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.microsoft.azure.msal4j-1.20.1`.
+
+
+'msal4j-persistence-extension', licensed under the MIT License, is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `com.microsoft.azure.msal4j-persistence-extension-1.3.0`.
+
+
 'mssql-jdbc', licensed under the MIT License, is distributed with the Microsoft.
 The license file can be found at `licenses/MIT`.
 Copyright notices related to this dependency can be found in the directory `com.microsoft.sqlserver.mssql-jdbc-12.6.2.jre11`.
+
+
+'content-type', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.nimbusds.content-type-2.3`.
+
+
+'lang-tag', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.nimbusds.lang-tag-1.7`.
+
+
+'nimbus-jose-jwt', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.nimbusds.nimbus-jose-jwt-10.0.1`.
+
+
+'oauth2-oidc-sdk', licensed under the Apache License, version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.nimbusds.oauth2-oidc-sdk-11.23`.
+
+
+'netty-buffer', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-buffer-4.1.118.Final`.
+
+
+'netty-codec', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-4.1.118.Final`.
+
+
+'netty-codec-dns', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-dns-4.1.112.Final`.
+
+
+'netty-codec-http', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-http-4.1.118.Final`.
+
+
+'netty-codec-http2', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-http2-4.1.118.Final`.
+
+
+'netty-codec-socks', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-codec-socks-4.1.118.Final`.
+
+
+'netty-common', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-common-4.1.118.Final`.
+
+
+'netty-handler', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-handler-4.1.118.Final`.
+
+
+'netty-handler-proxy', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-handler-proxy-4.1.118.Final`.
+
+
+'netty-resolver', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-4.1.118.Final`.
+
+
+'netty-resolver-dns', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-dns-4.1.112.Final`.
+
+
+'netty-resolver-dns-classes-macos', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-dns-classes-macos-4.1.112.Final`.
+
+
+'netty-resolver-dns-native-macos', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-resolver-dns-native-macos-4.1.112.Final`.
+
+
+'netty-tcnative-boringssl-static', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-tcnative-boringssl-static-2.0.70.Final`.
+
+
+'netty-tcnative-classes', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-tcnative-classes-2.0.70.Final`.
+
+
+'netty-transport', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-4.1.118.Final`.
+
+
+'netty-transport-classes-epoll', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-classes-epoll-4.1.118.Final`.
+
+
+'netty-transport-classes-kqueue', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-classes-kqueue-4.1.118.Final`.
+
+
+'netty-transport-native-epoll', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-epoll-4.1.118.Final`.
+
+
+'netty-transport-native-kqueue', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-kqueue-4.1.118.Final`.
+
+
+'netty-transport-native-unix-common', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.netty.netty-transport-native-unix-common-4.1.118.Final`.
+
+
+'reactor-netty-core', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.projectreactor.netty.reactor-netty-core-1.0.48`.
+
+
+'reactor-netty-http', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.projectreactor.netty.reactor-netty-http-1.0.48`.
+
+
+'reactor-core', licensed under the Apache License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.projectreactor.reactor-core-3.4.41`.
+
+
+'accessors-smart', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `net.minidev.accessors-smart-2.5.2`.
+
+
+'json-smart', licensed under the The Apache Software License, Version 2.0, is distributed with the Microsoft.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `net.minidev.json-smart-2.5.2`.
+
+
+'asm', licensed under the BSD-3-Clause, is distributed with the Microsoft.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.ow2.asm.asm-9.7.1`.
+
+
+'reactive-streams', licensed under the MIT-0, is distributed with the Microsoft.
+The license file can be found at `licenses/MIT-0`.
+Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.4`.
+
+
+'slf4j-api', licensed under the MIT License, is distributed with the Microsoft.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-1.7.36`.
 

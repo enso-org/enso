@@ -1,15 +1,8 @@
 /** @file An entry in a context menu. */
-import * as React from 'react'
-
-import type * as menuEntry from '#/components/MenuEntry'
-import MenuEntry from '#/components/MenuEntry'
-
-// ========================
-// === ContextMenuEntry ===
-// ========================
+import MenuEntry, { type MenuEntryProps } from '#/components/MenuEntry'
 
 /** Props for a {@link ContextMenuEntry}. */
-export type ContextMenuEntryProps = Omit<menuEntry.MenuEntryProps, 'isContextMenuEntry'>
+export type ContextMenuEntryProps = Omit<MenuEntryProps, 'isContextMenuEntry'>
 
 /** An item in a menu. */
 export default function ContextMenuEntry(props: ContextMenuEntryProps) {

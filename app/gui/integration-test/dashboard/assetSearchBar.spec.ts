@@ -1,8 +1,5 @@
 /** @file Test the search bar and its suggestions. */
-import { expect, test, type Page } from '@playwright/test'
-
-import { COLORS } from '#/services/Backend'
-
+import { expect, test, type Page } from 'playwright/test'
 import { mockAllAndLogin } from './actions'
 
 /** Find a search bar. */
@@ -43,30 +40,14 @@ test('tags (positive)', ({ page }) =>
     }
   }))
 
-test('tags (negative)', ({ page }) =>
-  mockAllAndLogin({ page }).withSearchBar(async (searchBar) => {
-    const tags = locateSearchBarTags(page)
-
-    await searchBar.click()
-    await page.keyboard.down('Shift')
-    for (const negativeTag of await tags.all()) {
-      await searchBar.selectText()
-      await searchBar.press('Backspace')
-      const text = (await negativeTag.textContent()) ?? ''
-      expect(text.length).toBeGreaterThan(0)
-      await negativeTag.click()
-      await expect(searchBar).toHaveValue(text)
-    }
-  }))
-
-test('labels', ({ page }) =>
+test.skip('labels (were supported in list directory, but not supported in search)', ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: (api) => {
-      api.addLabel('aaaa', COLORS[0])
-      api.addLabel('bbbb', COLORS[1])
-      api.addLabel('cccc', COLORS[2])
-      api.addLabel('dddd', COLORS[3])
+      api.addLabel('aaaa', { lightness: 50, chroma: 66, hue: 7 })
+      api.addLabel('bbbb', { lightness: 50, chroma: 66, hue: 34 })
+      api.addLabel('cccc', { lightness: 50, chroma: 66, hue: 80 })
+      api.addLabel('dddd', { lightness: 50, chroma: 66, hue: 139 })
     },
   }).withSearchBar(async (searchBar) => {
     const labels = locateSearchBarLabels(page)
@@ -77,8 +58,6 @@ test('labels', ({ page }) =>
       expect(name.length).toBeGreaterThan(0)
       await label.click()
       await expect(searchBar).toHaveValue('label:' + name)
-      await label.click()
-      await expect(searchBar).toHaveValue('-label:' + name)
       await label.click()
       await expect(searchBar).toHaveValue('')
     }

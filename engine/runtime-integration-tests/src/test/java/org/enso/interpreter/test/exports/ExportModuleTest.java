@@ -7,7 +7,6 @@ import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Set;
-import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
@@ -44,11 +43,8 @@ public class ExportModuleTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(subModule, module, mainMod), projDir);
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
       var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(1));
@@ -75,11 +71,8 @@ public class ExportModuleTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(subModule, mainMod), projDir);
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
       var mainModExportedSymbols = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainModExportedSymbols.size(), is(1));

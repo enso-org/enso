@@ -11,7 +11,13 @@ import org.enso.interpreter.runtime.data.text.Text;
     description = "Gets the name of a constructor.",
     autoRegister = false)
 public class GetConstructorNameNode extends Node {
-  Text execute(AtomConstructor cons) {
-    return Text.create(cons.getName());
+  Object execute(AtomConstructor cons) {
+    var withCheck = FindAtomConstructorNode.findAtomConstructor(this, cons, null);
+
+    if (withCheck == cons) {
+      return Text.create(cons.getName());
+    } else {
+      return withCheck;
+    }
   }
 }

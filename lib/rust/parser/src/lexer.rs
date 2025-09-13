@@ -69,6 +69,18 @@ macro_rules! pattern_impl_for_char_slice {
 pattern_impl_for_char_slice!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
 
+// ===========================
+// === Lexer output traits ===
+// ===========================
+
+/// Trait for consumers of open- and close- parenthesis tokens.
+pub trait GroupDelimiterConsumer<'s> {
+    /// An opening parenthesis.
+    fn open_group(&mut self, open: token::OpenSymbol<'s>);
+    /// A closing parenthesis.
+    fn close_group(&mut self, close: token::CloseSymbol<'s>);
+}
+
 
 // =============
 // === Lexer ===
@@ -754,15 +766,15 @@ fn analyze_user_operator(token: &str) -> OperatorProperties {
 // === Symbols ===
 // ===============
 
-impl<'s, Inner: TokenConsumer<'s> + GroupHierarchyConsumer<'s>> Lexer<'s, Inner> {
+impl<'s, Inner: TokenConsumer<'s> + GroupDelimiterConsumer<'s>> Lexer<'s, Inner> {
     /// Parse a symbol.
     fn symbol(&mut self) {
         if let Some(token) = self.token(|this| this.take_1('(')) {
-            self.inner.start_group(token.with_variant(token::variant::OpenSymbol()));
+            self.inner.open_group(token.with_variant(token::variant::OpenSymbol()));
             return;
         }
         if let Some(token) = self.token(|this| this.take_1(')')) {
-            self.inner.end_group(token.with_variant(token::variant::CloseSymbol()));
+            self.inner.close_group(token.with_variant(token::variant::CloseSymbol()));
             return;
         }
         if let Some(token) = self.token(|this| this.take_1(&['{', '['])) {
@@ -1347,7 +1359,7 @@ impl<'s, Inner> Lexer<'s, Inner>
 where Inner: TokenConsumer<'s>
         + Debug
         + BlockHierarchyConsumer
-        + GroupHierarchyConsumer<'s>
+        + GroupDelimiterConsumer<'s>
         + NewlineConsumer<'s>
 {
     /// Run all defined parsers. The order is determined by two factors:
@@ -1371,7 +1383,7 @@ where Inner: TokenConsumer<'s>
         + Finish
         + Debug
         + BlockHierarchyConsumer
-        + GroupHierarchyConsumer<'s>
+        + GroupDelimiterConsumer<'s>
         + NewlineConsumer<'s>
 {
     type Result = ParseResult<Inner::Result>;

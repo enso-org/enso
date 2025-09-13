@@ -29,6 +29,28 @@ export const expect = baseExpect.extend({
     }
   },
 
+  async toHaveCountGreaterThan(locator: Locator, n: number) {
+    const assertionName = 'toHaveCountGreaterThan'
+    let pass: boolean
+    try {
+      await expect(locator.nth(n)).toBeVisible()
+      pass = true
+    } catch {
+      pass = false
+    }
+
+    const message = () =>
+      this.utils.matcherHint(assertionName, locator, '', {
+        isNot: this.isNot,
+      })
+
+    return {
+      message,
+      pass,
+      name: assertionName,
+    }
+  },
+
   async toBeSelected(locator: Locator) {
     const assertionName = 'toBeSelected'
     let pass: boolean

@@ -1,7 +1,5 @@
 package org.enso.interpreter.instrument.job;
 
-import java.util.logging.Level;
-import org.enso.common.CompilationStage;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
 import org.enso.pkg.QualifiedName;
 
@@ -21,7 +19,6 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
   public Void runImpl(RuntimeContext ctx) {
     var ensoContext = ctx.executionService().getContext();
     var compiler = ensoContext.getCompiler();
-    boolean useGlobalCacheLocations = ensoContext.isUseGlobalCache();
     ctx.locking()
         .withWriteCompilationLock(
             this.getClass(),
@@ -31,22 +28,11 @@ public final class SerializeModuleJob extends BackgroundJob<Void> {
                   .findModule(moduleName.toString())
                   .ifPresent(
                       module -> {
-                        if (module.getCompilationStage().isBefore(CompilationStage.AFTER_CODEGEN)) {
-                          ctx.executionService()
-                              .getLogger()
-                              .log(
-                                  Level.WARNING,
-                                  "Attempt to serialize the module [{}] at stage [{}].",
-                                  new Object[] {module.getName(), module.getCompilationStage()});
-                          return;
-                        }
+                        assert !module.needsCompilation()
+                            : "Attempt to serialize the module that needs compilation: " + module;
                         compiler
                             .context()
-                            .serializeModule(
-                                compiler,
-                                module.asCompilerModule(),
-                                useGlobalCacheLocations,
-                                false);
+                            .serializeModule(compiler, module.asCompilerModule(), false);
                       });
               return null;
             });

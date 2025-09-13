@@ -1,0 +1,11 @@
+} else if ("copyright".equals(fieldName)) {
+this.copyright = copyright;
+return this.copyright;
+public String copyright() {
+public MicrosoftGraphAudio withCopyright(String copyright) {
+private String copyright;
+jsonWriter.writeStringField("copyright", this.copyright);
+deserializedMicrosoftGraphAudio.copyright = reader.getString();
+Set the copyright property: Copyright information for the audio file.
+Get the copyright property: Copyright information for the audio file.
+Copyright information for the audio file.

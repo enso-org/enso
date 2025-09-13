@@ -10,9 +10,8 @@ sealed class SecretValueResolver permits EnsoSecretHelper, ExternalLibrarySecret
   protected static String resolveValue(HideableValue value) {
     return switch (value) {
       case HideableValue.PlainValue plainValue -> plainValue.value();
-      case HideableValue.SecretValue secretValue -> {
-        yield EnsoSecretReader.readSecret(secretValue.secretId());
-      }
+      case HideableValue.SecretValue secretValue -> EnsoSecretReader.INSTANCE.readSecret(
+          secretValue.secretId());
       case HideableValue.ConcatValues concatValues -> {
         String left = resolveValue(concatValues.left());
         String right = resolveValue(concatValues.right());
@@ -20,6 +19,9 @@ sealed class SecretValueResolver permits EnsoSecretHelper, ExternalLibrarySecret
       }
       case HideableValue.Base64EncodeValue base64EncodeValue -> HideableValue.Base64EncodeValue
           .encode(resolveValue(base64EncodeValue.value()));
+      case InterpretAsPrivateKey pk -> throw new IllegalStateException(
+          "InterpretAsPrivateKey can only be used in JDBC connections. This state should never be"
+              + " reached.");
     };
   }
 }

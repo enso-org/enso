@@ -1,0 +1,13 @@
+"Portions Copyright [year] [name of copyright owner]"
+${basedir}/copyright-exclude
+<![CDATA[Copyright &#169; 1999-2013,
+<artifactId>glassfish-copyright-maven-plugin</artifactId>
+<copyright-plugin.version>1.33</copyright-plugin.version>
+<groupId>org.glassfish.copyright</groupId>
+<version>${copyright-plugin.version}</version>
+DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+Portions Copyright &#169; 1999-2002 The Apache Software Foundation.
+as author, version, and copyright.
+author, version, and copyright.
+only if the new code is made subject to such option by the copyright
+such as author, version, and copyright.

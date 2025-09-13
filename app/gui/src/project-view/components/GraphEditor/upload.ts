@@ -56,6 +56,7 @@ export class Uploader {
       awareness: Awareness
     },
     private file: File,
+    private filePath: string | undefined,
     private position: Vec2,
     private isOnLocalBackend: boolean,
     private disableDirectRead: boolean,
@@ -81,7 +82,16 @@ export class Uploader {
     disableDirectRead: boolean,
     method: ExternalId,
   ): Uploader {
-    return new Uploader(projectStore, file, position, isOnLocalBackend, disableDirectRead, method)
+    const filePath = window.systemApi?.getFilePath(file)
+    return new Uploader(
+      projectStore,
+      file,
+      filePath,
+      position,
+      isOnLocalBackend,
+      disableDirectRead,
+      method,
+    )
   }
 
   private progressUpdate(sizePercentage: number) {
@@ -95,13 +105,8 @@ export class Uploader {
   /** Start the upload process */
   async upload(): Promise<Result<UploadResult>> {
     // This non-standard property is defined in Electron.
-    if (
-      this.isOnLocalBackend &&
-      !this.disableDirectRead &&
-      'path' in this.file &&
-      typeof this.file.path === 'string'
-    ) {
-      return Ok({ source: 'FileSystemRoot', name: this.file.path })
+    if (this.isOnLocalBackend && !this.disableDirectRead && this.filePath != null) {
+      return Ok({ source: 'FileSystemRoot', name: this.filePath })
     }
     const rootId = await this.projectFiles.projectRootId
     if (rootId == null) return Err('Could not identify project root.')

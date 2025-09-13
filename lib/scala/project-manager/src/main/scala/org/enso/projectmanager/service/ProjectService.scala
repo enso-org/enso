@@ -12,6 +12,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Semaphore, Sync}
 import org.enso.projectmanager.data.{
+  CloudParams,
   LanguageServerStatus,
   MissingComponentActions,
   ProjectMetadata,
@@ -105,14 +106,15 @@ class ProjectService[
     moduleName = NameValidation.normalizeName(name)
     path <- repo.findPathForNewProject(moduleName).mapError(toServiceFailure)
     project = Project(
-      id        = projectId,
-      name      = name,
-      module    = moduleName,
-      namespace = Config.DefaultNamespace,
-      kind      = UserProject,
-      created   = creationTime,
-      edition   = None,
-      path      = path.toFile
+      id             = projectId,
+      name           = name,
+      module         = moduleName,
+      namespace      = Config.DefaultNamespace,
+      kind           = UserProject,
+      created        = creationTime,
+      edition        = None,
+      path           = path.toFile,
+      jvmModeEnabled = None
     )
     _ <- log.debug(
       "Found a path [{}] for a new project [{}, {}].",
@@ -299,6 +301,7 @@ class ProjectService[
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentActions.MissingComponentAction,
+    cloud: Option[CloudParams],
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
     for {
@@ -310,11 +313,20 @@ class ProjectService[
       _ <- repo.update(updated).mapError(toServiceFailure)
       projectWithDefaultEdition =
         updated.copy(edition = Some(DefaultEdition.getDefaultEdition))
+      extraEnv = cloud.toSeq
+        .flatMap(c =>
+          Seq(
+            ProjectService.ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME -> c.cloudProjectDirectoryPath,
+            ProjectService.ENSO_CLOUD_PROJECT_ID_ENV_NAME             -> c.cloudProjectId,
+            ProjectService.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME     -> c.cloudProjectSessionId
+          )
+        )
       sockets <- startServer(
         progressTracker,
         clientId,
         projectWithDefaultEdition,
-        missingComponentAction
+        missingComponentAction,
+        extraEnv
       )
     } yield sockets
   }
@@ -343,13 +355,14 @@ class ProjectService[
     progressTracker: ActorRef,
     clientId: UUID,
     project: Project,
-    missingComponentAction: MissingComponentActions.MissingComponentAction
+    missingComponentAction: MissingComponentActions.MissingComponentAction,
+    extraEnv: Seq[(String, String)]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
     _       <- log.debug("Preparing to start the Language Server for [{}].", project)
     version <- resolveProjectVersion(project)
     _       <- preinstallEngine(progressTracker, version, missingComponentAction)
     sockets <- languageServerGateway
-      .start(progressTracker, clientId, project, version)
+      .start(progressTracker, clientId, project, version, extraEnv)
       .mapError {
         case PreviousInstanceNotShutDown =>
           ProjectOpenFailed(
@@ -579,4 +592,13 @@ object ProjectService {
       created    = project.created,
       lastOpened = project.lastOpened
     )
+
+  /** The variable is used in stdlib to resolve relative paths. */
+  private val ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME =
+    "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
+
+  /** Variables used during startup of a hybrid project */
+  val ENSO_CLOUD_PROJECT_ID_ENV_NAME = "ENSO_CLOUD_PROJECT_ID"
+  val ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME =
+    "ENSO_CLOUD_PROJECT_SESSION_ID"
 }

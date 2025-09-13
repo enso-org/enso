@@ -1,14 +1,9 @@
 /** @file A full-screen loading spinner. */
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
-
-import * as twv from '#/utilities/tailwindVariants'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { memo } from 'react'
 
-// =================
-// === Constants ===
-// =================
-
-const STYLES = twv.tv({
+const STYLES = tv({
   base: 'animate-appear-delayed flex h-full w-full items-center justify-center duration-200',
   variants: {
     minHeight: {
@@ -48,28 +43,22 @@ const SIZE_MAP: Record<Size, number> = {
   small: 16,
 }
 
-// ============
-// === Size ===
-// ============
-
 /** The possible sizes for a {@link Loader}. */
 export type Size = 'large' | 'medium' | 'small'
 
-// ==============
-// === Loader ===
-// ==============
-
 /** Props for a {@link Loader}. */
-export interface LoaderProps extends twv.VariantProps<typeof STYLES> {
+export interface LoaderProps extends VariantProps<typeof STYLES> {
+  readonly children?: React.ReactNode
   readonly className?: string
   readonly size?: Size | number
   readonly state?: SpinnerState
 }
 
 /** A full-screen loading spinner. */
-// eslint-disable-next-line no-restricted-syntax
+
 export const Loader = memo(function Loader(props: LoaderProps) {
   const {
+    children,
     className,
     size: sizeRaw = 'medium',
     state = 'loading-fast',
@@ -82,7 +71,10 @@ export const Loader = memo(function Loader(props: LoaderProps) {
 
   return (
     <div className={STYLES({ minHeight, className, color, height })}>
-      <StatelessSpinner size={size} state={state} className="text-current" />
+      <div className="flex flex-col items-center gap-2">
+        <StatelessSpinner size={size} phase={state} className="text-current" />
+        {children}
+      </div>
     </div>
   )
 })

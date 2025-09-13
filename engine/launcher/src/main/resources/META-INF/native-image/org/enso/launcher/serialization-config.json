@@ -31,6 +31,9 @@
       "name":"java.util.Collections$EmptyMap"
     },
     {
+      "name":"java.util.Collections$UnmodifiableMap"
+    },
+    {
       "name":"java.util.HashMap"
     },
     {

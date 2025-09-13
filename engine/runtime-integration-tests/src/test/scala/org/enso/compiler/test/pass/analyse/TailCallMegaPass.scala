@@ -33,6 +33,7 @@ import org.enso.compiler.pass.analyse.TailCall
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.{ExpressionAnnotations, GlobalNames}
+import org.enso.persist.Persistance.Reference
 
 /** Original implementation of [[org.enso.compiler.pass.analyse.TailCall]].
   * Now server as the test verification of the new [[org.enso.compiler.pass.analyse.TailCallMini]].
@@ -266,26 +267,26 @@ case object TailCallMegaPass extends IRPass {
     isInTailPosition: Boolean
   ): Application = {
     val newApp = application match {
-      case app @ Application.Prefix(fn, args, _, _, _) =>
+      case app: Application.Prefix =>
         app
           .copy(
-            function  = analyseExpression(fn, isInTailPosition = false),
-            arguments = args.map(analyseCallArg)
+            analyseExpression(app.function, isInTailPosition = false),
+            app.arguments.map(analyseCallArg)
           )
-      case force @ Application.Force(target, _, _) =>
+      case force: Application.Force =>
         force
-          .copy(
-            target = analyseExpression(target, isInTailPosition)
+          .copyWithTarget(
+            analyseExpression(force.target, isInTailPosition)
           )
-      case vector @ Application.Sequence(items, _, _) =>
+      case vector: Application.Sequence =>
         vector
-          .copy(items =
-            items.map(analyseExpression(_, isInTailPosition = false))
+          .copyWithItems(
+            vector.items.map(analyseExpression(_, isInTailPosition = false))
           )
-      case tSet @ Application.Typeset(expr, _, _) =>
+      case tSet: Application.Typeset =>
         tSet
-          .copy(expression =
-            expr.map(analyseExpression(_, isInTailPosition = false))
+          .copyWithExpression(
+            tSet.expression.map(analyseExpression(_, isInTailPosition = false))
           )
       case _: Operator =>
         throw new CompilerError("Unexpected binary operator.")
@@ -304,7 +305,7 @@ case object TailCallMegaPass extends IRPass {
         arg
           .copy(
             // Note [Call Argument Tail Position]
-            value = analyseExpression(arg.value, isInTailPosition = true)
+            analyseExpression(arg.value, isInTailPosition = true)
           )
           .updateMetadata(TAIL_META)
     }
@@ -357,12 +358,12 @@ case object TailCallMegaPass extends IRPass {
     */
   def analyseCase(caseExpr: Case, isInTailPosition: Boolean): Case = {
     val newCaseExpr = caseExpr match {
-      case caseExpr @ Case.Expr(scrutinee, branches, _, _, _) =>
+      case caseExpr: Case.Expr =>
         caseExpr
           .copy(
-            scrutinee = analyseExpression(scrutinee, isInTailPosition = false),
+            analyseExpression(caseExpr.scrutinee, isInTailPosition = false),
             // Note [Analysing Branches in Case Expressions]
-            branches = branches.map(analyseCaseBranch(_, isInTailPosition))
+            caseExpr.branches.map(analyseCaseBranch(_, isInTailPosition))
           )
       case _: Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
@@ -396,11 +397,12 @@ case object TailCallMegaPass extends IRPass {
       isInTailPosition,
       branch
         .copy(
-          pattern = analysePattern(branch.pattern),
-          expression = analyseExpression(
+          analysePattern(branch.pattern),
+          analyseExpression(
             branch.expression,
             isInTailPosition
-          )
+          ),
+          branch.terminalBranch()
         )
     )
   }
@@ -455,11 +457,15 @@ case object TailCallMegaPass extends IRPass {
     val markAsTail = (!canBeTCO && isInTailPosition) || canBeTCO
 
     val resultFunction = function match {
-      case lambda @ Function.Lambda(args, body, _, _, _, _) =>
-        lambda.copy(
-          arguments = args.map(analyseDefArgument),
-          body      = analyseExpression(body, isInTailPosition = markAsTail)
-        )
+      case lambda: Function.Lambda =>
+        val newArgs = lambda.arguments().map(analyseDefArgument)
+        val newBody =
+          analyseExpression(lambda.body(), isInTailPosition = markAsTail)
+        Function.Lambda
+          .builder(lambda)
+          .arguments(newArgs)
+          .bodyReference(Reference.of(newBody))
+          .build()
       case _: Function.Binding =>
         throw new CompilerError(
           "Function sugar should not be present during tail call analysis."
@@ -477,11 +483,11 @@ case object TailCallMegaPass extends IRPass {
     arg: DefinitionArgument
   ): DefinitionArgument = {
     arg match {
-      case arg @ DefinitionArgument.Specified(_, _, default, _, _, _) =>
+      case arg: DefinitionArgument.Specified =>
+        val default = arg.defaultValue
         arg
-          .copy(
-            defaultValue =
-              default.map(x => analyseExpression(x, isInTailPosition = false))
+          .copyWithDefaultValue(
+            default.map(x => analyseExpression(x, isInTailPosition = false))
           )
     }
   }

@@ -11,7 +11,6 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
-import org.enso.interpreter.runtime.EnsoContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
@@ -43,30 +42,35 @@ class RecomputeContextCmd(
     ec: ExecutionContext
   ): Future[Boolean] = {
     Future {
-      EnsoContext
-        .get(null)
-        .getResourceManager()
-        .scheduleFinalizationOfSystemReferences();
-      ctx.jobControlPlane.abortJobs(
-        request.contextId,
-        "recompute context",
-        false
-      )
-      val stack = ctx.contextManager.getStack(request.contextId)
-      if (stack.isEmpty) {
-        reply(Api.EmptyStackError(request.contextId))
-        false
-      } else {
-        ctx.state.executionHooks.add(
-          InvalidateExpressions(
+      ctx.locking.withReadContextLock(
+        ctx.locking.getOrCreateContextLock(request.contextId),
+        this.getClass,
+        () => {
+          ctx.executionService.getContext
+            .getResourceManager()
+            .scheduleFinalizationOfSystemReferences()
+          ctx.jobControlPlane.abortJobs(
             request.contextId,
-            request.expressions,
-            request.expressionConfigs
+            "recompute context",
+            false
           )
-        )
-        reply(Api.RecomputeContextResponse(request.contextId))
-        true
-      }
+          val stack = ctx.contextManager.getStack(request.contextId)
+          if (stack.isEmpty) {
+            reply(Api.EmptyStackError(request.contextId))
+            false
+          } else {
+            ctx.state.executionHooks.add(
+              InvalidateExpressions(
+                request.contextId,
+                request.expressions,
+                request.expressionConfigs
+              )
+            )
+            reply(Api.RecomputeContextResponse(request.contextId))
+            true
+          }
+        }
+      )
     }
   }
 
@@ -101,7 +105,8 @@ class RecomputeContextCmd(
           new ExecuteJob(
             request.contextId,
             stack.toList,
-            request.executionEnvironment
+            request.executionEnvironment,
+            "recompute context"
           )
         )
       } yield ()
@@ -177,7 +182,10 @@ object RecomputeContextCmd {
                 .fold(Set(expressionId))(_ + expressionId)
             builder += CacheInvalidation(
               CacheInvalidation.StackSelector.All,
-              CacheInvalidation.Command.InvalidateKeys(dependents)
+              CacheInvalidation.Command.InvalidateKeys(
+                dependents,
+                "invalidate dependends of " + expressionId
+              )
             )
           }
       }
@@ -199,7 +207,7 @@ object RecomputeContextCmd {
               .keySet()
               .forEach(builder.addOne)
           }
-      case CacheInvalidation.Command.InvalidateKeys(expressionIds) =>
+      case CacheInvalidation.Command.InvalidateKeys(expressionIds, _) =>
         builder ++= expressionIds
       case _ =>
     }

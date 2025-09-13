@@ -226,3 +226,11 @@ export function* enumerate<T>(items: Iterable<T>): Generator<[T, number]> {
     yield [item, index++]
   }
 }
+
+/** Yields items of the iterable until one does not match a predicate. The matched element is not yielded. */
+export function* takeUntil<T>(items: Iterable<T>, until: (value: T) => boolean): Generator<T> {
+  for (const item of items) {
+    if (until(item)) return
+    yield item
+  }
+}

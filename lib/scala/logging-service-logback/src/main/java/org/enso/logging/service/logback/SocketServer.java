@@ -8,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import javax.net.ServerSocketFactory;
 import org.slf4j.Logger;
@@ -51,11 +52,8 @@ public class SocketServer extends Thread {
       logger.debug("Listening on port " + port);
       serverSocket = getServerSocketFactory().createServerSocket(port);
       while (!closed) {
-        logger.debug("Waiting to accept a new client.");
         signalAlmostReadiness();
         Socket socket = serverSocket.accept();
-        logger.debug("Connected to client at " + socket.getInetAddress());
-        logger.debug("Starting new socket node.");
         SocketLoggingNode newSocketNode = new SocketLoggingNode(this, socket, lc);
         synchronized (socketNodeList) {
           socketNodeList.add(newSocketNode);
@@ -121,6 +119,16 @@ public class SocketServer extends Thread {
     return closed;
   }
 
+  public void closeProject(UUID projectId) {
+    if (projectId != null) {
+      synchronized (socketNodeList) {
+        for (SocketLoggingNode sn : socketNodeList) {
+          if (sn.projectId != null && sn.projectId.equals(projectId)) sn.closing();
+        }
+      }
+    }
+  }
+
   public void close() {
     closed = true;
     if (serverSocket != null) {
@@ -145,8 +153,6 @@ public class SocketServer extends Thread {
   }
 
   public void socketNodeClosing(SocketLoggingNode sn) {
-    logger.debug("Removing {}", sn);
-
     // don't allow simultaneous access to the socketNodeList
     // (e.g. removal whole iterating on the list causes
     // java.util.ConcurrentModificationException)

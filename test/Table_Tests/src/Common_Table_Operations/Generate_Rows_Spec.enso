@@ -1,0 +1,172 @@
+from Standard.Base import all
+from Standard.Test import all
+from Standard.Table import all
+
+from Standard.Database.Errors import Unsupported_Database_Operation
+import Standard.Database.Dialects.Feature.Feature
+from Standard.Table.Errors import No_Such_Column, Duplicate_Output_Column_Names
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from project.Common_Table_Operations.Util import run_default_backend
+import project.Common_Table_Operations.Util
+import project.Util as Test_Utils
+
+main filter=Nothing = run_default_backend add_specs filter
+
+add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Generate_Rows then (add_generate_rows_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.generate_rows" group_builder->
+            group_builder.specify "generate_rows should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                t2 = t.generate_rows (..Integer_Range 0 2)
+                t2.should_fail_with (Unsupported_Database_Operation.Error "generate_rows")
+
+add_generate_rows_specs suite_builder setup =
+    prefix = setup.prefix
+    build_sorted_table = Util.build_sorted_table setup
+    suite_builder.group prefix+"Table.generate_rows from an Integer Range" group_builder->
+        t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
+        t2 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["NumRows", [1, 0, 2]]]
+        t3 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["Start", [1, 0, 2]], ["Stop", [3, 0, 3]]]
+        t4 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["Start", [1, 0, 2]], ["Stop", [5, 0, 5]]]
+        group_builder.specify "Works with Integer_Range constant values and default step" <|
+            t1.generate_rows (..Integer_Range 0 2) . should_equal
+                Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["Generated Row", [0, 1, 0, 1, 0, 1]]]
+        group_builder.specify "Works with Integer_Range constant values and default step (include_end=True)" <|
+            t1.generate_rows (..Integer_Range 0 1 include_end=True) . should_equal
+                Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["Generated Row", [0, 1, 0, 1, 0, 1]]]
+        group_builder.specify "Works with Integer_Range constant and column value" <|
+            t2.generate_rows (..Integer_Range 0 (..Name 'NumRows')) . should_equal
+                Table.new [["Text Values", ["A", "C", "C"]], ["NumRows", [1, 2, 2]], ["Generated Row", [0, 0, 1]]]
+        group_builder.specify "Works with Integer_Range constant and column value (include_end=True)" <|
+            t2.generate_rows (..Integer_Range 0 (..Name 'NumRows')  include_end=True) . should_equal
+                Table.new [["Text Values", ["A", "A", "B", "C", "C", "C"]], ["NumRows", [1, 1, 0, 2, 2, 2]], ["Generated Row", [0, 1, 0, 0, 1, 2]]]
+        group_builder.specify "Works with Integer_Range column value and constant" <|
+            t2.generate_rows (..Integer_Range (..Name 'NumRows') 2) . should_equal
+                Table.new [["Text Values", ["A", "B", "B"]], ["NumRows", [1, 0, 0]], ["Generated Row", [1, 0, 1]]]
+        group_builder.specify "Works with Integer_Range 2 columns" <|
+            t3.generate_rows (..Integer_Range (..Name 'Start') (..Name 'Stop')) . should_equal
+                Table.new [["Text Values", ["A", "A", "C"]], ["Start", [1, 1, 2]], ["Stop", [3, 3, 3]], ["Generated Row", [1, 2, 2]]]
+        group_builder.specify "Works with Integer_Range constant values include_end=True and default step" <|
+            t1.generate_rows (..Integer_Range 0 1 include_end=True) . should_equal
+                Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["Generated Row", [0, 1, 0, 1, 0, 1]]]
+
+        group_builder.specify "Works with Integer_Range constant values and a 2 step" <|
+            t1.generate_rows (..Integer_Range 0 4 step=2) . should_equal
+                Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["Generated Row", [0, 2, 0, 2, 0, 2]]]
+        group_builder.specify "Works with Integer_Range constant and column value and a 2 step" <|
+            t2.generate_rows (..Integer_Range -2 (..Name 'NumRows') step=2) . should_equal
+                Table.new [["Text Values", ["A", "A", "B", "C", "C"]], ["NumRows", [1, 1, 0, 2, 2]], ["Generated Row", [-2, 0, -2, -2, 0]]]
+        group_builder.specify "Works with Integer_Range column value and constant and a 2 step" <|
+            t2.generate_rows (..Integer_Range (..Name 'NumRows') 4 step=2) . should_equal
+                Table.new [["Text Values", ["A", "A", "B", "B", "C"]], ["NumRows", [1, 1, 0, 0, 2]], ["Generated Row", [1, 3, 0, 2, 2]]]
+        group_builder.specify "Works with Integer_Range 2 columns and a 2 step" <|
+            t4.generate_rows (..Integer_Range (..Name 'Start') (..Name 'Stop') step=2) . should_equal
+                Table.new [["Text Values", ["A", "A", "C", "C"]], ["Start", [1, 1, 2, 2]], ["Stop", [5, 5, 5, 5]], ["Generated Row", [1, 3, 2, 4]]]
+
+        group_builder.specify "Works with Integer_Range column and expression" <|
+            t3.generate_rows (..Integer_Range (..Name 'Start') (expr '[Stop]+1')) . should_equal
+                Table.new [["Text Values", ["A", "A", "A", "B", "C", "C"]], ["Start", [1, 1, 1, 0, 2, 2]], ["Stop", [3, 3, 3, 0, 3, 3]], ["Generated Row", [1, 2, 3, 0, 2, 3]]]
+
+        group_builder.specify "Can rename generated id colummn" <|
+            t3.generate_rows (..Integer_Range (..Name 'Start') (expr '[Stop]+1')) "MyColumnName" . should_equal
+                Table.new [["Text Values", ["A", "A", "A", "B", "C", "C"]], ["Start", [1, 1, 1, 0, 2, 2]], ["Stop", [3, 3, 3, 0, 3, 3]], ["MyColumnName", [1, 2, 3, 0, 2, 3]]]
+
+        suite_builder.group prefix+"Table.generate_rows from existing objects" group_builder->
+            t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
+            group_builder.specify "Can pass in a integer to create quick duplicated rows" <|
+                t1.generate_rows 3 . should_equal
+                    Table.new [["Text Values", ["A", "A", "A", "B", "B", "B", "C", "C", "C"]], ["Generated Row", [0, 1, 2, 0, 1, 2, 0, 1, 2]]]
+            group_builder.specify "Can use an existing integer range" <|
+                range = (0.up_to 2 include_end=True)
+                t1.generate_rows range . should_equal
+                    Table.new [["Text Values", ["A", "A", "A", "B", "B", "B", "C", "C", "C"]], ["Generated Row", [0, 1, 2, 0, 1, 2, 0, 1, 2]]]
+            group_builder.specify "Can use an existing integer column" <|
+                t2 = build_sorted_table [["Counts", [1, 0, 2]]]
+                col = t2.at 0
+                t1.generate_rows col . should_equal
+                    Table.new [["Text Values", ["A", "C", "C"]], ["Generated Row", [0, 0, 1]]]
+            group_builder.specify "Can use an existing date range" <|
+                range = ((Date.new 2021 3 3).up_to (Date.new 2021 3 4) include_end=True)
+                t1.generate_rows range . should_equal
+                    Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["Generated Row", [(Date.new 2021 3 3),(Date.new 2021 3 4),(Date.new 2021 3 3),(Date.new 2021 3 4),(Date.new 2021 3 3),(Date.new 2021 3 4)]]]
+             
+        suite_builder.group prefix+"Table.generate_rows from an Date Range" group_builder->
+            t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
+            group_builder.specify "Works with Date constant values and default step (1 day)" <|
+                t1.generate_rows (..Date_Range (Date.new 2025 3 6) (Date.new 2025 3 8)) . should_equal
+                    Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["Generated Row", [Date.new 2025 3 6, Date.new 2025 3 7, Date.new 2025 3 6, Date.new 2025 3 7, Date.new 2025 3 6, Date.new 2025 3 7]]]
+            group_builder.specify "Works with Date constant values, include_end=True and default step (1 day)" <|
+                t1.generate_rows (..Date_Range (Date.new 2025 3 6) (Date.new 2025 3 7) include_end=True) . should_equal
+                    Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["Generated Row", [Date.new 2025 3 6, Date.new 2025 3 7, Date.new 2025 3 6, Date.new 2025 3 7, Date.new 2025 3 6, Date.new 2025 3 7]]]
+            group_builder.specify "Works with Date constant values and month step" <|
+                t1.generate_rows (..Date_Range (Date.new 2025 1 1) (Date.new 2025 3 1) step=..Month) . should_equal
+                    Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["Generated Row", [Date.new 2025 1 1, Date.new 2025 2 1, Date.new 2025 1 1, Date.new 2025 2 1, Date.new 2025 1 1, Date.new 2025 2 1]]]
+            group_builder.specify "Works with Date constant values and year step" <|
+                t1.generate_rows (..Date_Range (Date.new 2025 1 1) (Date.new 2027 1 1) step=..Year) . should_equal
+                    Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["Generated Row", [Date.new 2025 1 1, Date.new 2026 1 1, Date.new 2025 1 1, Date.new 2026 1 1, Date.new 2025 1 1, Date.new 2026 1 1]]]
+            group_builder.specify "Works with a Date column and a constant date" <|
+                t2 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 2, Date.new 2025 1 3]]]
+                t2.generate_rows (..Date_Range (..Name 'JoinDate') (Date.new 2025 1 3)) . should_equal
+                    Table.new [["Text Values", ["A", "A", "B"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 1, Date.new 2025 1 2]], ["Generated Row", [Date.new 2025 1 1, Date.new 2025 1 2, Date.new 2025 1 2]]]
+            group_builder.specify "Works with a 2 Date columns" <|
+                t2 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 2, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 2, Date.new 2025 1 5]]]
+                t2.generate_rows (..Date_Range (..Name 'JoinDate') (..Name 'LeaveDate')) . should_equal
+                    Table.new [["Text Values", ["A", "C", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 5, Date.new 2025 1 5]], ["Generated Row", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 4]]]
+            group_builder.specify "Works with a Date columns and expression" <|
+                t2 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 2, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 2, Date.new 2025 1 5]]]
+                t2.generate_rows (..Date_Range (..Name 'JoinDate') (expr '[LeaveDate]')) . should_equal
+                    Table.new [["Text Values", ["A", "C", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 5, Date.new 2025 1 5]], ["Generated Row", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 4]]]
+            group_builder.specify "Can step 2 periods" <|
+                t2 = build_sorted_table [["Text Values", ["A", "B"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 1]], ["LeaveDate", [Date.new 2027 1 1, Date.new 2029 1 1]]]
+                t2.generate_rows (..Date_Range (..Name 'JoinDate') (..Name 'LeaveDate') step=(Period.new years=2)) . should_equal
+                    Table.new [["Text Values", ["A", "B", "B"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 1, Date.new 2025 1 1]], ["LeaveDate", [Date.new 2027 1 1, Date.new 2029 1 1, Date.new 2029 1 1]], ["Generated Row", [Date.new 2025 1 1, Date.new 2025 1 1, Date.new 2027 1 1]]]
+            
+
+        suite_builder.group prefix+"Table.generate_rows name collisions" group_builder->
+            t1 = build_sorted_table [["Text Values", ["A"]]]
+            group_builder.specify "Running twice should rename existing column upon a name clash and warns" <|
+                r1 = t1.generate_rows (..Integer_Range 0 2) . generate_rows (..Integer_Range 3 5)
+                r1.should_equal 
+                    Table.new [["Text Values", ["A", "A", "A", "A"]], ["Generated Row 1", [0, 0, 1, 1]], ["Generated Row", [3, 4, 3, 4]]]
+                Problems.expect_warning Duplicate_Output_Column_Names r1
+            group_builder.specify "Using an existing name should rename existing column and warn" <|
+                r1 = t1.generate_rows (..Integer_Range 0 2) as="Text Values"
+                r1.should_equal 
+                    Table.new [["Text Values 1", ["A", "A"]], ["Text Values", [0, 1]]]
+                Problems.expect_warning Duplicate_Output_Column_Names r1
+            group_builder.specify "Running twice should rename existing column upon a name clash and error" <|
+                r2 = t1.generate_rows (..Integer_Range 0 2) . generate_rows (..Integer_Range 3 5) on_problems=..Report_Error
+                r2.should_fail_with Duplicate_Output_Column_Names
+
+        suite_builder.group prefix+"Table.generate_rows missing value error cases" group_builder->
+            t1 = build_sorted_table [["Text Values", ["A"]]]
+            group_builder.specify "Default state gives missing value error" <|
+                r = t1.generate_rows
+                r.should_fail_with Missing_Argument
+            group_builder.specify "Integer_Range Missing from gives missing value error" <|
+                r = t1.generate_rows ..Integer_Range
+                r.should_fail_with Missing_Argument
+            group_builder.specify "Integer_Range Missing to gives missing value error" <|
+                r = t1.generate_rows (..Integer_Range 0)
+                r.should_fail_with Missing_Argument
+            group_builder.specify "Date_Range Missing from gives missing value error" <|
+                r = t1.generate_rows ..Date_Range
+                r.should_fail_with Missing_Argument
+            group_builder.specify "Date_Range Missing to gives missing value error" <|
+                r = t1.generate_rows (..Date_Range (Date.new 2025 1 1))
+                r.should_fail_with Missing_Argument
+            group_builder.specify "Missing column gives No_Such_Column error" <|
+                r = t1.generate_rows (..Integer_Range 0 (..Name 'NumRows'))
+                r.should_fail_with (No_Such_Column.Error 'NumRows')
+
+        suite_builder.group prefix+"Table.generate_rows bad types error cases" group_builder->
+            t1 = build_sorted_table [["Text Values", ["A"]]]
+            group_builder.specify "Using a text column as Integer_Range from value errors" <|
+                r = t1.generate_rows (..Integer_Range (..Name 'Text Values') 4)
+                r.should_fail_with Illegal_Argument
+
+        ## Unsupported
+
+        ## check imports

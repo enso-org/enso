@@ -37,6 +37,7 @@ function validateSpans(obj: LazyObject, initialPos?: number): number {
     } else {
       value.visitChildren(visitor)
     }
+    return false
   }
   visitor(obj)
   return state.pos

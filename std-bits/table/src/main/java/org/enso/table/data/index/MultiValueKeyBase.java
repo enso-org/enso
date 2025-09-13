@@ -3,14 +3,14 @@ package org.enso.table.data.index;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 
 /** The base class for keys used for sorting/grouping rows by a set of columns. */
 public abstract class MultiValueKeyBase {
-  protected final Storage<?>[] storages;
-  protected final int rowIndex;
+  protected final ColumnStorage<?>[] storages;
+  protected final long rowIndex;
   protected boolean hasFloatValues = false;
   protected boolean floatsComputed = false;
 
@@ -18,7 +18,7 @@ public abstract class MultiValueKeyBase {
    * Constructs a key based on an array of column storages and the index of the row the key is
    * associated with.
    */
-  public MultiValueKeyBase(Storage<?>[] storage, int rowIndex) {
+  public MultiValueKeyBase(ColumnStorage<?>[] storage, long rowIndex) {
     this.storages = storage;
     this.rowIndex = rowIndex;
   }
@@ -36,7 +36,7 @@ public abstract class MultiValueKeyBase {
     return result;
   }
 
-  public int getRowIndex() {
+  public long getRowIndex() {
     return rowIndex;
   }
 
@@ -49,7 +49,7 @@ public abstract class MultiValueKeyBase {
 
   /** Checks if all cells in the current row are missing. */
   public boolean areAllNull() {
-    for (Storage<?> storage : storages) {
+    for (ColumnStorage<?> storage : storages) {
       if (!storage.isNothing(rowIndex)) {
         return false;
       }
@@ -59,7 +59,7 @@ public abstract class MultiValueKeyBase {
 
   /** Checks if any cells in the current row are missing. */
   public boolean hasAnyNulls() {
-    for (Storage<?> storage : storages) {
+    for (ColumnStorage<?> storage : storages) {
       if (storage.isNothing(rowIndex)) {
         return true;
       }
@@ -89,8 +89,7 @@ public abstract class MultiValueKeyBase {
       ColumnAggregatedProblemAggregator problemAggregator, ColumnNameMapping columnNameMapping) {
     if (hasFloatValues()) {
       for (int columnIx = 0; columnIx < storages.length; columnIx++) {
-        Object value = this.get(columnIx);
-        if (NumericConverter.isFloatLike(value)) {
+        if (NumericConverter.isFloatLike(this.get(columnIx))) {
           problemAggregator.reportColumnAggregatedProblem(
               new FloatingPointGrouping(columnNameMapping.getColumnName(columnIx), rowIndex));
         }
@@ -100,8 +99,7 @@ public abstract class MultiValueKeyBase {
 
   private boolean findFloats() {
     for (int i = 0; i < storages.length; i++) {
-      Object value = this.get(i);
-      if (NumericConverter.isFloatLike(value)) {
+      if (NumericConverter.isFloatLike(this.get(i))) {
         return true;
       }
     }

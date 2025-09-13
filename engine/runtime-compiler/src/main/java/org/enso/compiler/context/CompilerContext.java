@@ -2,7 +2,9 @@ package org.enso.compiler.context;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -12,6 +14,7 @@ import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.data.IdMap;
@@ -30,8 +33,6 @@ public interface CompilerContext extends CompilerStub {
   boolean isIrCachingDisabled();
 
   boolean isPrivateCheckDisabled();
-
-  boolean isUseGlobalCacheLocations();
 
   boolean isInteractiveMode();
 
@@ -66,9 +67,7 @@ public interface CompilerContext extends CompilerStub {
   // threads
   boolean isCreateThreadAllowed();
 
-  Thread createThread(Runnable r);
-
-  Thread createSystemThread(Runnable r);
+  ExecutorService newParsingPool();
 
   // Truffle related
 
@@ -84,15 +83,9 @@ public interface CompilerContext extends CompilerStub {
   void initializeBuiltinsIr(
       Compiler compiler, boolean irCachingEnabled, FreshNameSupply freshNameSupply, Passes passes);
 
-  QualifiedName getModuleName(Module module);
-
-  CharSequence getCharacters(Module module) throws IOException;
-
   IdMap getIdMap(Module module);
 
   void updateModule(Module module, Consumer<Updater> callback);
-
-  boolean isSynthetic(Module module);
 
   boolean isInteractive(Module module);
 
@@ -100,17 +93,11 @@ public interface CompilerContext extends CompilerStub {
 
   boolean wasLoadedFromCache(Module module);
 
-  org.enso.compiler.core.ir.Module getIr(Module module);
-
-  CompilationStage getCompilationStage(Module module);
-
-  Future<Boolean> serializeLibrary(
-      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
+  Future<Boolean> serializeLibrary(Compiler compiler, LibraryName libraryName);
 
   scala.Option<Object> deserializeSuggestions(LibraryName libraryName) throws InterruptedException;
 
-  Future<Boolean> serializeModule(
-      Compiler compiler, Module module, boolean useGlobalCacheLocations, boolean usePool);
+  Future<Boolean> serializeModule(Compiler compiler, Module module, boolean usePool);
 
   boolean deserializeModule(Compiler compiler, Module module);
 
@@ -138,7 +125,11 @@ public interface CompilerContext extends CompilerStub {
 
     public abstract CharSequence getCharacters() throws IOException;
 
+    public abstract int findLine(IdentifiedLocation loc);
+
     public abstract String getPath();
+
+    public abstract URI getUri();
 
     public abstract Package<? extends Object> getPackage();
 

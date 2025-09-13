@@ -1,40 +1,17 @@
 /** @file Restore an account that has been deleted. */
-import * as React from 'react'
-
-import * as reactQuery from '@tanstack/react-query'
-
 import UntrashIcon from '#/assets/untrash.svg'
-
-import { useAuth } from '#/providers/AuthProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import { LOGIN_PATH } from '#/appUtils'
 import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import SvgMask from '#/components/SvgMask'
-import { useSessionAPI } from '#/providers/SessionProvider'
-import { useNavigate } from 'react-router'
-
-// ======================
-// === RestoreAccount ===
-// ======================
+import { LOGIN_PATH } from '$/appUtils'
+import { useAuth, useRouter, useSession, useText } from '$/providers/react'
 
 /** Restore an account that has been deleted. */
 export default function RestoreAccount() {
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const { restoreUser } = useAuth()
-  const { signOut } = useSessionAPI()
-  const navigate = useNavigate()
-
-  const signOutMutation = reactQuery.useMutation({
-    mutationFn: signOut,
-    onSuccess: () => {
-      navigate(LOGIN_PATH)
-    },
-  })
-  const restoreAccountMutation = reactQuery.useMutation({
-    mutationFn: () => restoreUser(),
-  })
+  const { signOut } = useSession()
+  const { router } = useRouter()
 
   return (
     <div className="flex h-full w-full overflow-auto">
@@ -53,28 +30,26 @@ export default function RestoreAccount() {
         </p>
 
         <div className="mt-8 flex items-center gap-8">
-          <ariaComponents.Button
+          <Button
             onPress={async () => {
-              await restoreAccountMutation.mutateAsync()
+              await restoreUser()
             }}
-            loading={restoreAccountMutation.isPending}
-            isDisabled={restoreAccountMutation.isPending}
             variant="icon"
-            className="flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 px-4 py-auth-input-y text-white transition-all duration-auth selectable enabled:active"
+            className="flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-auth-input-y text-white transition-all duration-auth selectable enabled:active"
           >
             {getText('restoreAccountSubmit')}
-          </ariaComponents.Button>
+          </Button>
 
-          <ariaComponents.Button
+          <Button
             variant="icon"
-            loading={signOutMutation.isPending}
-            isDisabled={signOutMutation.isPending}
             onPress={async () => {
-              await signOutMutation.mutateAsync()
+              await signOut().then(() => {
+                void router.push(LOGIN_PATH)
+              })
             }}
           >
             {getText('signOutShortcut')}
-          </ariaComponents.Button>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,16 +1,17 @@
 /** @file A React hook to prevent navigation. */
-import { useEffect } from 'react'
-
-import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Text } from '#/components/Text'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
+import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { useText } from '$/providers/react'
 import { isOnElectron } from 'enso-common/src/detect'
+import { useEffect } from 'react'
 
 let shouldClose = false
 
 /** Options for {@link usePreventNavigation}. */
-export interface PreventNavigationOptions {
+interface PreventNavigationOptions {
   readonly isEnabled?: boolean
   readonly message: string
 }
@@ -18,7 +19,6 @@ export interface PreventNavigationOptions {
 /** Prevent navigating away from a page. */
 export function usePreventNavigation(options: PreventNavigationOptions) {
   const { isEnabled = true, message } = options
-  const { setModal } = useSetModal()
   const messageRef = useSyncRef(message)
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function usePreventNavigation(options: PreventNavigationOptions) {
         window.removeEventListener('beforeunload', onBeforeUnload)
       }
     }
-  }, [isEnabled, messageRef, setModal])
+  }, [isEnabled, messageRef])
 }
 
 /** Props for a {@link ConfirmCloseModal}. */
@@ -49,15 +49,15 @@ interface ConfirmCloseModalProps {
 }
 
 /** A modal to confirm closing the window. */
+// eslint-disable-next-line react-refresh/only-export-components
 function ConfirmCloseModal(props: ConfirmCloseModalProps) {
   const { message } = props
   const { getText } = useText()
-  const { unsetModal } = useSetModal()
 
   return (
     <Dialog title={getText('closeWindowDialogTitle')} modalProps={{ defaultOpen: true }}>
       <Text>{message}</Text>
-      <ButtonGroup>
+      <Button.Group>
         <Button
           variant="delete"
           onPress={() => {
@@ -70,7 +70,7 @@ function ConfirmCloseModal(props: ConfirmCloseModalProps) {
         <Button variant="outline" onPress={unsetModal}>
           {getText('cancel')}
         </Button>
-      </ButtonGroup>
+      </Button.Group>
     </Dialog>
   )
 }

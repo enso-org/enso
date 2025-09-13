@@ -5,12 +5,14 @@ import { Ast } from '@/util/ast'
 import type { Identifier } from '@/util/ast/abstract'
 import { isIdentifier, moduleMethodNames } from '@/util/ast/abstract'
 import { Err, Ok, unwrap, type Result } from '@/util/data/result'
+import { Vec2 } from '@/util/data/vec2'
 import { tryIdentifier } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
+import { frontmatter } from '../ComponentHelp/metadata'
 
 // === Types ===
 
-/** Information about code transformations needed to collapse the nodes. */
+/** Information about code transformations needed to group nodes to User Defined Component. */
 interface CollapsedInfo {
   extracted: ExtractedInfo
   refactored: RefactoredInfo
@@ -109,7 +111,8 @@ export function prepareCollapsedInfo(
 
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code()
   assert(pattern != null && isIdentifier(pattern))
-  const inputs = Array.from(inputSet)
+
+  const inputs = sortInputs(graphDb, Array.from(inputSet))
 
   assert(selected.has(output.node))
   return Ok({
@@ -145,7 +148,8 @@ function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: Identifier): Iden
 
 // We support working inside `Main` module of the project at the moment.
 const MODULE_NAME = 'Main' as Identifier
-const COLLAPSED_FUNCTION_NAME = 'collapsed' as Identifier
+/** Default name for the collapsed component */
+export const COLLAPSED_FUNCTION_NAME = 'user_defined_component' as Identifier
 
 interface CollapsingResult {
   /** The ID of the node refactored to the collapsed function call. */
@@ -226,9 +230,29 @@ export function performCollapseImpl(
   collapsedBody.push(outputAst)
   const collapsedFunction = Ast.FunctionDef.new(collapsedName, info.args, collapsedBody, {
     edit,
-    documentation: 'ICON group',
+    // TODO[13660]: remove additional 'Documentation can be added here.' string.
+    // It is required because empty documentation with default frontmatter breaks editing until
+    // we implemented a WYSIWYG editor for the frontmatter.
+    documentation: frontmatter({ icon: 'group' }) + 'Documentation can be added here.',
   })
   topLevel.insert(currentMethodLine, collapsedFunction, undefined)
 
   return { collapsedCallRoot: collapsedCall.id, outputAstId: outputAst.id, collapsedNodeIds }
+}
+
+/** Sort identifiers by positions of their defining nodes in the graph. */
+function sortInputs(graphDb: GraphDb, inputs: Identifier[]): Identifier[] {
+  const definingNodePos = (input: Identifier) => {
+    const nodeId = graphDb.getIdentDefiningNode(input)
+    if (nodeId == null) return Vec2.Zero
+    const node = graphDb.nodeIdToNode.get(nodeId)
+    if (node == null) return Vec2.Zero
+    return node.position
+  }
+  return inputs.sort((a, b) => {
+    const aPos = definingNodePos(a)
+    const bPos = definingNodePos(b)
+    if (aPos.x === bPos.x) return aPos.y - bPos.y
+    return aPos.x - bPos.x
+  })
 }

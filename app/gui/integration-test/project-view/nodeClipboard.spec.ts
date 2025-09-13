@@ -3,7 +3,7 @@ import * as actions from './actions'
 import { expect } from './customExpect'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
-import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
+import { connectedEdgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 
 /**
  * Every edge consists of multiple parts.
@@ -34,10 +34,7 @@ test('Copy component with context menu', async ({ page }) => {
   const nodeToCopy = locate.graphNodeByBinding(page, 'final')
   await nodeToCopy.click({ button: 'right' })
   await expect(nodeToCopy).toBeSelected()
-  await page
-    .locator('.ComponentContextMenu')
-    .getByRole('button', { name: 'Copy Component' })
-    .click()
+  await page.locator('.ActionMenu').getByRole('button', { name: 'Copy Component' }).click()
   await page.keyboard.press(`${CONTROL_KEY}+V`)
   await expect(nodeToCopy).not.toBeSelected()
   await expect(locate.selectedNodes(page)).toHaveCount(1)
@@ -96,8 +93,8 @@ async function testCopyMultiple(
   // Check that two copied nodes are isolated, i.e. connected to each other, not original nodes.
   await expect(locate.graphNodeByBinding(page, 'prod1')).toBeVisible()
   await expect(locate.graphNodeByBinding(page, 'final1')).toBeVisible()
-  await expect(await edgesFromNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
-  await expect(await edgesFromNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
 
   await expect(await edgesToNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
   await expect(await edgesToNodeWithBinding(page, 'final')).toHaveCount(1 * EDGE_PARTS)
@@ -123,7 +120,7 @@ test('Copy multiple components with context menu', async ({ page }) => {
     await expect(node2).toBeSelected()
     await node1.click({ button: 'right' })
     await page
-      .locator('.ComponentContextMenu')
+      .locator('.ActionMenu')
       .getByRole('button', { name: 'Copy Selected Components' })
       .click()
   })

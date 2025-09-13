@@ -8,8 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.polyglot.Polyglot_Utils;
-import org.enso.table.data.column.storage.NullStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -22,6 +21,7 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
 /**
@@ -50,14 +50,13 @@ public final class InferredBuilder implements Builder {
   }
 
   @Override
-  public void append(Object o) {
+  public Builder append(Object o) {
     // ToDo: This a workaround for an issue with polyglot layer. #5590 is related.
     o = Polyglot_Utils.convertPolyglotValue(o);
 
     if (currentBuilder == null) {
       if (o == null) {
-        appendNulls(1);
-        return;
+        return appendNulls(1);
       } else {
         initBuilderFor(o);
       }
@@ -72,22 +71,24 @@ public final class InferredBuilder implements Builder {
       }
     }
     currentSize++;
+    return this;
   }
 
   @Override
-  public void appendNulls(int count) {
+  public InferredBuilder appendNulls(int count) {
     if (currentBuilder != null) {
       currentBuilder.appendNulls(count);
     }
     currentSize += count;
+    return this;
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof NullType) {
-      appendNulls(storage.size());
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
-      for (int i = 0; i < storage.size(); i++) {
+      for (long i = 0; i < storage.getSize(); i++) {
         append(storage.getItemBoxed(i));
       }
     }
@@ -104,23 +105,23 @@ public final class InferredBuilder implements Builder {
     } else if (NumericConverter.isFloatLike(o)) {
       newBuilder = new InferredDoubleBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof String) {
-      newBuilder = Builder.getForType(TextType.VARIABLE_LENGTH, initialCapacity, problemAggregator);
+      newBuilder = Builder.getForText(TextType.VARIABLE_LENGTH, initialCapacity);
     } else if (o instanceof BigInteger) {
-      newBuilder = Builder.getForType(BigIntegerType.INSTANCE, initialCapacity, problemAggregator);
+      newBuilder = Builder.getForBigInteger(initialCapacity, problemAggregator);
     } else if (o instanceof BigDecimal) {
-      newBuilder = Builder.getForType(BigDecimalType.INSTANCE, initialCapacity, problemAggregator);
+      newBuilder = Builder.getForBigDecimal(initialCapacity);
     } else if (o instanceof LocalDate) {
       newBuilder =
           allowDateToDateTimeConversion
               ? new DateBuilder(initialCapacity, true)
-              : Builder.getForType(DateType.INSTANCE, initialCapacity, problemAggregator);
+              : Builder.getForDate(initialCapacity);
     } else if (o instanceof ZonedDateTime) {
       newBuilder =
           allowDateToDateTimeConversion
               ? new DateTimeBuilder(initialCapacity, true)
-              : Builder.getForType(DateTimeType.INSTANCE, initialCapacity, problemAggregator);
+              : Builder.getForDateTime(initialCapacity);
     } else if (o instanceof LocalTime) {
-      newBuilder = Builder.getForType(TimeOfDayType.INSTANCE, initialCapacity, problemAggregator);
+      newBuilder = Builder.getForTime(initialCapacity);
     } else {
       newBuilder = Builder.getForType(AnyObjectType.INSTANCE, initialCapacity, problemAggregator);
     }
@@ -134,7 +135,7 @@ public final class InferredBuilder implements Builder {
     }
   }
 
-  private record RetypeInfo(Class<?> clazz, StorageType type) {}
+  private record RetypeInfo(Class<?> clazz, StorageType<?> type) {}
 
   private static final List<RetypeInfo> retypePairs =
       List.of(
@@ -184,21 +185,23 @@ public final class InferredBuilder implements Builder {
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return currentSize;
   }
 
   @Override
-  public Storage<?> seal() {
+  public ColumnStorage<?> seal() {
     if (currentBuilder == null) {
       // If all values that the builder got were nulls, we can return a special null storage.
-      return new NullStorage(currentSize);
+      return Builder.getForType(NullType.INSTANCE, currentSize, BlackholeProblemAggregator.INSTANCE)
+          .appendNulls(currentSize)
+          .seal();
     }
     return currentBuilder.seal();
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<?> getType() {
     // The type of InferredBuilder can change over time, so we do not report any stable type here.
     return null;
   }

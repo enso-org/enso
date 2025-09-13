@@ -36,6 +36,9 @@ pub async fn get_and_spawn_httpbin(
     let url_string = format!("http://localhost:{port}");
     let url = Url::parse(&url_string)?;
     env::ENSO_HTTP_TEST_HTTPBIN_URL.set(&url)?;
+
+    wait_for(&format!("localhost:{port}"), 180)?;
+
     Ok(Spawned { url, process })
 }
 
@@ -51,6 +54,25 @@ pub async fn get_and_spawn_httpbin_on_free_port(
     sbt: &crate::engine::sbt::Context,
 ) -> Result<Spawned> {
     get_and_spawn_httpbin(sbt, ide_ci::get_free_port()?).await
+}
+
+fn wait_for(addr: &str, timeout_seconds: u32) -> Result {
+    let mut waiting_seconds: u32 = 0;
+    loop {
+        match std::net::TcpStream::connect(addr) {
+            Ok(_stream) => {
+                break;
+            }
+            Err(_) => {
+                waiting_seconds += 1;
+                std::thread::sleep(std::time::Duration::from_secs(1));
+            }
+        }
+        if waiting_seconds > timeout_seconds {
+            return Err(anyhow!("Service {} didn't start in {} seconds.", addr, timeout_seconds));
+        }
+    }
+    Ok(())
 }
 
 

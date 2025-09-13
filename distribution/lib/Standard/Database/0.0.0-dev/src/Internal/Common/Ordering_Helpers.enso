@@ -1,0 +1,26 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import Standard.Table.Internal.Table_Helpers
+from Standard.Table import Table
+
+import project.DB_Table.DB_Table
+
+## ---
+   private: true
+   ---
+   Throws an error if the table does not have an explicit or implicit ordering.
+   Arguments
+   - table: The table that may or may not have an ordering
+   - operation_name: The name of the operation that requries an ordering, for the
+     error message.
+   - ordering: (optional) a resolved ordering, if one is already available. A
+     resolved ordering might include an explicit `order_by` that was supplied to
+     the operation. If no ordering has already been computed, this method will
+     compute one with an empty explicit `order_by`.
+require_ordering table:DB_Table operation_name:Text ~action (ordering:Vector|Nothing=Nothing) =
+    ordering_resolved = if ordering.is_nothing.not then ordering else
+        Table_Helpers.resolve_order_by (table:Table).columns [] ..Report_Warning
+    has_ordering = ordering_resolved.is_empty.not || table.default_ordering.is_nothing.not
+    if has_ordering then action else
+        Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `"+operation_name+"` requires an ordering in database.")

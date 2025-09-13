@@ -1,27 +1,22 @@
 /** @file Catches errors in child components. */
 import Offline from '#/assets/offline_filled.svg'
-import * as React from 'react'
-
-import * as sentry from '@sentry/react'
-import * as reactQuery from '@tanstack/react-query'
-import * as errorBoundary from 'react-error-boundary'
-
-import * as detect from 'enso-common/src/detect'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import * as result from '#/components/Result'
-
+import { Alert } from '#/components/Alert'
+import { Button, ButtonGroup } from '#/components/Button'
+import { Icon } from '#/components/Icon'
+import { Result, type ResultProps } from '#/components/Result'
+import { Separator } from '#/components/Separator'
+import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
+import type { SvgUseIcon } from '#/components/types'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as errorUtils from '#/utilities/error'
-import { OfflineError } from '#/utilities/HttpClient'
+import { useText } from '$/providers/react'
+import * as sentry from '@sentry/vue'
+import * as reactQuery from '@tanstack/react-query'
+import * as detect from 'enso-common/src/detect'
+import * as React from 'react'
 import type { FallbackProps } from 'react-error-boundary'
-import SvgMask from './SvgMask'
-
-// =====================
-// === ErrorBoundary ===
-// =====================
+import * as errorBoundary from 'react-error-boundary'
 
 /** Arguments for the {@link ErrorBoundaryProps.onBeforeFallbackShown} callback. */
 export interface OnBeforeFallbackShownArgs {
@@ -107,7 +102,7 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
 
 /** Props for a {@link ErrorDisplay}. */
 export interface ErrorDisplayProps extends errorBoundary.FallbackProps {
-  readonly status?: result.ResultProps['status']
+  readonly status?: ResultProps['status']
   readonly onBeforeFallbackShown?: (args: OnBeforeFallbackShownArgs) => React.ReactNode | undefined
   readonly resetQueries?: () => void
   readonly title?: string | null | undefined
@@ -117,7 +112,7 @@ export interface ErrorDisplayProps extends errorBoundary.FallbackProps {
 
 /** Default fallback component to show when there is an error. */
 export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   const {
     error,
@@ -129,7 +124,7 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
     resetQueries = () => {},
   } = props
 
-  const isOfflineError = error instanceof OfflineError
+  const isOfflineError = error instanceof errorUtils.OfflineError
 
   const message = errorUtils.getMessageOrToString(error)
   const stack = errorUtils.tryGetStack(error)
@@ -148,57 +143,83 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
     status ?? (isOfflineError ? <SvgMask src={Offline} className="aspect-square w-6" /> : 'error')
 
   const defaultRender = (
-    <result.Result
+    <Result
       className="h-full"
       status={finalStatus}
       title={finalTitle}
       subtitle={finalSubtitle}
       testId="error-display"
     >
-      <ariaComponents.ButtonGroup align="center">
-        <ariaComponents.Button
-          variant="submit"
-          size="small"
-          rounded="full"
-          className="w-24"
-          onPress={onReset}
-        >
+      <ButtonGroup align="center">
+        <Button variant="submit" size="small" rounded="full" className="w-24" onPress={onReset}>
           {getText('tryAgain')}
-        </ariaComponents.Button>
-      </ariaComponents.ButtonGroup>
+        </Button>
+      </ButtonGroup>
 
       {detect.IS_DEV_MODE && stack != null && (
         <div className="mt-6">
-          <ariaComponents.Separator className="my-2" />
+          <Separator className="my-2" />
 
-          <ariaComponents.Text color="primary" variant="h1" className="text-start">
+          <Text color="primary" variant="h1" className="text-start">
             {getText('developerInfo')}
-          </ariaComponents.Text>
+          </Text>
 
-          <ariaComponents.Text color="danger" variant="body">
+          <Text color="danger" variant="body">
             {getText('errorColon')}
             {message}
-          </ariaComponents.Text>
+          </Text>
 
-          <ariaComponents.Alert
+          <Alert
             className="mx-auto mt-2 max-h-[80vh] max-w-screen-lg overflow-auto"
             variant="neutral"
           >
-            <ariaComponents.Text
+            <Text
               elementType="pre"
               className="whitespace-pre-wrap text-left"
               color="primary"
               variant="body"
             >
               {stack}
-            </ariaComponents.Text>
-          </ariaComponents.Alert>
+            </Text>
+          </Alert>
         </div>
       )}
-    </result.Result>
+    </Result>
   )
 
   return <>{render ?? defaultRender}</>
 }
 
+/** Props for an {@link InlineErrorDisplay}. */
+export interface InlineErrorDisplayProps extends Omit<ErrorDisplayProps, 'status' | 'subtitle'> {}
+
+/** Displays an error inline. */
+export function InlineErrorDisplay(props: InlineErrorDisplayProps) {
+  const { error, resetErrorBoundary, onBeforeFallbackShown, title, resetQueries = () => {} } = props
+
+  const { getText } = useText()
+
+  const render = onBeforeFallbackShown?.({ error, resetErrorBoundary, resetQueries })
+
+  const onReset = useEventCallback(() => {
+    resetErrorBoundary()
+  })
+
+  const finalTitle = title ?? getText('somethingWentWrong')
+  const finalIcon: SvgUseIcon = 'error'
+
+  const defaultRender = (
+    <div className="flex items-center gap-1">
+      <Icon icon={finalIcon} />
+      <Text>{finalTitle}</Text>
+      <Button variant="outline" size="xsmall" onPress={onReset} className="ml-3">
+        {getText('tryAgain')}
+      </Button>
+    </div>
+  )
+
+  return <>{render ?? defaultRender}</>
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
 export { useErrorBoundary, withErrorBoundary } from 'react-error-boundary'

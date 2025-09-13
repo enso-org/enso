@@ -5,20 +5,30 @@ import Standard.Base.Runtime.Ref.Ref
 import project.Internal.Vector_Builder.Vector_Builder
 from project.Errors import Duplicate_Output_Column_Names, Invalid_Aggregate_Column, Invalid_Column_Names, Missing_Input_Columns, No_Output_Columns, Truncated_Column_Names
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Problem_Builder
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value types_to_always_throw oob_indices missing_input_columns missing_input_columns_location other
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     report_oob_indices self indices =
         append_to_ref self.oob_indices indices
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     report_missing_input_columns self columns =
         append_to_ref self.missing_input_columns columns
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     report_unique_name_strategy self unique_name_strategy =
         if unique_name_strategy.invalid_names.not_empty then
             self.report_other_warning (Invalid_Column_Names.Error unique_name_strategy.invalid_names)
@@ -28,11 +38,15 @@ type Problem_Builder
         if truncated_map.not_empty then
             self.report_other_warning (Truncated_Column_Names.Warning truncated_map)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     report_other_warning self warning =
         self.other.append warning
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns a vector containing all reported problems, aggregated.
     build_problemset : Vector
     build_problemset self =
@@ -43,7 +57,9 @@ type Problem_Builder
                 problems.append (Missing_Input_Columns.Error missing_criteria where=self.missing_input_columns_location)
             self.other.to_vector.each problems.append
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Attaches gathered warnings to the result.
        Any errors from the `result` take precedence over the ones owned by this
        builder.
@@ -54,7 +70,9 @@ type Problem_Builder
                 problems ->
                     problem_behavior.attach_problems_after result problems
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Attaches gathered warnings to the result of the provided computation.
        If in `Report_Error` mode and there are any problems gathered, the first
        one will be returned as error without even running the computation.
@@ -64,7 +82,9 @@ type Problem_Builder
             problems ->
                 problem_behavior.attach_problems_before problems computation
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Returns the generated problem set if no errors force throwing or throws
        the first error that is meant to be thrown regardless of problem behavior.
     get_problemset_throwing_distinguished_errors : Vector
@@ -77,34 +97,40 @@ type Problem_Builder
             Nothing -> problems
             problem -> Error.throw problem
 
-    ## PRIVATE
-       Raises `No_Output_Columns` error, with cause set to the first problem
-       from this builder (if any were reported).
+    ## ---
+       private: true
+       ---
+       Raises `No_Output_Columns` error, with cause set to the first problem from
+       this builder (if any were reported).
     raise_no_output_columns_with_cause : Any ! No_Output_Columns
     raise_no_output_columns_with_cause self =
         first_problem = self.build_problemset.get 0 if_missing=Nothing
         Error.throw (No_Output_Columns.Error first_problem)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a new helper object for aggregating problems to report.
 
-       Arguments:
-       - types_to_always_throw: Problems matching these types will be raised as
-         an error by the `attach_` methods regardless of the `Problem_Behavior`
-         used. By default, an empty vector.
-       - error_on_missing_columns: If set to `True`, `Missing_Input_Columns` and
-         `Invalid_Aggregate_Column` will be raised as errors by the `attach_`
-         methods regardless of the `Problem_Behavior` used. Defaults to `False`.
-         Setting this to `True` is essentially a shorthand for adding these
-         problem types to `types_to_always_throw`.
-       - missing_input_columns_location: The location to add to the missing
-         input column error to make it more informative. Defaults to `Nothing`.
+       ## Arguments
+        - `types_to_always_throw`: Problems matching these types will be raised
+          as an error by the `attach_` methods regardless of the
+          `Problem_Behavior` used. By default, an empty vector.
+        - `error_on_missing_columns`: If set to `True`, `Missing_Input_Columns`
+          and `Invalid_Aggregate_Column` will be raised as errors by the
+          `attach_` methods regardless of the `Problem_Behavior` used. Defaults
+          to `False`. Setting this to `True` is essentially a shorthand for
+          adding these problem types to `types_to_always_throw`.
+        - `missing_input_columns_location`: The location to add to the missing
+          input column error to make it more informative. Defaults to `Nothing`.
     new : Vector -> Boolean -> Text | Nothing -> Problem_Builder
     new types_to_always_throw=[] error_on_missing_columns=False missing_input_columns_location=Nothing =
         additional_types_to_throw = if error_on_missing_columns then [Missing_Input_Columns, Invalid_Aggregate_Column] else []
         Problem_Builder.Value types_to_always_throw+additional_types_to_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) missing_input_columns_location other=Builder.new
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.
 append_to_ref : Ref Vector_Builder -> Vector -> Nothing
 append_to_ref ref vector =

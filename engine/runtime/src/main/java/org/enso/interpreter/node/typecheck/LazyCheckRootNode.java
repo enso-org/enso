@@ -5,6 +5,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
@@ -33,12 +34,12 @@ final class LazyCheckRootNode extends RootNode {
 
   @Override
   public Object execute(VirtualFrame frame) {
-    var state = Function.ArgumentsHelper.getState(frame.getArguments());
+    var state = EnsoContext.get(this).currentState();
     var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
     assert args.length == 1;
     assert args[0] instanceof Function fn && fn.isThunk();
     var raw = evalThunk.executeThunk(frame, args[0], state, BaseNode.TailStatus.NOT_TAIL);
-    var result = check.handleCheckOrConversion(frame, raw, null);
+    var result = check.handleCheckOrConversion(frame, raw);
     return result;
   }
 }

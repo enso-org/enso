@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -17,6 +18,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.library.ExportMessage.Ignore;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.math.BigInteger;
@@ -29,16 +31,19 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
+import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoMultiType.AllTypesWith;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.Pair;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
+@ExportLibrary(value = StructsLibrary.class)
 public final class EnsoMultiValue extends EnsoObject {
   private final EnsoMultiType dispatch;
   private final EnsoMultiType extra;
@@ -53,6 +58,18 @@ public final class EnsoMultiValue extends EnsoObject {
     this.dispatch = dispatch;
     this.extra = extra;
     this.values = values;
+  }
+
+  final Object firstDispatchValue() {
+    return values[firstDispatch];
+  }
+
+  public Type[] getVisibleTypes() {
+    return dispatch.getTypes();
+  }
+
+  public Type[] getExtraTypes() {
+    return extra.getTypes();
   }
 
   /** Creates new instance of EnsoMultiValue from provided information. */
@@ -96,8 +113,54 @@ public final class EnsoMultiValue extends EnsoObject {
       var dt = executeTypes(types, 0, dispatchTypes);
       var et = executeTypes(types, dispatchTypes, types.length);
       assert !dt.hasIntersectionWith(et)
-          : "Dispatch (" + dt + " and extra " + et + " should be disjoin!";
+          : "Dispatch (" + dt + ") and extra (" + et + ") should be disjoin!";
       return new EnsoMultiValue(dt, et, values, firstDispatch);
+    }
+
+    /**
+     * Recreates new multi value with different dispatch types.
+     *
+     * @param original original multi value to extract information from
+     * @param dispatchTypes new dispatch types - all of them must already be present in the {@code
+     *     dispatch} or {@code extra} types of the provided multi value
+     * @param allowThru allow other dispatch types to get thru
+     * @return
+     */
+    @NeverDefault
+    @TruffleBoundary
+    public final EnsoMultiValue renewMulti(
+        EnsoMultiValue original, Type[] dispatchTypes, boolean allowThru, boolean allTypesThru) {
+      var allTypes = original.allTypes(true, AllTypesWith.getUncached());
+      var allValues = original.values.clone();
+      var extraCount = 0;
+      var dispatchTypesCount = original.dispatch.typesLength();
+      FOUND:
+      for (var searchFor = 0; searchFor < dispatchTypes.length; searchFor++) {
+        for (var i = 0; i < allTypes.length; i++) {
+          if (dispatchTypes[searchFor] == allTypes[i]) {
+            swap(allTypes, extraCount, i);
+            swap(allValues, extraCount, i);
+            extraCount++;
+            if (i >= dispatchTypesCount) {
+              // new type, not previously dispatchable, has been made dispatchable
+              dispatchTypesCount++;
+            }
+            continue FOUND;
+          }
+        }
+        assert false
+            : "Cannot find " + dispatchTypes[searchFor] + " among " + Arrays.toString(allTypes);
+      }
+      assert extraCount == dispatchTypes.length : "All types found";
+      assert dispatchTypesCount >= extraCount;
+      assert dispatchTypesCount <= allTypes.length;
+      var newDispatchTypesCount =
+          allowThru ? (allTypesThru ? allTypes.length : dispatchTypesCount) : extraCount;
+      var dt = executeTypes(allTypes, 0, newDispatchTypesCount);
+      var et = executeTypes(allTypes, newDispatchTypesCount, allTypes.length);
+      assert !dt.hasIntersectionWith(et)
+          : "Dispatch (" + dt + ") and extra (" + et + ") should be disjoin!";
+      return new EnsoMultiValue(dt, et, allValues, 0);
     }
 
     abstract EnsoMultiType executeTypes(Type[] types, int from, int to);
@@ -139,6 +202,12 @@ public final class EnsoMultiValue extends EnsoObject {
       }
       return true;
     }
+
+    private static void swap(Object[] arr, int i1, int i2) {
+      var tmp = arr[i1];
+      arr[i1] = arr[i2];
+      arr[i2] = tmp;
+    }
   }
 
   /**
@@ -177,11 +246,16 @@ public final class EnsoMultiValue extends EnsoObject {
     }
   }
 
-  @ExportMessage
+  @Ignore
   @TruffleBoundary
   @Override
   public final String toDisplayString(boolean ignore) {
-    return toString();
+    return toDisplayString(ignore, AnyToTextNode.getUncached()).toString();
+  }
+
+  @ExportMessage
+  final Object toDisplayString(boolean ignore, @Cached AnyToTextNode toTextNode) {
+    return toTextNode.execute(this);
   }
 
   private enum InteropType {
@@ -502,11 +576,43 @@ public final class EnsoMultiValue extends EnsoObject {
     throw UnknownIdentifierException.create(name);
   }
 
-  @TruffleBoundary
+  @ExportMessage
+  final boolean isStruct(@Shared("structs") @CachedLibrary(limit = "3") StructsLibrary delegate) {
+    // assumes the structure has been castTo with reorderOnly
+    // before method dispatch in InvokeMethodNode
+    return delegate.isStruct(values[firstDispatch]);
+  }
+
+  @ExportMessage
+  final Object getField(
+      int index, @Shared("structs") @CachedLibrary(limit = "3") StructsLibrary delegate) {
+    // assumes the structure has been castTo with reorderOnly
+    // before method dispatch in InvokeMethodNode
+    return delegate.getField(values[firstDispatch], index);
+  }
+
+  @ExportMessage
+  final boolean isFieldEvaluated(int index) {
+    return true;
+  }
+
+  @ExportMessage
+  final void setField(int index, Object value, @Bind Node here) {
+    var ctx = EnsoContext.get(here);
+    throw ctx.raiseAssertionPanic(here, "Field assignment isn't supported", null);
+  }
+
   @Override
   public String toString() {
-    var both = EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, extra, 0);
-    return Stream.of(both).map(t -> t.getName()).collect(Collectors.joining(" & "));
+    return toTypeDisplayText();
+  }
+
+  @TruffleBoundary
+  public final String toTypeDisplayText() {
+    var namesDispatch = Stream.of(dispatch.getTypes()).map(t -> t != null ? t.getName() : "[?]");
+    var namesExtra = Stream.of(extra.getTypes()).map(t -> t != null ? "~" + t.getName() : "[?]");
+    var both = Stream.concat(namesDispatch, namesExtra);
+    return both.collect(Collectors.joining(" & "));
   }
 
   /** Casts {@link EnsoMultiValue} to requested type effectively. */
@@ -592,17 +698,12 @@ public final class EnsoMultiValue extends EnsoObject {
    */
   public final Pair<Function, Type> resolveSymbol(
       MethodResolverNode node, UnresolvedSymbol symbol) {
-    var ctx = EnsoContext.get(node);
-    Pair<Function, Type> foundAnyMethod = null;
     for (var t : EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, null, 0)) {
       var fnAndType = node.execute(t, symbol);
       if (fnAndType != null) {
-        if (dispatch.typesLength() == 1 || fnAndType.getRight() != ctx.getBuiltins().any()) {
-          return Pair.create(fnAndType.getLeft(), t);
-        }
-        foundAnyMethod = fnAndType;
+        return fnAndType;
       }
     }
-    return foundAnyMethod;
+    return null;
   }
 }

@@ -9,13 +9,17 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/data/opt'
-import { Range } from '@/util/data/range'
 import { displayedIconOf } from '@/util/getIconName'
 import { type Icon } from '@/util/iconMetadata/iconName'
-import { type ProjectPath } from '@/util/projectPath'
+import { ProjectPath } from '@/util/projectPath'
+import { qnLastSegment } from '@/util/qualifiedName'
+import * as map from 'lib0/map'
+import { Range } from 'ydoc-shared/util/data/range'
 
 interface ComponentLabelInfo {
   label: string
+  /** Offset already applied to `matchedRanges`. */
+  appliedOffset?: number | undefined
   matchedAlias?: string | undefined
   matchedRanges?: Range[] | undefined
 }
@@ -27,9 +31,14 @@ interface ComponentLabel {
 
 /** A model of component suggestion displayed in the Component Browser. */
 export interface Component extends ComponentLabel {
-  suggestionId: SuggestionId
+  suggestionId?: SuggestionId
   icon: Icon
   group?: number | undefined
+  macroSuffix?: string | undefined
+}
+
+export interface SuggestedComponent extends Component {
+  rank: number
 }
 
 /** @returns the displayed label of given suggestion entry with information of highlighted ranges. */
@@ -49,20 +58,40 @@ export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): Compon
       matchedAlias: match.matchedAlias,
       matchedRanges: [
         ...(match.ownerNameRanges ?? []),
-        ...(match.nameRanges ?? []).map(
-          (range) => new Range(range.start + nameOffset, range.end + nameOffset),
-        ),
+        ...(match.nameRanges ?? []).map((range) => range.shift(nameOffset)),
       ],
     }
-  } else
-    return match.nameRanges ?
-        { label: entry.name, matchedAlias: match.matchedAlias, matchedRanges: match.nameRanges }
-      : { label: entry.name, matchedAlias: match.matchedAlias }
+  } else if (match.fromType != null) {
+    const label = displayTypeCasted(match.fromType, entry)
+    const appliedOffset = typeCastedNameRangesOffset(match.fromType)
+    const matchedRanges =
+      match.nameRanges != null ? match.nameRanges.map((range) => range.shift(appliedOffset)) : null
+    return matchedRanges != null ?
+        { label, appliedOffset, matchedAlias: match.matchedAlias, matchedRanges }
+      : { label, appliedOffset, matchedAlias: match.matchedAlias }
+  } else {
+    const label = entry.name
+    const matchedRanges = match.nameRanges
+    return matchedRanges != null ?
+        { label, matchedAlias: match.matchedAlias, matchedRanges }
+      : { label, matchedAlias: match.matchedAlias }
+  }
+}
+
+function displayTypeCasted(fromType: ProjectPath, entry: SuggestionEntry): string {
+  if (fromType.path == null) return entry.name
+  return `:${qnLastSegment(fromType.path)}.${entry.name}`
+}
+
+function typeCastedNameRangesOffset(fromType: ProjectPath): number {
+  if (fromType.path == null) return 0
+  // Length of the type name + 2 for `:` and `.`
+  return qnLastSegment(fromType.path).length + 2
 }
 
 function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
   const shift = labelInfo.label.length + 2
-  const shiftRange = (range: Range) => new Range(range.start + shift, range.end + shift)
+  const shiftRange = (range: Range) => range.shift(shift - (labelInfo.appliedOffset ?? 0))
   return !labelInfo.matchedAlias ?
       { label: labelInfo.label, matchedRanges: labelInfo.matchedRanges }
     : {
@@ -94,38 +123,65 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
   return a.id - b.id
 }
 
-interface ComponentInfo {
-  id: number
-  entry: SuggestionEntry
-  match: MatchResult
-}
-
 /** Create {@link Component} from information about suggestion and matching. */
-export function makeComponent({ id, entry, match }: ComponentInfo): Component {
+export function makeComponent({ id, entry, match }: MatchedSuggestion): Component {
+  const macroSuffix = (match.matchedAlias && entry.macros[match.matchedAlias]) || undefined
+
   return {
     ...formatLabel(labelOfEntry(entry, match)),
     suggestionId: id,
     icon: displayedIconOf(entry),
     group: entry.groupIndex,
+    macroSuffix,
   }
 }
 
-/** Create {@link Component} list from filtered suggestions. */
-export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
-  function* matchSuggestions() {
-    const additionalSelfTypes: ProjectPath[] = []
-    if (filtering.selfArg?.type === 'known') {
-      const entry = db.getEntryByProjectPath(filtering.selfArg.typename)
-      if (entry) additionalSelfTypes.push(...db.ancestors(entry))
-    }
+/**
+ * A component group identifier: an index in suggestion database's group array, or one
+ * of the special groups.
+ */
+export type GroupId = 'all' | 'suggestions' | number
 
+/** Create {@link Component} list for each displayed group from filtered suggestions. */
+export function makeComponentLists(
+  db: SuggestionDb,
+  filtering: Filtering,
+): Map<GroupId, ReadonlyArray<Component>> {
+  function* matchSuggestions() {
     for (const [id, entry] of db.entries()) {
-      const match = filtering.filter(entry, additionalSelfTypes)
+      if (!entry) continue
+      const match = filtering.filter(entry, db)
       if (isSome(match)) {
-        yield { id, entry, match }
+        const component = makeComponent({ id, entry, match })
+        yield { id, entry, match, component }
       }
     }
   }
   const matched = Array.from(matchSuggestions()).sort(compareSuggestions)
-  return Array.from(matched, (info) => makeComponent(info))
+  const groups = new Map<GroupId, Component[]>()
+  const suggested: SuggestedComponent[] = []
+  if (filtering.pattern == null) {
+    for (const { entry, component } of matched) {
+      if (entry.suggestedRank != null) {
+        suggested.push({ rank: entry.suggestedRank, ...component })
+      }
+    }
+  }
+  if (suggested.length > 0) {
+    suggested.sort((a, b) => a.rank - b.rank)
+    groups.set('suggestions', suggested)
+  } else {
+    groups.set(
+      'all',
+      Array.from(matched, ({ component }) => component),
+    )
+  }
+
+  for (const { entry, component } of matched) {
+    if (entry.groupIndex != null) {
+      map.setIfUndefined(groups, entry.groupIndex, (): Component[] => []).push(component)
+    }
+  }
+
+  return groups
 }

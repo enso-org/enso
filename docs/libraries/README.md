@@ -17,3 +17,5 @@ Documents in this section describe Enso's library ecosystem.
 - [**Sharing Libraries:**](./sharing.md) Information on how to share libraries.
 - [**Database IR:**](./database-ir.md) The backend-independent internal
   representation used for database queries.
+- [**JDBC:**](./generic-jdbc-driver.md) Accessing Databases Through JDBC
+  drivers.

@@ -94,15 +94,19 @@ public abstract class MethodResolutionAlgorithm<
       TypeScopeReferenceType source,
       TypeScopeReferenceType target) {
     var sourceDefinitionScope = findDefinitionScope(source);
-    var definedWithSource = getConversionFromModuleScope(sourceDefinitionScope, target, source);
-    if (definedWithSource != null) {
-      return definedWithSource;
+    if (sourceDefinitionScope != null) {
+      var definedWithSource = getConversionFromModuleScope(sourceDefinitionScope, target, source);
+      if (definedWithSource != null) {
+        return definedWithSource;
+      }
     }
 
     var targetDefinitionScope = findDefinitionScope(target);
-    var definedWithTarget = getConversionFromModuleScope(targetDefinitionScope, target, source);
-    if (definedWithTarget != null) {
-      return definedWithTarget;
+    if (targetDefinitionScope != null) {
+      var definedWithTarget = getConversionFromModuleScope(targetDefinitionScope, target, source);
+      if (definedWithTarget != null) {
+        return definedWithTarget;
+      }
     }
 
     var definedHere = getConversionFromModuleScope(currentModuleScope, target, source);

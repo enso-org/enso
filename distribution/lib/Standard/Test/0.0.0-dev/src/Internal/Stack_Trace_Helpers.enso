@@ -2,7 +2,9 @@ private
 
 from Standard.Base import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
 decorate_stack_trace_text (project_root : File) (decorator : Text -> Text) (stack_trace_text : Text) -> Text =
     ## This regex matches lines like:
            at <enso> something(/path/to/file.enso:123:4-5)

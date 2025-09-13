@@ -33,3 +33,9 @@ add_specs suite_builder =
             row_2  = [21         , 20          , 19     ]
             table  = Table.from_rows header [row_1, row_2]
             expect table '{"df_label":[9,19],"df_latitude":[11,21],"df_longitude":[10,20]}'
+
+        group_builder.specify "recognizes relevant columns short names" <|
+            header = ['lat' , 'long' , 'colour' , 'name' , 'size']
+            row_1  = [11         , 10          , 'red'   , 'name'  , 195     ]
+            table  = Table.from_rows header [row_1]
+            expect table '{"df_color":["red"],"df_label":["name"],"df_latitude":[11],"df_longitude":[10],"df_radius":[195]}'

@@ -4,7 +4,6 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Table import Join_Condition, Join_Kind, Table
 
 from Standard.Database import all
-import Standard.Database.Internal.IR.Query.Query
 
 from Standard.Test import all
 import Standard.Test.Suite.Suite_Builder
@@ -55,15 +54,15 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
         group_builder.teardown <|
             data.teardown
 
-        group_builder.specify "should be able to traverse a Query to reconstruct it" <|
+        group_builder.specify "should be able to traverse a SQL_IR_Statement to reconstruct it" <|
             col = data.t1 . at "a"
-            a = col.round * col.round use_bankers=True
+            a = col.round * col.round rounding_mode=Rounding_Mode.Bankers
             a_query = a.to_table.to_select_query
             a_query.traverse (x->x) . should_equal a_query
 
-        group_builder.specify "should be able to traverse a Query to count nodes" <|
+        group_builder.specify "should be able to traverse a SQL_IR_Statement to count nodes" <|
             col = data.t1 . at "a"
-            a = col.round * col.round use_bankers=True
+            a = col.round * col.round rounding_mode=Rounding_Mode.Bankers
             a_sub = (a . rename "p" . to_table . as_subquery . at "p")
             b = a_sub * a_sub
             b_sub = (b . rename "p" . to_table . as_subquery . at "p")
@@ -79,14 +78,14 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
             x = t.at "x"
             y = t.at "y"
             wm enabled expression callback =
-                if enabled then expression.let "x" callback else callback expression
+                if enabled then (expression:DB_Column).let "x" callback else callback expression
             bools = [True, False]
             results = bools.map b0-> bools.map b1-> bools.map b2-> bools.map b3->
                 ## Complex query that optionally enables let bindings at each step
                 big = wm b0 (x * y) xty->
                     wm b1 (x + y + 10) xpyp10->
-                        wm b2 (xty.round 1 use_bankers=True) r0->
-                            wm b3 (xpyp10.round use_bankers=True) r1->
+                        wm b2 (xty.round 1 rounding_mode=Rounding_Mode.Bankers) r0->
+                            wm b3 (xpyp10.round rounding_mode=Rounding_Mode.Bankers) r1->
                                 r0 + r1
                 big.to_vector
             results.flatten.flatten.flatten.distinct.length . should_equal 1
@@ -98,7 +97,7 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
                 let2 = t.select_into_database_table data.connection "let_2" temporary=True
                 joined = let0.join let2 join_kind=Join_Kind.Inner on=(Join_Condition.Equals "x" "x")
                 x = joined.at "x"
-                with_ctes = x.let "let" x-> x.let "let" x-> x
+                with_ctes = (x:DB_Column).let "let" x-> (x:DB_Column).let "let" x-> x
                 with_ctes_sql = with_ctes.to_table.to_sql . prepare . at 0
                 with_ctes_sql . should_contain 'let_1'
                 with_ctes_sql . should_contain 'let_3'

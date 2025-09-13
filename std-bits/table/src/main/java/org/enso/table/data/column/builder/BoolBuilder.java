@@ -2,7 +2,8 @@ package org.enso.table.data.column.builder;
 
 import java.util.BitSet;
 import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -10,7 +11,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.util.BitSets;
 
 /** A builder for boolean columns. */
-public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
+final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   private final BitSet vals;
   private final BitSet isNothing;
   int size = 0;
@@ -22,7 +23,7 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public void append(Object o) {
+  public BoolBuilder append(Object o) {
     if (o == null) {
       appendNulls(1);
     } else {
@@ -35,6 +36,8 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
       }
       size++;
     }
+
+    return this;
   }
 
   @Override
@@ -47,46 +50,51 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
    *
    * @param value the boolean to append
    */
-  public void appendBoolean(boolean value) {
+  public BoolBuilder appendBoolean(boolean value) {
     if (value) {
       vals.set(size);
     }
     size++;
+    return this;
   }
 
   @Override
-  public void appendNulls(int count) {
+  public BoolBuilder appendNulls(int count) {
     isNothing.set(size, size + count);
     size += count;
+    return this;
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
-    if (storage.getType().equals(getType())) {
-      if (storage instanceof BoolStorage boolStorage) {
-        BitSets.copy(boolStorage.getValues(), vals, size, boolStorage.size());
-        BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, boolStorage.size());
-        size += boolStorage.size();
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type BOOLEAN: "
-                + storage
-                + ". This is a bug in the Table library.");
+  public void appendBulkStorage(ColumnStorage<?> storage) {
+    if (storage instanceof BoolStorage boolStorage) {
+      // We know this is valid for a BoolStorage.
+      int toCopy = (int) boolStorage.getSize();
+      BitSets.copy(boolStorage.getValues(), vals, size, toCopy);
+      BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, toCopy);
+      size += toCopy;
+    } else if (storage instanceof ColumnBooleanStorage columnBooleanStorage) {
+      for (long i = 0; i < columnBooleanStorage.getSize(); i++) {
+        if (columnBooleanStorage.isNothing(i)) {
+          appendNulls(1);
+        } else {
+          appendBoolean(columnBooleanStorage.getItemAsBoolean(i));
+        }
       }
     } else if (storage.getType() instanceof NullType) {
-      appendNulls(storage.size());
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }
   }
 
   @Override
-  public Storage<Boolean> seal() {
+  public ColumnStorage<Boolean> seal() {
     return new BoolStorage(vals, isNothing, size, false);
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return size;
   }
 
@@ -102,17 +110,17 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
+  public boolean canRetypeTo(StorageType<?> type) {
     return false;
   }
 
   @Override
-  public Builder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType<?> type) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<Boolean> getType() {
     return BooleanType.INSTANCE;
   }
 }

@@ -85,6 +85,15 @@ abstract class UnboxingAtom extends Atom {
   }
 
   @ExportMessage
+  boolean isFieldEvaluated(int index) {
+    var fieldGetter = layout.getUncachedFieldGetter(index);
+    if (fieldGetter instanceof SuspendedFieldGetterNode suspendedFieldGetter) {
+      return suspendedFieldGetter.isEvaluated();
+    }
+    return true;
+  }
+
+  @ExportMessage
   static class SetField {
     @Specialization(
         guards = {"cachedLayout == atom.layout", "cachedIndex == index"},

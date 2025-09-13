@@ -411,7 +411,16 @@ the action.
 #### Parameters
 
 ```typescript
-{
+/**
+ * Extra parameters required for cloud projects.
+ */
+interface CloudParams {
+  cloudProjectDirectoryPath: string;
+  cloudProjectId: string;
+  cloudProjectSessionId: string;
+}
+
+interface OpenProjectParams {
   projectId: UUID;
 
   /**
@@ -425,6 +434,11 @@ the action.
    * Custom directory with the user projects.
    */
   projectsDirectory?: string;
+
+  /**
+   * Extra cloud parameters required when running in hybrid mode.
+   */
+  cloud?: CloudParams;
 }
 ```
 

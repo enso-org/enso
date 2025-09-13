@@ -6,7 +6,7 @@ import { computed } from 'vue'
 
 export const name = 'Warnings'
 export const icon = 'exclamation'
-export const inputType = 'Any'
+export const inputType = 'Standard.Base.Any.Any'
 export const defaultPreprocessor = [
   'Standard.Visualization.Warnings',
   'process_to_json_text',

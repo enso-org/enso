@@ -7,54 +7,58 @@ import project.Internal.Naming_Properties.Naming_Properties
 polyglot java import org.enso.table.util.NameDeduplicator
 
 type Unique_Name_Strategy
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a Unique_Name_Strategy
 
-       Arguments:
-       - deduplicator: Name deduplicator
+       ## Arguments
+        - `deduplicator`: Name deduplicator
     Value deduplicator
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Creates a new Unique_Name_Strategy instance.
-
-       This is a mutable data structure, that allows for creating a collection
-       of columns names and making them unique. It will track any duplicates or
+       This is a mutable data structure, that allows for creating a collection of
+       columns names and making them unique. It will track any duplicates or
        invalid names that are passed to it.
 
-       Arguments:
-       - max_name_length_units: The maximum length of a name in code units.
-         If this is specified, longer names will be truncated and any suffixes
-         added will also ensure to not exceed this limit (truncating the prefix
-         if necessary). The truncation is aware of grapheme clusters and will
-         not break them into parts, but remove as many whole grapheme clusters
-         as necessary to fit the limit. Defaults to `Nothing`, meaning that the
-         length is not limited.
+       ## Arguments
+        - `max_name_length_units`: The maximum length of a name in code units. If
+          this is specified, longer names will be truncated and any suffixes
+          added will also ensure to not exceed this limit (truncating the prefix
+          if necessary). The truncation is aware of grapheme clusters and will
+          not break them into parts, but remove as many whole grapheme clusters
+          as necessary to fit the limit. Defaults to `Nothing`, meaning that the
+          length is not limited.
 
-       > Example
-         Construct a set of unique names from two duplicate lists
+       ## Examples
+       ### Construct a set of unique names from two duplicate lists
 
+       ```
              unique_name_strategy = Unique_Name_Strategy.new
              unique_names = ["A","B","A",""] . map unique_name_strategy.make_unique
              duplicates = unique_name_strategy.renames
              invalid = unique_name_strategy.invalid_names
+       ```
     new : Naming_Properties -> Unique_Name_Strategy
     new naming_properties =
         deduplicator = NameDeduplicator.createIgnoringProblems naming_properties
         Unique_Name_Strategy.Value deduplicator
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Changes names from the second list so that they do not clash with names
        from the first list and with each other.
-
        It returns a new list where each new name corresponds to a name from the
        second list.
-
        It assumes that names on each list are unique within that list and that
        all of the provided names are already valid. The behavior is unspecified
        if they are not.
-
        The names are renamed using the following strategy:
        - if the name does not collide with any name from the first list, it will
          always be kept as-is,
@@ -64,57 +68,67 @@ type Unique_Name_Strategy
        - if the name with the prefix still collides, we append a numeric suffix
          (starting with `_1`) to it, increasing the number as many times as
          necessary to get a name that will not collide.
-
        Note that non-renamed names from the second list have precedence over
        elements being renamed, even if they show up on the list later.
 
-       > Example
-         Rename names from a second list to avoid clashing with the first one.
+       ## Examples
+       ### Rename names from a second list to avoid clashing with the first one.
 
+       ```
              first = ["A", "B", "second A"]
              second = ["A", "B", "second A 1", "C"]
              unique_second = Unique_Name_Strategy.combine_with_prefix first second "second_"
              unique_second == ["second A 2", "second_B", "second A 1", "C"]
+       ```
     combine_with_prefix : Vector Text -> Vector Text -> Text -> Unique_Name_Strategy
     combine_with_prefix self first second second_prefix =
         Naming_Properties_Module.recover_panics <| Vector.from_polyglot_array <|
             Illegal_Argument.handle_java_exception <|
                 self.deduplicator.combineWithPrefix first second second_prefix
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Vector of any duplicates renamed.
-
        Note that this vector will not contain renames where just the
        second_prefix was added.
     renames : Vector
     renames self = Vector.from_polyglot_array self.deduplicator.getDuplicatedNames
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Vector of any invalid names.
     invalid_names : Vector
     invalid_names self = Vector.from_polyglot_array self.deduplicator.getInvalidNames
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A mapping of original names to their truncated counterpart.
     truncated_names : Dictionary Text Text
     truncated_names self =
         entries = Vector.from_polyglot_array self.deduplicator.getTruncatedNames
         Dictionary.from_vector <| entries.map e-> [e.getLeft, e.getRight]
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Takes a value and converts to a valid (but not necessarily unique) name.
 
-       Arguments:
-       - name: The column name to make valid.
+       ## Arguments
+        - `name`: The column name to make valid.
 
-       > Example
-             strategy = Unique_Name_Strategy.new
+       ## Examples
+       ### strategy = Unique_Name_Strategy.new
+       ```
              strategy.make_valid_name "" # returns "Column"
              strategy.make_valid_name 1 # returns "1"
              strategy.make_valid_name "Hello" # returns "Hello"
+       ```
     make_valid_name : Any -> Text
     make_valid_name self input =
         case input of
@@ -123,43 +137,52 @@ type Unique_Name_Strategy
             Nothing -> self.make_valid_name ""
             _ -> self.make_valid_name input.to_text
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Takes a name and gets a unique version.
 
-       Arguments:
-       - name: The column name to make unique.
+       ## Arguments
+        - `name`: The column name to make unique.
 
-       > Example
-             strategy = Unique_Name_Strategy.new
+       ## Examples
+       ### strategy = Unique_Name_Strategy.new
+       ```
              strategy.make_unique "A" # returns "A"
              strategy.make_unique "A" # returns "A 1"
+       ```
     make_unique : Text -> Text
     make_unique self name = Naming_Properties_Module.recover_panics <|
         Illegal_Argument.handle_java_exception <|
             self.deduplicator.makeUnique name
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Tells if the given name has not yet been encountered.
-
        It does not use up the name - it needs to be marked with `mark_used` if
        needed.
     is_unique : Text -> Boolean
     is_unique self name = Naming_Properties_Module.recover_panics <|
         self.deduplicator.isUnique name
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Takes a list of names and gets a list of unique versions.
 
-       Arguments:
-       - names: The column names to make unique.
+       ## Arguments
+        - `names`: The column names to make unique.
     make_all_unique : Vector Text -> Vector Text
     make_all_unique self names = names.map self.make_unique
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Takes a list of names and marks them as used, so that any further names
        clashing with those will have a prefix added.
     mark_used : Vector Text -> Nothing

@@ -6,6 +6,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
@@ -17,10 +18,14 @@ public final class TypeToDisplayTextNode extends Node {
   }
 
   public String execute(Object o) {
-    return switch (typeOfNode.findTypeOrError(o)) {
-      case Type t -> t.getName();
-      default -> fallbackDisplay(o);
-    };
+    if (o instanceof EnsoMultiValue emv) {
+      return emv.toTypeDisplayText();
+    } else {
+      return switch (typeOfNode.findTypeOrError(o)) {
+        case Type t -> t.getName();
+        default -> fallbackDisplay(o);
+      };
+    }
   }
 
   /**

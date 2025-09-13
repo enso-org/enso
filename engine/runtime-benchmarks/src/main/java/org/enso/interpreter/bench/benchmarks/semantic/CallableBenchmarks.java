@@ -1,8 +1,7 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
-import org.enso.interpreter.bench.Utils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -70,7 +69,7 @@ main = sumTo ->
     res
 """;
 
-  private Context context;
+  private ContextUtils ctxRule;
   private Value sumTCOfromCall;
   private Value sumTCOmethodCall;
   private Value sumTCOmethodCallWithNamedArguments;
@@ -78,14 +77,14 @@ main = sumTo ->
 
   @Setup
   public void initializeBenchmarks(BenchmarkParams params) {
-    this.context = org.enso.compiler.benchmarks.Utils.createDefaultContextBuilder().build();
+    this.ctxRule = org.enso.compiler.benchmarks.Utils.createDefaultContextBuilder().build();
 
-    this.sumTCOfromCall = Utils.getMainMethod(context, SUM_TCO_FROM_CALL_CODE);
-    this.sumTCOmethodCall = Utils.getMainMethod(context, SUM_TCO_METHOD_CALL_CODE);
+    this.sumTCOfromCall = ctxRule.getMethodFromModule(SUM_TCO_FROM_CALL_CODE, "main");
+    this.sumTCOmethodCall = ctxRule.getMethodFromModule(SUM_TCO_METHOD_CALL_CODE, "main");
     this.sumTCOmethodCallWithNamedArguments =
-        Utils.getMainMethod(context, SUM_TCO_METHOD_CALL_WITH_NAMED_ARGUMENTS_CODE);
+        ctxRule.getMethodFromModule(SUM_TCO_METHOD_CALL_WITH_NAMED_ARGUMENTS_CODE, "main");
     this.sumTCOmethodCallWithDefaultedArguments =
-        Utils.getMainMethod(context, SUM_TCO_METHOD_CALL_WITH_DEFAULTED_ARGUMENTS_CODE);
+        ctxRule.getMethodFromModule(SUM_TCO_METHOD_CALL_WITH_DEFAULTED_ARGUMENTS_CODE, "main");
   }
 
   @Benchmark

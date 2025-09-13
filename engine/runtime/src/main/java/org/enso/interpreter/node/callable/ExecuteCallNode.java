@@ -60,7 +60,7 @@ public abstract class ExecuteCallNode extends Node {
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
       @Cached("createInlineableNode(cachedTarget)") InlineableNode callNode) {
-    var args = Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments);
+    var args = Function.ArgumentsHelper.buildArguments(function, callerInfo, arguments);
     return callNode.call(frame, args);
   }
 
@@ -90,7 +90,7 @@ public abstract class ExecuteCallNode extends Node {
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
       @Cached("createDirectCallNode(cachedTarget)") DirectCallNode callNode) {
-    var args = Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments);
+    var args = Function.ArgumentsHelper.buildArguments(function, callerInfo, arguments);
     return callNode.call(args);
   }
 
@@ -127,7 +127,7 @@ public abstract class ExecuteCallNode extends Node {
       @Cached IndirectCallNode callNode) {
     return callNode.call(
         function.getCallTarget(),
-        Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
+        Function.ArgumentsHelper.buildArguments(function, callerInfo, arguments));
   }
 
   /**

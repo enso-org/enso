@@ -10,40 +10,49 @@ import project.System.File.File_Access.File_Access
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean, False, True
 
-## PRIVATE
+## ---
+   private: true
+   ---
    An input stream that can be read multiple times.
-
    It may be useful when multiple passes over the data are required.
-   If you need to check only the beginning of the stream, consider using a much 
+   If you need to check only the beginning of the stream, consider using a much
    lighter `Input_Stream.as_peekable_stream`.
-
-   A generic stream can be converted to `Restartable_Input_Stream` by reading
-   all its contents and storing them either in memory or in a temporary file.
+   A generic stream can be converted to `Restartable_Input_Stream` by reading all
+   its contents and storing them either in memory or in a temporary file.
    A stream backed by an existing file can be converted to
    `Restartable_Input_Stream` at no cost.
 
-   ! Stream Lifetime
+   ## Remarks
 
-     Note that if we use an existing file as a shortcut to avoid copying the
-     data, we need to assume that the file will not be modified in the meantime.
-     Thus the `Restartable_Input_Stream` does not fully guarantee immutability
-     of the data. The lifetime of such `Restartable_Input_Stream` is tied to the
-     lifetime of its backing file.
-
-     If the stream should stay usable for a longer time, `extend_lifetime=True`
-     should be passed when creating it.
+   ### Stream Lifetime
+   Note that if we use an existing file as a shortcut to avoid copying the data,
+   we need to assume that the file will not be modified in the meantime.
+   Thus the `Restartable_Input_Stream` does not fully guarantee immutability of
+   the data. The lifetime of such `Restartable_Input_Stream` is tied to the
+   lifetime of its backing file.
+   If the stream should stay usable for a longer time, `extend_lifetime=True`
+   should be passed when creating it.
 type Restartable_Input_Stream
-    ## PRIVATE
-       `bytes` may be a Vector or a raw `byte[]` array (convertible to vector, but no annotation to avoid conversions).
+    ## ---
+       private: true
+       ---
+       `bytes` may be a Vector or a raw `byte[]` array (convertible to vector,
+       but no annotation to avoid conversions).
     private From_Bytes bytes
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private From_Existing_File file:File
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private From_Temporary_File temporary_file:Temporary_File
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self -> Text =
         suffix = case self of
             Restartable_Input_Stream.From_Bytes _ -> "From_Bytes"
@@ -51,7 +60,9 @@ type Restartable_Input_Stream
             Restartable_Input_Stream.From_Temporary_File _ -> "From_Temporary_File"
         "Restartable_Input_Stream."+suffix
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     make (input_stream : Input_Stream) (extend_lifetime : Boolean) -> Restartable_Input_Stream =
         case input_stream.associated_source of
             temp_file : Temporary_File -> Restartable_Input_Stream.From_Temporary_File temp_file
@@ -61,10 +72,11 @@ type Restartable_Input_Stream
             bytes : Vector -> Restartable_Input_Stream.From_Bytes bytes
             _ -> cache_generic_input_stream input_stream
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Runs the provided action with a fresh input stream pointing to the
        beginning of the data represented by this stream.
-
        This method may be called multiple times, allowing multiple 'rounds' of
        processing.
     with_fresh_stream self (action : Input_Stream -> Any) -> Any =
@@ -77,14 +89,19 @@ type Restartable_Input_Stream
                 temp_file.with_file file->
                     file.with_input_stream [File_Access.Read] action
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Maximum size for a stream to be held in memory.
-   If the amount of data exceeds this limit, it will be stored in a temporary file.
+   If the amount of data exceeds this limit, it will be stored in a temporary
+   file.
 max_in_memory_size =
     # 64 KiB
     64 * 1024
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private cache_generic_input_stream (input_stream : Input_Stream) -> Restartable_Input_Stream =
     input_stream.with_java_stream java_input_stream->
         first_block = java_input_stream.readNBytes max_in_memory_size

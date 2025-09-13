@@ -1,0 +1,51 @@
+from Standard.Base import all
+from Standard.Test import all
+
+type My_Atom
+    Value a
+
+    method_1 self = "My_Atom.method_1"
+
+type My_Refinement
+    Value x
+
+    method_1 self = "My_Refinement.method_1"
+    is_nothing self = Warning.attach "My_Refinement.is_nothing" False
+
+My_Refinement.from (that : My_Atom) -> My_Refinement =
+    My_Refinement.Value that
+
+prepare_atom =
+    (My_Atom.Value 42) : My_Atom & My_Refinement
+
+add_specs suite_builder =
+    x = prepare_atom
+
+    suite_builder.group "Multi_On_Any" group_builder->
+        group_builder.specify "call `method_1` on `My_Atom`, not on `My_Refinement`" <|
+            x.method_1 . should_equal "My_Atom.method_1"
+
+        group_builder.specify "switch the order, then indeed `method_1` is called on `My_Refinement`" <|
+            ((x : My_Refinement & My_Atom).method_1) . should_equal "My_Refinement.method_1"
+
+        group_builder.specify "switch the order, then indeed `is_nothing` is called on `My_Refinement`" <|
+            no = (x : My_Refinement & My_Atom).is_nothing
+            no . should_be_false
+            (Warning.get_all no) . should_equal ["My_Refinement.is_nothing"]
+
+        group_builder.specify "call the base `is_nothing` coming from `Any`" <|
+            none = x.is_nothing
+            none . should_be_false
+            (Warning.get_all none) . should_equal []
+
+        group_builder.specify "hide the refinement" <|
+            ((x : My_Atom|Nothing).is_nothing) . should_be_false
+
+        group_builder.specify "access field of My_Atom" <|
+            x.a . should_equal 42
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

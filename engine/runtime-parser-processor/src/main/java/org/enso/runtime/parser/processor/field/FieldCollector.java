@@ -97,11 +97,32 @@ public final class FieldCollector {
     var type = getParamType(param);
     var isNullable = !irChildAnnot.required();
     if (Utils.isScalaList(param.asType(), processingEnv)) {
-      ensureTypeArgIsSubtypeOfIR(param.asType());
-      return new ListField(name, param.asType(), processingEnv);
+      ensureTypeArgIsSubtypeOfIR(param.asType(), param);
+      return new ListField(name, isNullable, param.asType(), processingEnv);
     } else if (Utils.isScalaOption(param.asType(), processingEnv)) {
-      ensureTypeArgIsSubtypeOfIR(param.asType());
-      return new OptionField(name, param.asType(), processingEnv);
+      var typeArg = Utils.getTypeArgument(param.asType());
+      if (Utils.isSubtypeOfIR(mirrorToElement(typeArg), processingEnv)) {
+        return new OptionField(name, param.asType(), processingEnv);
+      } else {
+        var nestedTypeArg = Utils.getTypeArgument(typeArg);
+        if (nestedTypeArg == null) {
+          throw new IRProcessingException(
+              "Parameter annotated with @IRChild is scala.Option with an "
+                  + "unknown type argument",
+              param);
+        }
+        if (Utils.isScalaList(typeArg, processingEnv)
+            && Utils.isSubtypeOfIR(mirrorToElement(nestedTypeArg), processingEnv)) {
+          return new OptionListField(name, param.asType(), processingEnv);
+        }
+        throw new IRProcessingException(
+            "Parameter annotated with @IRChild is scala.Option and its type argument must "
+                + "either be a subtype of IR, or scala.collection.immutable.List",
+            param);
+      }
+    } else if (Utils.isPersistanceReference(param.asType(), processingEnv)) {
+      ensureTypeArgIsSubtypeOfIR(param.asType(), param);
+      return new PersistanceReferenceField(name, param.asType(), processingEnv);
     } else {
       if (!Utils.isSubtypeOfIR(type, processingEnv)) {
         throw new IRProcessingException(
@@ -114,12 +135,18 @@ public final class FieldCollector {
     }
   }
 
-  private void ensureTypeArgIsSubtypeOfIR(TypeMirror typeMirror) {
+  private TypeElement mirrorToElement(TypeMirror tpMirror) {
+    var elem = processingEnv.getTypeUtils().asElement(tpMirror);
+    Utils.hardAssert(elem instanceof TypeElement);
+    return (TypeElement) elem;
+  }
+
+  private void ensureTypeArgIsSubtypeOfIR(TypeMirror typeMirror, VariableElement location) {
     var declaredType = (DeclaredType) typeMirror;
     Utils.hardAssert(declaredType.getTypeArguments().size() == 1);
     var typeArg = declaredType.getTypeArguments().get(0);
     var typeArgElem = (TypeElement) processingEnv.getTypeUtils().asElement(typeArg);
-    ensureIsSubtypeOfIR(typeArgElem);
+    ensureIsSubtypeOfIR(typeArgElem, location);
   }
 
   private static boolean isPrimitiveType(VariableElement ctorParam) {
@@ -130,10 +157,14 @@ public final class FieldCollector {
     return (TypeElement) processingEnv.getTypeUtils().asElement(param.asType());
   }
 
-  private void ensureIsSubtypeOfIR(TypeElement typeElem) {
+  private void ensureIsSubtypeOfIR(TypeElement typeElem, VariableElement location) {
     if (!Utils.isSubtypeOfIR(typeElem, processingEnv)) {
       throw new IRProcessingException(
-          "Method annotated with @IRChild must return a subtype of IR interface", typeElem);
+          "Parameter annotated with @IRChild must return a subtype of IR interface "
+              + "(type "
+              + typeElem
+              + " is not a subtype of IR interface)",
+          location);
     }
   }
 }

@@ -1,34 +1,10 @@
 /** @file A wrapper containing all UI-related React Provdiers. */
-import * as React from 'react'
-
-import { DialogStackProvider } from '#/components/AriaComponents'
+import { DialogStackProvider } from '#/components/Dialog'
 import { PortalProvider } from '#/components/Portal'
-import type { Spring } from 'framer-motion'
-import { MotionConfig } from 'framer-motion'
+import * as React from 'react'
 import { I18nProvider } from 'react-aria-components'
 
-const DEFAULT_TRANSITION_OPTIONS: Spring = {
-  type: 'spring',
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  stiffness: 200,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  damping: 30,
-  mass: 1,
-  velocity: 0,
-}
-
-/**
- * A context containing the root elements for the application.
- */
-interface RootContextType {
-  readonly portalRoot: HTMLElement
-  readonly appRoot: HTMLElement
-}
-
-const RootContext = React.createContext<RootContextType>({
-  portalRoot: document.body,
-  appRoot: document.body,
-})
+const RootContext = React.createContext<HTMLElement>(document.body)
 
 /** Props for a {@link UIProviders}. */
 export interface UIProvidersProps extends Readonly<React.PropsWithChildren> {
@@ -42,21 +18,18 @@ export default function UIProviders(props: UIProvidersProps) {
   const { portalRoot, appRoot, locale, children } = props
 
   return (
-    <RootContext.Provider value={{ portalRoot, appRoot }}>
-      <MotionConfig reducedMotion="user" transition={DEFAULT_TRANSITION_OPTIONS}>
-        <PortalProvider value={portalRoot}>
-          <DialogStackProvider>
-            <I18nProvider locale={locale}>{children}</I18nProvider>
-          </DialogStackProvider>
-        </PortalProvider>
-      </MotionConfig>
+    <RootContext.Provider value={appRoot}>
+      <PortalProvider value={portalRoot}>
+        <DialogStackProvider>
+          <I18nProvider locale={locale}>{children}</I18nProvider>
+        </DialogStackProvider>
+      </PortalProvider>
     </RootContext.Provider>
   )
 }
 
-/**
- * A hook to get the root elements for the application.
- */
-export function useRootContext() {
+/** A hook to get the root element for the application. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useAppRoot() {
   return React.useContext(RootContext)
 }

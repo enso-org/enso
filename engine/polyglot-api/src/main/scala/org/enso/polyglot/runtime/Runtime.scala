@@ -73,6 +73,16 @@ object Runtime {
       notAppliedArguments: Vector[Int]
     )
 
+    /** The type of the expression.
+      *
+      * @param visibleType the public type of the expression visible to the user
+      * @param hiddenType the list of types this expression can be converted to
+      */
+    case class ExpressionType(
+      visibleType: Vector[String],
+      hiddenType: Vector[String]
+    )
+
     /** A representation of an executable position in code.
       */
     sealed trait StackItem
@@ -108,7 +118,7 @@ object Runtime {
     /** An update about the computed expression.
       *
       * @param expressionId the expression id
-      * @param expressionTypes the type of expression
+      * @param expressionType the type of expression
       * @param methodCall the underlying method call of this expression
       * @param profilingInfo profiling information about the execution of this expression
       * @param fromCache whether the value for this expression came from the cache
@@ -119,7 +129,7 @@ object Runtime {
     @named("expressionUpdate")
     case class ExpressionUpdate(
       expressionId: ExpressionId,
-      expressionTypes: Option[Vector[String]],
+      expressionType: Option[ExpressionType],
       methodCall: Option[MethodCall],
       profilingInfo: Vector[ProfilingInfo],
       fromCache: Boolean,
@@ -221,9 +231,10 @@ object Runtime {
       /** An object representing invalidation of a list of expressions.
         *
         * @param value a list of expressions to invalidate.
+        * @param reason human-readable explanation for invalidation
         */
       @named("expressions")
-      case class Expressions(value: Vector[ExpressionId])
+      case class Expressions(value: Vector[ExpressionId], reason: String)
           extends InvalidatedExpressions
     }
 
@@ -757,7 +768,7 @@ object Runtime {
       override def toLogString(shouldMask: Boolean): String = {
         "VisualizationUpdate(" +
         s"visualizationContext=$visualizationContext,data=" +
-        (if (shouldMask) STUB else data.toString()) +
+        (if (shouldMask) STUB else new String(data)) +
         ")"
       }
     }
@@ -891,7 +902,8 @@ object Runtime {
     @named("pushContextRequest")
     final case class PushContextRequest(
       contextId: ContextId,
-      stackItem: StackItem
+      stackItem: StackItem,
+      execute: Boolean = true
     ) extends ApiRequest
 
     /** A response sent from the server upon handling the [[PushContextRequest]]

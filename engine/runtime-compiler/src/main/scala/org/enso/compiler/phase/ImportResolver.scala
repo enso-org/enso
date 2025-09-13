@@ -40,7 +40,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
       val context = compiler.context
       val (ir, currentLocal) =
         try {
-          val ir = context.getIr(current)
+          val ir = current.getIr()
           val currentLocal = ir.unsafeGetMetadata(
             BindingAnalysis,
             "Non-parsed module used in ImportResolver"
@@ -66,8 +66,8 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
         }
       // put the list of resolved imports in the module metadata
       if (
-        context
-          .getCompilationStage(current)
+        current
+          .getCompilationStage()
           .isBefore(
             CompilationStage.AFTER_IMPORT_RESOLUTION
           )
@@ -89,8 +89,9 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
         val newImportIRs =
           importedModules.map(_._1) ++ syntheticImports.map(_._1)
 
-        currentLocal.resolvedImports =
+        currentLocal.resolvedImports(
           resolvedImports ++ resolvedSyntheticImports
+        )
 
         val newIr = ir.copy(imports = newImportIRs)
         context.updateModule(
@@ -199,15 +200,15 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
         val exportsItself = curModName.equals(expName.name)
         // Skip the exports that already have associated resolved import.
         if (!exportsItself && !resolvedImportNames.contains(expName.name)) {
-          val syntheticImport = Import.Module(
+          val syntheticImport = new Import.Module(
             expName,
             rename,
             false,
             onlyNames,
             None,
-            identifiedLocation = null,
-            isSynthetic        = true,
-            passData           = new MetadataStorage()
+            true,
+            null,
+            new MetadataStorage()
           )
           tryResolveImport(module.getIr, syntheticImport) match {
             case (_, Some(resolvedImp)) =>

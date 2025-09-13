@@ -1,0 +1,21 @@
+## Enso Signatures 1.0
+## module Standard.Database.Internal.IR.SQL_IR_Source
+- type SQL_IR_Source
+    - Value from_spec:Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part where_filters:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression) orders:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor) groups:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression) limit:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer) extensions:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension)
+    - add_extension self extension:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - add_orders self new_orders:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - add_where_filters self new_filters:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - as_subquery self alias:Standard.Base.Any.Any column_lists:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - for_query raw_sql:(Standard.Base.Data.Text.Text|Standard.Database.SQL_Statement.SQL_Statement) alias:Standard.Base.Data.Text.Text -> Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
+    - for_subquery subquery:Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part -> Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
+    - for_table table_name:Standard.Base.Data.Text.Text alias:Standard.Base.Data.Text.Text= internal_temporary_keep_alive_reference:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - set_groups self new_groups:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - set_limit self new_limit:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - set_orders self new_orders:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - set_where_filters self new_filters:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - traverse self f:Standard.Base.Any.Any -> Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
+- type SQL_IR_Source_Extension
+    - Value part_name:Standard.Database.Internal.SQL_Part.SQL_Part expressions:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression) run_generator:Standard.Base.Any.Any
+    - traverse self f:Standard.Base.Any.Any -> Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
+- type Subquery_Setup
+    - Value subquery:Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part new_columns:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) remap_column:Standard.Base.Any.Any

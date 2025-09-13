@@ -6,10 +6,8 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Set;
-import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
@@ -43,17 +41,11 @@ public class ImportSymbolsTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
-    var out = new ByteArrayOutputStream();
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .out(out)
-            .err(out)
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
-        fail("Compilation error expected. out = " + out);
+        fail("Compilation error expected. out = " + ctx.getOut());
       } catch (PolyglotException e) {
         assertThat(e.getMessage(), containsString("The name `A_Module` could not be found"));
       }
@@ -79,17 +71,11 @@ public class ImportSymbolsTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
-    var out = new ByteArrayOutputStream();
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .out(out)
-            .err(out)
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
-        fail("Compilation error expected. Captured output = " + out);
+        fail("Compilation error expected. Captured output = " + ctx.getOut());
       } catch (PolyglotException e) {
         assertThat(e.getMessage(), containsString("The name `A_Type` could not be found"));
       }
@@ -118,11 +104,8 @@ public class ImportSymbolsTest {
         """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+    try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
+      var polyCtx = new PolyglotContext(ctx.context());
       polyCtx.getTopScope().compile(true);
       var mainModResolvedImps = ModuleUtils.getResolvedImports(ctx, "local.Proj.Main");
       assertThat(mainModResolvedImps.size(), is(1));

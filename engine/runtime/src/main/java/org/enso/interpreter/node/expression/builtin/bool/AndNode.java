@@ -9,7 +9,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(
     type = "Boolean",
@@ -24,18 +24,18 @@ public abstract class AndNode extends Node {
     return AndNodeGen.create();
   }
 
-  abstract Object execute(VirtualFrame frame, State state, boolean self, @Suspend Object that);
+  abstract Object execute(VirtualFrame frame, boolean self, @Suspend Object that);
 
   @Specialization
   Object doIt(
       VirtualFrame frame,
-      State state,
       boolean self,
       Object that,
       @Cached("build()") ThunkExecutorNode rhsThunkExecutorNode) {
     if (conditionProfile.profile(!self)) {
       return false;
     }
-    return rhsThunkExecutorNode.executeThunk(frame, that, state, BaseNode.TailStatus.TAIL_DIRECT);
+    return rhsThunkExecutorNode.executeThunk(
+        frame, that, EnsoContext.get(this).currentState(), BaseNode.TailStatus.TAIL_DIRECT);
   }
 }

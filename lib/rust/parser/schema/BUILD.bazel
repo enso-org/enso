@@ -10,9 +10,9 @@ rust_library(
     proc_macro_deps = all_crate_deps(proc_macro = True),
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
-        "//lib/rust/metamodel:enso-metamodel",
-        "//lib/rust/parser:enso-parser",
-        "//lib/rust/reflect:enso-reflect",
+        "//lib/rust/metamodel:enso_metamodel",
+        "//lib/rust/parser:enso_parser",
+        "//lib/rust/reflect:enso_reflect",
     ],
 )
 

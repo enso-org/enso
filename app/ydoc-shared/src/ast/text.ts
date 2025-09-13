@@ -7,20 +7,21 @@
 import { assertDefined } from '../util/assert'
 import { TextLiteral } from './tree'
 
-const escapeSequences = [
+const baseEscapes = [
   ['0', '\0'],
   ['a', '\x07'],
   ['b', '\x08'],
   ['f', '\x0C'],
-  ['n', '\x0A'],
   ['r', '\x0D'],
   ['t', '\x09'],
   ['v', '\x0B'],
   ['e', '\x1B'],
   ['\\', '\\'],
-  ["'", "'"],
   ['`', '`'],
 ] as const
+const inlineEscapes = [...baseEscapes, ['n', '\x0A'] as const, ["'", "'"] as const]
+const blockEscapes = baseEscapes
+const allEscapes = [...inlineEscapes, ...blockEscapes]
 
 function escapeAsCharCodes(str: string): string {
   let out = ''
@@ -28,20 +29,21 @@ function escapeAsCharCodes(str: string): string {
   return out
 }
 
-const fixedEscapes = escapeSequences.map(([_, raw]) => escapeAsCharCodes(raw))
-const escapeRegex = new RegExp(
-  [
-    ...fixedEscapes,
-    // Unpaired-surrogate codepoints are not technically valid in Unicode, but they are allowed in Javascript strings.
-    // Enso source files must be strictly UTF-8 conformant.
-    '\\p{Surrogate}',
-  ].join('|'),
-  'gu',
-)
+function escapeRegex(sequences: readonly (readonly [string, string])[]) {
+  return new RegExp(
+    [
+      ...sequences.map(([_, raw]) => escapeAsCharCodes(raw)),
+      // Unpaired-surrogate codepoints are not technically valid in Unicode, but they are allowed in Javascript strings.
+      // Enso source files must be strictly UTF-8 conformant.
+      '\\p{Surrogate}',
+    ].join('|'),
+    'gu',
+  )
+}
+const inlineEscapeRegex = escapeRegex(inlineEscapes)
+const blockEscapeRegex = escapeRegex(blockEscapes)
 
-const escapeMapping = Object.fromEntries(
-  escapeSequences.map(([escape, raw]) => [raw, `\\${escape}`]),
-)
+const escapeMapping = Object.fromEntries(allEscapes.map(([escape, raw]) => [raw, `\\${escape}`]))
 
 function escapeChar(char: string) {
   const fixedEscape = escapeMapping[char]
@@ -50,11 +52,11 @@ function escapeChar(char: string) {
 }
 
 /**
- * Escape a string so it can be safely spliced into an interpolated (`''`) Enso string.
- * Note: Escape sequences are NOT interpreted in raw (`""`) string literals.
+ * Escape a string so it can be safely spliced into an interpolated (`'` or `'''`) Enso string.
+ * Note: Escape sequences are NOT interpreted in raw (`"` or `"""`) string literals.
  */
-export function escapeTextLiteral(rawString: string) {
-  return rawString.replace(escapeRegex, escapeChar)
+export function escapeTextLiteral(rawString: string, isBlock: boolean = false) {
+  return rawString.replace(isBlock ? blockEscapeRegex : inlineEscapeRegex, escapeChar)
 }
 
 /**

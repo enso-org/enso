@@ -29,6 +29,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
+      .environment("NO_COLOR", "true")
       .option(RuntimeOptions.PROJECT_ROOT, pkgPath.getAbsolutePath)
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
@@ -41,6 +42,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
       .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+      .option(RuntimeOptions.CHECK_CWD, "false")
       .option("engine.WarnInterpreterOnly", "false")
       .out(output)
       .in(System.in)

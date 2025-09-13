@@ -7,13 +7,14 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "abs", description = "Absolute value of a number")
-public abstract class AbsNode extends IntegerNode {
+public abstract class AbsNode extends IntegerNode.Unary {
 
   public static AbsNode build() {
     return AbsNodeGen.create();
   }
 
-  public abstract Object execute(Object own);
+  @Override
+  abstract Object executeUnary(Object own);
 
   @Specialization(rewriteOn = ArithmeticException.class)
   long doLong(long self) {
@@ -26,12 +27,12 @@ public abstract class AbsNode extends IntegerNode {
 
   @Specialization(replaces = "doLong")
   Object doLongOverflow(long self) {
-    return toEnsoNumberNode.execute(BigIntegerOps.abs(self));
+    return toEnsoNumberNode().execute(BigIntegerOps.abs(self));
   }
 
   @Specialization
   Object doBigInt(EnsoBigInteger self) {
-    return toEnsoNumberNode.execute(BigIntegerOps.abs(self.getValue()));
+    return toEnsoNumberNode().execute(BigIntegerOps.abs(self.getValue()));
   }
 
   @Fallback

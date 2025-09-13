@@ -7,7 +7,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A LongBuilder that ensures values it is given fit the target type. */
-public class BoundCheckedIntegerBuilder extends LongBuilder {
+final class BoundCheckedIntegerBuilder extends LongBuilder {
   private final IntegerType type;
   private final CastProblemAggregator castProblemAggregator;
 
@@ -24,17 +24,18 @@ public class BoundCheckedIntegerBuilder extends LongBuilder {
   }
 
   @Override
-  public void appendLong(long value) {
+  public BoundCheckedIntegerBuilder appendLong(long value) {
     if (!type.fits(value)) {
       castProblemAggregator.reportNumberOutOfRange(value);
       appendNulls(1);
-      return;
+      return this;
     }
     super.appendLong(value);
+    return this;
   }
 
   @Override
-  public void append(Object o) {
+  public BoundCheckedIntegerBuilder append(Object o) {
     if (o == null) {
       appendNulls(1);
     } else {
@@ -45,6 +46,7 @@ public class BoundCheckedIntegerBuilder extends LongBuilder {
         throw new ValueTypeMismatchException(type, o);
       }
     }
+    return this;
   }
 
   @Override

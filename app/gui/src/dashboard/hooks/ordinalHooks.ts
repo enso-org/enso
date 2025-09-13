@@ -1,5 +1,5 @@
 /** @file A hook returning a function to get the ordinal string of a number. */
-import { useText } from '#/providers/TextProvider'
+import { useText } from '$/providers/react'
 import { useLocale } from 'react-aria'
 
 /** A hook returning a function to get the ordinal string of a number. */

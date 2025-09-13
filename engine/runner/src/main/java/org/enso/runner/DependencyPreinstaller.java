@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.enso.cli.ProgressBar;
 import org.enso.cli.task.ProgressReporter;
 import org.enso.cli.task.TaskProgress;
+import org.enso.common.HostEnsoUtils;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.LanguageHome;
@@ -84,7 +85,8 @@ class DependencyPreinstaller {
             lockUserInterface,
             progressReporter,
             Some.apply(languageHome),
-            Some.apply(projectRoot.toPath()));
+            Some.apply(projectRoot.toPath()),
+            HostEnsoUtils.isAot());
     var localLibraryProvider = providers._1;
     var publishedLibraryProvider = providers._2;
 

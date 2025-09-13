@@ -3,6 +3,7 @@
 import { useApproach, useApproachVec } from '@/composables/animation'
 import {
   PointerButtonMask,
+  unrefElement,
   useArrows,
   useResizeObserver,
   useWheelActions,
@@ -10,19 +11,11 @@ import {
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { useEventListener } from '@vueuse/core'
+import { proxyRefs } from '@/util/reactivity'
+import { useEventListener, type VueInstance } from '@vueuse/core'
 import { useGesture, type Handler } from '@vueuse/gesture'
-import {
-  computed,
-  onScopeDispose,
-  proxyRefs,
-  readonly,
-  ref,
-  shallowRef,
-  toRef,
-  watch,
-  type Ref,
-} from 'vue'
+import { clamp } from 'enso-common/src/utilities/data/math'
+import { computed, onScopeDispose, readonly, ref, shallowRef, toRef, watch, type Ref } from 'vue'
 
 type ScaleRange = readonly [number, number]
 const PAN_AND_ZOOM_DEFAULT_SCALE_RANGE: ScaleRange = [0.1, 1]
@@ -55,18 +48,19 @@ export interface NavigatorOptions {
 export type NavigatorComposable = ReturnType<typeof useNavigator>
 /** TODO: Add docs */
 export function useNavigator(
-  viewportNode: Ref<HTMLElement | undefined>,
+  viewportNode: Ref<HTMLElement | VueInstance | null | undefined>,
   keyboard: KeyboardComposable,
   options: NavigatorOptions = {},
 ) {
   const predicate = options.predicate ?? ((_) => true)
   const size = useResizeObserver(viewportNode)
-  const targetCenter = shallowRef<Vec2>(Vec2.Zero)
-  const center = useApproachVec(targetCenter, 100, 0.02)
+  const targetLeftTop = shallowRef<Vec2>(Vec2.Zero)
+  const leftTop = useApproachVec(targetLeftTop, 100, 0.2)
 
   const viewportRect = shallowRef<Rect>(Rect.Zero)
+  const viewportElem = computed(() => unrefElement(viewportNode))
   function updateViewportRect() {
-    viewportRect.value = elemRect(viewportNode.value)
+    viewportRect.value = elemRect(viewportElem.value)
   }
 
   const dragPredicate = (e: PointerEvent) => e.target === e.currentTarget && predicate(e)
@@ -89,14 +83,15 @@ export function useNavigator(
 
   function handleDragPanning(state: DragState) {
     if (Vec2.FromTuple(state.movement).length() > LONGPRESS_MAX_SLIDE) cancelLongpress()
-    scrollTo(center.value.addScaled(Vec2.FromTuple(state.delta), -1 / scale.value))
+    scrollTo(leftTop.value.addScaled(Vec2.FromTuple(state.delta), -1 / scale.value))
     state.event.stopImmediatePropagation()
   }
 
   function handleDragZooming(state: DragState) {
+    if (state.delta[1] != 0) preventContextMenu = true
     const prevScale = scale.value
     updateScale((oldValue) => oldValue * Math.exp(-state.delta[1] / 100))
-    scrollTo(center.value.scaleAround(prevScale / scale.value, gesturePivot))
+    scrollTo(leftTop.value.scaleAround(prevScale / scale.value, gesturePivot))
   }
 
   function handleDragHolding(state: DragState) {
@@ -124,6 +119,18 @@ export function useNavigator(
     longpressTimer = null
   }
 
+  useEventListener(viewportElem, 'contextmenu', contextMenuHandler, { capture: true })
+  let preventContextMenu = false
+  function contextMenuHandler(event: MouseEvent) {
+    if (preventContextMenu) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+  }
+
+  const dragActive = ref(false)
+  const pinchActive = ref(false)
+
   useGesture(
     {
       onMove(state) {
@@ -135,7 +142,11 @@ export function useNavigator(
           holdDragStarted = false
         }
 
-        if (!dragPredicate(state.event) || state.pinching) return
+        if (!dragPredicate(state.event) || state.pinching) {
+          dragActive.value = false
+          return
+        }
+        dragActive.value = state.dragging && !state.last
         const isTouch = eventIsTouch(state.event)
         const mainDown = (state.buttons & PointerButtonMask.Main) != 0
         const secondaryDown = (state.buttons & PointerButtonMask.Secondary) != 0
@@ -149,12 +160,18 @@ export function useNavigator(
 
         if (state.last && longpressTimer) cancelLongpress()
         if (state.last && holdDragStarted) holdDragStarted = false
+        // Using 10ms instead of 0 here, because otherwise the expected `contextmenu` event is not consistently fired before the timer.
+        if (state.last && preventContextMenu) setTimeout(() => (preventContextMenu = false), 10)
       },
       onPinch(state) {
         // A started longpress touch can transform into pinch without warning, make sure to clear the timeout.
         cancelLongpress()
 
-        if (state.ctrlKey) return // We do our own touchpad handling below
+        if (state.ctrlKey) {
+          pinchActive.value = false
+          return // We do our own touchpad handling below
+        }
+        pinchActive.value = !state.last
 
         const currentOrigin = Vec2.FromTuple(state.origin)
         gesturePivot = clientToScenePos(currentOrigin)
@@ -169,7 +186,7 @@ export function useNavigator(
         const prevScale = scale.value
         updateScale((_) => pinchScaleRatio * state.da[0])
         scrollTo(
-          center.value
+          leftTop.value
             .scaleAround(prevScale / scale.value, gesturePivot)
             .addScaled(originDelta, -1 / scale.value),
         )
@@ -177,11 +194,11 @@ export function useNavigator(
       onWheel(state) {
         if (state.ctrlKey) return
         const delta = Vec2.FromTuple(state.delta)
-        scrollTo(center.value.addScaled(delta, 1 / scale.value))
+        scrollTo(leftTop.value.addScaled(delta, 1 / scale.value))
       },
     },
     {
-      domTarget: viewportNode,
+      domTarget: viewportElem,
       eventOptions: {
         passive: false,
       },
@@ -204,7 +221,7 @@ export function useNavigator(
   const scale = useApproach(targetScale)
 
   const panArrows = useArrows(
-    (pos) => scrollTo(center.value.addScaled(pos.delta, 1 / scale.value)),
+    (pos) => scrollTo(leftTop.value.addScaled(pos.delta, 1 / scale.value)),
     { predicate, velocity: 1000 },
   )
 
@@ -244,19 +261,25 @@ export function useNavigator(
     skipAnimation = false,
   ) {
     resetTargetFollowing()
-    if (!viewportNode.value) return
-    targetScale.value = Math.max(
-      minScale,
+    if (!viewportElem.value) return
+    targetScale.value = clamp(
       Math.min(
-        maxScale,
-        viewportNode.value.clientHeight / rect.height,
-        viewportNode.value.clientWidth / rect.width,
+        viewportElem.value.clientHeight / rect.height,
+        viewportElem.value.clientWidth / rect.width,
       ),
+      minScale,
+      maxScale,
     )
-    targetCenter.value = rect.center().finiteOrZero()
+    // Rect position should be centered inside viewport (they may have different aspect ratio).
+    const w = viewportElem.value.clientWidth / targetScale.value
+    const h = viewportElem.value.clientHeight / targetScale.value
+    targetLeftTop.value = rect
+      .center()
+      .finiteOrZero()
+      .sub(new Vec2(w / 2, h / 2))
     if (skipAnimation) {
       scale.skip()
-      center.skip()
+      leftTop.skip()
     }
   }
 
@@ -303,32 +326,31 @@ export function useNavigator(
   function panToImpl(points: Partial<Vec2>[]) {
     let target = viewport.value
     for (const point of points.reverse()) target = target.offsetToInclude(point) ?? target
-    targetCenter.value = target.center().finiteOrZero()
+    targetLeftTop.value = target.pos.finiteOrZero()
   }
 
   /** Pan immediately to center the viewport at the given point, in scene coordinates. */
-  function scrollTo(newCenter: Vec2) {
+  function scrollTo(newLeftTop: Vec2) {
     resetTargetFollowing()
-    targetCenter.value = newCenter.finiteOrZero()
-    center.skip()
+    targetLeftTop.value = newLeftTop.finiteOrZero()
+    leftTop.skip()
   }
 
-  /** Set viewport center point and scale value immediately, skipping animations. */
-  function setCenterAndScale(newCenter: Vec2, newScale: number) {
+  /** Set viewport left-top point and scale value immediately, skipping animations. */
+  function setPosAndScale(newLeftTop: Vec2, newScale: number) {
     resetTargetFollowing()
-    targetCenter.value = newCenter.finiteOrZero()
+    targetLeftTop.value = newLeftTop.finiteOrZero()
     targetScale.value = newScale
     scale.skip()
-    center.skip()
+    leftTop.skip()
   }
 
   const viewport = computed(() => {
     const nodeSize = size.value
-    const { x, y } = center.value
     const s = scale.value
     const w = nodeSize.x / s
     const h = nodeSize.y / s
-    return new Rect(new Vec2(x - w / 2, y - h / 2), new Vec2(w, h))
+    return new Rect(leftTop.value, new Vec2(w, h))
   })
 
   const viewBox = computed(() => {
@@ -337,14 +359,12 @@ export function useNavigator(
   })
 
   const translate = computed<Vec2>(() => {
-    const nodeSize = size.value
-    const { x, y } = center.value
-    const s = scale.value
-    const w = nodeSize.x / s
-    const h = nodeSize.y / s
-    return new Vec2(-x + w / 2, -y + h / 2)
+    return leftTop.value.scale(-1)
   })
 
+  const transformChanging = computed(
+    () => scale.active || leftTop.active || dragActive.value || pinchActive.value,
+  )
   const transform = computed(
     () => `scale(${scale.value}) translate(${translate.value.x}px, ${translate.value.y}px)`,
   )
@@ -359,12 +379,12 @@ export function useNavigator(
   )
 
   /**
-   * Clamp the value to the given bounds, except if it is already outside the bounds allow the new value to be less
-   *  outside the bounds.
+   * Clamp the value to the given bounds, except if it is already outside the bounds allow the new
+   * value to be less outside the bounds.
    */
   function directedClamp(oldValue: number, newValue: number, [min, max]: ScaleRange): number {
     if (!Number.isFinite(newValue)) return oldValue
-    else if (!Number.isFinite(oldValue)) return Math.max(min, Math.min(newValue, max))
+    else if (!Number.isFinite(oldValue)) return clamp(newValue, min, max)
     else if (newValue > oldValue) return Math.min(max, newValue)
     else return Math.max(min, newValue)
   }
@@ -408,8 +428,8 @@ export function useNavigator(
     const scenePos0 = clientToScenePos(clientPos)
     const result = f()
     const scenePos1 = clientToScenePos(clientPos)
-    targetCenter.value = center.value.add(scenePos0.sub(scenePos1)).finiteOrZero()
-    center.skip()
+    targetLeftTop.value = leftTop.value.add(scenePos0.sub(scenePos1)).finiteOrZero()
+    leftTop.skip()
     return result
   }
 
@@ -429,22 +449,26 @@ export function useNavigator(
     },
     (e) => {
       const delta = new Vec2(e.deltaX, e.deltaY)
-      scrollTo(center.value.addScaled(delta, 1 / scale.value))
+      scrollTo(leftTop.value.addScaled(delta, 1 / scale.value))
     },
   )
 
-  useEventListener(viewportNode, 'wheel', wheelEvents.wheel)
-  useEventListener(viewportNode, 'wheel', wheelEventsCapture.wheel, { capture: true })
-  useEventListener(viewportNode, 'pointermove', wheelEventsCapture.pointermove, { capture: true })
+  useEventListener(viewportElem, 'wheel', wheelEvents.wheel, { passive: false })
+  useEventListener(viewportElem, 'wheel', wheelEventsCapture.wheel, {
+    capture: true,
+    passive: false,
+  })
+  useEventListener(viewportElem, 'pointermove', wheelEventsCapture.pointermove, { capture: true })
 
   return proxyRefs({
     keyboardEvents: panArrows.events,
     translate: readonly(translate),
-    targetCenter: readonly(targetCenter),
+    targetLeftTop: readonly(targetLeftTop),
     targetScale: readonly(targetScale),
     scale: readonly(toRef(scale, 'value')),
     viewBox: readonly(viewBox),
     transform: readonly(transform),
+    transformChanging: readonly(transformChanging),
     /**
      * Add handler for "hold" events - a drag action that doesn't move the navigator viewport, but
      * is supposed to represent holding the viewport contents itself. For desktop, this is the
@@ -465,6 +489,6 @@ export function useNavigator(
     viewport,
     stepZoom,
     scrollTo,
-    setCenterAndScale,
+    setPosAndScale,
   })
 }

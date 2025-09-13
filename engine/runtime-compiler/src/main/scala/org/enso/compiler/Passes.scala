@@ -1,7 +1,6 @@
 package org.enso.compiler
 
 import org.enso.compiler.data.CompilerConfig
-import org.enso.compiler.dump.IRDumperPass
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis
@@ -10,6 +9,7 @@ import org.enso.compiler.pass.analyse.types.{
   TypeInferenceSignatures
 }
 import org.enso.compiler.pass.desugar._
+import org.enso.compiler.pass.lint.unusedimports.UnusedImports
 import org.enso.compiler.pass.lint.{
   ModuleNameConflicts,
   NoSelfInStatic,
@@ -57,8 +57,8 @@ class Passes(config: CompilerConfig) {
             )
           } else List())
     ++ List(
-      ShadowedPatternFields,
-      UnreachableMatchBranches,
+      ShadowedPatternFields.INSTANCE,
+      UnreachableMatchBranches.INSTANCE,
       NestedPatternMatch,
       IgnoredBindings,
       TypeFunctions,
@@ -104,18 +104,17 @@ class Passes(config: CompilerConfig) {
             Nil
           } else {
             List(UnusedBindings, NoSelfInStatic)
-          }) ++ (if (config.staticTypeInferenceEnabled) {
+          }) ++ (if (config.staticAnalysisEnabled) {
                    List(
                      TypeInferenceSignatures.INSTANCE,
-                     StaticModuleScopeAnalysis.INSTANCE
+                     StaticModuleScopeAnalysis.INSTANCE,
+                     UnusedImports.INSTANCE
                    )
-                 } else Nil) ++ (if (config.dumpIrs) {
-                                   List(IRDumperPass.INSTANCE)
-                                 } else Nil)
+                 } else Nil)
   )
 
   val typeInferenceFinalPasses = new PassGroup(
-    if (config.staticTypeInferenceEnabled) {
+    if (config.staticAnalysisEnabled) {
       List(
         TypeInferencePropagation.INSTANCE
       )

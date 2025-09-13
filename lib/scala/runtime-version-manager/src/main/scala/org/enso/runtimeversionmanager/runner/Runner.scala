@@ -1,6 +1,5 @@
 package org.enso.runtimeversionmanager.runner
 
-import com.typesafe.scalalogging.Logger
 import org.enso.semver.SemVer
 import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.editions.updater.EditionManager
@@ -9,17 +8,15 @@ import org.enso.logger.masking.MaskedString
 import org.slf4j.event.Level
 
 import java.net.URI
-import org.enso.runtimeversionmanager.components.{
-  Engine,
-  GraalRuntime,
-  RuntimeVersionManager
-}
+import org.enso.runtimeversionmanager.components.{Engine, RuntimeVersionManager}
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 
 import java.nio.file.Path
+
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.Try
+import org.slf4j.LoggerFactory
 
 /** A helper class that prepares settings for running Enso components and
   * converts these settings to actual commands that launch the component inside
@@ -41,10 +38,13 @@ class Runner(
     */
   protected val currentWorkingDirectory: Path = Path.of(".")
 
+  private lazy val logger = LoggerFactory.getLogger(classOf[Runner])
+
   def newProject(
     path: Path,
     name: String,
     engineVersion: SemVer,
+    jvm: Option[Option[Path]],
     normalizedName: Option[String],
     projectTemplate: Option[String],
     authorName: Option[String],
@@ -71,7 +71,7 @@ class Runner(
         ) ++ templateOption ++ normalizedNameOption ++ authorNameOption ++ authorEmailOption ++ additionalArguments
       // TODO [RW] reporting warnings to the IDE (#1710)
       if (Engine.isNightly(engineVersion)) {
-        Logger[Runner].warn(
+        logger.warn(
           "Creating a new project using a nightly build [{}]. " +
           "Nightly builds may disappear after a while, so you may need to " +
           "upgrade. Consider using a stable version.",
@@ -80,6 +80,7 @@ class Runner(
       }
       RunSettings(
         engineVersion,
+        jvm,
         arguments,
         workingDirectory         = None,
         connectLoggerIfAvailable = false
@@ -103,7 +104,8 @@ class Runner(
       version,
       logLevel,
       logMasking,
-      additionalArguments
+      additionalArguments,
+      Seq()
     )
   }
 
@@ -114,15 +116,16 @@ class Runner(
     version: SemVer,
     logLevel: Level,
     logMasking: Boolean,
-    additionalArguments: Seq[String]
+    additionalArguments: Seq[String],
+    extraEnv: Seq[(String, String)]
   ): Try[RunSettings] =
     Try {
-      val workingDirectory =
-        Path.of(projectPath).toAbsolutePath.normalize.getParent
       val arguments = Seq(
         "--server",
         "--root-id",
         options.rootId.toString,
+        "--project-id",
+        options.projectId.toString,
         "--path",
         projectPath,
         "--interface",
@@ -133,18 +136,28 @@ class Runner(
         options.dataPort.toString,
         "--log-level",
         logLevel.name
-      ) ++ options.secureRpcPort
-        .map(port => Seq("--secure-rpc-port", port.toString))
+      ) ++ options.projectCloudId
+        .map(id => Seq("--cloud-project-id", id))
         .getOrElse(Seq.empty) ++
+        options.projectCloudSessionId
+          .map(id => Seq("--cloud-project-session-id", id))
+          .getOrElse(Seq.empty) ++
+        options.secureRpcPort
+          .map(port => Seq("--secure-rpc-port", port.toString))
+          .getOrElse(Seq.empty) ++
         options.secureDataPort
           .map(port => Seq("--secure-data-port", port.toString))
           .getOrElse(Seq.empty) ++
         Option.unless(logMasking)(Seq("--no-log-masking")).getOrElse(Seq.empty)
+
+      val projectDirectory = Path.of(projectPath).toAbsolutePath.normalize
       RunSettings(
         version,
+        options.jvm,
         arguments ++ additionalArguments,
-        workingDirectory         = Some(workingDirectory),
-        connectLoggerIfAvailable = true
+        workingDirectory         = Some(projectDirectory.getParent),
+        connectLoggerIfAvailable = true,
+        extraEnv                 = extraEnv
       )
     }
 
@@ -167,9 +180,8 @@ class Runner(
     def prepareAndRunCommand(engine: Engine, cmd: ExecCommand): R = {
       val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
       jvmOptsFromEnvironment.foreach { opts =>
-        Logger[Runner].debug(
-          "Picking up additional JVM options [{}] from the " +
-          "[{}] environment variable.",
+        logger.info(
+          "Additional JVM options [{}] from the {} environment variable.",
           MaskedString(opts),
           JVM_OPTIONS_ENV_VAR
         )
@@ -196,15 +208,17 @@ class Runner(
       val javaHome: Option[String] = environment
         .getEnvPath(JVM_PATH_ENV_VAR)
         .map { p =>
-          Logger[Runner].info(
+          logger.info(
             "Using explicit " + JVM_PATH_ENV_VAR + " JVM: " + p
           )
-          p.toString()
+          p.toString
         }
         .orElse(cmd.javaHome)
 
       val extraEnvironmentOverrides =
-        javaHome.map("JAVA_HOME" -> _).toSeq ++ distributionSettings.toSeq
+        javaHome
+          .map("JAVA_HOME" -> _)
+          .toSeq ++ distributionSettings.toSeq ++ runSettings.extraEnv
 
       action(
         RawCommand(
@@ -224,14 +238,35 @@ class Runner(
       case None =>
         runtimeVersionManager.withEngineAndRuntime(engineVersion) {
           (engine, runtime) =>
-            NativeExecCommand.apply(engineVersion.toString) match {
-              case Some(cmd) =>
-                prepareAndRunCommand(engine, cmd)
-              case None =>
-                prepareAndRunCommand(
-                  engine,
-                  JavaExecCommand.forRuntime(runtime)
+            if (runSettings.jvm.isDefined) {
+              val javaHome = runSettings.jvm.get
+              val javaExec = javaHome
+                .map(home =>
+                  new JavaExecCommand(
+                    home.resolve("bin").resolve("java").toString,
+                    javaHome.map(_.toString)
+                  )
                 )
+                .getOrElse(JavaExecCommand.forRuntime(runtime))
+              prepareAndRunCommand(
+                engine,
+                javaExec
+              )
+            } else {
+              NativeExecCommand.apply(
+                engineVersion.toString,
+                engine,
+                logger
+              ) match {
+                case Some(cmd) =>
+                  prepareAndRunCommand(engine, cmd)
+                case None =>
+                  // Fallback, JVM-mode
+                  prepareAndRunCommand(
+                    engine,
+                    JavaExecCommand.forRuntime(runtime)
+                  )
+              }
             }
         }
     }
@@ -254,7 +289,7 @@ class Runner(
         Await.result(loggerConnection, 3.seconds)
       } catch {
         case exception: TimeoutException =>
-          Logger[GraalRuntime].warn(
+          logger.warn(
             "The logger has not been set up within the 3 second time limit, " +
             "the launched component will be started but it will not be " +
             "connected to the logging service.",

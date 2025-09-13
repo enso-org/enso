@@ -1,9 +1,8 @@
 /** @file Available actions for the login page. */
-import { expect } from '@playwright/test'
-
-import { TEXT, VALID_EMAIL } from '.'
+import { expect } from 'playwright/test'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import LoginPageActions from './LoginPageActions'
+import { TEXT, VALID_EMAIL } from './utilities'
 
 /** Available actions for the login page. */
 export default class ForgotPasswordPageActions<Context> extends BaseActions<Context> {
@@ -11,9 +10,10 @@ export default class ForgotPasswordPageActions<Context> extends BaseActions<Cont
   get goToPage() {
     return {
       login: (): LoginPageActions<Context> =>
-        this.step("Go to 'login' page", async (page) =>
-          page.getByRole('link', { name: TEXT.goBackToLogin, exact: true }).click(),
-        ).into(LoginPageActions<Context>),
+        this.step("Go to 'login' page", async (page) => {
+          await page.getByRole('link', { name: TEXT.goBackToLogin, exact: true }).click()
+          await expect(page.getByText(TEXT.loginToYourAccount)).toBeVisible()
+        }).into(LoginPageActions<Context>),
     }
   }
 

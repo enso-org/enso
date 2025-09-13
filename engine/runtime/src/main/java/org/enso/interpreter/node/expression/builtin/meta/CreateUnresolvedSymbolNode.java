@@ -40,8 +40,7 @@ public abstract class CreateUnresolvedSymbolNode extends Node {
   @Fallback
   ModuleScope doFallback(Object name, Object symbol) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
-    throw new PanicException(
-        builtins.error().makeTypeError("Unresolved_Symbol", symbol, "symbol"), this);
+    throw new PanicException(builtins.error().makeTypeError("Unresolved", symbol, "symbol"), this);
   }
 
   private Object executeWithScope(Object name, ModuleScope scope) {

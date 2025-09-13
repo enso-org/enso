@@ -15,7 +15,10 @@ public class BenchmarkResultProcessor {
   public BenchmarkItem processResult(String label, Report report, RunResult result) {
     Result primary = result.getPrimaryResult();
     ReportItem item = report.findOrCreateByLabel(label);
-    item.addScore(primary.getScore());
+    double score = primary.getScore();
+    ReportItem.MeasurementStatistics stats =
+        ReportItem.MeasurementStatistics.from(primary.getStatistics());
+    item.addScore(score, stats);
     return new BenchmarkItem(primary, item);
   }
 }

@@ -1,0 +1,16 @@
+--- MODULE.bazel
++++ MODULE.bazel
+@@ -14,3 +14,3 @@ bazel_dep(name = "aspect_rules_js", version = "2.1.2")
+ 
+-rust_ext = use_extension("//:extensions.bzl", "rust_ext")
++rust_ext = use_extension("//:extensions.bzl", "e")
+ use_repo(
+
+
+--- extensions.bzl
++++ extensions.bzl
+@@ -25,3 +25,3 @@     return module_ctx.extension_metadata(**metadata_kwargs)
+ 
+-rust_ext = module_extension(
++e = module_extension(
+     doc = "Dependencies for the rules_rust wasm_bindgen extension.",

@@ -1,0 +1,23 @@
+## Enso Signatures 1.0
+## module Standard.Database.Feature
+- type Feature
+    - Add_Group_Number
+    - Add_Row_Number
+    - Aggregate
+    - Column_Operations
+    - Cross_Join
+    - Distinct
+    - Filter
+    - Generate_Rows
+    - Integration_Tests
+    - Join
+    - Make_Table_From
+    - Merge
+    - Offset
+    - Replace
+    - Sample
+    - Select_Columns
+    - Sort
+    - Text_Cleanse
+    - Union
+    - if_supported_else_throw self dialect:Standard.Base.Any.Any error_name:Standard.Base.Data.Text.Text ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any

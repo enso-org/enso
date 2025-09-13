@@ -74,7 +74,10 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Shared("typesLib") @CachedLibrary(limit = "10") TypesLibrary dispatch,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
       @Shared("indirectInvokeFunctionNode") @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
-    Function function = methodResolverNode.expectNonNull(self, dispatch.getType(self), symbol);
+    var function = methodResolverNode.executeResolution(dispatch.getType(self), symbol);
+    if (function == null) {
+      throw InvokeMethodNode.methodNotFound(this, true, symbol, self);
+    }
     return invokeFunctionNode.execute(
         function,
         frame,

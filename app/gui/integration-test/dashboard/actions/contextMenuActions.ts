@@ -1,20 +1,18 @@
 /** @file Actions for the context menu. */
-import { TEXT } from '.'
 import type BaseActions from './BaseActions'
 import type { PageCallback } from './BaseActions'
 import EditorPageActions from './EditorPageActions'
+import { TEXT } from './utilities'
 
 /** Actions for the context menu. */
 export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
   readonly open: () => T
-  readonly uploadToCloud: () => T
   readonly rename: () => T
-  readonly snapshot: () => T
-  readonly moveNonFolderToTrash: () => T
-  readonly moveFolderToTrash: () => T
-  readonly moveAllToTrash: (confirm?: boolean) => T
+  readonly exportToCloud: () => T
+  readonly exportToLocal: () => T
+  readonly delete: () => T
+  readonly moveToTrash: () => T
   readonly restoreFromTrash: () => T
-  readonly restoreAllFromTrash: () => T
   readonly share: () => T
   readonly label: () => T
   readonly duplicate: () => T
@@ -39,13 +37,6 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
       step('Open (context menu)', (page) =>
         page.getByRole('button', { name: TEXT.openShortcut }).getByText(TEXT.openShortcut).click(),
       ),
-    uploadToCloud: () =>
-      step('Upload to cloud (context menu)', (page) =>
-        page
-          .getByRole('button', { name: TEXT.uploadToCloudShortcut })
-          .getByText(TEXT.uploadToCloudShortcut)
-          .click(),
-      ),
     rename: () =>
       step('Rename (context menu)', (page) =>
         page
@@ -53,22 +44,34 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
           .getByText(TEXT.renameShortcut)
           .click(),
       ),
-    snapshot: () =>
-      step('Snapshot (context menu)', (page) =>
+    exportToCloud: () =>
+      step('Export to cloud (context menu)', (page) =>
         page
-          .getByRole('button', { name: TEXT.snapshotShortcut })
-          .getByText(TEXT.snapshotShortcut)
+          .getByRole('button', { name: TEXT.uploadToCloudShortcut })
+          .getByText(TEXT.uploadToCloudShortcut)
           .click(),
       ),
-    moveNonFolderToTrash: () =>
-      step('Move to trash (context menu)', async (page) => {
+    exportToLocal: () =>
+      step('Export to local (context menu)', (page) =>
+        page
+          .getByRole('button', { name: TEXT.downloadToLocalShortcut })
+          .getByText(TEXT.downloadToLocalShortcut)
+          .click(),
+      ),
+    delete: () =>
+      step('Delete (context menu)', async (page) => {
         await page
-          .getByRole('button', { name: TEXT.moveToTrashShortcut })
-          .getByText(TEXT.moveToTrashShortcut)
+          .getByRole('button', { name: TEXT.deleteShortcut })
+          .getByText(TEXT.deleteShortcut)
+          // Click the first result; the second one is the text of the keybind.
+          .first()
           .click()
+
+        // Confirm the deletion in the dialog
+        await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
       }),
-    moveFolderToTrash: () =>
-      step('Move folder to trash (context menu)', async (page) => {
+    moveToTrash: () =>
+      step('Move to trash (context menu)', async (page) => {
         await page
           .getByRole('button', { name: TEXT.moveToTrashShortcut })
           .getByText(TEXT.moveToTrashShortcut)
@@ -77,28 +80,11 @@ export function contextMenuActions<T extends BaseActions<Context>, Context>(
         // Confirm the deletion in the dialog
         await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
       }),
-    moveAllToTrash: (hasFolder = false) =>
-      step('Move all to trash (context menu)', async (page) => {
-        await page
-          .getByRole('button', { name: TEXT.moveAllToTrashShortcut })
-          .getByText(TEXT.moveAllToTrashShortcut)
-          .click()
-        if (hasFolder) {
-          await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
-        }
-      }),
     restoreFromTrash: () =>
       step('Restore from trash (context menu)', (page) =>
         page
           .getByRole('button', { name: TEXT.restoreFromTrashShortcut })
           .getByText(TEXT.restoreFromTrashShortcut)
-          .click(),
-      ),
-    restoreAllFromTrash: () =>
-      step('Restore all from trash (context menu)', (page) =>
-        page
-          .getByRole('button', { name: TEXT.restoreAllFromTrashShortcut })
-          .getByText(TEXT.restoreAllFromTrashShortcut)
           .click(),
       ),
     share: () =>

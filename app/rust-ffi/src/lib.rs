@@ -1,17 +1,12 @@
 use wasm_bindgen::prelude::*;
 
+use enso_parser::syntax::token::TokenOperatorProperties;
 use enso_parser::Parser;
 
 
 
 thread_local! {
     pub static PARSER: Parser = Parser::new();
-}
-
-#[wasm_bindgen]
-pub fn parse_doc_to_json(docs: &str) -> String {
-    let docs = enso_doc_parser::parse(docs);
-    serde_json::to_string(&docs).expect("Failed to serialize Doc Sections to JSON")
 }
 
 #[wasm_bindgen]
@@ -42,6 +37,32 @@ pub fn is_ident_or_operator(code: &str) -> u32 {
         _ => 0,
     }
 }
+
+/// What should separate this expression from self argument applied to it.
+///
+/// See `selfArgSeparator` docs in app/ydoc-shared/src/ast/token.ts
+///
+/// Returns:
+/// * -1 - if `self` should be joined with dot.
+/// * non-negative integer - if `self` should be joined with returned number of spaces.
+#[wasm_bindgen]
+pub fn self_arg_separator(code: &str) -> i32 {
+    let parsed = enso_parser::lexer::run(code);
+    if parsed.internal_error.is_some() {
+        return 0;
+    }
+    let (token, right_spacing) = match &parsed.value[..] {
+        [token, next_token, ..] => (token, next_token.left_offset.visible.width_in_spaces),
+        [token] => (token, 1),
+        [] => return -1,
+    };
+    if token.operator_properties().is_some() {
+        right_spacing as i32
+    } else {
+        -1
+    }
+}
+
 
 #[wasm_bindgen]
 pub fn is_numeric_literal(code: &str) -> bool {
@@ -74,7 +95,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_is_ident_or_operator() {
+    fn test_is_numeric_literal() {
         assert!(is_numeric_literal("1234"));
         assert!(is_numeric_literal("-1234"));
         assert!(!is_numeric_literal(""));
@@ -82,5 +103,24 @@ mod tests {
         assert!(!is_numeric_literal("1-234"));
         assert!(!is_numeric_literal("1234!"));
         assert!(!is_numeric_literal("1234e5"));
+    }
+
+    #[test]
+    fn test_checking_ident_or_operator() {
+        assert_eq!(is_ident_or_operator("abc"), 1);
+        assert_eq!(is_ident_or_operator("Abc"), 1);
+        assert_eq!(is_ident_or_operator("abc 14"), 0);
+        assert_eq!(is_ident_or_operator("+"), 2);
+        assert_eq!(is_ident_or_operator("+ 2"), 0);
+        assert_eq!(is_ident_or_operator("[]"), 0);
+
+        assert_eq!(self_arg_separator("abc"), -1);
+        assert_eq!(self_arg_separator("abc 14"), -1);
+        assert_eq!(self_arg_separator("+"), 1);
+        assert_eq!(self_arg_separator("+ 2"), 1);
+        assert_eq!(self_arg_separator("+2"), 0);
+        assert_eq!(self_arg_separator("- 2"), 1);
+        assert_eq!(self_arg_separator("-2"), 0);
+        assert_eq!(self_arg_separator("[]"), -1);
     }
 }

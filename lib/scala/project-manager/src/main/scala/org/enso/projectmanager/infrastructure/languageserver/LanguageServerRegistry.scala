@@ -53,11 +53,14 @@ class LanguageServerRegistry(
           project,
           engineVersion,
           progressTracker,
-          engineUpdate
+          engineUpdate,
+          extraEnv
         ) =>
       if (serverControllers.contains(project.id)) {
         serverControllers(project.id).forward(msg)
       } else {
+        val mainProcessConfig =
+          processConfig.copy(extraEnv = processConfig.extraEnv ++ extraEnv)
         val controller = context.actorOf(
           LanguageServerController
             .props(
@@ -69,7 +72,7 @@ class LanguageServerRegistry(
               supervisionConfig,
               timeoutConfig,
               distributionConfiguration,
-              processConfig,
+              mainProcessConfig,
               loggingServiceDescriptor,
               executor
             ),

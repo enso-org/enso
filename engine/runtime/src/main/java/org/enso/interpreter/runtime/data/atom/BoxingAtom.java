@@ -86,6 +86,11 @@ final class BoxingAtom extends Atom {
     fields[index] = value;
   }
 
+  @ExportMessage
+  boolean isFieldEvaluated(int index) {
+    return true;
+  }
+
   @Override
   @TruffleBoundary
   public Object toDisplayString(boolean allowSideEffects) {

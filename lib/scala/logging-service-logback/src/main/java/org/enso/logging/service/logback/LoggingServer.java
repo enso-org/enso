@@ -4,6 +4,7 @@ import ch.qos.logback.classic.LoggerContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.UUID;
 import org.enso.logging.config.BaseConfig;
 import org.enso.logging.service.LoggingService;
 import org.slf4j.event.Level;
@@ -26,6 +27,9 @@ class LoggingServer extends LoggingService<URI> {
       logServer = new SocketServer(lc, port);
       logServer.start();
       setup.setup(level, path, prefix, setup.getConfig());
+      config.getAppenders().get("telemetry").setup(level, setup);
+      var openSearchEnabled = config.getAppenders().get("opensearch").setup(level, setup);
+      if (!openSearchEnabled) System.err.println("Remote Logs: Disabled");
       return new URI(null, null, "localhost", port, null, null, null);
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);
@@ -34,6 +38,13 @@ class LoggingServer extends LoggingService<URI> {
 
   public boolean isSetup() {
     return logServer != null;
+  }
+
+  @Override
+  public void teardown(UUID projectId) {
+    if (logServer != null) {
+      logServer.closeProject(projectId);
+    }
   }
 
   @Override

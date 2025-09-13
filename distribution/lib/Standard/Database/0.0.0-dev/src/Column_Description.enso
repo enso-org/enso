@@ -9,8 +9,8 @@ type Column_Description
 
     ## Describes a column structure for `Connection.create_table`.
 
-       Arguments:
-       - name: The name of the column.
-       - value_type: The type of the column.
-       - constraints: Additional SQL constraints for the column.
+       ## Arguments
+        - `name`: The name of the column.
+        - `value_type`: The type of the column.
+        - `constraints`: Additional SQL constraints for the column.
     Value (name:Text) (value_type:Value_Type) (constraints : Vector Column_Constraint = [])

@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
 use crate::ci::input;
-use crate::ci_gen::job::plain_job;
-use crate::ci_gen::job::with_packaging_steps;
+use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
+use crate::engine;
 use crate::engine::env;
 use crate::version::promote::Designation;
 use crate::version::ENSO_EDITION;
@@ -13,20 +13,22 @@ use crate::version::ENSO_VERSION;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input;
 use ide_ci::actions::workflow::definition::get_input_expression;
-use ide_ci::actions::workflow::definition::is_non_windows_runner;
-use ide_ci::actions::workflow::definition::is_windows_runner;
 use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_bazel;
 use ide_ci::actions::workflow::definition::setup_bazel_env;
+use ide_ci::actions::workflow::definition::setup_corepack;
+use ide_ci::actions::workflow::definition::setup_node;
 use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::wrap_expression;
+use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Branches;
 use ide_ci::actions::workflow::definition::Concurrency;
 use ide_ci::actions::workflow::definition::Event;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::JobSecrets;
+use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::PullRequest;
 use ide_ci::actions::workflow::definition::PullRequestActivityType;
 use ide_ci::actions::workflow::definition::Push;
@@ -122,7 +124,7 @@ pub mod secret {
     pub const ENSO_CLOUD_COGNITO_USER_POOL_ID: &str = "ENSO_CLOUD_COGNITO_USER_POOL_ID";
     pub const ENSO_CLOUD_COGNITO_REGION: &str = "ENSO_CLOUD_COGNITO_REGION";
     pub const ENSO_CLOUD_TEST_ACCOUNT_USERNAME: &str = "ENSO_CLOUD_TEST_ACCOUNT_USERNAME";
-    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASSWORD";
+    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASS";
 
     // === Apple Code Signing & Notarization ===
     pub const APPLE_CODE_SIGNING_CERT: &str = "APPLE_CODE_SIGNING_CERT";
@@ -155,6 +157,14 @@ pub mod secret {
     // === Sentry ===
     /// The authentication token for pushing source maps to Sentry.
     pub const SENTRY_AUTH_TOKEN: &str = "SENTRY_AUTH_TOKEN";
+
+    // === OAuth Integrations ===
+    /// The client ID for the Google OAuth integration used for Google Credentials.
+    pub const ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID";
+
+    // === OAuth Integrations ===
+    /// The client ID for the Strava OAuth integration used for Strava Credentials.
+    pub const ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: &str = "ENSO_IDE_STRAVA_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
@@ -228,7 +238,7 @@ impl Display for CleaningCondition {
             Self::Always => write!(f, "always()"),
             Self::OnRequest => write!(
                 f,
-                "contains(github.event.pull_request.labels.*.name, '{}') || inputs.{}",
+                "contains(github.event.pull_request.labels.*.name, '{}') || (github.ref == 'refs/heads/develop') || inputs.{}",
                 crate::ci::labels::CLEAN_BUILD_REQUIRED,
                 crate::ci::inputs::CLEAN_BUILD_REQUIRED
             ),
@@ -262,7 +272,7 @@ pub fn cleaning_step(
     conditions: impl IntoIterator<Item = CleaningCondition>,
 ) -> Step {
     let mut ret = run("git-clean").with_name(name);
-    ret.r#if = CleaningCondition::format_conjunction(conditions);
+    ret.r#if = CleaningCondition::format_conjunction(conditions).map(wrap_expression);
     ret
 }
 
@@ -273,6 +283,8 @@ pub struct RunStepsBuilder {
     pub run_command: String,
     /// Condition under which the runner should be cleaned before and after the run.
     pub cleaning:    CleaningCondition,
+    /// Custom fetch depth of repo checkout action.
+    pub fetch_depth: Option<u32>,
     /// Customize the step that runs the command.
     ///
     /// Allows replacing the run step with one or more custom steps.
@@ -283,12 +295,23 @@ pub struct RunStepsBuilder {
 impl RunStepsBuilder {
     /// Create a builder with the given command.
     pub fn new(run_command: impl Into<String>) -> Self {
-        Self { run_command: run_command.into(), cleaning: default(), customize: default() }
+        Self {
+            run_command: run_command.into(),
+            cleaning:    default(),
+            customize:   default(),
+            fetch_depth: default(),
+        }
     }
 
     /// Set the cleaning condition.
     pub fn cleaning(mut self, cleaning: CleaningCondition) -> Self {
         self.cleaning = cleaning;
+        self
+    }
+
+    /// Set the cleaning condition.
+    pub fn fetch_depth(mut self, depth: u32) -> Self {
+        self.fetch_depth = Some(depth);
         self
     }
 
@@ -307,10 +330,9 @@ impl RunStepsBuilder {
             Some(customize) => customize(run_step),
             None => vec![run_step],
         };
-        let mut steps = setup_script_steps();
+        let mut steps = setup_script_steps(self.fetch_depth);
         steps.push(clean_before);
         steps.extend(run_steps);
-        steps.extend(list_everything_on_failure());
         steps.push(clean_after);
         steps
     }
@@ -375,9 +397,15 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
 }
 
 /// Initial CI job steps: check out the source code and set up the environment.
-pub fn setup_script_steps() -> Vec<Step> {
-    let mut ret =
-        vec![setup_bazel_env(), setup_bazel(), setup_artifact_api(), checkout_repo_step()];
+pub fn setup_script_steps(fetch_depth: Option<u32>) -> Vec<Step> {
+    let mut ret = vec![
+        setup_bazel_env(),
+        setup_bazel(),
+        setup_artifact_api(),
+        checkout_repo_step(fetch_depth),
+        setup_node(),
+        setup_corepack(),
+    ];
     // We run `./run --help` so:
     // * The build-script is build in a separate step. This allows us to monitor its build-time and
     //   not affect timing of the actual build.
@@ -391,25 +419,6 @@ pub fn setup_script_steps() -> Vec<Step> {
     ret
 }
 
-
-pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
-    let win = Step {
-        name: Some("List files if failed (Windows)".into()),
-        r#if: Some(format!("failure() && {}", is_windows_runner())),
-        run: Some("Get-ChildItem -Force -Recurse".into()),
-        ..default()
-    };
-
-    let non_win = Step {
-        name: Some("List files if failed (non-Windows)".into()),
-        r#if: Some(format!("failure() && {}", is_non_windows_runner())),
-        run: Some("ls -lAR".into()),
-        ..default()
-    };
-
-    [win, non_win]
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct DraftRelease;
 
@@ -418,7 +427,7 @@ impl JobArchetype for DraftRelease {
         let name = "Create a release draft.".into();
 
         let prepare_step = run("release create-draft").with_id(Self::PREPARE_STEP_ID);
-        let mut steps = setup_script_steps();
+        let mut steps = setup_script_steps(None);
         steps.push(prepare_step);
 
         let mut ret = Job { name, runs_on: target.runs_on(), steps, ..default() };
@@ -445,14 +454,28 @@ pub struct PublishRelease;
 
 impl JobArchetype for PublishRelease {
     fn job(&self, target: Target) -> Job {
-        let mut ret = plain_job(target, "Publish release", "release publish");
-        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
-        ret.expose_secret_as(
+        let mut job = RunStepsBuilder::new("release publish")
+            .customize(move |step| {
+                let mut steps = vec![];
+
+                let download_edition_file = step::download_artifact("Download Edition File")
+                    .with_custom_argument("name", crate::paths::EDITION_FILE_ARTIFACT_NAME)
+                    .with_custom_argument("path", "distribution/editions");
+                steps.push(download_edition_file);
+
+                steps.push(step);
+
+                steps
+            })
+            .build_job("Publish release", target);
+
+        job.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
+        job.expose_secret_as(
             secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
             crate::aws::env::AWS_SECRET_ACCESS_KEY,
         );
-        ret.env(crate::aws::env::AWS_REGION, "us-west-1");
-        ret
+        job.env(crate::aws::env::AWS_REGION, "us-west-1");
+        job
     }
 }
 
@@ -466,7 +489,19 @@ impl JobArchetype for UploadIde {
             "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts",
         )
         .cleaning(RELEASE_CLEANING_POLICY)
-        .customize(with_packaging_steps(target.0, job::PackagingTarget::Release))
+        .customize(move |step| {
+            let mut steps = prepare_packaging_steps(target.0, step, job::PackagingTarget::Release);
+
+            let upload_ide = step::upload_artifact("Upload ide")
+                .with_custom_argument("name", format!("ide-{}-{}", target.0, target.1))
+                .with_custom_argument(
+                "path",
+                format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                );
+            steps.push(upload_ide);
+
+            steps
+        })
         .build_job("Build IDE", target)
     }
 }
@@ -512,16 +547,19 @@ fn concurrency(group: impl AsRef<str>) -> Concurrency {
 /// Generate a workflow that checks if the changelog has been updated (if needed).
 pub fn changelog() -> Result<Workflow> {
     use PullRequestActivityType::*;
-    let mut ret = Workflow::new("Changelog");
-    ret.on.pull_request(PullRequest::default().with_types([
+    let mut workflow = Workflow::new("Changelog");
+    workflow.on.pull_request(PullRequest::default().with_types([
         Labeled,
         Unlabeled,
         Synchronize,
         Opened,
         Reopened,
     ]));
-    ret.add_job(RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::X64));
-    Ok(ret)
+    let mut changelog_check =
+        RunStepsBuilder::new("changelog-check").build_job("Changelog", RunnerLabel::X64);
+    changelog_check.runs_on = vec![RunnerLabel::Linux, RunnerLabel::SelfHosted];
+    workflow.add_job(changelog_check);
+    Ok(workflow)
 }
 
 pub fn nightly() -> Result<Workflow> {
@@ -588,34 +626,59 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
 }
 
 /// Add jobs that perform backend checks, including Scala and Standard Library tests.
-pub fn add_backend_checks_customized(
-    workflow: &mut Workflow,
-    target: Target,
-    graal_edition: graalvm::Edition,
-    continue_on_error: impl Fn(&Target) -> Option<bool>,
-) {
-    workflow.add_customized(target, job::CiCheckBackend { graal_edition }, |job| {
-        job.continue_on_error = continue_on_error(&target);
-    });
-    workflow.add_customized(target, job::JvmTests { graal_edition }, |job| {
-        job.continue_on_error = continue_on_error(&target);
-    });
-    workflow.add_customized(
-        target,
-        job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false },
-        |job| {
-            job.continue_on_error = continue_on_error(&target);
-        },
-    );
-}
-
-/// Add jobs that perform backend checks, including Scala and Standard Library tests.
 pub fn add_backend_checks(
     workflow: &mut Workflow,
     target: Target,
     graal_edition: graalvm::Edition,
+    engine_launcher: engine::EngineLauncher,
 ) {
-    add_backend_checks_customized(workflow, target, graal_edition, |_| None);
+    let build_engine_distribution_id =
+        workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
+
+    if target == PRIMARY_TARGET {
+        workflow.add_dependent(
+            PRIMARY_TARGET,
+            job::StandardLibraryApiCheck { graal_edition, engine_launcher },
+            &[&build_engine_distribution_id],
+        );
+        workflow.add_dependent(
+            PRIMARY_TARGET,
+            job::EnsoCodeLintCheck { graal_edition, engine_launcher },
+            &[&build_engine_distribution_id],
+        );
+    }
+
+    // Engine distribution is required to run project manager tests.
+    workflow.add_dependent(target, job::JvmTests { graal_edition, engine_launcher }, &[
+        &build_engine_distribution_id,
+    ]);
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            scope: job::StandardLibraryTestsScope::StandardLibraryInNative,
+        },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            scope: job::StandardLibraryTestsScope::StandardLibraryJvm,
+        },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            scope: job::StandardLibraryTestsScope::Microsoft,
+        },
+        &[&build_engine_distribution_id],
+    );
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
@@ -716,8 +779,9 @@ pub fn ide_packaging() -> Result<Workflow> {
         ..default()
     };
 
+    let engine_launcher = engine::EngineLauncher::Native;
     for target in PR_REQUIRED_TARGETS {
-        let project_manager_job = workflow.add(target, job::BuildBackend);
+        let project_manager_job = workflow.add(target, job::BuildBackend { engine_launcher });
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
         });
@@ -739,11 +803,13 @@ pub fn ide_packaging_optional() -> Result<Workflow> {
         ..default()
     };
 
+    let engine_launcher = engine::EngineLauncher::Native;
     for target in PR_OPTIONAL_TARGETS {
         let continue_on_error = Some(true);
-        let project_manager_job = workflow.add_customized(target, job::BuildBackend, |job| {
-            job.continue_on_error = continue_on_error;
-        });
+        let project_manager_job =
+            workflow.add_customized(target, job::BuildBackend { engine_launcher }, |job| {
+                job.continue_on_error = continue_on_error;
+            });
         workflow.add_customized(target, job::PackageIde, |job| {
             job.needs.insert(project_manager_job.clone());
             job.continue_on_error = continue_on_error;
@@ -767,7 +833,7 @@ pub fn wasm_checks() -> Result<Workflow> {
         on,
         ..default()
     };
-    workflow.add(PRIMARY_TARGET, job::Lint);
+    workflow.add(PRIMARY_TARGET, job::WasmLint);
     workflow.add(PRIMARY_TARGET, job::WasmTest);
     workflow.add(PRIMARY_TARGET, job::NativeTest);
     Ok(workflow)
@@ -785,9 +851,10 @@ pub fn engine_checks() -> Result<Workflow> {
         on,
         ..default()
     };
+    let engine_launcher = engine::EngineLauncher::TestNative;
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
     for target in PR_REQUIRED_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community);
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     Ok(workflow)
 }
@@ -804,10 +871,9 @@ pub fn engine_checks_optional() -> Result<Workflow> {
         on,
         ..default()
     };
+    let engine_launcher = engine::EngineLauncher::TestNative;
     for target in PR_OPTIONAL_TARGETS {
-        add_backend_checks_customized(&mut workflow, target, graalvm::Edition::Community, |_| {
-            Some(true)
-        });
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     Ok(workflow)
 }
@@ -819,15 +885,26 @@ pub fn engine_checks_nightly() -> Result<Workflow> {
         ..default()
     };
     let mut workflow = Workflow { name: "Engine Nightly Checks".into(), on, ..default() };
+    let engine_launcher = engine::EngineLauncher::TestNative;
 
     // Oracle GraalVM jobs run only on Linux
-    add_backend_checks(&mut workflow, PRIMARY_TARGET, graalvm::Edition::Enterprise);
+    add_backend_checks(
+        &mut workflow,
+        PRIMARY_TARGET,
+        graalvm::Edition::Enterprise,
+        engine_launcher,
+    );
 
     // Run macOS AArch64 tests only once a day, as we have only one self-hosted runner for this.
     for target in PR_CHECKED_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community);
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
-    add_backend_checks(&mut workflow, (OS::MacOS, Arch::AArch64), graalvm::Edition::Community);
+    add_backend_checks(
+        &mut workflow,
+        (OS::MacOS, Arch::AArch64),
+        graalvm::Edition::Community,
+        engine_launcher,
+    );
     Ok(workflow)
 }
 
@@ -844,25 +921,99 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     // We run the extra tests only on Linux, as they should not contain any platform-specific
     // behavior.
     let target = PRIMARY_TARGET;
-    workflow.add(target, job::SnowflakeTests {});
-    workflow.add(target, job::StandardLibraryTests {
-        graal_edition:       graalvm::Edition::Community,
-        cloud_tests_enabled: true,
-    });
+    let graal_edition = graalvm::Edition::Community;
+    let engine_launcher = engine::EngineLauncher::TestNative;
+    let build_engine_distribution_id =
+        workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
+    workflow.add_dependent(
+        target,
+        job::SnowflakeTests { graal_edition, engine_launcher, jvm_mode: false },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::SnowflakeTests { graal_edition, engine_launcher, jvm_mode: true },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            scope: job::StandardLibraryTestsScope::CloudRelated,
+        },
+        &[&build_engine_distribution_id],
+    );
+
     Ok(workflow)
 }
 
+/// Workflow that cheks whether some API signature files in any of the standard
+/// libraries changed, and if so, appends a corresponding label to the PR.
+fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
+    let lib_names = vec![
+        "AWS",
+        "Base",
+        "Database",
+        "Generic_JDBC",
+        "Google",
+        "Image",
+        "Microsoft",
+        "Saas",
+        "Snowflake",
+        "Table",
+        "Tableau",
+        "Test",
+        "Visualization",
+    ];
+    let on = Event {
+        push:              Some(Push { inner_branches: Branches::new(["develop"]), ..default() }),
+        pull_request:      Some(PullRequest::default()),
+        workflow_dispatch: Some(WorkflowDispatch::default()),
+        workflow_call:     Some(WorkflowCall::default()),
+        schedule:          vec![],
+    };
+    let mut permissions: BTreeMap<Permission, Access> = BTreeMap::new();
+    permissions.insert(Permission::Checks, Access::Write);
+    permissions.insert(Permission::PullRequests, Access::Write);
+    let mut workflow = Workflow {
+    name: "🏷 Standard Library Labels".into(),
+    on,
+    description: Some("Check if the API signature files in any of the standard libraries changed and if so, append a corresponding label to the PR.".into()),
+    permissions,
+    ..default()
+  };
+    for lib_name in lib_names {
+        let lib_api_check = job::StandardLibraryLabelCheck { lib_name: lib_name.to_string() };
+        workflow.add(PRIMARY_TARGET, lib_api_check);
+    }
+    Ok(workflow)
+}
+
+
 pub fn engine_benchmark() -> Result<Workflow> {
-    benchmark_workflow("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
+    let report_path = "engine/runtime-benchmarks/bench-report.xml";
+    benchmark_workflow("Benchmark Engine", "backend benchmark runtime", report_path, Some(4 * 60))
 }
 
 pub fn std_libs_benchmark() -> Result<Workflow> {
-    benchmark_workflow("Benchmark Standard Libraries", "backend benchmark enso-jmh", Some(4 * 60))
+    let report_path = "std-bits/benchmarks/bench-report.xml";
+    benchmark_workflow(
+        "Benchmark Standard Libraries",
+        "backend benchmark enso-jmh",
+        report_path,
+        Some(4 * 60),
+    )
 }
 
+/// #parameters
+/// - `name` - name of the workflow
+/// - `command_line` - command line to run the benchmarks
+/// - `artifact_to_upload` - Path to the artifact to upload
 fn benchmark_workflow(
     name: &str,
     command_line: &str,
+    artifact_to_upload: &str,
     timeout_minutes: Option<u32>,
 ) -> Result<Workflow> {
     let just_check_input_name = "just-check";
@@ -870,9 +1021,16 @@ fn benchmark_workflow(
         r#type: WorkflowDispatchInputType::Boolean { default: Some(false) },
         ..WorkflowDispatchInput::new("If set, benchmarks will be only checked to run correctly, not to measure actual performance.", true)
     };
+    let bench_name_input_name = "bench-name";
+    let bench_name_input = WorkflowDispatchInput {
+        r#type: WorkflowDispatchInputType::String { default: None },
+        ..WorkflowDispatchInput::new("Name (regex) of the benchmark to run.", false)
+    };
     let on = Event {
         workflow_dispatch: Some(
-            WorkflowDispatch::default().with_input(just_check_input_name, just_check_input),
+            WorkflowDispatch::default()
+                .with_input(just_check_input_name, just_check_input)
+                .with_input(bench_name_input_name, bench_name_input),
         ),
         schedule: vec![Schedule::new("0 0 * * *")?],
         ..default()
@@ -884,10 +1042,13 @@ fn benchmark_workflow(
         "ENSO_BUILD_MINIMAL_RUN",
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
+    workflow
+        .env("ENSO_BUILD_BENCH_NAME", wrap_expression(format!("inputs.{bench_name_input_name}")));
 
     let graal_edition = graalvm::Edition::Community;
     let job_name = format!("{name} ({graal_edition})");
-    let job = benchmark_job(&job_name, command_line, timeout_minutes, graal_edition);
+    let job =
+        benchmark_job(&job_name, command_line, artifact_to_upload, timeout_minutes, graal_edition);
     workflow.add_job(job);
 
     Ok(workflow)
@@ -896,11 +1057,16 @@ fn benchmark_workflow(
 fn benchmark_job(
     job_name: &str,
     command_line: &str,
+    artifact_to_upload: &str,
     timeout_minutes: Option<u32>,
     graal_edition: graalvm::Edition,
 ) -> Job {
+    let upload_artifact_step = step::upload_artifact("Upload benchmark results")
+        .with_custom_argument("name", "benchmark-results.xml")
+        .with_custom_argument("path", artifact_to_upload);
     let mut job = RunStepsBuilder::new(command_line)
         .cleaning(CleaningCondition::Always)
+        .customize(move |step| vec![step, upload_artifact_step])
         .build_job(job_name, BenchmarkRunner);
     job.timeout_minutes = timeout_minutes;
     match graal_edition {
@@ -927,6 +1093,7 @@ pub fn generate(
         (repo_root.wasm_checks_yml.to_path_buf(), wasm_checks()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
         (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
+        (repo_root.std_libs_labels_yml.to_path_buf(), stdlib_api_change_labels_workflow()?),
         (repo_root.release_yml.to_path_buf(), release()?),
         (repo_root.promote_yml.to_path_buf(), promote()?),
     ];

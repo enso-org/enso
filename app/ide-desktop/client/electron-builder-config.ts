@@ -122,7 +122,7 @@ export const args: Arguments = await yargs(process.argv.slice(2))
 /** File associations for the IDE. */
 export const EXTENDED_FILE_ASSOCIATIONS = [
   {
-    ext: `.${fileAssociations.SOURCE_FILE_EXTENSION}`,
+    ext: fileAssociations.SOURCE_FILE_SUFFIX,
     name: `${common.PRODUCT_NAME} Source File`,
     role: 'Editor',
     // Note that MIME type is used on Windows by the enso-installer to register the file association.
@@ -131,7 +131,7 @@ export const EXTENDED_FILE_ASSOCIATIONS = [
     progId: 'Enso.Source',
   },
   {
-    ext: `.${fileAssociations.BUNDLED_PROJECT_EXTENSION}`,
+    ext: fileAssociations.BUNDLED_PROJECT_SUFFIX,
     name: `${common.PRODUCT_NAME} Project Bundle`,
     role: 'Editor',
     mimeType: 'application/gzip',
@@ -322,7 +322,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
           productFilename: appName,
           // This will always be defined since we have an `entitlements.mac.plist`.
           entitlements: macConfig!.entitlements!,
-          identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
+          identity: `Developer ID Application: Enso International Inc. (${process.env.APPLETEAMID})`,
         })
 
         console.log('  • Notarizing.')

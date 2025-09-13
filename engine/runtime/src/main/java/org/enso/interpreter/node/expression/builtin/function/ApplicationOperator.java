@@ -6,8 +6,8 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Function",
@@ -26,7 +26,8 @@ public class ApplicationOperator extends Node {
     invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Object execute(VirtualFrame frame, State state, Object self, @Suspend Object argument) {
-    return invokeCallableNode.execute(self, frame, state, new Object[] {argument});
+  Object execute(VirtualFrame frame, Object self, @Suspend Object argument) {
+    return invokeCallableNode.execute(
+        self, frame, EnsoContext.get(this).currentState(), new Object[] {argument});
   }
 }

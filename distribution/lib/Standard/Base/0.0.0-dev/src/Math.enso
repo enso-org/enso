@@ -1,67 +1,85 @@
 import project.Data.Numbers.Float
 import project.Data.Numbers.Number
 
-## ICON math
-   The mathematical constant pi, equal to the ratio of a circle circumference
-   to its diameter.
+## ---
+   icon: math
+   ---
+   The mathematical constant pi, equal to the ratio of a circle circumference to
+   its diameter.
 
-   > Example
-     Calculating the area of a circle.
+   ## Examples
+   ### Calculating the area of a circle.
 
+   ```
          circle_area r = 2 * Math.pi * r^2
+   ```
 pi : Float
 pi = 3.1415926535897932385
 
-## ICON math
+## ---
+   icon: math
+   ---
    The mathematical constant e, the base of the natural logarithm.
 
-   > Example
-     Calculating the natural logarithm of 3.
+   ## Examples
+   ### Calculating the natural logarithm of 3.
 
+   ```
          3.log Math.e
+   ```
 e : Float
 e = 2.718281828459045235360
 
-## PRIVATE
-   ADVANCED
-   GROUP Math
-
+## ---
+   private: true
+   advanced: true
+   group: Math
+   ---
    Returns the smaller value of `a` and `b`.
 
-   Arguments:
-   - a: The first number.
-   - b: The second number.
+   ## Arguments
+    - `a`: The first number.
+    - `b`: The second number.
 
-   ? Math.min or Number.min
-     While we provide the min method on `Number`, we find it more intuitive to
-     write `Math.min a b` rather than `a.min b`. To that end, we recommend using
-     the first style.
+   ## Examples
+   ### Calculate the smallest number out of 1 and 2.
 
-   > Example
-     Calculate the smallest number out of 1 and 2.
-
+   ```
          Math.min 1 2
+   ```
+
+   ## Remarks
+
+   ### Math.min or Number.min
+   While we provide the min method on `Number`, we find it more intuitive to
+   write `Math.min a b` rather than `a.min b`. To that end, we recommend using
+   the first style.
 min : Number -> Number -> Number
 min a b = if a <= b then a else b
 
-## PRIVATE
-   ADVANCED
-   GROUP Math
-
+## ---
+   private: true
+   advanced: true
+   group: Math
+   ---
    Returns the larger value of `a` and `b`.
 
-   Arguments:
-   - a: The first number.
-   - b: The second number.
+   ## Arguments
+    - `a`: The first number.
+    - `b`: The second number.
 
-   ? Math.max or Number.max
-     While we provide the max method on `Number`, we find it more intuitive to
-     write `Math.max a b` rather than `a.max b`. To that end, we recommend using
-     the first style.
+   ## Examples
+   ### Calculate the largest number out of 1 and 2.
 
-   > Example
-     Calculate the largest number out of 1 and 2.
-
+   ```
          Math.max 1 2
+   ```
+
+   ## Remarks
+
+   ### Math.max or Number.max
+   While we provide the max method on `Number`, we find it more intuitive to
+   write `Math.max a b` rather than `a.max b`. To that end, we recommend using
+   the first style.
 max : Number -> Number -> Number
 max a b = if a < b then b else a

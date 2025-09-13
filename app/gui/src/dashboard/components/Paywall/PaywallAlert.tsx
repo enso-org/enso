@@ -1,31 +1,25 @@
-/**
- * @file
- *
- * A paywall alert.
- */
-
-import * as React from 'react'
-
-import clsx from 'clsx'
-
+/** @file A paywall alert. */
 import LockIcon from '#/assets/lock.svg'
-
-import type * as billingHooks from '#/hooks/billing'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { Alert, type AlertProps } from '#/components/Alert'
 import * as paywall from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
+import { Text } from '#/components/Text'
+import type * as billingHooks from '#/hooks/billing'
+import * as React from 'react'
+import { twJoin } from 'tailwind-merge'
 
 /** Props for {@link PaywallAlert}. */
-export interface PaywallAlertProps extends Omit<ariaComponents.AlertProps, 'children'> {
+export interface PaywallAlertProps<IconType extends string> extends Omit<AlertProps, 'children'> {
   readonly feature: billingHooks.PaywallFeatureName
   readonly label: string
   readonly showUpgradeButton?: boolean
-  readonly upgradeButtonProps?: Omit<paywall.UpgradeButtonProps, 'feature'>
+  readonly upgradeButtonProps?: Omit<paywall.UpgradeButtonProps<IconType>, 'feature'>
 }
 
 /** A paywall alert. */
-export function PaywallAlert(props: PaywallAlertProps) {
+export function PaywallAlert<IconType extends string>(
+  props: PaywallAlertProps<IconType>,
+): React.JSX.Element {
   const {
     label,
     showUpgradeButton = true,
@@ -36,17 +30,17 @@ export function PaywallAlert(props: PaywallAlertProps) {
   } = props
 
   return (
-    <ariaComponents.Alert
+    <Alert
       variant="outline"
       size="small"
       rounded="xlarge"
-      className={clsx('border border-primary/20', className)}
+      className={twJoin('border border-primary/20', className)}
       {...alertProps}
     >
       <div className="flex items-center gap-2">
         <SvgMask src={LockIcon} className="h-5 w-5 flex-none text-primary" />
 
-        <ariaComponents.Text>
+        <Text>
           {label}{' '}
           {showUpgradeButton && (
             <paywall.UpgradeButton
@@ -56,8 +50,8 @@ export function PaywallAlert(props: PaywallAlertProps) {
               {...upgradeButtonProps}
             />
           )}
-        </ariaComponents.Text>
+        </Text>
       </div>
-    </ariaComponents.Alert>
+    </Alert>
   )
 }

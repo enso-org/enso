@@ -1,0 +1,147 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+import Standard.Database.Errors.SQL_Error
+import Standard.Database.SQL_Query.SQL_Query
+
+import Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
+
+data_dir = enso_project.data / "transient"
+
+## These specs are added by individual backend specs such as `H2_Spec`,
+   `Postgres_Spec`, etc. because such specs set up access to database instances.
+   However, these specs do not access these instances through the `Database`
+   library, but use JDBC directly.
+
+   Table columns are accessed by number instead of name below since the case of
+   the column names depends on the backend.
+add_specs_for_backend config suite_builder =
+    prefix = "(" + config.name + ") "
+
+    suite_builder.group prefix+"Generic JDBC Connection" group_builder->
+        with_connection = config.with_connection
+
+        # Cleans things up afterwards, but also before for easier debugging.
+        cleanup typ conn names ~action =
+            cleanup =
+                names.map (n-> conn.execute "drop "+typ+" if exists "+n)
+            cleanup
+            Panic.with_finalizer cleanup action
+
+        cleanup_tables = cleanup "table"
+
+        lower x = x.to_case ..Lower
+
+        group_builder.specify "should be able to create a connection" <|
+            with_connection (conn-> conn . should_succeed)
+
+        group_builder.specify "should be able to create a table" <|
+            with_connection conn-> cleanup_tables conn ["foo"] <|
+                conn.execute "create table foo (a int)"
+                conn.tables . at "Name" . to_vector . map lower . should_contain "foo"
+
+        group_builder.specify "should be able to get table info" <|
+            with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
+                conn.execute "create table foo (a int, b text)"
+                conn.execute "create table bar (c float, d timestamp)"
+
+                r = conn.tables
+                r.at "Name" . to_vector . map lower . should_contain 'foo'
+                r.at "Name" . to_vector . map lower . should_contain 'bar'
+
+        group_builder.specify "should be able to insert, update and query data using raw SQL" <|
+            with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
+                conn.execute "create table foo (a int, b text)"
+                conn.execute "insert into foo (a, b) values (10, 'asdf')"
+                conn.execute "insert into foo (a, b) values (20, 'zxcv')"
+                conn.execute "create table bar (c int, d text)"
+                conn.execute "insert into bar (c, d) values (20, 'qqqq')"
+                conn.execute "insert into bar (c, d) values (30, 'zzzz')"
+
+                tables = conn.tables . at "Name" . to_vector . map lower
+                tables . should_contain 'foo'
+                tables . should_contain 'bar'
+
+                r = conn.read (SQL_Query.Raw_SQL "select * from foo")
+                r.row_count . should_equal 2
+                r.columns . map .name . map lower . should_equal ["a", "b"]
+                r.at 0 . to_vector . should_equal [10, 20]
+                r.at 1 . to_vector . should_equal ['asdf', 'zxcv']
+
+                r2 = conn.read (SQL_Query.Raw_SQL "select foo.a, foo.b, bar.d from foo join bar on foo.a = bar.c")
+                r2.row_count . should_equal 1
+                r2.columns . map .name . map lower . should_equal ["a", "b", "d"]
+                r2.at 0 . to_vector . should_equal [20]
+                r2.at 1 . to_vector . should_equal ['zxcv']
+                r2.at 2 . to_vector . should_equal ['qqqq']
+
+                conn.execute "update foo set b='uuuu' where a=20"
+                r3 = conn.read (SQL_Query.Raw_SQL "select B from foo")
+                r3.columns . map .name . map lower . should_equal ["b"]
+                r3.at 0 . to_vector . should_equal ['asdf', 'uuuu']
+
+        group_builder.specify "should be able to insert and query data using raw SQL (integer and double precision)" <|
+            with_connection conn-> cleanup_tables conn ["foo"] <|
+                conn.execute "create table foo (a integer, b double precision)"
+                conn.execute "insert into foo (a, b) values (12, 13.4)"
+                conn.execute "insert into foo (a, b) values (112, -813.4)"
+
+                r = conn.read (SQL_Query.Raw_SQL "select * from foo")
+                r.at 0 . to_vector . all (x-> x.is_a Integer) . should_be_true
+                r.at 1 . to_vector . all (x-> x.is_a Float) . should_be_true
+
+        group_builder.specify "should be able to quote identifiers" <|
+            with_connection conn->
+                conn.quote_identifier "foo" . should_equal '"foo"'
+                conn.quote_identifier "abc-def" . should_equal '"abc-def"'
+                conn.quote_identifier "a$s$d$f" . should_equal '"a$s$d$f"'
+
+        group_builder.specify "should be able to quote literals" <|
+            with_connection conn->
+                conn.quote_literal "foo" . should_equal '\'foo\''
+                conn.quote_literal "abc-def" . should_equal '\'abc-def\''
+                conn.quote_literal "abc def " . should_equal '\'abc def \''
+                conn.quote_literal "a$s$d$f" . should_equal '\'a$s$d$f\''
+                conn.quote_literal 'a"b"c' . should_equal '\'a"b"c\''
+
+        group_builder.specify "should be able to use quoting to create and use tables with non-standard names" <|
+            with_connection conn->
+                table_name = 'abc-def'
+                quoted_table_name = conn.quote_identifier table_name
+
+                cleanup_tables conn [quoted_table_name] <|
+                    conn.execute "create table "+quoted_table_name+" (a int, b text)"
+                    conn.execute "insert into "+quoted_table_name+" (a, b) values (10, 'asdf')"
+                    conn.execute "insert into "+quoted_table_name+" (a, b) values (20, 'zxcv')"
+
+                    r = conn.read (SQL_Query.Raw_SQL "select * from "+quoted_table_name)
+                    r.at 0 . to_vector . should_equal [10, 20]
+                    r.at 1 . to_vector . should_equal ['asdf', 'zxcv']
+
+        group_builder.specify "should be able to use quoting to specify values containing quotes" <|
+            with_connection conn-> cleanup_tables conn ["foo"] <|
+                s0 = "ab'cd"
+                s1 = 'ab"cd'
+                quoted_s0 = conn.quote_literal s0
+                quoted_s1 = conn.quote_literal s1
+
+                conn.execute "create table foo (a text, b text)"
+                conn.execute "insert into foo (a, b) values ("+quoted_s0+", "+quoted_s1+")"
+
+                r = conn.read (SQL_Query.Raw_SQL "select * from foo")
+                r.at 0 . to_vector . should_equal [s0]
+                r.at 1 . to_vector . should_equal [s1]
+
+        group_builder.specify "should handle SQL errors" <|
+            with_connection conn->
+                conn.execute "create table ((((((()" . should_fail_with SQL_Error
+                conn.execute "create table foo (a int)" . should_succeed
+                conn.execute "create table foo (a int)" . should_fail_with SQL_Error
+                conn.read (SQL_Query.Raw_SQL "select * from nonexistent") . should_fail_with SQL_Error
+                conn.execute "set schema nonexistent" . should_fail_with SQL_Error
+
+        group_builder.specify "should handle a malformed JDBC URL" <|
+            Generic_JDBC_Connection.connect "jdbc:h3:asdf" . should_fail_with SQL_Error
+            Generic_JDBC_Connection.connect "" . should_fail_with SQL_Error
+            Generic_JDBC_Connection.connect "//:://" . should_fail_with SQL_Error

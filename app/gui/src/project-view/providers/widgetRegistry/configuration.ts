@@ -39,13 +39,55 @@ const displaySchema = withKindSchema.pipe(
 const withDisplay = z.object({ display: displaySchema })
 export type WithDisplay = z.infer<typeof withDisplay>
 
-/** A choosable item in SingleChoice widget. */
-const choiceSchema = z.object({
-  value: z.string(),
+const choiceValueSchema = z.lazy(() => z.union([z.string(), z.array(choiceSchema)]))
+export type ChoiceValue = z.infer<typeof choiceValueSchema>
+
+/** A choosable item in SingleChoice and MultipleChoice widgets. */
+const choiceSchema: z.ZodType<Choice> = z.object({
+  value: choiceValueSchema,
   label: z.string().nullable(),
   parameters: z.lazy(() => z.array(argumentSchema)),
+  icon: z.string().nullable().optional(),
 })
-export type Choice = z.infer<typeof choiceSchema>
+export type Choice = {
+  value: ChoiceValue
+  label: string | null
+  parameters: ArgsWidgetConfiguration
+  icon?: string | null | undefined
+}
+export type FlattenedChoice = {
+  value: string
+  label: string | null
+  parameters: ArgsWidgetConfiguration
+  icon?: string | null | undefined
+}
+
+const fileTypeSchema: z.ZodType<FileType> = z.object({
+  label: z.string(),
+  extensions: z.lazy(() => z.union([z.array(z.string()), z.array(fileTypeSchema)])),
+  icon: z.string().nullable().optional(),
+})
+
+export type FileType = {
+  label: string
+  extensions: string[] | FileType[]
+  icon?: string | null | undefined
+}
+
+/** Whether FileType[] contains nested FileType objects. */
+export function isFileTypes(array: (FileType | string)[]): array is FileType[] {
+  return array.length == 0 || typeof array[0]! === 'object'
+}
+
+/** Whether FileType[] contains only string values. */
+export function isExtensions(array: (FileType | string)[]): array is string[] {
+  return array.length == 0 || typeof array[0]! === 'string'
+}
+
+/** Whether FileType[] contains a single '*' value, indicating that all files are allowed. */
+export function isGlobAll(array: (FileType | string)[]): boolean {
+  return array.length === 1 && array[0]! === '*'
+}
 
 /**
  * An external configuration for a widget retreived from the language server.
@@ -61,15 +103,33 @@ export type WidgetConfiguration =
   | SingleChoice
   | VectorEditor
   | MultipleChoice
-  | CodeInput
   | BooleanInput
   | NumericInput
   | TextInput
   | FolderBrowse
   | FileBrowse
+  | SecretBrowse
+  | AnyToTarget
   | FunctionCall
   | OneOfFunctionCalls
   | SomeOfFunctionCalls
+  | PendingConfiguration
+
+/**
+ * Sometimes it takes time to receive the configuration, but we still want to know that it is expected.
+ * This configuration is not provided by the engine directly, but is derived from existing argument annotations.
+ */
+export interface PendingConfiguration {
+  kind: 'Pending'
+}
+
+/** Helper for creating a pending configuration record. */
+export function pending(): WidgetConfiguration & WithDisplay {
+  return {
+    kind: 'Pending',
+    display: DisplayMode.Always,
+  }
+}
 
 export interface VectorEditor {
   kind: 'Vector_Editor'
@@ -81,10 +141,6 @@ export interface MultipleChoice {
   kind: 'Multiple_Choice'
   label: string | null
   values: Choice[]
-}
-
-export interface CodeInput {
-  kind: 'Code_Input'
 }
 
 export interface BooleanInput {
@@ -99,6 +155,7 @@ export interface NumericInput {
 
 export interface TextInput {
   kind: 'Text_Input'
+  syntax?: string | undefined
 }
 
 export interface FolderBrowse {
@@ -108,12 +165,21 @@ export interface FolderBrowse {
 export interface FileBrowse {
   kind: 'File_Browse'
   existing_only?: boolean | undefined
+  file_types?: FileType[] | undefined
+}
+
+export interface SecretBrowse {
+  kind: 'Secret_Browse'
 }
 
 export interface SingleChoice {
   kind: 'Single_Choice'
   label: string | null
   values: Choice[]
+}
+
+export interface AnyToTarget {
+  kind: 'Any_To_Target'
 }
 
 /**
@@ -174,7 +240,6 @@ export const widgetConfigurationSchema: z.ZodType<
         values: z.array(choiceSchema),
       })
       .merge(withDisplay),
-    z.object({ kind: z.literal('Code_Input') }).merge(withDisplay),
     z.object({ kind: z.literal('Boolean_Input') }).merge(withDisplay),
     z
       .object({
@@ -183,11 +248,17 @@ export const widgetConfigurationSchema: z.ZodType<
         minimum: z.number().optional(),
       })
       .merge(withDisplay),
-    z.object({ kind: z.literal('Text_Input') }).merge(withDisplay),
+    z.object({ kind: z.literal('Text_Input'), syntax: z.string().optional() }).merge(withDisplay),
     z.object({ kind: z.literal('Folder_Browse') }).merge(withDisplay),
     z
-      .object({ kind: z.literal('File_Browse'), existing_only: z.boolean().optional() })
+      .object({
+        kind: z.literal('File_Browse'),
+        existing_only: z.boolean().optional(),
+        file_types: z.array(fileTypeSchema),
+      })
       .merge(withDisplay),
+    z.object({ kind: z.literal('Secret_Browse') }).merge(withDisplay),
+    z.object({ kind: z.literal('Any_To_Target') }).merge(withDisplay),
     /* eslint-enable camelcase */
   ]),
 )
@@ -202,6 +273,9 @@ export type ArgsWidgetConfiguration = z.infer<typeof argsWidgetConfigurationSche
 /**
  * Create {@link WidgetConfiguration} object from parameters received from the engine, possibly
  * applying those to an inherited config received from parent widget.
+ *
+ * Inherited config has a priority, as we expect parent widget has more information available
+ * and can provide better configuration for its children.
  */
 export function functionCallConfiguration(
   parameters: ArgumentWidgetConfiguration[],
@@ -209,7 +283,8 @@ export function functionCallConfiguration(
 ): FunctionCall {
   const parametersMap = new Map(inherited?.parameters)
   for (const [name, param] of parameters) {
-    parametersMap.set(name, parametersMap.get(name) ?? param)
+    // Merge with inherited parameters, inherited ones have priority.
+    if (param && !parametersMap.has(name)) parametersMap.set(name, param)
   }
   return {
     kind: 'FunctionCall',
@@ -217,22 +292,32 @@ export function functionCallConfiguration(
   }
 }
 
+/** Flatten possibly nested choice. */
+export function flattenChoice(choice: Choice): FlattenedChoice[] {
+  if (typeof choice.value === 'string') {
+    return [choice as FlattenedChoice]
+  }
+  return choice.value.flatMap(flattenChoice)
+}
+
 /** A configuration for the inner widget of a single-choice selection widget. */
 export function singleChoiceConfiguration(config: SingleChoice): OneOfFunctionCalls {
+  const possibleChoices = config.values.flatMap(flattenChoice)
   return {
     kind: 'OneOfFunctionCalls',
     possibleFunctions: new Map(
-      config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
+      possibleChoices.map((choice) => [choice.value, functionCallConfiguration(choice.parameters)]),
     ),
   }
 }
 
 /** A configuration for the inner widget of a multiple-choice selection widget. */
 export function multipleChoiceConfiguration(config: MultipleChoice): SomeOfFunctionCalls {
+  const possibleChoices = config.values.flatMap(flattenChoice)
   return {
     kind: 'SomeOfFunctionCalls',
     possibleFunctions: new Map(
-      config.values.map((value) => [value.value, functionCallConfiguration(value.parameters)]),
+      possibleChoices.map((choice) => [choice.value, functionCallConfiguration(choice.parameters)]),
     ),
   }
 }

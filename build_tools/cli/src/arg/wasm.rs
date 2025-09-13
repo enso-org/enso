@@ -24,6 +24,7 @@ pub enum Command {
         #[clap(long, enso_env(), value_enum, default_values_t = [Browser::Firefox])]
         browser:   Vec<Browser>,
     },
+    Lint,
 }
 
 #[derive(Args, Clone, Debug)]

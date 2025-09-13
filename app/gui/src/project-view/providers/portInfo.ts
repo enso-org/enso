@@ -9,6 +9,14 @@ declare const portIdBrand: unique symbol
  */
 export type PortId = AstId | TokenId | (string & { [portIdBrand]: never })
 
+/**
+ * Create a synthetic Port ID derived from an existing parent ID and arbitrary index. Intended for
+ * creating stable identities for placeholder ports.
+ */
+export function syntheticPortId(base: PortId, key: string | number): PortId {
+  return `:${base}[${key}]` as PortId
+}
+
 interface PortInfo {
   portId: PortId
   connected: boolean

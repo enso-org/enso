@@ -1,16 +1,16 @@
 <script setup lang="ts">
+import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
-import { useDragging } from '@/components/GraphEditor/dragging'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { useNodesDragging } from '@/components/GraphEditor/nodesDragging'
 import { useArrows, useEvent } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
-import { useGraphStore, type NodeId } from '@/stores/graph'
-import { useProjectStore } from '@/stores/project'
+import { type NodeId } from '@/stores/graph'
 import type { AstId } from '@/util/ast/abstract'
-import type { Vec2 } from '@/util/data/vec2'
+import { type Vec2 } from '@/util/data/vec2'
 import { set } from 'lib0'
 import { computed } from 'vue'
 
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 const projectStore = useProjectStore()
 const selection = injectGraphSelection()
 const graphStore = useGraphStore()
-const dragging = useDragging()
+const dragging = useNodesDragging()
 const navigator = injectGraphNavigator()
 
 function nodeIsDragged(movedId: NodeId, offset: Vec2) {
@@ -51,10 +51,15 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
   const currentMethod = graphStore.currentMethod.ast.value.externalId
   return uploads.filter(([, file]) => file.method === currentMethod)
 })
+
+const layerStyle = computed(() => ({
+  transform: navigator.transform,
+  willChange: navigator.transformChanging ? 'transform' : 'initial',
+}))
 </script>
 
 <template>
-  <div class="layer" :style="{ transform: navigator.transform }">
+  <div class="layer" :style="layerStyle">
     <GraphNode
       v-for="[id, node] in graphStore.db.nodeIdToNode.entries()"
       :key="id"
@@ -63,15 +68,12 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
       @dragging="nodeIsDragged(id, $event)"
       @draggingCommited="dragging.finishDrag()"
       @draggingCancelled="dragging.cancelDrag()"
-      @outputPortClick="(event, port) => graphStore.createEdgeFromOutput(port, event)"
-      @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
       @enterNode="emit('enterNode', id)"
       @createNodes="emit('createNodes', id, $event)"
       @toggleDocPanel="emit('toggleDocPanel')"
       @setNodeColor="graphStore.overrideNodeColor(id, $event)"
       @update:edited="graphStore.setEditedNode(id, $event)"
       @update:rect="graphStore.updateNodeRect(id, $event)"
-      @update:hoverAnim="graphStore.updateNodeHoverAnim(id, $event)"
       @update:visualizationId="
         graphStore.setNodeVisualization(id, $event != null ? { identifier: $event } : {})
       "
@@ -96,6 +98,5 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
   width: 0;
   height: 0;
   contain: layout size style;
-  will-change: transform;
 }
 </style>

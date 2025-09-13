@@ -1,13 +1,8 @@
 /** @file A styled input for settings pages. */
-import {
-  Form,
-  Input,
-  Password,
-  TEXT_STYLE,
-  type FieldPath,
-  type InputProps,
-  type TSchema,
-} from '#/components/AriaComponents'
+import { Form, type FieldPath, type TSchema } from '#/components/Form'
+import { Input, type InputProps } from '#/components/Inputs/Input'
+import { Password } from '#/components/Inputs/Password'
+import { TEXT_STYLE } from '#/components/Text'
 import { tv } from '#/utilities/tailwindVariants'
 
 const SETTINGS_FIELD_STYLES = tv({
@@ -22,10 +17,6 @@ const SETTINGS_FIELD_STYLES = tv({
     error: 'ml-[180px]',
   },
 })
-
-// =========================
-// === SettingsAriaInput ===
-// =========================
 
 /** Props for a {@link SettingsAriaInput}. */
 export interface SettingsAriaInputProps<

@@ -13,7 +13,11 @@ import scala.collection.mutable
 case class ExecutionContextState(
   stack: mutable.Stack[InstrumentFrame],
   visualizations: VisualizationHolder
-)
+) {
+  def close(): Unit = {
+    stack.foreach(_.cache.clear())
+  }
+}
 
 object ExecutionContextState {
 

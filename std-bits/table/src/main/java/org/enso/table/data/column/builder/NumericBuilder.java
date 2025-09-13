@@ -3,7 +3,7 @@ package org.enso.table.data.column.builder;
 import java.util.BitSet;
 
 /** A common base for numeric builders. */
-public abstract class NumericBuilder implements Builder {
+abstract class NumericBuilder implements Builder {
   protected BitSet isNothing;
   protected int currentSize;
 
@@ -12,14 +12,13 @@ public abstract class NumericBuilder implements Builder {
     this.currentSize = 0;
   }
 
-  @Override
-  public void appendNulls(int count) {
+  protected void doAppendNulls(int count) {
     isNothing.set(currentSize, currentSize + count);
     currentSize += count;
   }
 
   @Override
-  public int getCurrentSize() {
+  public long getCurrentSize() {
     return currentSize;
   }
 

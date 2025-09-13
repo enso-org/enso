@@ -8,7 +8,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Managed_Resource",
@@ -29,8 +28,9 @@ public final class WithNode extends Node {
     return new WithNode();
   }
 
-  Object execute(State state, VirtualFrame frame, ManagedResource mr, Object action) {
+  Object execute(VirtualFrame frame, ManagedResource mr, Object action) {
     var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     var resourceManager = ctx.getResourceManager();
     if (mr.getPhantomReference().refersTo(mr)) {
       resourceManager.park(mr);

@@ -8,12 +8,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Set;
 import org.enso.common.RuntimeOptions;
+import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
+import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,8 +34,8 @@ public class PrivateConstructorAccessTest {
             obj = My_Type.Cons 42
             obj.data
         """;
-    try (var ctx = ContextUtils.createDefaultContext()) {
-      var res = ContextUtils.evalModule(ctx, src);
+    try (var ctx = ContextUtils.createDefault()) {
+      var res = ctx.evalModule(src);
       assertThat(res.isNumber(), is(true));
       assertThat(res.asInt(), is(42));
     }
@@ -66,7 +68,7 @@ public class PrivateConstructorAccessTest {
   }
 
   @Test
-  public void privateConstructorIsNotExposedToPolyglot() throws IOException {
+  public void privateConstructorIsNotExposedToPolyglot() throws Exception {
     var mainSrc = """
         type My_Type
             private Cons data
@@ -75,24 +77,19 @@ public class PrivateConstructorAccessTest {
     ProjectUtils.createProject("My_Project", mainSrc, projDir);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
     try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+        ContextUtils.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString()))
             .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+      var polyCtx = new PolyglotContext(ctx.context());
       var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
       var myType = mainMod.getType("My_Type");
-      ContextUtils.executeInContext(
-          ctx,
-          () -> {
-            var myTypeUnwrapped = ContextUtils.unwrapValue(ctx, myType);
-            var interop = InteropLibrary.getUncached();
-            var members = interop.getMembers(myTypeUnwrapped, false);
-            assertThat(
-                "My_Type should not have any 'public' members",
-                interop.getArraySize(members),
-                is(0L));
-            return null;
-          });
+      var myTypeUnwrapped = ctx.unwrapValue(myType);
+      var interop = InteropLibrary.getUncached();
+      var members = interop.getMembers(myTypeUnwrapped, false);
+      assertThat(
+          "My_Type should not have any 'public' members", interop.getArraySize(members), is(0L));
     }
   }
 
@@ -138,27 +135,117 @@ public class PrivateConstructorAccessTest {
         """;
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", projSrc, projDir);
-    var out = new ByteArrayOutputStream();
+
     try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .option(RuntimeOptions.STRICT_ERRORS, "true")
-            .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-            .out(out)
-            .err(out)
+        ContextUtils.newBuilder()
+            .withModifiedContext(
+                bldr ->
+                    bldr.option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
+                        .option(RuntimeOptions.STRICT_ERRORS, "true")
+                        .option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
             .build()) {
-      var polyCtx = new PolyglotContext(ctx);
+      var polyCtx = new PolyglotContext(ctx.context());
       try {
         polyCtx.getTopScope().compile(true);
         fail("Expected compiler error");
       } catch (PolyglotException e) {
         assertThat(
-            out.toString(),
+            ctx.getOut(),
             allOf(
                 containsString("error:"),
                 containsString("Project-private constructor"),
                 containsString("cannot be used from")));
       }
     }
+  }
+
+  @Test
+  public void canCallPrivateConstructor_ViaCallback() throws Exception {
+    var libDir = tempFolder.newFolder("Lib").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("My_Type"),
+                """
+                private
+
+                type My_Type
+                    Cons name
+                """),
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                import project.My_Type.My_Type
+
+                call_method ~callback =
+                    callback My_Type.Cons
+                """)),
+        libDir);
+
+    var projDir = tempFolder.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Proj",
+        """
+        from local.Lib import call_method
+
+        callback cons =
+            cons "Name"
+
+        main =
+            call_method callback . to_text
+        """,
+        projDir);
+
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.asString(), containsString("Cons 'Name'"));
+        });
+  }
+
+  @Test
+  public void canCallPrivateConstructor_ViaLambda() throws Exception {
+    var libDir = tempFolder.newFolder("Lib").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("My_Type"),
+                """
+                private
+
+                type My_Type
+                    Cons name
+                """),
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                import project.My_Type.My_Type
+
+                call_method ~callback =
+                    callback \\it -> My_Type.Cons it
+                """)),
+        libDir);
+
+    var projDir = tempFolder.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Proj",
+        """
+        from local.Lib import call_method
+
+        callback cons =
+            cons "Name"
+
+        main =
+            call_method callback . to_text
+        """,
+        projDir);
+
+    ProjectUtils.testProjectRun(
+        projDir,
+        res -> {
+          assertThat(res.asString(), containsString("Cons 'Name'"));
+        });
   }
 }

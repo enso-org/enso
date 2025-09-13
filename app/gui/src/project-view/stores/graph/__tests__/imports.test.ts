@@ -29,7 +29,7 @@ const qn = (s: string) => unwrap(tryQualifiedName(s))
 const projectNames = mockProjectNameStore('local', 'Project')
 
 function projectPath(path: string) {
-  return projectNames.parseProjectPath(unwrap(tryQualifiedName(path)))
+  return unwrap(projectNames.parseProjectPath(unwrap(tryQualifiedName(path))))
 }
 
 interface CoverCase {
@@ -142,7 +142,7 @@ test.each<CoverCase>([
   expect(
     covers(
       {
-        from: projectNames.parseProjectPath(existing.from),
+        from: unwrap(projectNames.parseProjectPath(existing.from)),
         imported: existing.imported,
       },
       required,
@@ -222,7 +222,7 @@ test.each<ConflictCase>([
   const conflicts = detectImportConflicts(
     db,
     alreadyImported.map(({ from, imported }) => ({
-      from: projectNames.parseProjectPath(from),
+      from: unwrap(projectNames.parseProjectPath(from)),
       imported,
     })),
     importing,

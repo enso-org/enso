@@ -1,6 +1,7 @@
 package org.enso.compiler.common;
 
 import org.enso.compiler.MetadataInteropHelpers;
+import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
@@ -143,6 +144,26 @@ public abstract class BuildScopeFromModuleAlgorithm<TypeScopeReferenceType, Impo
             "Unexpected target type: " + metadata.target().getClass().getCanonicalName());
       };
     }
+  }
+
+  protected final TypeScopeReferenceType getTypeResolution(IR expr) {
+    var resolution =
+        MetadataInteropHelpers.getMetadataOrNull(
+            expr, MethodDefinitions.INSTANCE, BindingsMap.Resolution.class);
+    if (resolution == null) {
+      return null;
+    }
+
+    return switch (resolution.target()) {
+      case BindingsMap.ResolvedType resolvedType -> associatedTypeFromResolvedType(
+          resolvedType, false);
+      case BindingsMap.ResolvedModule resolvedModule -> associatedTypeFromResolvedModule(
+          resolvedModule);
+      default -> throw new IllegalStateException(
+          "Unexpected target type: "
+              + resolution.target().getClass().getCanonicalName()
+              + ", should be caught by MethodDefinitions pass.");
+    };
   }
 
   /**

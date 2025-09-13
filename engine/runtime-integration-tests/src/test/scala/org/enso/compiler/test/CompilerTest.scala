@@ -69,7 +69,8 @@ trait CompilerRunner {
         // IR on the runtime module, as the pass manager will not do this for us.
         // This is to ensure consistency between the curIr and IR stored in moduleContext
         ModuleTestUtils.unsafeSetIr(runtimeMod, curIr)
-        val newIr = passManager.runPassesOnModule(curIr, moduleContext, group)
+        val newIr =
+          passManager.runPassesOnModule(curIr, moduleContext, group, None)
         newIr
       })
     }
@@ -81,7 +82,8 @@ trait CompilerRunner {
     ): Module = {
       val runtimeMod = runtime.Module.fromCompilerModule(moduleContext.module)
       ModuleTestUtils.unsafeSetIr(runtimeMod, ir)
-      val newIr = passManager.runPassesOnModule(ir, moduleContext, passGroup)
+      val newIr =
+        passManager.runPassesOnModule(ir, moduleContext, passGroup, None)
       newIr
     }
   }
@@ -220,15 +222,15 @@ trait CompilerRunner {
       Definition.Data(
         Name.Literal("TestAtom", isMethod = false, identifiedLocation = null),
         List(
-          DefinitionArgument
-            .Specified(
+          DefinitionArgument.Specified
+            .builder()
+            .name(
               Name
-                .Literal("arg", isMethod = false, identifiedLocation = null),
-              None,
-              Some(ir),
-              suspended          = false,
-              identifiedLocation = null
+                .Literal("arg", isMethod = false, identifiedLocation = null)
             )
+            .defaultValue(Some(ir))
+            .suspended(false)
+            .build()
         ),
         List(),
         false,
@@ -300,14 +302,17 @@ trait CompilerRunner {
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
     val mod =
-      runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
+      runtime.Module.empty(
+        QualifiedName.simpleName("Test_Module"),
+        null
+      )
     ModuleTestUtils.unsafeSetIr(
       mod,
       Module(List(), List(), List(), false, identifiedLocation = null)
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,
-            BindingsMap(
+            new BindingsMap(
               List(),
               ModuleReference.Concrete(mod.asCompilerModule())
             )
@@ -332,5 +337,5 @@ trait CompilerRunner {
     )
   }
 
-  val defaultConfig: CompilerConfig = CompilerConfig()
+  val defaultConfig: CompilerConfig = CompilerConfig.createDefault()
 }

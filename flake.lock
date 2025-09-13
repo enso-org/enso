@@ -2,7 +2,9 @@
   "nodes": {
     "fenix": {
       "inputs": {
-        "nixpkgs": ["nixpkgs"],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
         "rust-analyzer-src": "rust-analyzer-src"
       },
       "locked": {
@@ -35,10 +37,27 @@
         "type": "github"
       }
     },
+    "nixpkgs2": {
+      "locked": {
+        "lastModified": 1756734560,
+        "narHash": "sha256-ea0O/1aE5obS9nacuUvey6s85tayo6nXzDAM5DAhKgk=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "0feb4cf3d7931133c4e8e7a558e8153f13fe6b6a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "0feb4cf3d7931133c4e8e7a558e8153f13fe6b6a",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "fenix": "fenix",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "nixpkgs2": "nixpkgs2"
       }
     },
     "rust-analyzer-src": {

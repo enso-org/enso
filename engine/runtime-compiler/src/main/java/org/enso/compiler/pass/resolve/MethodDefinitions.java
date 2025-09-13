@@ -34,6 +34,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.desugar.ComplexType$;
 import org.enso.compiler.pass.desugar.FunctionBinding$;
 import org.enso.compiler.pass.desugar.GenerateMethodBodies$;
+import org.enso.persist.Persistance;
 import scala.Option;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
@@ -85,7 +86,7 @@ public final class MethodDefinitions implements MiniPassFactory {
   }
 
   private static boolean computeIsStatic(IR body) {
-    return Method.Explicit$.MODULE$.computeIsStatic(body);
+    return Function.computeIsStatic(body);
   }
 
   private static final class Mini extends MiniIRPass {
@@ -204,23 +205,22 @@ public final class MethodDefinitions implements MiniPassFactory {
         // is
         // added to avoid modifying the dispatch mechanism.
         var syntheticModuleSelfArg =
-            new DefinitionArgument.Specified(
-                new Name.Self(null, true, new MetadataStorage()),
-                Option.empty(),
-                Option.empty(),
-                false,
-                null,
-                new MetadataStorage());
+            DefinitionArgument.Specified.builder()
+                .name(new Name.Self(null, true, new MetadataStorage()))
+                .suspended(false)
+                .build();
+        // Here we add the type ascription ensuring that the 'proper' self argument only
+        // accepts _instances_ of the type (or triggers conversions)
+        var newBodyRef =
+            Persistance.Reference.of(addTypeAscriptionToSelfArgument(dup.body()), true);
         var newBody =
-            new Function.Lambda(
-                // This is the synthetic Self argument that gets the static module
-                list(syntheticModuleSelfArg),
-                // Here we add the type ascription ensuring that the 'proper' self argument only
-                // accepts _instances_ of the type (or triggers conversions)
-                addTypeAscriptionToSelfArgument(dup.body()),
-                null,
-                true,
-                new MetadataStorage());
+            Function.Lambda.builder()
+                .arguments(
+                    // This is the synthetic Self argument that gets the static module
+                    list(syntheticModuleSelfArg))
+                .bodyReference(newBodyRef)
+                .canBeTCO(true)
+                .build();
         // The actual `self` argument that is referenced inside of method body is the second one in
         // the lambda.
         // This is the argument that will hold the actual instance of the object we are calling on,
@@ -253,7 +253,7 @@ public final class MethodDefinitions implements MiniPassFactory {
         if (firstArg instanceof DefinitionArgument.Specified selfArg
             && selfArg.name() instanceof Name.Self) {
           var selfType = new Name.SelfType(selfArg.identifiedLocation(), new MetadataStorage());
-          var newSelfArg = selfArg.copyWithAscribedType(selfType);
+          var newSelfArg = selfArg.copyWithAscribedType(Option.apply(selfType));
           return lambdaWithNewSelfArg(lambda, newSelfArg);
         } else {
           throw new CompilerError(

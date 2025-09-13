@@ -42,7 +42,13 @@ impl IsTarget for Runtime {
         context: Context,
         job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let config = BuildConfigurationFlags { build_engine_package: true, ..default() };
+        let small_jdk_dir = context.repo_root.target.small_jdk.clone().to_path_buf();
+        let config = BuildConfigurationFlags {
+            build_engine_package: true,
+            build_small_jdk: true,
+            small_jdk_dir: Some(small_jdk_dir),
+            ..default()
+        };
         let this = *self;
         let WithDestination { inner, destination } = job;
         let triple = TargetTriple::new(inner.versions);

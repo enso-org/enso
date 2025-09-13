@@ -3,7 +3,7 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.enso.compiler.benchmarks.Utils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -45,7 +45,11 @@ public class AtomBenchmarks {
       import Standard.Base.Data.Numbers
 
       main = length ->
-          generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.Cons i acc) (i - 1)
+          generator = acc -> i ->
+              if i == 0 then acc else
+                  list = List.Cons i acc
+                  less = i - 1
+                  @Tail_Call generator list less
 
           res = generator List.Nil length
           res
@@ -186,7 +190,7 @@ public class AtomBenchmarks {
           res
       """;
 
-  private Context context;
+  private ContextUtils context;
   private Value millionElementsList;
   private Value generateList;
   private Value generateListQualified;
@@ -247,7 +251,8 @@ public class AtomBenchmarks {
     }
   }
 
-  private static Value mainMethod(Context context, String name, String code) throws IOException {
+  private static Value mainMethod(ContextUtils context, String name, String code)
+      throws IOException {
     return SrcUtil.getMainMethod(context, name, code);
   }
 

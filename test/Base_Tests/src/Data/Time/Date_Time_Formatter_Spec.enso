@@ -78,7 +78,7 @@ add_specs suite_builder =
             d.format (Date_Time_Formatter.from "d. MMMM yyyy" Locale.default) . should_equal "30. June 2020"
 
         group_builder.specify "should allow using a Java formatter" <|
-            jformatter = Date_Time_Formatter.from_java DateTimeFormatter.ISO_ORDINAL_DATE
+            jformatter = Date_Time_Formatter.iso_ordinal_date
             Date.new 2020 2 1 . format jformatter . should_equal "2020-032"
 
         group_builder.specify "should allow parsing Java patterns" <|
@@ -297,9 +297,9 @@ add_specs suite_builder =
             r4.should_fail_with Time_Error
             r4.to_display_text . should_contain "Expected date/time format: (ISO time) HH:mm[:ss[.f]]"
 
-            r5 = Date.parse "FOOBAR" (Date_Time_Formatter.from_java DateTimeFormatter.ISO_ORDINAL_DATE)
+            r5 = Date.parse "FOOBAR" Date_Time_Formatter.iso_ordinal_date
             r5.should_fail_with Time_Error
-            r5.to_display_text . should_contain "Expected date/time format: (Java DateTimeFormatter) ParseCaseSensitive(false)Value(Year,4,10,EXCEEDS_PAD)'-'Value(DayOfYear,3)[Offset(+HH:MM:ss,'Z')]"
+            r5.to_display_text . should_contain "Expected date/time format: iso_ordinal_date"
 
         group_builder.specify "should allow to use 12h hours without am/pm and default to am, but issue a warning (only in parsing)" <|
             f1 = Date_Time_Formatter.from "hh:mm"

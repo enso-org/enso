@@ -3,10 +3,6 @@ import { SettingsCustomEntry } from './CustomEntry'
 import { type SettingsContext, type SettingsEntryData } from './data'
 import { SettingsFormEntry } from './FormEntry'
 
-// =====================
-// === SettingsEntry ===
-// =====================
-
 /** Props for a {@link SettingsEntry}. */
 export interface SettingsEntryProps {
   readonly context: SettingsContext

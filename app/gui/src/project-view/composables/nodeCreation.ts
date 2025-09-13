@@ -93,18 +93,19 @@ export function useNodeCreation(
     const doPlace =
       (adjust: (pos: Vec2) => Vec2 = identity) =>
       (options: NodeCreationOptions) => {
-        const position = adjust(placeNode(options.placement, place)).xy()
-        rects.push(new Rect(Vec2.FromXY(position), Vec2.Zero))
+        const position = adjust(placeNode(options.placement, place))
+        rects.push(new Rect(position, Vec2.Zero))
         return {
           ...options,
-          metadata: { ...options.metadata, position },
+          metadata: { ...options.metadata, position: position.xy() },
         }
       }
     const placedOptions = []
-    // Graph-independent placement strategies normally specify an exact position for the node, regardless of other
-    // nodes. However, when creating multiple nodes at once, the newly-created nodes should never overlap with each
-    // other; so, after determining the intended position of each graph-independent placement its position is adjusted
-    // if necessary, considering only the other uncommitted nodes already placed in the same batch.
+    // Graph-independent placement strategies normally specify an exact position for the node,
+    // regardless of other nodes. However, when creating multiple nodes at once, the newly-created
+    // nodes should never overlap with each other; so, after determining the intended position of
+    // each graph-independent placement its position is adjusted if necessary, considering only the
+    // other uncommitted nodes already placed in the same batch.
     const adjust = (pos: Vec2) => seekHorizontal(new Rect(pos, DEFAULT_NODE_SIZE), rects)
     placedOptions.push(...Array.from(independentNodesOptions, doPlace(adjust)))
     rects.push(...graphStore.visibleNodeAreas)
@@ -172,7 +173,7 @@ export function useNodeCreation(
     for (const _conflict of conflicts) {
       // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
       // https://github.com/enso-org/enso/issues/9356
-      // substituteQualifiedName(assignment, conflict.pattern, conflict.fullyQualified)
+      // substituteQualifiedNameByPattern(assignment, conflict.pattern, conflict.fullyQualified)
     }
   }
 

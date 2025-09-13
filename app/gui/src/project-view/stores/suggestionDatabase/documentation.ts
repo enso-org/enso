@@ -1,39 +1,35 @@
-import type { Group } from '@/stores/suggestionDatabase'
+import { extractMetadata } from '@/components/ComponentHelp/metadata'
+import type { GroupInfo } from '@/stores/suggestionDatabase'
 import { findIndexOpt } from '@/util/data/array'
-import { isSome, type Opt } from '@/util/data/opt'
-import { parseDocs, type Doc } from '@/util/docParser'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import { type Opt } from '@/util/data/opt'
+import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 import { type QualifiedName } from '@/util/qualifiedName'
+import type { SyntaxNodeRef } from '@lezer/common'
 import { type DeepReadonly } from 'vue'
+import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
+import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
+import { unwrapOrWithLog } from 'ydoc-shared/util/data/result'
 
 export interface DocumentationData {
-  documentation: Doc.Section[]
-  aliases: string[]
+  documentation: string
+  documentationSummary: string | undefined
+  aliasesAndMacros: string[]
+  macros: Record<string, string>
   /** A name of a custom icon to use when displaying the entry. */
   iconName: Icon | undefined
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
   groupIndex: number | undefined
+  /** If defined, it's a rank in "suggested" group (lower rank goes first) */
+  suggestedRank: number | undefined
   isPrivate: boolean
   isUnstable: boolean
-}
-
-function isTagNamed(tag: string) {
-  return (section: Doc.Section): section is { Tag: Doc.Section.Tag } => {
-    return 'Tag' in section ? section.Tag.tag == tag : false
-  }
-}
-
-/** @internal */
-export function tagValue(doc: Doc.Section[], tag: string): string | undefined {
-  const tagSection = doc.find(isTagNamed(tag))
-  return tagSection?.Tag.body
 }
 
 /** @internal */
 export function getGroupIndex(
   groupName: string,
   project: QualifiedName,
-  groups: DeepReadonly<Group[]>,
+  groups: DeepReadonly<GroupInfo[]>,
 ): number | undefined {
   let normalized: string
   if (groupName.indexOf('.') >= 0) {
@@ -45,37 +41,54 @@ export function getGroupIndex(
   return index == null ? undefined : index
 }
 
-/** TODO: Add docs */
+/** @internal */
+export function getDocumentationSummary(parsed: SyntaxNodeRef, source: string) {
+  const firstParagraph = parsed.node.getChild('Paragraph')
+  if (firstParagraph == null) return undefined
+  const paragraphText = source.slice(firstParagraph.from, firstParagraph.to)
+  const endOfSummary = paragraphText.search(/(?<=\.)\W/)
+  if (endOfSummary < 0) return paragraphText
+  else return paragraphText.slice(0, endOfSummary)
+}
+
+/** Retrieve {@link DocumentationData } from raw entry's documentation. */
 export function documentationData(
   documentation: Opt<string>,
   project: QualifiedName | undefined,
-  groups: DeepReadonly<Group[]>,
+  groups: DeepReadonly<GroupInfo[]>,
 ): DocumentationData {
-  const parsed = documentation != null ? parseDocs(documentation) : []
-  const groupName = tagValue(parsed, 'Group')
+  const prerendered = prerenderMarkdown(documentation ?? '')
+  const markdown = ensoMarkdownParser.parse(prerendered)
+  const cursor = markdown.cursor()
+  const summary = getDocumentationSummary(cursor.node, prerendered)
+  const metadataResult = extractMetadata(documentation ?? '', cursor.node)
+  const metadata = unwrapOrWithLog(metadataResult, null, 'Invalid documentation metadata')
+
+  const iconName = metadata?.icon
+  const groupName = metadata?.group
+  const aliases = metadata?.aliases ?? []
+  const macros = metadata?.macros ?? []
+  const isPrivate = metadata?.private ?? false
+  const isUnstable = metadata?.unstable ?? false
+  const suggestedRank = metadata?.suggested
+
   const groupIndex = groupName && project ? getGroupIndex(groupName, project, groups) : undefined
-  const iconName = tagValue(parsed, 'Icon')
 
   return {
-    documentation: parsed,
-    iconName: iconName != null ? (iconName as Icon) : undefined,
+    documentation: prerendered,
+    documentationSummary: summary,
+    iconName: iconName != null && isIconName(iconName) ? iconName : undefined,
     groupIndex,
-    aliases:
-      tagValue(parsed, 'Alias')
-        ?.trim()
-        .split(/\s*,\s*/g) ?? [],
-    isPrivate: isSome(tagValue(parsed, 'Private')),
-    isUnstable: isSome(tagValue(parsed, 'Unstable')) || isSome(tagValue(parsed, 'Advanced')),
+    aliasesAndMacros: [...aliases, ...macros.map((macro) => macro.description)].sort(),
+    macros: macros.reduce(
+      (acc, macro) => {
+        acc[macro.description] = macro.value
+        return acc
+      },
+      {} as Record<string, string>,
+    ),
+    isPrivate: isPrivate,
+    isUnstable: isUnstable,
+    suggestedRank: suggestedRank,
   }
-}
-
-/**
- * Get the ICON tag value from the documentation block. Only use this function
- * if all you need is icon, since the docs parsing is an expensive operation.
- * @param documentation String representation of documentation block.
- * @returns Value of icon tag within the docs.
- */
-export function getDocsIcon(documentation: Opt<string>): Opt<Icon> {
-  const parsed = documentation != null ? parseDocs(documentation) : []
-  return tagValue(parsed, 'Icon') as Opt<Icon>
 }

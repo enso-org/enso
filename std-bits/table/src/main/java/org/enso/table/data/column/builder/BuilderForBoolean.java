@@ -7,5 +7,5 @@ public interface BuilderForBoolean extends BuilderForType<Boolean> {
    *
    * @param value the boolean to append
    */
-  void appendBoolean(boolean value);
+  BuilderForBoolean appendBoolean(boolean value);
 }

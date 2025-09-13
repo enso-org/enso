@@ -4,7 +4,7 @@ from Standard.Table import Value_Type, Column_Ref, Previous_Value, Blank_Selecto
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import Unsupported_Database_Operation
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
 

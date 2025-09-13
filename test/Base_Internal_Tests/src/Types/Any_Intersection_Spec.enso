@@ -1,0 +1,142 @@
+from Standard.Base import all
+from Standard.Test import all
+import Standard.Base.Internal.Meta_Helpers
+
+from project.Types.Any_Intersection import A, B, abc, ac_hidden_b
+
+add_specs suite_builder =
+    suite_builder.group "Any Intersection Tests" group_builder->
+        type_name = Meta_Helpers.simple_type_name_builtin
+
+        extract_b_1 b:B -> B = b
+        extract_b_2 b -> B = b
+        extract_b_3 b = b:B
+        extract_b_4 b:B = b
+
+        with_a_b_1 b:A&B-> A&B = b
+        with_a_b_2 b -> A&B = b
+        with_a_b_3 b = b:A&B
+        with_a_b_4 b:A&B = b
+
+        with_any_b_1 b:Any&B-> Any&B = b
+        with_any_b_2 b -> Any&B = b
+        with_any_b_3 b = b:Any&B
+        with_any_b_4 b:Any&B = b
+
+        with_any_1 b:Any-> Any = b
+        with_any_2 b -> Any = b
+        with_any_3 b = b:Any
+        with_any_4 b:Any = b
+
+        group_builder.specify "Extract B visible type" <|
+            v = abc
+            type_name v . should_equal "A & B & C"
+
+            r1 = extract_b_1 v
+            r2 = extract_b_2 v
+            r3 = extract_b_3 v
+            r4 = extract_b_4 v
+
+            type_name r1 . should_equal "B & ~A & ~C"
+            type_name r2 . should_equal "B & ~A & ~C"
+            type_name r3 . should_equal "B & ~A & ~C"
+            type_name r4 . should_equal "B & ~A & ~C"
+
+        group_builder.specify "Extract B hidden type" <|
+            v = ac_hidden_b
+
+            r1 = Panic.recover Any <| extract_b_1 v
+            r2 = Panic.recover Any <| extract_b_2 v
+            r3 = extract_b_3 v
+            r4 = Panic.recover Any <| extract_b_4 v
+
+            type_name r1 . should_equal "Error"
+            type_name r2 . should_equal "Error"
+            type_name r3 . should_equal "B & ~A & ~C"
+            type_name r4 . should_equal "Error"
+
+        group_builder.specify "Extract A&B visible type" <|
+            v = abc
+            type_name v . should_equal "A & B & C"
+
+            r1 = with_a_b_1 v
+            r2 = with_a_b_2 v
+            r3 = with_a_b_3 v
+            r4 = with_a_b_4 v
+
+            type_name r1 . should_equal "A & B & ~C"
+            type_name r2 . should_equal "A & B & ~C"
+            type_name r3 . should_equal "A & B & ~C"
+            type_name r4 . should_equal "A & B & ~C"
+
+        group_builder.specify "Extract A&B hidden type" <|
+            v = ac_hidden_b
+
+            r1 = Panic.recover Any <| with_a_b_1 v
+            r2 = Panic.recover Any <| with_a_b_2 v
+            r3 = with_a_b_3 v
+            r4 = Panic.recover Any <| with_a_b_4 v
+
+            type_name r1 . should_equal "Error"
+            type_name r2 . should_equal "Error"
+            type_name r3 . should_equal "A & B & ~C"
+            type_name r4 . should_equal "Error"
+
+        group_builder.specify "Extract Any&B visible type" <|
+            v = abc
+            type_name v . should_equal "A & B & C"
+
+            r1 = with_any_b_1 v
+            r2 = with_any_b_2 v
+            r3 = with_any_b_3 v
+            r4 = with_any_b_4 v
+
+            type_name r1 . should_equal "B & A & C"
+            type_name r2 . should_equal "B & A & C"
+            type_name r3 . should_equal "B & A & C"
+            type_name r4 . should_equal "B & A & C"
+
+        group_builder.specify "Extract Any&B hidden type" <|
+            v = ac_hidden_b
+
+            r1 = Panic.recover Any <| with_any_b_1 v
+            r2 = Panic.recover Any <| with_any_b_2 v
+            r3 = with_any_b_3 v
+            r4 = Panic.recover Any <| with_any_b_4 v
+
+            type_name r1 . should_equal "Error"
+            type_name r2 . should_equal "Error"
+            type_name r3 . should_equal "B & C & A"
+            type_name r4 . should_equal "Error"
+
+        group_builder.specify "Extract Any visible type" <|
+            v = abc
+            type_name v . should_equal "A & B & C"
+
+            r1 = with_any_1 v
+            r2 = with_any_2 v
+            r3 = with_any_3 v
+            r4 = with_any_4 v
+
+            type_name r1 . should_equal "A & B & C"
+            type_name r2 . should_equal "A & B & C"
+            type_name r3 . should_equal "A & B & C"
+            type_name r4 . should_equal "A & B & C"
+
+        group_builder.specify "Extract Any hidden type" <|
+            v = ac_hidden_b
+
+            r1 = Panic.recover Any <| with_any_1 v
+            r2 = with_any_2 v
+            r3 = with_any_3 v
+            r4 = Panic.recover Any <| with_any_4 v
+
+            type_name r1 . should_equal "A & C & ~B"
+            type_name r2 . should_equal "A & C & ~B"
+            type_name r3 . should_equal "A & C & B"
+            type_name r4 . should_equal "A & C & ~B"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

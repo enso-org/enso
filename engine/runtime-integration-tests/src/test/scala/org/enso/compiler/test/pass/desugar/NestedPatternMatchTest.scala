@@ -145,11 +145,11 @@ class NestedPatternMatchTest extends CompilerTest {
         .returnValue
         .asInstanceOf[Case.Expr]
 
-    val consConsNilBranch        = ir.branches(0)
-    val consConsOneNilBranch     = ir.branches(1)
-    val consConsIntegerNilBranch = ir.branches(2)
-    val consANilBranch           = ir.branches(3)
-    val catchAllBranch           = ir.branches(4)
+    val consConsNilBranch        = ir.branches.apply(0)
+    val consConsOneNilBranch     = ir.branches.apply(1)
+    val consConsIntegerNilBranch = ir.branches.apply(2)
+    val consANilBranch           = ir.branches.apply(3)
+    val catchAllBranch           = ir.branches.apply(4)
 
     "desugar nested constructors to simple patterns" in {
       ir.isNested shouldBe false
@@ -169,7 +169,7 @@ class NestedPatternMatchTest extends CompilerTest {
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
-      val nilBranch = nestedCase.branches(0)
+      val nilBranch = nestedCase.branches.apply(0)
 
       nilBranch.pattern shouldBe a[Pattern.Constructor]
       nilBranch.pattern
@@ -197,7 +197,7 @@ class NestedPatternMatchTest extends CompilerTest {
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
-      val consBranch = nestedCase.branches(0)
+      val consBranch = nestedCase.branches.apply(0)
 
       consBranch.expression shouldBe an[Expression.Block]
 
@@ -233,7 +233,7 @@ class NestedPatternMatchTest extends CompilerTest {
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
-      val consBranch = nestedCase.branches(0)
+      val consBranch = nestedCase.branches.apply(0)
 
       consBranch.expression shouldBe an[Expression.Block]
       consBranch.terminalBranch shouldBe false
@@ -275,7 +275,7 @@ class NestedPatternMatchTest extends CompilerTest {
       nestedCase.branches.length shouldEqual 1
       nestedCase.isNested shouldBe true
 
-      val consBranch = nestedCase.branches(0)
+      val consBranch = nestedCase.branches.apply(0)
 
       consBranch.expression shouldBe an[Expression.Block]
       consBranch.terminalBranch shouldBe false
@@ -340,6 +340,52 @@ class NestedPatternMatchTest extends CompilerTest {
         .constructor
         .name shouldEqual "Nil"
       consANilBranch2Expr.branches.head.terminalBranch shouldBe true
+    }
+  }
+
+  "Simple nested pattern desugaring" should {
+    implicit val ctx: InlineContext = mkInlineContext
+
+    // IGV graph: https://github.com/user-attachments/assets/b5387e61-e577-4b03-8a4a-ca05e27f2462
+    "One nested pattern" in {
+      val ir =
+        """
+          |case x of
+          |    Cons (Nested a) -> num
+          |""".stripMargin.preprocessExpression.get
+      val processed = ir.desugar
+
+      val block7   = processed.asInstanceOf[Expression.Block]
+      val binding8 = block7.expressions.head.asInstanceOf[Expression.Binding]
+      binding8.name.name shouldBe "<internal-0>"
+      val literal1 = binding8.expression.asInstanceOf[Name.Literal]
+      literal1.name shouldBe "x"
+      val caseExpr0 = block7.returnValue.asInstanceOf[Case.Expr]
+      val literal9  = caseExpr0.scrutinee.asInstanceOf[Name.Literal]
+      literal9.name shouldBe "<internal-0>"
+      val caseBranch10 = caseExpr0.branches.head
+      caseBranch10.terminalBranch shouldBe false
+      val patternCons11 = caseBranch10.pattern.asInstanceOf[Pattern.Constructor]
+      patternCons11.constructor.name shouldBe "Cons"
+      val patternName12 = patternCons11.fields.head.asInstanceOf[Pattern.Name]
+      patternName12.name.name shouldBe "<internal-1>"
+
+      val block13   = caseBranch10.expression.asInstanceOf[Expression.Block]
+      val binding14 = block13.expressions.head.asInstanceOf[Expression.Binding]
+      binding14.name.name shouldBe "<internal-2>"
+      val literal15 = binding14.expression.asInstanceOf[Name.Literal]
+      literal15.name shouldBe "<internal-1>"
+      val caseExpr16 = block13.returnValue.asInstanceOf[Case.Expr]
+      val literal17  = caseExpr16.scrutinee.asInstanceOf[Name.Literal]
+      literal17.name shouldBe "<internal-2>"
+      val caseBranch18 = caseExpr16.branches.head
+      caseBranch18.terminalBranch shouldBe true
+      val patternCons19 = caseBranch18.pattern.asInstanceOf[Pattern.Constructor]
+      patternCons19.constructor.name shouldBe "Nested"
+      val patternName20 = patternCons19.fields.head.asInstanceOf[Pattern.Name]
+      patternName20.name.name shouldBe "a"
+      val literal21 = caseBranch18.expression.asInstanceOf[Name.Literal]
+      literal21.name shouldBe "num"
     }
   }
 }

@@ -14,6 +14,7 @@ debug = ["dep:enso-parser-syntax-tree-visitor"]
 nightly = [] # necessary to run benchmarks
 
 [dependencies]
+enso-parser-macros = { path = "macros" }
 enso-prelude = { path = "../prelude" }
 enso-reflect = { path = "../reflect" }
 derive-where = { workspace = true }

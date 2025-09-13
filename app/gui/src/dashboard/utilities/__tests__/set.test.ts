@@ -4,10 +4,6 @@ import * as v from 'vitest'
 
 import * as setModule from '#/utilities/set'
 
-// =============
-// === Tests ===
-// =============
-
 fc.test.prop({
   set: fc.fc.array(fc.fc.anything(), { minLength: 1 }).map((array) => new Set(array)),
   item: fc.fc.anything(),

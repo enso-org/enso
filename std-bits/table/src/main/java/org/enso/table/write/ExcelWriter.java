@@ -12,10 +12,10 @@ import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.ColumnCountMismatchException;
@@ -457,7 +457,7 @@ public class ExcelWriter {
 
     boolean use1904Format = ExcelUtils.is1904DateSystem(workbook);
 
-    Storage<?>[] storages = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
+    var storages = Arrays.stream(columns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     for (int i = 0; i < rowCount; i++) {
       Row row = sheet.getRow(currentRow);
       if (row == null) {
@@ -465,7 +465,7 @@ public class ExcelWriter {
       }
 
       for (int j = 0; j < columns.length; j++) {
-        Storage<?> storage = storages[j];
+        var storage = storages[j];
         int idx = j + firstColumn - 1;
 
         Cell cell = row.getCell(idx);
@@ -495,16 +495,16 @@ public class ExcelWriter {
   }
 
   private static void writeValueToCell(
-      Cell cell, int j, Storage<?> storage, Workbook workbook, boolean use1904Format)
+      Cell cell, int j, ColumnStorage<?> storage, Workbook workbook, boolean use1904Format)
       throws IllegalStateException {
     if (storage.isNothing(j)) {
       cell.setBlank();
-    } else if (storage instanceof DoubleStorage doubleStorage) {
+    } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
       cell.setCellValue(doubleStorage.getItemAsDouble(j));
-    } else if (storage instanceof AbstractLongStorage longStorage) {
-      cell.setCellValue(longStorage.getItem(j));
-    } else if (storage instanceof BoolStorage boolStorage) {
-      cell.setCellValue(boolStorage.getItem(j));
+    } else if (storage instanceof ColumnLongStorage longStorage) {
+      cell.setCellValue(longStorage.getItemAsLong(j));
+    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
+      cell.setCellValue(boolStorage.getItemAsBoolean(j));
     } else {
       Object value = storage.getItemBoxed(j);
       switch (value) {

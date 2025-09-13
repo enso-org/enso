@@ -5,6 +5,7 @@ import org.enso.compiler.core.{ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.Location
 import org.enso.compiler.core.ir.IdentifiedLocation
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.service.ExecutionService
 import org.enso.text.editing.{model, IndexedSource}
 
 import java.util.UUID
@@ -31,15 +32,14 @@ object LocationResolver {
     * @return the expression id of the given source section
     */
   def getExpressionId(section: SourceSection)(implicit
-    ctx: RuntimeContext
+    executionService: ExecutionService
   ): Option[ExpressionId] = {
     val moduleName = section.getSource.getName
-    val moduleOpt  = ctx.executionService.getContext.findModule(moduleName)
+    val moduleOpt  = executionService.getContext.findModule(moduleName)
     if (moduleOpt.isEmpty) None
     else {
-      val module   = moduleOpt.get()
-      val location = sectionToLocation(section, module.getLiteralSource)
-      getExpressionId(module.getIr, location)
+      val module = moduleOpt.get()
+      getExpressionId(section, module)
     }
   }
 

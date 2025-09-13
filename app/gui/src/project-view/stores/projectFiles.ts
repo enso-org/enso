@@ -1,31 +1,27 @@
-import { DataServer } from '@/util/net/dataServer'
 import { bytesToHex, Hash } from '@noble/hashes/utils'
 import { Error as DataError } from 'ydoc-shared/binaryProtocol'
-import { ErrorCode, LanguageServer, RemoteRpcError } from 'ydoc-shared/languageServer'
-import { Path, Uuid } from 'ydoc-shared/languageServerTypes'
+import { ErrorCode, RemoteRpcError } from 'ydoc-shared/languageServer'
+import { Path } from 'ydoc-shared/languageServerTypes'
 import { Err, Ok, Result, withContext } from 'ydoc-shared/util/data/result'
+import { ProjectStore } from './project'
 
 export type ProjectFiles = ReturnType<typeof useProjectFiles>
+
+type ProjectStoreSubset = Pick<ProjectStore, 'projectRootId' | 'lsRpcConnection' | 'dataConnection'>
 
 /**
  * A composable with project files operations.
  */
-export function useProjectFiles(projectStore: {
-  projectRootId: Promise<Uuid | undefined>
-  lsRpcConnection: LanguageServer
-  dataConnection: DataServer
-}) {
+export function useProjectFiles(projectStore: ProjectStoreSubset) {
   const { projectRootId, lsRpcConnection: lsRpc, dataConnection } = projectStore
 
-  async function readFileBinary(path: Path): Promise<Result<Blob>> {
+  async function readFileBinary(path: Path, abort?: AbortSignal): Promise<Result<Blob>> {
     const result = await dataConnection.readFile(path)
-    if (result instanceof DataError) {
-      return Err(result.message() ?? 'Failed to read file.')
-    }
+    if (abort?.aborted) return Err(abort)
+    if (result instanceof DataError) return Err(result.message() ?? 'Failed to read file.')
+
     const contents = result.contentsArray()
-    if (contents == null) {
-      return Err('No file contents received.')
-    }
+    if (contents == null) return Err('No file contents received.')
     return Ok(new Blob([contents]))
   }
 

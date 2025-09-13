@@ -1,0 +1,22 @@
+import Standard.Base.Data.Text.Text
+import Standard.Base.Runtime.Ref.Ref
+
+## ---
+   private: true
+   ---
+   Helper for generating column names.
+type Column_Namer
+    ## ---
+       private: true
+       ---
+    private Value (prefix : Text) (next_ref : Ref)
+
+    ## ---
+       private: true
+       ---
+       Create a new Column_Namer with the given prefix and a starting number of
+       1.
+    new (prefix : Text) -> Column_Namer = Column_Namer.Value prefix (Ref.new 1)
+
+    ## Gets the next column name and increment the counter.
+    next self -> Text = self.prefix.to_text + " " + (self.next_ref.modify (+1)).to_text

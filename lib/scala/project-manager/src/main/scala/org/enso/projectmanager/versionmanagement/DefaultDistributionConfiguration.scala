@@ -61,11 +61,10 @@ object DefaultDistributionConfiguration
     userInterface: RuntimeVersionManagementUserInterface
   ): RuntimeVersionManager =
     new RuntimeVersionManager(
-      environment         = this.environment,
-      userInterface       = userInterface,
-      distributionManager = distributionManager,
-      graalVersionManager =
-        new GraalVersionManager(distributionManager, environment),
+      environment               = this.environment,
+      userInterface             = userInterface,
+      distributionManager       = distributionManager,
+      graalVersionManager       = new GraalVersionManager(distributionManager),
       temporaryDirectoryManager = temporaryDirectoryManager,
       resourceManager           = resourceManager,
       engineReleaseProvider     = engineReleaseProvider,

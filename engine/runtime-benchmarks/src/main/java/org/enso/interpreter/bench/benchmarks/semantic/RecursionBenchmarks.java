@@ -1,8 +1,7 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
-import org.enso.interpreter.bench.Utils;
-import org.graalvm.polyglot.Context;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -108,7 +107,7 @@ main = n ->
   private static final long HUNDRED_MILLION = 100_000_000L;
   private static final long HUNDRED = 100L;
 
-  private Context context;
+  private ContextUtils context;
   private Value sumTCO;
   private Value sumTCOWithEval;
   private Value sumTCOFoldLike;
@@ -121,14 +120,14 @@ main = n ->
   public void initializeBenchmarks(BenchmarkParams params) {
     this.context = org.enso.compiler.benchmarks.Utils.createDefaultContextBuilder().build();
 
-    this.sumTCO = Utils.getMainMethod(context, SUM_TCO_CODE);
-    this.sumTCOWithEval = Utils.getMainMethod(context, SUM_TCO_WITH_EVAL_CODE);
-    this.sumTCOFoldLike = Utils.getMainMethod(context, SUM_TCO_FOLD_LIKE_CODE);
-    this.sumRecursive = Utils.getMainMethod(context, SUM_RECURSIVE_CODE);
+    this.sumTCO = context.getMethodFromModule(SUM_TCO_CODE, "main");
+    this.sumTCOWithEval = context.getMethodFromModule(SUM_TCO_WITH_EVAL_CODE, "main");
+    this.sumTCOFoldLike = context.getMethodFromModule(SUM_TCO_FOLD_LIKE_CODE, "main");
+    this.sumRecursive = context.getMethodFromModule(SUM_RECURSIVE_CODE, "main");
     this.oversaturatedRecursiveCall =
-        Utils.getMainMethod(context, OVERSATURATED_RECURSIVE_CALL_TCO_CODE);
-    this.sumStateTCO = Utils.getMainMethod(context, SUM_STATE_TCO_CODE);
-    this.nestedThunkSum = Utils.getMainMethod(context, NESTED_THUNK_SUM_CODE);
+        context.getMethodFromModule(OVERSATURATED_RECURSIVE_CALL_TCO_CODE, "main");
+    this.sumStateTCO = context.getMethodFromModule(SUM_STATE_TCO_CODE, "main");
+    this.nestedThunkSum = context.getMethodFromModule(NESTED_THUNK_SUM_CODE, "main");
   }
 
   private Value runOnHundredMillion(Value function) {

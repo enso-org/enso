@@ -36,9 +36,15 @@ type Type_Error
 
 @Builtin_Type
 type Not_Invokable
-    Error target
+    Error target cause
 
     to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
+
+@Builtin_Type
+type No_Such_Argument
+    Error argument_name
+
+    to_display_text self = "The named argument `"+self.argument_name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
 
 @Builtin_Type
 type Compile_Error
@@ -75,10 +81,10 @@ type Arity_Error
 
     to_display_text self =
         expected = self.expected_min.to_text
-        expectedRange = if (self.expected_min == self.expected_max) then expected else
-            if (self.expected_max == -1) then expected+"-" else expected+self.expected_max.to_text
+        expected_range = if (self.expected_min == self.expected_max) then expected else
+            if (self.expected_max == -1) then expected+"+" else expected+"-"+self.expected_max.to_text
 
-        "Wrong number of arguments. Expected "+expectedRange+", but got "+self.actual.to_text+"."
+        "Wrong number of arguments. Expected "+expected_range+", but got "+self.actual.to_text+"."
 
 @Builtin_Type
 type Forbidden_Operation

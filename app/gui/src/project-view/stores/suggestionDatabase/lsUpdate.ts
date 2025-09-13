@@ -1,5 +1,5 @@
 import { type ProjectNameStore } from '@/stores/projectNames'
-import { type Group, SuggestionDb } from '@/stores/suggestionDatabase'
+import { type GroupInfo, SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   documentationData,
   type DocumentationData,
@@ -26,11 +26,8 @@ import {
   Identifier,
   type IdentifierOrOperatorIdentifier,
   isIdentifierOrOperatorIdentifier,
-  isQualifiedName,
   qnJoin,
   qnLastSegment,
-  type QualifiedName,
-  tryQualifiedName,
 } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
 import { type DeepReadonly, toValue } from 'vue'
@@ -40,13 +37,8 @@ import {
   SuggestionsDatabaseUpdate,
 } from 'ydoc-shared/languageServerTypes/suggestions'
 
-function isOptQN(optQn: string | undefined): optQn is QualifiedName | undefined {
-  if (optQn == null) return true
-  return isQualifiedName(optQn)
-}
-
 interface UpdateContext {
-  groups: DeepReadonly<Group[]>
+  groups: DeepReadonly<GroupInfo[]>
   projectNames: ProjectNameStore
 }
 
@@ -67,14 +59,24 @@ abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
   get documentation() {
     return this.documentationData.documentation
   }
-  get aliases() {
-    return this.documentationData.aliases
+
+  get documentationSummary() {
+    return this.documentationData.documentationSummary
+  }
+  get aliasesAndMacros() {
+    return this.documentationData.aliasesAndMacros
+  }
+  get macros() {
+    return this.documentationData.macros
   }
   get iconName() {
     return this.documentationData.iconName
   }
   get groupIndex() {
     return this.documentationData.groupIndex
+  }
+  get suggestedRank() {
+    return this.documentationData.suggestedRank
   }
   get isPrivate() {
     return this.documentationData.isPrivate
@@ -86,20 +88,20 @@ abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
     return this.definedIn.append(this.name)
   }
 
-  setDocumentation(documentation: string | undefined, groups: DeepReadonly<Group[]>) {
+  setDocumentation(documentation: string | undefined, groups: DeepReadonly<GroupInfo[]>) {
     this.documentationData = documentationData(documentation, this.definedIn.project, groups)
   }
   setLsModule(lsModule: ProjectPath) {
     this.definedIn = lsModule
   }
-  setLsReturnType(_returnType: Typename, _projectNames: ProjectNameStore) {
-    console.warn(`Cannot modify \`returnType\` of entry type ${this.kind}.`)
+  setLsReturnType(_returnType: Typename, _projectNames: ProjectNameStore): Result<void> {
+    return Err(`Cannot modify \`returnType\` of entry type ${this.kind}.`)
   }
-  setLsReexported(_reexported: ProjectPath | undefined) {
-    console.warn(`Cannot modify \`reexported\` of entry type ${this.kind}.`)
+  setLsReexported(_reexported: ProjectPath | undefined): Result<void> {
+    return Err(`Cannot modify \`reexported\` of entry type ${this.kind}.`)
   }
-  setLsScope(_scope: lsTypes.SuggestionEntryScope | undefined) {
-    console.warn(`Cannot modify \`scope\` of entry type ${this.kind}.`)
+  setLsScope(_scope: lsTypes.SuggestionEntryScope | undefined): Result<void> {
+    return Err(`Cannot modify \`scope\` of entry type ${this.kind}.`)
   }
 }
 
@@ -129,13 +131,14 @@ class FunctionSuggestionEntryImpl extends BaseSuggestionEntry implements Functio
     context: UpdateContext,
   ): Result<FunctionSuggestionEntry> {
     if (!isIdentifierOrOperatorIdentifier(lsEntry.name)) return Err('Invalid name')
-    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
+    const module = parseProjectPath(lsEntry, 'module', context)
+    if (!module.ok) return module
     return Ok(
       new FunctionSuggestionEntryImpl(
         lsEntry.name,
         lsEntry.scope,
         lsEntry.arguments,
-        context.projectNames.parseProjectPath(lsEntry.module),
+        module.value,
         lsEntry.returnType,
         lsEntry.documentation,
         context,
@@ -145,9 +148,11 @@ class FunctionSuggestionEntryImpl extends BaseSuggestionEntry implements Functio
 
   override setLsReturnType(returnType: Typename) {
     this.lsReturnType = returnType
+    return Ok()
   }
   override setLsScope(scope: lsTypes.SuggestionEntryScope | undefined) {
     this.scope = scope
+    return Ok()
   }
 }
 
@@ -181,20 +186,18 @@ class ModuleSuggestionEntryImpl extends BaseSuggestionEntry implements ModuleSug
     lsEntry: lsTypes.SuggestionEntry.Module,
     context: UpdateContext,
   ): Result<ModuleSuggestionEntry> {
-    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
-    if (!isOptQN(lsEntry.reexport)) return Err('Invalid reexport')
+    const module = parseProjectPath(lsEntry, 'module', context)
+    if (!module.ok) return module
+    const reexport = parseProjectPath(lsEntry, 'reexport', context)
+    if (!reexport.ok) return reexport
     return Ok(
-      new ModuleSuggestionEntryImpl(
-        context.projectNames.parseProjectPath(lsEntry.module),
-        lsEntry.reexport && context.projectNames.parseProjectPath(lsEntry.reexport),
-        lsEntry.documentation,
-        context,
-      ),
+      new ModuleSuggestionEntryImpl(module.value, reexport.value, lsEntry.documentation, context),
     )
   }
 
   override setLsReexported(reexported: ProjectPath | undefined) {
     this.reexportedIn = reexported
+    return Ok()
   }
 }
 
@@ -224,17 +227,19 @@ class TypeSuggestionEntryImpl extends BaseSuggestionEntry implements TypeSuggest
     context: UpdateContext,
   ): Result<TypeSuggestionEntry> {
     if (!isIdentifierOrOperatorIdentifier(lsEntry.name)) return Err('Invalid name')
-    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
-    if (!isOptQN(lsEntry.reexport)) return Err('Invalid reexport')
-    if (!isOptQN(lsEntry.parentType)) return Err('Invalid parent type')
-    const parentTypeQn = lsEntry.parentType === ANY_TYPE_QN ? undefined : lsEntry.parentType
+    const module = parseProjectPath(lsEntry, 'module', context)
+    if (!module.ok) return module
+    const reexport = parseProjectPath(lsEntry, 'reexport', context)
+    if (!reexport.ok) return reexport
+    const parentType = parseProjectPath(lsEntry, 'parentType', context)
+    if (!parentType.ok) return parentType
     return Ok(
       new TypeSuggestionEntryImpl(
         lsEntry.name,
         lsEntry.params,
-        parentTypeQn && context.projectNames.parseProjectPath(parentTypeQn),
-        context.projectNames.parseProjectPath(lsEntry.module),
-        lsEntry.reexport && context.projectNames.parseProjectPath(lsEntry.reexport),
+        lsEntry.parentType !== ANY_TYPE_QN ? parentType.value : undefined,
+        module.value,
+        reexport.value,
         lsEntry.documentation,
         context,
       ),
@@ -243,6 +248,7 @@ class TypeSuggestionEntryImpl extends BaseSuggestionEntry implements TypeSuggest
 
   override setLsReexported(reexported: ProjectPath | undefined) {
     this.reexportedIn = reexported
+    return Ok()
   }
 }
 
@@ -279,17 +285,20 @@ class ConstructorSuggestionEntryImpl
     context: UpdateContext,
   ): Result<ConstructorSuggestionEntry> {
     if (!isIdentifierOrOperatorIdentifier(lsEntry.name)) return Err('Invalid name')
-    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
-    if (!isOptQN(lsEntry.reexport)) return Err('Invalid reexport')
-    if (!isQualifiedName(lsEntry.returnType)) return Err('Invalid constructor return type')
+    const module = parseProjectPath(lsEntry, 'module', context)
+    if (!module.ok) return module
+    const reexport = parseProjectPath(lsEntry, 'reexport', context)
+    if (!reexport.ok) return reexport
+    const returnType = parseProjectPath(lsEntry, 'returnType', context)
+    if (!returnType.ok) return returnType
     return Ok(
       new ConstructorSuggestionEntryImpl(
         lsEntry.name,
         lsEntry.arguments,
-        lsEntry.reexport && context.projectNames.parseProjectPath(lsEntry.reexport),
+        reexport.value,
         lsEntry.annotations,
-        context.projectNames.parseProjectPath(lsEntry.module),
-        context.projectNames.parseProjectPath(lsEntry.returnType),
+        module.value,
+        returnType.value,
         lsEntry.documentation,
         context,
       ),
@@ -297,11 +306,14 @@ class ConstructorSuggestionEntryImpl
   }
 
   override setLsReturnType(returnType: Typename, projectNames: ProjectNameStore) {
-    if (!isQualifiedName(returnType)) return Err('Invalid constructor return type')
-    this.memberOf = projectNames.parseProjectPath(returnType)
+    const parsed = projectNames.parseProjectPathRaw(returnType)
+    if (!parsed.ok) return parsed
+    this.memberOf = parsed.value
+    return Ok()
   }
   override setLsReexported(reexported: ProjectPath | undefined) {
     this.reexportedIn = reexported
+    return Ok()
   }
 }
 
@@ -340,18 +352,21 @@ class MethodSuggestionEntryImpl extends BaseSuggestionEntry implements MethodSug
     context: UpdateContext,
   ): Result<MethodSuggestionEntry> {
     if (!isIdentifierOrOperatorIdentifier(lsEntry.name)) return Err('Invalid name')
-    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
-    if (!isOptQN(lsEntry.reexport)) return Err('Invalid reexport')
-    if (!isQualifiedName(lsEntry.selfType)) return Err('Invalid module name')
+    const module = parseProjectPath(lsEntry, 'module', context)
+    if (!module.ok) return module
+    const reexport = parseProjectPath(lsEntry, 'reexport', context)
+    if (!reexport.ok) return reexport
+    const selfType = parseProjectPath(lsEntry, 'selfType', context)
+    if (!selfType.ok) return selfType
     return Ok(
       new MethodSuggestionEntryImpl(
         lsEntry.name,
         lsEntry.arguments,
-        lsEntry.reexport && context.projectNames.parseProjectPath(lsEntry.reexport),
+        reexport.value,
         lsEntry.annotations,
         lsEntry.isStatic,
-        context.projectNames.parseProjectPath(lsEntry.selfType),
-        context.projectNames.parseProjectPath(lsEntry.module),
+        selfType.value,
+        module.value,
         lsEntry.returnType,
         lsEntry.documentation,
         context,
@@ -361,9 +376,11 @@ class MethodSuggestionEntryImpl extends BaseSuggestionEntry implements MethodSug
 
   override setLsReturnType(returnType: Typename) {
     this.lsReturnType = returnType
+    return Ok()
   }
   override setLsReexported(reexported: ProjectPath | undefined) {
     this.reexportedIn = reexported
+    return Ok()
   }
   setLsSelfType(selfType: ProjectPath) {
     this.memberOf = selfType
@@ -393,12 +410,13 @@ class LocalSuggestionEntryImpl extends BaseSuggestionEntry implements LocalSugge
     context: UpdateContext,
   ): Result<LocalSuggestionEntry> {
     if (!isIdentifierOrOperatorIdentifier(lsEntry.name)) return Err('Invalid name')
-    if (!isQualifiedName(lsEntry.module)) return Err('Invalid module name')
+    const module = parseProjectPath(lsEntry, 'module', context)
+    if (!module.ok) return module
     return Ok(
       new LocalSuggestionEntryImpl(
         lsEntry.name,
         lsEntry.scope,
-        context.projectNames.parseProjectPath(lsEntry.module),
+        module.value,
         lsEntry.returnType,
         lsEntry.documentation,
         context,
@@ -408,16 +426,18 @@ class LocalSuggestionEntryImpl extends BaseSuggestionEntry implements LocalSugge
 
   override setLsReturnType(returnType: Typename) {
     this.lsReturnType = returnType
+    return Ok()
   }
   override setLsScope(scope: lsTypes.SuggestionEntryScope | undefined) {
     this.scope = scope
+    return Ok()
   }
 }
 
 function applyFieldUpdate<K extends string, T, R>(
   name: K,
   update: { [P in K]?: lsTypes.FieldUpdate<T> },
-  updater: (newValue: T) => R,
+  updater: (newValue: T) => Result<R>,
 ): Result<Opt<R>> {
   const field = update[name]
   if (field == null) return Ok(null)
@@ -427,7 +447,7 @@ function applyFieldUpdate<K extends string, T, R>(
       switch (field.tag) {
         case 'Set':
           if (field.value != null) {
-            return Ok(updater(field.value))
+            return updater(field.value)
           } else {
             return Err('Received "Set" update with no value')
           }
@@ -447,6 +467,7 @@ function applyPropertyUpdate<K extends string, T>(
 ): Result<void> {
   const apply = applyFieldUpdate(name, update, (newValue) => {
     obj[name] = newValue
+    return Ok()
   })
   if (!apply.ok) return apply
   return Ok()
@@ -502,6 +523,7 @@ function modifyArgument(
   if (!nameUpdate.ok) return nameUpdate
   const typeUpdate = applyFieldUpdate('reprType', update, (type) => {
     arg.reprType = type
+    return Ok()
   })
   if (!typeUpdate.ok) return typeUpdate
   const isSuspendedUpdate = applyPropertyUpdate('isSuspended', arg, update)
@@ -516,7 +538,7 @@ function modifyArgument(
 export class SuggestionUpdateProcessor {
   /** Constructor. */
   constructor(
-    private readonly groups: ToValue<DeepReadonly<Group[]>>,
+    private readonly groups: ToValue<DeepReadonly<GroupInfo[]>>,
     private readonly projectNames: ProjectNameStore,
   ) {}
 
@@ -600,23 +622,25 @@ export class SuggestionUpdateProcessor {
     }
 
     const moduleUpdate = applyFieldUpdate('module', update, (module) => {
-      const qn = tryQualifiedName(module)
-      if (!qn.ok) return false
-      entry.setLsModule(this.projectNames.parseProjectPath(qn.value))
-      return true
+      const pp = this.projectNames.parseProjectPathRaw(module)
+      if (!pp.ok) return pp
+      entry.setLsModule(pp.value)
+      return Ok()
     })
     if (!moduleUpdate.ok) return moduleUpdate
-    if (moduleUpdate.value === false) return Err('Invalid module name')
 
     const selfTypeUpdate = applyFieldUpdate('selfType', update, (selfType) => {
-      if (!(entry instanceof MethodSuggestionEntryImpl)) return false
-      if (!isQualifiedName(selfType)) return false
-      entry.setLsSelfType(this.projectNames.parseProjectPath(selfType))
+      if (!(entry instanceof MethodSuggestionEntryImpl))
+        return Err('Tried to update selfType in non-method entry')
+      const pp = this.projectNames.parseProjectPathRaw(selfType)
+      if (!pp.ok) return pp
+      entry.setLsSelfType(pp.value)
+      return Ok()
     })
     if (!selfTypeUpdate.ok) return selfTypeUpdate
 
     const returnTypeUpdate = applyFieldUpdate('returnType', update, (returnType) => {
-      entry.setLsReturnType(returnType, this.projectNames)
+      return entry.setLsReturnType(returnType, this.projectNames)
     })
     if (!returnTypeUpdate.ok) return returnTypeUpdate
 
@@ -626,10 +650,16 @@ export class SuggestionUpdateProcessor {
     if (update.scope) entry.setLsScope(update.scope.value)
 
     if (update.reexport) {
-      if (!isOptQN(update.reexport.value)) return Err('Invalid reexport')
-      entry.setLsReexported(
-        update.reexport.value && this.projectNames.parseProjectPath(update.reexport.value),
+      const reexport = withContext(
+        () => 'When parsing reexport field',
+        () =>
+          update.reexport?.value ?
+            this.projectNames.parseProjectPathRaw(update.reexport.value)
+          : Ok(undefined),
       )
+
+      if (!reexport.ok) return reexport
+      entry.setLsReexported(reexport.value)
     }
 
     return Ok()
@@ -648,4 +678,28 @@ export class SuggestionUpdateProcessor {
       }
     }
   }
+}
+
+function parseProjectPath<K extends string>(
+  lsEntry: { [P in K]: string },
+  field: K,
+  context: UpdateContext,
+): Result<ProjectPath>
+function parseProjectPath<K extends string>(
+  lsEntry: { [P in K]?: string },
+  field: K,
+  context: UpdateContext,
+): Result<ProjectPath | undefined>
+function parseProjectPath<K extends string>(
+  lsEntry: { [P in K]?: string },
+  field: K,
+  context: UpdateContext,
+) {
+  return withContext(
+    () => `Parsing ${field}`,
+    () =>
+      lsEntry[field] != null ?
+        context.projectNames.parseProjectPathRaw(lsEntry[field])
+      : Ok(undefined),
+  )
 }

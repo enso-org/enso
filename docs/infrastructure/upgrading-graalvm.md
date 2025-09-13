@@ -27,6 +27,8 @@ to perform the following tasks:
 - Change the expected GraalVM version in the [`build.sbt`](../../build.sbt)
   configuration. This is both a version number and (if it is changed), the
   associated version of Java.
+- Update version of ANTLR dependency to match Truffle's to avoid spurious
+  [warnings](https://github.com/enso-org/enso/issues/12485) in Native Image
 - Change the base image in the [`Dockerfile`](../../tools/ci/docker/Dockerfile)
   to contain the correct GraalVM version.
 - Just to be sure, search for the version regex in all the files in the repo.

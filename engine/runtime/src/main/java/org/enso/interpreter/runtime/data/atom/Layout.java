@@ -285,7 +285,7 @@ class Layout {
 
     @Override
     public void execute(Atom atom, Object value) {
-      var valueOrConvertedValue = checkNode.handleCheckOrConversion(null, value, null);
+      var valueOrConvertedValue = checkNode.handleCheckOrConversion(null, value);
       setterNode.execute(atom, valueOrConvertedValue);
     }
   }

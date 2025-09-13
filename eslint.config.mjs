@@ -4,25 +4,17 @@
  * NOTE: The "Experimental: Use Flat Config" option must be enabled.
  * Flat config is still not quite mature, so is disabled by default.
  */
-import * as path from 'node:path'
-import * as url from 'node:url'
-
-// The preferred syntax is `import * as name`, however these modules do not support it.
-// This is specialcased in other files, but these modules shouldn't be used in other files anyway.
-
 import eslintJs from '@eslint/js'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import vueTsEslintConfig from '@vue/eslint-config-typescript'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
-import reactCompiler from 'eslint-plugin-react-compiler'
 import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
 import pluginVue from 'eslint-plugin-vue'
 import globals from 'globals'
-
-// =================
-// === Constants ===
-// =================
+import * as path from 'node:path'
+import * as url from 'node:url'
 
 const DEBUG_STATEMENTS_MESSAGE = 'Avoid leaving debugging statements when committing code'
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
@@ -37,7 +29,7 @@ const NAME = 'enso'
  * `node:process` is here because `process.on` does not exist on the namespace import.
  */
 const DEFAULT_IMPORT_ONLY_MODULES =
-  '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|react-keyed-flatten-children|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json$'
+  '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|react-keyed-flatten-children|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json|.*[.]svg|.*[.]vue$'
 const RELATIVE_MODULES =
   'projectManager|server|configParser|authentication|config|debug|detect|fileAssociations|index|ipc|log|naming|paths|preload|projectManagement|security|urlAssociations|contentConfig|desktopEnvironment|#\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
@@ -103,7 +95,7 @@ const RESTRICTED_SYNTAXES = [
   },
   {
     // Matches non-functions.
-    selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor]), :has(CallExpression[callee.name=newtypeConstructor])))`,
+    selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], [init.callee.object.name=React][init.callee.property.name=memo], :has(CallExpression[callee.name=memo]), :has(CallExpression[callee.name=forwardRef]), :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor]), :has(CallExpression[callee.name=newtypeConstructor])))`,
     message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
   },
   {
@@ -148,10 +140,6 @@ const RESTRICTED_SYNTAXES = [
   {
     selector: ':matches(MethodDeclaration, FunctionDeclaration) FunctionDeclaration',
     message: 'Use arrow functions for nested functions',
-  },
-  {
-    selector: 'IfStatement > ExpressionStatement',
-    message: 'Wrap `if` branches in `{}`',
   },
   {
     selector: ':matches(ForStatement[test=null], ForStatement[test.value=true])',
@@ -204,9 +192,18 @@ const config = [
       'app/rust-ffi/pkg/',
     ],
   },
+  {
+    // Based on a 3rd party library that doesn't use ESLint.
+    ignores: ['app/lang-markdown/', 'app/lezer-markdown/'],
+  },
   eslintJs.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
   ...vueTsEslintConfig(),
+  {
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+    },
+  },
   {
     // files: ['{**,src}/*.{vue,js,jsx,cjs,mjs,ts,tsx,cts,mts}'],
     languageOptions: {
@@ -236,6 +233,28 @@ const config = [
           varsIgnorePattern: '^_',
           argsIgnorePattern: '^_',
         },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'vue',
+              importNames: ['proxyRefs'],
+              message: 'Use more type-safe alternative in @/util/reactivity',
+            },
+            {
+              name: 'veaury',
+              importNames: ['applyReactInVue', 'applyPureReactInVue'],
+              message: 'Use `reactComponent` in @/util/react',
+            },
+          ],
+        },
+      ],
+      'no-restricted-properties': [
+        'warn',
+        { object: 'console', property: 'debug', message: DEBUG_STATEMENTS_MESSAGE },
+        { object: 'console', property: 'trace', message: DEBUG_STATEMENTS_MESSAGE },
       ],
       '@typescript-eslint/no-namespace': 'off',
       // Empty interfaces have valid uses; e.g. although an empty interface extending a class is semantically equivalent
@@ -288,6 +307,10 @@ const config = [
   },
 
   // === Dashboard Rules ===
+  {
+    ...reactRefresh.configs.vite,
+    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
+  },
   {
     files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
     settings: {
@@ -343,6 +366,12 @@ const config = [
       ],
       'no-constant-condition': ['error', { checkLoops: false }],
       'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAXES],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [{ name: '#/utilities/debug', message: DEBUG_STATEMENTS_MESSAGE }],
+        },
+      ],
       'no-restricted-properties': [
         'error',
         { object: 'console', message: DEBUG_STATEMENTS_MESSAGE },
@@ -430,7 +459,10 @@ const config = [
           },
         },
       ],
-      '@typescript-eslint/no-confusing-void-expression': 'error',
+      '@typescript-eslint/no-confusing-void-expression': [
+        'error',
+        { ignoreVoidReturningFunctions: true },
+      ],
       '@typescript-eslint/no-empty-interface': 'off',
       '@typescript-eslint/no-extraneous-class': 'error',
       '@typescript-eslint/no-invalid-void-type': ['error', { allowAsThisParameter: true }],
@@ -561,6 +593,7 @@ const config = [
       '@typescript-eslint/no-magic-numbers': 'off',
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/naming-convention': 'off',
+      'react-hooks/rules-of-hooks': 'off',
     },
   },
   {
@@ -588,25 +621,6 @@ const config = [
         ),
       ],
     },
-  },
-  // === React Compiler Rules ===
-  {
-    files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
-    ignores: [
-      '**/*.d.ts',
-      '**/*.spec.ts',
-      '**/*.stories.tsx',
-      '**/*.test.tsx',
-      '**/*.test.ts',
-      '**/utilities/*.ts',
-      '**/services/*.ts',
-      '**/assets/*',
-      '**/authentication/*',
-      '**/configuration/*',
-      '**/index.ts',
-    ],
-    plugins: { 'react-compiler': reactCompiler },
-    rules: { 'react-compiler/react-compiler': 'error' },
   },
   // === Index Files ===
   {

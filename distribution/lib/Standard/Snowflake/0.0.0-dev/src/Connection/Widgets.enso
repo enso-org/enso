@@ -1,0 +1,18 @@
+from Standard.Base import all
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
+
+import Standard.Database.Connection.Credentials.Credentials
+
+import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
+
+## ---
+   private: true
+   ---
+password_or_keypair_widget display:Display=..When_Modified -> Widget =
+    basic_fqn = Credentials.to Meta.Type . qualified_name
+    key_pair_fqn = Key_Pair_Credentials.to Meta.Type . qualified_name
+    values = [Option "Username and Password" basic_fqn+".Username_And_Password", Option "Key Pair" key_pair_fqn+".Key_Pair"]
+    Single_Choice values=values display=display

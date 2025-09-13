@@ -1,4 +1,5 @@
 import { ITooltipComp, ITooltipParams } from '@ag-grid-community/core'
+import { DataQualityMetricValue } from '../TableVisualization.vue'
 
 /**
  * Custom tooltip for table visualization.
@@ -13,7 +14,7 @@ export class TableVisualisationTooltip implements ITooltipComp {
    */
   init(
     params: ITooltipParams & {
-      dataQualityMetrics: Record<string, number>[]
+      dataQualityMetrics: DataQualityMetricValue[]
       total: number
       showDataQuality: boolean
     },
@@ -30,7 +31,7 @@ export class TableVisualisationTooltip implements ITooltipComp {
       color: '#333',
     })
 
-    const getPercentage = (value: number) => ((value / params.total) * 100).toFixed(2)
+    const getPercentage = (value: number) => (value / params.total) * 100
     const createIndicator = (value: number) => {
       const color =
         value < 33 ? 'green'
@@ -42,18 +43,15 @@ export class TableVisualisationTooltip implements ITooltipComp {
     const getDataQualityTemplate = () => {
       let template = ''
       params.dataQualityMetrics.forEach((obj) => {
-        const key = Object.keys(obj)[0]
-        const value = key ? obj[key] : null
-        if (key && value) {
-          const metricTemplate = `<div>
-          ${key}: ${getPercentage(value)}% ${createIndicator(+getPercentage(value))}
-      </div>`
-          template = template + metricTemplate
-        } else {
-          console.warn(
-            'Data quality metric is missing a valid key-value pair. Ensure each object in data_quality_pairs contains a single valid key with a numeric value.',
-          )
-        }
+        const rendered =
+          obj.displayType === 'Percentage' ?
+            `${getPercentage(obj.value).toFixed(2)}% ${createIndicator(getPercentage(obj.value))}`
+          : `${obj.value}`
+        const metricTemplate =
+          obj.name !== '' ?
+            `<div>${obj.name}: ${rendered}</div>`
+          : `<div>${rendered.replaceAll('\n', '<br/>')}</div>`
+        template = template + metricTemplate
       })
       return template
     }

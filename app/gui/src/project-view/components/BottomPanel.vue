@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { codeEditorBindings } from '@/bindings'
-import FullscreenButton from '@/components/FullscreenButton.vue'
+import ActionButton from '@/components/ActionButton.vue'
 import ResizeHandles from '@/components/ResizeHandles.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
@@ -40,10 +38,8 @@ const style = computed(() =>
 </script>
 
 <template>
-  <ToggleIcon
-    v-model="show"
-    :title="`Code Editor (${codeEditorBindings.bindings.toggle.humanReadable})`"
-    icon="bottom_panel"
+  <ActionButton
+    action="graph.toggleCodeEditor"
     class="gutterButton bottomOfGutter"
     :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
   />
@@ -55,9 +51,9 @@ const style = computed(() =>
       :style="style"
       data-testid="bottomDock"
     >
-      <WithFullscreenMode :fullscreen="fullscreen" @update:animating="fullscreenAnimating = $event">
-        <FullscreenButton
-          v-model="fullscreen"
+      <WithFullscreenMode v-model="fullscreen" @update:animating="fullscreenAnimating = $event">
+        <ActionButton
+          action="panel.fullscreen"
           class="gutterButton topOfGutter"
           :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
         />
@@ -76,9 +72,19 @@ const style = computed(() =>
 .BottomPanel {
   --panel-size: var(--code-editor-default-height);
   position: relative;
-  bottom: 0;
   height: var(--panel-size);
+  /*
+   * Limit the size of the panel. Because size is persisted, allowing the panel to fill the screen
+   * may be confusing, especially if the user sets the size on one screen and then reopens the code
+   * editor on a screen with a lower resolution.
+   */
+  max-height: 85svh;
   margin-right: 1px;
+  /*
+   * Ensure that the content height doesn't exceed the panel's height while animating, which can
+   * cause the native scrollbar to appear momentarily, "shaking" the viewport.
+   */
+  contain: layout;
 }
 .v-enter-active,
 .v-leave-active {

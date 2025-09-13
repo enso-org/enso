@@ -1,0 +1,36 @@
+from Standard.Base import all
+from Standard.Test import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+type Base_Column
+    Value underlying
+
+type In_Memory_Column
+    Value vec
+
+type My_Warning
+    Warning msg
+
+Base_Column.from (that:In_Memory_Column) =
+    Base_Column.Value that
+
+In_Memory_Column.from (that:Base_Column) =
+    if that.underlying.is_a In_Memory_Column then that.underlying else
+        Error.throw (Illegal_State.Error "In_Memory_Column.from: that is not an In_Memory_Column")
+
+refine base:Base_Column =
+    (base : Base_Column & In_Memory_Column)
+
+new_column vec:Vector -> Base_Column =
+    refine (In_Memory_Column.Value vec)
+
+add_specs suite_builder =
+    suite_builder.group "Multi Value Like Column" group_builder->
+        group_builder.specify "With warnings" <|
+            col = new_column [1,2,3]
+            col_warn = Warning.attach (My_Warning.Warning "My warning") col
+            col_as_in_mem = col_warn:In_Memory_Column
+            col_as_base = col_as_in_mem:Base_Column
+            col_as_both = col_as_base:(Base_Column & In_Memory_Column)
+            col_back = col_as_both:In_Memory_Column
+            col_back.to_text . should_equal "(In_Memory_Column.Value [1, 2, 3])"

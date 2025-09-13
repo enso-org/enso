@@ -55,7 +55,10 @@ class CompilerBasedDependencyExtractor(logLevel: Level)
     val context = ContextFactory
       .create()
       .projectRoot(pkg.root.getCanonicalPath)
-      .logLevel(logLevel)
+      .logLevel(org.enso.logger.Converter.toJavaLevel(logLevel))
+      .options(
+        java.util.Map.of(org.enso.common.RuntimeOptions.CHECK_CWD, "false")
+      )
       .build
     new PolyglotContext(context)
   }

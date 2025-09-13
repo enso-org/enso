@@ -5,20 +5,16 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.interop.InteropException;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.Shape;
+import com.oracle.truffle.api.profiles.ValueProfile;
 import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
 import java.io.File;
@@ -26,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,17 +29,18 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.compiler.dump.IRDumper;
+import org.enso.compiler.data.IRDumperConfig;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
@@ -82,10 +78,9 @@ public final class EnsoContext {
 
   private final EnsoLanguage language;
   private final Env environment;
-  private final HostClassLoader hostClassLoader = new HostClassLoader();
   private final boolean assertionsEnabled;
   private final boolean isPrivateCheckDisabled;
-  private final boolean isStaticTypeAnalysisEnabled;
+  private final boolean isStaticAnalysisEnabled;
   private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
@@ -94,13 +89,10 @@ public final class EnsoContext {
   private @CompilationFinal DefaultPackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
-  private final ThreadExecutors threadExecutors;
   private final ResourceManager resourceManager;
   private final boolean isInlineCachingDisabled;
   private final boolean isIrCachingDisabled;
   private final boolean shouldWaitForPendingSerializationJobs;
-  private final Builtins builtins;
-  private final String home;
   private final CompilerConfig compilerConfig;
   private final NotificationHandler notificationHandler;
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, EnsoContext.class);
@@ -108,16 +100,18 @@ public final class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
-  private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
+  @CompilationFinal(dimensions = 1)
+  private Object[] extraValues = new Object[0];
+
   private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;
+  private final ValueProfile singleStateProfile = ValueProfile.createIdentityProfile();
 
   /**
    * Creates a new Enso context.
    *
    * @param language the language identifier
-   * @param home language home
    * @param environment the execution environment of the {@link TruffleLanguage}
    * @param notificationHandler a handler for notifications
    * @param lockManager the lock manager instance
@@ -125,7 +119,6 @@ public final class EnsoContext {
    */
   public EnsoContext(
       EnsoLanguage language,
-      String home,
       Env environment,
       NotificationHandler notificationHandler,
       LockManager lockManager,
@@ -136,32 +129,41 @@ public final class EnsoContext {
     this.err = new PrintStream(environment.err());
     this.in = environment.in();
     this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
-    this.threadManager = new ThreadManager(environment);
-    this.threadExecutors = new ThreadExecutors(this);
+    var threadExecutors = new ThreadExecutors(environment, logger);
+    var guestParallelism = getOption(RuntimeOptions.GUEST_PARALLELISM_KEY);
+    this.threadManager = new ThreadManager(threadExecutors, guestParallelism, environment);
     this.resourceManager = new ResourceManager(this);
     this.isInlineCachingDisabled = getOption(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     var isParallelismEnabled = getOption(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
     this.isIrCachingDisabled =
         getOption(RuntimeOptions.DISABLE_IR_CACHES_KEY) || isParallelismEnabled;
     this.isPrivateCheckDisabled = getOption(RuntimeOptions.DISABLE_PRIVATE_CHECK_KEY);
-    this.isStaticTypeAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
+    if (isPrivateCheckDisabled && !isIrCachingDisabled) {
+      throw new IllegalStateException(
+          "Both private check is disabled and IR caching is enabled. "
+              + "Either keep private check enabled or disable IR caching.");
+    }
+    this.isStaticAnalysisEnabled = getOption(RuntimeOptions.ENABLE_STATIC_ANALYSIS_KEY);
     this.globalExecutionEnvironment = getOption(EnsoLanguage.EXECUTION_ENVIRONMENT);
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    var dumpIrs = Boolean.parseBoolean(System.getProperty(IRDumper.SYSTEM_PROP));
+    var dumpModuleIR =
+        IRDumperConfig.parseFromProperty(System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP));
+    var shouldRemoveUnusedImports =
+        System.getProperty(RuntimeOptions.REMOVE_UNUSED_IMPORTS_SYSTEM_PROP) != null;
     this.compilerConfig =
-        new CompilerConfig(
-            isParallelismEnabled,
-            true,
-            !isPrivateCheckDisabled,
-            isStaticTypeAnalysisEnabled,
-            dumpIrs,
-            getOption(RuntimeOptions.STRICT_ERRORS_KEY),
-            getOption(RuntimeOptions.DISABLE_LINTING_KEY),
-            scala.Option.empty());
-    this.home = home;
-    this.builtins = new Builtins(this);
+        CompilerConfig.builder()
+            .autoParallelismEnabled(isParallelismEnabled)
+            .warningsEnabled(true)
+            .privateCheckEnabled(!isPrivateCheckDisabled)
+            .staticAnalysisEnabled(isStaticAnalysisEnabled)
+            .treatWarningsAsErrors(getOption(RuntimeOptions.TREAT_WARNINGS_AS_ERRORS_KEY))
+            .dumpModuleIR(scala.Option.apply(dumpModuleIR))
+            .isStrictErrors(getOption(RuntimeOptions.STRICT_ERRORS_KEY))
+            .isLintingDisabled(getOption(RuntimeOptions.DISABLE_LINTING_KEY))
+            .removeUnusedImports(shouldRemoveUnusedImports)
+            .build();
     this.notificationHandler = notificationHandler;
     this.lockManager = lockManager;
     this.distributionManager = distributionManager;
@@ -174,7 +176,9 @@ public final class EnsoContext {
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
-    checkWorkingDirectory(projectRoot);
+    if (getOption(RuntimeOptions.CHECK_CWD_KEY)) {
+      checkWorkingDirectory(projectRoot);
+    }
     Optional<Package<TruffleFile>> projectPackage =
         projectRoot.map(
             file ->
@@ -190,6 +194,7 @@ public final class EnsoContext {
     var editionOverride = OptionsHelper.getEditionOverride(environment);
     var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
 
+    var builtins = Builtins.get(this);
     packageRepository =
         DefaultPackageRepository.initializeRepository(
             OptionConverters.toScala(projectPackage),
@@ -209,13 +214,19 @@ public final class EnsoContext {
 
     var preinit = environment.getOptions().get(RuntimeOptions.PREINITIALIZE_KEY);
     if (preinit != null && preinit.length() > 0) {
-      var epb = environment.getInternalLanguages().get("epb");
-      @SuppressWarnings("unchecked")
-      var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
-      if (run != null) {
-        run.accept(preinit);
+      var epb = findEpbLanguage();
+      if (epb != null) {
+        @SuppressWarnings("unchecked")
+        var run = (Consumer<String>) environment.lookup(epb, Consumer.class);
+        if (run != null) {
+          run.accept(preinit);
+        }
       }
     }
+  }
+
+  private com.oracle.truffle.api.nodes.LanguageInfo findEpbLanguage() {
+    return environment.getInternalLanguages().get("epb");
   }
 
   /** Checks if the working directory is as expected and reports a warning if not. */
@@ -226,16 +237,42 @@ public final class EnsoContext {
       var cwd = environment.getCurrentWorkingDirectory().getAbsoluteFile().normalize();
       try {
         if (!cwd.isSameFile(parent)) {
+          var maskedCwd = MaskedPath$.MODULE$.apply(Path.of(cwd.toString()));
           var maskedPath = MaskedPath$.MODULE$.apply(Path.of(parent.toString()));
-          logger.log(
-              Level.WARNING,
-              "Initializing the context in a different working directory than the one containing"
-                  + " the project root. This may lead to relative paths not behaving as advertised"
-                  + " by `File.new`. Please run the engine inside of `{}` directory.",
-              maskedPath);
+          var templ =
+              """
+              Initializing with unexpected working directory (%s).
+              This may lead to improper relative paths resolution by `File.new`.
+              Change working directory to %s and run the engine again.
+              """;
+          var msg = templ.formatted(maskedCwd, maskedPath);
+          logger.log(Level.WARNING, msg);
+          assert false : msg;
         }
       } catch (IOException e) {
-        logger.severe("Error checking working directory: " + e.getMessage());
+        logger.log(Level.SEVERE, "Error checking working directory: " + e.getMessage(), e);
+      }
+    }
+  }
+
+  /**
+   * Enters this context and then executes provided {@code action}.
+   *
+   * @param <T> type the action computes
+   * @param who the node who's asking to perform the action
+   * @param action the action to execute
+   * @return returns the value of the {@code action}
+   */
+  public final <T> T withinCtx(Node who, Supplier<T> action) {
+    var tc = environment.getContext();
+    if (tc.isActive()) {
+      return action.get();
+    } else {
+      var prev = tc.enter(who);
+      try {
+        return action.get();
+      } finally {
+        tc.leave(who, prev);
       }
     }
   }
@@ -290,14 +327,12 @@ public final class EnsoContext {
 
   /** Performs eventual cleanup before the context is disposed of. */
   public void shutdown() {
-    threadExecutors.shutdown();
     threadManager.shutdown();
     resourceManager.shutdown();
     compiler.shutdown(shouldWaitForPendingSerializationJobs);
     packageRepository.shutdown();
-    guestJava = null;
     topScope = null;
-    hostClassLoader.close();
+    EnsoPolyglotJava.close(this);
     EnsoParser.freeAll();
   }
 
@@ -432,12 +467,23 @@ public final class EnsoContext {
   }
 
   /**
-   * Ensures that a module is preloaded if it can be loaded at all.
+   * Ensures that a module is preloaded if it can be loaded at all. If a module needs to be loaded,
+   * an appropriate write compilation lock needs to be acquired before calling this method.
    *
    * @param moduleName name of the module to preload
    */
   public void ensureModuleIsLoaded(String moduleName) {
     LibraryName.fromModuleName(moduleName).foreach(packageRepository::ensurePackageIsLoaded);
+  }
+
+  /**
+   * Signals if a module needs to be loaded.
+   *
+   * @param moduleName module to be checked
+   * @return true if module needs to be loaded first, false otherwise
+   */
+  public boolean moduleIsLoaded(String moduleName) {
+    return LibraryName.fromModuleName(moduleName).forall(packageRepository::isPackageLoaded);
   }
 
   /**
@@ -465,28 +511,41 @@ public final class EnsoContext {
   /**
    * Modifies the classpath to use to lookup {@code polyglot java} imports.
    *
+   * @param who who requests the addition
    * @param file the file to register
    */
   @TruffleBoundary
-  public void addToClassPath(TruffleFile file) {
-    if (findGuestJava() == null) {
-      try {
-        var url = file.toUri().toURL();
-        hostClassLoader.add(url);
-      } catch (MalformedURLException ex) {
-        throw new IllegalStateException(ex);
-      }
-    } else {
-      try {
-        var path = new File(file.toUri()).getAbsoluteFile();
-        if (!path.exists()) {
-          throw new IllegalStateException("File not found " + path);
-        }
-        InteropLibrary.getUncached().invokeMember(findGuestJava(), "addPath", path.getPath());
-      } catch (InteropException ex) {
-        throw new IllegalStateException(ex);
-      }
+  public void addToClassPath(Package<?> who, TruffleFile file) {
+    assert who != null;
+    var path = new File(file.toUri()).getAbsoluteFile();
+    if (!path.exists()) {
+      throw new IllegalStateException("File not found " + path);
     }
+    try {
+      EnsoPolyglotJava.addToClassPath(this, who, path);
+    } catch (InteropException ex) {
+      throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
+    }
+  }
+
+  /**
+   * Checks whether the object is host Java object.
+   *
+   * @param obj the object to check
+   * @return true if {@code obj} is host object and call to {@link #asHostObject} will succeed
+   */
+  public boolean isHostObject(Object obj) {
+    return environment.isHostObject(obj);
+  }
+
+  /**
+   * Converts an interop object into underlying Java representation.
+   *
+   * @param obj object that {@link #isJavaPolyglotObject}
+   * @return underlying object
+   */
+  public Object asHostObject(Object obj) {
+    return environment.asHostObject(obj);
   }
 
   /**
@@ -497,7 +556,7 @@ public final class EnsoContext {
    * @return {@code true} or {@code false}
    */
   public boolean isJavaPolyglotObject(Object obj) {
-    return environment.isHostObject(obj);
+    return isHostObject(obj) || EnsoPolyglotJava.find(this, true).isOtherObject(obj);
   }
 
   /**
@@ -507,17 +566,7 @@ public final class EnsoContext {
    * @return {@code true} or {@code false}
    */
   public boolean isJavaPolyglotFunction(Object obj) {
-    return environment.isHostFunction(obj);
-  }
-
-  /**
-   * Converts an interop object into underlying Java representation.
-   *
-   * @param obj object that {@link #isJavaPolyglotObject}
-   * @return underlying object
-   */
-  public Object asJavaPolyglotObject(Object obj) {
-    return environment.asHostObject(obj);
+    return environment.isHostFunction(obj) || EnsoPolyglotJava.find(this, true).isOtherObject(obj);
   }
 
   /**
@@ -557,28 +606,17 @@ public final class EnsoContext {
    * resolves to an inner class, then the import of the outer class is resolved, and the inner class
    * is looked up by iterating the members of the outer class via Truffle's interop protocol.
    *
+   * @param who the package that requests the loading
    * @param className Fully qualified class name, can also be nested static inner class.
    * @return If the java class is found, return it, otherwise return {@link DataflowError}.
    */
   @TruffleBoundary
-  public TruffleObject lookupJavaClass(String className) {
-    var binaryName = new StringBuilder(className);
+  public TruffleObject lookupJavaClass(Package<?> who, String className) {
     var collectedExceptions = new ArrayList<Exception>();
-    for (; ; ) {
-      var fqn = binaryName.toString();
-      try {
-        var hostSymbol = lookupHostSymbol(fqn);
-        if (hostSymbol != null) {
-          return (TruffleObject) hostSymbol;
-        }
-      } catch (ClassNotFoundException | RuntimeException | InteropException ex) {
-        collectedExceptions.add(ex);
-      }
-      var at = fqn.lastIndexOf('.');
-      if (at < 0) {
-        break;
-      }
-      binaryName.setCharAt(at, '$');
+    var polyglotJava = EnsoPolyglotJava.find(this, who);
+    var hostSymbol = polyglotJava.lookupJavaClass(className, collectedExceptions);
+    if (hostSymbol instanceof TruffleObject obj) {
+      return obj;
     }
     var level = Level.WARNING;
     for (var ex : collectedExceptions) {
@@ -586,57 +624,8 @@ public final class EnsoContext {
       level = Level.FINE;
       logger.log(Level.FINE, null, ex);
     }
+
     return getBuiltins().error().makeMissingPolyglotImportError(className);
-  }
-
-  private Object lookupHostSymbol(String fqn)
-      throws ClassNotFoundException, UnknownIdentifierException, UnsupportedMessageException {
-    try {
-      if (findGuestJava() == null) {
-        return environment.asHostSymbol(hostClassLoader.loadClass(fqn));
-      } else {
-        return InteropLibrary.getUncached().readMember(findGuestJava(), fqn);
-      }
-    } catch (Error e) {
-      throw new ClassNotFoundException("Error loading " + fqn, e);
-    }
-  }
-
-  private Object guestJava = this;
-
-  @TruffleBoundary
-  private Object findGuestJava() throws IllegalStateException {
-    if (guestJava != this) {
-      return guestJava;
-    }
-    guestJava = null;
-    var envJava = System.getenv("ENSO_JAVA");
-    if (envJava == null) {
-      return guestJava;
-    }
-    if ("espresso".equals(envJava)) {
-      var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
-      try {
-        guestJava = environment.parsePublic(src).call();
-        logger.log(Level.SEVERE, "Using experimental Espresso support!");
-      } catch (Exception ex) {
-        if (ex.getMessage().contains("No language for id java found.")) {
-          logger.log(
-              Level.SEVERE,
-              "Environment variable ENSO_JAVA=" + envJava + ", but " + ex.getMessage());
-          logger.log(Level.SEVERE, "Copy missing libraries to components directory");
-          logger.log(Level.SEVERE, "Continuing in regular Java mode");
-        } else {
-          var ise = new IllegalStateException(ex.getMessage());
-          ise.setStackTrace(ex.getStackTrace());
-          throw ise;
-        }
-      }
-    } else {
-      throw new IllegalStateException(
-          "Specify ENSO_JAVA=espresso to use Espresso. Was: " + envJava);
-    }
-    return guestJava;
   }
 
   /**
@@ -666,8 +655,8 @@ public final class EnsoContext {
    *
    * @return an object containing the builtin functions
    */
-  public Builtins getBuiltins() {
-    return this.builtins;
+  public final Builtins getBuiltins() {
+    return Builtins.get(this);
   }
 
   /**
@@ -708,12 +697,13 @@ public final class EnsoContext {
   }
 
   /**
-   * Checks whether global caches are to be used.
+   * Gather information about progress. Should execution observe events from Enso Progress API and
+   * report them?
    *
-   * @return true if so
+   * @return true if progress reporting is on
    */
-  public boolean isUseGlobalCache() {
-    return getOption(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
+  public boolean isProgressReportEnabled() {
+    return getOption(RuntimeOptions.ENABLE_PROGRESS_REPORT_KEY);
   }
 
   public boolean isAssertionsEnabled() {
@@ -727,6 +717,10 @@ public final class EnsoContext {
    */
   public boolean isInteractiveMode() {
     return getOption(RuntimeOptions.INTERACTIVE_MODE_KEY);
+  }
+
+  final String getHostClassLoading() {
+    return getOption(RuntimeOptions.HOST_CLASS_LOADING_KEY);
   }
 
   /**
@@ -759,32 +753,7 @@ public final class EnsoContext {
   /** The job parallelism or 1 */
   public int getJobParallelism() {
     var n = getOption(RuntimeOptions.JOB_PARALLELISM_KEY);
-    var base = n == null ? 1 : n.intValue();
-    var optimal = Math.round(base * 0.5);
-    return optimal < 1 ? 1 : (int) optimal;
-  }
-
-  /**
-   * @param name human-readable name of the pool
-   * @param min minimal number of threads kept-alive in the pool
-   * @param max maximal number of available threads
-   * @param maxQueueSize maximal number of pending tasks
-   * @param systemThreads use system threads or polyglot threads
-   * @return new execution service for this context
-   */
-  public ExecutorService newCachedThreadPool(
-      String name, int min, int max, int maxQueueSize, boolean systemThreads) {
-    return threadExecutors.newCachedThreadPool(name, systemThreads, min, max, maxQueueSize);
-  }
-
-  /**
-   * @param parallel amount of parallelism for the pool
-   * @param name human-readable name of the pool
-   * @param systemThreads use system threads or polyglot threads
-   * @return new execution service for this context
-   */
-  public ExecutorService newFixedThreadPool(int parallel, String name, boolean systemThreads) {
-    return threadExecutors.newFixedThreadPool(parallel, name, systemThreads);
+    return Math.max(1, n);
   }
 
   /**
@@ -881,8 +850,14 @@ public final class EnsoContext {
 
   /** Set the runtime execution environment of this context. */
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
-    this.globalExecutionEnvironment = executionEnvironment;
-    language.setExecutionEnvironment(executionEnvironment);
+    var tc = environment.getContext();
+    var prev = tc.enter(null);
+    try {
+      this.globalExecutionEnvironment = executionEnvironment;
+      language.setExecutionEnvironment(executionEnvironment);
+    } finally {
+      tc.leave(null, prev);
+    }
   }
 
   /**
@@ -924,14 +899,6 @@ public final class EnsoContext {
     return this.warningsLimit;
   }
 
-  public Shape getRootStateShape() {
-    return rootStateShape;
-  }
-
-  public State emptyState() {
-    return State.create(this);
-  }
-
   /**
    * @return the notification handler.
    */
@@ -958,16 +925,6 @@ public final class EnsoContext {
 
   public boolean isCreateThreadAllowed() {
     return environment.isCreateThreadAllowed();
-  }
-
-  public Thread createThread(boolean systemThread, Runnable run) {
-    return systemThread
-        ? environment.createSystemThread(run)
-        : environment.newTruffleThreadBuilder(run).build();
-  }
-
-  public Future<Void> submitThreadLocal(Thread[] threads, ThreadLocalAction action) {
-    return environment.submitThreadLocal(threads, action);
   }
 
   public CallTarget parseInternal(Source src, String... argNames) {
@@ -1017,7 +974,7 @@ public final class EnsoContext {
       msg = msg + sep + message;
     }
     var err = getBuiltins().error().makeAssertionError(msg);
-    throw new PanicException(err, e, node);
+    throw new PanicException(this, err, e, node);
   }
 
   private <T> T getOption(OptionKey<T> key) {
@@ -1033,6 +990,63 @@ public final class EnsoContext {
       return null;
     } else {
       return options.get(key);
+    }
+  }
+
+  /** Access to state associated with this context and current thread. */
+  public State currentState() {
+    return singleStateProfile.profile(language.currentState());
+  }
+
+  private Object extraValues(int index, Function<EnsoContext, ?> init) {
+    if (index >= extraValues.length || extraValues[index] == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      extraValues = Arrays.copyOf(extraValues, Extra.COUNTER.get());
+      extraValues[index] = init.apply(this);
+      assert extraValues[index] != null;
+    }
+    return extraValues[index];
+  }
+
+  /**
+   * Key to associate additional value with {@link EnsoContext}. Create a {@code private static
+   * final} instance in any class and then use it <em>"as a key"</em> to access value of the
+   * specified type associated with the context.
+   *
+   * @param <T> the type of the value to access
+   */
+  public static final class Extra<T> {
+    private static final AtomicInteger COUNTER = new AtomicInteger();
+    private final int index;
+    private final Class<T> type;
+    private final Function<EnsoContext, T> init;
+
+    /**
+     * Defines new value associated with the context.Use as:
+     *
+     * <pre>
+     * private static final ValueKey&lt;Integer&gt; MY_COUNTER = new Value<>(Integer.class);
+     * </pre>
+     *
+     * @param type the type of the value to {@link #set} and {@link #get}.
+     * @param initialValue function to use to compute initial value
+     */
+    public Extra(Class<T> type, Function<EnsoContext, T> initialValue) {
+      this.type = type;
+      this.index = COUNTER.getAndIncrement();
+      this.init = initialValue;
+    }
+
+    /**
+     * Obtains (readily for <em>fast path</em>) value associated with this key stored in this
+     * context. Creates initial value, if it hasn't yet been created.
+     *
+     * @param ctx the context
+     * @return the value associated with this key in the given context
+     */
+    public T get(EnsoContext ctx) {
+      var value = ctx.extraValues(index, init);
+      return type.cast(value);
     }
   }
 }

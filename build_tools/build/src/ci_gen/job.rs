@@ -9,11 +9,13 @@ use crate::ci_gen::variables;
 use crate::ci_gen::RunStepsBuilder;
 use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
-use crate::engine::env as engine_env;
-use crate::ide::web::env as ide_env;
+use crate::engine;
+use crate::ide;
+use crate::paths;
 
 use core::panic;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
+use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::shell;
@@ -23,6 +25,7 @@ use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::RunnerLabel;
+use ide_ci::actions::workflow::definition::Shell;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
@@ -130,43 +133,54 @@ pub fn sbt_command(command: impl AsRef<str>) -> String {
 
 /// Expose variables for the GUI build.
 pub fn expose_gui_vars(step: Step) -> Step {
-    step.with_variable_exposed_as(variables::ENSO_CLOUD_ENVIRONMENT, ide_env::ENSO_IDE_ENVIRONMENT)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide_env::ENSO_IDE_API_URL)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide_env::ENSO_IDE_CHAT_URL)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide_env::ENSO_IDE_SENTRY_DSN)
-        .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide_env::ENSO_IDE_STRIPE_KEY)
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_AUTH_ENDPOINT,
-            ide_env::ENSO_IDE_AUTH_ENDPOINT,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
-            ide_env::ENSO_IDE_COGNITO_USER_POOL_ID,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
-            ide_env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_DOMAIN,
-            ide_env::ENSO_IDE_COGNITO_DOMAIN,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_COGNITO_REGION,
-            ide_env::ENSO_IDE_COGNITO_REGION,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
-            ide_env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_AG_GRID_LICENSE_KEY,
-            ide_env::ENSO_IDE_AG_GRID_LICENSE_KEY,
-        )
-        .with_variable_exposed_as(
-            variables::ENSO_MAPBOX_API_TOKEN,
-            ide_env::ENSO_IDE_MAPBOX_API_TOKEN,
-        )
+    step.with_variable_exposed_as(
+        variables::ENSO_CLOUD_ENVIRONMENT,
+        ide::web::env::ENSO_IDE_ENVIRONMENT,
+    )
+    .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide::web::env::ENSO_IDE_API_URL)
+    .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide::web::env::ENSO_IDE_CHAT_URL)
+    .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide::web::env::ENSO_IDE_SENTRY_DSN)
+    .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide::web::env::ENSO_IDE_STRIPE_KEY)
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_AUTH_ENDPOINT,
+        ide::web::env::ENSO_IDE_AUTH_ENDPOINT,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_ID,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_DOMAIN,
+        ide::web::env::ENSO_IDE_COGNITO_DOMAIN,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_COGNITO_REGION,
+        ide::web::env::ENSO_IDE_COGNITO_REGION,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
+        ide::web::env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_AG_GRID_LICENSE_KEY,
+        ide::web::env::ENSO_IDE_AG_GRID_LICENSE_KEY,
+    )
+    .with_variable_exposed_as(
+        variables::ENSO_MAPBOX_API_TOKEN,
+        ide::web::env::ENSO_IDE_MAPBOX_API_TOKEN,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+        ide::web::env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
+        ide::web::env::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
+    )
 }
 
 /// Expose variables for debugging purposes.
@@ -174,11 +188,11 @@ pub fn expose_debugging_vars(step: Step) -> Step {
     step.with_secret_exposed(secret::SENTRY_AUTH_TOKEN)
         .with_variable_exposed_as(
             variables::ENSO_CLOUD_SENTRY_ORGANIZATION,
-            ide_env::ENSO_IDE_SENTRY_ORGANIZATION,
+            ide::web::env::ENSO_IDE_SENTRY_ORGANIZATION,
         )
         .with_variable_exposed_as(
             variables::ENSO_CLOUD_SENTRY_PROJECT,
-            ide_env::ENSO_IDE_SENTRY_PROJECT,
+            ide::web::env::ENSO_IDE_SENTRY_PROJECT,
         )
 }
 
@@ -215,22 +229,39 @@ impl JobArchetype for VerifyLicensePackages {
 
 #[derive(Clone, Copy, Debug)]
 pub struct JvmTests {
-    pub graal_edition: graalvm::Edition,
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
 }
 
 impl JobArchetype for JvmTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
+        let engine_launcher = self.engine_launcher;
         let job_name = format!("JVM Tests ({graal_edition})");
         let mut job = RunStepsBuilder::new("backend test jvm")
-            .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
+            .customize(move |step| {
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
+
+                let download_engine_distribution =
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
+
+                vec![
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    step::check_engine_distribution(),
+                    step::unpack_engine_distribution(),
+                    step,
+                    step::engine_test_reporter(target, graal_edition),
+                ]
+            })
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
             graalvm::Edition::Community =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }
@@ -267,22 +298,61 @@ fn enable_cloud_tests(step: Step) -> Step {
     )
 }
 
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
+pub enum StandardLibraryTestsScope {
+    CloudRelated,
+    StandardLibraryJvm,
+    StandardLibraryInNative,
+    Microsoft,
+}
+
+impl Display for StandardLibraryTestsScope {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            StandardLibraryTestsScope::CloudRelated => write!(f, "std-cloud-related"),
+            StandardLibraryTestsScope::StandardLibraryJvm => write!(f, "standard-library"),
+            StandardLibraryTestsScope::StandardLibraryInNative =>
+                write!(f, "standard-library-in-native"),
+            StandardLibraryTestsScope::Microsoft => write!(f, "std-microsoft"),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests {
-    pub graal_edition:       graalvm::Edition,
-    pub cloud_tests_enabled: bool,
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+    pub scope:           StandardLibraryTestsScope,
+}
+
+impl StandardLibraryTests {
+    fn title(&self) -> String {
+        let title = match self.scope {
+            StandardLibraryTestsScope::StandardLibraryJvm => "Standard Library JVM Tests",
+            StandardLibraryTestsScope::StandardLibraryInNative => "Standard Library Native Tests",
+            StandardLibraryTestsScope::Microsoft => "Standard Library Microsoft Tests",
+            StandardLibraryTestsScope::CloudRelated => "Standard Library Cloud Tests",
+        };
+        title.to_string()
+    }
 }
 
 impl JobArchetype for StandardLibraryTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
-        let should_enable_cloud_tests = self.cloud_tests_enabled;
-        // If cloud tests are enabled, we run only cloud related tests.
-        let test_scope =
-            if should_enable_cloud_tests { "std-cloud-related" } else { "standard-library" };
-        let job_name = format!("Standard Library Tests ({graal_edition})");
-        let run_command = format!("backend test {test_scope}");
+        let engine_launcher = self.engine_launcher;
+        let scope = self.scope;
+        let job_name = format!("{job_title} ({graal_edition})", job_title = self.title());
+        let run_command = format!("backend test {scope}");
+        let heapdump_artifact_name =
+            format!("Heap dumps ({}, {}, {})", &self.title(), target.0, target.1);
+
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
+            let cleanup_engine_distribution = step::cleanup_engine_distribution(engine_launcher);
+
+            let download_engine_distribution =
+                step::download_engine_distribution(target, engine_launcher, graal_edition);
+
             let main_step = step
                 .with_secret_exposed_as(
                     secret::ENSO_LIB_S3_AWS_REGION,
@@ -297,29 +367,41 @@ impl JobArchetype for StandardLibraryTests {
                     crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                 );
 
-            let updated_main_step =
-                if should_enable_cloud_tests { enable_cloud_tests(main_step) } else { main_step };
+            let updated_main_step = if scope == StandardLibraryTestsScope::CloudRelated {
+                enable_cloud_tests(main_step)
+            } else {
+                main_step
+            };
+            let upload_hprof = step::heapdump_upload(heapdump_artifact_name);
 
-            vec![updated_main_step, step::stdlib_test_reporter(target, graal_edition)]
+            vec![
+                cleanup_engine_distribution,
+                download_engine_distribution,
+                step::check_engine_distribution(),
+                step::unpack_engine_distribution(),
+                updated_main_step,
+                step::stdlib_test_reporter(target, graal_edition),
+                upload_hprof,
+            ]
         });
         let mut job = build_job_ensuring_cloud_tests_run_on_github(
             run_steps_builder,
             target,
             &job_name,
-            should_enable_cloud_tests,
+            self.scope,
         )
         .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
             graalvm::Edition::Community =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
 
         // If running extra cloud tests, enable reporting all tests. These tests run on a nightly
         // schedule, and so the normal test reporter is not available to them. Thus we want to see
         // the full log in the CI to be able to tell which tests have been run.
-        if should_enable_cloud_tests {
+        if self.scope == StandardLibraryTestsScope::CloudRelated {
             job.env(crate::libraries_tests::env::REPORT_ALL_TESTS, "1");
         }
 
@@ -328,10 +410,176 @@ impl JobArchetype for StandardLibraryTests {
 
     fn key(&self, (os, arch): Target) -> String {
         format!(
-            "{}-{}-{os}-{arch}",
+            "{}-{}-{}-{os}-{arch}",
             self.id_key_base(),
-            self.graal_edition.to_string().to_kebab_case()
+            self.graal_edition.to_string().to_kebab_case(),
+            self.scope,
         )
+    }
+}
+
+/// Job that runs Enso lint checks (type checker, later formatting) on the Enso
+/// standard libraries and tests.
+#[derive(Clone, Copy, Debug)]
+pub struct EnsoCodeLintCheck {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+}
+
+impl JobArchetype for EnsoCodeLintCheck {
+    fn job(&self, target: Target) -> Job {
+        let graal_edition = self.graal_edition;
+        let engine_launcher = self.engine_launcher;
+        let mut job = RunStepsBuilder::new("libraries lint")
+            .customize(move |step| {
+                let check_syntax = Step {
+                    name: Some("Check syntax".into()),
+                    run: Some("./run libraries check-syntax".into()),
+                    ..Default::default()
+                };
+
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
+
+                let download_engine_distribution =
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
+
+                vec![
+                    check_syntax,
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    step::check_engine_distribution(),
+                    step::unpack_engine_distribution(),
+                    step,
+                ]
+            })
+            .build_job("Enso Code Lint", target);
+        job.env(crate::libraries_tests::env::ENSO_LINT_ENABLE_GITHUB_ANNOTATIONS, "true");
+        job
+    }
+}
+
+/// Job that checks if any of stdlib APIs have changed, by building the Enso
+/// engine distribution, and running `enso --docs api --in-project <std-lib>`,
+/// and comparing it to the API signature files that are already in the VCS.
+#[derive(Clone, Copy, Debug)]
+pub struct StandardLibraryApiCheck {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+}
+
+impl JobArchetype for StandardLibraryApiCheck {
+    fn job(&self, target: Target) -> Job {
+        let job_name = "Standard Library API check";
+        let graal_edition = self.graal_edition;
+        let engine_launcher = self.engine_launcher;
+        let run_command = "backend stdlib-api-check";
+        let job = RunStepsBuilder::new(run_command)
+            .customize(move |step| {
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
+
+                let download_engine_distribution =
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
+
+                vec![
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    step::check_engine_distribution(),
+                    step::unpack_engine_distribution(),
+                    step,
+                ]
+            })
+            .build_job(job_name, target);
+        job
+    }
+}
+
+/// Job that checks if the API of a standard library has changed, and if so,
+/// appends a label to the PR.
+#[derive(Clone, Debug)]
+pub struct StandardLibraryLabelCheck {
+    /// Library name to check. WIthout the leading `Standard` prefix
+    pub lib_name: String,
+}
+
+impl StandardLibraryLabelCheck {
+    fn changed_files_step_name(&self) -> String {
+        format!("{}-changed-files", self.lib_name)
+    }
+
+    fn changed_files_step(&self) -> Step {
+        let changed_files_pattern =
+            format!("distribution/lib/Standard/{}/**/docs/api/**/**.md", self.lib_name);
+        let changed_files_action = "step-security/changed-files@v45".to_string();
+        Step {
+            id: Some(self.changed_files_step_name()),
+            name: Some(self.changed_files_step_name()),
+            uses: Some(changed_files_action),
+            ..default()
+        }
+        .with_custom_argument("files", changed_files_pattern)
+    }
+
+    fn list_all_changed_files_step(&self) -> Step {
+        let run = format!(
+            r#"
+        if [[ "${{{{ steps.{}.outputs.any_changed }}}}" == "true" ]]; then
+            echo "Files changed:"
+        fi
+        for file in ${{ALL_CHANGED_FILES}}; do
+            echo "$file"
+        done
+        "#,
+            self.changed_files_step_name()
+        );
+        Step {
+            name: Some(format!("List all changed files in {}", self.lib_name)),
+            run: Some(run),
+            ..default()
+        }
+        .with_env(
+            "ALL_CHANGED_FILES",
+            "${{ steps.".to_string()
+                + &self.changed_files_step_name()
+                + ".outputs.all_changed_files }}",
+        )
+    }
+
+    fn append_label_step(&self) -> Step {
+        let label_name = format!("-libs-API-change-{}", self.lib_name);
+        let add_label_action = "actions-ecosystem/action-add-labels@v1".to_string();
+        Step {
+            name: Some(format!("Append {} label", label_name)),
+            uses: Some(add_label_action),
+            r#if: Some(format!(
+                "steps.{}.outputs.any_changed == 'true'",
+                self.changed_files_step_name()
+            )),
+            ..default()
+        }
+        .with_custom_argument("labels", label_name)
+        .with_custom_argument("github_token", "${{ secrets.GITHUB_TOKEN }}")
+    }
+}
+
+impl JobArchetype for StandardLibraryLabelCheck {
+    fn job(&self, target: Target) -> Job {
+        if target.0 != OS::Linux {
+            panic!("StandardLibraryApiCheck jobs run only on Linux");
+        }
+        let job_name = format!("{}-change-labels", self.lib_name);
+        let steps: Vec<Step> = vec![
+            checkout_repo_step(Some(2)),
+            self.changed_files_step(),
+            self.list_all_changed_files_step(),
+            self.append_label_step(),
+        ];
+        Job { name: job_name, runs_on: vec![RunnerLabel::LinuxLatest], steps, ..default() }
+    }
+
+    fn id_key_base(&self) -> String {
+        format!("stdlib-api-check-{}", self.lib_name)
     }
 }
 
@@ -346,9 +594,9 @@ fn build_job_ensuring_cloud_tests_run_on_github(
     run_steps_builder: RunStepsBuilder,
     target: Target,
     job_name: &str,
-    cloud_tests_enabled: bool,
+    scope: StandardLibraryTestsScope,
 ) -> Job {
-    if cloud_tests_enabled {
+    if scope == StandardLibraryTestsScope::CloudRelated {
         if target.0 != OS::Linux {
             panic!("If the Cloud tests are enabled, they require GitHub hosted runner for Cloud auth, so they only run on Linux.");
         }
@@ -360,7 +608,11 @@ fn build_job_ensuring_cloud_tests_run_on_github(
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct SnowflakeTests {}
+pub struct SnowflakeTests {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+    pub jvm_mode:        bool,
+}
 
 const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Community;
 
@@ -370,7 +622,19 @@ impl JobArchetype for SnowflakeTests {
             panic!("Snowflake tests currently require GitHub hosted runner for Cloud auth, so they only run on Linux.");
         }
         let job_name = "Snowflake Tests";
-        let mut job = RunStepsBuilder::new("backend test std-snowflake")
+        let job_name = if self.jvm_mode {
+            format!("{job_name} (JVM)")
+        } else {
+            format!("{job_name} (Native)")
+        };
+        let graal_edition = self.graal_edition;
+        let engine_launcher = self.engine_launcher;
+        let run_command = if self.jvm_mode {
+            "backend test std-snowflake-jvm"
+        } else {
+            "backend test std-snowflake"
+        };
+        let mut job = RunStepsBuilder::new(run_command)
             .customize(move |step| {
                 let main_step = step
                     .with_secret_exposed_as(
@@ -402,29 +666,43 @@ impl JobArchetype for SnowflakeTests {
                 // Enso Cloud as well. They need it to test data link integration.
                 let updated_main_step = enable_cloud_tests(main_step);
 
+                let cleanup_engine_distribution =
+                    step::cleanup_engine_distribution(engine_launcher);
+
+                let download_engine_distribution =
+                    step::download_engine_distribution(target, engine_launcher, graal_edition);
+
                 vec![
+                    cleanup_engine_distribution,
+                    download_engine_distribution,
+                    step::check_engine_distribution(),
+                    step::unpack_engine_distribution(),
                     updated_main_step,
                     step::extra_stdlib_test_reporter(target, GRAAL_EDITION_FOR_EXTRA_TESTS),
                 ]
             })
             .build_job(job_name, RunnerLabel::LinuxLatest)
             .with_permission(Permission::Checks, Access::Write);
-        job.env(engine_env::GRAAL_EDITION, GRAAL_EDITION_FOR_EXTRA_TESTS);
+        job.env(engine::env::GRAAL_EDITION, GRAAL_EDITION_FOR_EXTRA_TESTS);
         job.env(crate::libraries_tests::env::REPORT_ALL_TESTS, "1");
         job
     }
 
     fn key(&self, (os, arch): Target) -> String {
-        format!("{}-{os}-{arch}", self.id_key_base())
+        if self.jvm_mode {
+            format!("{}-jvm-{os}-{arch}", self.id_key_base())
+        } else {
+            format!("{}-native-{os}-{arch}", self.id_key_base())
+        }
     }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Lint;
+pub struct WasmLint;
 
-impl JobArchetype for Lint {
+impl JobArchetype for WasmLint {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Lint", "lint")
+        plain_job(target, "Lint", "wasm lint")
     }
 }
 
@@ -444,7 +722,18 @@ impl JobArchetype for GuiBuild {
     fn job(&self, target: Target) -> Job {
         let command: &str = "gui build";
         RunStepsBuilder::new(command)
-            .customize(|step| vec![expose_gui_vars(step)])
+            .customize(move |step| {
+                let mut steps = vec![expose_gui_vars(step)];
+
+                if target.0 == OS::Linux {
+                    let upload_gui = step::upload_artifact("Upload gui")
+                        .with_custom_argument("name", "gui")
+                        .with_custom_argument("path", "dist/gui/");
+                    steps.push(upload_gui);
+                }
+
+                steps
+            })
             .build_job("GUI build", target)
     }
 }
@@ -461,11 +750,53 @@ impl JobArchetype for WasmTest {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct BuildBackend;
+pub struct BuildBackend {
+    pub engine_launcher: engine::EngineLauncher,
+}
 
 impl JobArchetype for BuildBackend {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Build Backend", "backend get")
+        let mut job = RunStepsBuilder::new("backend get")
+            .customize(move |step| {
+                let mut steps = vec![step];
+
+                if target.0 == OS::Linux {
+                    let upload_edition_file = step::upload_artifact("Upload Edition File")
+                        .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                        .with_custom_argument("path", "distribution/editions/*.yaml");
+                    steps.push(upload_edition_file);
+
+                    let upload_fbs_schema = step::upload_artifact("Upload fbs-schema")
+                        .with_custom_argument("name", "fbs-schema")
+                        .with_custom_argument("path", "engine/language-server/src/main/schema/");
+                    steps.push(upload_fbs_schema)
+                }
+
+                let archive_project_manager = Step {
+                    name: Some("Archive project-manager".into()),
+                    run: Some("tar -cvf project-manager.tar -C dist/backend .".into()),
+                    ..Default::default()
+                };
+                steps.push(archive_project_manager);
+
+                let upload_project_manager = step::upload_artifact("Upload project-manager")
+                    .with_custom_argument("name", format!("project-manager-{}", target.0))
+                    .with_custom_argument("path", "project-manager.tar");
+                steps.push(upload_project_manager);
+
+                let cleanup = Step {
+                    name: Some("Cleanup".into()),
+                    run: Some("rm project-manager.tar".into()),
+                    ..Default::default()
+                };
+                steps.push(cleanup);
+
+                steps
+            })
+            .build_job("Build Backend", target);
+        job.env(engine::env::ENSO_LAUNCHER, self.engine_launcher);
+
+        job
     }
 }
 
@@ -476,6 +807,18 @@ impl JobArchetype for UploadBackend {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend upload")
             .cleaning(RELEASE_CLEANING_POLICY)
+            .customize(move |step| {
+                let mut steps = vec![step];
+
+                if target.0 == OS::Linux {
+                    let upload_edition_file = step::upload_artifact("Upload Edition File")
+                        .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                        .with_custom_argument("path", "distribution/editions/*.yaml");
+                    steps.push(upload_edition_file);
+                }
+
+                steps
+            })
             .build_job("Upload Backend", target)
     }
 }
@@ -548,23 +891,29 @@ impl JobArchetype for DispatchBuildImage {
 pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     match os {
         OS::Windows => step
-            .with_secret_exposed_as(secret::WINDOWS_CERT_PATH, &ide_env::WIN_CSC_LINK)
-            .with_secret_exposed_as(secret::WINDOWS_CERT_PASSWORD, &ide_env::WIN_CSC_KEY_PASSWORD),
+            .with_secret_exposed_as(secret::WINDOWS_CERT_PATH, &ide::web::env::WIN_CSC_LINK)
+            .with_secret_exposed_as(
+                secret::WINDOWS_CERT_PASSWORD,
+                &ide::web::env::WIN_CSC_KEY_PASSWORD,
+            ),
         OS::MacOS => step
-            .with_secret_exposed_as(secret::APPLE_CODE_SIGNING_CERT, &ide_env::CSC_LINK)
+            .with_secret_exposed_as(secret::APPLE_CODE_SIGNING_CERT, &ide::web::env::CSC_LINK)
             .with_secret_exposed_as(
                 secret::APPLE_CODE_SIGNING_CERT_PASSWORD,
-                &ide_env::CSC_KEY_PASSWORD,
+                &ide::web::env::CSC_KEY_PASSWORD,
             )
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_USERNAME, &ide_env::APPLEID)
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_PASSWORD, &ide_env::APPLEIDPASS)
-            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_TEAM_ID, &ide_env::APPLETEAMID)
-            .with_env(ide_env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
+            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_USERNAME, &ide::web::env::APPLEID)
+            .with_secret_exposed_as(
+                secret::APPLE_NOTARIZATION_PASSWORD,
+                &ide::web::env::APPLEIDPASS,
+            )
+            .with_secret_exposed_as(secret::APPLE_NOTARIZATION_TEAM_ID, &ide::web::env::APPLETEAMID)
+            .with_env(ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true")
             // `CSC_FOR_PULL_REQUEST` can potentially expose sensitive information to third-party,
             // see the comment in the definition of `CSC_FOR_PULL_REQUEST` for more information.
             //
             // In our case, we are safe here, as any PRs from forks do not get the secrets exposed.
-            .with_env(ide_env::CSC_FOR_PULL_REQUEST, "true"),
+            .with_env(ide::web::env::CSC_FOR_PULL_REQUEST, "true"),
         _ => step,
     }
 }
@@ -595,88 +944,146 @@ pub fn prepare_packaging_steps(os: OS, step: Step, packaging_target: PackagingTa
     vec![step]
 }
 
-/// Convenience for [`prepare_packaging_steps`].
-///
-/// This function is useful when you want to use [`prepare_packaging_steps`] as a closure.
-pub fn with_packaging_steps(
-    os: OS,
-    packaging_target: PackagingTarget,
-) -> impl FnOnce(Step) -> Vec<Step> {
-    move |step| prepare_packaging_steps(os, step, packaging_target)
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct PackageIde;
 
 impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new(
-            "ide build --backend-source current-ci-run --gui-upload-artifact false",
-        )
-        .customize(move |step| {
-            let mut steps = prepare_packaging_steps(target.0, step, PackagingTarget::Development);
-            const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
-            let test_step = match target.0 {
-                OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
-                    // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
-                    .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox"),
+        RunStepsBuilder::new("ide build --backend-source local --gui-upload-artifact false")
+            .fetch_depth(2)
+            .customize(move |step| {
+                let mut steps = vec![];
 
-                OS::MacOS =>
-                // MacOS CI runners are very slow
-                    shell(format!("{TEST_COMMAND} --timeout 300000")),
-                _ => shell(TEST_COMMAND),
-            };
-            let test_step = test_step
-                .with_env("DEBUG", "pw:browser log:")
-                .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME, "ENSO_TEST_USER")
-                .with_secret_exposed_as(
-                    secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
-                    "ENSO_TEST_USER_PASSWORD",
-                );
-            steps.push(test_step);
+                let download_project_manager = step::download_artifact("Download project-manager")
+                    .with_custom_argument("name", format!("project-manager-{}", target.0))
+                    .with_custom_argument("path", "dist/backend");
+                steps.push(download_project_manager);
 
-            let upload_test_traces_step = Step {
-                r#if: Some("failure()".into()),
-                name: Some("Upload Test Traces".into()),
-                uses: Some("actions/upload-artifact@v4".into()),
-                with: Some(Argument::Other(BTreeMap::from_iter([
-                    ("name".into(), format!("test-traces-{}-{}", target.0, target.1).into()),
-                    ("path".into(), "app/ide-desktop/client/test-traces".into()),
-                    ("compression-level".into(), 0.into()), // The traces are in zip already.
-                ]))),
-                ..Default::default()
-            };
-            steps.push(upload_test_traces_step);
+                let unpack_project_manager = Step {
+                    run: Some(
+                        "tar -xvf dist/backend/project-manager.tar -C dist/backend
+rm dist/backend/project-manager.tar"
+                            .into(),
+                    ),
+                    ..Default::default()
+                };
+                steps.push(unpack_project_manager);
 
-            // After the E2E tests run, they create a credentials file in user home directory.
-            // If that file is not cleaned up, future runs of our tests may randomly get
-            // authenticated into Enso Cloud. We want to run tests as an authenticated
-            // user only when we explicitly set that up, not randomly. So we clean the credentials
-            // file.
-            let cloud_credentials_path = "$HOME/.enso/credentials";
-            let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
-            steps.push(cleanup_credentials_step);
+                let mut packaging_steps =
+                    prepare_packaging_steps(target.0, step, PackagingTarget::Development);
+                steps.append(&mut packaging_steps);
 
-            steps
-        })
-        .build_job("Package New IDE", target)
+                let upload_ide = step::upload_artifact("Upload ide")
+                    .with_custom_argument("name", format!("ide-{}", target.0))
+                    .with_custom_argument(
+                        "path",
+                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                    );
+                steps.push(upload_ide);
+
+                let test_prepare_step = shell("\
+                    mkdir -p app/ide-desktop/client/playwright/.auth && \
+                    touch app/ide-desktop/client/playwright/.auth/user.json && \
+                    chmod 600 app/ide-desktop/client/playwright/.auth/user.json && \
+                    echo \"{\\\"user\\\": \\\"$ENSO_TEST_USER\\\",\\\"password\\\":\\\"$ENSO_TEST_USER_PASSWORD\\\"}\" >> app/ide-desktop/client/playwright/.auth/user.json\
+                    ").with_shell(Shell::Bash).with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+                        "ENSO_TEST_USER",
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+                        "ENSO_TEST_USER_PASSWORD",
+                    ).with_name(
+                        "Prepare Package Tests"
+                    );
+                steps.push(test_prepare_step);
+
+                const TEST_COMMAND: &str = "corepack pnpm -r --filter enso ide-integration-test";
+                let test_step = match target.0 {
+                    OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
+                        // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
+                        .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox"),
+
+                    OS::MacOS =>
+                    // MacOS CI runners are very slow
+                        shell(format!("{TEST_COMMAND} --timeout 300000")),
+                    _ => shell(TEST_COMMAND),
+                };
+                let test_step = test_step
+                    .with_env("DEBUG", "pw:browser log:")
+                    .with_name("Run Package Tests");
+
+                steps.push(test_step);
+
+                let upload_test_traces_step = Step {
+                    r#if: Some("failure()".into()),
+                    name: Some("Upload Test Traces".into()),
+                    uses: Some("actions/upload-artifact@v4".into()),
+                    with: Some(Argument::Other(BTreeMap::from_iter([
+                        ("name".into(), format!("test-traces-{}-{}", target.0, target.1).into()),
+                        ("path".into(), "app/ide-desktop/client/test-traces".into()),
+                        ("compression-level".into(), 0.into()), // The traces are in zip already.
+                    ]))),
+                    ..Default::default()
+                };
+                steps.push(upload_test_traces_step);
+
+                // After the E2E tests run, they create a credentials file in user home directory.
+                // If that file is not cleaned up, future runs of our tests may randomly get
+                // authenticated into Enso Cloud. We want to run tests as an authenticated
+                // user only when we explicitly set that up, not randomly. So we clean the
+                // credentials file.
+                let cloud_credentials_path = "$HOME/.enso/credentials";
+                let cleanup_credentials_step = Step {
+                    r#if: Some("always()".into()),
+                    name: Some("Remove Credentials File".into()),
+                    shell: Some(Shell::Bash),
+                    ..shell(format!("rm -f {cloud_credentials_path}"))
+                };
+
+                steps.push(cleanup_credentials_step);
+
+                steps
+            })
+            .build_job("Package New IDE", target)
     }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct CiCheckBackend {
-    pub graal_edition: graalvm::Edition,
+pub struct BuildEngineDistribution {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
 }
 
-impl JobArchetype for CiCheckBackend {
+impl JobArchetype for BuildEngineDistribution {
     fn job(&self, target: Target) -> Job {
-        let job_name = format!("Engine ({})", self.graal_edition);
-        let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
+        let engine_launcher = self.engine_launcher;
+        let graal_edition = self.graal_edition;
+        let job_name =
+            format!("Build Engine Distribution ({}) ({})", self.graal_edition, engine_launcher);
+        let mut job = RunStepsBuilder::new("backend ci-build-engine-distribution")
+            .customize(move |step| {
+                let archive_engine_distribution =
+                    step::archive_engine_distribution(engine_launcher);
+
+                let upload_engine_distribution =
+                    step::upload_engine_distribution(target, engine_launcher, graal_edition);
+
+                let cleanup_archive = Step {
+                    name: Some("Cleanup Archive".into()),
+                    run: Some("rm built-distribution.tar".into()),
+                    ..Default::default()
+                };
+
+                vec![step, archive_engine_distribution, upload_engine_distribution, cleanup_archive]
+            })
+            .build_job(job_name, target);
+        job.env(engine::env::ENSO_LAUNCHER, self.engine_launcher);
         match self.graal_edition {
             graalvm::Edition::Community =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
             graalvm::Edition::Enterprise =>
-                job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
         }
         job
     }

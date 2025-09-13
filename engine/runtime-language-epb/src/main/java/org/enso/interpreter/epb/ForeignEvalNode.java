@@ -83,11 +83,14 @@ final class ForeignEvalNode extends RootNode {
       var installedLanguages = context.getEnv().getPublicLanguages();
       var node =
           switch (installedLanguages.containsKey(id) ? 1 : 0) {
-            case 0 -> {
-              var sortedLangs = new TreeSet<>(installedLanguages.keySet());
-              var ex = new ForeignParsingException(id, sortedLangs, this);
-              yield new ExceptionForeignNode(ex);
-            }
+            case 0 -> switch (id) {
+              case "java" -> parseJava();
+              default -> {
+                var sortedLangs = new TreeSet<>(installedLanguages.keySet());
+                var ex = new ForeignParsingException(id, sortedLangs, this);
+                yield new ExceptionForeignNode(ex);
+              }
+            };
             default -> {
               context.log(
                   Level.FINE,
@@ -108,6 +111,16 @@ final class ForeignEvalNode extends RootNode {
       return toRet;
     } catch (InteropException ex) {
       throw new ForeignParsingException(ex.getMessage(), this);
+    }
+  }
+
+  private ForeignFunctionCallNode parseJava() {
+    var code = foreignSource(langAndCode);
+    var context = EpbContext.get(this);
+    if ("hosted".equals(code)) {
+      return JavaPolyglotNode.createHosted(context);
+    } else {
+      return JavaPolyglotNode.create(context);
     }
   }
 

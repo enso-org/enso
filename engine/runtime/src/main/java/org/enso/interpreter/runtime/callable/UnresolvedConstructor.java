@@ -12,11 +12,14 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Supplier;
 import org.enso.compiler.context.LocalScope;
+import org.enso.compiler.core.ir.Location;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -32,7 +35,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -71,10 +73,16 @@ public final class UnresolvedConstructor extends EnsoObject {
     this.args = args;
   }
 
-  final String getName() {
+  /** Name of the constructor symbol to invoke - without initial {@code ..}. */
+  public final String getName() {
     return name;
   }
 
+  /**
+   * Textual representation of the symbol to invoke - prefixed by {@code ..}.
+   *
+   * @return {@code ".." + getName()}
+   */
   @Override
   @TruffleBoundary
   public String toString() {
@@ -207,9 +215,12 @@ public final class UnresolvedConstructor extends EnsoObject {
       var lang = EnsoLanguage.get(null);
       var body = BlockNode.buildSilent(new ExpressionNode[0], expr);
       body.adoptChildren();
+      var loc =
+          section == null ? null : new Location(section.getCharIndex(), section.getCharEndIndex());
+      Supplier<Source> src = section == null ? null : section::getSource;
       var root =
           ClosureRootNode.build(
-              lang, LocalScope.empty(), scope, body, section, prototype.getName(), true, true);
+              lang, LocalScope.empty(), scope, body, src, loc, prototype.getName(), true, true);
       root.adoptChildren();
       assert Objects.equals(expr.getSourceSection(), section)
           : "Expr: " + expr.getSourceSection() + " orig: " + section;
@@ -264,17 +275,21 @@ public final class UnresolvedConstructor extends EnsoObject {
       var args = new Object[prototype.descs.length + 1];
       System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);
       args[0] = fn;
-      var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
+      var helper = Function.ArgumentsHelper.buildArguments(fn, null, args);
       var r = callNode.call(helper);
-      if (r instanceof Atom) {
+      if (r instanceof Function thunk) {
+        if (thunk.isFullyApplied()) {
+          return fn;
+        }
+        // fall to error
+      } else if (r instanceof EnsoObject) {
         return r;
       } else if (r instanceof DataflowError) {
         return r;
-      } else {
-        var ctx = EnsoContext.get(this);
-        var err = ctx.getBuiltins().error().makeTypeError(c.getType(), r, prototype.toString());
-        throw new PanicException(err, this);
       }
+      var ctx = EnsoContext.get(this);
+      var err = ctx.getBuiltins().error().makeTypeError(c.getType(), r, prototype.toString());
+      throw new PanicException(err, this);
     }
 
     private static Object checkSingleton(Type c, UnresolvedConstructor unresolved) {
@@ -297,7 +312,7 @@ public final class UnresolvedConstructor extends EnsoObject {
   }
 
   @ExportMessage
-  Type getType(@Bind("$node") Node node) {
+  Type getType(@Bind Node node) {
     var ctx = EnsoContext.get(node);
     return ctx.getBuiltins().function();
   }

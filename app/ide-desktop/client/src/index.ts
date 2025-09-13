@@ -19,7 +19,6 @@ import * as electron from 'electron'
 import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
-import * as buildUtils from 'enso-common/src/buildUtils'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
 import * as authentication from '@/authentication'
@@ -33,12 +32,16 @@ import * as ipc from '@/ipc'
 import * as log from '@/log'
 import * as naming from '@/naming'
 import * as paths from '@/paths'
-import * as projectManagement from '@/projectManagement'
 import * as projectManager from '@/projectManager'
 import * as security from '@/security'
 import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
+import * as projectManagement from 'project-manager-shim'
+import { FileFilter, toElectronFileFilter } from './fileBrowser'
 
+import * as download from 'electron-dl'
+import type { DownloadUrlOptions } from './globals'
+import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 const logger = contentConfig.logger
 
 /** Convert path to proper `file://` URL. */
@@ -99,6 +102,10 @@ class App {
         this.setChromeOptions(chromeOptions)
         security.enableAll()
 
+        this.onStart().catch((err) => {
+          logger.error(err)
+        })
+
         electron.app.on('before-quit', () => {
           this.isQuitting = true
         })
@@ -149,6 +156,33 @@ class App {
         electron.app.quit()
       }
     }
+  }
+
+  /** Background tasks scheduled on the application startup. */
+  async onStart() {
+    const userData = electron.app.getPath('userData')
+    const versionInfoPath = pathModule.join(userData, 'version_info.json')
+    const versionInfoPathExists = await fs
+      .access(versionInfoPath, fs.constants.F_OK)
+      .then(() => true)
+      .catch(() => false)
+
+    if (versionInfoPathExists) {
+      const versionInfoText = await fs.readFile(versionInfoPath, 'utf8')
+      const versionInfoJson = JSON.parse(versionInfoText)
+
+      if (debug.VERSION_INFO.version === versionInfoJson.version && !contentConfig.VERSION.isDev())
+        return
+    }
+
+    const writeVersionInfoPromise = fs.writeFile(
+      versionInfoPath,
+      JSON.stringify(debug.VERSION_INFO),
+      'utf8',
+    )
+    const downloadSamplesPromise = projectManagement.downloadSamples()
+
+    return Promise.allSettled([writeVersionInfoPromise, downloadSamplesPromise])
   }
 
   /** Process the command line arguments. */
@@ -318,7 +352,8 @@ class App {
         this.args.groups.debug.options.profile.value ?
           ['--profiling-path', 'profiling.npss', ...backendProfileTime]
         : []
-      const backendOpts = [...backendVerboseOpts, ...backendProfileOpts]
+      const backendJvmOpts = this.args.options.jvm.value ? ['--jvm'] : []
+      const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
       const backendEnv = Object.assign({}, process.env, {
         SERVER_HOST: this.projectManagerHost,
         SERVER_PORT: `${this.projectManagerPort}`,
@@ -336,7 +371,6 @@ class App {
             dir: paths.ASSETS_PATH,
             port: this.args.groups.server.options.port.value,
             externalFunctions: {
-              uploadProjectBundle: projectManagement.uploadBundle,
               runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
                 projectManager.runCommand(this.args, cliArguments, body),
             },
@@ -374,6 +408,7 @@ class App {
           height: windowSize.height,
           frame: useFrame,
           titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
+          ...(process.env.DEV_DARK_BACKGROUND ? { backgroundColor: '#36312c' } : {}),
           ...(useVibrancy ?
             {
               vibrancy: 'fullscreen-ui',
@@ -385,33 +420,37 @@ class App {
           : {}),
         }
         const window = new electron.BrowserWindow(windowPreferences)
-        window.setMenuBarVisibility(false)
+
         const oldMenu = electron.Menu.getApplicationMenu()
         if (oldMenu != null) {
-          const items = oldMenu.items.map((item) => {
-            if (item.role !== 'help') {
-              return item
-            } else {
-              // `click` is a property that is intentionally removed from this
-              // destructured object, in order to satisfy TypeScript.
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              const { click, ...passthrough } = item
-              return new electron.MenuItem({
-                ...passthrough,
-                submenu: electron.Menu.buildFromTemplate([
-                  new electron.MenuItem({
-                    label: `About ${common.PRODUCT_NAME}`,
-                    click: () => {
-                      window.webContents.send(ipc.Channel.showAboutModal)
-                    },
-                  }),
+          const newMenu = replaceMenuItems(oldMenu.items, [
+            {
+              filter: [filterByRole('help')],
+              replacement: (item) =>
+                inheritMenuItem(item, undefined, [
+                  makeMenuItem(window, `About ${common.PRODUCT_NAME}`, 'about'),
                 ]),
-              })
-            }
-          })
-          const newMenu = electron.Menu.buildFromTemplate(items)
+            },
+            {
+              filter: [filterByRole('fileMenu'), filterByRole('close')],
+              replacement: () => makeMenuItem(window, 'Close Tab', 'closeTab', 'CmdOrCtrl+W'),
+            },
+            {
+              filter: [filterByRole('appMenu'), filterByRole('about')],
+              replacement: () => undefined,
+            },
+            {
+              filter: [filterByRole('appMenu'), filterByRole('hide')],
+              replacement: (item) => inheritMenuItem(item, `Hide ${common.PRODUCT_NAME}`),
+            },
+            {
+              filter: [filterByRole('appMenu'), filterByRole('quit')],
+              replacement: (item) => inheritMenuItem(item, `Quit ${common.PRODUCT_NAME}`),
+            },
+          ])
           electron.Menu.setApplicationMenu(newMenu)
         }
+        window.setMenuBarVisibility(false)
 
         if (this.args.groups.debug.options.devTools.value) {
           window.webContents.openDevTools()
@@ -491,13 +530,46 @@ class App {
         event.reply(ipc.Channel.importProjectFromPath, path, info)
       },
     )
-    electron.ipcMain.on(
+    electron.ipcMain.handle(
       ipc.Channel.downloadURL,
-      (_event, url: string, headers?: Record<string, string>) => {
-        electron.BrowserWindow.getFocusedWindow()?.webContents.downloadURL(
-          url,
-          headers ? { headers } : {},
-        )
+      async (_event, options: DownloadUrlOptions) => {
+        const { url, path, name, shouldUnpackProject, showFileDialog } = options
+        // This should never happen, but we'll check for it anyway.
+        if (!this.window) {
+          throw new Error('Window is not available.')
+        }
+
+        await download.download(this.window, url, {
+          ...(path != null ? { directory: path } : {}),
+          ...(name != null ? { filename: name } : {}),
+          saveAs: showFileDialog != null ? showFileDialog : path == null,
+          onCompleted: (file) => {
+            const path = file.path
+            const filenameRaw = pathModule.basename(path)
+
+            try {
+              if (
+                projectManagement.isProjectBundle(path) ||
+                projectManagement.isProjectRoot(path)
+              ) {
+                if (!shouldUnpackProject) {
+                  return
+                }
+                // in case we're importing a project bundle, we need to remove the extension
+                // from the filename
+                const filename = filenameRaw.replace(pathModule.extname(filenameRaw), '')
+                const directory = pathModule.dirname(path)
+
+                projectManagement.importProjectFromPath(path, directory, filename)
+                fsSync.unlinkSync(path)
+              }
+            } catch (error) {
+              console.error('Error downloading URL', error)
+            }
+          },
+        })
+
+        return
       },
     )
     electron.ipcMain.on(ipc.Channel.showItemInFolder, (_event, fullPath: string) => {
@@ -505,13 +577,19 @@ class App {
     })
     electron.ipcMain.handle(
       ipc.Channel.openFileBrowser,
-      async (_event, kind: 'default' | 'directory' | 'file' | 'filePath', defaultPath?: string) => {
-        logger.log('Request for opening browser for ', kind, defaultPath)
+      async (
+        _event,
+        kind: 'default' | 'directory' | 'file' | 'filePath',
+        defaultPath?: string,
+        filters?: FileFilter[],
+      ) => {
+        logger.log('Request for opening browser for ', kind, defaultPath, JSON.stringify(filters))
         let retval = null
         if (kind === 'filePath') {
           // "Accept", as the file won't be created immediately.
           const { canceled, filePath } = await electron.dialog.showSaveDialog({
             buttonLabel: 'Accept',
+            filters: filters?.map(toElectronFileFilter) ?? [],
             ...(defaultPath != null ? { defaultPath } : {}),
           })
           if (!canceled) {
@@ -527,6 +605,7 @@ class App {
             : ['openFile']
           const { canceled, filePaths } = await electron.dialog.showOpenDialog({
             properties,
+            filters: filters?.map(toElectronFileFilter) ?? [],
             ...(defaultPath != null ? { defaultPath } : {}),
           })
           if (!canceled) {
@@ -539,11 +618,11 @@ class App {
 
     // Handling navigation events from renderer process
     electron.ipcMain.on(ipc.Channel.goBack, () => {
-      this.window?.webContents.goBack()
+      this.window?.webContents.navigationHistory.goBack()
     })
 
     electron.ipcMain.on(ipc.Channel.goForward, () => {
-      this.window?.webContents.goForward()
+      this.window?.webContents.navigationHistory.goForward()
     })
   }
 
@@ -599,7 +678,7 @@ class App {
 
   /** Print the version of the frontend and the backend. */
   async printVersion(): Promise<void> {
-    const indent = ' '.repeat(buildUtils.INDENT_SIZE)
+    const indent = '    '
     let maxNameLen = 0
     for (const name in debug.VERSION_INFO) {
       maxNameLen = Math.max(maxNameLen, name.length)
@@ -623,7 +702,6 @@ class App {
     }
   }
 
-  /** Register keyboard shortcuts. */
   registerShortcuts() {
     electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
       webContents.on('before-input-event', (_beforeInputEvent, input) => {
@@ -637,18 +715,6 @@ class App {
             if (control && alt && shift && !meta && code === 'KeyR') {
               focusedWindow.reload()
             }
-          }
-
-          const cmdQ = meta && !control && !alt && !shift && code === 'KeyQ'
-          const ctrlQ = !meta && control && !alt && !shift && code === 'KeyQ'
-          const altF4 = !meta && !control && alt && !shift && code === 'F4'
-          const ctrlW = !meta && control && !alt && !shift && code === 'KeyW'
-          const quitOnMac = process.platform === 'darwin' && (cmdQ || altF4)
-          const quitOnWin = process.platform === 'win32' && (altF4 || ctrlW)
-          const quitOnLinux = process.platform === 'linux' && (altF4 || ctrlQ || ctrlW)
-          const quit = quitOnMac || quitOnWin || quitOnLinux
-          if (quit) {
-            electron.app.quit()
           }
         }
       })

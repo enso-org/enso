@@ -22,7 +22,7 @@ public interface BuilderWithRetyping extends Builder {
    * @param type the storage type
    * @return whether the column can be retyped
    */
-  boolean canRetypeTo(StorageType type);
+  boolean canRetypeTo(StorageType<?> type);
 
   /**
    * Retype this builder to the given type. Can only be called if {@link #canRetypeTo(StorageType)}
@@ -31,5 +31,5 @@ public interface BuilderWithRetyping extends Builder {
    * @param type the target type
    * @return a retyped builder
    */
-  Builder retypeTo(StorageType type);
+  Builder retypeTo(StorageType<?> type);
 }

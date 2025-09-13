@@ -9,7 +9,6 @@ import org.slf4j.IMarkerFactory;
 import org.slf4j.spi.MDCAdapter;
 import org.slf4j.spi.SLF4JServiceProvider;
 
-@org.openide.util.lookup.ServiceProvider(service = SLF4JServiceProvider.class)
 public class TestLogProvider implements SLF4JServiceProvider {
 
   private static final SLF4JServiceProvider underlying = new LogbackServiceProvider();
@@ -22,7 +21,10 @@ public class TestLogProvider implements SLF4JServiceProvider {
     assert factory instanceof LoggerContext;
     if (!initialized) {
       try {
-        new LogbackSetup((LoggerContext) factory).setup();
+        var setup = new LogbackSetup((LoggerContext) factory);
+        setup.setup();
+        // useful when exceptions are being swallowed in tests
+        // setup.setupConsoleAppender(Level.WARN);
         initialized = true;
       } catch (MissingConfigurationField e) {
         throw new RuntimeException(e);

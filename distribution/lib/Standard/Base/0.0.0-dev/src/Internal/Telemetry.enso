@@ -1,0 +1,27 @@
+private
+
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
+
+polyglot java import org.slf4j.LoggerFactory
+
+## Schedules a single telemetry message for sending.
+
+   ## Arguments
+    - `logger_name`: Name of the (telemetry) logger
+    - `msg`: Message. Must be of format `<msg>: <args>`, where `<args>` has
+      `<argname>=<argvalue>` mapping separated by `,`, for example
+      `my message: arg1=1, arg2=2`.
+      See org.enso.logging.service.logback.telemetry.LogFormatter
+    - `args`: Arguments passed to the LoggingEvent object
+log logger_name:Text msg:Text args:Vector -> Nothing =
+    telemetry_logger = LoggerFactory.getLogger (_root_logger_name + "." + logger_name)
+    bldr = telemetry_logger.atTrace
+    bldr.setMessage msg
+    args.each \arg ->
+        bldr.addArgument arg
+    bldr.log
+
+
+_root_logger_name = "org.enso.telemetry"

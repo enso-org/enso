@@ -19,7 +19,7 @@ trait FlakySpec extends TestSuite {
   /** Tags test as pending on failure */
   object SkipOnFailure extends Tag("org.enso.test.skiponfailure")
 
-  override def withFixture(test: NoArgTest): Outcome =
+  override def withFixture(test: NoArgTest): Outcome = {
     super.withFixture(test) match {
       case Failed(_) | Canceled(_)
           if Flaky.isEnabled && test.tags.contains(Flaky.name) =>
@@ -29,4 +29,5 @@ trait FlakySpec extends TestSuite {
       case outcome =>
         outcome
     }
+  }
 }

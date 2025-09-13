@@ -6,6 +6,9 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -69,7 +72,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
   public Object findCachedResult(IdExecutionService.Info info) {
     try {
       if (onEnter != null) {
-        var ret = InteropLibrary.getUncached().execute(onEnter, info.getId().toString());
+        var ret = InteropLibrary.getUncached().execute(onEnter, idString(info));
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
         return handle.isDisposed() ? null : ret;
       }
@@ -88,7 +91,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
                 ? info.getResult()
                 : InstrumentorEvalNode.asSuspendedEval(
                     EnsoLanguage.get(target.getRootNode()), onReturnExpr, info);
-        iop.execute(onReturn, info.getId().toString(), result);
+        iop.execute(onReturn, idString(info), result);
       }
     } catch (Throwable ignored) {
       CompilerDirectives.transferToInterpreter();
@@ -111,7 +114,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
             InteropLibrary.getUncached()
                 .execute(
                     onCall,
-                    info.getId().toString(),
+                    idString(info),
                     call.getFunction(),
                     ArrayLikeHelpers.asVectorWithCheckAt(args));
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
@@ -128,6 +131,10 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
   }
 
   @Override
+  public void updateLocalExecutionEnvironment(
+      UUID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess) {}
+
+  @Override
   @TruffleBoundary
   public Object toDisplayString(boolean allowSideEffects) {
     String rootName;
@@ -137,5 +144,10 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
       rootName = "<unknown>";
     }
     return "Instrumentor(target = " + rootName + ")";
+  }
+
+  @TruffleBoundary
+  public String idString(IdExecutionService.Info info) {
+    return info.getId().toString();
   }
 }

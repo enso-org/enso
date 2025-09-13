@@ -1,9 +1,5 @@
 /** @file A sub-page of the settings page. */
 
-// =======================
-// === SettingsTabType ===
-// =======================
-
 /** A sub-page of the settings page. */
 enum SettingsTabType {
   account = 'account',

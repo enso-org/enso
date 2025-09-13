@@ -1,20 +1,10 @@
-/**
- * @file Step component.
- * A step component is used to represent a single step in a stepper component.
- */
-import * as React from 'react'
-
-import { AnimatePresence, motion } from 'framer-motion'
-
+/** @file Step component. */
 import DoneIcon from '#/assets/check_mark.svg'
-
-import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
-
+import { Text } from '#/components/Text'
 import { tv } from '#/utilities/tailwindVariants'
-import * as stepperProvider from './StepperProvider'
+import * as React from 'react'
 import type { RenderStepProps } from './types'
-import type * as stepperState from './useStepperState'
 
 /** A prop with the given type, or a function to produce a value of the given type. */
 type StepProp<T> = T | ((props: RenderStepProps) => T)
@@ -69,14 +59,12 @@ export function Step(props: StepProps) {
     className,
     children,
     icon = (
-      <ariaComponents.Text variant="subtitle" color="current" aria-hidden>
+      <Text variant="subtitle" color="current" aria-hidden>
         {index + 1}
-      </ariaComponents.Text>
+      </Text>
     ),
     completeIcon = DoneIcon,
   } = props
-
-  const { state } = stepperProvider.useStepperContext()
 
   const renderStepProps = {
     isCompleted,
@@ -112,67 +100,29 @@ export function Step(props: StepProps) {
       : 'next',
   })
 
-  const stepAnimationRotation = 30
-  const stepAnimationScale = 0.5
-
   return (
     <div className={styles.base()}>
-      <AnimatePresence initial={false} mode="sync" custom={state.direction}>
-        <motion.div
-          key={isCompleted ? 'done' : 'icon'}
-          className={styles.icon()}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          variants={{
-            enter: {
-              rotate:
-                state.direction === 'forward' ? -stepAnimationRotation : stepAnimationRotation,
-              scale: stepAnimationScale,
-              opacity: 0,
-              position: 'absolute',
-              top: 0,
-            },
-            center: {
-              rotate: 0,
-              scale: 1,
-              opacity: 1,
-              position: 'static',
-            },
-            exit: (direction: stepperState.StepperState['direction']) => ({
-              rotate: direction === 'back' ? -stepAnimationRotation : stepAnimationRotation,
-              scale: stepAnimationScale,
-              opacity: 0,
-              position: 'absolute',
-              top: 0,
-            }),
-          }}
-          transition={{
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            rotate: { type: 'spring', stiffness: 2000, damping: 25, mass: 1 },
-          }}
-        >
-          {(() => {
-            const renderIconElement = isCompleted ? doneIconElement : iconElement
+      <div key={isCompleted ? 'done' : 'icon'} className={styles.icon()}>
+        {(() => {
+          const renderIconElement = isCompleted ? doneIconElement : iconElement
 
-            if (renderIconElement == null) {
-              return null
-            } else if (typeof renderIconElement === 'string') {
-              return <SvgMask src={renderIconElement} />
-            } else {
-              return renderIconElement
-            }
-          })()}
-        </motion.div>
-      </AnimatePresence>
+          if (renderIconElement == null) {
+            return null
+          } else if (typeof renderIconElement === 'string') {
+            return <SvgMask src={renderIconElement} />
+          } else {
+            return renderIconElement
+          }
+        })()}
+      </div>
 
       <div className={styles.titleContainer()}>
         {titleElement != null && (
           <div>
             {typeof titleElement === 'string' ?
-              <ariaComponents.Text nowrap color="current">
+              <Text nowrap color="current">
                 {titleElement}
-              </ariaComponents.Text>
+              </Text>
             : titleElement}
           </div>
         )}
@@ -180,9 +130,9 @@ export function Step(props: StepProps) {
         {descriptionElement != null && (
           <div>
             {typeof descriptionElement === 'string' ?
-              <ariaComponents.Text variant="body" color="current" truncate="2">
+              <Text variant="body" color="current" truncate="2">
                 {descriptionElement}
-              </ariaComponents.Text>
+              </Text>
             : descriptionElement}
           </div>
         )}

@@ -10,7 +10,7 @@ import org.openjdk.jmh.runner.RunnerException;
  * {@code test/Benchmarks} project. For more information see {@code
  * docs/infrastructure/benchmarks.md#Standard-library-benchmarks}.
  */
-@GenerateBenchSources(projectRootPath = "test/Benchmarks", moduleName = "local.Benchmarks.Main")
+@GenerateBenchSources(projectRootPath = "test/Benchmarks", moduleName = "enso_dev.Benchmarks.Main")
 public class LibBenchRunner {
 
   public static void main(String[] args) throws RunnerException {

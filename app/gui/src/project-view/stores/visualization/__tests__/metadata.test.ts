@@ -30,24 +30,30 @@ test.prop({
   },
 )
 
+function makePath(ident: string): string {
+  return 'Standard.Base.' + ident
+}
+
 test('metadata index', () => {
   const db = new VisualizationMetadataDb()
   const a = toVisualizationId({ module: { kind: 'Builtin' }, name: 'a' })
   const b = toVisualizationId({ module: { kind: 'Builtin' }, name: 'b' })
-  db.set(a, { name: 'a', inputType: 'B | C' })
-  db.set(b, { name: 'b', inputType: 'C | D | E' })
-  expect(db.visualizationIdToType.lookup(a)).toEqual(new Set(['B', 'C']))
-  expect(db.visualizationIdToType.lookup(b)).toEqual(new Set(['C', 'D', 'E']))
-  expect(db.visualizationIdToType.reverseLookup('B')).toEqual(new Set([a]))
-  expect(db.visualizationIdToType.reverseLookup('C')).toEqual(new Set([a, b]))
-  expect(db.visualizationIdToType.reverseLookup('D')).toEqual(new Set([b]))
-  expect(db.visualizationIdToType.reverseLookup('E')).toEqual(new Set([b]))
+  db.set(a, { name: 'a', inputType: 'Standard.Base.B | Standard.Base.C' })
+  db.set(b, { name: 'b', inputType: 'Standard.Base.C | Standard.Base.D | Standard.Base.E' })
+  expect(db.visualizationIdToType.lookup(a)).toEqual(new Set([makePath('B'), makePath('C')]))
+  expect(db.visualizationIdToType.lookup(b)).toEqual(
+    new Set([makePath('C'), makePath('D'), makePath('E')]),
+  )
+  expect(db.visualizationIdToType.reverseLookup(makePath('B'))).toEqual(new Set([a]))
+  expect(db.visualizationIdToType.reverseLookup(makePath('C'))).toEqual(new Set([a, b]))
+  expect(db.visualizationIdToType.reverseLookup(makePath('D'))).toEqual(new Set([b]))
+  expect(db.visualizationIdToType.reverseLookup(makePath('E'))).toEqual(new Set([b]))
 
   db.delete(b)
-  expect(db.visualizationIdToType.lookup(a)).toEqual(new Set(['B', 'C']))
+  expect(db.visualizationIdToType.lookup(a)).toEqual(new Set([makePath('B'), makePath('C')]))
   expect(db.visualizationIdToType.lookup(b)).toEqual(new Set())
-  expect(db.visualizationIdToType.reverseLookup('B')).toEqual(new Set([a]))
-  expect(db.visualizationIdToType.reverseLookup('C')).toEqual(new Set([a]))
-  expect(db.visualizationIdToType.reverseLookup('D')).toEqual(new Set())
-  expect(db.visualizationIdToType.reverseLookup('E')).toEqual(new Set())
+  expect(db.visualizationIdToType.reverseLookup(makePath('B'))).toEqual(new Set([a]))
+  expect(db.visualizationIdToType.reverseLookup(makePath('C'))).toEqual(new Set([a]))
+  expect(db.visualizationIdToType.reverseLookup(makePath('D'))).toEqual(new Set())
+  expect(db.visualizationIdToType.reverseLookup(makePath('E'))).toEqual(new Set())
 })
