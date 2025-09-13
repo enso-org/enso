@@ -18,7 +18,6 @@ import project.Enso_Cloud.Internal.Enso_Path.Enso_Path
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Asset_Cache
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
 import project.Enso_Cloud.Internal.Utils
-import project.Error.Error
 import project.Errors.Common.Not_Found
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -42,6 +41,7 @@ import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
+from project.Error import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Internal.Enso_File_Helpers import all
