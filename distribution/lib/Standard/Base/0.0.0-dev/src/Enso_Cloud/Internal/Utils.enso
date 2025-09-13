@@ -13,7 +13,6 @@ import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Errors.Not_Logged_In
 import project.Enso_Cloud.Internal.Authentication
 import project.Enso_Cloud.Internal.Enso_File_Data_Link.Enso_File_Data_Link
-import project.Error.Error
 import project.Function.Function
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
@@ -26,6 +25,7 @@ import project.Network.HTTP.Request_Error
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
 import project.Nothing.Nothing
+from project.Error import all
 from project.Data.Boolean import False, True
 from project.Data.Text.Extensions import all
 
