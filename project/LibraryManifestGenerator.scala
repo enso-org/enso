@@ -1,5 +1,10 @@
-import sbt._
+import sbt.*
 import sbt.util.CacheStoreFactory
+
+import java.io.File
+import scala.collection.mutable.ListBuffer
+import scala.jdk.javaapi.CollectionConverters.asJava
+import scala.sys.process.ProcessLogger
 
 /** A helper for generating manifests for bundled libraries. */
 object LibraryManifestGenerator {
@@ -21,7 +26,8 @@ object LibraryManifestGenerator {
     distributionRoot: File,
     log: Logger,
     javaOpts: Seq[String],
-    cacheStoreFactory: CacheStoreFactory
+    cacheStoreFactory: CacheStoreFactory,
+    env: Map[String, String] = Map.empty
   ): Unit =
     for (BundledLibrary(qualifiedName, version) <- libraries) {
       val (namespace, name) = qualifiedName.split('.') match {
@@ -41,7 +47,7 @@ object LibraryManifestGenerator {
         def manifestExists = (projectPath / "manifest.yaml").exists()
         if (diff.modified.nonEmpty || !manifestExists) {
           log.info(s"Regenerating manifest for [$projectPath].")
-          runGenerator(projectPath, javaOpts, log)
+          runGenerator(projectPath, javaOpts, log, env)
         } else {
           log.debug(s"[$projectPath] manifest is up to date.")
         }
@@ -51,11 +57,11 @@ object LibraryManifestGenerator {
   private def runGenerator(
     projectPath: File,
     javaOpts: Seq[String],
-    log: Logger
+    log: Logger,
+    env: Map[String, String] = Map.empty
   ): Unit = {
     val canonicalPath = projectPath.getCanonicalFile
-    val javaCommand =
-      ProcessHandle.current().info().command().asScala.getOrElse("java")
+    val javaCommand   = javaExecutable()
     val command = Seq(
       javaCommand
     ) ++ javaOpts ++ Seq(
@@ -64,19 +70,45 @@ object LibraryManifestGenerator {
       canonicalPath.toString
     )
 
+    val allEnv = Map(
+      "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
+    ) ++ env
     val commandText = command.mkString(" ")
     log.debug(s"Running [$commandText].")
-    val exitCode = sys.process
-      .Process(
-        command,
-        cwd = Some(canonicalPath.getParentFile),
-        "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
-      )
-      .!
+    val procBldr = new java.lang.ProcessBuilder(asJava(command))
+    procBldr.directory(canonicalPath.getParentFile)
+    allEnv.foreach { case (key, value) =>
+      procBldr.environment().put(key, value)
+    }
+
+    val processOutLines: ListBuffer[String] = ListBuffer()
+    val captureOut = ProcessLogger(
+      fout = (s: String) => {
+        processOutLines.append("[stdout] " + s)
+      },
+      ferr = (s: String) => {
+        processOutLines.append("[stderr] " + s)
+      }
+    )
+    val exitCode = sys.process.Process(procBldr).!(captureOut)
     if (exitCode != 0) {
-      val message = s"Command [$commandText] has failed with code $exitCode."
+      val message = s"Command [$commandText] has failed with code $exitCode:"
       log.error(message)
+      log.error(processOutLines.mkString("\n"))
       throw new RuntimeException(message)
+    }
+  }
+
+  private def javaExecutable(): String = {
+    val jHome = System.getProperty("java.home")
+    if (jHome != null) {
+      if (Platform.isWindows) {
+        jHome + File.separator + "bin" + File.separator + "java.exe"
+      } else {
+        jHome + File.separator + "bin" + File.separator + "java"
+      }
+    } else {
+      ProcessHandle.current().info().command().asScala.getOrElse("java")
     }
   }
 

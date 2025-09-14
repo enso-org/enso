@@ -159,6 +159,8 @@ pub struct BuildConfigurationFlags {
     /// Whether the Enso standard library should be tested.
     pub test_standard_library: Option<StandardLibraryTestsSelection>,
     pub extra_engine_runner_args: Option<Vec<String>>,
+    /// Extra options passed via `JAVA_TOOL_OPTIONS` env var for the engine runner process.
+    pub extra_java_tool_opts: Option<Vec<String>>,
     /// Whether benchmarks are compiled.
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
@@ -317,6 +319,14 @@ impl BuildConfigurationFlags {
             self.extra_engine_runner_args = Some(vec![flag.into()]);
         }
     }
+
+    pub fn add_java_tool_opt(&mut self, flag: &str) {
+        if let Some(java_tool_opts) = &mut self.extra_java_tool_opts {
+            java_tool_opts.push(flag.into());
+        } else {
+            self.extra_java_tool_opts = Some(vec![flag.into()]);
+        }
+    }
 }
 
 impl Default for BuildConfigurationFlags {
@@ -325,6 +335,7 @@ impl Default for BuildConfigurationFlags {
             test_jvm: false,
             test_standard_library: None,
             extra_engine_runner_args: None,
+            extra_java_tool_opts: None,
             build_small_jdk: false,
             small_jdk_dir: None,
             build_benchmarks: false,

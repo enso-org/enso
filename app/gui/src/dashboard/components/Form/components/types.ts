@@ -208,6 +208,7 @@ export type AnyFormInstance = FormInstance<any>
 export interface FieldProps {
   readonly contextualHelp?: React.ReactNode | undefined
   readonly isRequired?: boolean | undefined
+  readonly preventLabelFocus?: boolean | undefined
   readonly label?: React.ReactNode | undefined
   readonly description?: React.ReactNode | undefined
   readonly error?: React.ReactNode | undefined

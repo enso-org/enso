@@ -187,6 +187,12 @@ test-results
 
 .direnv
 
+########################
+## Nix-specific shims ##
+########################
+
+nix/shims/
+
 ##########################
 ## Playwright artifacts ##
 ##########################

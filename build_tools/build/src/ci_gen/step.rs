@@ -52,6 +52,21 @@ pub fn extra_stdlib_test_reporter((os, arch): Target, graal_edition: graalvm::Ed
     test_reporter(step_name, report_name, path)
 }
 
+/// Upload heap dump of a crashed JVM on OutOfMemoryError.
+/// Note that there may be multiple `*.hprof` files if multiple processes crashed.
+/// `artifact_name` should be unique for each job in the whole workflow.
+pub fn heapdump_upload(artifact_name: impl Into<String>) -> Step {
+    let path = "**/*.hprof";
+    let mut step = upload_artifact("Upload Heap Dumps")
+        .with_custom_argument("name", artifact_name.into())
+        .with_custom_argument("path", path)
+        .with_custom_argument("retention-days", 3)
+        .with_custom_argument("if-no-files-found", "ignore");
+    // This step should be run every time, but not on forks.
+    step.r#if = Some(format!("(success() || failure()) && {}", not_a_fork()));
+    step
+}
+
 pub fn upload_engine_distribution(
     target: Target,
     engine_launcher: engine::EngineLauncher,

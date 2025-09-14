@@ -7,6 +7,7 @@ import {
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { svgUseHref } from '@/util/icons'
+import { ProjectPath } from '@/util/projectPath'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
@@ -177,7 +178,7 @@ const defaultColDef: Ref<ColDef> = ref({
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
-const nodeType = ref<string | undefined>(undefined)
+const nodeType = ref<ProjectPath | undefined>(undefined)
 const grid = ref<
   ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
 >()
@@ -331,7 +332,10 @@ watch(tableVersionHash, () => {
 
 watchEffect(() => {
   // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to change its row model or to fetch new data
-  if (nodeType.value != config.nodeType) {
+  if (
+    (nodeType.value != null || config.nodeType != null) &&
+    !nodeType.value?.equals(config.nodeType)
+  ) {
     grid.value?.forceGridRefresh()
     nodeType.value = config.nodeType
   }
