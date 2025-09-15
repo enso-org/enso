@@ -3,11 +3,6 @@
 #### Enso IDE
 
 - [Resizing the right panel no longer causes content reflow][13976].
-
-[13976]: https://github.com/enso-org/enso/pull/13976
-
-#### Enso Language & Runtime
-
 - [Allow selecting target type for Any.to method][13685].
 - [Command Palette to search for arbitrary actions][13658]
 - [Fix mouse interactions with JSON visualization][13971]
@@ -21,6 +16,7 @@
 [13647]: https://github.com/enso-org/enso/pull/13647
 [13797]: https://github.com/enso-org/enso/pull/13797
 [13848]: https://github.com/enso-org/enso/pull/13848
+[13976]: https://github.com/enso-org/enso/pull/13976
 
 #### Enso Standard Library
 
