@@ -342,6 +342,7 @@ type Excel_Workbook
     ## ---
        private: true
        advanced: true
+       deprecated: true
        ---
        This method has been deprecated
     close : Nothing
