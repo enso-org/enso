@@ -294,7 +294,16 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
     },
     afterAllArtifactBuild: computeHashes,
     afterPack: async (context: electronBuilder.AfterPackContext) => {
-      // Sandbox-fix loader for linux
+      // AppImage is known to have sandboxing issues, for example:
+      // https://github.com/enso-org/enso/issues/3801 or
+      // https://github.com/enso-org/enso/issues/11035
+      //
+      // A solution to them is to run AppImage with --no-sandbox option (just passing no-sandbox
+      // as chrome option didn't seem to work). Wrapped app in a "sandbox fix loader"
+      // similar to https://github.com/gergof/electron-builder-sandbox-fix/blob/master/lib/index.js
+      // 'electron-builder-sandbox-fix' failed to detect the necessity of sandbox, so we just always
+      // add the option instead. This does not lower security, because Enso processes have access
+      // to user's filesystem anyway.
       if (passedArgs.platform === electronBuilder.Platform.LINUX) {
         if (
           !('executableName' in context.packager) ||
