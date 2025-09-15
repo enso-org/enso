@@ -6,6 +6,7 @@ import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
+from project.Error import all
 from project.Data.Text.Extensions import all
 
 polyglot java import java.lang.StringBuilder

@@ -12,7 +12,6 @@ import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
 import project.Enso_Cloud.Data_Link_Helpers
-import project.Error.Error
 import project.Errors.Common.Failed_To_Load
 import project.Errors.Common.Missing_Argument
 import project.Errors.File_Error.File_Error
@@ -35,6 +34,7 @@ import project.Runtime
 import project.Runtime.Context
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
+from project.Error import all
 from project.Data.Boolean import Boolean, False, True
 from project.Meta.Enso_Project import enso_project
 from project.Metadata.Choice import Option
