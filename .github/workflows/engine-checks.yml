@@ -475,6 +475,14 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (Standard Library Native Tests, linux, amd64)
+          path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -552,6 +560,14 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (Standard Library Native Tests, windows, amd64)
+          path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -629,6 +645,14 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (Standard Library JVM Tests, linux, amd64)
+          path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -706,6 +730,14 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (Standard Library JVM Tests, windows, amd64)
+          path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -783,6 +815,14 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (Standard Library Microsoft Tests, linux, amd64)
+          path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -860,6 +900,14 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (Standard Library Microsoft Tests, windows, amd64)
+          path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
