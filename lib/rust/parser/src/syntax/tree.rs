@@ -78,7 +78,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         },
         /// A sequence of lines introduced by a line ending in an operator.
         BodyBlock {
-            /// The liness of the block.
+            /// The lines of the block.
             pub statements: Vec<block::Line<'s>>,
         },
         /// A sequence of lines comprising the arguments of a function call.
