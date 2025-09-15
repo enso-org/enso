@@ -87,19 +87,19 @@ struct Errors {
 
 impl Errors {
     fn collect(ast: &enso_parser::syntax::Tree) -> Self {
-        let errors = core::cell::RefCell::new(Errors::default());
+        let mut errors = Errors::default();
         ast.visit_trees(|tree| match &tree.variant {
             enso_parser::syntax::tree::Variant::Invalid(invalid)
-                if errors.borrow().invalid_node.is_none() =>
+                if errors.invalid_node.is_none() =>
             {
-                errors.borrow_mut().invalid_node = Some(invalid.error.message.clone());
+                errors.invalid_node = Some(invalid.error.message.clone());
             }
             enso_parser::syntax::tree::Variant::OprApp(opr_app) if opr_app.opr.is_err() => {
-                errors.borrow_mut().multiple_operator = true;
+                errors.multiple_operator = true;
             }
             _ => (),
         });
-        errors.into_inner()
+        errors
     }
 }
 
