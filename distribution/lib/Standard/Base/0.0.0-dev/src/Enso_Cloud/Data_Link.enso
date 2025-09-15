@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Enso_Cloud.Errors.Missing_Data_Link_Library
-import project.Error.Error
 import project.Errors.Common.No_Such_Conversion
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -16,6 +15,7 @@ import project.System.File.File_Access.File_Access
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File_Format_Metadata.Content_Type_Metadata
 import project.System.File_Format_Metadata.File_Format_Metadata
+from project.Error import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import all

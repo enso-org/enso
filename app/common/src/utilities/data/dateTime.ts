@@ -433,7 +433,6 @@ export const WHITELISTED_TIME_ZONE_INFO = [
   { timeZone: 'Pacific/Chuuk', description: 'Chuuk' },
   { timeZone: 'Pacific/Saipan', description: 'Saipan' },
   { timeZone: 'Pacific/Port_Moresby', description: 'Guam, Port Moresby' },
-  { timeZone: 'Australia/LHI', description: 'Lord Howe Island' },
   { timeZone: 'Australia/Lord_Howe', description: 'Lord Howe Island' },
   { timeZone: 'Asia/Sakhalin', description: 'Sakhalin' },
   { timeZone: 'Asia/Srednekolymsk', description: 'Srednekolymsk' },

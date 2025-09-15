@@ -24,7 +24,6 @@ import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Syntax_Error
@@ -36,6 +35,7 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.Internal.Reporting_Stream_Decoder_Helper
+from project.Error import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import invert_range_selection
 from project.Data.Json import Invalid_JSON, JS_Object, Json

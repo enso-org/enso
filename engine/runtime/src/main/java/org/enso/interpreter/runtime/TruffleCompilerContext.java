@@ -33,6 +33,8 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
+import org.enso.compiler.core.CompilerError;
+import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
@@ -49,6 +51,10 @@ import org.enso.interpreter.caches.ImportExportCache;
 import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.caches.SuggestionsCache;
+import org.enso.interpreter.node.expression.builtin.Builtin;
+import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
@@ -56,7 +62,9 @@ import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.Suggestion;
 import org.enso.polyglot.data.TypeGraph;
+import org.enso.scala.wrapper.ScalaConversions;
 import scala.collection.immutable.ListSet;
+import scala.collection.immutable.Set;
 import scala.collection.immutable.SetOps;
 
 final class TruffleCompilerContext implements CompilerContext {
@@ -65,7 +73,6 @@ final class TruffleCompilerContext implements CompilerContext {
   private final EnsoContext context;
   private final TruffleLogger loggerCompiler;
   private final TruffleLogger loggerSerializationManager;
-  private final RuntimeStubsGenerator stubsGenerator;
   private final SerializationPool serializationPool;
 
   TruffleCompilerContext(EnsoContext context) {
@@ -73,7 +80,6 @@ final class TruffleCompilerContext implements CompilerContext {
     this.loggerCompiler = context.getLogger(Compiler.class);
     this.loggerSerializationManager = context.getLogger(SerializationPool.class);
     this.serializationPool = new SerializationPool(this);
-    this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
   }
 
   @Override
@@ -237,11 +243,76 @@ final class TruffleCompilerContext implements CompilerContext {
     }
   }
 
+  /**
+   * Generates atom constructors into the scope.
+   *
+   * @param builtins instances of builtins
+   * @param ir the module to generate stubs in.
+   * @param scope module scope builder
+   */
+  private static void generateStubs(
+      Builtins builtins, IR ir, TruffleCompilerModuleScopeBuilder scope) {
+    BindingsMap localBindings = (BindingsMap) ir.passData().get(BindingAnalysis$.MODULE$).get();
+    scala.collection.immutable.List<BindingsMap.Type> types =
+        localBindings
+            .definedEntities()
+            .filter(t -> t instanceof BindingsMap.Type)
+            .map(t -> (BindingsMap.Type) t);
+    TruffleCompilerModuleScopeBuilder compilerScope = scope.toCompilerBuilder();
+    types.foreach(
+        tp -> {
+          if (tp.builtinType()) {
+            Builtin builtinType = builtins.getBuiltinType(tp.name());
+            if (builtinType == null) {
+              throw new CompilerError("Unknown @Builtin_Type " + tp.name());
+            }
+            Set tpNames = tp.members().map(c -> c.name()).toSet();
+            Set exNames =
+                ScalaConversions.set(builtinType.getConstructors())
+                    .map(AtomConstructor::getName)
+                    .toSet();
+            if (!tpNames.equals(exNames)) {
+              throw new CompilerError(
+                  "Wrong constructors declared in the builtin " + tp.name() + ".");
+            }
+            scope.registerType(builtinType.getType());
+            builtinType.getType().setShadowDefinitions(builtins.getLanguage(), compilerScope, true);
+          } else {
+            boolean hasAllConstructorsPrivate =
+                tp.isPrivate()
+                    || tp.members().nonEmpty() && tp.members().forall(c -> c.isProjectPrivate());
+            Type createdType =
+                (tp.members().nonEmpty() || tp.builtinType())
+                    ? Type.create(
+                        builtins.getLanguage(),
+                        tp.name(),
+                        compilerScope,
+                        builtins.any(),
+                        builtins.any(),
+                        false,
+                        hasAllConstructorsPrivate)
+                    : Type.createSingleton(
+                        tp.name(), compilerScope, builtins.any(), false, hasAllConstructorsPrivate);
+            Type rtp = scope.registerType(createdType);
+            tp.members()
+                .foreach(
+                    cons -> {
+                      AtomConstructor constructor =
+                          new AtomConstructor(cons.name(), scope.getModule(), rtp, false);
+                      rtp.registerConstructor(constructor);
+                      return null;
+                    });
+          }
+          return null;
+        });
+  }
+
   @Override
   public void runStubsGenerator(
       CompilerContext.Module module, CompilerContext.ModuleScopeBuilder scopeBuilder) {
+    var b = context.getBuiltins();
     var m = ((Module) module).unsafeModule();
-    stubsGenerator.run(m.getIr(), (TruffleCompilerModuleScopeBuilder) scopeBuilder);
+    generateStubs(b, m.getIr(), (TruffleCompilerModuleScopeBuilder) scopeBuilder);
     m.unsafeSetCompilationStage(CompilationStage.AFTER_RUNTIME_STUBS);
   }
 

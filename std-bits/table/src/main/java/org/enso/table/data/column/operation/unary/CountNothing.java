@@ -36,7 +36,7 @@ public class CountNothing {
 
     var accumulator = new Accumulator();
     StorageIterators.forEachOverStorage(
-        storage, true, (index, value) -> accumulator.process(value));
+        storage, false, "CountNothing", (index, value) -> accumulator.process(value));
     return accumulator.getCount();
   }
 
@@ -46,7 +46,8 @@ public class CountNothing {
       return !withNothingMap.getIsNothingMap().isEmpty();
     }
 
-    return StorageIterators.forEachOverStorage(storage, true, (index, value) -> value == null);
+    return StorageIterators.forEachOverStorage(
+        storage, false, "anyNothing", (index, value) -> value == null);
   }
 
   /** Returns true if all values in the storage are Nothing. */
@@ -62,7 +63,8 @@ public class CountNothing {
     }
 
     boolean hasSomething =
-        StorageIterators.forEachOverStorage(storage, true, (index, value) -> value != null);
+        StorageIterators.forEachOverStorage(
+            storage, false, "allNothing", (index, value) -> value != null);
     return !hasSomething;
   }
 }

@@ -1,5 +1,5 @@
 ## Enso Signatures 1.0
-## module Standard.Table.Expression_Statics
+## module Standard.Table.Internal.Expression_Statics
 - type Expression_Statics
     - != this:Standard.Base.Any.Any that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - % this:Standard.Base.Any.Any that:Standard.Base.Any.Any -> Standard.Base.Any.Any
