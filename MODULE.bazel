@@ -133,11 +133,16 @@ bazel_dep(name = "rules_java", version = "8.11.0")
 bazel_dep(name = "rules_graalvm", version = "0.11.2")
 
 # The latest version of rules_graalvm does not support Java 24.
+# Also, it does not export the @bazel_tools//tools/jdk:toolchain_type
+#   toolchain that can be used with standard java_binary rules.
 git_override(
     module_name = "rules_graalvm",
     commit = "81fc9b2de33c0429b716f1bfcd3223a82c0e1085",
     patch_strip = 1,
-    patches = ["patches/rules_graalvm.patch"],
+    patches = [
+        "patches/rules_graalvm_java24.patch",
+        "patches/rules_graalvm_tool_toolchain.patch",
+    ],
     remote = "https://github.com/sgammon/rules_graalvm.git",
 )
 
@@ -150,7 +155,13 @@ gvm.graalvm(
 )
 use_repo(gvm, "graalvm")
 
-register_toolchains("@graalvm//:jvm", "@graalvm//:sdk", "@graalvm//:toolchain", "@graalvm//:bootstrap_runtime_toolchain")
+register_toolchains(
+    "@graalvm//:jvm",
+    "@graalvm//:sdk",
+    "@graalvm//:toolchain",
+    "@graalvm//:tool_toolchain",
+    "@graalvm//:bootstrap_runtime_toolchain",
+)
 
 bazel_dep(name = "rules_jvm_external", version = "6.3")
 
@@ -174,6 +185,8 @@ circe_libs = [
 ]
 
 circe = ["io.circe:%s_2.13:%s" % (x, circe_version) for x in circe_libs]
+
+graal_maven_packages_version = "24.2.0"
 
 commons_text_version = "1.10.0"
 
@@ -204,6 +217,8 @@ maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 ## > bazel run @unpinned_maven//:pin
 maven.install(
     artifacts = [
+        "org.graalvm.python:python-language:%s" % graal_maven_packages_version,
+        "org.graalvm.python:python-resources:%s" % graal_maven_packages_version,
         "com.typesafe.scala-logging:scala-logging_2.13:%s" % scala_logging_version,
         "org.scalatest:scalatest_2.13:%s" % scalatest_version,
         "org.typelevel:cats-core_2.13:%s" % cats_version,

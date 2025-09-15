@@ -55,8 +55,3 @@ export function getContactPage(): string {
 export function getSalesEmail(): string {
   return 'mailto:contact@enso.org'
 }
-
-/** Build a Subscription URL for contacting sales. */
-export function getContactSalesURL(): string {
-  return 'mailto:contact@enso.org?subject=Upgrading%20to%20Organization%20Plan'
-}

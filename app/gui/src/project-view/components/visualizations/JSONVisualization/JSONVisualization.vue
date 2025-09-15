@@ -20,9 +20,13 @@ type ConstructivePattern = (
   placeholder: Ast.Owned<Ast.MutableExpression>,
 ) => Ast.Owned<Ast.MutableExpression>
 
-const JSON_OBJECT_TYPE = 'Standard.Base.Data.Json.JS_Object'
+const JSON_OBJECT_TYPE = { project: 'Standard.Base', path: 'Data.Json.JS_Object' }
 
-const isClickThroughEnabled = computed(() => config.nodeType === JSON_OBJECT_TYPE)
+const projectionsEnabled = computed(
+  () =>
+    config.nodeType?.project === JSON_OBJECT_TYPE.project &&
+    config.nodeType.path === JSON_OBJECT_TYPE.path,
+)
 
 function projector(parentPattern: ConstructivePattern | undefined) {
   const style = {
@@ -44,6 +48,10 @@ function projector(parentPattern: ConstructivePattern | undefined) {
 }
 
 function createProjection(path: (string | number)[][]) {
+  if (!projectionsEnabled.value) {
+    console.warn('Tried to create Projection in JSON visualization when disabled.')
+    return
+  }
   let patterns = new Array<ConstructivePattern>()
   for (const level of path)
     patterns = (patterns.length ? patterns : [undefined]).flatMap((parent) =>
@@ -58,21 +66,17 @@ function createProjection(path: (string | number)[][]) {
 </script>
 
 <template>
-  <div class="JSONVisualization">
+  <div class="JSONVisualization" @wheel.stop.passive>
     <JsonValueWidget
       :data="data"
-      :class="{ viewonly: !isClickThroughEnabled }"
-      @createProjection="createProjection"
+      :createProjectionCb="projectionsEnabled ? createProjection : null"
     />
   </div>
 </template>
 
 <style scoped>
 .JSONVisualization {
-  font-family: var(--font-mono);
   padding: 8px;
-}
-.viewonly {
-  pointer-events: none;
+  user-select: text;
 }
 </style>

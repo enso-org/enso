@@ -9,7 +9,6 @@ import project.Data.Range.Range
 import project.Data.Sort_Direction.Sort_Direction
 import project.Data.Text.Text
 import project.Data.Vector.Report_Unmatched
-import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.No_Such_Method
@@ -24,6 +23,7 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
+from project.Error import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
