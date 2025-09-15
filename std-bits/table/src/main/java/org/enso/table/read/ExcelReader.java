@@ -31,9 +31,9 @@ public class ExcelReader {
   private static final ColumnStorage<?> EMPTY_STORAGE = Builder.getObjectBuilder(0).seal();
 
   /**
-   * Opens the workbook to validate it can be accessed, performing no actions.
-   * The workbook is opened and immediately closed; any exceptions propagate.
-   * 
+   * Opens the workbook to validate it can be accessed, performing no actions. The workbook is
+   * opened and immediately closed; any exceptions propagate.
+   *
    * @param file the {@link File} to load
    * @param format specifies the file format
    * @throws IOException when the action fails
@@ -42,7 +42,7 @@ public class ExcelReader {
       throws IOException, InterruptedException {
     withWorkbook(file, format, workbook -> null);
   }
-  
+
   /**
    * Reads a list of sheet names for the specified XLSX/XLS file into an array.
    *
