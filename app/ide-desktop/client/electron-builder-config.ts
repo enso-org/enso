@@ -296,12 +296,18 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
     afterPack: async (context: electronBuilder.AfterPackContext) => {
       // Sandbox-fix loader for linux
       if (passedArgs.platform === electronBuilder.Platform.LINUX) {
-        const executable = path.join(context.appOutDir, context.packager.executableName)
+        if (
+          !('executableName' in context.packager) ||
+          typeof context.packager.executableName !== 'string'
+        )
+          throw new Error('Expected executableName in context.packager')
+        const executableName = context.packager.executableName
+        const executable = path.join(context.appOutDir, executableName)
         const loaderScript = `#!/usr/bin/env bash
         set -u
 
         SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
-        exec "$SCRIPT_DIR/${context.packager.executableName}.bin" --no-sandbox "$@"
+        exec "$SCRIPT_DIR/${executableName}.bin" --no-sandbox "$@"
         `
         try {
           await fs.rename(executable, executable + '.bin')
