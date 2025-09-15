@@ -344,6 +344,8 @@ impl JobArchetype for StandardLibraryTests {
         let scope = self.scope;
         let job_name = format!("{job_title} ({graal_edition})", job_title = self.title());
         let run_command = format!("backend test {scope}");
+        let heapdump_artifact_name =
+            format!("Heap dumps ({}, {}, {})", &self.title(), target.0, target.1);
 
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
             let cleanup_engine_distribution = step::cleanup_engine_distribution(engine_launcher);
@@ -370,6 +372,7 @@ impl JobArchetype for StandardLibraryTests {
             } else {
                 main_step
             };
+            let upload_hprof = step::heapdump_upload(heapdump_artifact_name);
 
             vec![
                 cleanup_engine_distribution,
@@ -378,6 +381,7 @@ impl JobArchetype for StandardLibraryTests {
                 step::unpack_engine_distribution(),
                 updated_main_step,
                 step::stdlib_test_reporter(target, graal_edition),
+                upload_hprof,
             ]
         });
         let mut job = build_job_ensuring_cloud_tests_run_on_github(
