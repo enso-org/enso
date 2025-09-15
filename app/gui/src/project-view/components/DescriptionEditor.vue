@@ -25,13 +25,13 @@ const editDescriptionMutation = useMutation(
 )
 
 let descriptionEdited = false
-function updateDescription(
+async function updateDescription(
   asset: AssetDetailsResponse<RealAssetId> | undefined,
   description: string,
 ) {
-  if (asset != null && asset.description !== description) {
+  if (asset && description && asset.description !== description) {
     descriptionEdited = false
-    return editDescriptionMutation.mutateAsync([
+    await editDescriptionMutation.mutateAsync([
       asset.id,
       {
         parentDirectoryId: null,
@@ -41,8 +41,6 @@ function updateDescription(
       },
       asset.title,
     ])
-  } else {
-    return Promise.resolve()
   }
 }
 
