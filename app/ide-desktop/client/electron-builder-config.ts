@@ -297,9 +297,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
       // Sandbox-fix loader for linux
       if (passedArgs.platform === electronBuilder.Platform.LINUX) {
         const executable = path.join(context.appOutDir, context.packager.executableName)
-        const loaderScript = `
-        #!/usr/bin/env bash
-
+        const loaderScript = `#!/usr/bin/env bash
         set -u
 
         SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
