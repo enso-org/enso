@@ -65,6 +65,17 @@ export function completionTypeAt(pos: number, state: EditorState): CompletionTyp
     if (cursor.moveTo(pos, -1)) {
       if (LEAFS_IGNORED_TO_LEFT_OF_CURSOR.includes(cursor.name)) cursor.parent()
       node = parseNode(cursor)
+      if (node == null) {
+        // `cursorAt`/`moveTo` never enter zero-length nodes, regardless of the `side` parameter.
+        // Use `next` navigation to check if we are at a zero-length error node.
+        if (cursor.next()) {
+          if (cursor.from === pos && cursor.from === cursor.to && cursor.name === '⚠') {
+            if (cursor.parent()) {
+              node = parseNode(cursor)
+            }
+          }
+        }
+      }
     }
     if (node == null) {
       if (pos > 0) {

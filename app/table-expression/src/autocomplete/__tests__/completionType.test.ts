@@ -88,8 +88,7 @@ test.each([
   { source: 'a_function([|Column 1|)', auto: false, insertDelim: true },
   // A bit surprising, for the same reason as the previous case.
   { source: 'a_function([|Column 1)|', auto: true, insertDelim: true },
-  // FIXME (next autocomplete work / #12307)
-  //{ source: '[|', auto: true, insertDelim: true },
+  { source: '[|', auto: true, insertDelim: true },
 ])('Column completion: $source', ({ source, auto, insertDelim }) => {
   const { completion, anchor } = completionTypeCase(source)
   expect(completion).toStrictEqual({ type: 'columnName', pos: anchor, auto, insertDelim })

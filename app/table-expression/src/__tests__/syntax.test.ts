@@ -177,6 +177,10 @@ test.each([
       ],
     ],
   },
+  {
+    code: '[',
+    expected: ['Expression', ['Column', ['OpenBracket', '['], ['⚠', '']]],
+  },
 ])('Syntax tree', ({ code, expected }) => {
   expect(debugTree(parser.parse(code), code)).toEqual(expected)
 })
