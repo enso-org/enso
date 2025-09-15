@@ -26,6 +26,14 @@ object IRCaches {
     }
     val totalMBs = totalBytes / (1024 * 1024)
     if (totalMBs > EXPECTED_MAX_SIZE_MB) {
+      val errMsg =
+        f"""
+           |Actual IR cache size exceed the expected maximum: ($totalMBs%.2f / $EXPECTED_MAX_SIZE_MB) MB.
+           |It is computed as a sum of `.enso` dirs in each standard library.
+           |If this is expected, update the `EXPECTED_MAX_SIZE_MB` constant in
+           |`project/IRCaches.scala`.
+           |""".stripMargin
+      log.error(errMsg)
       throw new IllegalStateException(
         f"IR cache size $totalMBs%.2f MB exceeds the expected maximum of $EXPECTED_MAX_SIZE_MB MB"
       )
