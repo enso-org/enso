@@ -61,10 +61,8 @@ type Excel_Workbook
             File_Error.handle_java_exceptions raw_file <| Excel_Reader.handle_bad_format file_for_errors <| Illegal_State.handle_java_exception <|
                 # The `java_file` depends on the liveness of the possible `Temporary_File` but that is ensured by storing the `file` in the resulting workbook instance.
                 java_file = Java_File.new raw_file.absolute.normalize.path
-                internal_sheet_names = Vector.from_polyglot_array (ExcelReader.readSheetNames java_file (_java_format xls_format))
-                internal_range_names = Vector.from_polyglot_array (ExcelReader.readRangeNames java_file (_java_format xls_format))
-                Excel_Workbook.Value java_file file xls_format internal_sheet_names internal_range_names
-
+                ExcelReader.openFile java_file (_java_format xls_format)
+                Excel_Workbook.Value java_file file xls_format
         case file of
             tmp : Temporary_File -> tmp.with_file continuation
             f : File -> continuation f
@@ -88,7 +86,7 @@ type Excel_Workbook
        private: true
        ---
        Creates an Excel_Workbook.
-    private Value java_file:Java_File file:(File|Temporary_File|Nothing) internal_xls_format:Boolean internal_sheet_names:Vector internal_range_names:Vector
+    private Value java_file:Java_File file:(File|Temporary_File|Nothing) internal_xls_format:Boolean
 
     ## ---
        icon: metadata
@@ -179,7 +177,8 @@ type Excel_Workbook
        ---
        Gets the names of all the sheets.
     sheet_names : Vector Text
-    sheet_names self = self.internal_sheet_names
+    sheet_names self = Excel_Reader.handle_bad_format self.file <| Illegal_State.handle_java_exception <|
+        Vector.from_polyglot_array (ExcelReader.readSheetNames self.java_file (_java_format self.xls_format))
 
     ## ---
        group: Standard.Base.Metadata
@@ -197,7 +196,8 @@ type Excel_Workbook
        ---
        Gets the names of all the named ranges.
     named_ranges : Vector Text
-    named_ranges self = self.internal_range_names
+    named_ranges self = Excel_Reader.handle_bad_format self.file <| Illegal_State.handle_java_exception <|
+        Vector.from_polyglot_array (ExcelReader.readRangeNames self.java_file (_java_format self.xls_format))
 
     ## ---
        private: true
