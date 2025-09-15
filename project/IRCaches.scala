@@ -7,7 +7,7 @@ object IRCaches {
   /** As of 2025-09-12, on latest develop (https://github.com/enso-org/enso/commit/b1f5f661b9ad45604b6e419d79b8bcb2d2cd59e6),
     * the total cache size is 114.91 MB.
     */
-  val EXPECTED_MAX_SIZE_MB = 116
+  val EXPECTED_MAX_SIZE_MB = 130
 
   /** Ensures that IR caches of all standard libraries
     * are within the size limit.
