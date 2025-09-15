@@ -8,6 +8,8 @@
 - [The documentation panel opens to the scroll position at last close][13647]
 - [Autocompletion for Column methods in table expressions][13797]
 - [Autocompletion for Column names in table expressions][13848]
+- [Autocompletion for table expression builtin functions in table
+  expressions][13914]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -15,6 +17,7 @@
 [13647]: https://github.com/enso-org/enso/pull/13647
 [13797]: https://github.com/enso-org/enso/pull/13797
 [13848]: https://github.com/enso-org/enso/pull/13848
+[13914]: https://github.com/enso-org/enso/pull/13914
 
 #### Enso Standard Library
 
@@ -30,8 +33,6 @@
 - [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [Removal of --no-global-cache option][13909]
-- [Autocompletion for table expression builtin functions in table
-  expressions][13914]
 - [A function expression is no longer allowed in statement context, where it
   would not be usable][13920]
 
@@ -40,7 +41,6 @@
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13909]: https://github.com/enso-org/enso/pull/13909
-[13914]: https://github.com/enso-org/enso/pull/13914
 [13920]: https://github.com/enso-org/enso/pull/13920
 
 # Enso 2025.2
