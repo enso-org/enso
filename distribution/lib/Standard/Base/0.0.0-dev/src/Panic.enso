@@ -2,10 +2,10 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Runtime
+from project.Error import all
 from project.Data.Boolean import False, True
 
 polyglot java import java.lang.Throwable

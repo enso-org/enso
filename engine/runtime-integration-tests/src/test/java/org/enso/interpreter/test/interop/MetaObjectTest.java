@@ -43,7 +43,8 @@ public class MetaObjectTest {
     var ctx = ctxRule.context();
     var code =
         """
-        from Standard.Base import Meta, Error
+        import Standard.Base.Meta
+        from Standard.Base.Error import all
 
         sn v = v.to Meta.Type . catch handler=(_-> Meta.meta Error) . name
         """;

@@ -5,36 +5,36 @@
 - [Allow selecting target type for Any.to method][13685].
 - [Command Palette to search for arbitrary actions][13658]
 - [Fix mouse interactions with JSON visualization][13971]
+- [The documentation panel opens to the scroll position at last close][13647]
+- [Autocompletion for Column methods in table expressions][13797]
+- [Autocompletion for Column names in table expressions][13848]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
 [13971]: https://github.com/enso-org/enso/pull/13971
+[13647]: https://github.com/enso-org/enso/pull/13647
+[13797]: https://github.com/enso-org/enso/pull/13797
+[13848]: https://github.com/enso-org/enso/pull/13848
 
 #### Enso Standard Library
 
-- [Implement `Text_Column` for in-memnory backend.][13769]
-- [Implement `Text_Column.to_case` for in-memnory backend.][13769]
+- [Implement `Text_Column` for in-memory backend.][13769]
+- [Implement `Text_Column.to_case` for in-memory backend.][13769]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 
 #### Enso Language & Runtime
 
+- [Moving warning releated methods outside of `Any`][13978]
+- [Moving error relelated methods outside of `Any`][14003]
 - [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
-- [The documentation panel opens to the scroll position at last close][13647]
-- [Autocompletion for Column methods in table expressions][13797]
-- [Autocompletion for Column names in table expressions][13848]
 - [Removal of --no-global-cache option][13909]
-- [Autocompletion for table expression builtin functions in table
-  expressions][13914]
-- [Autocompletion for table expression builtin functions in table
-  expressions][13914]
 
+[14003]: https://github.com/enso-org/enso/pull/14003
+[13978]: https://github.com/enso-org/enso/pull/13978
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
-[13647]: https://github.com/enso-org/enso/pull/13647
-[13797]: https://github.com/enso-org/enso/pull/13797
-[13848]: https://github.com/enso-org/enso/pull/13848
 [13909]: https://github.com/enso-org/enso/pull/13909
 [13914]: https://github.com/enso-org/enso/pull/13914
 
@@ -134,6 +134,9 @@
 - [Add prototype `find_group_number` function to Table][13487]
 - [Add support for custom and empty line endings to the fixed-width file format]
   [13554]
+- [In-memory table `add_group_number` supports `Equal_Sum`.][13819]
+- [In-memory table `add_group_number` supports `Standard_Deviation`.][13895]
+- [Added `Data.fetch_many` to allow throttle fetching of APIs.][13999]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -151,6 +154,9 @@
 [13475]: https://github.com/enso-org/enso/pull/13475
 [13487]: https://github.com/enso-org/enso/pull/13487
 [13554]: https://github.com/enso-org/enso/pull/13554
+[13819]: https://github.com/enso-org/enso/pull/13819
+[13895]: https://github.com/enso-org/enso/pull/13895
+[13999]: https://github.com/enso-org/enso/pull/13999
 
 #### Enso Language & Runtime
 

@@ -336,6 +336,11 @@ impl RunContext {
 
         // === End of Build project-manager distribution and native image ===
 
+        if self.config.build_engine_package {
+            debug!("Checking IR cache sizes of std libs.");
+            sbt.call_arg("checkIRCacheSizes").await?;
+        }
+
         let ret = self.expected_artifacts();
 
         // Native images built by GraalVM on Windows use MSVC build tools. Thus, the generated
@@ -386,6 +391,7 @@ impl RunContext {
                     PARALLEL_ENSO_TESTS,
                     selection.clone(),
                     self.config.extra_engine_runner_args.clone(),
+                    self.config.extra_java_tool_opts.clone(),
                     self.config.has_native_runner(),
                 )
                 .await?;

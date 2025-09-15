@@ -4,13 +4,13 @@ import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Numbers.Positive_Integer
-import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Type_Error
 import project.Meta
 import project.Meta.Atom
 import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Error import all
 from project.Data.Boolean import False, True
 from project.Data.Ordering import all
 
