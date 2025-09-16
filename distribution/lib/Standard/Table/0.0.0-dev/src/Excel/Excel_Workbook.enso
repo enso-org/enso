@@ -348,7 +348,7 @@ type Excel_Workbook
        be able to delete it.
     close : Nothing
     close self =
-        ExcelReader.openFile self.java_file (_java_format self.xls_format)
+        ExcelReader.closeFile self.java_file (_java_format self.xls_format)
 
     ## ---
        private: true
