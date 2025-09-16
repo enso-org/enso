@@ -348,8 +348,7 @@ type Excel_Workbook
        be able to delete it.
     close : Nothing
     close self =
-        Warning.attach (Deprecated.Warning "Standard.Table.Excel.Excel_Workbook.Close" "Close" "Deprecated: it is no longer required") <|
-             Nothing
+        ExcelReader.openFile self.java_file (_java_format self.xls_format)
 
     ## ---
        private: true
