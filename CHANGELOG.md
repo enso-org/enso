@@ -33,8 +33,7 @@
 - [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [Removal of --no-global-cache option][13909]
-- [A function expression is no longer allowed in statement context, where it
-  would not be usable][13920]
+- [Report syntax errors for unused function expressions][13920]
 
 [14003]: https://github.com/enso-org/enso/pull/14003
 [13978]: https://github.com/enso-org/enso/pull/13978
