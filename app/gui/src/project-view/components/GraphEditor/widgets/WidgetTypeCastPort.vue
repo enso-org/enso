@@ -3,7 +3,6 @@
  * Little wrapper around {@link WidgetTypeCast} that forces a port creation around the whole type casting expression.
  * Ports around type casts have `portId`s of the 'inner' expression, not the whole type cast.
  * This way aliasing analysis for connections still works as intended, but we have a nice port around the whole thing.
- * Edits affect only the inner expression though.
  */
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
