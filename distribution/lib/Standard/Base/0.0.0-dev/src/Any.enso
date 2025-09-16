@@ -426,32 +426,3 @@ type Any
         Nothing -> Nothing
         a -> f a
 
-    ## ---
-       private: true
-       advanced: true
-       group: Operators
-       ---
-       Applies the function on the right hand side to the argument on the left.
-
-       ## Arguments
-        - `function`: The function to apply to `self`.
-
-       ## Examples
-       ### Applying multiple functions in a pipeline to compute a number and transform
-         it to text.
-
-       ```
-             1 |> (* 2) |> (/ 100) |> .to_text
-       ```
-
-       ## Remarks
-
-       ### `|>` or `.`?
-       The eagle-eyed reader will notice that the operator dot (`.`) is very
-       similar to the operator `|>`. In Enso, with the variable precedence of
-       operators, this makes perfect sense. In general, we recommend using `.`.
-       However, there are some contexts where variable precedence might be
-       unclear or confusing, or where the function being applied is not a method.
-       In these contexts we recommend using `|>`.
-    |> : (Any -> Any) -> Any
-    |> self ~function = function self

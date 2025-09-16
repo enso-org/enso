@@ -15,4 +15,3 @@
     - to self target_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
-    - |> self ~function:Standard.Base.Any.Any -> Standard.Base.Any.Any
