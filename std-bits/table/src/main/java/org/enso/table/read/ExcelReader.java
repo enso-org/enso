@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
@@ -44,7 +43,7 @@ public class ExcelReader {
     withWorkbook(file, format, workbook -> null);
   }
 
-   /**
+  /**
    * Closes the workbook in the connection pool, so it can be deleted by another process
    *
    * @param file the {@link File} to load

@@ -11,7 +11,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Function;
-
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
@@ -84,16 +83,15 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
 
   public synchronized void closeConnection(File file, ExcelFileFormat format) throws IOException {
     if (isCurrentlyWriting) {
-        throw new IllegalStateException(
-            "Cannot open a read-only Excel connection while an Excel file is being "
-                + "written to. This is a bug in the Table library.");
-      }
-      String key = getKeyForFile(file);
-      ConnectionRecord existingRecord = records.get(key);
-      if (existingRecord != null) {
-        existingRecord.close();
-      }
-  
+      throw new IllegalStateException(
+          "Cannot open a read-only Excel connection while an Excel file is being "
+              + "written to. This is a bug in the Table library.");
+    }
+    String key = getKeyForFile(file);
+    ConnectionRecord existingRecord = records.get(key);
+    if (existingRecord != null) {
+      existingRecord.close();
+    }
   }
 
   public static class WriteHelper {
