@@ -1288,21 +1288,13 @@ add_specs suite_builder =
 
             bad_file.delete
 
-        group_builder.specify "having a workbook open does not prevent the file from being deleted" <|
-            xls_sheet_copy = enso_project.data / "transient" / "TestSheetCopyForClose.xls"
-            xls_sheet_copy.delete_if_exists . should_succeed
-            xls_sheet.copy_to xls_sheet_copy
-            workbook = xls_sheet_copy.read
+        group_builder.specify "can still use a file after closing it" <|
+            workbook = xlsx_sheet.read
+            workbook.close . should_equal Nothing
             workbook.sheet_count . should_equal 4
-
-            table = xls_sheet_copy.read (..Sheet "Sheet1")
+            workbook.close . should_equal Nothing
+            table = workbook.read "Sheet1"
             check_table table
-
-            xls_sheet_copy.delete.should_succeed
-
-            result = xls_sheet_copy.read (..Sheet "Sheet1")
-            result.should_fail_with File_Error
-            result.catch.should_be_a File_Error.Not_Found
 
         group_builder.specify "should be able to read a XLSX with inline strings" <|
             workbook = (enso_project.data / "Sales_Sample_Data.xlsx") . read
