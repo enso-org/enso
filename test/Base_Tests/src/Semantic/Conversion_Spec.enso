@@ -163,7 +163,7 @@ add_specs suite_builder =
             Panic.recover Any (123.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "123 is not a valid conversion target. Expected a type."
 
         group_builder.specify "should be callable with by-name arguments" <|
-            (.from) self=Foo that=4 first_param=2 . should_equal (Foo.Value [4, 2, 0, 0])
+            .from self=Foo that=4 first_param=2 . should_equal (Foo.Value [4, 2, 0, 0])
         group_builder.specify "should support the use of multiple arguments" <|
             Foo.from that=4 second_param=1 2 . should_equal (Foo.Value [4, 2, 1, 0])
 
@@ -177,7 +177,7 @@ add_specs suite_builder =
                 _ -> False
             is_symbol.should_be_true
 
-            (.from) . to_text . should_equal "UnresolvedConversion"
+            .from . to_text . should_equal "UnresolvedConversion"
 
             meta_from.name.should_equal "from"
 

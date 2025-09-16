@@ -1108,7 +1108,7 @@ fn new_lambdas() {
     test_block!("\\v->\n",
         @r#"Expected tokens: (BodyBlock #((ExpressionStatement () (Lambda "\\" #((() (Ident v) () ())) "->" (Invalid))) ()))"#);
     test_block!("\\v->\nv",
-        @"This expression would define an unused function: (BodyBlock #((Invalid) (ExpressionStatement () (Ident v))))");
+        @r#"Expected tokens: (BodyBlock #((ExpressionStatement () (Lambda "\\" #((() (Ident v) () ())) "->" (Invalid))) (ExpressionStatement () (Ident v))))"#);
 }
 
 #[test]
@@ -1666,14 +1666,14 @@ fn invalid_unspaced_operator_sequence() {
 #[test]
 fn function_expression_in_statement_context() {
     test_module!("main =\n    +x\n    x",
-        @"This expression would define an unused function; if you would like to create an operator block, each indented line must begin with an operator followed by a space: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((Invalid) (ExpressionStatement () (Ident x)))))))");
+        @r#"(BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp () (Ok "+") (Ident x)))) (ExpressionStatement () (Ident x)))))))"#);
     test_module!("main =\n    \\x -> x\n    x",
-        @"This expression would define an unused function: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((Invalid) (ExpressionStatement () (Ident x)))))))");
+        @r#"(BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((ExpressionStatement () (Lambda "\\" #((() (Ident x) () ())) "->" (Ident x))) (ExpressionStatement () (Ident x)))))))"#);
     test_module!("main =\n    _ x\n    x",
-        @"This expression would define an unused function: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((Invalid) (ExpressionStatement () (Ident x)))))))");
+        @"(BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((ExpressionStatement () (TemplateFunction 1 (App (Wildcard 0) (Ident x)))) (ExpressionStatement () (Ident x)))))))");
     // Catch a common error; See: https://github.com/enso-org/enso/issues/11203
     test_module!("main =\n    x +\n        1 +\n        2",
-        @r#"This expression would define an unused function; if you would like to create an operator block, each indented line must begin with an operator followed by a space: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((ExpressionStatement () (OprApp (Ident x) (Ok "+") (BodyBlock #((Invalid) (ExpressionStatement () (Number () "2" ())))))))))))"#);
+        @r#"(BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((ExpressionStatement () (OprApp (Ident x) (Ok "+") (BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp (Number () "1" ()) (Ok "+") ()))) (ExpressionStatement () (Number () "2" ())))))))))))"#);
 }
 
 #[test]

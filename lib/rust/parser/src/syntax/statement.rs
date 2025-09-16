@@ -504,9 +504,9 @@ fn to_statement<'s>(
         | Annotation(_)
         | Documentation(_)
         | ConstructorDefinition(_) => Ok(Statement),
-        // Catch a common mistake.
-        OprSectionBoundary(_) => Err(SyntaxError::StmtUnexpectedFunctionExpressionOprSection),
-        TemplateFunction(_) | Lambda(_) => Err(SyntaxError::StmtUnexpectedFunctionExpression),
+        // These will become an error in the future.
+        OprSectionBoundary(_) => Ok(Expression),
+        TemplateFunction(_) | Lambda(_) => Ok(Expression),
         // Shouldn't be possible here, but this is not currently guaranteed by the types.
         ExpressionStatement(_) => Err(SyntaxError::Internal),
     } {

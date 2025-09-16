@@ -30,14 +30,12 @@
 - [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [Removal of --no-global-cache option][13909]
-- [Report syntax errors for unused function expressions][13920]
 
 [14003]: https://github.com/enso-org/enso/pull/14003
 [13978]: https://github.com/enso-org/enso/pull/13978
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13909]: https://github.com/enso-org/enso/pull/13909
-[13920]: https://github.com/enso-org/enso/pull/13920
 
 # Enso 2025.2
 
