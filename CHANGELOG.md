@@ -5,10 +5,12 @@
 - [Allow selecting target type for Any.to method][13685].
 - [Command Palette to search for arbitrary actions][13658]
 - [Fix mouse interactions with JSON visualization][13971]
+- [There is no need for adding `--no-sandbox` flag in Ubuntu anymore][13990].
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
 [13971]: https://github.com/enso-org/enso/pull/13971
+[13990]: https://github.com/enso-org/enso/pull/13990
 
 #### Enso Standard Library
 
