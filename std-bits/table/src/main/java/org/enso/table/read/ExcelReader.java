@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
@@ -32,7 +33,7 @@ public class ExcelReader {
 
   /**
    * Opens the workbook to validate it can be accessed, performing no actions. The workbook is
-   * opened and immediately closed; any exceptions propagate.
+   * opened and any exceptions propagate.
    *
    * @param file the {@link File} to load
    * @param format specifies the file format
@@ -41,6 +42,18 @@ public class ExcelReader {
   public static void openFile(File file, ExcelFileFormat format)
       throws IOException, InterruptedException {
     withWorkbook(file, format, workbook -> null);
+  }
+
+   /**
+   * Closes the workbook in the connection pool, so it can be deleted by another process
+   *
+   * @param file the {@link File} to load
+   * @param format specifies the file format
+   * @throws IOException when the action fails
+   */
+  public static void closeFile(File file, ExcelFileFormat format)
+      throws IOException, InterruptedException {
+    ExcelConnectionPool.INSTANCE.closeConnection(file, format);
   }
 
   /**
