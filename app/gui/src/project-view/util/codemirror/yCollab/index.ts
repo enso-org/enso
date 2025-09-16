@@ -6,20 +6,14 @@
  * - Changes to match project code style.
  */
 
-import * as cmView from '@codemirror/view'
+import type { Extension } from '@codemirror/state'
 import { type Awareness } from 'y-protocols/awareness.js'
+import type { LocalUserActionOrigin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 import { YRange } from './y-range'
 import { yRemoteSelections, yRemoteSelectionsTheme } from './y-remote-selections'
 import { YSyncConfig, ySync, ySyncAnnotation, ySyncFacet } from './y-sync'
-import {
-  YUndoManagerConfig,
-  redo,
-  undo,
-  yUndoManager,
-  yUndoManagerFacet,
-  yUndoManagerKeymap,
-} from './y-undomanager'
+import { yUndoManagerKeymap } from './y-undomanager'
 export {
   YRange,
   YSyncConfig,
@@ -31,35 +25,16 @@ export {
   yUndoManagerKeymap,
 }
 
-/* CodeMirror Extension for synchronizing the editor state with a {@link Y.Text}. */
-export const yCollab = (
+/** CodeMirror Extension for synchronizing the editor state with a {@link Y.Text}. */
+export function yCollab(
   ytext: Y.Text & { doc: Y.Doc },
   awareness: Awareness | null,
-  {
-    undoManager = new Y.UndoManager(ytext),
-  }: {
-    /** Set to false to disable the undo-redo plugin */
-    undoManager?: Y.UndoManager | false
-  } = {},
-) => {
-  const ySyncConfig = new YSyncConfig(ytext, awareness)
+  origin?: LocalUserActionOrigin | undefined,
+): Extension {
+  const ySyncConfig = new YSyncConfig(ytext, awareness, origin)
   const plugins = [ySyncFacet.of(ySyncConfig), ySync]
   if (awareness) {
     plugins.push(yRemoteSelectionsTheme, yRemoteSelections)
-  }
-  if (undoManager !== false) {
-    // By default, only track changes that are produced by the sync plugin (local edits)
-    plugins.push(
-      yUndoManagerFacet.of(new YUndoManagerConfig(undoManager)),
-      yUndoManager,
-      cmView.EditorView.domEventHandlers({
-        beforeinput(e, view) {
-          if (e.inputType === 'historyUndo') return undo(view)
-          if (e.inputType === 'historyRedo') return redo(view)
-          return false
-        },
-      }),
-    )
   }
   return plugins
 }
