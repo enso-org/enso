@@ -68,9 +68,6 @@ test.each([
   expect(completion).toStrictEqual({ type: 'functionInfo', functionName: 'a_function' })
 })
 
-test.each(['a_function(1, 2, 3)|'])('Non-completable position: %s', (source) =>
-  expect(completionTypeCase(source).completion).toBeNull(),
-)
 test.each([
   { source: '[|Column 1]', auto: false, insertDelim: false },
   { source: '[|Column| 1]', auto: false, insertDelim: false },
@@ -91,12 +88,26 @@ test.each([
   { source: 'a_function([|Column 1|)', auto: false, insertDelim: true },
   // A bit surprising, for the same reason as the previous case.
   { source: 'a_function([|Column 1)|', auto: true, insertDelim: true },
+  { source: '[|', auto: true, insertDelim: true },
 ])('Column completion: $source', ({ source, auto, insertDelim }) => {
   const { completion, anchor } = completionTypeCase(source)
   expect(completion).toStrictEqual({ type: 'columnName', pos: anchor, auto, insertDelim })
 })
 
-test.each(['|'])('Any-value completion: %s', (source) => {
-  const { completion } = completionTypeCase(source)
-  expect(completion).toStrictEqual({ type: 'value' })
+test.each(['|', '[Column 1] + |', '!|', '! |', '!(|)', '! (|)', 'not |', 'not(|)', 'not (|)'])(
+  'Any-value completion: %s',
+  (source) => {
+    const { completion } = completionTypeCase(source)
+    expect(completion).toStrictEqual({ type: 'value' })
+  },
+)
+
+test.each([
+  { source: '[Column 1]|', auto: false, insertDelim: false },
+  { source: '[Column 1] |', auto: true, insertDelim: true },
+  { source: 'a_function([Column 1])|', auto: false, insertDelim: false },
+  { source: 'a_function([Column 1]) |', auto: true, insertDelim: true },
+])('Binop completion: $source', ({ source, auto, insertDelim }) => {
+  const { completion, anchor: pos } = completionTypeCase(source)
+  expect(completion).toStrictEqual({ type: 'binop', pos, auto, insertDelim })
 })

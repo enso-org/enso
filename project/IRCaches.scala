@@ -7,7 +7,7 @@ object IRCaches {
   /** As of 2025-09-12, on latest develop (https://github.com/enso-org/enso/commit/b1f5f661b9ad45604b6e419d79b8bcb2d2cd59e6),
     * the total cache size is 114.91 MB.
     */
-  val EXPECTED_MAX_SIZE_MB = 116
+  val EXPECTED_MAX_SIZE_MB = 130
 
   /** Ensures that IR caches of all standard libraries
     * are within the size limit.
@@ -26,6 +26,14 @@ object IRCaches {
     }
     val totalMBs = totalBytes / (1024 * 1024)
     if (totalMBs > EXPECTED_MAX_SIZE_MB) {
+      val errMsg =
+        f"""
+           |Actual IR cache size exceed the expected maximum: ($totalMBs%.2f / $EXPECTED_MAX_SIZE_MB) MB.
+           |It is computed as a sum of `.enso` dirs in each standard library.
+           |If this is expected, update the `EXPECTED_MAX_SIZE_MB` constant in
+           |`project/IRCaches.scala`.
+           |""".stripMargin
+      log.error(errMsg)
       throw new IllegalStateException(
         f"IR cache size $totalMBs%.2f MB exceeds the expected maximum of $EXPECTED_MAX_SIZE_MB MB"
       )

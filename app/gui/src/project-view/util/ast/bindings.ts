@@ -77,7 +77,7 @@ function rangeMappings(
     bindingRanges.add(binding)
     for (const usage of usages) bindingRanges.add(usage)
   }
-  ast.visitRecursive((ast) => {
+  Ast.visitRecursive(ast, (ast) => {
     const span = getSpan(ast.id)
     assertDefined(span)
     // An `ExpressionStatement` may have the same source range as its expression. Descend into the expression that

@@ -246,14 +246,6 @@ export abstract class Ast {
   }
 
   /** TODO: Add docs */
-  visitRecursive(visit: (ast: Ast) => void | boolean): void {
-    if (visit(this) === false) return
-    for (const child of this.children()) {
-      if (!isToken(child)) child.visitRecursive(visit)
-    }
-  }
-
-  /** TODO: Add docs */
   printSubtree(
     info: SpanMap,
     offset: number,
@@ -489,6 +481,14 @@ export abstract class MutableAst extends Ast {
   /** TODO: Add docs */
   claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
     return child ? claimChild(this.module, child, this.id) : undefined
+  }
+}
+
+/** TODO: Add docs */
+export function visitRecursive(ast: Ast, visit: (ast: Ast) => void | boolean): void {
+  if (visit(ast) === false) return
+  for (const child of ast.children()) {
+    if (!isToken(child)) visitRecursive(child, visit)
   }
 }
 

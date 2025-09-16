@@ -1,7 +1,9 @@
 import * as cmState from '@codemirror/state'
 import * as cmView from '@codemirror/view'
+import { markRaw } from 'vue'
 import { type Awareness } from 'y-protocols/awareness.js'
 import { assertDefined } from 'ydoc-shared/util/assert'
+import type { LocalUserActionOrigin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 import { YRange } from './y-range'
 
@@ -9,14 +11,18 @@ import { YRange } from './y-range'
 export class YSyncConfig {
   readonly undoManager: Y.UndoManager
   readonly ytext: Y.Text & { doc: Y.Doc }
+  readonly origin: unknown
 
   /** TODO: Add docs */
   constructor(
     ytext: Y.Text & { doc: Y.Doc },
     readonly awareness: Awareness | null,
+    origin: LocalUserActionOrigin | undefined,
   ) {
     this.ytext = ytext as Y.Text & { doc: Y.Doc }
     this.undoManager = new Y.UndoManager(ytext)
+    markRaw(this)
+    this.origin = origin ?? this
   }
 
   /**
@@ -99,7 +105,7 @@ class YSyncPluginValue implements cmView.PluginValue {
   constructor(private readonly view: cmView.EditorView) {
     this.conf = view.state.facet(ySyncFacet)
     this._observer = (event: Y.YTextEvent, tr: Y.Transaction) => {
-      if (tr.origin !== this.conf) {
+      if (tr.origin !== this.conf.origin) {
         const delta = event.delta
         const changes: { from: number; to: number; insert: string }[] = []
         let pos = 0
@@ -145,7 +151,7 @@ class YSyncPluginValue implements cmView.PluginValue {
         }
         adj += insertText.length - (toA - fromA)
       })
-    }, this.conf)
+    }, this.conf.origin)
   }
 
   destroy() {

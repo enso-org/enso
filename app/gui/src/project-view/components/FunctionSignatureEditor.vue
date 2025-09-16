@@ -120,7 +120,7 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
     const newNameString = newName.code()
     if (newNameString == oldNameString) return
     renameArgumentInDefaultValue(definition, edit, newNameString)
-    ast.visitRecursive((child) => {
+    Ast.visitRecursive(ast, (child) => {
       if (child instanceof Ast.Ident && child.token.code() === oldNameString)
         edit.replaceValue(child.id, newName)
     })
