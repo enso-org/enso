@@ -13,7 +13,6 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Errors.Common.No_Such_Conversion
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -23,6 +22,7 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Error import all
 from project.Data.Boolean import Boolean, False
 from project.Data.Json.Extensions import all
 from project.Data.Ordering import all
