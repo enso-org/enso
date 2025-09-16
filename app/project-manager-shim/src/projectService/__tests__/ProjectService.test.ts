@@ -735,7 +735,9 @@ describe('ProjectService', () => {
         const newName = 'RenamedRunningProject'
         try {
           await projectService.renameProject(createResult.projectId, newName, projectsDirectory)
-        } catch {/* Expected error for uninitialized test project */}
+        } catch {
+          /* Expected error for uninitialized test project */
+        }
 
         const oldDirectoryPath = createResult.projectPath
         // Verify metadata is preserved
@@ -895,7 +897,9 @@ describe('ProjectService', () => {
         const firstName = 'FirstRename'
         try {
           await projectService.renameProject(createResult.projectId, firstName, projectsDirectory)
-        } catch {/* Expected error for uninitialized test project */}
+        } catch {
+          /* Expected error for uninitialized test project */
+        }
 
         // Verify first rename was applied to package.yaml
         const packagePath1 = path.join(createResult.projectPath, 'package.yaml')
@@ -906,7 +910,9 @@ describe('ProjectService', () => {
         const secondName = 'SecondRename'
         try {
           await projectService.renameProject(createResult.projectId, secondName, projectsDirectory)
-        } catch {/* Expected error for uninitialized test project */}
+        } catch {
+          /* Expected error for uninitialized test project */
+        }
 
         // Verify second rename was applied
         const packageContent2 = await fs.readFile(packagePath1, 'utf-8')
@@ -917,7 +923,9 @@ describe('ProjectService', () => {
         const thirdName = 'ThirdRename'
         try {
           await projectService.renameProject(createResult.projectId, thirdName, projectsDirectory)
-        } catch {/* Expected error for uninitialized test project */}
+        } catch {
+          /* Expected error for uninitialized test project */
+        }
 
         // Verify third rename was applied
         const packageContent3 = await fs.readFile(packagePath1, 'utf-8')
@@ -969,14 +977,18 @@ describe('ProjectService', () => {
             'RenamedRunning1',
             projectsDirectory,
           )
-        } catch {/* Expected error for uninitialized test project */}
+        } catch {
+          /* Expected error for uninitialized test project */
+        }
         try {
           await projectService.renameProject(
             project2.projectId,
             'RenamedRunning2',
             projectsDirectory,
           )
-        } catch {/* Expected error for uninitialized test project */}
+        } catch {
+          /* Expected error for uninitialized test project */
+        }
 
         // Verify package name is updated
         const package1Path = path.join(project1.projectPath, 'package.yaml')
