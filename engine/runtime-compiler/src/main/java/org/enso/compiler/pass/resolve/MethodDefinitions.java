@@ -1,12 +1,10 @@
 package org.enso.compiler.pass.resolve;
 
-import java.util.ArrayList;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.MetadataStorage;
@@ -14,7 +12,6 @@ import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.errors.Conversion;
 import org.enso.compiler.core.ir.expression.errors.Conversion.UnsupportedSourceType$;
-import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.Resolution;
@@ -26,7 +23,6 @@ import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
-import org.enso.compiler.data.BindingsMap.Type;
 import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.compiler.pass.MiniPassFactory;
@@ -34,7 +30,6 @@ import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.desugar.ComplexType$;
 import org.enso.compiler.pass.desugar.FunctionBinding$;
 import org.enso.compiler.pass.desugar.GenerateMethodBodies$;
-import org.enso.persist.Persistance;
 import scala.Option;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
@@ -165,123 +160,7 @@ public final class MethodDefinitions implements MiniPassFactory {
                     }
                   });
 
-      java.util.List<Definition> withStaticAliases = new ArrayList<>();
-      for (var def : CollectionConverters.asJava(newDefs)) {
-        withStaticAliases.add(def);
-        if (def instanceof Method.Explicit method && !method.isStatic()) {
-          var staticAlias = generateStaticAliasMethod(method);
-          if (staticAlias != null) {
-            withStaticAliases.add(staticAlias);
-          }
-        }
-      }
-
-      return moduleIr.copyWithBindings(CollectionConverters.asScala(withStaticAliases).toList());
-    }
-
-    /**
-     * Returns null if there is no suitable static alias method that can be generated for the given
-     * {@code method}.
-     *
-     * @param method Non-static method from which a static alias method is generated.
-     * @return Static alias method for the given {@code method} or null.
-     */
-    private Method.Explicit generateStaticAliasMethod(Method.Explicit method) {
-      assert !method.isStatic();
-      var typePointer = method.methodReference().typePointer();
-      if (typePointer.isEmpty()) {
-        return null;
-      }
-      var resolution =
-          MetadataInteropHelpers.getMetadataOrNull(typePointer.get(), INSTANCE, Resolution.class);
-      if (resolution == null) {
-        return null;
-      }
-      if (resolution.target() instanceof ResolvedType resType
-          && canGenerateStaticWrappers(resType.tp())) {
-        assert method.body() instanceof Function.Lambda;
-        var dup = method.duplicate(true, true, true, false);
-        // This is the self argument that will receive the `SelfType.type` value upon dispatch, it
-        // is
-        // added to avoid modifying the dispatch mechanism.
-        var syntheticModuleSelfArg =
-            DefinitionArgument.Specified.builder()
-                .name(new Name.Self(null, true, new MetadataStorage()))
-                .suspended(false)
-                .build();
-        // Here we add the type ascription ensuring that the 'proper' self argument only
-        // accepts _instances_ of the type (or triggers conversions)
-        var newBodyRef =
-            Persistance.Reference.of(addTypeAscriptionToSelfArgument(dup.body()), true);
-        var newBody =
-            Function.Lambda.builder()
-                .arguments(
-                    // This is the synthetic Self argument that gets the static module
-                    list(syntheticModuleSelfArg))
-                .bodyReference(newBodyRef)
-                .canBeTCO(true)
-                .build();
-        // The actual `self` argument that is referenced inside of method body is the second one in
-        // the lambda.
-        // This is the argument that will hold the actual instance of the object we are calling on,
-        // e.g. `My_Type.method instance`.
-        // We add a type check to it to ensure only `instance` of `My_Type` can be passed to it.
-        var staticMethod =
-            dup.copy(
-                dup.methodReference(),
-                newBody,
-                true,
-                dup.isPrivate(),
-                true,
-                dup.location(),
-                dup.passData(),
-                dup.diagnostics(),
-                dup.id());
-        return staticMethod;
-      }
-      return null;
-    }
-
-    private static Expression addTypeAscriptionToSelfArgument(Expression methodBody) {
-      if (methodBody instanceof Function.Lambda lambda) {
-        if (lambda.arguments().isEmpty()) {
-          throw new CompilerError(
-              "MethodDefinitions pass: expected at least one argument (self) in the method, but got"
-                  + " none.");
-        }
-        var firstArg = lambda.arguments().head();
-        if (firstArg instanceof DefinitionArgument.Specified selfArg
-            && selfArg.name() instanceof Name.Self) {
-          var selfType = new Name.SelfType(selfArg.identifiedLocation(), new MetadataStorage());
-          var newSelfArg = selfArg.copyWithAscribedType(Option.apply(selfType));
-          return lambdaWithNewSelfArg(lambda, newSelfArg);
-        } else {
-          throw new CompilerError(
-              "MethodDefinitions pass: expected the first argument to be `self`, but got "
-                  + firstArg);
-        }
-      } else {
-        throw new CompilerError(
-            "Unexpected body type " + methodBody + " in MethodDefinitions pass.");
-      }
-    }
-
-    private static Function.Lambda lambdaWithNewSelfArg(
-        Function.Lambda lambda, DefinitionArgument newSelfArg) {
-      var args = new ArrayList<>(CollectionConverters.asJava(lambda.arguments()));
-      assert !args.isEmpty();
-      args.set(0, newSelfArg);
-      var newArgs = CollectionConverters.asScala(args).toList();
-      return lambda.copyWithArguments(newArgs);
-    }
-
-    // Generate static wrappers for
-    // 1. Types having at least one type constructor
-    // 2. All builtin types except for Nothing. Nothing's eigentype is Nothing and not Nothing.type,
-    //    would lead to overriding conflicts.
-    //    TODO: Remove the hardcoded type once Enso's annotations can define parameters.
-    private static boolean canGenerateStaticWrappers(Type tp) {
-      return tp.members().nonEmpty() || (tp.builtinType() && !"Nothing".equals(tp.name()));
+      return moduleIr.copyWithBindings(newDefs);
     }
 
     private Name resolveType(Name typePointer, BindingsMap availableSymbolsMap) {
