@@ -15,6 +15,8 @@ import project.Internal.Time.Format.Tokenizer.Tokenizer
 import project.Nothing.Nothing
 import project.Panic.Panic
 
+from project.Function import all
+
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import org.enso.base.time.EnsoDateTimeFormatter

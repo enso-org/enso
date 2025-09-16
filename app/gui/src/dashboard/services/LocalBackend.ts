@@ -12,7 +12,6 @@ import * as projectManager from '#/services/ProjectManager'
 import type { ProjectManager } from '#/services/ProjectManager/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { unsafeEntries } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
 import { PRODUCT_NAME } from 'enso-common'
@@ -834,16 +833,12 @@ export default class LocalBackend extends Backend {
   override async exportArchive(
     params: backend.ExportArchiveParams,
   ): Promise<backend.ExportedArchive> {
-    const entries = unsafeEntries(params).flatMap<[string, string]>(([paramName, v]) =>
-      paramName === 'assetIds' ? v.map<[string, string]>((id) => ['asset', id])
-      : v != null ? [[paramName, v]]
-      : [],
-    )
-    const searchParams = new URLSearchParams(entries).toString()
+    const { filePath, ...body } = params
+    const searchParams = new URLSearchParams(filePath != null ? { filePath } : {}).toString()
     const path = `${EXPORT_ARCHIVE_PATH}?${searchParams}`
     if (params.filePath != null) {
       // Assume it is Electron, copy files through Electron server directly
-      const response = await this.post<backend.ExportedArchive>(path, {})
+      const response = await this.post<backend.ExportedArchive>(path, body)
       if (!response.ok) {
         return this.throw(response, 'exportArchiveBackendError')
       }
