@@ -8,8 +8,6 @@
 - [The documentation panel opens to the scroll position at last close][13647]
 - [Autocompletion for Column methods in table expressions][13797]
 - [Autocompletion for Column names in table expressions][13848]
-- [Autocompletion for table expression builtin functions in table
-  expressions][13914]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -17,7 +15,6 @@
 [13647]: https://github.com/enso-org/enso/pull/13647
 [13797]: https://github.com/enso-org/enso/pull/13797
 [13848]: https://github.com/enso-org/enso/pull/13848
-[13914]: https://github.com/enso-org/enso/pull/13914
 
 #### Enso Standard Library
 
