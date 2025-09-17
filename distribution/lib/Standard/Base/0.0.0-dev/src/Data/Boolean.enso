@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Nothing.Nothing
+import project.Data.Ordering.Comparable
 
 export project.Data.Boolean.Boolean.False
 export project.Data.Boolean.Boolean.True
@@ -124,3 +125,8 @@ type Boolean
        ```
     if_then : Any -> Any | Nothing
     if_then self ~on_true = @Builtin_Method "Boolean.if_then"
+
+    > self that = Comparable.> self that
+    >= self that = Comparable.>= self that
+    < self that = Comparable.< self that
+    <= self that = Comparable.<= self that

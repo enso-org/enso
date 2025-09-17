@@ -1,6 +1,7 @@
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
 import project.Data.Text.Normalization.Normalization
 import project.Errors.Common.Type_Error
 import project.Panic.Panic
@@ -212,3 +213,8 @@ type Text
         mode = normalization.get_java_mode
         name = normalization.get_mode_name
         Text_Utils.normalizeWithMode self name mode
+
+    > self that = Comparable.> self that
+    >= self that = Comparable.>= self that
+    < self that = Comparable.< self that
+    <= self that = Comparable.<= self that
