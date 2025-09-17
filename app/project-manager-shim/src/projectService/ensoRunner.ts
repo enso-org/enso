@@ -438,11 +438,11 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     return Path(filePath)
   }
 
-  let ensoExecutable: string
+  let ensoExecutables: string[]
   if (os.platform() === 'win32') {
-    ensoExecutable = 'enso.exe'
+    ensoExecutables = ['enso.exe', 'enso.bat']
   } else {
-    ensoExecutable = 'enso'
+    ensoExecutables = ['enso']
   }
 
   // Check ENSO_RUNNER_PATH environment variable first
@@ -463,12 +463,14 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     if (stat.isDirectory()) {
       const distDirs = fs.readdirSync(ensoDistPath)
       for (const distDir of distDirs) {
-        const ensoPath = path.join(ensoDistPath, distDir, 'bin', ensoExecutable)
-        try {
-          fs.accessSync(ensoPath)
-          return checkExecutable(ensoPath)
-        } catch {
-          // File doesn't exist, continue searching
+        for (const ensoExecutable of ensoExecutables) {
+          const ensoPath = path.join(ensoDistPath, distDir, 'bin', ensoExecutable)
+          try {
+            fs.accessSync(ensoPath)
+            return checkExecutable(ensoPath)
+          } catch {
+            // File doesn't exist, continue searching
+          }
         }
       }
     }
@@ -488,12 +490,14 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
         if (topStat.isDirectory()) {
           const subDirs = fs.readdirSync(topPath)
           for (const subDir of subDirs) {
-            const ensoPath = path.join(topPath, subDir, 'bin', ensoExecutable)
-            try {
-              fs.accessSync(ensoPath)
-              return checkExecutable(ensoPath)
-            } catch {
-              // File doesn't exist, continue searching
+            for (const ensoExecutable of ensoExecutables) {
+              const ensoPath = path.join(topPath, subDir, 'bin', ensoExecutable)
+              try {
+                fs.accessSync(ensoPath)
+                return checkExecutable(ensoPath)
+              } catch {
+                // File doesn't exist, continue searching
+              }
             }
           }
         }
