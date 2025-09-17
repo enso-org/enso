@@ -27,6 +27,7 @@
 
 #### Enso Language & Runtime
 
+- [Moving >, >=, <, <= to types where such operators make sense][14017]
 - [Moving warning releated methods outside of `Any`][13978]
 - [Moving error relelated methods outside of `Any`][14003]
 - [Register and `lookup_services` in package.yaml][11868]
@@ -36,6 +37,7 @@
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
 
+[14017]: https://github.com/enso-org/enso/pull/14017
 [14003]: https://github.com/enso-org/enso/pull/14003
 [13978]: https://github.com/enso-org/enso/pull/13978
 [11868]: https://github.com/enso-org/enso/pull/11868
