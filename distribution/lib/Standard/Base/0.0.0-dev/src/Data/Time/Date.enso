@@ -1,6 +1,7 @@
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Range.Date_Range
@@ -942,6 +943,11 @@ type Date
     default_widget (include_today:Boolean=False) display:Display=..When_Modified -> Widget =
         options = [Option "<Fixed Date>" "Date.new"] + (if include_today then [Option "<Today>" "Date.today"] else [])
         Widget.Single_Choice values=options display=display
+
+    > self that:Date = Comparable.> self that
+    >= self that:Date = Comparable.>= self that
+    < self that:Date = Comparable.< self that
+    <= self that:Date = Comparable.<= self that
 
 ## ---
    private: true

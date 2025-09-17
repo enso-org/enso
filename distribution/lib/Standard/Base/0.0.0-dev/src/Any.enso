@@ -1,15 +1,11 @@
 import project.Data.Text.Text
-import project.Error.Error
-import project.Errors.Common.Incomparable_Values
-import project.Errors.Common.No_Such_Conversion
-import project.Errors.Common.Type_Error
 import project.Meta
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Function import const
-from project.Internal.Ordering_Helpers import assert_same_comparators
+import project.Errors.Common.No_Such_Conversion
 from project.Metadata import Widget
 
 ## Any is the universal top-type, with all other types being subsumed by it.
@@ -214,148 +210,6 @@ type Any
        `Any.==`.
     != : Any -> Boolean
     != self that = (self == that).not
-
-    ## ---
-       aliases: [greater than]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is greater than `that`.
-
-       To be comparable, a custom object must have an associated comparator which
-       will return `Ordering.Less/Greater` for unequal values. Otherwise, this
-       will raise `Incomparable_Values` error. See `Ordering.enso` for
-       information how comparators work.
-
-       ## Arguments
-        - `that`: The value to compare `self` against.
-
-       ## Examples
-       ### Checking if the variable `a` is greater than `147`.
-
-       ```
-             from Standard.Base import all
-
-             example_greater =
-                 a = 7 * 28
-                 a > 147
-       ```
-    > : Any -> Boolean ! Incomparable_Values
-    > self that =
-        assert_same_comparators self that comparator->
-            case comparator.compare self that of
-                Ordering.Greater -> True
-                Nothing -> Error.throw (Incomparable_Values.Error self that)
-                _ -> False
-
-    ## ---
-       aliases: [greater than or equal]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is greater than or equal to `that`.
-
-       ## Arguments
-        - `that`: The value to compare `self` against.
-
-       ## Examples
-       ### Checking if the variable `a` is greater than or equal to `147`.
-
-       ```
-             from Standard.Base import all
-
-             example_greater_eq =
-                 a = 6 * 21
-                 a >= 147
-       ```
-
-       ## Remarks
-
-       ### Implementing Greater Than or Equal
-       While it is often possible to implement a more efficient version of this
-       operation for complex types, care must be taken to ensure that your
-       implementation is semantically equivalent to the disjunction of the
-       greater than and equal to operations.
-    >= : Any -> Boolean ! Incomparable_Values
-    >= self that =
-        assert_same_comparators self that comparator->
-            case comparator.compare self that of
-                Ordering.Equal -> True
-                Ordering.Greater -> True
-                Nothing -> Error.throw (Incomparable_Values.Error self that)
-                _ -> False
-
-    ## ---
-       aliases: [less than]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is less than `that`.
-
-       To be comparable, a custom object must have an associated comparator which
-       will return `Ordering.Less/Greater` for unequal values. Otherwise, this
-       will raise `Incomparable_Values` error. See `Ordering.enso` for
-       information how comparators work.
-
-       ## Arguments
-        - `that`: The value to compare `self` against.
-
-       ## Examples
-       ### Checking if the variable `a` is less than `147`.
-
-       ```
-             from Standard.Base import all
-
-             example_less =
-                 a = 7 * 21
-                 a < 147
-       ```
-    < : Any -> Boolean ! Incomparable_Values
-    < self that =
-        assert_same_comparators self that comparator->
-            case comparator.compare self that of
-                Ordering.Less -> True
-                Nothing -> Error.throw (Incomparable_Values.Error self that)
-                _ -> False
-
-    ## ---
-       aliases: [less than or equal]
-       group: Operators
-       icon: operators
-       ---
-       Checks if `self` is less than or equal to `that`.
-
-       To have `<=` defined, a type must define both `<` and `==`.
-
-       ## Arguments
-        - `that`: The value to compare `self` against.
-
-       ## Examples
-       ### Checking if the variable `a` is less than or equal to `147`.
-
-       ```
-             from Standard.Base import all
-
-             example_less_eq =
-                 a = 7 * 21
-                 a < 147
-       ```
-
-       ## Remarks
-
-       ### Implementing Less Than or Equal
-       While it is often possible to implement a more efficient version of this
-       operation for complex types, care must be taken to ensure that your
-       implementation is semantically equivalent to the disjunction of the less
-       than than and equal to operations.
-    <= : Any -> Boolean ! Incomparable_Values
-    <= self that =
-        assert_same_comparators self that comparator->
-            case comparator.compare self that of
-                Ordering.Equal -> True
-                Ordering.Less -> True
-                Nothing -> Error.throw (Incomparable_Values.Error self that)
-                _ -> False
 
     ## ---
        group: Logical

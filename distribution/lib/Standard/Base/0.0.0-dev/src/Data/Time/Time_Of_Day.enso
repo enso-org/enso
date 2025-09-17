@@ -8,6 +8,7 @@ import project.Data.Time.Duration.Duration
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Data.Ordering.Comparable
 import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -606,6 +607,11 @@ type Time_Of_Day
     default_widget (include_now:Boolean=False) display:Display=..When_Modified -> Widget =
         options = [Option "<Fixed Time>" "Time_Of_Day.new"] + (if include_now then [Option "<Now>" "Time_Of_Day.now"] else [])
         Widget.Single_Choice values=options display=display
+
+    > self that:Time_Of_Day = Comparable.> self that
+    >= self that:Time_Of_Day = Comparable.>= self that
+    < self that:Time_Of_Day = Comparable.< self that
+    <= self that:Time_Of_Day = Comparable.<= self that
 
 ## ---
    private: true

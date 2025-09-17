@@ -13,6 +13,7 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Data.Ordering.Comparable
 import project.Error.Error
 import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Type_Error
@@ -1106,6 +1107,11 @@ type Date_Time
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter =
         format.format_date_time self
+
+    > self that:Date_Time = Comparable.> self that
+    >= self that:Date_Time = Comparable.>= self that
+    < self that:Date_Time = Comparable.< self that
+    <= self that:Date_Time = Comparable.<= self that
 
 ## ---
    private: true
