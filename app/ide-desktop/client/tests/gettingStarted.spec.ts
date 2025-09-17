@@ -3,10 +3,10 @@
 import { expect } from 'playwright/test'
 import {
   closeWelcome,
-  createNewProject,
-  fillText,
-  loginAsTestUser,
   openComponentBrowser,
+  createNewProject,
+  fillWidgetText,
+  loginAsTestUser,
   test,
   visualizeData,
 } from './electronTest'
@@ -29,7 +29,7 @@ test('Exercise 1', async ({ page }) => {
     await dataReadEntry.click()
 
     // Filling in file url
-    await fillText(page, 'path‘‘', 'Samples/Data/sample_bank_data.xlsx')
+    await fillWidgetText(page, 'path‘‘', 'Samples/Data/sample_bank_data.xlsx')
 
     await Promise.race([
       page.getByLabel('Show visualization (Space)').waitFor({ state: 'visible', timeout: 5000 }),
@@ -66,7 +66,7 @@ test('Exercise 1', async ({ page }) => {
     await page.getByRole('button', { name: 'length', exact: true }).click()
 
     // Typing in the column name
-    await fillText(page, 'as“”', 'currency_code_length')
+    await fillWidgetText(page, 'as“”', 'currency_code_length')
 
     // Adding filter component
     await openComponentBrowser(page, 'set')
@@ -137,7 +137,7 @@ test('Exercise 1', async ({ page }) => {
     await page.getByRole('button', { name: '<Text Value>' }).click()
 
     // Set the filtered text value
-    await fillText(page, 'filter..Equal“”', 'Savings Account')
+    await fillWidgetText(page, 'filter..Equal“”', 'Savings Account')
   })
 
   // ---------------- Objective 4 ----------------

@@ -194,7 +194,7 @@ export async function openComponentBrowser(page: Page, parentComponent: string) 
 /**
  * Find textbox located in parent component and fill in text value
  */
-export async function fillText(page: Page, containerName: string, value: string) {
+export async function fillWidgetText(page: Page, containerName: string, value: string) {
   const cont = page.getByText(containerName)
 
   const box = cont.getByTestId('widget-text-content')
