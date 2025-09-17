@@ -1,4 +1,5 @@
 import { Path } from 'enso-common/src/utilities/file'
+import extractZip from 'extract-zip'
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
 import { createWriteStream } from 'node:fs'
@@ -6,7 +7,6 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { extract } from 'tar'
-import extractZip from 'extract-zip'
 
 export interface Runner {
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>

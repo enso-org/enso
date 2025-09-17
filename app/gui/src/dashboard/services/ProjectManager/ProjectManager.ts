@@ -197,6 +197,7 @@ export class ProjectManager {
     }
     const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
     this.projects.delete(fullParams.projectId)
+    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const enableProjectService = useFeatureFlag('enableProjectService')
     if (enableProjectService.value) {
@@ -208,6 +209,7 @@ export class ProjectManager {
 
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
+    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const enableProjectService = useFeatureFlag('enableProjectService')
     let result: Omit<CreateProject, 'projectPath'>
@@ -245,6 +247,7 @@ export class ProjectManager {
   /** Rename a project. */
   async renameProject(params: WithProjectPath<RenameProjectParams>): Promise<void> {
     const fullParams: RenameProjectParams = this.paramsWithPathToWithId(params)
+    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const enableProjectService = useFeatureFlag('enableProjectService')
     if (enableProjectService.value) {
@@ -274,6 +277,7 @@ export class ProjectManager {
     params: WithProjectPath<DuplicateProjectParams>,
   ): Promise<DuplicatedProject> {
     const fullParams: DuplicateProjectParams = this.paramsWithPathToWithId(params)
+    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const enableProjectService = useFeatureFlag('enableProjectService')
     let result: Omit<DuplicatedProject, 'projectPath'>
@@ -302,6 +306,7 @@ export class ProjectManager {
     if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
       await this.closeProject({ projectPath: params.projectPath })
     }
+    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const enableProjectService = useFeatureFlag('enableProjectService')
     if (enableProjectService.value) {
