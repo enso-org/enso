@@ -259,7 +259,7 @@ object GraalVM {
     val vmVersion = System.getProperty("java.vm.version")
     tryParseJavaVMVersion(vmVersion) match {
       case Some(version) =>
-        if (version != graalVersion) {
+        if (!isSameVersion(version, graalVersion)) {
           log.error(
             s"Running on GraalVM version $version. " +
             s"Expected GraalVM version $graalVersion."
@@ -285,4 +285,40 @@ object GraalVM {
       None
     }
   }
+
+  private def isSameVersion(s1: String, s2: String): Boolean = {
+    if (s1 == s2) {
+      true
+    } else {
+      val semVer1 = toSemVer(s1)
+      val semVer2 = toSemVer(s2)
+      semVer1 == semVer2
+    }
+  }
+
+  private def toSemVer(ver: String): SemVer = {
+    try {
+      if (ver.contains(".")) {
+        val items = ver.split('.')
+        if (items.length == 2) {
+          SemVer(Integer.parseInt(items(0)), Integer.parseInt(items(1)), 0)
+        } else if (items.length == 3) {
+          SemVer(
+            Integer.parseInt(items(0)),
+            Integer.parseInt(items(1)),
+            Integer.parseInt(items(2))
+          )
+        } else {
+          throw new IllegalArgumentException(s"Cannot parse version: $ver")
+        }
+      } else {
+        SemVer(Integer.parseInt(ver), 0, 0)
+      }
+    } catch {
+      case e: NumberFormatException =>
+        throw new IllegalArgumentException(s"Cannot parse version: $ver", e)
+    }
+  }
+
+  private case class SemVer(major: Int, minor: Int, patch: Int)
 }
