@@ -44,6 +44,7 @@ import {
 import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
+import type { LocalUserActionOrigin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
 function disableEditContextApi() {
@@ -257,7 +258,7 @@ export function useStringSync({ onTextEdited, onUserAction }: StringSyncOptions 
 }
 
 /** An extension synchronizing CM with a Y.Text node in the ref. */
-export function useYTextSync(content: ToValue<Y.Text | undefined>) {
+export function useYTextSync(content: ToValue<Y.Text | undefined>, origin?: LocalUserActionOrigin) {
   const syncCompartment = new Compartment()
   const awareness = new Awareness(new Y.Doc())
 
@@ -266,7 +267,7 @@ export function useYTextSync(content: ToValue<Y.Text | undefined>) {
     if (contentValue != null) {
       assert(contentValue.doc !== null)
       const yTextWithDoc: Y.Text & { doc: Y.Doc } = contentValue as any
-      return { text: contentValue.toString(), extensions: yCollab(yTextWithDoc, awareness) }
+      return { text: contentValue.toString(), extensions: yCollab(yTextWithDoc, awareness, origin) }
     } else {
       return { text: '', extensions: [] }
     }

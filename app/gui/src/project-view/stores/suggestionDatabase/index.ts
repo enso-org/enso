@@ -79,19 +79,31 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return [...iter.filter(allTypeEntries, isUserSelectableType)]
   })
 
-  /** Returns methods with the specified `self` type that are not private. */
-  selectableMethods(selfType: ProjectPath): IterableIterator<MethodSuggestionEntry> {
-    return iter.filter(
-      this.getAllEntriesOfKind(SuggestionKind.Method),
-      (method) => !method.isPrivate && selfType.equals(method.selfType),
-    )
-  }
-
-  /** Returns methods defined on the specified type, including private methods. */
-  typeMethods(memberOf: ProjectPath): IterableIterator<MethodSuggestionEntry> {
-    return iter.filter(this.getAllEntriesOfKind(SuggestionKind.Method), (method) =>
-      memberOf.equals(method.memberOf),
-    )
+  /**
+   * Retrieve all methods, optionally filtered by the given criteria.
+   *
+   * PERFORMANCE: This function performs a linear search over all entries. Depending on usage
+   * pattern, a `ReactiveIndex` is likely to be more efficient.
+   */
+  methods(
+    filter: {
+      /** Whether to include private methods (false by default). */
+      includePrivate?: true
+      selfType?: ProjectPath | undefined
+      memberOf?: ProjectPath | undefined
+      /** If provided, includes only methods that pass the predicate. */
+      name?: (name: string) => boolean
+    } = {},
+  ): MethodSuggestionEntry[] {
+    const results: MethodSuggestionEntry[] = []
+    for (const method of this.getAllEntriesOfKind(SuggestionKind.Method)) {
+      if (!filter.includePrivate && method.isPrivate) continue
+      if (filter.selfType != null && !filter.selfType.equals(method.selfType)) continue
+      if (filter.memberOf != null && !filter.memberOf.equals(method.memberOf)) continue
+      if (filter.name != null && !filter.name(method.name)) continue
+      results.push(method)
+    }
+    return results
   }
 
   dropdownTypeExpressionTags = computed((): ExpressionTag[] => {

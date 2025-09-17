@@ -189,6 +189,22 @@ packageBuilder := {
   )
 }
 
+lazy val checkIRCacheSizes = taskKey[Unit](
+  "Checks that the IR caches of all standard libraries are within the size limit."
+)
+checkIRCacheSizes := Def
+  .task {
+    val stdLibRoot =
+      engineDistributionRoot.value / "lib" / "Standard"
+    IRCaches.checkCacheSizes(
+      stdLibRoot  = stdLibRoot,
+      ensoVersion = ensoVersion,
+      log         = streams.value.log
+    )
+  }
+  .dependsOn(buildEngineDistribution)
+  .value
+
 Global / onChangedBuildSource := ReloadOnSourceChanges
 Global / excludeLintKeys += logManager
 
@@ -3952,6 +3968,27 @@ lazy val `engine-runner` = project
           "org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature"
         ) ++ (if (areStdlibsIncluded) Seq(databaseFeature, azureFeature)
               else Seq())
+        // heapdump monitoring is not supported on Windows
+        val enableHeapDumpOpts =
+          if (!GraalVM.EnsoLauncher.release && !Platform.isWindows)
+            Seq(
+              "--enable-monitoring=heapdump"
+            )
+          else Seq()
+        val debugOpts =
+          if (GraalVM.EnsoLauncher.debug)
+            Seq(
+              "-g",
+              "-O0",
+              "-H:+SourceLevelDebug",
+              "-H:-DeleteLocalSymbols",
+              // you may need to set smallJdk := None to use following flags:
+              // "--trace-class-initialization=org.enso.syntax2.Parser",
+              // "--diagnostics-mode",
+              // "--verbose",
+              "-Dnic=nic"
+            )
+          else Seq()
         val mp = (Runtime / modulePath).value.map(_.getAbsolutePath)
         NativeImage
           .buildNativeImage(
@@ -3982,22 +4019,7 @@ lazy val `engine-runner` = project
               "--add-opens=org.graalvm.nativeimage.builder/com.oracle.svm.core.jdk=ALL-UNNAMED",
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
               "--add-opens=java.base/java.nio=ALL-UNNAMED"
-            ) ++ (if (GraalVM.EnsoLauncher.debug) {
-                    // useful perf & debug switches:
-                    Seq(
-                      "-g",
-                      "-O0",
-                      "-H:+SourceLevelDebug",
-                      "-H:-DeleteLocalSymbols",
-                      // you may need to set smallJdk := None to use following flags:
-                      // "--trace-class-initialization=org.enso.syntax2.Parser",
-                      // "--diagnostics-mode",
-                      // "--verbose",
-                      "-Dnic=nic"
-                    )
-                  } else {
-                    Seq()
-                  }),
+            ) ++ enableHeapDumpOpts ++ debugOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(

@@ -1227,6 +1227,85 @@
     "reexports": []
   },
   {
+    "type": "method",
+    "module": "Standard.Table.Table",
+    "name": "set",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Table.Table.Table",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "expression",
+        "reprType": "Standard.Table.Expression",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Table.Table.Table",
+    "returnType": "Standard.Table.Table.Table | Standard.Base.Any.Any",
+    "isStatic": false,
+    "documentation": null,
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Expression",
+    "name": "expr",
+    "arguments": [
+      {
+        "name": "expression",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Table.Expression",
+    "returnType": "Standard.Table.Expression | Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": null,
+    "annotations": ["expression"],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Column",
+    "name": "is_nan",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Table.Column.Column",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "column",
+        "reprType": "Standard.Table.Column.Column",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Table.Column.Column",
+    "returnType": "Standard.Table.Column.Column | Standard.Base.Any.Any",
+    "isStatic": false,
+    "documentation": null,
+    "annotations": [],
+    "reexports": []
+  },
+  {
     "type": "module",
     "reexport": null,
     "module": "Standard.Table.Aggregate_Column",

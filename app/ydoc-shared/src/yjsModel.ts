@@ -149,7 +149,12 @@ export class DistributedModule {
   }
 }
 
-export const localUserActionOrigins = ['local:userAction', 'local:userAction:CodeEditor'] as const
+export const localUserActionOrigins = [
+  'local:userAction',
+  'local:userAction:CodeEditor',
+  'local:userAction:DocEditor',
+  'local:userAction:CommentEditor',
+] as const
 export type LocalUserActionOrigin = (typeof localUserActionOrigins)[number]
 export type Origin = LocalUserActionOrigin | 'remote' | 'local:autoLayout'
 /** Locally-originated changes not otherwise specified. */

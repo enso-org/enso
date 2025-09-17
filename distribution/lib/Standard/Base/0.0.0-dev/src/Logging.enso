@@ -1,12 +1,16 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
+import project.Error.Error
+import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Internal.Meta_Helpers
 import project.Meta
 import project.Runtime.Managed_Resource.Managed_Resource
+import project.Runtime.Ref.Ref
+from project.Data.Boolean import False, True
 
 polyglot java import org.slf4j.LoggerFactory
-polyglot java import org.enso.base.ProgressReporter
+polyglot java import org.enso.base.ProgressHandle
 
 ## ---
    private: true
@@ -31,23 +35,7 @@ Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
    together and will report it as a whole to a [progress displaying
    facility](https://github.com/enso-org/enso/pull/12126).
 type Progress
-    private Running label:Text max:Integer logger
-
-    ## Runs an action with progress reporting as a Managed Resource.
-       This means it will clean up the progress reporting when the action
-       finishes, even if it is aborted.
-
-         ## Arguments
-          - `label`: Overall description of the action
-          - `up_to`: how _"long"_ - e.g. how many steps the action is expected to
-             take. It has to be at least one or higher.
-          - `step`: how often the progress should be reported. It has to be at
-            least one or higher.
-          - `action`: function performing the computation while reporting its
-             `Progress`. Call `progress.advance` to report a single step.
-    execute label:Text up_to:Integer step:Integer action -> Any =
-        Managed_Resource.bracket (ProgressReporter.createWithStep label (up_to.max 1) (step.max 1)) (_.close) progress->
-            action progress
+    private Running handle label:Text max:Integer logger counter:Ref step:Integer
 
     ## Performs provided `action` while reporting its progress.
        The `action` is a function that takes a `Progress` handle and uses its
@@ -60,13 +48,20 @@ type Progress
           take. It has to be at least one or higher.
         - `action`: function performing the computation while reporting its
           `Progress`
-    run label:Text up_to:Integer action:(Progress->Any) -> Any =
+        - `step`: how often the progress should be reported. It has to be at
+          least one or higher.
+    run label:Text up_to:Integer action:(Progress->Any) step:Integer=1 handle_name:Text="Progress" -> Any =
         logger = LoggerFactory.getLogger (Progress.to Meta.Type . qualified_name)
-        progress = Progress.Running label (up_to.max 1) logger
-        log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress, progress.label, progress.max]
-        res = action progress
-        progress.advance up_to
-        res
+        min_step = step.max 1
+        counter = Ref.new min_step
+        max = up_to.max 1
+
+        Managed_Resource.bracket (ProgressHandle.new handle_name max) _.close handle->
+            progress = Progress.Running handle label max logger counter min_step
+            log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress.handle, progress.label, max]
+            res = action progress
+            progress.close
+            res
 
     ## Reports progress of the computation.
        Adds provided `amount` to the already accumulated work towards `up_to`
@@ -78,8 +73,30 @@ type Progress
        ## Returns
        The self value.
     advance self amount:Integer=1 -> Progress =
-        add = if amount>=0 then amount else 0
-        log_impl self.logger "ADVANCE {}+{}" Log_Level.Finest [self, add]
+        if amount <= 0 then Error.throw (Illegal_Argument.Error "Progress.advance: amount must be > 0")
+        case self.step == 1 of
+            True ->
+                log_impl self.logger "ADVANCE {}+{}" Log_Level.Finest [self.handle, amount]
+                self
+            False ->
+                current = self.counter.get
+                case current > amount of
+                    True ->
+                        self.counter.put (current - amount)
+                        self
+                    False ->
+                        log_impl self.logger "ADVANCE {}+{}" Log_Level.Finest [self.handle, self.step]
+                        self.counter.put self.step
+                        if amount > current then self.advance (amount - current) else self
+
+    ## Closes the progress reporting.
+       After invoking this method, the `Progress` instance is not usable
+       anymore. Invoking this method multiple times has no effect.
+
+       ## Returns
+       The self value.
+    close self =
+        self.handle.close
         self
 
     ## Provides additional human readable detail of the status of the
@@ -91,7 +108,7 @@ type Progress
        ## Returns
        The self value.
     log self detail:Text -> Progress =
-        log_impl self.logger "LOG {}:{}" Log_Level.Finest [self, detail]
+        log_impl self.logger "LOG {}:{}" Log_Level.Finest [self.handle, detail]
         self
 
     ## Simple name of the progress
