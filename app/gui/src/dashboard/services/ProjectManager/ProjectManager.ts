@@ -56,19 +56,24 @@ export class ProjectManager {
   private reconnecting = false
   private resolvers = new Map<number, (value: never) => void>()
   private rejecters = new Map<number, (reason?: JSONRPCError) => void>()
-  private socketPromise: Promise<WebSocket>
+  private socketPromise: Promise<WebSocket> | null = null
 
   /** Create a {@link ProjectManager} */
   constructor(
     private readonly connectionUrl: string,
     public readonly rootDirectory: Path,
   ) {
-    this.socketPromise = this.reconnect()
+    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const enableProjectService = useFeatureFlag('enableProjectService')
+    if (!enableProjectService.value) {
+      this.socketPromise = this.reconnect()
+    }
   }
 
   /** Begin reconnecting the {@link WebSocket}. */
   reconnect() {
-    if (this.reconnecting) {
+    if (this.reconnecting && this.socketPromise) {
       return this.socketPromise
     }
     this.reconnecting = true
@@ -129,8 +134,10 @@ export class ProjectManager {
 
   /** Dispose of the {@link ProjectManager}. */
   async dispose() {
-    const socket = await this.socketPromise
-    socket.close()
+    if (this.socketPromise) {
+      const socket = await this.socketPromise
+      socket.close()
+    }
   }
 
   /** Get the state of a project given its path. */
@@ -500,6 +507,10 @@ export class ProjectManager {
 
   /** Send a JSON-RPC request to the project manager. */
   private async sendRequest<T = void>(method: string, params: unknown): Promise<T> {
+    // Initialize socket lazily if not already initialized
+    if (!this.socketPromise) {
+      this.socketPromise = this.reconnect()
+    }
     const socket = await this.socketPromise
     const id = this.id++
     socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))
