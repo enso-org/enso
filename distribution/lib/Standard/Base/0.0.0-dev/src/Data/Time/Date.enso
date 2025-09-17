@@ -944,10 +944,10 @@ type Date
         options = [Option "<Fixed Date>" "Date.new"] + (if include_today then [Option "<Today>" "Date.today"] else [])
         Widget.Single_Choice values=options display=display
 
-    > self that:Date = Comparable.> self that
-    >= self that:Date = Comparable.>= self that
-    < self that:Date = Comparable.< self that
-    <= self that:Date = Comparable.<= self that
+    > self that = Comparable.> self that
+    >= self that = Comparable.>= self that
+    < self that = Comparable.< self that
+    <= self that = Comparable.<= self that
 
 ## ---
    private: true

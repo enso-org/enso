@@ -608,10 +608,10 @@ type Time_Of_Day
         options = [Option "<Fixed Time>" "Time_Of_Day.new"] + (if include_now then [Option "<Now>" "Time_Of_Day.now"] else [])
         Widget.Single_Choice values=options display=display
 
-    > self that:Time_Of_Day = Comparable.> self that
-    >= self that:Time_Of_Day = Comparable.>= self that
-    < self that:Time_Of_Day = Comparable.< self that
-    <= self that:Time_Of_Day = Comparable.<= self that
+    > self that = Comparable.> self that
+    >= self that = Comparable.>= self that
+    < self that = Comparable.< self that
+    <= self that = Comparable.<= self that
 
 ## ---
    private: true

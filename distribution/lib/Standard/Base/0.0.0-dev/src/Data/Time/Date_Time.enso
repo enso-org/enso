@@ -1108,10 +1108,10 @@ type Date_Time
     format self format:Date_Time_Formatter =
         format.format_date_time self
 
-    > self that:Date_Time = Comparable.> self that
-    >= self that:Date_Time = Comparable.>= self that
-    < self that:Date_Time = Comparable.< self that
-    <= self that:Date_Time = Comparable.<= self that
+    > self that = Comparable.> self that
+    >= self that = Comparable.>= self that
+    < self that = Comparable.< self that
+    <= self that = Comparable.<= self that
 
 ## ---
    private: true
