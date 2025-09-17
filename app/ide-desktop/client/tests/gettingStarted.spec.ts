@@ -3,10 +3,10 @@
 import { expect } from 'playwright/test'
 import {
   closeWelcome,
-  openComponentBrowser,
   createNewProject,
   fillWidgetText,
   loginAsTestUser,
+  openComponentBrowser,
   test,
   visualizeData,
 } from './electronTest'
