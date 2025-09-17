@@ -1,5 +1,6 @@
 import { test as base, expect as baseExpect, type Locator } from 'playwright/test'
 import type DrivePageActions from './actions/DrivePageActions'
+import type EditorPageActions from './actions/EditorPageActions'
 import LoginPageActions from './actions/LoginPageActions'
 import { mockCloudApi, type MockCloudApi } from './mock/cloudApi'
 import { mockLocalApi, type MockLocalApi } from './mock/localApi'
@@ -17,6 +18,7 @@ export const test = base.extend<{
   localApi: MockLocalApi
   loginPage: LoginPageActions
   drivePage: DrivePageActions
+  editorPage: EditorPageActions
 }>({
   cloudApi: async ({ page }, use) => use(await mockCloudApi(page)),
   localApi: async ({ page }, use) => use(await mockLocalApi(page)),
@@ -31,6 +33,17 @@ export const test = base.extend<{
     return use(loginPage)
   },
   drivePage: ({ loginPage }, use) => use(loginPage.loginIfNeeded()),
+  editorPage: ({ drivePage, cloudApi }, use) => {
+    cloudApi.addProject({
+      title: 'Mock Project.project',
+    })
+    use(
+      drivePage.goToCategory
+        .cloud()
+        .driveTable.openProject('Mock Project')
+        .expectProjectEditorOpened('Mock Project'),
+    )
+  },
 })
 
 export const expect = baseExpect.extend({

@@ -24,7 +24,8 @@ import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { test } from 'integration-test/base'
 import { uuidv4 } from 'lib0/random.js'
 import { join } from 'node:path'
-import type { Page } from 'playwright'
+import type { Page, WebSocketRoute } from 'playwright'
+import { makeVisUpdates, mockDataHandler, mockLSHandler } from './lsHandler'
 
 function array<T>(): Readonly<T>[] {
   return []
@@ -33,6 +34,9 @@ function array<T>(): Readonly<T>[] {
 const ROOT_PARENT_PATH = Path('/home/user/enso')
 const ROOT_PATH = Path('/home/user/enso/enso-projects')
 const DOWNLOAD_PATH = Path('/home/user/enso/Downloads')
+
+const languageServerJsonAddress = { host: 'localhost', port: 1235 }
+const languageServerBinaryAddress = { host: 'localhost', port: 1234 }
 
 const INITIAL_CALLS_OBJECT = {
   getRootDirectory: array<object>(),
@@ -247,6 +251,9 @@ export async function mockLocalApi(page: Page) {
   addDirectory({ path: ROOT_PATH })
   addDirectory({ path: DOWNLOAD_PATH })
 
+  let languageServerBinaryWs: WebSocketRoute | null = null
+  let languageServerJsonWs: WebSocketRoute | null = null
+
   await test.step('Mock Local API', async () => {
     await page.routeWebSocket('ws://localhost:30535/', (ws) => {
       ws.onMessage(async (messageRaw) => {
@@ -307,8 +314,8 @@ export async function mockLocalApi(page: Page) {
             unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
             const result: OpenProject = {
               engineVersion: '0.0.0-dev',
-              languageServerBinaryAddress: { host: 'ws://localhost', port: 1234 },
-              languageServerJsonAddress: { host: 'ws://localhost', port: 1235 },
+              languageServerBinaryAddress,
+              languageServerJsonAddress,
               projectNamespace: 'local',
               ...project.metadata,
             }
@@ -336,6 +343,33 @@ export async function mockLocalApi(page: Page) {
         ws.send(JSON.stringify(response))
       })
     })
+
+    await page.routeWebSocket(
+      `ws://${languageServerBinaryAddress.host}:${languageServerBinaryAddress.port}/`,
+      (ws) => {
+        languageServerBinaryWs = ws
+        ws.onMessage(async (messageRaw) => {
+          const response = await mockDataHandler(messageRaw)
+          if (response) ws.send(Buffer.from(response))
+          console.log('languageServerBinaryAddress msg', messageRaw, response)
+        })
+      },
+    )
+    // languageServerJsonAddress
+    await page.routeWebSocket(
+      `ws://${languageServerJsonAddress.host}:${languageServerJsonAddress.port}/`,
+      (ws) => {
+        languageServerJsonWs = ws
+
+        ws.onMessage(async (messageRaw) => {
+          const { method, params, jsonrpc, id } = JSON.parse(messageRaw.toString())
+          mockLSHandler(method, params, (method, params) =>
+            ws.send(JSON.stringify({ jsonrpc, id, method, params })),
+          )
+          console.log('languageServerJsonAddress msg', messageRaw)
+        })
+      },
+    )
 
     await page.route('/api/root-directory-path', async (route, request) => {
       called('getRootDirectory', {})
@@ -541,6 +575,13 @@ export async function mockLocalApi(page: Page) {
     })
   })
 
+  async function updateVisualization(preprocessor: string, data: unknown) {
+    for (const update of makeVisUpdates(preprocessor, data)) {
+      console.log('update', update)
+      languageServerBinaryWs?.send(Buffer.from(update))
+    }
+  }
+
   const api = {
     rootPath: ROOT_PATH,
     trackCalls,
@@ -548,6 +589,7 @@ export async function mockLocalApi(page: Page) {
     addProject,
     addFile,
     removeEntry,
+    updateVisualization,
   } as const
 
   return api

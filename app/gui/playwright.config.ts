@@ -24,13 +24,14 @@ const WORKERS = isCI ? 2 : '35%'
 
 const dirName = path.dirname(url.fileURLToPath(import.meta.url))
 
+const viteServerKind =
+  UNSAFE_SKIP_BUILD ? 'preview'
+  : !isCI && !isProd ? 'dev'
+  : 'build|preview'
+
 async function findFreePortInRange(min: number, max: number) {
-  const range = max - min + 1
-
-  invariant(range > 0, 'Minimum port must be less than maximum port.')
-
-  for (let i = 0; i < range; i++) {
-    const portToCheck = min + i
+  invariant(min <= max, 'Minimum port must be less than maximum port.')
+  for (let portToCheck = min; portToCheck <= max; portToCheck++) {
     if (await checkAvailablePort(portToCheck)) return portToCheck
   }
 
@@ -42,22 +43,26 @@ function checkAvailablePort(port: number) {
     const server = net.createServer()
     server
       .unref()
-      .on('error', (e: any) =>
-        'EADDRINUSE' === e.code ? reject('Port is already in use.') : reject(e),
-      )
-      .listen({ host: '0.0.0.0', port }, () => server.close(() => resolve(true)))
+      .on('error', (e: any) => ('EADDRINUSE' === e.code ? resolve(false) : reject(e)))
+      .listen(port, () => {
+        server.close(() => resolve(true))
+      })
   })
 }
 
 const portFromEnv = parseInt(process.env.PLAYWRIGHT_PORT ?? '', 10)
-const port = Number.isFinite(portFromEnv) ? portFromEnv : await findFreePortInRange(5300, 5999)
+const port =
+  Number.isFinite(portFromEnv) ? portFromEnv
+    // : viteServerKind === 'dev' ?
+    //   5173 // Vite dev server port
+  : await findFreePortInRange(5300, 5999)
 
 if (!Number.isFinite(portFromEnv) || !Number.isFinite(port)) {
   // Avoid spamming this log in each worker thread.
   console.log(`Selected playwright server port: ${port}`)
 }
 
-// Make sure to set the env to actual port that is being used. This is necessary for workers to
+// Make sure to set the env to actual port that is being used. This is necessary for wFemaiorkers to
 // pick up the same configuration.
 process.env.PLAYWRIGHT_PORT = `${port}`
 
@@ -66,8 +71,10 @@ export default defineConfig({
   ...(WORKERS ? { workers: WORKERS } : {}),
   forbidOnly: isCI,
   // Make test preview use the same port as test URL, so that svg icons are properly displayed.
-  // Unfortunately we can't make it work for both dashboard and project-view at the same time.
-  reporter: isCI ? [['list'], ['blob']] : [['html', { port }]],
+  // When reusing running dev server, the port will have to be different and icons will unfortunately
+  // not show properly. This is only a visual glitch in the reporter and does not impact test results.
+  reporter:
+    isCI ? [['list'], ['blob']] : [['html', { port: await findFreePortInRange(port, port + 5) }]],
   retries: isCI ? 1 : 0,
   timeout: TIMEOUT_MS,
   expect: {
@@ -123,19 +130,20 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command:
-        UNSAFE_SKIP_BUILD ? runVite('preview')
-        : !isCI && !isProd ? runVite('dev')
-        : runVite('build', 'preview'),
+      command: runVite(...viteServerKind.split('|')),
       timeout: 480 * 1000,
+      // When in dev mode, reuse dev server if it is already running.
+      // reuseExistingServer: viteServerKind === 'dev',
+      gracefulShutdown: { signal: 'SIGTERM', timeout: 500 },
       port,
     },
   ],
 })
 
 function runVite(...commands: string[]) {
+  const portArgs = (cmd: string) => (cmd !== 'build' ? `--strictPort --port ${port}` : '')
   // Avoid using npm commands for faster startup and compatibility with bazel environment
   return commands
-    .map((c) => `node_modules/.bin/vite -c vite.test.config.ts --strictPort --port ${port} ${c}`)
+    .map((c) => `node_modules/.bin/vite -c vite.test.config.ts ${portArgs(c)} ${c}`)
     .join(' && ')
 }

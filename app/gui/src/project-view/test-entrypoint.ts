@@ -4,21 +4,17 @@
  * providing mocks for connections with engine and to avoid running dashboard.
  */
 
-import { MockYdocProvider } from '@/util/crdt'
-import { MockWebSocket, MockWebSocketTransport } from '@/util/net'
-import { mockDataHandler, mockLSHandler, mockYdocProvider } from './mock/engine'
-
 import '#/styles.css'
 import '#/tailwind.css'
 import router from '$/router'
 import '@/assets/base.css'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createApp } from 'vue'
-import App from '../App.vue'
+// import App from '../App.vue'
 
-MockWebSocketTransport.addMock('engine', mockLSHandler)
-MockWebSocket.addMock('data', mockDataHandler)
-MockYdocProvider.addMock('engine', mockYdocProvider)
+// MockWebSocketTransport.addMock('engine', mockLSHandler)
+// MockWebSocket.addMock('data', mockDataHandler)
+// MockYdocProvider.addMock('engine', mockYdocProvider)
 
 const window_ = window as any
 // Mock FileBrowserApi that is usually provided by Electron.

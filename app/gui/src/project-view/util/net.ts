@@ -1,12 +1,11 @@
 import { onScopeDispose } from 'vue'
+import { AbortScope } from 'ydoc-shared/util/net'
 import {
-  AbortScope,
-  MockWebSocketTransport,
   ReconnectingWebSocket,
   ReconnectingWebSocketTransport,
-} from 'ydoc-shared/util/net'
+} from 'ydoc-shared/util/net/ReconnectingWSTransport'
 
-export { AbortScope, MockWebSocketTransport }
+export { AbortScope }
 
 const WS_OPTIONS = {
   // We do not want to enqueue any messages, because after reconnecting we have to initProtocol again.
@@ -15,26 +14,14 @@ const WS_OPTIONS = {
 
 /** TODO: Add docs */
 export function createRpcTransport(url: string): ReconnectingWebSocketTransport {
-  if (url.startsWith('mock://')) {
-    const mockName = url.slice('mock://'.length)
-    return new MockWebSocketTransport(mockName)
-  } else {
-    const transport = new ReconnectingWebSocketTransport(url, WS_OPTIONS)
-    return transport
-  }
+  return new ReconnectingWebSocketTransport(url, WS_OPTIONS)
 }
 
 /** TODO: Add docs */
 export function createDataWebsocket(url: string, binaryType: 'arraybuffer' | 'blob'): WebSocket {
-  if (url.startsWith('mock://')) {
-    const mockWs = new MockWebSocket(url, url.slice('mock://'.length))
-    mockWs.binaryType = binaryType
-    return mockWs
-  } else {
-    const websocket = new ReconnectingWebSocket(url, undefined, WS_OPTIONS)
-    websocket.binaryType = binaryType
-    return websocket as WebSocket
-  }
+  const websocket = new ReconnectingWebSocket(url, undefined, WS_OPTIONS)
+  websocket.binaryType = binaryType
+  return websocket as WebSocket
 }
 
 export interface WebSocketHandler {

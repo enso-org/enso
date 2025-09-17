@@ -3,7 +3,7 @@ import { goToPageActions, type GoToPageActions } from './goToPageActions'
 import PageActions from './PageActions'
 
 /** Actions for the "editor" page. */
-export default class EditorPageActions<Context> extends PageActions<Context> {
+export default class EditorPageActions<Context = object> extends PageActions<Context> {
   /** Actions for navigating to another page. */
   get goToPage(): Omit<GoToPageActions<Context>, 'editor'> {
     return goToPageActions(this.step.bind(this))

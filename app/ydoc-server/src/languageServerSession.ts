@@ -17,12 +17,8 @@ import {
 } from 'ydoc-shared/languageServerTypes'
 import { assertNever } from 'ydoc-shared/util/assert'
 import { Err, Ok, Result, withContext } from 'ydoc-shared/util/data/result'
-import {
-  AbortScope,
-  ReconnectingWebSocketTransport,
-  exponentialBackoff,
-  printingCallbacks,
-} from 'ydoc-shared/util/net'
+import { AbortScope, exponentialBackoff, printingCallbacks } from 'ydoc-shared/util/net'
+import { ReconnectingWebSocketTransport } from 'ydoc-shared/util/net/ReconnectingWSTransport'
 import {
   DistributedProject,
   ExternalId,

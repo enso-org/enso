@@ -173,7 +173,6 @@ const onSignOut = () => {
           @close="closeSettingsTab"
         />
       </div>
-      <div class="filler" />
       <UserBar :goToSettingsPage="() => (tab = 'settings')" @signOut="onSignOut" />
     </div>
     <div class="mainView">
@@ -226,10 +225,6 @@ const onSignOut = () => {
   /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
   isolation: isolate;
   font-family: var(--font-sans);
-}
-
-.filler {
-  flex-grow: 1;
 }
 
 .mainView {

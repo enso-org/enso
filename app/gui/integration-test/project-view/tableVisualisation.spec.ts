@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Locator, type Page } from 'integration-test/base'
+import type { MockLocalApi } from 'integration-test/mock/localApi'
 import * as actions from './actions'
 import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
@@ -7,7 +8,6 @@ import { graphNodeByBinding } from './locate'
 import singleColumnDates from './table-vis-json/singleColumnDates.json' with { type: 'json' }
 import singleColumnDatetimes from './table-vis-json/singleColumnDatetimes.json' with { type: 'json' }
 import singleColumnTimes from './table-vis-json/singleColumnTimes.json' with { type: 'json' }
-import { mockVisualizationDataUpdate } from './visualizationUpdates'
 
 /** Prepare the graph for the tests. We add the table type to the `aggregated` node. */
 async function initGraph(page: Page) {
@@ -36,7 +36,7 @@ test('Load Table Visualisation', async ({ page }) => {
   await expect(tableVisualization).toContainText('3,0')
 })
 
-test('Column size can be set and is retained', async ({ page }) => {
+test('Column size can be set and is retained', async ({ page, localApi }) => {
   await initGraph(page)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
@@ -51,7 +51,7 @@ test('Column size can be set and is retained', async ({ page }) => {
   const colManualSize = await resizeCol(col)
 
   // A data update causes column autosizing to run
-  await mockVisualizationDataUpdate(
+  await localApi.updateVisualization(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     {
@@ -169,7 +169,7 @@ async function expectTableInputContent(page: Page, node: Locator) {
   ])
 }
 
-test('Single Column Of Actions Table Visualisation Test', async ({ page }) => {
+test('Single Column Of Actions Table Visualisation Test', async ({ page, localApi }) => {
   await initGraph(page)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
@@ -179,7 +179,7 @@ test('Single Column Of Actions Table Visualisation Test', async ({ page }) => {
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
-  await mockVisualizationDataUpdate(
+  await localApi.updateVisualization(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     /* eslint-disable camelcase */
@@ -203,7 +203,7 @@ test('Single Column Of Actions Table Visualisation Test', async ({ page }) => {
   await expect(newNode).toContainText('Sheet2')
 })
 
-test('Error Visualisation Test', async ({ page }) => {
+test('Error Visualisation Test', async ({ page, localApi }) => {
   await initGraph(page)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
@@ -213,7 +213,7 @@ test('Error Visualisation Test', async ({ page }) => {
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
-  await mockVisualizationDataUpdate(
+  await localApi.updateVisualization(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     {
@@ -234,7 +234,7 @@ test('get_child_node_action temmplate Test as number', async ({ page }) => {
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
-  await mockVisualizationDataUpdate(
+  await localApi.updateVisualization(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     /* eslint-disable camelcase */
@@ -264,7 +264,7 @@ test('get_child_node_action temmplate Test as number', async ({ page }) => {
   await expect(numberWidget).toHaveValue('2')
 })
 
-test('get_child_node_action temmplate Test as text', async ({ page }) => {
+test('get_child_node_action temmplate Test as text', async ({ page, localApi }) => {
   await initGraph(page)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
@@ -274,7 +274,7 @@ test('get_child_node_action temmplate Test as text', async ({ page }) => {
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
-  await mockVisualizationDataUpdate(
+  await localApi.updateVisualization(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     /* eslint-disable camelcase */
@@ -313,7 +313,7 @@ test('GenericGrid Table Visualisation Test - single column - no links', async ({
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
-  await mockVisualizationDataUpdate(
+  await localApi.updateVisualization(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     /* eslint-disable camelcase */
@@ -330,7 +330,10 @@ test('GenericGrid Table Visualisation Test - single column - no links', async ({
   await expect(tableVisualization).toContainText('Sheet3')
 })
 
-test('GenericGrid Table Visualisation Test - two column - link on second', async ({ page }) => {
+test('GenericGrid Table Visualisation Test - two column - link on second', async ({
+  page,
+  localApi,
+}) => {
   await initGraph(page)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
@@ -340,7 +343,7 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
-  await mockVisualizationDataUpdate(
+  await localApi.updateVisualization(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     /* eslint-disable camelcase */
@@ -434,8 +437,8 @@ test('Datetime test - sorting and copying', async ({ page, context }) => {
   )
 })
 
-test('Date test - sorting and copying', async ({ page, context }) => {
-  await loadData(page, singleColumnDates)
+test('Date test - sorting and copying', async ({ page, context, localApi }) => {
+  await loadData(page, localApi, singleColumnDates)
   await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
   const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
   await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
@@ -447,8 +450,8 @@ test('Date test - sorting and copying', async ({ page, context }) => {
   await expectCopyingColumnClipboardToBe(page, context, 'Value', 0, 1, '2025-01-02\r\n2025-01-01')
 })
 
-test('Time test - sorting and copying', async ({ page, context }) => {
-  await loadData(page, singleColumnTimes)
+test('Time test - sorting and copying', async ({ page, context, localApi }) => {
+  await loadData(page, localApi, singleColumnTimes)
   await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
   const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
   await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
@@ -487,7 +490,7 @@ async function expectCopyingColumnClipboardToBe(
   await expectClipboard.toBe(expectedClipboardText)
 }
 
-async function loadData(page: Page, data: any) {
+async function loadData(page: Page, localApi: MockLocalApi, data: any) {
   await initGraph(page)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
@@ -496,7 +499,7 @@ async function loadData(page: Page, data: any) {
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
-  await mockVisualizationDataUpdate(
+  await localApi.updateVisualization(
     page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     data,

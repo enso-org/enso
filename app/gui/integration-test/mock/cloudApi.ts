@@ -20,6 +20,7 @@ import { VALID_PASSWORD } from '../actions/utilities'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
+console.log('process.env.ENSO_IDE_API_URL', process.env.ENSO_IDE_API_URL)
 /** The HTTP status code representing a response with an empty body. */
 const HTTP_STATUS_NO_CONTENT = 204
 /** The HTTP status code representing a bad request. */

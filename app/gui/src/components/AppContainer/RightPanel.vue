@@ -98,7 +98,6 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
           @update:selected="data.setTab($event ? id : undefined)"
         />
       </div>
-      <div class="filler" />
     </div>
   </div>
 </template>

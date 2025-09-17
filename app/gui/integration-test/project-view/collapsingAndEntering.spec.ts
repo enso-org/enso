@@ -11,7 +11,8 @@ const EDGE_PARTS = 2
 
 const COLLAPSE_SHORTCUT = `${CONTROL_KEY}+G`
 
-test('Entering nodes', async ({ page }) => {
+test.only('Entering nodes', async ({ page, editorPage }) => {
+  await editorPage
   await actions.goToGraph(page)
   await mockUserDefinedFunctionInfo(page, 'final', 'func1')
   await expectInsideMain(page)

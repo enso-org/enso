@@ -46,8 +46,9 @@ function makeDeferred(): Deferred {
  *
  * [`thenable`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
  */
-export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never> {
-  // private readonly promise: Promise<void>
+export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never>
+  implements Promise<void>
+{
   private readonly promise: Promise<void>
   private readonly deferredResolve: () => void
 
@@ -107,10 +108,6 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
       'Press and release',
     )
   }
-
-  // finish(): Promise<void> {
-  //   return this.promise
-  // }
 
   /** Proxies the `then` method of the internal {@link Promise}. Called on first `await` point. */
   async then<T, E>(
