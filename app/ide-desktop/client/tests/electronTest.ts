@@ -164,7 +164,7 @@ export async function getNewestProject(page: Page): Promise<Locator> {
 }
 
 /**
- * Clicking the eye button and making visualization visible
+ * Click the eye button, visualizing component data
  */
 export async function visualizeData(page: Page) {
   const showViz = page.getByLabel('Show visualization (Space)')
@@ -173,7 +173,7 @@ export async function visualizeData(page: Page) {
 }
 
 /**
- * Creating new component tied to the last created one
+ * Open new component browser refefencing the last created created component
  */
 export async function createNewComponent(page: Page) {
   const moreButton = page.getByTestId('more-button').getByRole('button', { name: 'More' }).last()
@@ -184,7 +184,7 @@ export async function createNewComponent(page: Page) {
 }
 
 /**
- * Creating new component from the name of its parent component
+ * Open new component browser based on the name of referenced parent component
  */
 export async function openComponentBrowser(page: Page, parentComponent: string) {
   await page.getByText(parentComponent, { exact: true }).click({ button: 'right' })
@@ -192,7 +192,7 @@ export async function openComponentBrowser(page: Page, parentComponent: string) 
 }
 
 /**
- * Creating new component from the name of its parent component
+ * Find textbox located in parent component and fill in text value
  */
 export async function fillText(page: Page, containerName: string, value: string) {
   const cont = page.getByText(containerName)
