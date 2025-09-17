@@ -6,6 +6,7 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { extract } from 'tar'
+import extractZip from 'extract-zip'
 
 export interface Runner {
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
@@ -639,23 +640,8 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
       }),
     )
   } else {
-    await new Promise<void>((resolve, reject) => {
-      const unzipProcess = childProcess.spawn('unzip', ['-o', archivePath, '-d', extractDir], {
-        stdio: 'ignore',
-      })
-
-      unzipProcess.on('error', (error) => {
-        reject(new Error(`Failed to extract zip: ${error.message}`))
-      })
-
-      unzipProcess.on('close', (code) => {
-        if (code === 0) {
-          resolve()
-        } else {
-          reject(new Error(`unzip process exited with code ${code}`))
-        }
-      })
-    })
+    // Use extract-zip library for Windows zip files
+    await extractZip(archivePath, { dir: extractDir })
   }
 
   // Clean up the archive file
