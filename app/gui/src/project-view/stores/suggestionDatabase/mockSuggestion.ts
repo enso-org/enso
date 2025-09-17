@@ -28,6 +28,7 @@ const EMPTY_SCOPE = { start: { line: 0, character: 0 }, end: { line: 0, characte
 
 interface CommonOptions {
   projectNames?: ProjectNameStore
+  documentation?: string
 }
 
 /** Mock a module suggestion entry. */
@@ -79,6 +80,7 @@ export function makeConstructor(
       arguments: opts.args ?? [],
       returnType: type,
       annotations: opts.annotations ?? [],
+      ...(opts.documentation ? { documentation: opts.documentation } : {}),
     },
     opts.projectNames,
   )

@@ -233,7 +233,9 @@ make_grouping_method_selector table:Table display:Display=..Always -> Widget =
 
     unique = Option "..Unique" "..Unique" [["on", columns_selector]]
     equal_count = Option "..Equal_Count" "..Equal_Count" [["order_by", columns_selector]]
-    names=[unique, equal_count]
+    equal_sum = Option "..Equal_Sum" "..Equal_Sum" [["on", column_selector]] [["order_by", columns_selector]]
+    standard_deviation = Option "..Standard_Deviation" "..Standard_Deviation" [["on", column_selector]]
+    names=[unique, equal_count, equal_sum, standard_deviation]
 
     Single_Choice display=display values=names
 

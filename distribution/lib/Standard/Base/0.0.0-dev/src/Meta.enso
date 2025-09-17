@@ -10,6 +10,7 @@ import project.Function.Function as Real_Function
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
 import project.Warning.Warning
+from project.Error import all hiding Error
 from project.Data.Boolean import Boolean, False, True
 
 type Type

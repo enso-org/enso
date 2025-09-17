@@ -1,7 +1,9 @@
 import type { WidgetInput } from '@/providers/widgetRegistry'
 import {
   argsWidgetConfigurationSchema,
+  FunctionCall,
   functionCallConfiguration,
+  pending,
 } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
@@ -16,18 +18,11 @@ import {
 } from '@/util/callTree'
 import type { Result } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
-import type { QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import { computed, toValue, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
-
-export const WIDGETS_ENSO_MODULE = 'Standard.Visualization.Widgets'
-export const GET_WIDGETS_METHOD = 'get_widget_json' as Ast.Identifier
-export const WIDGETS_ENSO_PATH = ProjectPath.create(
-  'Standard.Visualization' as QualifiedName,
-  'Widgets' as Ast.Identifier,
-)
+import { GET_WIDGETS_METHOD, WIDGETS_ENSO_MODULE, WIDGETS_ENSO_PATH } from './consts'
 
 /**
  * A composable gathering information about call for WidgetFunction basing on AST and
@@ -51,9 +46,8 @@ export function useWidgetFunctionCallInfo(
 
   const appFuncIsNodeUsage = computed(() => graphDb.isNodeUsage(appFunc.value?.id))
 
-  const subjectInfo = computed(() =>
-    graphDb.getExpressionInfo(getAccessOprSubject(appFunc.value)?.id),
-  )
+  const subject = computed(() => getAccessOprSubject(appFunc.value))
+  const subjectInfo = computed(() => graphDb.getExpressionInfo(subject.value?.id))
 
   const selfArgumentPreapplied = computed(() => {
     const info = methodCallInfo.value
@@ -91,6 +85,13 @@ export function useWidgetFunctionCallInfo(
     return null
   })
 
+  const annotatedArguments = computed(() => {
+    const info = methodCallInfo.value
+    if (!info) return null
+    if (!entryIsAnnotatable(info.suggestion)) return null
+    return info.suggestion.annotations
+  })
+
   const visualizationConfig = computed<Opt<NodeVisualizationConfiguration>>(() => {
     const args = ArgumentApplication.collectArgumentNamesAndUuids(
       interpreted.value,
@@ -100,8 +101,8 @@ export function useWidgetFunctionCallInfo(
     const info = methodCallInfo.value
     if (!info) return null
     if (!entryIsAnnotatable(info.suggestion)) return null
-    const annotatedArgs = info.suggestion.annotations
-    if (!annotatedArgs.length) return null
+    const annotatedArgs = annotatedArguments.value
+    if (!annotatedArgs?.length) return null
     const name = info.suggestion.name
     const positionalArgumentsExpressions = [
       `.${name}`,
@@ -177,7 +178,14 @@ export function useWidgetFunctionCallInfo(
     } else if (data != null && !data.ok) {
       data.error.log('Cannot load dynamic configuration')
     }
-    return inheritedConfig.value
+    const parameters: FunctionCall['parameters'] = new Map(inheritedConfig.value?.parameters ?? [])
+    annotatedArguments.value?.forEach((name) => {
+      if (parameters.get(name) == null) parameters.set(name, pending())
+    })
+    return {
+      kind: 'FunctionCall',
+      parameters,
+    } satisfies FunctionCall
   })
 
   const application = computed(() => {
@@ -213,6 +221,7 @@ export function useWidgetFunctionCallInfo(
   return {
     methodCallInfo,
     application,
+    subject,
     subjectInfo,
   }
 }

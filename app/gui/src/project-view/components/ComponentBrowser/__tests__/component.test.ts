@@ -7,6 +7,7 @@ import {
 } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { TypeInfo } from '@/stores/project/computedValueRegistry'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   makeConstructor,
   makeMethod,
@@ -121,7 +122,8 @@ test.each`
   const pattern = 'foo_bar'
   const entry = makeModuleMethod(`local.Mock_Project.${name}`, { aliases: aliases ?? [] })
   const filtering = new Filtering({ pattern })
-  const match = filtering.filter(entry)
+  const db = new SuggestionDb()
+  const match = filtering.filter(entry, db)
   expect(match).not.toBeNull()
   const componentInfo = { id: 0, entry, match: match! }
   expect(replaceMatches(makeComponent(componentInfo))).toEqual(highlighted)
@@ -150,7 +152,8 @@ test.each`
         ancestors: [],
       },
     })
-    const match = filtering.filter(entry)
+    const db = new SuggestionDb()
+    const match = filtering.filter(entry, db)
     expect(match).not.toBeNull()
     const componentInfo = { id: 0, entry, match: match! }
     expect(replaceMatches(makeComponent(componentInfo))).toEqual(highlighted)

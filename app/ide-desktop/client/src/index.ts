@@ -273,7 +273,6 @@ class App {
       add('ignore-certificate-errors')
       addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
       addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
-      addIf(perfOpts.disableSandbox, 'no-sandbox')
       addIf(perfOpts.disableSmoothScrolling, 'disable-smooth-scrolling')
       addIf(perfOpts.enableNativeGpuMemoryBuffers, 'enable-native-gpu-memory-buffers')
       addIf(perfOpts.forceHighPerformanceGpu, 'force_high_performance_gpu')
@@ -618,11 +617,11 @@ class App {
 
     // Handling navigation events from renderer process
     electron.ipcMain.on(ipc.Channel.goBack, () => {
-      this.window?.webContents.goBack()
+      this.window?.webContents.navigationHistory.goBack()
     })
 
     electron.ipcMain.on(ipc.Channel.goForward, () => {
-      this.window?.webContents.goForward()
+      this.window?.webContents.navigationHistory.goForward()
     })
   }
 

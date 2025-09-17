@@ -55,6 +55,7 @@ Date_Range.to_table self name:Text=self.default_column_name =
 ## ---
    group: Standard.Base.Conversions
    icon: convert
+   suggested: 1
    ---
    Converts this `JS_Object` into a `Table`.
 

@@ -30,7 +30,7 @@ type H2_JDBC_Config
 
     with_connection self ~action =
         self.with_database url->
-            conn = Generic_JDBC_Connection.connect url
+            conn = Generic_JDBC_Connection.connect_in_jvm url
             conn.should_succeed
             cleanup =
                 conn.close

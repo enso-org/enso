@@ -1,13 +1,9 @@
-/**
- * @file
- * An item within a menu that represents a single action or option.
- */
+/** @file An item within a menu that represents a single action or option. */
 import ArrowRight from '#/assets/expand_arrow_right.svg'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { memo, type ReactElement, type ReactNode } from 'react'
 import type { MenuItemProps as AriaMenuItemProps, MenuItemRenderProps } from 'react-aria-components'
 import { MenuItem as AriaMenuItem, Keyboard } from 'react-aria-components'
-import { AnimatedBackground } from '../AnimatedBackground'
 import { Check } from '../Check'
 import { Icon } from '../Icon'
 import SvgMask from '../SvgMask'
@@ -18,6 +14,7 @@ import type { IconProp, TestIdProps } from '../types'
 export const MENU_ITEM_STYLES = tv({
   base: 'group flex w-full cursor-default gap-3 rounded-3xl px-[14px] py-1 outline-none transition-colors duration-75 text-left',
   variants: {
+    isSelected: { true: 'bg-primary/5 w-full rounded-3xl' },
     isDisabled: { true: 'cursor-not-allowed', false: '' },
     isPressed: { true: 'bg-primary/5' },
   },
@@ -28,7 +25,6 @@ export const MENU_ITEM_STYLES = tv({
     shortcut: 'self-center text-primary mt-[1px]',
     title: 'block w-full flex-1',
     description: 'block w-full flex-1',
-    hover: 'bg-primary/5 w-full rounded-3xl',
     customContent: TEXT_STYLE({
       className: 'flex flex-1 min-w-0 w-full text-primary',
     }),
@@ -87,7 +83,12 @@ export const MenuItem = memo(function MenuItem<T extends object, IconType extend
     <AriaMenuItem data-testid={testId} {...itemProps}>
       {(renderProps) => {
         const { isHovered, isDisabled, isPressed, isFocusVisible } = renderProps
-        const classes = variants({ isDisabled, className, isPressed })
+        const classes = variants({
+          isDisabled,
+          className,
+          isPressed,
+          isSelected: isHovered || isFocusVisible,
+        })
 
         let content: ReactNode
 
@@ -113,11 +114,7 @@ export const MenuItem = memo(function MenuItem<T extends object, IconType extend
         }
 
         return (
-          <AnimatedBackground.Item
-            isSelected={isHovered || isFocusVisible}
-            className={classes.base()}
-            animationClassName={classes.hover()}
-          >
+          <div className={classes.base()}>
             <div className="flex w-full gap-2">
               <SelectionIndicator className={classes.checkContainer()} {...renderProps} />
 
@@ -132,7 +129,7 @@ export const MenuItem = memo(function MenuItem<T extends object, IconType extend
                 className={classes.submenuIndicator()}
               />
             </div>
-          </AnimatedBackground.Item>
+          </div>
         )
       }}
     </AriaMenuItem>
@@ -160,13 +157,13 @@ const MenuItemIcon = memo(function MenuItemIcon<IconType extends string>(
 const SelectionIndicator = memo(function SelectionIndicator(
   props: MenuItemRenderProps & { className?: string },
 ) {
-  const { selectionMode, isSelected, className, isPressed, hasSubmenu } = props
+  const { selectionMode, isSelected, className, hasSubmenu } = props
 
   if (selectionMode === 'none' || hasSubmenu) return null
 
   return (
     <span className={className}>
-      <Check isSelected={isSelected} size="medium" isPressed={isPressed} />
+      <Check isSelected={isSelected} size="medium" />
     </span>
   )
 })

@@ -1,18 +1,50 @@
-# Next Next Release
+# Next Release
+
+#### Enso IDE
+
+- [Allow selecting target type for Any.to method][13685].
+- [Command Palette to search for arbitrary actions][13658]
+- [Fix mouse interactions with JSON visualization][13971]
+- [There is no need for adding `--no-sandbox` flag in Ubuntu anymore][13990].
+- [The documentation panel opens to the scroll position at last close][13647]
+- [Autocompletion for Column methods in table expressions][13797]
+- [Autocompletion for Column names in table expressions][13848]
+
+[13685]: https://github.com/enso-org/enso/pull/13685
+[13658]: https://github.com/enso-org/enso/pull/13658
+[13971]: https://github.com/enso-org/enso/pull/13971
+[13990]: https://github.com/enso-org/enso/pull/13990
+[13647]: https://github.com/enso-org/enso/pull/13647
+[13797]: https://github.com/enso-org/enso/pull/13797
+[13848]: https://github.com/enso-org/enso/pull/13848
+
+#### Enso Standard Library
+
+- [Implement `Text_Column` for in-memory backend.][13769]
+- [Implement `Text_Column.to_case` for in-memory backend.][13769]
+
+[13769]: https://github.com/enso-org/enso/pull/13769
 
 #### Enso Language & Runtime
 
+- [Moving warning releated methods outside of `Any`][13978]
+- [Moving error relelated methods outside of `Any`][14003]
 - [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
-- [The documentation panel opens to the scroll position at last close][13647]
-- [Autocompletion for Column methods in table expressions][13797]
+- [Removal of --no-global-cache option][13909]
+- [Autocompletion for table expression builtin functions in table
+  expressions][13914]
+- [Autocompletion for table expression operators and operands][13917]
 
+[14003]: https://github.com/enso-org/enso/pull/14003
+[13978]: https://github.com/enso-org/enso/pull/13978
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
-[13647]: https://github.com/enso-org/enso/pull/13647
-[13797]: https://github.com/enso-org/enso/pull/13797
+[13909]: https://github.com/enso-org/enso/pull/13909
+[13914]: https://github.com/enso-org/enso/pull/13914
+[13917]: https://github.com/enso-org/enso/pull/13917
 
-# Next Release
+# Enso 2025.2
 
 #### Enso IDE
 
@@ -50,10 +82,9 @@
 - [Graph is not moved when showing/resizing side panels.][13557]
 - [Add "Invite" button to the top bar when using a team or higher plan][13522]
 - ["Welcome Project" is automatically opened for new users][13479]
-- [Project and Setting tab may be now closed with shortcut][13498][13604]. On
+- [Project and Setting tab may be now closed with shortcut][13604]. On
   Windows/Linux <kbd>Ctrl</kbd>+<kbd>W</kbd> or <kbd>Ctrl</kbd> + <kbd>F4</kbd>;
   on macOS: <kbd>⌘</kbd> + <kbd>W</kbd>.
-- [Allow selecting target type for Any.to method][13685].
 - [Improved Graph Editor's Top Bar responsiveness to width change.][13726]
 - [Changed animation of tabs highlight.][13726]
 
@@ -84,9 +115,7 @@
 [13557]: https://github.com/enso-org/enso/pull/13557
 [13522]: https://github.com/enso-org/enso/pull/13522
 [13479]: https://github.com/enso-org/enso/pull/13479
-[13498]: https://github.com/enso-org/enso/pull/13498
 [13604]: https://github.com/enso-org/enso/pull/13604
-[13685]: https://github.com/enso-org/enso/pull/13685
 [13726]: https://github.com/enso-org/enso/pull/13726
 
 #### Enso Standard Library
@@ -112,6 +141,8 @@
 - [Add support for custom and empty line endings to the fixed-width file format]
   [13554]
 - [In-memory table `add_group_number` supports `Equal_Sum`.][13819]
+- [In-memory table `add_group_number` supports `Standard_Deviation`.][13895]
+- [Added `Data.fetch_many` to allow throttle fetching of APIs.][13999]
 
 [12726]: https://github.com/enso-org/enso/pull/12726
 [12950]: https://github.com/enso-org/enso/pull/12950
@@ -130,6 +161,8 @@
 [13487]: https://github.com/enso-org/enso/pull/13487
 [13554]: https://github.com/enso-org/enso/pull/13554
 [13819]: https://github.com/enso-org/enso/pull/13819
+[13895]: https://github.com/enso-org/enso/pull/13895
+[13999]: https://github.com/enso-org/enso/pull/13999
 
 #### Enso Language & Runtime
 

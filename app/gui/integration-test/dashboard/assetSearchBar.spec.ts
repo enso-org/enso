@@ -57,7 +57,11 @@ test('tags (negative)', async ({ drivePage, page }) => {
   })
 })
 
-test('labels', async ({ drivePage, page, cloudApi }) => {
+test.skip('labels (were supported in list directory, but not supported in search)', async ({
+  drivePage,
+  page,
+  cloudApi,
+}) => {
   cloudApi.addLabel('aaaa', { lightness: 50, chroma: 66, hue: 7 })
   cloudApi.addLabel('bbbb', { lightness: 50, chroma: 66, hue: 34 })
   cloudApi.addLabel('cccc', { lightness: 50, chroma: 66, hue: 80 })
@@ -72,8 +76,6 @@ test('labels', async ({ drivePage, page, cloudApi }) => {
       expect(name.length).toBeGreaterThan(0)
       await label.click()
       await expect(searchBar).toHaveValue('label:' + name)
-      await label.click()
-      await expect(searchBar).toHaveValue('-label:' + name)
       await label.click()
       await expect(searchBar).toHaveValue('')
     }

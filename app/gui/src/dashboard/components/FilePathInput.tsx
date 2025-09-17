@@ -5,11 +5,8 @@ import { twMerge } from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
 import { useText } from '$/providers/react'
 import FileBrowserWidgetVue from '@/components/widgets/FileBrowserWidget.vue'
-import { AnimatePresence, motion } from 'framer-motion'
 import { type CSSProperties, useRef, useState } from 'react'
 import { ROUNDED_INPUT_BASE_CLASSES } from './JSONSchemaInput'
-
-const ANIMATION_DURATION = 0.2
 
 // eslint-disable-next-line no-restricted-syntax
 const FileBrowserWidget = vueComponent(FileBrowserWidgetVue).default
@@ -42,9 +39,8 @@ export default function FilePathInput(props: FilePathInputProps) {
   const fileBrowserStyles = {
     '--file-browser-min-width': '280px',
     '--z-index-file-browser': fileBrowserZIndex,
-    '--selection-submenu-color': 'black',
-    '--selection-submenu-background-color': 'var(--color-dashboard-background)',
     '--file-browser-background-color': 'var(--color-dashboard-background)',
+    '--file-browser-text-color': 'black',
     '--file-browser-corner-radius': 'var(--input-corner-radius)',
     '--file-browser-top-bar-color': 'var(--color-primary)',
   } as CSSProperties
@@ -88,27 +84,18 @@ export default function FilePathInput(props: FilePathInputProps) {
               onChange(newValue)
             }}
           />
-          <AnimatePresence>
-            {isFileBrowserOpened && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: ANIMATION_DURATION }}
-              >
-                <FileBrowserWidget
-                  type="file"
-                  writeMode={true}
-                  choosenPath={fileBrowserPath}
-                  onPathAccepted={(p: string) => {
-                    setFileBrowserPath(p)
-                    onChange(p)
-                  }}
-                  allowOverride={true}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {isFileBrowserOpened && (
+            <FileBrowserWidget
+              type="file"
+              writeMode={true}
+              choosenPath={fileBrowserPath}
+              onPathAccepted={(p: string) => {
+                setFileBrowserPath(p)
+                onChange(p)
+              }}
+              allowOverride={true}
+            />
+          )}
         </div>
       </FocusRing>
       {...errors}

@@ -207,6 +207,62 @@ add_group_number_specs suite_builder setup =
 
             t.add_group_number (..Equal_Sum "q" 3) "g" . should_fail_with Illegal_Argument
 
+        label_n1 = "Below Average (-1.5 to -0.5 sd)"
+        label_0  = "Average (-0.5 to 0.5 sd)"
+        label_p1 = "Above Average (0.5 to 1.5 sd)"
+        label_p2 = "High (1.5 to 2.5 sd)"
+
+        group_builder.specify "should add group number by standard deviation" <|
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]]]
+
+            g1 = t.add_group_number (..Standard_Deviation "x") "g"
+            g1.at 'g' . to_vector . should_equal [label_n1, label_0, label_0, label_0, label_n1, label_0, label_p2, label_0, label_n1]
+
+            g3 = t.add_group_number (..Standard_Deviation "y") "g"
+            g3.at 'g' . to_vector . should_equal [label_n1, label_p1, label_p1, label_n1, label_p1, label_n1, label_n1, label_n1, label_n1]
+
+        group_builder.specify "should respect standard deviation 'population' parameter" <|
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3, 5.67]]]
+
+            g0 = t.add_group_number (..Standard_Deviation "x" population=True) "g"
+            g0.at 'g' . to_vector . should_equal [label_n1, label_0, label_0, label_0, label_n1, label_0, label_p2, label_0, label_n1, label_p1]
+
+            g1 = t.add_group_number (..Standard_Deviation "x" population=False) "g"
+            g1.at 'g' . to_vector . should_equal [label_n1, label_0, label_0, label_0, label_n1, label_0, label_p2, label_0, label_n1, label_0]
+
+        group_builder.specify "add group number by standard deviation should attach a warning on Nothing values" <|
+            t = table_builder [['x', [3, 4, Nothing, 4, 3, 5, 10, 4, 3]], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]]]
+
+            g0 = t.add_group_number (..Standard_Deviation "x") "g"
+            Problems.expect_only_warning Illegal_Argument g0
+
+        group_builder.specify "add group number by standard deviation with 0 or 1 element works" <|
+            t_one = table_builder [['x', [3]]]
+            t_zero = t_one . take 0
+
+            g0 = t_one.add_group_number (..Standard_Deviation "x") "g"
+            g0.at "g" . to_vector . should_equal [label_0]
+
+            g1 = t_one.add_group_number (..Standard_Deviation "x" population=True) "g"
+            g1.at "g" . to_vector . should_equal [label_0]
+
+            g2 = t_zero.add_group_number (..Standard_Deviation "x") "g"
+            g2.at "g" . to_vector . should_equal []
+
+            g3 = t_zero.add_group_number (..Standard_Deviation "x" population=True) "g"
+            g3.at "g" . to_vector . should_equal []
+
+        group_builder.specify "add group number by standard deviation does not allow from/step" <|
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]]]
+
+            Problems.expect_only_warning Illegal_Argument (t.add_group_number (..Standard_Deviation "x" population=True) "g" from=10)
+            Problems.expect_only_warning Illegal_Argument (t.add_group_number (..Standard_Deviation "x" population=True) "g" step=10)
+
+        group_builder.specify "add group number by standard deviation should throw an error on non-numeric values" <|
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, '3']], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]]]
+
+            t.add_group_number (..Standard_Deviation "x") "g" . should_fail_with Illegal_Argument
+
     suite_builder.group prefix+"Table.add_group_number (common)" group_builder->
         group_builder.specify "should default the column name to 'Group'" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]

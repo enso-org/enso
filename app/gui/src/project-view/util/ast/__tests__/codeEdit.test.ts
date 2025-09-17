@@ -218,7 +218,7 @@ describe('Code edit', () => {
 
   test('No-op statement change', () => {
     const code = 'a = 1'
-    const expression = Ast.parseStatement(code)
+    const expression = Ast.parseBlockStatement(code)
     assertDefined(expression)
     const module = expression.module
     module.setRoot(expression)

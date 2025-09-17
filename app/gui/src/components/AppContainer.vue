@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Dashboard as DashboardReact, type DashboardProps } from '#/pages/dashboard/Dashboard'
 import { EnsoPath } from '#/services/Backend'
+import CommandPalette from '$/components/CommandPalette.vue'
 import { useBackends } from '$/providers/backends'
 import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
@@ -54,8 +55,10 @@ const openedProjectsStore = provideOpenedProjects()
 provideAsyncResources(openedProjectsStore)
 provideContainerData()
 </script>
+
 <template>
   <div class="TabView">
+    <CommandPalette />
     <ContainerDataProviderForReact>
       <Dashboard v-bind="props" />
     </ContainerDataProviderForReact>

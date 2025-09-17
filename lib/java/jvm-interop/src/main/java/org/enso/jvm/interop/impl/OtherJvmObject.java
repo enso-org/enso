@@ -1,6 +1,8 @@
 package org.enso.jvm.interop.impl;
 
+
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -8,6 +10,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
+import com.oracle.truffle.api.nodes.Node;
 import java.io.IOException;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -52,6 +55,8 @@ final class OtherJvmObject implements TruffleObject {
       Message.resolve(InteropLibrary.class, "hasArrayElements");
   private static final Message HAS_HASH_ENTRIES =
       Message.resolve(InteropLibrary.class, "hasHashEntries");
+  private static final Message HAS_BUFFER_ELEMENTS =
+      Message.resolve(InteropLibrary.class, "hasBufferElements");
 
   private static final Message IS_DATE = Message.resolve(InteropLibrary.class, "isDate");
   private static final Message IS_TIME = Message.resolve(InteropLibrary.class, "isTime");
@@ -88,7 +93,7 @@ final class OtherJvmObject implements TruffleObject {
 
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
-  Object send(Message message, Object[] args) throws Exception {
+  final Object send(Message message, Object[] args, @Bind Node self) throws Exception {
     if (message == IS_IDENTICAL) {
       if (args[0] instanceof OtherJvmObject other) {
         if (id() == other.id()) {
@@ -114,9 +119,6 @@ final class OtherJvmObject implements TruffleObject {
       }
     }
     if (message.getLibraryClass() != InteropLibrary.class
-        || IS_STRING == message
-        || HAS_LANGUAGE == message
-        || GET_LANGUAGE == message
         || HAS_SOURCE_LOCATION == message
         || GET_SOURCE_LOCATION == message
         || IS_IDENTICAL_OR_UNDEFINED == message) {
@@ -128,42 +130,23 @@ final class OtherJvmObject implements TruffleObject {
       if (message == IS_META_OBJECT) {
         return OtherInteropType.isMetaObject(mask);
       }
-      if (message == HAS_META_PARENTS || message == GET_META_PARENTS) {
+      if (message == IS_STRING) {
+        return OtherInteropType.isString(mask);
+      }
+      if (message == HAS_META_PARENTS) {
+        return switch (metaParents(self, message, args)) {
+          case OtherJvmObject[] _ -> true;
+          default -> false;
+        };
+      }
+      if (message == GET_META_PARENTS) {
         if (!OtherInteropType.isMetaObject(mask)) {
           throw UnsupportedMessageException.create();
         }
-        if (cachedMetaParents == null) {
-          var msg = new OtherJvmMessage(id, GET_META_PARENTS, List.of());
-          var reply = executeMessage(msg, message, args);
-          try {
-            var arr = reply.value();
-            var iop = InteropLibrary.getUncached();
-            var len = Math.toIntExact(iop.getArraySize(arr));
-            var copy = new OtherJvmObject[len];
-            for (var i = 0; i < len; i++) {
-              copy[i] = (OtherJvmObject) iop.readArrayElement(arr, i);
-            }
-            cachedMetaParents = copy;
-          } catch (UnsupportedMessageException ex) {
-            cachedMetaParents = ex;
-          }
-        }
-        return switch (cachedMetaParents) {
-          case UnsupportedMessageException ex -> {
-            if (message == GET_META_PARENTS) {
-              yield new OtherArray();
-            } else {
-              yield false;
-            }
-          }
-          case OtherJvmObject[] arr -> {
-            if (message == GET_META_PARENTS) {
-              yield new OtherArray(arr);
-            } else {
-              yield true;
-            }
-          }
-          default -> throw new IllegalStateException();
+        return switch (metaParents(self, message, args)) {
+          case UnsupportedMessageException _ -> new OtherArray();
+          case OtherJvmObject[] arr -> new OtherArray(arr);
+          default -> throw UnsupportedMessageException.create();
         };
       }
       if (message == GET_META_QUALIFIED_NAME && metaQualifiedName != null) {
@@ -178,8 +161,8 @@ final class OtherJvmObject implements TruffleObject {
       if (message == HAS_HASH_ENTRIES) {
         return OtherInteropType.hasHashEntries(mask);
       }
-      if (message == HAS_ARRAY_ELEMENTS) {
-        return OtherInteropType.hasArrayElements(mask);
+      if (message == HAS_BUFFER_ELEMENTS) {
+        return OtherInteropType.hasBufferElements(mask);
       }
       if (message == IS_TIME) {
         return OtherInteropType.isTime(mask);
@@ -196,13 +179,44 @@ final class OtherJvmObject implements TruffleObject {
       if (message == FITS_IN_BIG_INTEGER) {
         return OtherInteropType.fitsBigInteger(mask);
       }
+      if (HAS_LANGUAGE == message) {
+        return true;
+      }
+      if (GET_LANGUAGE == message) {
+        return OtherLanguage.class;
+      }
 
       // proper dispatch to the other JVM
       var msg = new OtherJvmMessage(id, message, Arrays.asList(args));
-      var reply = executeMessage(msg, message, args);
-      var result = reply.value();
-      return result;
+      try {
+        var reply = executeMessage(msg, message, args);
+        var result = reply.value(self);
+        return result;
+      } catch (IllegalStateException ex) {
+        CompilerDirectives.transferToInterpreter();
+        throw new OtherJvmException(ex);
+      }
     }
+  }
+
+  private Object metaParents(Node who, Message message, Object[] args) throws Exception {
+    if (cachedMetaParents == null) {
+      var msg = new OtherJvmMessage(id, GET_META_PARENTS, List.of());
+      var reply = executeMessage(msg, message, args);
+      try {
+        var arr = reply.value(who);
+        var iop = InteropLibrary.getUncached();
+        var len = Math.toIntExact(iop.getArraySize(arr));
+        var copy = new OtherJvmObject[len];
+        for (var i = 0; i < len; i++) {
+          copy[i] = (OtherJvmObject) iop.readArrayElement(arr, i);
+        }
+        cachedMetaParents = copy;
+      } catch (UnsupportedMessageException ex) {
+        cachedMetaParents = ex;
+      }
+    }
+    return cachedMetaParents;
   }
 
   private OtherJvmResult<?, ?> executeMessage(OtherJvmMessage msg, Message message, Object[] args) {
@@ -233,6 +247,8 @@ final class OtherJvmObject implements TruffleObject {
     if (metaQualifiedName != null) {
       out.writeBoolean(true);
       out.writeUTF(metaQualifiedName);
+    } else {
+      out.writeBoolean(false);
     }
   }
 
@@ -286,16 +302,9 @@ final class OtherJvmObject implements TruffleObject {
       }
       case TruffleObject foreign -> {
         var iop = InteropLibrary.getUncached();
-        if (iop.isString(foreign)) {
-          try {
-            yield iop.asString(foreign);
-          } catch (UnsupportedMessageException ex) {
-            // let it be and return normal delegate
-          }
-        }
         var mask = OtherInteropType.findType(foreign);
-        if (OtherInteropType.isNull(mask)) {
-          yield new OtherJvmObject(null, 0, mask);
+        if (isHostNull(mask, foreign)) {
+            yield new OtherJvmObject(null, 0, mask);
         }
         var meta = OtherInteropType.isMetaObject(mask);
         var id = registerObject.apply(foreign, meta);
@@ -318,6 +327,20 @@ final class OtherJvmObject implements TruffleObject {
 
   final boolean assertChannel(Channel ch) {
     return ch == channel;
+  }
+
+  private static boolean isHostNull(short mask, Object foreign) {
+    var iop = InteropLibrary.getUncached();
+    if (OtherInteropType.isNull(mask)) {
+      try {
+        if (iop.hasLanguage(foreign) && iop.getLanguage(foreign).getSimpleName().equals("HostLanguage")) {
+          return true;
+        }
+      } catch (UnsupportedMessageException ex) {
+        // not a host language null
+      }
+    }
+    return false;
   }
 
   private static final class Ref extends WeakReference<OtherJvmObject> {

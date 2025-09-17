@@ -339,9 +339,8 @@ impl<'s> CompoundTokenBuilder<'s> for AutoscopeBuilder<'s> {
             token::Variant::Ident(ident) if !token.is_spaced() => {
                 let Self { operator } = self;
                 let token = token.with_variant(ident);
-                let error = (!token.variant.is_type).then_some(
-                    "The auto-scope operator may only be applied to a capitalized identifier.",
-                );
+                let error = (!token.variant.is_type)
+                    .then_some(SyntaxError::AutoscopeUnexpectedUncapitalizedIdentifier);
                 let autoscope_application = Tree::autoscoped_identifier(operator, token);
                 Step::Complete(maybe_with_error(autoscope_application, error))
             }
@@ -357,7 +356,7 @@ impl<'s> CompoundTokenBuilder<'s> for AutoscopeBuilder<'s> {
 impl<'s> AutoscopeBuilder<'s> {
     fn into_error(self) -> Tree<'s> {
         let Self { operator } = self;
-        token_to_error(operator, "The autoscope operator must be applied to an identifier.")
+        token_to_error(operator, SyntaxError::AutoscopeExpectedIdent)
     }
 }
 
@@ -366,9 +365,6 @@ impl<'s> AutoscopeBuilder<'s> {
 // === Helpers ===
 // ===============
 
-fn token_to_error<'s>(
-    token: impl Into<Token<'s>>,
-    error: impl Into<Cow<'static, str>>,
-) -> Tree<'s> {
+fn token_to_error<'s>(token: impl Into<Token<'s>>, error: SyntaxError) -> Tree<'s> {
     syntax::tree::to_ast(token.into()).with_error(error)
 }

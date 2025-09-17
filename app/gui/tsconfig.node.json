@@ -33,6 +33,8 @@
     "src/project-view/util/ast/index.ts",
     "src/project-view/util/ast/match.ts",
     "src/project-view/util/assert.ts",
+    "src/project-view/util/projectPath.ts",
+    "src/project-view/components/GraphEditor/widgets/WidgetFunction/consts.ts",
     "src/providers/featureFlags.ts",
     "src/providers/session/constants.ts",
     "src/utils/zustand.ts",

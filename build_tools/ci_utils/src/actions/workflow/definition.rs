@@ -1016,6 +1016,11 @@ impl Step {
         }
         self
     }
+
+    pub fn with_shell(mut self, shell: impl Into<Shell>) -> Self {
+        self.shell = Some(shell.into());
+        self
+    }
 }
 
 pub fn github_token_env() -> (String, String) {

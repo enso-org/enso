@@ -49,15 +49,7 @@ const PROPS_FOR_PLAN: { readonly [PlanVariant in Plan]: PropsForPlan } = {
       const { getText } = useText()
 
       return (
-        <Button
-          fullWidth
-          variant="outline"
-          size="medium"
-          rounded="full"
-          onPress={() => {
-            window.open(getContactPage(), '_blank')?.focus()
-          }}
-        >
+        <Button fullWidth variant="outline" size="medium" rounded="full" href={getContactPage()}>
           {getText('contactUs')}
         </Button>
       )

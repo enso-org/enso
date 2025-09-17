@@ -49,6 +49,13 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
   private readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
+  private readonly constructorFields = new ReactiveIndex(this, (id, entry) => {
+    if (entry.kind !== SuggestionKind.Constructor) return []
+    const fields = entry.arguments.map((arg) => arg.name)
+    const path = entry.memberOf
+    const fieldKeys = fields.map((field) => constructorFieldKey(path, field))
+    return Array.from(fieldKeys, (key) => [key, id])
+  })
 
   /** Constructor. */
   constructor() {
@@ -72,12 +79,31 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return [...iter.filter(allTypeEntries, isUserSelectableType)]
   })
 
-  /** Returns methods with the specified `self` type that are not private. */
-  selectableMethods(selfType: ProjectPath): IterableIterator<MethodSuggestionEntry> {
-    return iter.filter(
-      this.getAllEntriesOfKind(SuggestionKind.Method),
-      (method) => !method.isPrivate && selfType.equals(method.selfType),
-    )
+  /**
+   * Retrieve all methods, optionally filtered by the given criteria.
+   *
+   * PERFORMANCE: This function performs a linear search over all entries. Depending on usage
+   * pattern, a `ReactiveIndex` is likely to be more efficient.
+   */
+  methods(
+    filter: {
+      /** Whether to include private methods (false by default). */
+      includePrivate?: true
+      selfType?: ProjectPath | undefined
+      memberOf?: ProjectPath | undefined
+      /** If provided, includes only methods that pass the predicate. */
+      name?: (name: string) => boolean
+    } = {},
+  ): MethodSuggestionEntry[] {
+    const results: MethodSuggestionEntry[] = []
+    for (const method of this.getAllEntriesOfKind(SuggestionKind.Method)) {
+      if (!filter.includePrivate && method.isPrivate) continue
+      if (filter.selfType != null && !filter.selfType.equals(method.selfType)) continue
+      if (filter.memberOf != null && !filter.memberOf.equals(method.memberOf)) continue
+      if (filter.name != null && !filter.name(method.name)) continue
+      results.push(method)
+    }
+    return results
   }
 
   dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
@@ -118,6 +144,11 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return entry && entryIsCallable(entry) ? entry : undefined
   }
 
+  /** Get a list of constructors for `type` that have an argument named `field`. */
+  lookupConstructorField(type: ProjectPath, field: string): Set<SuggestionId> {
+    return this.constructorFields.lookup(constructorFieldKey(type, field))
+  }
+
   /** Returns the entry's ancestors, starting with its parent. */
   *ancestors(entry: SuggestionEntry): Iterable<ProjectPath> {
     while (entry.kind === SuggestionKind.Type && entry.parentType) {
@@ -127,6 +158,11 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
       entry = parent
     }
   }
+}
+
+/** Helper for serializing keys of `constructorFields` index. */
+function constructorFieldKey(type: ProjectPath, field: string): string {
+  return `${type.key()}#${field}`
 }
 
 /**

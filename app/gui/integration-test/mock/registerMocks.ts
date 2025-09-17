@@ -4,7 +4,7 @@ import LATEST_GITHUB_RELEASES from './data/latestGithubReleases.json' with { typ
 
 /** Execute registration hooks for all playwright mocks that are shared across all tests. */
 export async function registerMocks(page: Page): Promise<void> {
-  await Promise.all([mockDate(page), mockAllAnimations(page), mockUnneededUrls(page)])
+  await Promise.all([mockDate(page), mockUnneededUrls(page)])
 }
 
 /** A placeholder date for visual regression testing. */
@@ -28,20 +28,6 @@ async function mockDate(page: Page) {
         const __DateNow = Date.now;
         Date.now = () => __DateNow() + __DateNowOffset;
     }`)
-  })
-}
-
-/** Mock all animations. */
-async function mockAllAnimations(page: Page) {
-  await test.step('Mock all animations', async () => {
-    await page.addInitScript({
-      content: `
-        window.DISABLE_ANIMATIONS = true;
-        document.addEventListener('DOMContentLoaded', () => {
-          document.documentElement.classList.add('disable-animations')
-        })
-      `,
-    })
   })
 }
 

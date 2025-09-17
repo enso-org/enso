@@ -11,14 +11,17 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Function;
-import org.apache.poi.UnsupportedFileFormatException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
+import org.apache.poi.poifs.filesystem.NotOLE2FileException;
+import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.base.cache.ReloadDetector;
 import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
@@ -65,20 +68,30 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
                   + existingRecord.format
                   + ".");
         }
-
-        existingRecord.refCount++;
-
         return new ReadOnlyExcelConnection(this, key, existingRecord);
       } else {
         // Create the new record
         ConnectionRecord record = new ConnectionRecord();
-        record.refCount = 1;
         record.file = file;
         record.format = format;
         record.reopen(true);
         records.put(key, record);
         return new ReadOnlyExcelConnection(this, key, record);
       }
+    }
+  }
+
+  public synchronized void closeConnection(File file, ExcelFileFormat format) throws IOException {
+    if (isCurrentlyWriting) {
+      throw new IllegalStateException(
+          "Cannot close a Excel connection while an Excel file is being "
+              + "written to. This is a bug in the Table library.");
+    }
+    String key = getKeyForFile(file);
+    ConnectionRecord existingRecord = records.get(key);
+    if (existingRecord != null) {
+      existingRecord.close();
+      records.remove(key);
     }
   }
 
@@ -120,6 +133,11 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
               workbook.write(workbookOut);
             }
           }
+        }
+
+        // If we used the streaming workbook, ensure temp files are deleted.
+        if (workbook instanceof SXSSFWorkbook sxssf) {
+          sxssf.dispose();
         }
 
         return result;
@@ -206,16 +224,6 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
     return file.getCanonicalPath();
   }
 
-  void release(ReadOnlyExcelConnection excelConnection) throws IOException {
-    synchronized (this) {
-      excelConnection.record.refCount--;
-      if (excelConnection.record.refCount <= 0) {
-        excelConnection.record.close();
-        records.remove(excelConnection.key);
-      }
-    }
-  }
-
   private final HashMap<String, ConnectionRecord> records = new HashMap<>();
   private boolean isCurrentlyWriting = false;
 
@@ -241,7 +249,6 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   }
 
   static class ConnectionRecord {
-    private int refCount;
     private File file;
     private ExcelFileFormat format;
     private ExcelWorkbook workbook;
@@ -271,10 +278,20 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
         }
 
         try {
-          workbook =
-              format == ExcelFileFormat.XLSX
-                  ? new XSSFReaderWorkbook(file.getAbsolutePath())
-                  : ExcelWorkbook.forPOIUserModel(openWorkbook(file, format, false));
+          try {
+            workbook =
+                format == ExcelFileFormat.XLSX
+                    ? new XSSFReaderWorkbook(file.getAbsolutePath())
+                    : ExcelWorkbook.forPOIUserModel(openWorkbook(file, format, false));
+          } catch (OLE2NotOfficeXmlFileException e) {
+            throw new IOException(
+                "Invalid format encountered when opening the file " + file + " as " + format + ".",
+                e);
+          } catch (NotOLE2FileException e) {
+            throw new IOException(
+                "Invalid format encountered when opening the file " + file + " as " + format + ".",
+                e);
+          }
         } catch (IOException e) {
           initializationException = e;
           if (throwOnFailure) {
@@ -307,15 +324,21 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
       throws IOException {
     return switch (format) {
       case XLS -> {
-        boolean readOnly = !writeAccess;
-        POIFSFileSystem fs = new POIFSFileSystem(file, readOnly);
         try {
-          // If the initialization succeeds, the POIFSFileSystem will be closed by the
-          // HSSFWorkbook::close.
-          yield new HSSFWorkbook(fs);
-        } catch (IOException e) {
-          fs.close();
-          throw e;
+          boolean readOnly = !writeAccess;
+          POIFSFileSystem fs = new POIFSFileSystem(file, readOnly);
+          try {
+            // If the initialization succeeds, the POIFSFileSystem will be closed by the
+            // HSSFWorkbook::close.
+            yield new HSSFWorkbook(fs);
+          } catch (IOException e) {
+            fs.close();
+            throw e;
+          }
+        } catch (OfficeXmlFileException | OLE2NotOfficeXmlFileException e) {
+          throw new IOException(
+              "Invalid format encountered when opening the file " + file + " as " + format + ".",
+              e);
         }
       }
       case XLSX, XLSX_FALLBACK -> {
@@ -328,7 +351,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
             pkg.close();
             throw e;
           }
-        } catch (InvalidFormatException e) {
+        } catch (InvalidFormatException | OLE2NotOfficeXmlFileException e) {
           throw new IOException(
               "Invalid format encountered when opening the file " + file + " as " + format + ".",
               e);
@@ -340,11 +363,11 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   private static Workbook createEmptyWorkbook(ExcelFileFormat format) {
     return switch (format) {
       case XLS -> new HSSFWorkbook();
-      case XLSX, XLSX_FALLBACK -> new XSSFWorkbook();
+      case XLSX, XLSX_FALLBACK -> new SXSSFWorkbook();
     };
   }
 
-  public static class ExcelFileFormatMismatchException extends UnsupportedFileFormatException {
+  public static class ExcelFileFormatMismatchException extends IllegalArgumentException {
     public ExcelFileFormatMismatchException(String message) {
       super(message);
     }

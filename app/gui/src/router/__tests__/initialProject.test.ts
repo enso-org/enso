@@ -45,12 +45,14 @@ function mockBackends(plan: Plan, localHome: AssetEntry[] = [], cloudHome: Asset
   return {
     localBackend: {
       rootPath: () => Path(LOCAL_ROOT_PATH),
-      listDirectory: () => Promise.resolve(localHome as AnyRealAsset[]),
+      listDirectory: () =>
+        Promise.resolve({ assets: localHome as AnyRealAsset[], paginationToken: null }),
     },
     remoteBackend: {
       rootPath: () =>
         plan === Plan.free || plan === Plan.solo ? Path(CLOUD_ROOT_PATH) : Path('enso://'),
-      listDirectory: () => Promise.resolve(cloudHome as AnyRealAsset[]),
+      listDirectory: () =>
+        Promise.resolve({ assets: cloudHome as AnyRealAsset[], paginationToken: null }),
     },
   }
 }

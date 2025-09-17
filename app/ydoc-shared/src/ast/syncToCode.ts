@@ -30,6 +30,7 @@ import {
   rewriteRefs,
   syncFields,
   syncNodeMetadata,
+  visitRecursive,
 } from './tree'
 
 /**
@@ -220,7 +221,7 @@ function syncTree(
     newRoot.fields.set('metadata', target.fields.get('metadata').clone())
     target.fields.get('metadata').set('externalId', newExternalId())
   }
-  newRoot.visitRecursive((ast) => {
+  visitRecursive(newRoot, (ast) => {
     const syncFieldsFrom = toSync.get(ast.id)
     const editAst = edit.getVersion(ast)
     if (syncFieldsFrom) {

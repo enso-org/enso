@@ -12,7 +12,6 @@ import * as projectManager from '#/services/ProjectManager'
 import type { ProjectManager } from '#/services/ProjectManager/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { unsafeEntries } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
 import { PRODUCT_NAME } from 'enso-common'
@@ -119,10 +118,10 @@ export default class LocalBackend extends Backend {
    * @throws An error if the JSON-RPC call fails.
    */
   override async listDirectory(
-    query: backend.ListDirectoryRequestParams,
-  ): Promise<readonly backend.AnyRealAsset[]> {
+    query: backend.ListDirectoryRequestParams & { readonly recursive?: boolean },
+  ): Promise<backend.ListDirectoryResponseBody> {
     if (query.filterBy != null && query.filterBy !== backend.FilterBy.active) {
-      return []
+      return { assets: [], paginationToken: null }
     }
     const { rootPath = this.rootPath() } = query
     const parentIdRaw =
@@ -133,80 +132,76 @@ export default class LocalBackend extends Backend {
     let result: backend.AnyRealAsset[] = []
     try {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
-      result = (
-        await Promise.all(
-          entries.map(async (entry) => {
-            const virtualParentsPath = entry.path
-              .replace(rootPath, '')
-              .replace(/^[/\\]|[/\\]$/g, '')
+      result = await Promise.all(
+        entries.map(async (entry) => {
+          const virtualParentsPath = entry.path.replace(rootPath, '').replace(/^[/\\]|[/\\]$/g, '')
 
-            const parentsPath = (() => {
-              const parentsPathArray: backend.DirectoryId[] =
-                entry.path.startsWith(rootPath) ? [newDirectoryId(rootPath)] : []
-              const splitPath = virtualParentsPath.split('/')
-              let previousPath = entry.path.startsWith(rootPath) ? rootPath : backend.Path('')
-              for (const directory of splitPath) {
-                if (directory === '') continue
-                previousPath = backend.Path((previousPath + '/' + directory).replace(/\/$/g, ''))
-                parentsPathArray.push(newDirectoryId(previousPath))
-              }
-              return parentsPathArray.slice(0, -1).join('/')
-            })()
-
-            const ensoPathRaw = normalizePath(entry.path)
-            const ensoPath = backend.EnsoPath(ensoPathRaw)
-            const shared = {
-              permissions: [],
-              projectState: null,
-              extension: null,
-              parentsPath: backend.ParentsPath(parentsPath),
-              virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
-              ensoPath,
-            } satisfies Partial<backend.DirectoryAsset>
-
-            switch (entry.type) {
-              case 'DirectoryEntry': {
-                const id = newDirectoryId(entry.path)
-
-                return {
-                  ...shared,
-                  id,
-                  type: backend.AssetType.directory,
-                  modifiedAt: entry.attributes.lastModifiedTime,
-                  parentId,
-                  title: getFileName(entry.path),
-                } satisfies backend.DirectoryAsset
-              }
-              case 'ProjectEntry': {
-                return {
-                  ...shared,
-                  type: backend.AssetType.project,
-                  id: newProjectId(entry.path),
-                  title: entry.metadata.name,
-                  modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
-                  parentId,
-                  projectState: {
-                    type:
-                      (await this.projectManager.getProject(entry.path))?.state ??
-                      backend.ProjectState.closed,
-                  },
-                } satisfies backend.ProjectAsset
-              }
-              case 'FileEntry': {
-                return {
-                  ...shared,
-                  type: backend.AssetType.file,
-                  id: newFileId(entry.path),
-                  title: getFileName(entry.path),
-                  modifiedAt: entry.attributes.lastModifiedTime,
-                  parentId,
-                  extension: fileExtension(entry.path),
-                } satisfies backend.FileAsset
-              }
+          const parentsPath = (() => {
+            const parentsPathArray: backend.DirectoryId[] =
+              entry.path.startsWith(rootPath) ? [newDirectoryId(rootPath)] : []
+            const splitPath = virtualParentsPath.split('/')
+            let previousPath = entry.path.startsWith(rootPath) ? rootPath : backend.Path('')
+            for (const directory of splitPath) {
+              if (directory === '') continue
+              previousPath = backend.Path((previousPath + '/' + directory).replace(/\/$/g, ''))
+              parentsPathArray.push(newDirectoryId(previousPath))
             }
-          }),
-        )
-      ).sort(backend.compareAssets)
+            return parentsPathArray.slice(0, -1).join('/')
+          })()
+
+          const ensoPathRaw = normalizePath(entry.path)
+          const ensoPath = backend.EnsoPath(ensoPathRaw)
+          const shared = {
+            permissions: [],
+            projectState: null,
+            extension: null,
+            parentsPath: backend.ParentsPath(parentsPath),
+            virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
+            ensoPath,
+          } satisfies Partial<backend.DirectoryAsset>
+
+          switch (entry.type) {
+            case 'DirectoryEntry': {
+              const id = newDirectoryId(entry.path)
+
+              return {
+                ...shared,
+                id,
+                type: backend.AssetType.directory,
+                modifiedAt: entry.attributes.lastModifiedTime,
+                parentId,
+                title: getFileName(entry.path),
+              } satisfies backend.DirectoryAsset
+            }
+            case 'ProjectEntry': {
+              return {
+                ...shared,
+                type: backend.AssetType.project,
+                id: newProjectId(entry.path),
+                title: entry.metadata.name,
+                modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
+                parentId,
+                projectState: {
+                  type:
+                    (await this.projectManager.getProject(entry.path))?.state ??
+                    backend.ProjectState.closed,
+                },
+              } satisfies backend.ProjectAsset
+            }
+            case 'FileEntry': {
+              return {
+                ...shared,
+                type: backend.AssetType.file,
+                id: newFileId(entry.path),
+                title: getFileName(entry.path),
+                modifiedAt: entry.attributes.lastModifiedTime,
+                parentId,
+                extension: fileExtension(entry.path),
+              } satisfies backend.FileAsset
+            }
+          }
+        }),
+      )
     } catch {
       // Failed so check if exists
       if (!(await this.projectManager.exists(parentIdRaw))) {
@@ -219,7 +214,48 @@ export default class LocalBackend extends Backend {
         }
       }
     }
-    return result
+    result.sort((a, b) => backend.compareAssets(a, b, query.sortExpression, query.sortDirection))
+    // This is SAFE as the only `PaginationToken`s returned from this class are created from `AssetId`s.
+    // eslint-disable-next-line no-restricted-syntax
+    const from = query.from as backend.AssetId | null
+    const index = from == null ? 0 : result.findIndex((asset) => asset.id === from) + 1
+    const assets = result.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
+    const last = assets.at(-1)
+    return {
+      assets,
+      paginationToken: last ? backend.PaginationToken(String(last.id)) : null,
+    }
+  }
+
+  /** Recursively search for assets in a directory. */
+  override async searchDirectory(
+    query: backend.SearchDirectoryRequestParams,
+  ): Promise<backend.ListDirectoryResponseBody> {
+    const result = await this.listDirectory({
+      parentId: query.parentId,
+      filterBy: null,
+      labels: query.labels,
+      sortDirection: query.sortDirection,
+      sortExpression: query.sortExpression,
+      recentProjects: false,
+      from: null,
+      pageSize: null,
+      recursive: true,
+    })
+    const fullAssetList = result.assets.filter(backend.doesAssetMatchQuery(query))
+    // This is SAFE as the only `PaginationToken`s returned from this class are created from `AssetId`s.
+    // eslint-disable-next-line no-restricted-syntax
+    const from = query.from as backend.AssetId | null
+    const index = from == null ? 0 : fullAssetList.findIndex((asset) => asset.id === from) + 1
+    const assets = fullAssetList.slice(
+      index,
+      query.pageSize != null ? index + query.pageSize : undefined,
+    )
+    const last = assets.at(-1)
+    return {
+      assets,
+      paginationToken: last ? backend.PaginationToken(String(last.id)) : null,
+    }
   }
 
   /**
@@ -276,14 +312,18 @@ export default class LocalBackend extends Backend {
   ) {
     const { path } = backend.extractTypeAndPath(assetId)
     const { directoryPath } = getDirectoryAndName(path)
-    const directoryContents = await this.listDirectory({
+    const { assets } = await this.listDirectory({
       parentId: newDirectoryId(directoryPath),
       filterBy: null,
       labels: null,
       recentProjects: false,
       rootPath: rootPath ?? this.rootPath(),
+      from: null,
+      pageSize: null,
+      sortDirection: null,
+      sortExpression: null,
     })
-    const entry = directoryContents.find((content) => content.id === assetId)
+    const entry = assets.find((content) => content.id === assetId)
     if (entry == null) {
       if (backend.isDirectoryId(assetId)) {
         throw new backend.DirectoryDoesNotExistError()
@@ -793,16 +833,12 @@ export default class LocalBackend extends Backend {
   override async exportArchive(
     params: backend.ExportArchiveParams,
   ): Promise<backend.ExportedArchive> {
-    const entries = unsafeEntries(params).flatMap<[string, string]>(([paramName, v]) =>
-      paramName === 'assetIds' ? v.map<[string, string]>((id) => ['asset', id])
-      : v != null ? [[paramName, v]]
-      : [],
-    )
-    const searchParams = new URLSearchParams(entries).toString()
+    const { filePath, ...body } = params
+    const searchParams = new URLSearchParams(filePath != null ? { filePath } : {}).toString()
     const path = `${EXPORT_ARCHIVE_PATH}?${searchParams}`
     if (params.filePath != null) {
       // Assume it is Electron, copy files through Electron server directly
-      const response = await this.post<backend.ExportedArchive>(path, {})
+      const response = await this.post<backend.ExportedArchive>(path, body)
       if (!response.ok) {
         return this.throw(response, 'exportArchiveBackendError')
       }
@@ -1005,9 +1041,14 @@ export default class LocalBackend extends Backend {
       filterBy: null,
       labels: null,
       recentProjects: false,
+      rootPath: this.rootPath(),
+      sortExpression: null,
+      sortDirection: null,
+      from: null,
+      pageSize: null,
     })
 
-    const entry = directoryContents.find((content) => content[key] === value)
+    const entry = directoryContents.assets.find((content) => content[key] === value)
 
     if (entry == null) {
       if (backend.isDirectoryId(value)) {

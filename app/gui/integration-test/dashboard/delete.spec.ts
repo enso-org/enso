@@ -137,7 +137,7 @@ test('clear trash (remote)', async ({ drivePage, cloudApi }) => {
       }
     })
     .driveTable.rightClickRow(0)
-    .contextMenu.moveAllToTrash()
+    .contextMenu.moveToTrash()
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
     .driveTable.withRows(async (rows) => {
@@ -171,7 +171,7 @@ test('clear trash (without directories) (remote)', async ({ drivePage, cloudApi 
       }
     })
     .driveTable.rightClickRow(0)
-    .contextMenu.moveAllToTrash()
+    .contextMenu.moveToTrash()
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
     .driveTable.withRows(async (rows) => {
