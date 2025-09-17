@@ -15,7 +15,7 @@ type SQLServer_Details
         - `host`: The name of the server to connect to.
         - `credentials`: The credentials to use for the connection.
         - `port`: The port to connect to (defaults to 1433).
-        - `database`: The name of the database to connect to.
+        - `database`: The name of the database to connect to (defaults to "master").
     @host (Text_Input display=..Always)
     @credentials Credentials.default_widget
     SQLServer (host:Text=(Missing_Argument.throw "host")) (credentials:Credentials=(Missing_Argument.throw "credentials")) port:Integer=1433 database:Text="master"

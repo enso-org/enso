@@ -223,10 +223,10 @@ type SQL_IR_Source_Extension
     ## A recipe for building the extension.
 
        ## Arguments
-        - `part_name`: Should be initilised with SQL_Part.Extension
+        - `part_name`: Should be initialised with SQL_Part.Extension
           "<<extension_description>>" where extension_description is a
           description of this extension. SQL_Part.Extension
-          "<<extenion_descption>>" then needs to be added to get_part_order to
+          "<<extension_description>>" then needs to be added to get_part_order to
           determine where in the final SQL query this extension should be placed.
         - `expressions`: Sub-expressions needed for the part. They will be
           generated and the results of that will be passed to `run_generator`.
