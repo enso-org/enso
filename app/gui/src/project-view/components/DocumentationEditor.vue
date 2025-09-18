@@ -85,7 +85,7 @@ const editorMarkdown = computed(() =>
 )
 const editorContent = computed(() => unwrapOr(editorMarkdown.value, undefined))
 
-const { syncExt, connectSync } = useYTextSync(editorContent)
+const { syncExt, connectSync } = useYTextSync(editorContent, 'local:userAction:DocEditor')
 const editorPersistenceExt = editorPersistence({
   documentViewId: useDocumentViewId({
     projectId,

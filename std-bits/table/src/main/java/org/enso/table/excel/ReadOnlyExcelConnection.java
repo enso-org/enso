@@ -22,8 +22,6 @@ public class ReadOnlyExcelConnection implements AutoCloseable {
       // already closed
       return;
     }
-
-    myPool.release(this);
     record = null;
   }
 

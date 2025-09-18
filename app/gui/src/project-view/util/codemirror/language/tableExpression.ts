@@ -9,7 +9,7 @@ import type { QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { Extension } from '@codemirror/state'
 import { tableExpression, type MethodCompletionInfo } from 'lezer-enso-table-expr'
-import { computed, toRef, toValue, type Ref } from 'vue'
+import { computed, toRef, toValue } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 
 export interface TableExpressionExtensionOptions {
@@ -21,30 +21,33 @@ export interface TableExpressionExtensionOptions {
 /** @returns a lazily initialized extension for the table expression language. */
 export function useTableExpressionExtension(
   options: TableExpressionExtensionOptions,
-): Readonly<Ref<Extension>> {
+): () => Extension {
   const { projectNames } = options
-  const project = toValue(options.project)
   const suggestionDb = toRef(options.suggestionDb)
-
-  const columnMethodEntries = computed(() =>
-    [...(suggestionDb.value?.selectableMethods(COLUMN_TYPE) ?? [])].filter(
-      (method) => !EXCLUDED_COLUMN_METHODS.has(method.name),
-    ),
-  )
-  const staticMethodEntries = computed(() => [
-    ...(suggestionDb.value?.typeMethods(EXPRESSION_STATICS_TYPE) ?? []),
-  ])
   const methodInfos = computed(() =>
-    [...columnMethodEntries.value, ...staticMethodEntries.value].map(methodInfoFromEntry),
+    suggestionDb.value == null ?
+      []
+    : Array.from(
+        new Map(
+          [
+            ...suggestionDb.value.methods(EXPRESSION_STATICS_METHODS),
+            ...suggestionDb.value.methods(COLUMN_METHODS),
+          ].map((entry) => [entry.name, entry]),
+        ).values(),
+        methodInfoFromEntry,
+      ),
   )
-
-  const columns =
-    project ?
-      useTableColumns({ project, projectNames, expressionId: useTableContext(true)?.externalId })
-    : undefined
-  return computed(() =>
-    tableExpression({ methods: () => methodInfos.value, columns: () => columns?.value ?? [] }),
-  )
+  return () => {
+    const project = toValue(options.project)
+    const columns =
+      project ?
+        useTableColumns({ project, projectNames, expressionId: useTableContext(true)?.externalId })
+      : undefined
+    return tableExpression({
+      methods: () => methodInfos.value,
+      columns: () => columns?.value ?? [],
+    })
+  }
 }
 
 const COLUMN_TYPE = ProjectPath.create(
@@ -57,6 +60,14 @@ const EXPRESSION_STATICS_TYPE = ProjectPath.create(
   'Internal.Expression_Statics.Expression_Statics' as QualifiedName,
 )
 
+const EXPRESSION_STATICS_METHODS = {
+  memberOf: EXPRESSION_STATICS_TYPE,
+}
+const COLUMN_METHODS = {
+  selfType: COLUMN_TYPE,
+  name: (name: string) => !EXCLUDED_COLUMN_METHODS.has(name),
+}
+
 function methodInfoFromEntry(entry: MethodSuggestionEntry): MethodCompletionInfo {
   return {
     name: entry.name,
@@ -66,18 +77,7 @@ function methodInfoFromEntry(entry: MethodSuggestionEntry): MethodCompletionInfo
 }
 
 const EXCLUDED_COLUMN_METHODS = new Set([
-  ///// Syntactic methods /////
-  // These methods are used to implement special syntaxes in the expression language. Some cannot
-  // syntactically be used as methods; others could legally be used, but the dedicated syntax is
-  // preferred.
-  'between',
-  'iif',
-  'is_in',
-  'is_nothing',
-  'like',
-  'not',
-  ///// Semantically excluded methods /////
-  // These methods are available for use on Column values but may not make sense in an Expression.
+  'iif', // Used to implement `if`; no reason to call it as a method.
   'info', // Technically works, probably not useful.
   'rename', // When used with `Column.set`, this is redundant and doesn't work.
   'to_table', // Does nothing, successfully but inefficiently.

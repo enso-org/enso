@@ -4,8 +4,7 @@
  */
 
 import diff from 'fast-diff'
-import type { ModuleUpdate } from 'ydoc-shared/ast'
-import { MutableModule, printWithSpans, spanMapToIdMap } from 'ydoc-shared/ast'
+import * as Ast from 'ydoc-shared/ast'
 import { EnsoFileParts } from 'ydoc-shared/ensoFile'
 import { TextEdit } from 'ydoc-shared/languageServerTypes'
 import { assert } from 'ydoc-shared/util/assert'
@@ -46,7 +45,7 @@ interface AppliedUpdates {
 export function applyDocumentUpdates(
   doc: ModuleDoc,
   synced: EnsoFileParts,
-  update: ModuleUpdate,
+  update: Ast.ModuleUpdate,
 ): AppliedUpdates {
   const codeChanged = update.nodesUpdated.size || update.nodesAdded.size || update.nodesDeleted.size
   let idsChanged = false
@@ -67,7 +66,7 @@ export function applyDocumentUpdates(
   let newCode = undefined
   let newMetadata: fileFormat.IdeMetadata | undefined = undefined
 
-  const syncModule = new MutableModule(doc.ydoc)
+  const syncModule = new Ast.MutableModule(doc.ydoc)
   const root = syncModule.root()
   assert(root != null)
 
@@ -79,7 +78,7 @@ export function applyDocumentUpdates(
       widget: {},
       import: {}, // "import" is required by older versions (even though they don't use it)
     }
-    root.visitRecursive((ast) => {
+    Ast.visitRecursive(root, (ast) => {
       let pos = ast.nodeMetadata.get('position')
       const vis = ast.nodeMetadata.get('visualization')
       const colorOverride = ast.nodeMetadata.get('colorOverride')
@@ -102,9 +101,9 @@ export function applyDocumentUpdates(
   }
 
   if (codeChanged || idsChanged || metadataChanged || synced.idMapJson == null) {
-    const { code, info } = printWithSpans(root)
+    const { code, info } = Ast.printWithSpans(root)
     if (codeChanged) newCode = code
-    const idMap = spanMapToIdMap(info)
+    const idMap = Ast.spanMapToIdMap(info)
     if (codeChanged || idsChanged || synced.idMapJson == null) newIdMap = idMap
     newPersistedIdMap = newMetadata && getIdMapToPersist(idMap, newMetadata)
   }

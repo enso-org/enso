@@ -205,3 +205,24 @@ export type DisjointKeysUnion<A, B> = keyof A & keyof B extends never ? A & B : 
 export type MergeValuesOfObjectUnion<T> = {
   [K in `${keyof T & string}`]: T[K & keyof T]
 }
+
+// ===============
+// === Records ===
+// ===============
+
+/**
+ * Returns the provided object with its prototype set to `null`, so that it can safely be used as a
+ * map. Similar to {@link kv}, with the additional feature that if the input is a constant object,
+ * its type is generalized to a `Record`, to support lookups of unknown keys.
+ */
+export function record<K extends string | number | symbol, V>(obj: Record<K, V>): Record<K, V> {
+  return kv(obj)
+}
+
+/**
+ * Returns the provided object with its prototype set to `null`, so that it can safely be used as a
+ * map.
+ */
+export function kv<T extends object>(obj: T): T {
+  return Object.assign(Object.create(null), obj)
+}

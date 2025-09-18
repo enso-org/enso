@@ -5,6 +5,7 @@ import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
 import * as stream from 'node:stream'
+import * as streamConsumers from 'node:stream/consumers'
 
 import createServer from 'create-servers'
 import * as mime from 'mime-types'
@@ -850,43 +851,63 @@ export class Server {
 
   /** Response handler for "download archive" endpoint. */
   async httpDownloadArchive(
-    _request: http.IncomingMessage,
+    request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,
   ) {
-    const assets = params.getAll('asset') as AssetId[]
-    const filePath = params.get('filePath')
-    const archive = this.apiArchiveStream(assets)
-    let promise: Promise<void> | undefined
-    if (filePath != null) {
-      promise = finished(archive.stream.pipe(createWriteStream(filePath)))
-    } else {
-      response.writeHead(HTTP_STATUS_OK, [
-        ['Content-Type', 'application/octet-stream'],
-        ...COOP_COEP_CORP_HEADERS,
-      ])
-      await finished(archive.stream.pipe(response))
-    }
-
-    if (filePath == null) {
-      // The HTTP headers were already sent
-      return
-    }
-    const error = await archive.promise
-    if (error) {
-      const content = JSON.stringify({ error: `Asset '${error.id}' not found` })
-      response
-        .writeHead(HTTP_STATUS_NOT_FOUND, [
-          ['Content-Length', String(content.length)],
-          ['Content-Type', 'application/json'],
+    try {
+      // This is SAFE because it is wrapped in a try-catch.
+      // If the body is not valid JSON, an error will be thrown and handled.
+      const body = await streamConsumers.json(request)
+      const assetIds =
+        (
+          typeof body === 'object' &&
+          body &&
+          'assetIds' in body &&
+          Array.isArray(body.assetIds) &&
+          body.assetIds.every((id) => typeof id === 'string')
+        ) ?
+          body.assetIds.map((id) => AssetId(id))
+        : null
+      if (!assetIds) {
+        this.httpError(response, 'Asset IDs invalid or missing.')
+        return
+      }
+      const filePath = params.get('filePath')
+      const archive = this.apiArchiveStream(assetIds)
+      let promise: Promise<void> | undefined
+      if (filePath != null) {
+        promise = finished(archive.stream.pipe(createWriteStream(filePath)))
+      } else {
+        response.writeHead(HTTP_STATUS_OK, [
+          ['Content-Type', 'application/octet-stream'],
           ...COOP_COEP_CORP_HEADERS,
         ])
-        .end(content)
+        await finished(archive.stream.pipe(response))
+      }
+
+      if (filePath == null) {
+        // The HTTP headers were already sent
+        return
+      }
+      const error = await archive.promise
+      if (error) {
+        const content = JSON.stringify({ error: `Asset '${error.id}' not found` })
+        response
+          .writeHead(HTTP_STATUS_NOT_FOUND, [
+            ['Content-Length', String(content.length)],
+            ['Content-Type', 'application/json'],
+            ...COOP_COEP_CORP_HEADERS,
+          ])
+          .end(content)
+      }
+      await promise
+      this.httpOkJson<ExportedArchive>(response, {
+        filePath: Path(filePath),
+      })
+    } catch (error) {
+      this.httpError(response, error instanceof Error ? error.message : String(error))
     }
-    await promise
-    this.httpOkJson<ExportedArchive>(response, {
-      filePath: Path(filePath),
-    })
   }
 
   /** Get details for an asset by its path. */

@@ -270,37 +270,37 @@ public class ErrorCompilerTest extends CompilerTests {
   @Test
   public void malformedImport3() throws Exception {
     var ir = parse("import Foo as Foo, Bar");
-    assertSingleSyntaxError(ir, invalidImport("Expected identifier."), null, 14, 22);
+    assertSingleSyntaxError(ir, invalidImport("Expected identifier"), null, 14, 22);
   }
 
   @Test
   public void malformedImport4() throws Exception {
     var ir = parse("import Foo as Foo.Bar");
-    assertSingleSyntaxError(ir, invalidImport("Expected identifier."), null, 14, 21);
+    assertSingleSyntaxError(ir, invalidImport("Expected identifier"), null, 14, 21);
   }
 
   @Test
   public void malformedImport5() throws Exception {
     var ir = parse("import Foo as");
-    assertSingleSyntaxError(ir, invalidImport("Expected tokens."), null, 13, 13);
+    assertSingleSyntaxError(ir, invalidImport("Expected tokens"), null, 13, 13);
   }
 
   @Test
   public void malformedImport6() throws Exception {
     var ir = parse("import Foo as Bar.Baz");
-    assertSingleSyntaxError(ir, invalidImport("Expected identifier."), null, 14, 21);
+    assertSingleSyntaxError(ir, invalidImport("Expected identifier"), null, 14, 21);
   }
 
   @Test
   public void malformedImport7() throws Exception {
     var ir = parse("import Foo hiding");
-    assertSingleSyntaxError(ir, invalidImport("Expected qualified name."), null, 7, 17);
+    assertSingleSyntaxError(ir, invalidImport("Expected qualified name"), null, 7, 17);
   }
 
   @Test
   public void malformedImport8() throws Exception {
     var ir = parse("import Foo hiding X,");
-    assertSingleSyntaxError(ir, invalidImport("Malformed comma-delimited sequence."), null, 7, 20);
+    assertSingleSyntaxError(ir, invalidImport("Malformed comma-delimited sequence"), null, 7, 20);
   }
 
   @Test
@@ -331,25 +331,25 @@ public class ErrorCompilerTest extends CompilerTests {
   @Test
   public void malformedImport11() throws Exception {
     var ir = parse("from import all");
-    assertSingleSyntaxError(ir, invalidImport("Expected tokens."), null, 4, 4);
+    assertSingleSyntaxError(ir, invalidImport("Expected tokens"), null, 4, 4);
   }
 
   @Test
   public void malformedImport12() throws Exception {
     var ir = parse("from Foo import all hiding");
-    assertSingleSyntaxError(ir, invalidImport("Expected tokens."), null, 26, 26);
+    assertSingleSyntaxError(ir, invalidImport("Expected tokens"), null, 26, 26);
   }
 
   @Test
   public void malformedImport13() throws Exception {
     var ir = parse("from Foo import all hiding X.Y");
-    assertSingleSyntaxError(ir, invalidImport("Expected identifier."), null, 27, 30);
+    assertSingleSyntaxError(ir, invalidImport("Expected identifier"), null, 27, 30);
   }
 
   @Test
   public void malformedImport14() throws Exception {
     var ir = parse("from Foo import Some.Nested.Module.Path");
-    assertSingleSyntaxError(ir, invalidImport("Expected identifier."), null, 16, 39);
+    assertSingleSyntaxError(ir, invalidImport("Expected identifier"), null, 16, 39);
   }
 
   @Test
@@ -369,37 +369,37 @@ public class ErrorCompilerTest extends CompilerTests {
   @Test
   public void malformedExport3() throws Exception {
     var ir = parse("export Foo as Foo, Bar");
-    assertSingleSyntaxError(ir, invalidExport("Expected identifier."), null, 14, 22);
+    assertSingleSyntaxError(ir, invalidExport("Expected identifier"), null, 14, 22);
   }
 
   @Test
   public void malformedExport4() throws Exception {
     var ir = parse("export Foo as Foo.Bar");
-    assertSingleSyntaxError(ir, invalidExport("Expected identifier."), null, 14, 21);
+    assertSingleSyntaxError(ir, invalidExport("Expected identifier"), null, 14, 21);
   }
 
   @Test
   public void malformedExport5() throws Exception {
     var ir = parse("export Foo as");
-    assertSingleSyntaxError(ir, invalidExport("Expected tokens."), null, 13, 13);
+    assertSingleSyntaxError(ir, invalidExport("Expected tokens"), null, 13, 13);
   }
 
   @Test
   public void malformedExport6() throws Exception {
     var ir = parse("export Foo as Bar.Baz");
-    assertSingleSyntaxError(ir, invalidExport("Expected identifier."), null, 14, 21);
+    assertSingleSyntaxError(ir, invalidExport("Expected identifier"), null, 14, 21);
   }
 
   @Test
   public void malformedExport7() throws Exception {
     var ir = parse("export Foo hiding");
-    assertSingleSyntaxError(ir, invalidExport("Expected qualified name."), null, 7, 17);
+    assertSingleSyntaxError(ir, invalidExport("Expected qualified name"), null, 7, 17);
   }
 
   @Test
   public void malformedExport8() throws Exception {
     var ir = parse("export Foo hiding X,");
-    assertSingleSyntaxError(ir, invalidExport("Malformed comma-delimited sequence."), null, 7, 20);
+    assertSingleSyntaxError(ir, invalidExport("Malformed comma-delimited sequence"), null, 7, 20);
   }
 
   @Test

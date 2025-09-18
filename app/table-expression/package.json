@@ -15,6 +15,7 @@
     "vitest": "catalog:"
   },
   "dependencies": {
+    "enso-common": "workspace:*",
     "@codemirror/autocomplete": "catalog:",
     "@codemirror/language": "catalog:",
     "@codemirror/state": "catalog:",

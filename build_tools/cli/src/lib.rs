@@ -385,6 +385,7 @@ impl Processor {
             }
             arg::backend::Command::Test { which } => {
                 let mut config = enso_build::engine::BuildConfigurationFlags::default();
+                self.add_heapdump_opts(&mut config);
                 for arg in which {
                     match arg {
                         Tests::Jvm => {
@@ -543,6 +544,19 @@ impl Processor {
             Ok(enso_build::engine::RunContext { inner, config, paths, external_runtime: None })
         }
         .boxed()
+    }
+
+    /// Add options to produce heap dumps on OOM errors.
+    /// It is essential to pass the `-XX:+HeapDumpOnOutOfMemoryError` option both via
+    /// `JAVA_TOOL_OPTIONS` env var and as a command line argument to the runner.
+    /// For explanation, see https://github.com/enso-org/enso/pull/13984
+    fn add_heapdump_opts(&self, config: &mut enso_build::engine::BuildConfigurationFlags) {
+        let dump_arg = "-XX:+HeapDumpOnOutOfMemoryError";
+        config.add_java_tool_opt(dump_arg);
+        if TARGET_OS != OS::Windows {
+            // This flag is not supported on Windows NI.
+            config.add_engine_runner_arg(dump_arg);
+        }
     }
 
     /// Get a handle to the release by its identifier.

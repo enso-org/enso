@@ -354,7 +354,6 @@ jobs:
         run: xvfb-run corepack pnpm -r --filter enso ide-integration-test
         env:
           DEBUG: "pw:browser log:"
-          ENSO_TEST_APP_ARGS: --no-sandbox
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: failure()
         name: Upload Test Traces

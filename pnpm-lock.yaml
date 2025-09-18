@@ -867,6 +867,9 @@ importers:
       '@lezer/lr':
         specifier: ^1.3.0
         version: 1.4.2
+      enso-common:
+        specifier: workspace:*
+        version: link:../common
       vue:
         specifier: '*'
         version: 3.5.13(typescript@5.7.2)

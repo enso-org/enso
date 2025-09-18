@@ -28,7 +28,7 @@ public class PolyglotErrorTest {
         """
     import Standard.Base.Panic.Panic
     import Standard.Base.Data.Text.Text
-    import Standard.Base.Error.Error
+    from Standard.Base.Error import all
     import Standard.Base.Errors.Illegal_State.Illegal_State
     import Standard.Base.Nothing.Nothing
     import Standard.Base.Warning.Warning
