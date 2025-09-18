@@ -36,8 +36,8 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const driveStore = useDriveStore()
 
   const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
-  const setIsEditing = (isEditingName: boolean) => {
-    if (isEditingName) {
+  const setIsEditing = (isEditing: boolean) => {
+    if (isEditing) {
       if (isEditable) {
         driveStore.setState({ assetToRename: item.id })
       }

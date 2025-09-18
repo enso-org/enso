@@ -29,11 +29,11 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const getAssetChildren = useGetAssetChildren()
 
   const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
-  const setIsEditing = (isEditingName: boolean) => {
-    if (isEditable && isEditingName) {
+  const setIsEditing = (isEditing: boolean) => {
+    if (isEditable && isEditing) {
       driveStore.setState({ assetToRename: item.id })
     }
-    if (!isEditingName) {
+    if (!isEditing) {
       driveStore.setState({ assetToRename: null })
     }
   }

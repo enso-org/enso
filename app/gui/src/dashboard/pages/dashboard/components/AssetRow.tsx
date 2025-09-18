@@ -1,5 +1,5 @@
 /** @file A table row for an arbitrary asset. */
-import { ContextMenuApi } from '#/components/ContextMenu'
+import type { ContextMenuApi } from '#/components/ContextMenu'
 import {
   useDeleteAssetsMutationState,
   useMoveAssetsMutationState,

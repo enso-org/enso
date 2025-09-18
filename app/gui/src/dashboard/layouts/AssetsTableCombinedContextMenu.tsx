@@ -2,15 +2,16 @@
  * @file Switches between {@link AssetContextMenu}
  * and {@link AssetsTableContextMenu} as necessary.
  */
-import { ContextMenuApi } from '#/components/ContextMenu'
+import type { ContextMenuApi } from '#/components/ContextMenu'
 import { useStore } from '#/hooks/storeHooks'
 import { AssetContextMenu } from '#/layouts/AssetContextMenu'
 import { AssetsTableContextMenu } from '#/layouts/AssetsTableContextMenu'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
-import { DirectoryId } from '#/services/Backend'
-import { ForwardedRef, forwardRef } from 'react'
+import type { DirectoryId } from '#/services/Backend'
+import { forwardRef, type ForwardedRef } from 'react'
 
+/** Props for an {@link AssetsTableCombinedContextMenu}. */
 export interface AssetsTableCombinedContextMenuProps {
   readonly currentDirectoryId: DirectoryId
   readonly doCopy: () => void

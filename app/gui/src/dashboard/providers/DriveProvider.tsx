@@ -87,9 +87,10 @@ export interface DirectoryPath {
   readonly name: string
 }
 
+/** Data for a context menu. */
 export interface ContextMenuData {
   readonly triggerRef: React.MutableRefObject<HTMLElement | null>
-  readonly initialContextMenuPosition: Pick<MouseEvent, "pageX" | "pageY"> | null
+  readonly initialContextMenuPosition: Pick<MouseEvent, 'pageX' | 'pageY'> | null
 }
 
 /** The state of this zustand store. */
