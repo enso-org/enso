@@ -312,18 +312,14 @@ final class BuiltinsRegistry {
       Map<String, LoadedBuiltinMetaMethod> methods = builtinMetaMethods.get(type.getName());
       if (methods != null) {
         // Register a builtin method iff it is marked as auto-register.
-        // Methods can only register under a type or, if we deal with a static method, it's
-        // eigen-type.
         // Such builtins are available on certain types without importing the whole stdlib, e.g. Any
         // or Number.
         methods.forEach(
             (key, value) -> {
-              Type tpe =
-                  value.isAutoRegister() ? (!value.isStatic() ? type : type.getEigentype()) : null;
-              if (tpe != null) {
+              if (value.isAutoRegister()) {
                 Supplier<Function> supplier =
                     () -> value.toMethod().toFunction(language, false).get().getFunction();
-                scope.registerMethod(tpe, key, supplier);
+                scope.registerMethod(type, key, supplier);
               }
             });
       }

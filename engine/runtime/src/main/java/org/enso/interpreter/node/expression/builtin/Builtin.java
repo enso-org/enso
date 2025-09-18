@@ -79,11 +79,8 @@ public abstract class Builtin {
         s.initialize(language, scope, builtins);
         supertype = s.getType();
       }
-      type =
-          containsValues()
-              ? Type.create(
-                  language, name, scope, supertype, builtins.get(Any.class).getType(), true, false)
-              : Type.createSingleton(name, scope, supertype, true, false);
+      type = Type.create(
+          language, name, scope, supertype, builtins.get(Any.class).getType(), true, false);
     }
     if (constructors == null) {
       var conses = getDeclaredConstructors();

@@ -331,7 +331,7 @@ public final class AtomConstructor extends EnsoObject {
           var function = new Function(callTarget, null, schemaBldr.build());
           return function;
         };
-    scopeBuilder.registerMethod(type.getEigentype(), this.name, futureFunction);
+    scopeBuilder.registerMethod(type, this.name, futureFunction);
     return futureFunction;
   }
 
