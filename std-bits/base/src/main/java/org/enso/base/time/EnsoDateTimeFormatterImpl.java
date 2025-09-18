@@ -59,6 +59,7 @@ final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
         FormatterKind.CONSTANT);
   }
 
+  @Override
   public EnsoDateTimeFormatter withLocale(Locale locale) {
     return new EnsoDateTimeFormatterImpl(
         formatter.withLocale(locale), isoReplacementPair, originalPattern, formatterKind);
@@ -95,6 +96,19 @@ final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
   }
 
   @Override
+  public String describe() {
+    return switch (formatterKind) {
+      case SIMPLE -> "Date_Time_Formatter.from_simple_pattern " + getOriginalPattern();
+      case ISO_WEEK_DATE -> "Date_Time_Formatter.from_iso_week_date_pattern "
+          + getOriginalPattern();
+      case RAW_JAVA -> originalPattern != null
+          ? "Date_Time_Formatter.from_java " + getOriginalPattern()
+          : "Date_Time_Formatter.from_java " + formatter.toString();
+      case CONSTANT -> "Date_Time_Formatter." + getOriginalPattern();
+    };
+  }
+
+  @Override
   public String toString() {
     return switch (formatterKind) {
       case SIMPLE -> originalPattern;
@@ -105,11 +119,13 @@ final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
     };
   }
 
+  @Override
   public LocalDate parseLocalDate(String dateString) {
     dateString = normaliseInput(dateString);
     return LocalDate.parse(dateString, formatter);
   }
 
+  @Override
   public ZonedDateTime parseZonedDateTime(String dateString) {
     dateString = normaliseInput(dateString);
 
@@ -146,23 +162,28 @@ final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
     }
   }
 
+  @Override
   public LocalTime parseLocalTime(String text) {
     text = normaliseInput(text);
     return LocalTime.parse(text, formatter);
   }
 
+  @Override
   public String formatLocalDate(LocalDate date) {
     return formatter.format(date);
   }
 
+  @Override
   public String formatZonedDateTime(ZonedDateTime dateTime) {
     return formatter.format(dateTime);
   }
 
+  @Override
   public String formatLocalDateTime(LocalDateTime dateTime) {
     return formatter.format(dateTime);
   }
 
+  @Override
   public String formatLocalTime(LocalTime time) {
     return formatter.format(time);
   }

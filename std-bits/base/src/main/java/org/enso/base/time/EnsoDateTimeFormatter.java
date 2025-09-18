@@ -14,6 +14,8 @@ import java.util.Locale;
  * making the `T` in ISO dates optional and tracking how it was constructed.
  */
 public interface EnsoDateTimeFormatter {
+  public String describe();
+
   public LocalDate parseLocalDate(String dateString);
 
   public ZonedDateTime parseZonedDateTime(String dateString);
