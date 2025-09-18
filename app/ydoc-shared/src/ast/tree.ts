@@ -1399,6 +1399,20 @@ export class TypeAnnotated extends BaseExpression {
     return asOwned(new MutableTypeAnnotated(module, fields))
   }
 
+  /** Create TypeAnnotated node. */
+  static new(
+    module: MutableModule,
+    expression: Owned<MutableExpression>,
+    typeNode: Owned<MutableExpression>,
+  ) {
+    return TypeAnnotated.concrete(
+      module,
+      autospaced(expression),
+      autospaced(Token.new(':', TokenType.TypeAnnotationOperator)),
+      autospaced(typeNode),
+    )
+  }
+
   /** The expression whose type is being annotated. */
   get expression(): Expression {
     return this.module.get(this.fields.get('expression').node) as Expression

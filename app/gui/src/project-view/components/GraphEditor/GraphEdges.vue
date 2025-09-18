@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import {
+  useGraphStore,
+  useProjectNames,
+  useProjectStore,
+} from '$/components/WithCurrentProject.vue'
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
@@ -15,6 +19,8 @@ import { Vec2 } from '@/util/data/vec2'
 import { toast } from 'react-toastify'
 import { computed } from 'vue'
 
+const project = useProjectStore()
+const projectNames = useProjectNames()
 const graph = useGraphStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
@@ -123,10 +129,20 @@ function createEdge(source: AstId, target: PortId) {
     toast.error('Could not connect due to circular dependency.')
   } else {
     const identAst = Ast.parseExpression(ident, edit)!
-    if (!graph.updatePortValue(edit, target, identAst)) {
+    const expectedType = graph.getPortExpectedType(target)
+    const connectionType = project.computedValueRegistry.getExpressionInfo(sourceNode)?.typeInfo
+    const targetType = connectionType?.hiddenTypes.find(
+      (type) => expectedType === projectNames.printProjectPath(type),
+    )
+    const targetTypeAst =
+      targetType ? Ast.parseExpression(projectNames.printProjectPath(targetType), edit) : undefined
+    const portValueToSet =
+      targetTypeAst ? Ast.TypeAnnotated.new(edit, identAst, targetTypeAst) : identAst
+
+    if (!graph.updatePortValue(edit, target, portValueToSet)) {
       if (isAstId(target)) {
         console.warn(`Failed to connect edge to port ${target}, falling back to direct edit.`)
-        edit.replaceValue(target, identAst)
+        edit.replaceValue(target, portValueToSet)
         graph.commitEdit(edit)
       } else {
         console.error(`Failed to connect edge to port ${target}, no fallback possible.`)
