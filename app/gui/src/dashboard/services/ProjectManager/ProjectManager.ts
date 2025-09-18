@@ -164,6 +164,7 @@ export class ProjectManager {
     if (cached) {
       return cached.data
     } else {
+      // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
       // eslint-disable-next-line react-hooks/rules-of-hooks
       const enableProjectService = useFeatureFlag('enableProjectService')
       let promise: Promise<OpenProject>
