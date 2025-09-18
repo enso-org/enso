@@ -1,7 +1,7 @@
 import { textEditorsCommonBindings } from '@/bindings'
 import { htmlToMarkdown } from '@/components/MarkdownEditor/htmlToMarkdown'
 import { putText } from '@/util/codemirror'
-import { CmEvent, handlerToKeyBinding } from '@/util/codemirror/keymap'
+import { handlerToKeyBinding, type CmEvent } from '@/util/codemirror/keymap'
 import { LINKABLE_URL_REGEX } from '@/util/link'
 import type { Extension } from '@codemirror/state'
 import { EditorView, keymap } from '@codemirror/view'

@@ -1,5 +1,5 @@
 import { Awareness } from '@/stores/awareness'
-import { ProjectFiles, useProjectFiles } from '@/stores/projectFiles'
+import { useProjectFiles, type ProjectFiles } from '@/stores/projectFiles'
 import { Vec2 } from '@/util/data/vec2'
 import type { DataServer } from '@/util/net/dataServer'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'

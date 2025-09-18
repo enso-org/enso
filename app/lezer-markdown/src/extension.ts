@@ -1,5 +1,5 @@
-import {InlineContext, BlockContext, MarkdownConfig,
-        LeafBlockParser, LeafBlock, Line, Element, space, Punctuation} from "./markdown"
+import {InlineContext, BlockContext, type MarkdownConfig,
+        type LeafBlockParser, LeafBlock, Line, Element, space, Punctuation} from "./markdown"
 import {tags as t} from "@lezer/highlight"
 
 const allowEmptyFormatNodes = true

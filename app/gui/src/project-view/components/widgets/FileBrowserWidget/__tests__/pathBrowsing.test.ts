@@ -1,7 +1,7 @@
 import { type DirectoryId } from '#/services/Backend'
 import { expect, test } from 'vitest'
 import { useEnsoPaths } from '../ensoPath'
-import { Directory, usePathBrowsing } from '../pathBrowsing'
+import { type Directory, usePathBrowsing } from '../pathBrowsing'
 import { MOCK_FS, mockListDirectory } from './mockData'
 
 function deriveRootId(rootPath: string): DirectoryId {

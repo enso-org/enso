@@ -4,7 +4,7 @@ import { findDifferenceIndex } from '@/util/data/array'
 import { Err, Ok, type Result } from '@/util/data/result'
 import {
   assetIsDirectory,
-  ListDirectoryResponseBody,
+  type ListDirectoryResponseBody,
   type DirectoryAsset,
   type DirectoryId,
 } from 'enso-common/src/services/Backend'

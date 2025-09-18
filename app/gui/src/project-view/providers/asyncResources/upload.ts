@@ -1,10 +1,10 @@
 import { unsafeKeys } from '#/utilities/object'
-import { OpenedProject, OpenedProjectsStore } from '$/providers/openedProjects'
+import type { OpenedProject, OpenedProjectsStore } from '$/providers/openedProjects'
 import { useProjectFiles } from '@/stores/projectFiles'
-import { Err, mapOk, Ok, Result } from '@/util/data/result'
+import { Err, mapOk, Ok, type Result } from '@/util/data/result'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
-import { FetchPartialProgress } from './AsyncResource'
-import { ResourceContextSnapshot } from './context'
+import type { FetchPartialProgress } from './AsyncResource'
+import type { ResourceContextSnapshot } from './context'
 
 export type AnyUploadSource =
   | UploadDefinition

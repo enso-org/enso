@@ -9,7 +9,7 @@ import {
   _electron,
   test as base,
   expect,
-  Locator,
+  type Locator,
   type ElectronApplication,
   type Page,
 } from 'playwright/test'

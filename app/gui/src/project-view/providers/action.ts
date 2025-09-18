@@ -9,14 +9,14 @@ import {
   visualizationBindings,
 } from '@/bindings'
 import { createContextStore } from '@/providers'
-import { type ActionContext, injectActionContext } from '@/providers/actionContext'
+import { injectActionContext, type ActionContext } from '@/providers/actionContext'
 import { assert } from '@/util/assert'
-import { Icon } from '@/util/iconMetadata/iconName'
-import { type ToValue } from '@/util/reactivity'
-import { BindingInfo } from '@/util/shortcuts'
+import type { Icon } from '@/util/iconMetadata/iconName'
+import type { ToValue } from '@/util/reactivity'
+import type { BindingInfo } from '@/util/shortcuts'
 import { identity } from '@vueuse/core'
-import { type Ref, ref } from 'vue'
-import { type ForbidExcessProps } from 'ydoc-shared/util/types'
+import { ref, type Ref } from 'vue'
+import type { ForbidExcessProps } from 'ydoc-shared/util/types'
 
 /**
  * A definition of some action available via shortcut, button, and/or menu entry.

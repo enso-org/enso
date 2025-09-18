@@ -1,5 +1,5 @@
 import { type ProjectNameStore } from '@/stores/projectNames'
-import { Ok, Result } from '@/util/data/result'
+import { Ok, type Result } from '@/util/data/result'
 import { type ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
 import * as encoding from 'lib0/encoding'

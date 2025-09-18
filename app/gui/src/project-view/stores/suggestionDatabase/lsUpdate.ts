@@ -1,10 +1,11 @@
-import { type ProjectNameStore } from '@/stores/projectNames'
-import { type GroupInfo, SuggestionDb } from '@/stores/suggestionDatabase'
+import type { ProjectNameStore } from '@/stores/projectNames'
+import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
 import {
   documentationData,
   type DocumentationData,
 } from '@/stores/suggestionDatabase/documentation'
 import {
+  SuggestionKind,
   type ConstructorSuggestionEntry,
   type FunctionSuggestionEntry,
   type LocalSuggestionEntry,
@@ -13,29 +14,28 @@ import {
   type SuggestionEntry,
   type SuggestionEntryArgument,
   type SuggestionEntryCommon,
-  SuggestionKind,
   type Typename,
   type TypeSuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { assert, assertNever } from '@/util/assert'
-import { type Opt } from '@/util/data/opt'
-import { Err, Ok, type Result, withContext } from '@/util/data/result'
+import type { Opt } from '@/util/data/opt'
+import { Err, Ok, withContext, type Result } from '@/util/data/result'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
-import { type ProjectPath } from '@/util/projectPath'
+import type { ProjectPath } from '@/util/projectPath'
 import {
-  Identifier,
-  type IdentifierOrOperatorIdentifier,
   isIdentifierOrOperatorIdentifier,
   qnJoin,
   qnLastSegment,
+  type Identifier,
+  type IdentifierOrOperatorIdentifier,
 } from '@/util/qualifiedName'
-import { type ToValue } from '@/util/reactivity'
-import { type DeepReadonly, toValue } from 'vue'
-import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
-import {
+import type { ToValue } from '@/util/reactivity'
+import { toValue, type DeepReadonly } from 'vue'
+import type {
   SuggestionArgumentUpdate,
   SuggestionsDatabaseUpdate,
 } from 'ydoc-shared/languageServerTypes/suggestions'
+import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 
 interface UpdateContext {
   groups: DeepReadonly<GroupInfo[]>

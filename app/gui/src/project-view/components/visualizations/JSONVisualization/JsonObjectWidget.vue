@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
-import { Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 import { computed } from 'vue'
-import { CreateProjection } from './types'
+import type { CreateProjection } from './types'
 
 const props = defineProps<{ data: object; createProjectionCb?: Opt<CreateProjection> }>()
 

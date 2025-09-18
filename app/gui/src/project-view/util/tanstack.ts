@@ -1,4 +1,4 @@
-import { onlineManager, UseQueryReturnType } from '@tanstack/vue-query'
+import { onlineManager, type UseQueryReturnType } from '@tanstack/vue-query'
 
 /**
  * Wait for data to be ready

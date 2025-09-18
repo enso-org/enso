@@ -7,7 +7,7 @@ import {
   BlockContext,
   parser as commonmarkParser,
   Line,
-  MarkdownConfig,
+  type MarkdownConfig,
   Strikethrough,
   Table,
   type BlockParser,

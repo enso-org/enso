@@ -1,7 +1,7 @@
 import { withSetup } from '@/util/testing'
 import { describe, expect, test, vi } from 'vitest'
 import { nextTick, reactive } from 'vue'
-import { LocationQuery, parseQuery } from 'vue-router'
+import { type LocationQuery, parseQuery } from 'vue-router'
 import { createQueryParams } from '../queryParams'
 
 describe('QueryParams store', () => {

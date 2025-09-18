@@ -5,18 +5,18 @@ import { ObservableV2 } from 'lib0/observable'
 import * as zlib from 'node:zlib'
 import * as Ast from 'ydoc-shared/ast'
 import { astCount } from 'ydoc-shared/ast'
-import { EnsoFileParts, combineFileParts, splitFileContents } from 'ydoc-shared/ensoFile'
+import { type EnsoFileParts, combineFileParts, splitFileContents } from 'ydoc-shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from 'ydoc-shared/languageServer'
 import {
-  Checksum,
-  FileEdit,
-  FileEventKind,
-  Path,
-  TextEdit,
-  response,
+  type Checksum,
+  type FileEdit,
+  type FileEventKind,
+  type Path,
+  type TextEdit,
+  type response,
 } from 'ydoc-shared/languageServerTypes'
 import { assertNever } from 'ydoc-shared/util/assert'
-import { Err, Ok, Result, withContext } from 'ydoc-shared/util/data/result'
+import { Err, Ok, type Result, withContext } from 'ydoc-shared/util/data/result'
 import {
   AbortScope,
   ReconnectingWebSocketTransport,
@@ -25,7 +25,7 @@ import {
 } from 'ydoc-shared/util/net'
 import {
   DistributedProject,
-  ExternalId,
+  type ExternalId,
   IdMap,
   ModuleDoc,
   visMetadataEquals,

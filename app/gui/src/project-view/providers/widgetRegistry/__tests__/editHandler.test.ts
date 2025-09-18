@@ -4,7 +4,7 @@ import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
 import { proxyRefs } from '@/util/reactivity'
 import { expect, test, vi, type Mock } from 'vitest'
 import { assert } from 'ydoc-shared/util/assert'
-import { WidgetEditHandler, WidgetInstanceId, type WidgetEditHooks } from '../editHandler'
+import { WidgetEditHandler, type WidgetInstanceId, type WidgetEditHooks } from '../editHandler'
 
 type HandlerMap = Map<
   string,

@@ -1,4 +1,4 @@
-import { Ok, Result } from '@/util/data/result'
+import { Ok, type Result } from '@/util/data/result'
 import { normalizeName } from '@/util/nameValidation'
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
 import { normalizeQualifiedName, qnJoin, tryQualifiedName } from '@/util/qualifiedName'

@@ -42,7 +42,7 @@ import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { ComponentInstance, computed, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
+import { computed, onUnmounted, ref, toRef, watch, watchEffect, type ComponentInstance } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {

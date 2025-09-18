@@ -31,7 +31,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { computed, onMounted, shallowRef } from 'vue'
-import { ComponentProps } from 'vue-component-type-helpers'
+import type { ComponentProps } from 'vue-component-type-helpers'
 
 const { projectViewOnly } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be

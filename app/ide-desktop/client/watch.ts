@@ -11,7 +11,7 @@ import { mkdir, rm, symlink } from 'node:fs/promises'
 import * as path from 'node:path'
 import process from 'node:process'
 
-import { BuildResult, context } from 'esbuild'
+import { type BuildResult, context } from 'esbuild'
 
 import { bundlerOptionsFromEnv } from './esbuildConfig'
 import { getIdeDirectory, getProjectManagerBundlePath, PROJECT_MANAGER_BUNDLE } from './paths'

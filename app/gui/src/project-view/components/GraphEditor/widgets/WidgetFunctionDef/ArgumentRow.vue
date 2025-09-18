@@ -9,8 +9,8 @@ import {
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import { EnsoTypeExpression } from '@/components/GraphEditor/widgets/WidgetTypeExpression.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
-import { PortId, syntheticPortId } from '@/providers/portInfo'
+import type { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import { type PortId, syntheticPortId } from '@/providers/portInfo'
 import {
   rewritePortValueUpdate,
   type UpdateHandler,

@@ -7,14 +7,14 @@ import {
 } from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 import { useEvent } from '@/composables/events'
-import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
-import { proxyRefs, ToValue } from '@/util/reactivity'
+import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import invariant from 'tiny-invariant'
 import { computed, inject, readonly, ref, toValue, watch, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
-import { GetText, useText } from './text'
+import { useText, type GetText } from './text'
 
 export type BackendsStore = ReturnType<typeof useBackends>
 function initializeBackends(

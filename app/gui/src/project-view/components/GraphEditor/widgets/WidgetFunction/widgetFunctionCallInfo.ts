@@ -1,9 +1,9 @@
 import type { WidgetInput } from '@/providers/widgetRegistry'
 import {
   argsWidgetConfigurationSchema,
-  FunctionCall,
   functionCallConfiguration,
   pending,
+  type FunctionCall,
 } from '@/providers/widgetRegistry/configuration'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'

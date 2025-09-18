@@ -8,7 +8,7 @@ import {
   StateField,
   Text,
 } from '@codemirror/state'
-import { Decoration, DecorationSet, EditorView } from '@codemirror/view'
+import { Decoration, type DecorationSet, EditorView } from '@codemirror/view'
 import type { SyntaxNodeRef, Tree } from '@lezer/common'
 import { type Range } from 'ydoc-shared/util/data/range'
 

@@ -1,5 +1,5 @@
-import {SyntaxNode, Parser, Input, parseMixed, SyntaxNodeRef} from "@lezer/common"
-import {Type, MarkdownExtension} from "./markdown"
+import {type SyntaxNode, Parser, type Input, parseMixed, type SyntaxNodeRef} from "@lezer/common"
+import {Type, type MarkdownExtension} from "./markdown"
 
 function leftOverSpace(node: SyntaxNode, from: number, to: number) {
   let ranges = []

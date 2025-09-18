@@ -21,7 +21,7 @@ import { proxyRefs } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, markRaw, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
-import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
+import { type SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 

@@ -1,7 +1,7 @@
-import { Icon } from '@/util/iconMetadata/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { createGlobalState } from '@vueuse/core'
 import { go } from 'fuzzysort'
-import { MaybeRef, ref, Ref, toValue } from 'vue'
+import { ref, toValue, type MaybeRef, type Ref } from 'vue'
 
 export interface Action {
   /** The name of the action. */

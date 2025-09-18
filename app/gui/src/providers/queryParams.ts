@@ -1,6 +1,6 @@
 import { createGlobalState } from '@vueuse/core'
 import { reactive, ref, watch } from 'vue'
-import { LocationQueryValue, type Router, useRoute, useRouter } from 'vue-router'
+import { type LocationQueryValue, type Router, useRoute, useRouter } from 'vue-router'
 
 /** Query Params store. See {@link useQueryParams}. */
 export type QueryParams = ReturnType<typeof createQueryParams>

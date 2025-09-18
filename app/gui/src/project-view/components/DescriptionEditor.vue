@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AnyAsset } from '#/services/Backend'
+import type { AnyAsset } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
