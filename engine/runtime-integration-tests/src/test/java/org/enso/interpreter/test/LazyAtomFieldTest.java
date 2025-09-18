@@ -97,9 +97,9 @@ public class LazyAtomFieldTest {
 
     both n =
         g = Lazy.generator 1
-        // IO.println "Generator is computed"
+        # IO.println "Generator is computed"
         t = g.take n
-        // IO.println "Generator is taken"
+        # IO.println "Generator is taken"
         t . sum 0
     """;
 

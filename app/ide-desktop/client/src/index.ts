@@ -273,7 +273,6 @@ class App {
       add('ignore-certificate-errors')
       addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
       addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
-      addIf(perfOpts.disableSandbox, 'no-sandbox')
       addIf(perfOpts.disableSmoothScrolling, 'disable-smooth-scrolling')
       addIf(perfOpts.enableNativeGpuMemoryBuffers, 'enable-native-gpu-memory-buffers')
       addIf(perfOpts.forceHighPerformanceGpu, 'force_high_performance_gpu')

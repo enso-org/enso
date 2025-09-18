@@ -14,7 +14,7 @@ import type { SpanMap } from './idMap'
 import { newExternalId } from './idMap'
 import type { Module } from './mutableModule'
 import { MutableModule, ROOT_ID } from './mutableModule'
-import { parseExpression, parseStatement } from './parse'
+import { parseBlockStatement, parseExpression, parseModuleStatement } from './parse'
 import type { RawConcreteChild } from './print'
 import {
   ensureSpaced,
@@ -243,14 +243,6 @@ export abstract class Ast {
   /** Return source code representing this node. */
   code(): string {
     return printWithSpans(this).code
-  }
-
-  /** TODO: Add docs */
-  visitRecursive(visit: (ast: Ast) => void | boolean): void {
-    if (visit(this) === false) return
-    for (const child of this.children()) {
-      if (!isToken(child)) child.visitRecursive(visit)
-    }
   }
 
   /** TODO: Add docs */
@@ -489,6 +481,14 @@ export abstract class MutableAst extends Ast {
   /** TODO: Add docs */
   claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
     return child ? claimChild(this.module, child, this.id) : undefined
+  }
+}
+
+/** TODO: Add docs */
+export function visitRecursive(ast: Ast, visit: (ast: Ast) => void | boolean): void {
+  if (visit(ast) === false) return
+  for (const child of ast.children()) {
+    if (!isToken(child)) visitRecursive(child, visit)
   }
 }
 
@@ -1535,7 +1535,7 @@ export class Import extends BaseStatement {
 
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableImport> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseModuleStatement(source, module)
     if (parsed instanceof MutableImport) return parsed
   }
 
@@ -2036,7 +2036,7 @@ export class ExpressionStatement extends BaseStatement {
     source: string,
     module?: MutableModule,
   ): Owned<MutableExpressionStatement> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseBlockStatement(source, module)
     if (parsed instanceof MutableExpressionStatement) return parsed
   }
 
@@ -2451,7 +2451,7 @@ export class FunctionDef extends BaseStatement {
 
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableFunctionDef> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseModuleStatement(source, module)
     if (parsed instanceof MutableFunctionDef) return parsed
   }
 
@@ -2764,7 +2764,7 @@ export class Assignment extends BaseStatement {
 
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableAssignment> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseBlockStatement(source, module)
     if (parsed instanceof MutableAssignment) return parsed
   }
 

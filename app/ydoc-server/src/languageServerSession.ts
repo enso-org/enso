@@ -655,7 +655,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         (nodeMeta.length !== 0 || widgetMeta.length !== 0)
       ) {
         const externalIdToAst = new Map<ExternalId, Ast.Ast>()
-        astRoot.visitRecursive((ast) => {
+        Ast.visitRecursive(astRoot, (ast) => {
           const ancestorEntry = externalIdToAst.get(ast.externalId)
           if (!ancestorEntry || ancestorEntry instanceof Ast.ExpressionStatement)
             externalIdToAst.set(ast.externalId, ast)

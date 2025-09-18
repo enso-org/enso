@@ -154,8 +154,11 @@ export class ComputedValueRegistry {
   processUpdates(updates: ExpressionUpdate[]) {
     for (const update of updates) {
       const info = this.db.get(update.expressionId)
-      if (info) updateInfo(info, update, this.projectNames)
-      else this.db.set(update.expressionId, combineInfo(undefined, update, this.projectNames))
+      if (info) {
+        updateInfo(info, update, this.projectNames)
+      } else {
+        this.db.set(update.expressionId, combineInfo(undefined, update, this.projectNames))
+      }
     }
   }
 

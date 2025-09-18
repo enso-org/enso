@@ -415,7 +415,7 @@ impl Error {
 
 impl<'s> Tree<'s> {
     /// Constructor.
-    pub fn with_error(self, message: impl Into<Cow<'static, str>>) -> Self {
+    pub fn with_error(self, message: SyntaxError) -> Self {
         Tree::invalid(Error::new(message), self)
     }
 }
@@ -908,6 +908,7 @@ pub const WARNINGS: [&str; WarningId::NUM_WARNINGS as usize] =
 #[derive(Debug, Clone)]
 #[allow(missing_docs)] // See associated messages defined below.
 pub enum SyntaxError {
+    ArgDefUnexpectedOp,
     ArgDefUnexpectedOpInParenClause,
     ArgDefSpuriousParens,
     ArgDefExpectedPattern,
@@ -923,6 +924,8 @@ pub enum SyntaxError {
     StmtUnexpectedAssignmentInModuleBody,
     StmtUnexpectedPrivateSubject,
     StmtUnexpectedPrivateContext,
+    StmtUnexpectedFunctionExpression,
+    StmtUnexpectedFunctionExpressionOprSection,
     TypeBodyUnexpectedPrivateUsage,
     TypeDefExpectedTypeName,
     ExprUnexpectedAssignment,
@@ -938,6 +941,23 @@ pub enum SyntaxError {
     DocumentationUnexpectedNonInitial,
     AnnotationUnexpectedInExpression,
     AnnotationExpectedDefinition,
+    Internal,
+    UnexpectedUnspacedTerm,
+    UnexpectedAnnotation,
+    UnexpectedUnspacedOperand,
+    SyntacticOperatorMissingOperand,
+    SyntacticOperatorMissingOperandUnary,
+    ExprUnexpectedSyntacticOperator,
+    StmtIncompleteImport,
+    ExpectedTokens,
+    MacroUnexpectedTokens,
+    InvalidMacroInvocation,
+    UnmatchedDelimiter,
+    MalformedCommaDelimitedSequence,
+    UnexpectedToken,
+    ExpectedIdent,
+    AutoscopeUnexpectedUncapitalizedIdentifier,
+    AutoscopeExpectedIdent,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
@@ -945,12 +965,13 @@ impl From<SyntaxError> for Cow<'static, str> {
         use SyntaxError::*;
         (match error {
             AnnotationOpMustBeAppliedToIdent => "The annotation operator must be applied to an identifier",
+            ArgDefUnexpectedOp => "Unexpected operator in argument definition clause",
             ArgDefUnexpectedOpInParenClause => "Unexpected operator in parenthesized argument definition clause",
             ArgDefSpuriousParens => "Invalid parentheses in argument definition",
             ArgDefExpectedPattern => "Expected identifier or wildcard in argument binding",
             ExpectedExpression => "Expected expression",
             ExpectedPattern => "Expected pattern",
-            ExpectedQualifiedName => "Expected qualified name.",
+            ExpectedQualifiedName => "Expected qualified name",
             ExpectedType => "Expected type",
             ForeignFnExpectedLanguage => "Expected language name in foreign function definition",
             ForeignFnExpectedName => "Expected function name in foreign function definition",
@@ -960,25 +981,44 @@ impl From<SyntaxError> for Cow<'static, str> {
                 "Each operator on the left side of an assignment operator must be applied to two operands, with the same spacing on each side",
             StmtUnexpectedAssignmentInModuleBody => "Unexpected variable assignment in module statement",
             StmtUnexpectedPrivateSubject =>
-                "The `private` keyword cannot be applied to this type of symbol",
-            StmtUnexpectedPrivateContext => "The `private` keyword is not expected in this context",
+                "The \"private\" keyword cannot be applied to this type of symbol",
+            StmtUnexpectedPrivateContext => "The \"private\" keyword is not expected in this context",
+            StmtUnexpectedFunctionExpression => "This expression would define an unused function",
+            StmtUnexpectedFunctionExpressionOprSection => "This expression would define an unused function; if you would like to create an operator block, each indented line must begin with an operator followed by a space",
             TypeBodyUnexpectedPrivateUsage =>
-                "In a type definition, the `private` keyword can only be applied to a constructor or function definition",
+                "In a type definition, the \"private\" keyword can only be applied to a constructor or function definition",
             TypeDefExpectedTypeName => "Expected type identifier in type declaration",
             ExprUnexpectedAssignment => "Unexpected use of assignment operator in expression",
             ExprUnclosedParen => "Unclosed parenthesis in expression",
             UnexpectedExpressionInTypeBody => "Expression unexpected in type definition",
-            ImportsExpectedNameInExport => "Expected name following `export` keyword",
-            ImportsNoAllInExport => "`all` not allowed in `export` statement",
-            ImportsNoHidingInExport => "`hiding` not allowed in `export` statement",
+            ImportsExpectedNameInExport => "Expected name following \"export\" keyword",
+            ImportsNoAllInExport => "\"all\" not allowed in export statement",
+            ImportsNoHidingInExport => "\"hiding\" not allowed in export statement",
             PatternUnexpectedExpression => "Expression invalid in a pattern",
             PatternUnexpectedDot => "In a pattern, the dot operator can only be used in a qualified name",
-            CaseOfInvalidCase => "Invalid case expression.",
+            CaseOfInvalidCase => "Invalid case expression",
             DocumentationUnexpectedNonInitial => "Unexpected documentation at end of line",
             AnnotationUnexpectedInExpression =>
                 "A function annotation is only allowed in statement context, not in an expression",
             AnnotationExpectedDefinition =>
                 "A function annotation must be followed by a function definition or constructor definition",
+            Internal => "BUG: An internal error occurred parsing this expression",
+            UnexpectedUnspacedTerm => "Space required between terms",
+            UnexpectedAnnotation => "Unexpected expression annotation",
+            UnexpectedUnspacedOperand => "Space required between term and operator",
+            SyntacticOperatorMissingOperand => "Operator must be applied to two operands",
+            SyntacticOperatorMissingOperandUnary => "Operator must be applied to an operand",
+            ExprUnexpectedSyntacticOperator => "Invalid use of syntactic operator in expression",
+            StmtIncompleteImport => "Expected name or \"all\" keyword following \"import\" keyword",
+            ExpectedTokens => "Expected tokens",
+            MacroUnexpectedTokens => "Unexpected tokens in macro invocation",
+            InvalidMacroInvocation => "Invalid macro invocation",
+            UnmatchedDelimiter => "Unmatched delimiter",
+            MalformedCommaDelimitedSequence => "Malformed comma-delimited sequence",
+            UnexpectedToken => "Unexpected token",
+            ExpectedIdent => "Expected identifier",
+            AutoscopeUnexpectedUncapitalizedIdentifier => "The auto-scope operator may only be applied to a capitalized identifier",
+            AutoscopeExpectedIdent => "The autoscope operator must be applied to an identifier",
         })
         .into()
     }
@@ -1024,10 +1064,10 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     }
     let error = match Spacing::of_tree(&arg) {
         Spacing::Spaced => None,
-        Spacing::Unspaced => Some("Space required between terms."),
+        Spacing::Unspaced => Some(SyntaxError::UnexpectedUnspacedTerm),
     }
     .or(match &arg.variant {
-        Variant::AnnotatedBuiltin(_) => Some("Unexpected expression annotation."),
+        Variant::AnnotatedBuiltin(_) => Some(SyntaxError::UnexpectedAnnotation),
         _ => None,
     });
     maybe_with_error(Tree::app(func, arg), error)
@@ -1068,9 +1108,9 @@ pub fn apply_operator<'s>(
         Ok(opr) => {
             let error = match (&opr.variant, lhs.as_ref().map(|tree| &tree.variant), &rhs) {
                 (_, Some(Variant::AutoscopedIdentifier(_)), _) if !opr.is_spaced() =>
-                    Some("Space required between term and operator."),
+                    Some(SyntaxError::UnexpectedUnspacedOperand),
                 (_, _, None) | (_, None, _) if opr.is_syntactic_binary_operator() =>
-                    Some("Operator must be applied to two operands."),
+                    Some(SyntaxError::SyntacticOperatorMissingOperand),
                 (
                     token::Variant::Operator(_)
                     | token::Variant::DotOperator(_)
@@ -1079,7 +1119,7 @@ pub fn apply_operator<'s>(
                     _,
                     _,
                 ) => None,
-                _ => Some("Invalid use of syntactic operator in expression"),
+                _ => Some(SyntaxError::ExprUnexpectedSyntacticOperator),
             };
             let tree = match (opr.variant, lhs, rhs) {
                 (token::Variant::TypeAnnotationOperator(annotation), Some(lhs), Some(rhs)) =>
@@ -1100,9 +1140,9 @@ pub fn to_ast(token: Token) -> Tree {
         token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
         token::Variant::SuspendedDefaultArguments(t) => Tree::suspended_default_arguments(token.with_variant(t)),
         token::Variant::OpenSymbol(s) =>
-            Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
+            Tree::group(Some(token.with_variant(s)), default(), default()).with_error(SyntaxError::UnmatchedDelimiter),
         token::Variant::CloseSymbol(s) =>
-            Tree::group(default(), default(), Some(token.with_variant(s))).with_error("Unmatched delimiter"),
+            Tree::group(default(), default(), Some(token.with_variant(s))).with_error(SyntaxError::UnmatchedDelimiter),
         // These should be unreachable: They are handled when assembling items into blocks,
         // before parsing proper.
         token::Variant::Newline(_)
@@ -1139,10 +1179,8 @@ pub fn to_ast(token: Token) -> Tree {
         | token::Variant::NumberBase(_)
         // Map an error case in the lexer to an error in the AST.
         | token::Variant::Invalid(_) => {
-            let message = format!("Unexpected token: {token:?}");
             let ident = token::variant::Ident(false, 0, false, false, false);
-            let value = Tree::ident(token.with_variant(ident));
-            Tree::with_error(value, message)
+            Tree::ident(token.with_variant(ident)).with_error(SyntaxError::UnexpectedToken)
         }
     }
 }
@@ -1398,9 +1436,9 @@ impl<'s> Tree<'s> {
 // === Helper ===
 
 /// Return the input, or an `Invalid` node with the given error.
-pub fn maybe_with_error(tree: Tree, error: Option<impl Into<Cow<'static, str>>>) -> Tree {
+pub fn maybe_with_error(tree: Tree, error: Option<SyntaxError>) -> Tree {
     match error {
         None => tree,
-        Some(error) => tree.with_error(error.into()),
+        Some(error) => tree.with_error(error),
     }
 }

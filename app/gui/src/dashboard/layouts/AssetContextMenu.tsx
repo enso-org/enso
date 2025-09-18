@@ -77,14 +77,14 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const openProjectNatively = projectHooks.useOpenProjectNatively()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
   const closeProject = projectHooks.useCloseProject()
-  const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
-  const restoreAssetsMutation = useMutationCallback(restoreAssetsMutationOptions(backend))
-  const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
-  const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(backend))
+  const deleteAssets = useMutationCallback(deleteAssetsMutationOptions(backend))
+  const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
+  const copyAssets = useMutationCallback(copyAssetsMutationOptions(backend))
+  const downloadAssets = useMutationCallback(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const encodedEnsoPath = asset.ensoPath ? encodeURI(asset.ensoPath) : undefined
   const copyMutation = useCopy()
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const uploadFileToCloud = useUploadFileToCloudMutation()
   const uploadFileToLocal = useUploadFileToLocal(category)
   const exportArchive = useExportArchive({ backend })
   const disabledTooltip =
@@ -195,7 +195,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             label: getText('restoreFromTrashShortcut'),
             doAction: () => {
               void goToDrive()
-              void restoreAssetsMutation({
+              void restoreAssets({
                 ids: [asset.id],
                 parentId: null,
               })
@@ -212,7 +212,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
                   cannotUndo
                   actionText={getText('deleteTheAssetTypeTitleForever', asset.type, asset.title)}
                   onConfirm={async () => {
-                    await deleteAssetsMutation([[asset.id], true])
+                    await deleteAssets([[asset.id], true])
                   }}
                 />,
               )
@@ -283,7 +283,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             feature: 'uploadToCloud',
             doAction: () => {
               void goToDrive()
-              void uploadFileToCloudMutation(localBackend, {
+              void uploadFileToCloud(localBackend, {
                 assets: [asset],
                 targetDirectoryId: user.rootDirectoryId,
               })
@@ -321,7 +321,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           action: 'download',
           doAction: () => {
             void goToDrive()
-            void downloadAssetsMutation({
+            void downloadAssets({
               ids: [{ id: asset.id, title: asset.title }],
               targetDirectoryId:
                 !isCloud ? (localCategories.localCategory?.homeDirectoryId ?? null) : null,
@@ -362,7 +362,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           action: 'duplicate',
           doAction: () => {
             void goToDrive()
-            void copyAssetsMutation([[asset.id], asset.parentId])
+            void copyAssets([[asset.id], asset.parentId])
           },
         },
         {
@@ -390,7 +390,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
                     asset.title,
                   )}
                   onConfirm={async () => {
-                    await deleteAssetsMutation([[asset.id], false])
+                    await deleteAssets([[asset.id], false])
                   }}
                 />,
               )

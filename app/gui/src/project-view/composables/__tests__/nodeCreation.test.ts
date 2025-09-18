@@ -15,7 +15,7 @@ test.each([
 ])('New node location in block', (...linesWithInsertionPoint: string[]) => {
   const inputLines = linesWithInsertionPoint.filter((line) => line !== '*')
   const bodyBlock = Ast.parseBlock(inputLines.join('\n'))
-  insertNodeStatements(bodyBlock, [Ast.parseStatement('newNodePositionMarker')!])
+  insertNodeStatements(bodyBlock, [Ast.parseBlockStatement('newNodePositionMarker')!])
   const lines = bodyBlock
     .code()
     .split('\n')
@@ -32,7 +32,7 @@ test('Adding node to empty block', () => {
   const rootBlock = Ast.BodyBlock.new([], module)
   rootBlock.push(func)
   expect(rootBlock.code().trimEnd()).toBe('f =')
-  insertNodeStatements(func.bodyAsBlock(), [Ast.parseStatement('newNode')!])
+  insertNodeStatements(func.bodyAsBlock(), [Ast.parseBlockStatement('newNode')!])
   expect(
     rootBlock
       .code()

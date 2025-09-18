@@ -1000,10 +1000,7 @@ rm dist/backend/project-manager.tar"
 
                 const TEST_COMMAND: &str = "corepack pnpm -r --filter enso ide-integration-test";
                 let test_step = match target.0 {
-                    OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
-                        // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
-                        .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox"),
-
+                    OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}")),
                     OS::MacOS =>
                     // MacOS CI runners are very slow
                         shell(format!("{TEST_COMMAND} --timeout 300000")),
