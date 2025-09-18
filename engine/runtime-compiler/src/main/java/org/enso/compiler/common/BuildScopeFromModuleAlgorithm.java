@@ -134,6 +134,7 @@ public abstract class BuildScopeFromModuleAlgorithm<TypeScopeReferenceType, Impo
             "Failed to resolve type pointer for method: {}", method.methodReference().showCode());
         return null;
       }
+      assert !method.isStatic() : "No method should be static now";
 
       return switch (metadata.target()) {
         case BindingsMap.ResolvedType resolvedType -> associatedTypeFromResolvedType(

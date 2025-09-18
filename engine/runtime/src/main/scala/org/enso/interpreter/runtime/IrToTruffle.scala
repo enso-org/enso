@@ -1035,17 +1035,14 @@ private[runtime] class IrToTruffle(
                     tp != null,
                     s"Type should be defined in module ${modWithTp.getName}"
                   )
-                  // We have to search for the method on eigen type, because it is a static method.
-                  // Static methods are always defined on eigen types
-                  val eigenTp = tp.getEigentype
                   val fun =
                     currentScope.getMethodForType(
-                      eigenTp,
+                      tp,
                       staticMethod.methodName
                     )
                   org.enso.common.Asserts.assertInJvm(
                     fun != null,
-                    s"exported symbol (static method) `${staticMethod.name}` on type '${eigenTp.getName}' " +
+                    s"exported symbol (static method) `${staticMethod.name}` on type '${tp.getName}' " +
                     s"needs to be registered first in the module '${actualModule.getName.toString}'."
                   )
                   scopeBuilder.registerMethod(

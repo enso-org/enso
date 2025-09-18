@@ -63,6 +63,9 @@ object Method {
       with LazyDiagnosticStorage
       with LazyId {
 
+    assert(!isStatic, "static field is deprecated now - should be removed")
+    assert(!isStaticWrapperForInstanceMethod, "This field was only set from MethodDefinitions. Will be removed now.")
+
     /** Create an [[Explicit]] object from [[Method.Binding]].
       *
       * @param ir the method binding IR
@@ -72,9 +75,9 @@ object Method {
       this(
         ir.methodReference,
         Persistance.Reference.of(body, false),
-        Function.computeIsStatic(body),
+        false,
         ir.isPrivate,
-        Function.computeIsStaticWrapperForInstanceMethod(body),
+        false,
         ir.identifiedLocation,
         ir.passData
       )
@@ -154,7 +157,7 @@ object Method {
           keepDiagnostics,
           keepIdentifiers
         ),
-        isStatic = Function.computeIsStatic(body),
+        isStatic = isStatic,
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
