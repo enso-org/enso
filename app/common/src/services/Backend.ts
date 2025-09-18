@@ -1,6 +1,6 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
-import { getText, type Replacements, resolveDictionary, type TextId } from '../text.js'
+import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
 import * as array from '../utilities/data/array.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
