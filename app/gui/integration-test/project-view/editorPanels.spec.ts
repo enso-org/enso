@@ -1,6 +1,6 @@
 /** @file Tests for the multiline CodeMirror editor panels: documentation editor and code editor. */
 import type { Page } from 'playwright/test'
-import { type Locator, test } from 'playwright/test'
+import { test, type Locator } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockMethodCallInfo, mockUserDefinedFunctionInfo } from './expressionUpdates'

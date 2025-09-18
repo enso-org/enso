@@ -8,7 +8,7 @@ import { escapeTextLiteral } from 'ydoc-shared/ast/text'
 import type { LanguageServer } from 'ydoc-shared/languageServer'
 import type { Path, Uuid } from 'ydoc-shared/languageServerTypes'
 import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
-import { type ExternalId } from 'ydoc-shared/yjsModel'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 // === Constants ===
 

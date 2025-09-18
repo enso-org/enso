@@ -1,4 +1,4 @@
-import { type SetFilterValuesFuncParams } from 'ag-grid-community'
+import type { SetFilterValuesFuncParams } from 'ag-grid-community'
 import { isNumericType, type ValueType } from './tableVizUtils'
 
 export const getFilterParams = (

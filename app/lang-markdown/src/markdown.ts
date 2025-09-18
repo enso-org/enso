@@ -1,7 +1,7 @@
 import {Language, defineLanguageFacet, languageDataProp, foldNodeProp, indentNodeProp, foldService,
         syntaxTree, LanguageDescription, ParseContext} from "@codemirror/language"
 import {parser as baseParser, MarkdownParser, GFM, Subscript, Superscript, Emoji} from "@lezer/markdown"
-import {type SyntaxNode, NodeType, NodeProp, Parser} from "@lezer/common"
+import {SyntaxNode, NodeType, NodeProp, Parser} from "@lezer/common"
 
 const data = defineLanguageFacet({commentTokens: {block: {open: "<!--", close: "-->"}}})
 

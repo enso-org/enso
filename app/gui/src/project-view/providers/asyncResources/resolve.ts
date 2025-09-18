@@ -6,9 +6,9 @@ import { useProjectFiles } from '@/stores/projectFiles'
 import { Err, Ok, rejectionToResult, type Result } from '@/util/data/result'
 import { urlParse } from '@/util/url'
 import { toValue } from 'vue'
-import { type Opt } from 'ydoc-shared/util/data/opt'
-import { type ResourceDefinition } from './AsyncResource'
-import { type ResourceContext } from './context'
+import type { Opt } from 'ydoc-shared/util/data/opt'
+import type { ResourceDefinition } from './AsyncResource'
+import type { ResourceContext } from './context'
 import { parseResourceUrl } from './parse'
 
 /**

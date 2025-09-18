@@ -1,4 +1,4 @@
-import {EditorState, EditorSelection, type StateCommand, type Extension} from "@codemirror/state"
+import {EditorState, EditorSelection, StateCommand, Extension} from "@codemirror/state"
 import {markdown, deleteMarkupBackward, insertNewlineContinueMarkup} from "@codemirror/lang-markdown"
 import {indentUnit} from "@codemirror/language"
 import ist from "ist"

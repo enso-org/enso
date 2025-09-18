@@ -6,7 +6,7 @@ import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { onlineManager } from '@tanstack/vue-query'
-import { type NavigationGuardReturn, type RouteLocation } from 'vue-router'
+import type { NavigationGuardReturn, RouteLocation } from 'vue-router'
 
 export const SAMPLES_DIRECTORY = 'Samples'
 export const LOCAL_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting_Started`

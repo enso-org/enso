@@ -1,5 +1,5 @@
 import type { Opt } from '@/util/data/opt'
-import { type ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import { ObservableV2 } from 'lib0/observable'
 import { ref, toValue, watchEffect, type Ref } from 'vue'
 import type { Awareness } from 'y-protocols/awareness'

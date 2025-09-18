@@ -2,7 +2,7 @@
 import { assert } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
-import { type SyntaxNode, type SyntaxNodeRef } from '@lezer/common'
+import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 import * as z from 'zod'
 

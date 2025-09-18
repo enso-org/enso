@@ -1,6 +1,6 @@
-import {type StateCommand, Text, EditorState, EditorSelection, type ChangeSpec, countColumn, Line} from "@codemirror/state"
+import {StateCommand, Text, EditorState, EditorSelection, ChangeSpec, countColumn, Line} from "@codemirror/state"
 import {syntaxTree, indentUnit} from "@codemirror/language"
-import {type SyntaxNode, Tree} from "@lezer/common"
+import {SyntaxNode, Tree} from "@lezer/common"
 import {markdownLanguage} from "./markdown"
 
 class Context {

@@ -4,7 +4,7 @@ import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import type { ToValue } from '@/util/reactivity'
 import { computed, type ComputedRef, type Ref, toValue } from 'vue'
-import { type Expression, type MutableExpression } from 'ydoc-shared/ast'
+import type { Expression, MutableExpression } from 'ydoc-shared/ast'
 import type { TextFormatOptions } from '../TableVisualization.vue'
 import {
   actionMap,

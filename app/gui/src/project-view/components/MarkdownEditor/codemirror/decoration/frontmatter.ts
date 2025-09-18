@@ -2,7 +2,7 @@ import { parseMetadata, type DocumentationMetadata } from '@/components/Componen
 import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/vueDecorationWidget'
 import FrontMatter from '@/components/MarkdownEditor/FrontMatter.vue'
 import { nodeRange } from '@/components/MarkdownEditor/markdown/trees'
-import { type VueHost } from '@/components/VueHostRender.vue'
+import type { VueHost } from '@/components/VueHostRender.vue'
 import type { Text } from '@codemirror/state'
 import { Decoration } from '@codemirror/view'
 import type { SyntaxNodeRef } from '@lezer/common'

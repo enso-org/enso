@@ -5,7 +5,7 @@ import { twMerge } from '#/utilities/tailwindMerge'
 import { vueComponent } from '#/utilities/vue'
 import { useText } from '$/providers/react'
 import FileBrowserWidgetVue from '@/components/widgets/FileBrowserWidget.vue'
-import { type CSSProperties, useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { ROUNDED_INPUT_BASE_CLASSES } from './JSONSchemaInput'
 
 // eslint-disable-next-line no-restricted-syntax

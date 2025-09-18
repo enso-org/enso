@@ -4,14 +4,13 @@
  * renaming, opening, closing, and duplicating projects.
  */
 
-import * as crypto from 'node:crypto'
-
 import { UUID } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { Path } from 'enso-common/src/utilities/file'
-import { type Runner, EnsoRunner, findEnsoExecutable } from './ensoRunner.js'
+import * as crypto from 'node:crypto'
+import { EnsoRunner, findEnsoExecutable, type Runner } from './ensoRunner.js'
 import * as nameValidation from './nameValidation.js'
-import { type Project, type ProjectRepository, ProjectFileRepository } from './projectRepository.js'
+import { ProjectFileRepository, type Project, type ProjectRepository } from './projectRepository.js'
 
 // ==================
 // === Data Types ===

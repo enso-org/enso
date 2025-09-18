@@ -7,7 +7,7 @@ import { Ast } from '@/util/ast'
 import type { Result } from '@/util/data/result'
 import type { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
-import { type Class } from 'ydoc-shared/util/types'
+import type { Class } from 'ydoc-shared/util/types'
 import {
   devtoolsAddWidgetScore,
   devtoolsEndSelection,
