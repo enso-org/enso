@@ -4,6 +4,7 @@
  */
 import type { ContextMenuApi } from '#/components/ContextMenu'
 import { useStore } from '#/hooks/storeHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import { AssetContextMenu } from '#/layouts/AssetContextMenu'
 import { AssetsTableContextMenu } from '#/layouts/AssetsTableContextMenu'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -31,38 +32,29 @@ export const AssetsTableCombinedContextMenu = forwardRef(function AssetsTableCom
     driveStore,
     (state) =>
       state.selectedIds.size === 1 ? state.selectedIds[Symbol.iterator]().next().value : undefined,
-    {
-      unsafeEnableTransition: true,
-    },
+    { unsafeEnableTransition: true },
   )
   const contextMenuData = useStore(driveStore, (state) => state.contextMenuData)
   const getAsset = useGetAsset()
   const asset = singleSelectedItemId ? getAsset(singleSelectedItemId) : undefined
+  const contextMenuDataRef = useSyncRef(contextMenuData?.triggerRef.current ?? null)
 
-  if (asset) {
-    return (
-      contextMenuData?.triggerRef && (
-        <AssetContextMenu
-          ref={ref}
-          asset={asset}
-          currentDirectoryId={currentDirectoryId}
-          doCopy={doCopy}
-          doCut={doCut}
-          doPaste={doPaste}
-          triggerRef={contextMenuData.triggerRef}
-          initialPosition={contextMenuData.initialContextMenuPosition}
-        />
-      )
-    )
-  } else {
-    return (
-      <AssetsTableContextMenu
+  return asset ?
+      <AssetContextMenu
+        ref={ref}
+        asset={asset}
+        currentDirectoryId={currentDirectoryId}
+        doCopy={doCopy}
+        doCut={doCut}
+        doPaste={doPaste}
+        triggerRef={contextMenuDataRef}
+        initialPosition={contextMenuData?.initialContextMenuPosition}
+      />
+    : <AssetsTableContextMenu
         ref={ref}
         currentDirectoryId={currentDirectoryId}
         doCopy={doCopy}
         doCut={doCut}
         doPaste={doPaste}
       />
-    )
-  }
 })
