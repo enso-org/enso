@@ -2020,11 +2020,9 @@ final class TreeToIr {
   }
 
   Syntax translateSyntaxError(Tree where, Syntax.Reason reason) {
-      if (reason == Syntax.UnexpectedExpression$.MODULE$ && where instanceof Tree.Invalid invalid) {
-        if (!invalid.getError().startsWith("Unexpected token:")) {
-          reason = new Syntax.UnsupportedSyntax(invalid.getError());
-        }
-      }
+    if (reason == Syntax.UnexpectedExpression$.MODULE$ && where instanceof Tree.Invalid invalid) {
+      reason = new Syntax.UnsupportedSyntax(invalid.getError());
+    }
     var at = getIdentifiedLocation(where);
     return new Syntax(at, reason, meta());
   }
