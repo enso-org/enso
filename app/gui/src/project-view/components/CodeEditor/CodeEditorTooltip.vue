@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import { type NodeId } from '@/stores/graph'
-import { type GraphDb } from '@/stores/graph/graphDatabase'
-import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
+import type { NodeId } from '@/stores/graph'
+import type { GraphDb } from '@/stores/graph/graphDatabase'
+import type { SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { computed } from 'vue'
 
 const { nodeId, syntax, graphDb, suggestionDbStore } = defineProps<{

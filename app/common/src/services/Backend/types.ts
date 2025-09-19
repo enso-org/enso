@@ -1,5 +1,5 @@
 import * as newtype from '../../utilities/data/newtype.js'
-import { IdType } from '../Backend.js'
+import type { IdType } from '../Backend.js'
 
 /** A KSUID.*/
 export type KSUID = newtype.Newtype<string, 'KSUID'>

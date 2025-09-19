@@ -1,6 +1,6 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
-import { getText, Replacements, resolveDictionary, type TextId } from '../text.js'
+import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
 import * as array from '../utilities/data/array.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
@@ -38,7 +38,7 @@ import {
   type UserId,
   type UserPermissionIdentifier,
 } from './Backend/types.js'
-import { HttpClient, HttpClientPostOptions, ResponseWithTypedJson } from './HttpClient.js'
+import { HttpClient, type HttpClientPostOptions, type ResponseWithTypedJson } from './HttpClient.js'
 export { prettifyError } from 'zod/v4'
 
 export * from './Backend/types.js'

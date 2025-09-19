@@ -1,6 +1,6 @@
 import * as text from 'enso-common/src/text'
 
-import { MaybeRefOrGetterArray, proxyRefs } from '@/util/reactivity'
+import { proxyRefs, type MaybeRefOrGetterArray } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
 import { computed, ref, toValue } from 'vue'
 

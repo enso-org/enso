@@ -1,4 +1,4 @@
-import { type ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import { computed, type Ref, toValue } from 'vue'
 import { createContextStore } from '.'
 

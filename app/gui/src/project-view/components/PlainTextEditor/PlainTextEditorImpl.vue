@@ -4,7 +4,7 @@ import { linkifyUrls } from '@/components/PlainTextEditor/linkifyUrls'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { useLinkTitles } from '@/util/codemirror/links'
-import { Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { useTemplateRef, type ComponentInstance } from 'vue'
 

@@ -1,7 +1,7 @@
 import type { NavigatorComposable } from '@/composables/navigator'
 import { useGraphHover, useSelection, type SelectionOptions } from '@/composables/selection'
 import { createContextStore } from '@/providers'
-import { type NodeId } from '@/stores/graph'
+import type { NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import { proxyRefs } from '@/util/reactivity'
 import type { ExternalId } from 'ydoc-shared/yjsModel'

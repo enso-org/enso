@@ -1,7 +1,7 @@
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
   makeConstructor,
   makeFunction,
@@ -14,7 +14,7 @@ import {
 import { stdPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { describe, expect, test } from 'vitest'
-import { type Opt } from 'ydoc-shared/util/data/opt'
+import type { Opt } from 'ydoc-shared/util/data/opt'
 
 test.each([
   makeModuleMethod('Standard.Base.Data.read', { group: 'Standard.Base.MockGroup1' }),

@@ -1,6 +1,6 @@
-import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
-import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
-import { type AnyAsset, AssetType, BackendType, type ProjectId } from '#/services/Backend'
+import type { PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
+import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import { AssetType, BackendType, type AnyAsset, type ProjectId } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
@@ -9,10 +9,10 @@ import type { Icon } from '@/util/iconMetadata/iconName'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { useQuery } from '@tanstack/vue-query'
 import { encoding } from 'lib0'
-import { computed, reactive, readonly, type Ref, ref, toValue } from 'vue'
+import { computed, reactive, readonly, ref, toValue, type Ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { isProjectTab, type TabId } from './container'
-import { type TextStore, useText } from './text'
+import { useText, type TextStore } from './text'
 
 /** Information about content of "Help" panel. */
 export interface DisplayedHelp {

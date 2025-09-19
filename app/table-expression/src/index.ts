@@ -1,5 +1,5 @@
 import { LanguageSupport, LRLanguage } from '@codemirror/language'
-import { type MethodCompletionInfo, useCompletions } from './autocomplete'
+import { useCompletions, type MethodCompletionInfo } from './autocomplete'
 import { parser } from './generated/parser'
 import { highlight } from './highlight'
 

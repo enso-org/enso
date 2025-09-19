@@ -1,10 +1,10 @@
 import type { ExecutionContext } from '@/stores/project/executionContext'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
-import { Ok, Result } from '@/util/data/result'
+import { Ok, type Result } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { arrayEquals } from '@/util/equals'
 import { parseMethodPointer, type MethodCall } from '@/util/methodPointer'
-import { type ProjectPath } from '@/util/projectPath'
+import type { ProjectPath } from '@/util/projectPath'
 import { clamp } from 'enso-common/src/utilities/data/math'
 import { markRaw } from 'vue'
 import type {

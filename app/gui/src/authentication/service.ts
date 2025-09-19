@@ -3,7 +3,7 @@
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron.
  */
-import { type Logger } from '#/providers/LoggerProvider'
+import type { Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
 import * as cognitoModule from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
