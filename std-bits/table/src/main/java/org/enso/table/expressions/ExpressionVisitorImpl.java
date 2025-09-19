@@ -67,41 +67,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   public record MethodResolver(
       Value module, Value type, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
-    public MethodResolver(
-        String moduleName,
-        String typeName,
-        boolean isStaticMethod,
-        Function<Object, Value> makeTypedColumn) {
-      this(
-          Context.getCurrent().getBindings("enso").invokeMember("get_module", moduleName),
-          typeName,
-          isStaticMethod,
-          makeTypedColumn);
-    }
-
-    private MethodResolver(
-        Value module,
-        String typeName,
-        boolean isStaticMethod,
-        Function<Object, Value> makeTypedColumn) {
-      this(module, module.invokeMember("get_type", typeName), isStaticMethod, makeTypedColumn);
-    }
-
     public boolean canResolve(String methodName) {
       return resolve(methodName).canExecute();
     }
 
     public Value resolve(String methodName) {
-      return module.invokeMember("get_method", type, methodName);
+      var m = type.getMember(methodName);
+      return m == null ? Value.asValue(null) : m;
     }
-  }
-
-  public static MethodResolver newMethodResolver(
-      String moduleName,
-      String typeName,
-      boolean isStaticMethod,
-      Function<Object, Value> makeTypedColumn) {
-    return new MethodResolver(moduleName, typeName, isStaticMethod, makeTypedColumn);
   }
 
   public static class Method implements MethodInterface {
