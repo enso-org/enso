@@ -1,6 +1,6 @@
 /** @file Rendering for an arbitrary {@link SettingsEntryData}. */
 import { SettingsCustomEntry } from './CustomEntry'
-import { type SettingsContext, type SettingsEntryData } from './data'
+import type { SettingsContext, SettingsEntryData } from './data'
 import { SettingsFormEntry } from './FormEntry'
 
 /** Props for a {@link SettingsEntry}. */

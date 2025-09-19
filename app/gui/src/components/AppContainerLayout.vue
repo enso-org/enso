@@ -1,22 +1,22 @@
 <script lang="ts">
 import {
-  type AcceptInvitationModalProps,
   AcceptInvitationModal as AcceptInvitationModalReact,
+  type AcceptInvitationModalProps,
 } from '#/modals/AcceptInvitationModal'
 import {
-  type PlanDowngradedModalProps,
   PlanDowngradedModal as PlanDowngradedModalReact,
+  type PlanDowngradedModalProps,
 } from '#/modals/PlanDowngradedModal'
 import { SetupOrganizationModal as SetupOrganizationModalReact } from '#/modals/SetupOrganizationForm'
 import {
-  type TrialEndedModalProps,
   TrialEndedModal as TrialEndedModalReact,
+  type TrialEndedModalProps,
 } from '#/modals/TrialEndedModal'
 import * as backendModule from '#/services/Backend'
 import { DAY_MS } from '#/utilities/time'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
-import { DataLoader } from '$/router'
+import type { DataLoader } from '$/router'
 import { backendQueryOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
 import { Ok } from '@/util/data/result'

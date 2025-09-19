@@ -5,9 +5,9 @@ import { ObservableV2 } from 'lib0/observable'
 import * as zlib from 'node:zlib'
 import * as Ast from 'ydoc-shared/ast'
 import { astCount } from 'ydoc-shared/ast'
-import { EnsoFileParts, combineFileParts, splitFileContents } from 'ydoc-shared/ensoFile'
+import { combineFileParts, splitFileContents, type EnsoFileParts } from 'ydoc-shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from 'ydoc-shared/languageServer'
-import {
+import type {
   Checksum,
   FileEdit,
   FileEventKind,
@@ -16,7 +16,7 @@ import {
   response,
 } from 'ydoc-shared/languageServerTypes'
 import { assertNever } from 'ydoc-shared/util/assert'
-import { Err, Ok, Result, withContext } from 'ydoc-shared/util/data/result'
+import { Err, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 import {
   AbortScope,
   ReconnectingWebSocketTransport,
@@ -25,10 +25,10 @@ import {
 } from 'ydoc-shared/util/net'
 import {
   DistributedProject,
-  ExternalId,
   IdMap,
   ModuleDoc,
   visMetadataEquals,
+  type ExternalId,
   type Uuid,
 } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'

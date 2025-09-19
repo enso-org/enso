@@ -8,8 +8,8 @@ import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemir
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { Ok } from '@/util/data/result'
 import { useToast } from '@/util/toast'
-import { type Extension, SelectionRange } from '@codemirror/state'
-import { type ComponentInstance, ref, useTemplateRef, watch } from 'vue'
+import { SelectionRange, type Extension } from '@codemirror/state'
+import { ref, useTemplateRef, watch, type ComponentInstance } from 'vue'
 
 const props = defineProps<{
   widgetTypeId: WidgetTypeId

@@ -7,7 +7,7 @@ import {
   languageDataProp,
   LanguageSupport,
 } from '@codemirror/language'
-import { type Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import {
   type Input,
   NodeProp,
@@ -18,10 +18,10 @@ import {
   Tree,
 } from '@lezer/common'
 import { styleTags, tags } from '@lezer/highlight'
-import { type Ref } from 'vue'
+import type { Ref } from 'vue'
 import { spanMapToSpanGetter, tokenSpanGetter } from 'ydoc-shared/ast/idMap'
 import { assertDefined } from 'ydoc-shared/util/assert'
-import { type SourceRange } from 'ydoc-shared/util/data/text'
+import type { SourceRange } from 'ydoc-shared/util/data/text'
 
 const treeTypeNames = Ast.astTypes
 const tokenTypeNames = Ast.tokenTypes.map((name) => `Token${name}`)

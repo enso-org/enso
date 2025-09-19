@@ -30,7 +30,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import { AssetsTableContextMenu } from '#/layouts/AssetsTableContextMenu'
-import { type Category } from '#/layouts/CategorySwitcher/Category'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
@@ -708,18 +708,7 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
-  const renameAssetMutationCallback = useMutationCallback(
-    backendMutationOptions(backend, 'updateAsset'),
-  )
-  const closeProjectMutationCallback = useCloseProject()
-
-  const doRenameAsset = useEventCallback((assetId: AssetId, newTitle: string) => {
-    return renameAssetMutationCallback([
-      assetId,
-      { title: newTitle, parentDirectoryId: null, description: null },
-      assetId,
-    ])
-  })
+  const closeProject = useCloseProject()
 
   const doOpenProject = useEventCallback((projectId: ProjectId) => {
     const project = assets.find((asset) => asset.id === projectId)
@@ -1177,8 +1166,7 @@ function AssetsTable(props: AssetsTableProps) {
                 onDragStart={onRowDragStart}
                 onDragEnd={endAutoScroll}
                 onDrop={onRowDrop}
-                renameAsset={doRenameAsset}
-                closeProject={closeProjectMutationCallback}
+                closeProject={closeProject}
                 openProject={doOpenProject}
               />
             )

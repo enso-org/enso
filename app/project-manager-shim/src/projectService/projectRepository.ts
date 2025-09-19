@@ -1,5 +1,5 @@
 import { UUID } from 'enso-common/src/services/Backend'
-import { type Rfc3339DateTime, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { toRfc3339, type Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { Path } from 'enso-common/src/utilities/file'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'

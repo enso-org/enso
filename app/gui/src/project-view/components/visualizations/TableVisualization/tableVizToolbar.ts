@@ -4,15 +4,15 @@ import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import type { ToValue } from '@/util/reactivity'
 import { computed, type ComputedRef, type Ref, toValue } from 'vue'
-import { Expression, MutableExpression } from 'ydoc-shared/ast'
-import { TextFormatOptions } from '../TableVisualization.vue'
+import type { Expression, MutableExpression } from 'ydoc-shared/ast'
+import type { TextFormatOptions } from '../TableVisualization.vue'
 import {
   actionMap,
-  FilterAction,
-  FilterType,
-  FilterValueRange,
+  type FilterAction,
+  type FilterType,
+  type FilterValueRange,
   getFilterValue,
-  GridFilterModel,
+  type GridFilterModel,
 } from './tableVizFilterUtils'
 
 type SortDirection = 'asc' | 'desc'

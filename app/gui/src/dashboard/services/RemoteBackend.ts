@@ -782,8 +782,7 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'getAssetDetailsBackendError')
     }
 
-    // eslint-disable-next-line no-restricted-syntax
-    return (await response.json()) as never
+    return await response.json()
   }
   /**
    * Return Language Server logs for a project session.

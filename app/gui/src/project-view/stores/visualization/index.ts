@@ -6,7 +6,7 @@ import * as sqlVisualization from '@/components/visualizations/SQLVisualization.
 import * as tableVisualization from '@/components/visualizations/TableVisualization.vue'
 import * as warningsVisualization from '@/components/visualizations/WarningsVisualization.vue'
 import { createContextStore } from '@/providers'
-import { type ProjectStore } from '@/stores/project'
+import type { ProjectStore } from '@/stores/project'
 import {
   compile,
   currentProjectProtocol,

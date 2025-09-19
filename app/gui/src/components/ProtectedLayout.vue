@@ -15,7 +15,7 @@ import {
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH } from '$/appUtils'
 import { useUserAgreements } from '$/composables/userAgreements'
-import { AuthStore, useAuth } from '$/providers/auth'
+import { useAuth, type AuthStore } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
 import type { DataLoader } from '$/router'
@@ -23,7 +23,7 @@ import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
 import { computed, effectScope, EffectScope, watch, watchPostEffect } from 'vue'
-import { RouteLocation, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, type RouteLocation } from 'vue-router'
 import { Err, Ok } from 'ydoc-shared/util/data/result'
 
 declare module 'vue-router' {

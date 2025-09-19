@@ -1,6 +1,6 @@
 import * as object from 'lib0/object'
 import * as Y from 'yjs'
-import { type SourceRange, type SourceRangeKey, sourceRangeKey } from './util/data/text'
+import { sourceRangeKey, type SourceRange, type SourceRangeKey } from './util/data/text'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
 

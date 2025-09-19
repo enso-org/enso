@@ -1,5 +1,5 @@
 import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete'
-import { type MethodCompletionInfo, useCompletionData } from './completions'
+import { useCompletionData, type MethodCompletionInfo } from './completions'
 import { completionTypeAt } from './completionType'
 export type { MethodCompletionInfo }
 

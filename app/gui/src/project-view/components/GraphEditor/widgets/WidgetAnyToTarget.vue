@@ -5,10 +5,10 @@ import { withDropdownItems } from '@/components/GraphEditor/widgets/WidgetSelect
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { injectFunctionInfo } from '@/providers/functionInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
-import { SuggestionEntry, SuggestionKind } from '@/stores/suggestionDatabase/entry'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { ProjectPath } from '@/util/projectPath'
-import { QualifiedName } from '@/util/qualifiedName'
+import type { QualifiedName } from '@/util/qualifiedName'
 import { map } from 'enso-common/src/utilities/data/iter'
 import { computed } from 'vue'
 

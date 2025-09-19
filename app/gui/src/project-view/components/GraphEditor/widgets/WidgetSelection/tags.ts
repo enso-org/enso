@@ -1,22 +1,22 @@
 import type { SubmenuEntry } from '@/components/GraphEditor/widgets/WidgetSelection/submenuEntry'
 import type { Choice, WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import type { GraphStore } from '@/stores/graph'
-import { printRequiredImport, RequiredImport, requiredImports } from '@/stores/graph/imports'
-import { ProjectNameStore } from '@/stores/projectNames'
+import { printRequiredImport, requiredImports, type RequiredImport } from '@/stores/graph/imports'
+import type { ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryDisplayPath,
   entryIsStatic,
-  SuggestionEntry,
   SuggestionKind,
+  type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { Opt } from '@/util/data/opt'
-import { Icon, isIconName } from '@/util/iconMetadata/iconName'
+import type { Opt } from '@/util/data/opt'
+import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { type ToValue } from '@/util/reactivity'
-import { computed, type ComputedRef, type Ref, toValue, VNode } from 'vue'
+import type { ToValue } from '@/util/reactivity'
+import { computed, toValue, type ComputedRef, type Ref, type VNode } from 'vue'
 
 /**
  * The most basic dropdown item. When you click on it, the expression is inserted.

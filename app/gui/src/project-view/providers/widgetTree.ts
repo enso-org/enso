@@ -1,11 +1,11 @@
 import { createContextStore } from '@/providers'
-import { type WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
-import { PrimaryApplication } from '@/stores/graph/graphDatabase'
+import type { WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
+import type { PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
-import { Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 import { proxyRefs } from '@/util/reactivity'
 import { computed, shallowRef, type Ref, type ShallowUnwrapRef } from 'vue'
-import { ExternalId } from 'ydoc-shared/yjsModel'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 export const [provideWidgetTree, injectWidgetTree] = createContextStore(
   'Widget tree',

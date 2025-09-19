@@ -1,6 +1,7 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
 import { Button } from '#/components/Button'
 import EditableSpan from '#/components/EditableSpan'
+import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
@@ -21,12 +22,14 @@ export interface DirectoryNameColumnProps extends AssetNameColumnProps {
  * This should never happen.
  */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, rowState, setRowState, isEditable, isNavigating, renameAsset } = props
-  const [isLoading, startNavigation] = useTransition()
+  const { item, state, rowState, setRowState, isEditable, isNavigating } = props
+  const { backend } = state
 
+  const [isLoading, startNavigation] = useTransition()
   const { getText } = useText()
   const driveStore = useDriveStore()
   const getAssetChildren = useGetAssetChildren()
+  const renameAsset = useRenameAsset(backend)
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {

@@ -2,7 +2,7 @@
 import { selectionMouseBindings } from '@/bindings'
 import { useEvent } from '@/composables/events'
 import type { PortId } from '@/providers/portInfo.ts'
-import { type NodeId } from '@/stores/graph'
+import type { NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import { Vec2 } from '@/util/data/vec2'
