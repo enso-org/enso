@@ -162,6 +162,7 @@ object GraalVM {
       "org.bouncycastle"     % "bcprov-jdk18on"     % "1.78.1",
       "org.graalvm.llvm"     % "llvm-api"           % version,
       "org.graalvm.truffle"  % "truffle-nfi"        % version,
+      "org.graalvm.truffle"  % "truffle-nfi-panama" % version,
       "org.graalvm.truffle"  % "truffle-nfi-libffi" % version,
       "org.graalvm.regex"    % "regex"              % version,
       "org.graalvm.tools"    % "profiler-tool"      % version,
