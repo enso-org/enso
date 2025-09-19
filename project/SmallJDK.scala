@@ -11,6 +11,7 @@ object SmallJDK {
   private val NI_BUILDER_MODULES = Seq(
     "org.graalvm.nativeimage.builder",
     "org.graalvm.nativeimage.driver",
+    "org.graalvm.nativeimage.configure",
     "org.graalvm.nativeimage.librarysupport",
     "org.graalvm.nativeimage.objectfile",
     "org.graalvm.nativeimage.pointsto"
@@ -151,10 +152,14 @@ object SmallJDK {
     val moduleJars = List(
       "lib/svm/bin/../../graalvm/svm-driver.jar",
       "lib/svm/bin/../builder/native-image-base.jar",
+      "lib/svm/bin/../builder/espresso-svm.jar",
       "lib/svm/bin/../builder/objectfile.jar",
       "lib/svm/bin/../builder/pointsto.jar",
       "lib/svm/bin/../builder/svm-enterprise.jar",
       "lib/svm/bin/../builder/svm.jar",
+      "lib/svm/bin/../builder/svm-configure.jar",
+      "lib/svm/bin/../builder/svm-capnproto-runtime.jar",
+      "lib/svm/bin/../builder/svm-foreign.jar",
       "lib/svm/bin/../library-support.jar"
     )
     moduleJars.map { jar =>
