@@ -34,8 +34,8 @@ import project.Runtime
 import project.Runtime.Context
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
-from project.Error import all
 from project.Data.Boolean import Boolean, False, True
+from project.Error import all
 from project.Meta.Enso_Project import enso_project
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Numeric_Input, Vector_Editor

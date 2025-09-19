@@ -15,10 +15,10 @@ import project.System.File.File_Access.File_Access
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File_Format_Metadata.Content_Type_Metadata
 import project.System.File_Format_Metadata.File_Format_Metadata
-from project.Error import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import all
+from project.Error import all
 
 ## Helper methods allowing to manipulate the raw configuration of data links.
 type Data_Link

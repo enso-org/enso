@@ -15,8 +15,8 @@ import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.Internal.Reporting_Stream_Decoder_Helper
-from project.Error import all
 from project.Data.Boolean import Boolean, True
+from project.Error import all
 from project.Errors.Common import Uninitialized_State
 
 polyglot java import java.io.BufferedInputStream
