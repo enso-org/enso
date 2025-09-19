@@ -2,9 +2,10 @@
 import KeyIcon from '#/assets/key.svg'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import { backendMutationOptions, useRenameAsset } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore } from '#/providers/DriveProvider'
@@ -23,12 +24,13 @@ export interface SecretNameColumnProps extends AssetNameColumnProps {
 
 /** The icon and name of a {@link SecretAsset}. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, state, isEditable, renameAsset } = props
-  const { backend } = state
+  const { item, isEditable } = props
 
+  const { associatedBackend: backend } = useCategoriesAPI()
   const toastAndLog = useToastAndLog()
   const { getText } = useText()
   const getAssetChildren = useGetAssetChildren()
+  const renameAsset = useRenameAsset(backend)
   const driveStore = useDriveStore()
 
   const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)

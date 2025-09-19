@@ -1,11 +1,13 @@
 import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
-import { type AnyAsset, AssetType, type ProjectId } from '#/services/Backend'
+import { type AnyAsset, AssetType, BackendType, type ProjectId } from '#/services/Backend'
+import { useBackends } from '$/providers/backends'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
 import { Err, Ok, type Result } from '@/util/data/result'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
+import { useQuery } from '@tanstack/vue-query'
 import { encoding } from 'lib0'
 import { computed, reactive, readonly, type Ref, ref, toValue } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
@@ -140,6 +142,7 @@ function useRightPanel(
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   textStore: TextStore = useText(),
 ) {
+  const { backendForType } = useBackends()
   const contextPerTab = reactive(new Map<TabId, RightPanelContext>())
   const context = computed(() => contextPerTab.get(toValue(containerTab)))
   const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
@@ -211,6 +214,26 @@ function useRightPanel(
     return typeof currentItem === 'object' ? currentItem : undefined
   })
 
+  const backendType = computed(() => context.value?.category?.backend ?? BackendType.remote)
+
+  const focusedAssetDetailsQuery = useQuery({
+    queryKey: [
+      backendType,
+      'getAssetDetails',
+      computed(() => context.value?.item ?? context.value?.defaultItem),
+    ] as const,
+    queryFn: async (query) => {
+      const [backendType, , currentItem] = query.queryKey
+      if (!backendType || !currentItem) return null
+      if (typeof currentItem === 'object' && currentItem.type === AssetType.specialUp) return null
+      return await backendForType(backendType).getAssetDetails(
+        typeof currentItem === 'object' ? currentItem.id : currentItem,
+        undefined,
+      )
+    },
+  })
+  const focusedAssetDetails = focusedAssetDetailsQuery.data
+
   function setTab(newTab: RightPanelTabId | undefined) {
     tab.value = newTab
     temporaryTab.value = undefined
@@ -253,6 +276,8 @@ function useRightPanel(
      * The asset being a focus of the right panel, e.g. the currently selected asset in Drive View.
      */
     focusedAsset,
+    /** The details for `focusedAsset`. */
+    focusedAssetDetails,
   })
 }
 

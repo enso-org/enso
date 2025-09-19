@@ -76,13 +76,11 @@ export interface AssetRowProps {
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
-  readonly renameAsset: (assetId: backendModule.AssetId, newTitle: string) => Promise<void>
   readonly closeProject: (project: LaunchedProject) => Promise<void>
   readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
-
 export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { type, columns, id, item } = props
 
@@ -150,7 +148,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
     item,
     labels,
     grabKeyboardFocus,
-    renameAsset,
     closeProject,
     openProject,
   } = props
@@ -433,7 +430,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
                     setSelected={setSelected}
                     state={state}
                     isEditable={state.category.type !== 'trash'}
-                    renameAsset={renameAsset}
                     closeProject={closeProject}
                     openProject={openProject}
                   />

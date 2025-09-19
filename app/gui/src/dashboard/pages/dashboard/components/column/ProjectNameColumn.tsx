@@ -1,6 +1,8 @@
 /** @file The icon and name of a {@link ProjectAsset}. */
 import EditableSpan from '#/components/EditableSpan'
+import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
 import { useDriveStore } from '#/providers/DriveProvider'
@@ -19,20 +21,12 @@ export interface ProjectNameColumnProps extends AssetNameColumnProps {
 
 /** The icon and name of a {@link ProjectAsset}. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const {
-    item,
-    state,
-    isEditable,
-    isOpened,
-    isPlaceholder,
-    closeProject,
-    openProject,
-    renameAsset,
-  } = props
-  const { backend } = state
+  const { item, isEditable, isOpened, isPlaceholder, closeProject, openProject } = props
 
+  const { associatedBackend: backend } = useCategoriesAPI()
   const { user } = useFullUserSession()
   const getAssetChildren = useGetAssetChildren()
+  const renameAsset = useRenameAsset(backend)
   const driveStore = useDriveStore()
 
   const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)

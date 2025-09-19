@@ -1,7 +1,9 @@
 /** @file The icon and name of a {@link FileAsset}. */
 import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
+import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { titleSchema, type FileAsset } from '#/services/Backend'
@@ -19,10 +21,12 @@ export interface FileNameColumnProps extends AssetNameColumnProps {
  * This should never happen.
  */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, isEditable, renameAsset } = props
+  const { item, isEditable } = props
 
+  const { associatedBackend: backend } = useCategoriesAPI()
   const getAssetChildren = useGetAssetChildren()
   const driveStore = useDriveStore()
+  const renameAsset = useRenameAsset(backend)
 
   const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
   const setIsEditing = (isEditing: boolean) => {
