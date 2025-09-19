@@ -331,7 +331,7 @@ type Generic_JDBC_Connection
 
 type Generic_JDBC_Details
     ## Set up a connection to a JDBC database.
-    Value url:Text
+    JDBC (url : Text = (Missing_Argument.throw "url"))
 
     ## ---
        private: true
