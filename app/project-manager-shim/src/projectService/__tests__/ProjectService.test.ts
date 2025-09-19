@@ -286,6 +286,66 @@ describe('ProjectService', () => {
         `Project not found: ${nonExistentId}`,
       )
     })
+
+    test(
+      'should be able to open two projects simultaneously',
+      async () => {
+        // Create two projects
+        const project1 = await projectService.createProject('SimultaneousProject1', projectsDirectory)
+        const project2 = await projectService.createProject('SimultaneousProject2', projectsDirectory)
+
+        // Open both projects
+        const openResult1 = await projectService.openProject(project1.projectId, projectsDirectory)
+        const openResult2 = await projectService.openProject(project2.projectId, projectsDirectory)
+
+        // Verify both projects opened successfully
+        expect(openResult1).toBeDefined()
+        expect(openResult2).toBeDefined()
+
+        // Verify both have valid language server addresses
+        expect(openResult1.languageServerJsonAddress).toBeDefined()
+        expect(openResult1.languageServerBinaryAddress).toBeDefined()
+        expect(openResult2.languageServerJsonAddress).toBeDefined()
+        expect(openResult2.languageServerBinaryAddress).toBeDefined()
+
+        // Verify they have different ports
+        expect(openResult1.languageServerJsonAddress.port).not.toBe(
+          openResult2.languageServerJsonAddress.port,
+        )
+        expect(openResult1.languageServerBinaryAddress.port).not.toBe(
+          openResult2.languageServerBinaryAddress.port,
+        )
+
+        // Verify both projects have correct names
+        expect(openResult1.projectName).toBe('SimultaneousProject1')
+        expect(openResult2.projectName).toBe('SimultaneousProject2')
+
+        // Verify both projects have 'local' namespace
+        expect(openResult1.projectNamespace).toBe('local')
+        expect(openResult2.projectNamespace).toBe('local')
+
+        // Verify both language servers are running by checking ports
+        const isPortInUse = async (port: number): Promise<boolean> => {
+          try {
+            const response = await fetch(`http://127.0.0.1:${port}/_health`)
+            return response.ok
+          } catch {
+            return false
+          }
+        }
+
+        const project1Running = await isPortInUse(openResult1.languageServerJsonAddress.port)
+        const project2Running = await isPortInUse(openResult2.languageServerJsonAddress.port)
+
+        expect(project1Running).toBe(true)
+        expect(project2Running).toBe(true)
+
+        // Clean up - close both projects
+        await projectService.closeProject(project1.projectId)
+        await projectService.closeProject(project2.projectId)
+      },
+      LANGUAGE_SERVER_TEST_TIMEOUT * 2,
+    )
   })
 
   describe('closeProject', () => {
