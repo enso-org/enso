@@ -165,8 +165,7 @@ object Syntax {
       s"$number is not valid in $base"
   }
 
-  case class UnsupportedSyntax(override val explanation: String)
-      extends Reason
+  case class UnsupportedSyntax(override val explanation: String) extends Reason
 
   case object InconsistentConstructorVisibility extends Reason {
     override def explanation: String =
