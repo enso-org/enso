@@ -3,3 +3,4 @@
  */
 
 export * from './filesystem.js'
+export * from './projectService.js'

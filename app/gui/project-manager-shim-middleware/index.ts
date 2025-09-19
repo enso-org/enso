@@ -25,7 +25,6 @@ import {
   ProjectState,
   stripProjectExtension,
   UnzipAssetsJobId,
-  UUID,
   VirtualParentsPath,
   type AnyAsset,
   type AssetId,
@@ -50,8 +49,12 @@ import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 import * as projectManagement from 'project-manager-shim'
-import { handleFilesystemCommand, toJSONRPCError, toJSONRPCResult } from 'project-manager-shim/handler'
-import { ProjectService, type CloudParams } from 'project-manager-shim/projectService'
+import {
+  handleFilesystemCommand,
+  handleProjectServiceRequest,
+  isProjectServiceRequest,
+} from 'project-manager-shim/handler'
+import { ProjectService } from 'project-manager-shim/projectService'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 
 // =================
@@ -213,140 +216,14 @@ export class ProjectManagerShimMiddleware {
           break
         }
       }
-    } else if (requestPath.startsWith('/api/project-service/')) {
-      switch (`${request.method} ${requestPath}`) {
-        case 'POST /api/project-service/project/create': {
-          interface ResponseBody {
-            readonly name: string
-            readonly projectsDirectory: Path
-          }
-          bodyJson<ResponseBody>(request)
-            .then(async (body) => {
-              const projectService = await this.getProjectService()
-              return projectService.createProject(body.name, body.projectsDirectory)
-            })
-            .then((result) => {
-              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(result))
-            })
-            .catch((err) => {
-              console.error(err)
-              response
-                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
-                .end(toJSONRPCError('project/create failed', err))
-            })
-          break
-        }
-        case 'POST /api/project-service/project/open': {
-          interface Body {
-            readonly projectId: UUID
-            readonly projectsDirectory: Path
-            readonly cloud?: CloudParams
-          }
-          bodyJson<Body>(request)
-            .then(async (body) => {
-              const projectService = await this.getProjectService()
-              return projectService.openProject(body.projectId, body.projectsDirectory, body.cloud)
-            })
-            .then((result) => {
-              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(result))
-            })
-            .catch((err) => {
-              console.error(err)
-              response
-                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
-                .end(toJSONRPCError('project/open failed', err))
-            })
-          break
-        }
-        case 'POST /api/project-service/project/close': {
-          interface Body {
-            readonly projectId: UUID
-          }
-          bodyJson<Body>(request)
-            .then(async (body) => {
-              const projectService = await this.getProjectService()
-              return projectService.closeProject(body.projectId)
-            })
-            .then(() => {
-              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(null))
-            })
-            .catch((err) => {
-              console.error(err)
-              response
-                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
-                .end(toJSONRPCError('project/close failed', err))
-            })
-          break
-        }
-        case 'POST /api/project-service/project/delete': {
-          interface Body {
-            readonly projectId: UUID
-            readonly projectsDirectory: Path
-          }
-          bodyJson<Body>(request)
-            .then(async (body) => {
-              const projectService = await this.getProjectService()
-              return projectService.deleteProject(body.projectId, body.projectsDirectory)
-            })
-            .then(() => {
-              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(null))
-            })
-            .catch((err) => {
-              console.error(err)
-              response
-                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
-                .end(toJSONRPCError('project/delete failed', err))
-            })
-          break
-        }
-        case 'POST /api/project-service/project/duplicate': {
-          interface Body {
-            readonly projectId: UUID
-            readonly projectsDirectory: Path
-          }
-          bodyJson<Body>(request)
-            .then(async (body) => {
-              const projectService = await this.getProjectService()
-              return projectService.duplicateProject(body.projectId, body.projectsDirectory)
-            })
-            .then((result) => {
-              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(result))
-            })
-            .catch((err) => {
-              console.error(err)
-              response
-                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
-                .end(toJSONRPCError('project/delete failed', err))
-            })
-          break
-        }
-        case 'POST /api/project-service/project/rename': {
-          interface Body {
-            readonly projectId: UUID
-            readonly name: string
-            readonly projectsDirectory: Path
-          }
-          bodyJson<Body>(request)
-            .then(async (body) => {
-              const projectService = await this.getProjectService()
-              return projectService.renameProject(body.projectId, body.name, body.projectsDirectory)
-            })
-            .then(() => {
-              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(null))
-            })
-            .catch((err) => {
-              console.error(err)
-              response
-                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
-                .end(toJSONRPCError('project/rename failed', err))
-            })
-          break
-        }
-        default: {
-          console.error('Unknown middleware request:', requestPath)
-          break
-        }
-      }
+    } else if (isProjectServiceRequest(requestPath)) {
+      handleProjectServiceRequest(
+        request,
+        response,
+        requestPath,
+        () => this.getProjectService(),
+        COMMON_HEADERS,
+      )
     } else if (requestPath.startsWith('/api/')) {
       switch (`${request.method} ${requestPath}`) {
         case `POST /api/${EXPORT_ARCHIVE_PATH}`: {
@@ -457,16 +334,6 @@ export class ProjectManagerShimMiddleware {
       next()
     }
   }
-}
-
-/** Read JSON from an HTTP request body. */
-async function bodyJson<T>(request: http.IncomingMessage): Promise<T> {
-  const chunks: Buffer[] = []
-  for await (const chunk of request) {
-    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
-  }
-  const body = Buffer.concat(chunks).toString('utf-8')
-  return JSON.parse(body) as T
 }
 
 /** Return whether a file exists. */
