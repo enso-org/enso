@@ -14,7 +14,6 @@ import project.Internal.Time.Format.Parser
 import project.Internal.Time.Format.Tokenizer.Tokenizer
 import project.Nothing.Nothing
 import project.Panic.Panic
-
 from project.Function import all
 
 polyglot java import java.lang.Exception as JException
@@ -283,7 +282,6 @@ type Date_Time_Formatter
        ---
        The ISO date formatter that formats or parses the ordinal date
        without an offset, such as '2012-337'.
-
     iso_ordinal_date -> Date_Time_Formatter =
         Date_Time_Formatter.Value (EnsoDateTimeFormatter.makeISOConstant DateTimeFormatter.ISO_ORDINAL_DATE "iso_ordinal_date")
 
