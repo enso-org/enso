@@ -1,6 +1,10 @@
 import * as newtype from '../../utilities/data/newtype.js'
 import { IdType } from '../Backend.js'
 
+/** A KSUID.*/
+export type KSUID = newtype.Newtype<string, 'KSUID'>
+export const KSUID = newtype.newtypeConstructor<KSUID>()
+
 /** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
@@ -90,9 +94,9 @@ export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
 export type AssetId = IdType[keyof IdType]
 export const AssetId = newtype.newtypeConstructor<AssetId>()
 
-/** Unique identifier for a payment checkout session. */
-export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
-export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
+/** Unique identifier for metadata. */
+export type MetadataId = newtype.Newtype<`metadata-${KSUID}`, 'MetadataId'>
+export const MetadataId = newtype.newtypeConstructor<MetadataId>()
 
 /** Unique identifier for a subscription. */
 export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>

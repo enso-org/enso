@@ -1,6 +1,7 @@
 /** @file The icon and name of a {@link SecretAsset}. */
 import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
+import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { titleSchema, type DatalinkAsset } from '#/services/Backend'
@@ -19,9 +20,11 @@ export interface DatalinkNameColumnProps extends AssetNameColumnProps {
  * This should never happen.
  */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
-  const { item, rowState, setRowState, isEditable, renameAsset } = props
+  const { item, state, rowState, setRowState, isEditable } = props
+  const { backend } = state
 
   const getAssetChildren = useGetAssetChildren()
+  const renameAsset = useRenameAsset(backend)
 
   const rightPanel = useRightPanelData()
 

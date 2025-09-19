@@ -9,9 +9,11 @@
 
 expr {
   value
-    | binOp
-    | unaryOp
-    | circumfixOp
+    | BinOpApp
+    | Atom
+    | PrefixOpApp
+    | PostfixOpApp
+    | parenthesized<expr>
     | in
     | between
     | ifElse
@@ -22,7 +24,7 @@ expr {
 value { Number | Regex | LiteralKeyword | Date | String }
 
 LiteralKeyword {
- NULL | NOTHING | TRUE | FALSE
+  NULL | NOTHING | TRUE | FALSE
 }
 
 Date {
@@ -41,7 +43,7 @@ Regex {
 }
 
 @precedence {
-  power,
+  power @left,
   multDivMod @left,
   addSub @left,
   compare @left,
@@ -56,8 +58,9 @@ Regex {
   unaryMinus
 }
 
-binOp {
-  expr !multDivMod ArithOp<'*' | '/' | '%'> expr
+BinOpApp {
+  expr !power ArithOp<'^'> expr
+    | expr !multDivMod ArithOp<'*' | '/' | '%'> expr
     | expr !addSub ArithOp<'+' | '-'> expr
     | expr !compare CompareOp<'=' | '==' | '!=' | '<>' | '<=' | '>=' | '<' | '>'> expr
     | expr !like CompareOp<NOT? LIKE> expr
@@ -80,20 +83,17 @@ between {
   expr !between CompareOp<NOT? BETWEEN> andExpr
 }
 
-unaryOp {
-  !power ArithOp<'^'> expr
-    | expr !isNull TypeOp<IS NOT? (EMPTY | NULL)>
-    | !unaryNot ArithOp<'!' | NOT>
-    | !unaryMinus ArithOp<'-'>
-    | Atom
+PrefixOpApp {
+  !unaryNot ArithOp<'!' | NOT> expr
+    | !unaryMinus ArithOp<'-'> expr
+}
+
+PostfixOpApp {
+  expr !isNull TypeOp<IS NOT? (EMPTY | NULL)>
 }
 
 Atom {
   Punctuation<'..'> identifier
-}
-
-circumfixOp {
-  parenthesized<expr>
 }
 
 ifElse {

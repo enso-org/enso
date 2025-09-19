@@ -3,7 +3,6 @@ import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
@@ -517,7 +516,8 @@ spec_write suite_builder suffix test_sheet_name =
                (which was empty in this example), so we still only get one sheet.
                Different example is tested in the test below, if the subsequent file happens to the returned
                dry-run object - then both updates are visible - see below.
-            opened_temp.sheet_names . should_equal ['Another']
+            opened_temp2 = temp.read
+            opened_temp2.sheet_names . should_equal ['Another']
 
             opened_temp.close
             temp.delete_if_exists
@@ -544,7 +544,8 @@ spec_write suite_builder suffix test_sheet_name =
             temp2.absolute.normalize.path . should_equal temp1.absolute.normalize.path
 
             # The write operation replaces the dry run file, basing off of the dry-run file itself - so both changes are visible.
-            opened_temp.sheet_names . should_equal ['EnsoSheet', 'Another']
+            opened_temp2 = temp1.read
+            opened_temp2.sheet_names . should_equal ['EnsoSheet', 'Another']
 
             opened_temp.close
             temp1.delete_if_exists
@@ -1287,15 +1288,13 @@ add_specs suite_builder =
 
             bad_file.delete
 
-        group_builder.specify "will fail if an operation is performed on a closed workbook" <|
+        group_builder.specify "can still use a file after closing it" <|
             workbook = xlsx_sheet.read
+            workbook.close . should_equal Nothing
             workbook.sheet_count . should_equal 4
-
             workbook.close . should_equal Nothing
-
-            workbook.sheet_count . should_fail_with Illegal_State
-            workbook.close . should_equal Nothing
-            workbook.read "Sheet1" . should_fail_with Illegal_State
+            table = workbook.read "Sheet1"
+            check_table table
 
         group_builder.specify "should be able to read a XLSX with inline strings" <|
             workbook = (enso_project.data / "Sales_Sample_Data.xlsx") . read

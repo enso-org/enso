@@ -763,6 +763,81 @@ test('File Browser widget', async ({ page }) => {
   await expect(pathArg.getByTestId('widget-text-content')).toHaveText('/path/to/some/mock/file')
 })
 
+test.describe('Table expression', () => {
+  test.beforeEach(async ({ page }) => {
+    await actions.goToGraph(page)
+
+    await mockMethodCallInfo(page, 'table', {
+      methodPointer: {
+        module: 'Standard.Table.Table',
+        definedOnType: 'Standard.Table.Table.Table',
+        name: 'set',
+      },
+      notAppliedArguments: [],
+    })
+    await mockMethodCallInfo(
+      page,
+      { binding: 'table', expr: 'expr ""' },
+      {
+        methodPointer: {
+          module: 'Standard.Table.Expression',
+          definedOnType: 'Standard.Table.Expression',
+          name: 'expr',
+        },
+        notAppliedArguments: [],
+      },
+    )
+  })
+
+  test('Language recognized', async ({ page }) => {
+    const tableNode = locate.graphNodeByBinding(page, 'table')
+    const exprText = tableNode.locator('.WidgetText')
+    await expect(exprText).toHaveAttribute('data-text-syntax', 'enso-table-expression')
+  })
+
+  test('Autocomplete: Builtins', async ({ page }) => {
+    const ac = await getTableNodeExprAutocomplete(page)
+    await expect(ac.option('false')).toBeVisible()
+  })
+
+  test('Autocomplete: Column methods', async ({ page }) => {
+    const ac = await getTableNodeExprAutocomplete(page)
+    await expect(ac.option('is_nan')).toBeVisible()
+  })
+
+  test('Autocomplete: Table columns', async ({ page }) => {
+    // Column data is requested asynchronously, and the menu options list is not reactive, so we
+    // retry in case the menu is opened before the data has been received.
+    await expect(async () => {
+      await page.mouse.click(0, 0)
+      const ac = await getTableNodeExprAutocomplete(page)
+      await expect(ac.option('Column A')).toBeVisible()
+    }).toPass({ timeout: 5_000 })
+  })
+
+  async function getTableNodeExprAutocomplete(page: Page) {
+    const exprText = locate.graphNodeByBinding(page, 'table').locator('.WidgetText')
+    await expect(exprText).toHaveAttribute('data-text-syntax', 'enso-table-expression')
+    await exprText.click()
+    await expect(exprText.getByTestId('widget-text-content')).toBeFocused()
+    return await AutocompleteMenu.ForEditor(exprText)
+  }
+})
+
+class AutocompleteMenu {
+  private constructor(private readonly root: Locator) {}
+
+  static async ForEditor(editor: Locator): Promise<AutocompleteMenu> {
+    const root = editor.locator('.cm-tooltip-autocomplete')
+    await expect(root).toBeVisible()
+    return new AutocompleteMenu(root)
+  }
+
+  option(label: string) {
+    return this.root.locator('.cm-completionLabel').filter({ hasText: label })
+  }
+}
+
 test('Manage aggregates in `aggregate` node', async ({ page }) => {
   await actions.goToGraph(page)
   // Hide docpanel to not obscure long node.

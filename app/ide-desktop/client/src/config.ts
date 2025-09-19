@@ -193,22 +193,6 @@ export const CONFIG = contentConfig.OPTIONS.merge(
               `https://groups.google.com/a/chromium.org/g/chromium-dev/c/` +
               `09NnO6jYT6o.`,
           }),
-          disableSandbox: new contentConfig.Option({
-            passToWebApplication: false,
-            primary: false,
-            value: true,
-            description:
-              `Disable the sandbox feature for all process types that are ` +
-              `typically subjected to sandboxing. This option serves as a ` +
-              `browser-level switch solely for testing purposes. Although Google ` +
-              `discourages the use of this option, it is deemed safe for use in ` +
-              `this particular instance as the browser is exclusively designed to ` +
-              `display Enso, which already has unrestricted access to all files ` +
-              `and system settings on the user's machine. This modification has ` +
-              `been known to result in correct app behavior on certain systems, ` +
-              `as demonstrated in this example: ` +
-              `https://github.com/enso-org/enso/issues/3801.`,
-          }),
           disableGpuSandbox: new contentConfig.Option({
             passToWebApplication: false,
             primary: false,

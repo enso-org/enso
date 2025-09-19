@@ -15,7 +15,7 @@ import { useUnconnectedEdges, type UnconnectedEdge } from '@/stores/graph/unconn
 import { type ProjectStore } from '@/stores/project'
 import { type ProjectNameStore } from '@/stores/projectNames'
 import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
-import { assert, assertDefined, assertNever, bail } from '@/util/assert'
+import { assert, assertDefined, assertNever } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId, Identifier, MutableModule } from '@/util/ast/abstract'
 import { isAstId, isIdentifier } from '@/util/ast/abstract'
@@ -49,7 +49,12 @@ import {
 import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import type { ExpressionUpdate, Path as LsPath } from 'ydoc-shared/languageServerTypes'
 import { reachable } from 'ydoc-shared/util/data/graph'
-import type { LocalUserActionOrigin, Origin, VisualizationMetadata } from 'ydoc-shared/yjsModel'
+import type {
+  ExternalId,
+  LocalUserActionOrigin,
+  Origin,
+  VisualizationMetadata,
+} from 'ydoc-shared/yjsModel'
 import { defaultLocalOrigin, visMetadataEquals } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
@@ -706,39 +711,35 @@ export function createGraphStore(
 
   function mockExpressionUpdate(
     locator: string | { binding: string; expr: string },
-    update: Partial<ExpressionUpdate>,
+    update: Partial<Omit<ExpressionUpdate, 'expressionId'>>,
   ) {
     const { binding, expr } =
       typeof locator === 'string' ? { binding: locator, expr: undefined } : locator
     const nodeId = db.getIdentDefiningNode(binding)
-    if (nodeId == null) bail(`The node with identifier '${binding}' was not found.`)
-    let exprId: AstId | undefined
+    assert(nodeId != null)
+    let expressionId: ExternalId | undefined
     if (expr) {
       const node = db.nodeIdToNode.get(nodeId)
-      node?.innerExpr.visitRecursive((ast) => {
-        if (ast instanceof Ast.Ast && ast.code() == expr) {
-          exprId = ast.id
+      assert(node != null)
+      Ast.visitRecursive(node.innerExpr, (ast) => {
+        if (ast.code() === expr) {
+          assert(expressionId == null)
+          expressionId = ast.externalId
         }
       })
     } else {
-      exprId = db.idFromExternal(nodeId)
+      expressionId = nodeId
     }
-
-    if (exprId == null) {
-      const locatorStr =
-        typeof locator === 'string' ? locator : `${locator.binding}/${locator.expr}`
-      bail(`Cannot find expression located by ${locatorStr}`)
-    }
-
+    assert(expressionId != null)
     const update_: ExpressionUpdate = {
-      expressionId: db.idToExternal(exprId)!,
-      profilingInfo: update.profilingInfo ?? [],
-      fromCache: update.fromCache ?? false,
-      payload: update.payload ?? { type: 'Value' },
-      type: update.type ?? [],
-      hiddenType: update.hiddenType ?? [],
-      ...(update.methodCall ? { methodCall: update.methodCall } : {}),
+      expressionId,
+      profilingInfo: [],
+      fromCache: false,
+      payload: { type: 'Value' },
+      type: [],
+      hiddenType: [],
     }
+    Object.assign(update_, update)
     proj.computedValueRegistry.processUpdates([update_])
   }
 
