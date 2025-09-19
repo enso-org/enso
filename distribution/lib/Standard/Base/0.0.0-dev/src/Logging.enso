@@ -9,8 +9,8 @@ import project.Runtime.Managed_Resource.Managed_Resource
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import False, True
 
-polyglot java import org.slf4j.LoggerFactory
 polyglot java import org.enso.base.ProgressHandle
+polyglot java import org.slf4j.LoggerFactory
 
 ## ---
    private: true
