@@ -9,6 +9,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./handler": {
+      "source": "./src/handler/index.ts",
+      "types": "./dist/handler/index.d.ts",
+      "import": "./dist/handler/index.js"
+    },
     "./projectService": {
       "source": "./src/projectService/index.ts",
       "types": "./dist/projectService/index.d.ts",

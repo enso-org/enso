@@ -50,7 +50,7 @@ import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 import * as projectManagement from 'project-manager-shim'
-import { handleFilesystemCommand, toJSONRPCError, toJSONRPCResult } from 'project-manager-shim'
+import { handleFilesystemCommand, toJSONRPCError, toJSONRPCResult } from 'project-manager-shim/handler'
 import { ProjectService, type CloudParams } from 'project-manager-shim/projectService'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 

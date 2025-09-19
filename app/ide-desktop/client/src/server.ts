@@ -15,7 +15,7 @@ import type * as vite from 'vite'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as projectManagement from 'project-manager-shim'
-import { handleFilesystemCommand } from 'project-manager-shim'
+import { handleFilesystemCommand } from 'project-manager-shim/handler'
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
