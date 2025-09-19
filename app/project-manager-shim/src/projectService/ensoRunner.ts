@@ -46,7 +46,7 @@ export type ShutdownHookType = 'rename-project-directory'
 
 interface RunningProject {
   process: childProcess.ChildProcess
-  jsonPort: number
+  sockets: LanguageServerSockets
   shutdownHooks: Map<ShutdownHookType, () => Promise<void>>
 }
 
@@ -61,10 +61,6 @@ export class EnsoRunner implements Runner {
 
   /** Creates a new Enso project at the specified path. */
   async createProject(projectPath: Path, name: string, projectTemplate?: string): Promise<void> {
-    if (!this.ensoPath) {
-      throw new Error('Enso executable not found')
-    }
-
     const args: string[] = []
     args.push('--new', projectPath)
     args.push('--new-project-name', name)
@@ -106,8 +102,11 @@ export class EnsoRunner implements Runner {
     projectId: string,
     extraEnv?: Array<[string, string]>,
   ): Promise<LanguageServerSockets> {
-    if (!this.ensoPath) {
-      throw new Error('Enso executable not found')
+    // Check if the project is already running
+    const runningProject = this.runningProjects.get(projectId)
+    if (runningProject) {
+      // Return the existing language server sockets
+      return runningProject.sockets
     }
 
     // Generate a random root ID for this language server session
@@ -185,16 +184,17 @@ export class EnsoRunner implements Runner {
             clearInterval(pollInterval)
             resolved = true
             logStream.write(`[HEALTH CHECK] Server is ready at ${new Date().toISOString()}\n`)
-            // Store the process and port for later cleanup and API calls
-            this.runningProjects.set(projectId, {
-              process: serverProcess,
-              jsonPort: jsonPort,
-              shutdownHooks: new Map(),
-            })
-            resolve({
+            const sockets: LanguageServerSockets = {
               jsonSocket: { host: '127.0.0.1', port: jsonPort },
               binarySocket: { host: '127.0.0.1', port: binaryPort },
+            }
+            // Store the process and sockets for later cleanup and API calls
+            this.runningProjects.set(projectId, {
+              process: serverProcess,
+              sockets: sockets,
+              shutdownHooks: new Map(),
             })
+            resolve(sockets)
           }
         }, 250) // Poll every 250ms
       }
@@ -354,7 +354,7 @@ export class EnsoRunner implements Runner {
       throw new Error(`Project ${projectId} is not running`)
     }
 
-    const { jsonPort } = runningProject
+    const { sockets } = runningProject
 
     // Prepare the request body
     const requestBody = {
@@ -365,13 +365,16 @@ export class EnsoRunner implements Runner {
 
     try {
       // Send POST request to the language server's rename endpoint
-      const response = await fetch(`http://127.0.0.1:${jsonPort}/refactoring/renameProject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `http://127.0.0.1:${sockets.jsonSocket.port}/refactoring/renameProject`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
         },
-        body: JSON.stringify(requestBody),
-      })
+      )
 
       if (!response.ok) {
         const errorBody = await response.text()
