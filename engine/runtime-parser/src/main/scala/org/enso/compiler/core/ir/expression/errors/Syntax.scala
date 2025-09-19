@@ -166,7 +166,7 @@ object Syntax {
   }
 
   case class UnsupportedSyntax(override val explanation: String)
-      extends Reason {}
+      extends Reason
 
   case object InconsistentConstructorVisibility extends Reason {
     override def explanation: String =
