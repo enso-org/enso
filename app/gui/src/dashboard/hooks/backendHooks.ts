@@ -664,3 +664,23 @@ export function getProjectExecutionDetailsQueryOptions(
     staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })
 }
+
+/** Return a function to rename an asset. */
+export function useRenameAsset(backend: Backend) {
+  const updateAsset = useMutationCallback(backendMutationOptions(backend, 'updateAsset'))
+
+  return useEventCallback(
+    (assetId: AssetId, newTitle: string, metadataId?: backendModule.MetadataId) => {
+      return updateAsset([
+        assetId,
+        {
+          title: newTitle,
+          parentDirectoryId: null,
+          description: null,
+          metadataId: metadataId ?? null,
+        },
+        assetId,
+      ])
+    },
+  )
+}

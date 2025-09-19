@@ -1,5 +1,6 @@
 /** @file The icon and name of a {@link ProjectAsset}. */
 import EditableSpan from '#/components/EditableSpan'
+import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
@@ -28,12 +29,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     isPlaceholder,
     closeProject,
     openProject,
-    renameAsset,
   } = props
   const { backend } = state
 
   const { user } = useFullUserSession()
   const getAssetChildren = useGetAssetChildren()
+  const renameAsset = useRenameAsset(backend)
 
   const ownPermission = tryFindSelfPermission(user, item.permissions)
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key

@@ -139,7 +139,7 @@ type Date_Time_Formatter
             analyzer = Analyzer.new parsed
             java_formatter = analyzer.validate_after_parsing <|
                 As_Java_Formatter_Interpreter.interpret used_locale parsed
-            Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.SIMPLE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
+            Date_Time_Formatter.Value (EnsoDateTimeFormatter.create java_formatter pattern FormatterKind.SIMPLE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
     ## ---
        icon: convert
@@ -193,7 +193,7 @@ type Date_Time_Formatter
             analyzer = Analyzer.new parsed
             java_formatter = analyzer.validate_after_parsing <|
                 As_Java_Formatter_Interpreter.interpret used_locale parsed
-            Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.ISO_WEEK_DATE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
+            Date_Time_Formatter.Value (EnsoDateTimeFormatter.create java_formatter pattern FormatterKind.ISO_WEEK_DATE) deferred_parsing_warnings=analyzer.get_parsing_only_warnings
 
     ## ---
        advanced: true
@@ -221,7 +221,7 @@ type Date_Time_Formatter
             used_locale = if locale == Locale.default then Locale.us else locale
             java_locale = (used_locale.if_nothing Locale.us).java_locale
             java_formatter = DateTimeFormatter.ofPattern pattern java_locale
-            Date_Time_Formatter.Value (EnsoDateTimeFormatter.new java_formatter pattern FormatterKind.RAW_JAVA)
+            Date_Time_Formatter.Value (EnsoDateTimeFormatter.create java_formatter pattern FormatterKind.RAW_JAVA)
         _ -> Error.throw (Illegal_Argument.Error "The pattern must either be a string or a Java DateTimeFormatter instance.")
 
     ## ---
@@ -301,18 +301,7 @@ type Date_Time_Formatter
        ---
        Returns a text representation of this formatter.
     to_text : Text
-    to_text self = case self.underlying.getFormatterKind of
-        FormatterKind.CONSTANT ->
-            "Date_Time_Formatter." + self.underlying.getOriginalPattern
-        FormatterKind.SIMPLE ->
-            # TODO locale too?
-            "Date_Time_Formatter.from_simple_pattern " + self.underlying.getOriginalPattern.pretty
-        FormatterKind.ISO_WEEK_DATE ->
-            "Date_Time_Formatter.from_iso_week_date_pattern " + self.underlying.getOriginalPattern.pretty
-        FormatterKind.RAW_JAVA -> case self.underlying.getOriginalPattern of
-            original_pattern : Text -> "Date_Time_Formatter.from_java " + original_pattern.pretty
-            Nothing -> "Date_Time_Formatter.from_java " + self.underlying.getFormatter.to_text
-
+    to_text self = self.underlying.describe
     ## ---
        private: true
        ---

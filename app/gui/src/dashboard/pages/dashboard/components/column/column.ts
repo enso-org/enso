@@ -5,7 +5,6 @@ import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type {
   AnyAsset,
-  AssetId,
   AssetSortExpression,
   BackendType,
   Label,
@@ -37,7 +36,6 @@ export interface AssetColumnProps {
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
   readonly labels: readonly Label[]
-  readonly renameAsset: (assetId: AssetId, newTitle: string) => Promise<void>
   readonly closeProject: (project: LaunchedProject) => Promise<void>
   readonly openProject: (projectId: ProjectId) => Promise<void>
 }

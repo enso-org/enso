@@ -708,18 +708,7 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
-  const renameAssetMutationCallback = useMutationCallback(
-    backendMutationOptions(backend, 'updateAsset'),
-  )
-  const closeProjectMutationCallback = useCloseProject()
-
-  const doRenameAsset = useEventCallback((assetId: AssetId, newTitle: string) => {
-    return renameAssetMutationCallback([
-      assetId,
-      { title: newTitle, parentDirectoryId: null, description: null },
-      assetId,
-    ])
-  })
+  const closeProject = useCloseProject()
 
   const doOpenProject = useEventCallback((projectId: ProjectId) => {
     const project = assets.find((asset) => asset.id === projectId)
@@ -1177,8 +1166,7 @@ function AssetsTable(props: AssetsTableProps) {
                 onDragStart={onRowDragStart}
                 onDragEnd={endAutoScroll}
                 onDrop={onRowDrop}
-                renameAsset={doRenameAsset}
-                closeProject={closeProjectMutationCallback}
+                closeProject={closeProject}
                 openProject={doOpenProject}
               />
             )
