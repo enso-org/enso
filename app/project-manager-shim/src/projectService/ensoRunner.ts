@@ -105,17 +105,11 @@ export class EnsoRunner implements Runner {
     // Check if the project is already running
     const runningProject = this.runningProjects.get(projectId)
     if (runningProject) {
-      // Return the existing language server sockets
       return runningProject.sockets
     }
-
-    // Generate a random root ID for this language server session
-    const rootId = crypto.randomUUID()
-
     // Find available ports for the language server
     const jsonPort = await this.findAvailablePort(DEFAULT_JSONRPC_PORT)
     const binaryPort = await this.findAvailablePort(jsonPort + 1)
-
     // Create log file for this language server instance (overwrite if exists)
     const logFileName = `language-server-${jsonPort}.log`
     const logStream = fs.createWriteStream(logFileName, { flags: 'w' })
@@ -126,6 +120,7 @@ export class EnsoRunner implements Runner {
     logStream.write(`Binary Port: ${binaryPort}\n`)
     logStream.write(`===========================================\n\n`)
 
+    const rootId = crypto.randomUUID()
     const args: string[] = [
       '--server',
       '--root-id',
@@ -188,7 +183,6 @@ export class EnsoRunner implements Runner {
               jsonSocket: { host: '127.0.0.1', port: jsonPort },
               binarySocket: { host: '127.0.0.1', port: binaryPort },
             }
-            // Store the process and sockets for later cleanup and API calls
             this.runningProjects.set(projectId, {
               process: serverProcess,
               sockets: sockets,
@@ -204,15 +198,12 @@ export class EnsoRunner implements Runner {
 
       serverProcess.stdout.on('data', (data) => {
         const dataStr = data.toString()
-        // Log stdout to file
         logStream.write(`[STDOUT] ${dataStr}`)
       })
 
       serverProcess.stderr.on('data', (data) => {
         const dataStr = data.toString()
         stderr += dataStr
-
-        // Log stderr to file
         logStream.write(`[STDERR] ${dataStr}`)
       })
 
@@ -224,7 +215,6 @@ export class EnsoRunner implements Runner {
       })
 
       serverProcess.on('close', async (code) => {
-        // Log process exit
         logStream.write(`\n[PROCESS EXIT] Code: ${code} at ${new Date().toISOString()}\n`)
         logStream.end()
 
@@ -246,7 +236,6 @@ export class EnsoRunner implements Runner {
 
         // Remove from running projects when it closes
         this.runningProjects.delete(projectId)
-
         if (!resolved) {
           reject(new Error(`Language server process exited with code ${code}. stderr: ${stderr}`))
         }
@@ -312,7 +301,6 @@ export class EnsoRunner implements Runner {
       if (process.stdin && !process.stdin.destroyed) {
         process.stdin.write('\n')
       } else {
-        // If stdin is not available, fall back to SIGTERM
         process.kill('SIGTERM')
       }
     })
@@ -337,7 +325,6 @@ export class EnsoRunner implements Runner {
       return
     }
 
-    // Add or replace the hook to be executed when the project closes
     runningProject.shutdownHooks.set(hookType, hook)
   }
 
@@ -349,14 +336,11 @@ export class EnsoRunner implements Runner {
     newPackage: string,
   ): Promise<void> {
     const runningProject = this.runningProjects.get(projectId)
-
     if (!runningProject) {
       throw new Error(`Project ${projectId} is not running`)
     }
 
     const { sockets } = runningProject
-
-    // Prepare the request body
     const requestBody = {
       namespace: namespace,
       oldName: oldPackage,
@@ -379,15 +363,12 @@ export class EnsoRunner implements Runner {
       if (!response.ok) {
         const errorBody = await response.text()
         let errorMessage = `Failed to rename project: ${response.status} ${response.statusText}`
-
-        // Try to parse error message from response
         try {
           const errorJson = JSON.parse(errorBody)
           if (errorJson.error) {
             errorMessage = `Failed to rename project: ${errorJson.error}`
           }
         } catch {
-          // If parsing fails, include the raw error body
           if (errorBody) {
             errorMessage += ` - ${errorBody}`
           }
@@ -647,7 +628,6 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
       }),
     )
   } else {
-    // Use extract-zip library for Windows zip files
     await extractZip(archivePath, { dir: extractDir })
   }
 
