@@ -3,10 +3,10 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Metadata.Widget.Text_Input
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
-import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 
 import project.SQLServer_Connection.SQLServer_Connection
+import project.Connection.SQLServer_Credentials.SQLServer_Credentials
 
 type SQLServer_Details
     ## Connect to a SQLServer database.
@@ -17,8 +17,7 @@ type SQLServer_Details
         - `port`: The port to connect to (defaults to 1433).
         - `database`: The name of the database to connect to (defaults to "master").
     @host (Text_Input display=..Always)
-    @credentials Credentials.default_widget
-    SQLServer (host:Text=(Missing_Argument.throw "host")) (credentials:Credentials=(Missing_Argument.throw "credentials")) port:Integer=1433 database:Text="master"
+    SQLServer (host:Text=(Missing_Argument.throw "host")) (credentials:SQLServer_Credentials=(Missing_Argument.throw "credentials")) port:Integer=1433 database:Text="master"
 
     ## ---
        private: true
@@ -61,7 +60,7 @@ type SQLServer_Details
     jdbc_properties self =
         account = [Pair.new 'encrypt' 'false']
         database = [Pair.new 'databaseName' self.database]
-        credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
+        credentials = self.credentials.to_jdbc_properties
         send_time_as_datetime = [Pair.new 'sendTimeAsDatetime' 'false']
         account + database + credentials + send_time_as_datetime
 
