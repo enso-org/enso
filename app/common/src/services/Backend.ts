@@ -12,6 +12,7 @@ import {
   DirectoryId,
   EnsoPath,
   FileId,
+  MetadataId,
   PaginationToken,
   ParentsPath,
   Path,
@@ -634,10 +635,9 @@ export interface CreateCustomerPortalSessionResponse {
 export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
 
 /** Response from "assets/${assetId}" endpoint. */
-export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
-  AnyAsset<RealAssetTypeId<Id>>,
-  'ensoPath'
-> | null
+export type AssetDetailsResponse<Id extends RealAssetId> =
+  | (Omit<Asset<RealAssetTypeId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId })
+  | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
 export function isUserOnPlanWithMultipleSeats(user: User) {
@@ -1260,6 +1260,7 @@ export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
   readonly title: string | null
+  readonly metadataId: MetadataId | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
