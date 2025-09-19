@@ -3,6 +3,7 @@ import {
   useGraphStore,
   useProjectNames,
   useProjectStore,
+  useSuggestionDbStore,
 } from '$/components/WithCurrentProject.vue'
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
@@ -13,15 +14,20 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { type NodeId } from '@/stores/graph'
+import { requiredImports } from '@/stores/graph/imports'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
+import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { isAstId, type AstId } from '@/util/ast/abstract'
 import { Vec2 } from '@/util/data/vec2'
+import { ProjectPath } from '@/util/projectPath'
 import { toast } from 'react-toastify'
 import { computed } from 'vue'
 
 const project = useProjectStore()
 const projectNames = useProjectNames()
 const graph = useGraphStore()
+const suggestionDb = useSuggestionDbStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
 const nodeSelection = injectGraphSelection(true)
@@ -112,6 +118,21 @@ function disconnectEdge(target: PortId) {
   })
 }
 
+function getEntryAndParentTypes(path: ProjectPath, db: SuggestionDb) {
+  let next: ProjectPath | undefined = path
+  const result = []
+  while (next != null) {
+    const entry = db.getEntryByProjectPath(next)
+    if (entry?.kind !== SuggestionKind.Type) {
+      console.error("Typeinfo path didn't resolve to a type.")
+      break
+    }
+    result.push(entry)
+    next = entry.parentType
+  }
+  return result
+}
+
 function createEdge(source: AstId, target: PortId) {
   const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
@@ -131,13 +152,23 @@ function createEdge(source: AstId, target: PortId) {
     const identAst = Ast.parseExpression(ident, edit)!
     const expectedType = graph.getPortExpectedType(target)
     const connectionType = project.computedValueRegistry.getExpressionInfo(sourceNode)?.typeInfo
-    const targetType = connectionType?.hiddenTypes.find(
-      (type) => expectedType === projectNames.printProjectPath(type),
-    )
-    const targetTypeAst =
-      targetType ? Ast.parseExpression(projectNames.printProjectPath(targetType), edit) : undefined
-    const portValueToSet =
-      targetTypeAst ? Ast.TypeAnnotated.new(edit, identAst, targetTypeAst) : identAst
+    // Check if type cast to the target type is both possible and necessary.
+    const targetType = connectionType?.hiddenTypes
+      .flatMap((type) => getEntryAndParentTypes(type, suggestionDb.entries))
+      .find((type) => expectedType === projectNames.printProjectPath(type.definitionPath))
+    let portValueToSet = undefined
+    if (targetType != null) {
+      graph.addMissingImports(edit, requiredImports(suggestionDb.entries, targetType))
+      if (!Ast.isIdentifier(targetType.name)) {
+        console.error(
+          'SuggestionDB has a type which is not an identifier:',
+          targetType.definitionPath,
+        )
+      } else {
+        portValueToSet = Ast.TypeAnnotated.new(edit, identAst, Ast.Ident.new(edit, targetType.name))
+      }
+    }
+    portValueToSet = portValueToSet ?? identAst
 
     if (!graph.updatePortValue(edit, target, portValueToSet)) {
       if (isAstId(target)) {
