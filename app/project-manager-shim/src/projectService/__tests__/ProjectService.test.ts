@@ -291,8 +291,14 @@ describe('ProjectService', () => {
       'should be able to open two projects simultaneously',
       async () => {
         // Create two projects
-        const project1 = await projectService.createProject('SimultaneousProject1', projectsDirectory)
-        const project2 = await projectService.createProject('SimultaneousProject2', projectsDirectory)
+        const project1 = await projectService.createProject(
+          'SimultaneousProject1',
+          projectsDirectory,
+        )
+        const project2 = await projectService.createProject(
+          'SimultaneousProject2',
+          projectsDirectory,
+        )
 
         // Open both projects
         const openResult1 = await projectService.openProject(project1.projectId, projectsDirectory)
