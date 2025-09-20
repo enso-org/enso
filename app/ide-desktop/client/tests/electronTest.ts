@@ -114,14 +114,11 @@ export async function loginAsTestUser(page: Page) {
  * The funcion creates a new Enso project
  */
 export async function createNewProject(page: Page) {
-  const newProjectTab = page.getByRole('button', { name: 'New Project', exact: true })
-
-  await expect(newProjectTab).toBeVisible()
+  const newProjectTab = page.getByRole('button', { name: 'New Project' })
   await newProjectTab.click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
 
   const tableViz = page.locator('.TableVisualization')
-  await expect(tableViz).toBeVisible({ timeout: 30000 })
   await expect(tableViz).toContainText('Welcome To Enso!')
 }
 
