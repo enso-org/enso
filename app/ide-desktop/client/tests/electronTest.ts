@@ -129,7 +129,7 @@ export async function createNewProject(page: Page) {
  * If welcome project is to be opened, this function takes you back to your dashboard
  */
 export async function closeWelcome(page: Page) {
-   const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
 
   // Handle uncaught promise, if the tab doesn't open
   const isVisible = await welcomeProjectTab.isVisible({ timeout: 3000 }).catch(() => false)
@@ -219,7 +219,7 @@ export async function waitForDownload(pathToFile: string): Promise<void> {
       if (Date.now() - start > 60_000) {
         throw new Error(`File ${pathToFile} not found within 60 seconds`)
       }
-      await new Promise(r => setTimeout(r, 5_000))
+      await new Promise((r) => setTimeout(r, 5_000))
     }
   }
 }

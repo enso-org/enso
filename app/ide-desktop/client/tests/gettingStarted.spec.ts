@@ -1,9 +1,8 @@
 /** @file A series of tests designed for testing 'Getting Started with Enso Analytics'. */
 
-import { expect } from 'playwright/test'
-import path from 'path'
 import os from 'os'
-import fs from 'fs/promises'
+import path from 'path'
+import { expect } from 'playwright/test'
 import {
   closeWelcome,
   createNewProject,
