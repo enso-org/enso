@@ -129,9 +129,12 @@ export async function createNewProject(page: Page) {
  * If welcome project is to be opened, this function takes you back to your dashboard
  */
 export async function closeWelcome(page: Page) {
-  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
-  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
-  if (await welcomeProjectTab.isVisible()) {
+   const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+
+  // Handle uncaught promise, if the tab doesn't open
+  const isVisible = await welcomeProjectTab.isVisible({ timeout: 3000 }).catch(() => false)
+
+  if (isVisible) {
     await page.getByRole('tab', { name: 'Data Catalog' }).click()
   }
 }
@@ -200,4 +203,23 @@ export async function fillWidgetText(page: Page, containerName: string, value: s
   const box = cont.getByTestId('widget-text-content')
   await expect(box).toBeVisible()
   await box.fill(value)
+}
+
+/**
+ * Wait for the Samples folder download
+ * This function retries to access passed file every 5 sec, fails after 1 min
+ */
+export async function waitForDownload(pathToFile: string): Promise<void> {
+  const start = Date.now()
+  while (true) {
+    try {
+      await fs.access(pathToFile) // ✅ file exists
+      return
+    } catch {
+      if (Date.now() - start > 60_000) {
+        throw new Error(`File ${pathToFile} not found within 60 seconds`)
+      }
+      await new Promise(r => setTimeout(r, 5_000))
+    }
+  }
 }

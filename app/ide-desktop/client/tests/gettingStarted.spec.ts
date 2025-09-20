@@ -1,6 +1,9 @@
 /** @file A series of tests designed for testing 'Getting Started with Enso Analytics'. */
 
 import { expect } from 'playwright/test'
+import path from 'path'
+import os from 'os'
+import fs from 'fs/promises'
 import {
   closeWelcome,
   createNewProject,
@@ -9,6 +12,7 @@ import {
   openComponentBrowser,
   test,
   visualizeData,
+  waitForDownload,
 } from './electronTest'
 
 // First excercise in Enso Analytics 101
@@ -27,6 +31,13 @@ test('Exercise 1', async ({ page }) => {
     const dataReadEntry = page.locator('.ComponentEntry', { hasText: /^Data\.read$/ })
     await expect(dataReadEntry).toBeVisible()
     await dataReadEntry.click()
+
+    // Create relative path to file
+    const baseDir = process.env.ENSO_PROJECTS_DIR || path.join(os.homedir(), 'enso-projects')
+    const filePath = path.join(baseDir, 'Samples', 'Data', 'sample_bank_data.xlsx')
+
+    // Waiting for file download
+    await waitForDownload(filePath)
 
     // Filling in file url
     await fillWidgetText(page, 'path‘‘', 'Samples/Data/sample_bank_data.xlsx')
