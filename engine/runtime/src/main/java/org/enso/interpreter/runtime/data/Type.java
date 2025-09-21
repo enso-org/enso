@@ -403,10 +403,13 @@ public final class Type extends EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   boolean isMemberReadable(String member) {
+    if (methods().containsKey(member)) {
+      return true;
+    }
     if (hasAllConstructorsPrivate) {
       return false;
     } else {
-      return constructors.containsKey(member) || methods().containsKey(member);
+      return constructors.containsKey(member);
     }
   }
 
@@ -493,12 +496,11 @@ public final class Type extends EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   Object readMember(String member) throws UnknownIdentifierException {
-    if (hasAllConstructorsPrivate) {
-      throw UnknownIdentifierException.create(member);
-    }
-    var cons = constructors.get(member);
-    if (cons != null) {
-      return cons;
+    if (!hasAllConstructorsPrivate) {
+      var cons = constructors.get(member);
+      if (cons != null) {
+        return cons;
+      }
     }
     var method = methods().get(member);
     if (method != null) {
