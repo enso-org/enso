@@ -229,7 +229,6 @@ public final class EnsoSecretHelper extends SecretValueResolver {
           // Fall back to raw stream; consumers may handle errors.
           return stream;
         }
-      } else {
       }
     }
     return stream;
