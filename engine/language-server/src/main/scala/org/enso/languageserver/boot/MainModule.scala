@@ -24,7 +24,8 @@ import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.{
   HealthCheckEndpoint,
   IdlenessEndpoint,
-  IdlenessMonitor
+  IdlenessMonitor,
+  RenameProjectEndpoint
 }
 import org.enso.languageserver.profiling.{EventsMonitorActor, ProfilingManager}
 import org.enso.languageserver.protocol.binary.{
@@ -448,6 +449,13 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val idlenessEndpoint =
     new IdlenessEndpoint(idlenessMonitor)
 
+  private val renameProjectEndpoint =
+    RenameProjectEndpoint(
+      timeout          = 10.seconds,
+      runtimeConnector = runtimeConnector,
+      actorFactory     = system
+    )(serverConfig.computeExecutionContext)
+
   private val jsonRpcProtocolFactory = new JsonRpcProtocolFactory
 
   private val initializationComponent =
@@ -503,7 +511,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
           lazyMessageTimeout = 10.seconds,
           secureConfig       = secureConfig
         ),
-      List(healthCheckEndpoint, idlenessEndpoint),
+      List(healthCheckEndpoint, idlenessEndpoint, renameProjectEndpoint),
       messagesCallback
     )(system, materializer)
   log.trace("Created JSON RPC Server [{}]", jsonRpcServer)

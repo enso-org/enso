@@ -2,11 +2,11 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { subtreeRoots } from '.'
 import { assert, assertDefined } from '../util/assert'
-import { type SourceRangeEdit } from '../util/data/text'
-import { type Origin, defaultLocalOrigin, tryAsOrigin } from '../yjsModel'
+import type { SourceRangeEdit } from '../util/data/text'
+import { defaultLocalOrigin, tryAsOrigin, type Origin } from '../yjsModel'
 import { newExternalId } from './idMap'
 import { parseModule } from './parse'
-import { type SyncTokenId, Token, isTokenId } from './token'
+import { Token, isTokenId, type SyncTokenId } from './token'
 import type {
   AstFields,
   AstId,

@@ -468,15 +468,33 @@ export function parseBlock(code: string, module?: MutableModule): Owned<MutableB
 }
 
 /**
- * Parse the input as a statement. If it cannot be parsed as a statement (e.g. it is invalid or a block), returns
- * `undefined`.
+ * Parse the input as a block statement. If it cannot be parsed as a statement (e.g. it is invalid
+ * or a block), returns `undefined`.
  */
-export function parseStatement(
+export function parseBlockStatement(
   code: string,
   module?: MutableModule,
 ): Owned<MutableStatement> | undefined {
   const module_ = module ?? MutableModule.Transient()
   const ast = parseBlock(code, module)
+  const soleStatement = iter.tryGetSoleValue(ast.statements())
+  if (!soleStatement) return
+  const parent = parentId(soleStatement)
+  if (parent) module_.delete(parent)
+  soleStatement.fields.set('parent', undefined)
+  return asOwned(soleStatement)
+}
+
+/**
+ * Parse the input as a module statement. If it cannot be parsed as a statement (e.g. it is invalid
+ * or a block), returns `undefined`.
+ */
+export function parseModuleStatement(
+  code: string,
+  module?: MutableModule,
+): Owned<MutableStatement> | undefined {
+  const module_ = module ?? MutableModule.Transient()
+  const ast = parseModule(code, module)
   const soleStatement = iter.tryGetSoleValue(ast.statements())
   if (!soleStatement) return
   const parent = parentId(soleStatement)

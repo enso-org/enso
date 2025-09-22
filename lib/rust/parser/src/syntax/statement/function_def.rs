@@ -13,6 +13,7 @@ use crate::syntax::statement::Line;
 use crate::syntax::statement::StatementPrefix;
 use crate::syntax::statement::StatementPrefixLine;
 use crate::syntax::statement::StatementPrefixes;
+use crate::syntax::statement::TopLevelOperator;
 use crate::syntax::statement::VisibilityContext;
 use crate::syntax::token;
 use crate::syntax::tree;
@@ -495,39 +496,28 @@ fn analyze_arg_def(outer: &[Item]) -> Result<ArgDefInfo, SyntaxError> {
     let mut type_ = None;
     match find_top_level_operator(outer)? {
         None => {}
-        Some((
-            annotation_op_pos,
-            Token { variant: token::Variant::TypeAnnotationOperator(_), .. },
-        )) => {
+        Some(TopLevelOperator::TypeAnnotationOperator(annotation_op_pos)) => {
             type_ = (Unparenthesized, annotation_op_pos).into();
         }
-        Some((assignment_op_pos, Token { variant: token::Variant::AssignmentOperator(_), .. })) => {
+        Some(TopLevelOperator::AssignmentOperator(assignment_op_pos)) => {
             default = assignment_op_pos.into();
             match find_top_level_operator(&outer[..assignment_op_pos])? {
                 None => {}
-                Some((
-                    annotation_op_pos,
-                    Token { variant: token::Variant::TypeAnnotationOperator(_), .. },
-                )) => {
+                Some(TopLevelOperator::TypeAnnotationOperator(annotation_op_pos)) => {
                     type_ = (Unparenthesized, annotation_op_pos).into();
                 }
-                Some(_) => return Err(SyntaxError::ArgDefUnexpectedOpInParenClause),
+                Some(_) => return Err(SyntaxError::ArgDefUnexpectedOp),
             }
         }
-        Some(_) => return Err(SyntaxError::ArgDefUnexpectedOpInParenClause),
     };
     if type_.is_none() {
         if let Item::Group(item::Group { body: inner, .. }) = &outer[0] {
-            let inner_op = find_top_level_operator(inner)?;
-            type_ = (Parenthesized, match inner_op {
+            let inner_type = match find_top_level_operator(inner)? {
                 None => return Err(SyntaxError::ArgDefSpuriousParens),
-                Some((
-                    inner_op_pos,
-                    Token { variant: token::Variant::TypeAnnotationOperator(_), .. },
-                )) => inner_op_pos,
+                Some(TopLevelOperator::TypeAnnotationOperator(inner_op_pos)) => inner_op_pos,
                 Some(_) => return Err(SyntaxError::ArgDefUnexpectedOpInParenClause),
-            })
-                .into();
+            };
+            type_ = (Parenthesized, inner_type).into();
         }
     }
     Ok(ArgDefInfo { type_, default })

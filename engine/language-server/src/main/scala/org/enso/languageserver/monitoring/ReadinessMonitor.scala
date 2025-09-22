@@ -8,6 +8,8 @@ import org.enso.languageserver.event.InitializedEvent.{
 }
 import org.enso.languageserver.monitoring.MonitoringProtocol.{IsReady, KO, OK}
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 /** An actor that monitors if the system is ready to accept requests. */
 class ReadinessMonitor() extends Actor with LazyLogging {
 
@@ -26,6 +28,7 @@ class ReadinessMonitor() extends Actor with LazyLogging {
 
   private def stateTransition(): Receive = {
     case InitializationFinished =>
+      ReadinessMonitor.readyState.set(true)
       context.become(ready())
 
     case InitializationFailed =>
@@ -36,6 +39,12 @@ class ReadinessMonitor() extends Actor with LazyLogging {
 }
 
 object ReadinessMonitor {
+
+  /** The readiness state. */
+  private val readyState: AtomicBoolean = new AtomicBoolean(false)
+
+  /** Checks the readiness. */
+  def isReady: Boolean = readyState.get()
 
   /** Creates a configuration object used to create a
     * [[ReadinessMonitor]]

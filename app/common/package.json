@@ -33,10 +33,10 @@
     "@types/node": "catalog:",
     "is-network-error": "^1.1.0",
     "lib0": "^0.2.99",
-    "vitest": "catalog:",
     "vue": "*"
   },
   "devDependencies": {
-    "@fast-check/vitest": "catalog:"
+    "@fast-check/vitest": "catalog:",
+    "vitest": "catalog:"
   }
 }

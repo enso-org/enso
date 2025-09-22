@@ -1,10 +1,10 @@
 import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
 import { useAI } from '@/components/ComponentBrowser/ai'
 import type { Filter, SelfArg } from '@/components/ComponentBrowser/filtering'
-import { type NodeId } from '@/stores/graph'
+import type { NodeId } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
-import { type SuggestionDb } from '@/stores/suggestionDatabase'
+import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryDisplayOwner,
   entryDisplayPath,
@@ -17,7 +17,7 @@ import { Ast } from '@/util/ast'
 import { selfArgSeparator } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { ANY_TYPE } from '@/util/ensoTypes'
-import { type ProjectPath } from '@/util/projectPath'
+import type { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'

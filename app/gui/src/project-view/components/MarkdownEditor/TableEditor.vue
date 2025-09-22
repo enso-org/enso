@@ -2,8 +2,8 @@
 import MarkdownEditorImpl from '@/components/MarkdownEditor/MarkdownEditorImpl.vue'
 import type { Text } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import { SyntaxNode, TreeCursor } from '@lezer/common'
-import { computed, watch, WatchSource } from 'vue'
+import { TreeCursor, type SyntaxNode } from '@lezer/common'
+import { computed, watch, type WatchSource } from 'vue'
 
 const { source, parsed } = defineProps<{
   source: Text

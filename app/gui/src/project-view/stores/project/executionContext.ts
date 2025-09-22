@@ -1,4 +1,4 @@
-import { type ProjectNameStore } from '@/stores/projectNames'
+import type { ProjectNameStore } from '@/stores/projectNames'
 import { assert } from '@/util/assert'
 import { findDifferenceIndex } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'

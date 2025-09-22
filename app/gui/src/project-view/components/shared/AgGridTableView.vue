@@ -66,9 +66,9 @@ export const commonContextMenuActions = {
 import { gridBindings } from '@/bindings'
 import type { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
 import {
-  type VueComponentHandle,
   default as VueComponentHost,
   VueHostInstance,
+  type VueComponentHandle,
 } from '@/components/VueHostRender.vue'
 import { modKey } from '@/composables/events'
 import { useAutoBlur } from '@/util/autoBlur'
@@ -102,14 +102,14 @@ import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
-  Component,
-  type ComponentInstance,
   computed,
   h,
   reactive,
   ref,
   shallowRef,
   watch,
+  type Component,
+  type ComponentInstance,
 } from 'vue'
 import { clipboardNodeData, writeClipboard } from '../GraphEditor/clipboard'
 import {

@@ -152,5 +152,5 @@ const structureContainingReactivityArbitrary = () =>
 
 fctest.prop(structureContainingReactivityArbitrary())(
   'expectUnrefDeepCopy: Unrefs and clones values containing refs',
-  ({ node: input }) => expectUnrefDeepCopy(input, cloneDeepUnref(input)),
+  ({ node }: { node: unknown }) => expectUnrefDeepCopy(node, cloneDeepUnref(node)),
 )

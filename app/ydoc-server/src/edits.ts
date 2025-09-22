@@ -5,8 +5,8 @@
 
 import diff from 'fast-diff'
 import * as Ast from 'ydoc-shared/ast'
-import { EnsoFileParts } from 'ydoc-shared/ensoFile'
-import { TextEdit } from 'ydoc-shared/languageServerTypes'
+import type { EnsoFileParts } from 'ydoc-shared/ensoFile'
+import type { TextEdit } from 'ydoc-shared/languageServerTypes'
 import { assert } from 'ydoc-shared/util/assert'
 import { IdMap, ModuleDoc, type VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import * as fileFormat from './fileFormat'

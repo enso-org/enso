@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowserEntry.vue'
-import { type Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
+import type { Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
 import { useToast } from '@/util/toast'
 import {
   type AnyAsset,

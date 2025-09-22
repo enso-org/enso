@@ -8,7 +8,7 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { ProjectPath } from '@/util/projectPath'
-import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
+import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))

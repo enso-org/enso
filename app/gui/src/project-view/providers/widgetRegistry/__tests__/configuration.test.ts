@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import {
-  Choice,
+  type Choice,
   DisplayMode,
   multipleChoiceConfiguration,
   singleChoiceConfiguration,

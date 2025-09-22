@@ -6,8 +6,8 @@ import project.Panic.Panic
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
-from project.Error import all
 from project.Enso_Cloud.Data_Link_Helpers import data_link_name
+from project.Error import all
 
 ## ---
    private: true

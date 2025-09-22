@@ -1,6 +1,6 @@
 import { isMacLike, useEvent } from '@/composables/events'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
-import { type Ref, ref, toRef, watch } from 'vue'
+import { ref, toRef, watch, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /** Keyboard modifier state API */

@@ -8,22 +8,18 @@ import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useUploadFileToCloudMutation, useUploadFileToLocal } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFileToCloud, useUploadFileToLocal } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
-import {
-  canTransferBetweenCategories,
-  type Category,
-  isCloudCategory,
-} from '#/layouts/CategorySwitcher/Category'
+import { canTransferBetweenCategories, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useExportArchive } from '#/pages/useExportArchive'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
@@ -34,8 +30,6 @@ import invariant from 'tiny-invariant'
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
-  readonly backend: Backend
-  readonly category: Category
   readonly currentDirectoryId: backendModule.DirectoryId
   readonly doCopy: () => void
   readonly doCut: () => void
@@ -53,10 +47,10 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   props: AssetsTableContextMenuProps,
   ref: React.ForwardedRef<ContextMenuApi>,
 ) {
-  const { backend, category, currentDirectoryId, doCopy, doCut, doPaste } = props
+  const { currentDirectoryId, doCopy, doCut, doPaste } = props
 
+  const { category, associatedBackend: backend } = useCategoriesAPI()
   const { getText } = useText()
-
   const { router } = useRouter()
   const { localBackend } = useBackends()
   const user = useUser()
@@ -69,7 +63,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
   const copyMutation = useCopy()
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const uploadFileToCloudMutation = useUploadFileToCloud()
   const uploadFileToLocal = useUploadFileToLocal(category)
   const exportArchive = useExportArchive({ backend })
 

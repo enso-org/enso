@@ -283,7 +283,7 @@ test.each([
 ])(
   'Substitute qualified name $pattern inside $original',
   ({ original, pattern, substitution, expected }) => {
-    const expression = Ast.parseExpression(original) ?? Ast.parseStatement(original)
+    const expression = Ast.parseExpression(original) ?? Ast.parseBlockStatement(original)
     assertDefined(expression)
     const result = substituteQualifiedNameByPattern(
       expression,
@@ -359,7 +359,7 @@ test.each([
 ])(
   'Substitute identifier $pattern inside $original',
   ({ original, pattern, substitution, expected }) => {
-    const expression = Ast.parseExpression(original) ?? Ast.parseStatement(original)
+    const expression = Ast.parseExpression(original) ?? Ast.parseBlockStatement(original)
     assertDefined(expression)
     const module = expression.module
     module.setRoot(expression)

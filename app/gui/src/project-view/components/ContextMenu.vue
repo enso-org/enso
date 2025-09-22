@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ActionMenu from '@/components/ActionMenu.vue'
 import { unrefElement, useEvent, useResizeObserver } from '@/composables/events'
-import { type DisplayableActionName } from '@/providers/action'
+import type { DisplayableActionName } from '@/providers/action'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
 import { endOnClickOutside, targetIsOutside } from '@/util/autoBlur'

@@ -10,9 +10,9 @@ import project.Meta
 import project.Meta.Atom
 import project.Nothing.Nothing
 import project.Panic.Panic
-from project.Error import all
 from project.Data.Boolean import False, True
 from project.Data.Ordering import all
+from project.Error import all
 
 ## ---
    private: true

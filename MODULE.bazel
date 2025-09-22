@@ -52,6 +52,13 @@ bazel_dep(name = "rules_rust", version = "0.59.2")
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2021",
+    # Add the custom directory for libiconv to the library search path.
+    # The exact path comes from `nixpkgs2` in `flake.lock` and must be kept in sync.
+    # NOTE [NP]: Required to be able to build under macOS + Bazel + Nix.
+    extra_exec_rustc_flags = [
+        "-L",
+        "/nix/store/pff8c9a4l487r0jaipibq21mkww5f1yw-libiconv-109/lib",
+    ],
     extra_target_triples = ["wasm32-unknown-unknown"],
     versions = ["nightly/2024-08-08"],
 )
