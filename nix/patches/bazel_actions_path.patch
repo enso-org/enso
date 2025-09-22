@@ -14,7 +14,7 @@ index 6fff2af..7e2877e 100644
 +    // See, https://github.com/NixOS/nixpkgs/issues/94222
 +    // So we ensure that minimal dependencies are present.
 +    result.put("PATH", "@actionsPathPatch@");
-+ 
++
      String p = clientEnv.get("TMPDIR");
      if (Strings.isNullOrEmpty(p)) {
        // Do not use `fallbackTmpDir`, use `/tmp` instead. This way if the user didn't export TMPDIR

@@ -7,7 +7,7 @@
  */
 
 import type { Extension } from '@codemirror/state'
-import { type Awareness } from 'y-protocols/awareness.js'
+import type { Awareness } from 'y-protocols/awareness.js'
 import type { LocalUserActionOrigin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 import { YRange } from './y-range'

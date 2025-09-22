@@ -1,5 +1,5 @@
-import { SetFilterValuesFuncParams } from 'ag-grid-community'
-import { isNumericType, ValueType } from './tableVizUtils'
+import type { SetFilterValuesFuncParams } from 'ag-grid-community'
+import { isNumericType, type ValueType } from './tableVizUtils'
 
 export const getFilterParams = (
   isSSRM: boolean,

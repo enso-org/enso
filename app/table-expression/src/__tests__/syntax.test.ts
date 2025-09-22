@@ -1,4 +1,4 @@
-import { type TreeCursor } from '@lezer/common'
+import type { TreeCursor } from '@lezer/common'
 import { expect, test } from 'vitest'
 import { parser } from '../generated/parser'
 

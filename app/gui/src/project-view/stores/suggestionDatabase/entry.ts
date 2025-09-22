@@ -1,20 +1,19 @@
-import { type ProjectNameStore } from '@/stores/projectNames'
-import { type DocumentationData } from '@/stores/suggestionDatabase/documentation'
-import { type MethodPointer } from '@/util/methodPointer'
+import type { ProjectNameStore } from '@/stores/projectNames'
+import type { DocumentationData } from '@/stores/suggestionDatabase/documentation'
+import type { MethodPointer } from '@/util/methodPointer'
 import { standardBaseMainPath, type ProjectPath } from '@/util/projectPath'
 import {
-  Identifier,
   qnJoin,
   qnLastSegment,
   qnSegments,
+  type Identifier,
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import {
-  type SuggestionEntryArgument,
-  type SuggestionEntryScope,
+import type {
+  SuggestionEntryArgument,
+  SuggestionEntryScope,
 } from 'ydoc-shared/languageServerTypes/suggestions'
-
 export type {
   SuggestionEntryArgument,
   SuggestionEntryScope,

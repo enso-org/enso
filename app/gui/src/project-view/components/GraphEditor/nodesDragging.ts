@@ -1,7 +1,7 @@
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import { useApproach } from '@/composables/animation'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { type NodeId } from '@/stores/graph'
+import type { NodeId } from '@/stores/graph'
 import { partitionPoint } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'

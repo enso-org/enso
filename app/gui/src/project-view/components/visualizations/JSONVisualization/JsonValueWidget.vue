@@ -1,10 +1,10 @@
-<script lang="ts" setup>
+<script setup lang="ts">
 import JsonArrayWidget from '@/components/visualizations/JSONVisualization/JsonArrayWidget.vue'
 import JsonErrorWidget from '@/components/visualizations/JSONVisualization/JsonErrorWidget.vue'
 import JsonObjectWidget from '@/components/visualizations/JSONVisualization/JsonObjectWidget.vue'
 import JsonPrimitiveWidget from '@/components/visualizations/JSONVisualization/JsonPrimitiveWidget.vue'
-import { Opt } from '@/util/data/opt'
-import { CreateProjection } from './types'
+import type { Opt } from '@/util/data/opt'
+import type { CreateProjection } from './types'
 
 const props = defineProps<{ data: unknown; createProjectionCb?: Opt<CreateProjection> }>()
 </script>

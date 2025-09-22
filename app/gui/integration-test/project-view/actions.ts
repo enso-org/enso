@@ -1,4 +1,4 @@
-import { type Page } from 'playwright/test'
+import type { Page } from 'playwright/test'
 import { expect } from './customExpect'
 import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'

@@ -342,6 +342,9 @@ export default class RemoteBackend extends Backend {
     query: backend.ListDirectoryRequestParams,
     title: string,
   ): Promise<backend.ListDirectoryResponseBody> {
+    if (query.recentProjects && query.from) {
+      return { assets: [], paginationToken: null }
+    }
     const paramsString = new URLSearchParams(
       query.recentProjects ?
         [['recent_projects', String(true)]]
@@ -782,8 +785,7 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'getAssetDetailsBackendError')
     }
 
-    // eslint-disable-next-line no-restricted-syntax
-    return (await response.json()) as never
+    return await response.json()
   }
   /**
    * Return Language Server logs for a project session.

@@ -8,11 +8,11 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import {
-  HandledUpdate,
   Score,
   WidgetInput,
   defineWidget,
   widgetProps,
+  type HandledUpdate,
   type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'

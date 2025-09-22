@@ -2,7 +2,7 @@ import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
-import { NodeId } from '@/stores/graph/graphDatabase'
+import type { NodeId } from '@/stores/graph/graphDatabase'
 import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
@@ -22,14 +22,14 @@ import {
   onErrorCaptured,
   ref,
   shallowRef,
-  type ShallowRef,
   toValue,
   watch,
   watchEffect,
+  type ShallowRef,
 } from 'vue'
 import { isIdentifier } from 'ydoc-shared/ast'
 import type { Opt } from 'ydoc-shared/util/data/opt'
-import { type Result } from 'ydoc-shared/util/data/result'
+import type { Result } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /** Used for testing. */

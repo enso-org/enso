@@ -4,14 +4,12 @@
  * APIs to the renderer via the contextBridge API. To learn more, visit:
  * https://www.electronjs.org/docs/latest/tutorial/tutorial-preload.
  */
-
-import type * as accessToken from 'enso-common/src/accessToken'
-
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
-import { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
+import type * as accessToken from 'enso-common/src/accessToken'
+import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
 import type * as projectManagement from 'project-manager-shim'
-import { FileFilter } from './fileBrowser'
+import type { FileFilter } from './fileBrowser'
 
 // Even though this is already built as an mjs module, we are "faking" cjs format on preload script
 // due to missing module support. Since this is the only module that's treated as external by

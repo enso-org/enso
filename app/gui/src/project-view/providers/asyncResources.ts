@@ -1,29 +1,29 @@
 import { useBackends } from '$/providers/backends'
-import { OpenedProjectsStore } from '$/providers/openedProjects'
+import type { OpenedProjectsStore } from '$/providers/openedProjects'
 import { createContextStore } from '@/providers'
-import { andThen, mapOk, Ok, Result } from '@/util/data/result'
-import { ToValue } from '@/util/reactivity'
-import { computed, ComputedRef, onScopeDispose, toValue } from 'vue'
+import { andThen, mapOk, Ok, type Result } from '@/util/data/result'
+import type { ToValue } from '@/util/reactivity'
+import { computed, onScopeDispose, toValue, type ComputedRef } from 'vue'
 import {
   AsyncResource,
-  ResourceDefinition,
-  ResourceKey,
   useResourceCache,
+  type ResourceDefinition,
+  type ResourceKey,
 } from './asyncResources/AsyncResource'
 import {
   captureResourceContext,
-  ResourceContext,
-  ResourceContextSnapshot,
   useCurrentProjectResourceContext,
+  type ResourceContext,
+  type ResourceContextSnapshot,
 } from './asyncResources/context'
 import { useAsyncResourceResolver } from './asyncResources/resolve'
 import {
-  AnyUploadSource,
   normalizeUploadSources,
   uploadAsFetchProgress,
-  UploadDefinition,
-  UploadProgress,
   useResourceUpload,
+  type AnyUploadSource,
+  type UploadDefinition,
+  type UploadProgress,
 } from './asyncResources/upload'
 
 export type AsyncResourceStore = ReturnType<typeof useAsyncResources>

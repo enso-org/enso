@@ -10,8 +10,8 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Runtime
 import project.Runtime.Stack_Trace_Element
-from project.Error import all
 from project.Data.Boolean import Boolean, False
+from project.Error import all
 from project.Function import flip
 
 ## A representation of a dataflow warning attached to a value.

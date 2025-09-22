@@ -10,7 +10,7 @@ import { decorateTable } from '@/components/MarkdownEditor/codemirror/decoration
 import { treeStateDecorator } from '@/components/MarkdownEditor/codemirror/decoration/treeStateDecorator'
 import { linkDecoratorStateExt } from '@/util/codemirror/links'
 import { vueHostExt } from '@/util/codemirror/vueHostExt'
-import { type Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import { decorateFrontMatter } from './frontmatter'
 
 /** Extension applying decorators for Markdown. */

@@ -8,7 +8,7 @@ import {
   type SeminormalizedRange,
   type TrimmedRange,
 } from '@/components/MarkdownEditor/markdown/types'
-import { type SyntaxNodeRef, type Tree, type TreeCursor } from '@lezer/common'
+import type { SyntaxNodeRef, Tree, TreeCursor } from '@lezer/common'
 import { identity } from '@vueuse/core'
 import { Range } from 'ydoc-shared/util/data/range'
 import { isNodeType } from 'ydoc-shared/util/lezer'
