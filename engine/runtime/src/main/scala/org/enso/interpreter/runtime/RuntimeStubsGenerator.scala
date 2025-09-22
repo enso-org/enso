@@ -56,15 +56,25 @@ private[runtime] class RuntimeStubsGenerator(builtins: Builtins) {
         val hasAllConstructorsPrivate = tp.isPrivate ||
           tp.members.nonEmpty && tp.members.forall(_.isProjectPrivate)
         val createdType =
-          Type.create(
-            builtins.getLanguage(),
-            tp.name,
-            compilerScope,
-            builtins.any(),
-            builtins.any(),
-            false,
-            hasAllConstructorsPrivate
-          )
+          if (tp.members.nonEmpty || tp.builtinType) {
+            Type.create(
+              builtins.getLanguage(),
+              tp.name,
+              compilerScope,
+              builtins.any(),
+              builtins.any(),
+              false,
+              hasAllConstructorsPrivate
+            )
+          } else {
+            Type.createSingleton(
+              tp.name,
+              compilerScope,
+              builtins.any(),
+              false,
+              hasAllConstructorsPrivate
+            )
+          }
         val rtp = scope.registerType(createdType)
         tp.members.foreach { cons =>
           val constructor =
