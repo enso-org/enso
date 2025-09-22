@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.security.PrivateKey;
@@ -16,6 +17,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
+import java.util.zip.GZIPInputStream;
+
 import org.enso.base.cache.ReloadDetector;
 import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.net.URISchematic;
@@ -148,7 +151,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
 
       builder.uri(resolvedURI);
 
-      for (Pair<String, String> resolvedHeader : resolvedHeaders) {
+      var resolvedHeadersWithDefaults = withDefaultHeaders(resolvedHeaders);
+      for (Pair<String, String> resolvedHeader : resolvedHeadersWithDefaults) {
         builder.header(resolvedHeader.getLeft(), resolvedHeader.getRight());
       }
 
@@ -159,14 +163,17 @@ public final class EnsoSecretHelper extends SecretValueResolver {
 
       URI renderedURI = uri.render();
 
+      var decodedBody = decodeContentEncoding(javaResponse.body(), javaResponse.headers());
+
       return new EnsoHttpResponse(
-          renderedURI, javaResponse.headers(), javaResponse.body(), javaResponse.statusCode());
+          renderedURI, javaResponse.headers(), decodedBody, javaResponse.statusCode());
     }
 
     /** Sorts the header by header name and value. */
     @Override
     public String hashKey() {
-      var sortedHeaders = resolvedHeaders.stream().sorted(headerNameComparator).toList();
+      // Include default headers in cache key to reflect actual request.
+      var sortedHeaders = withDefaultHeaders(resolvedHeaders).stream().sorted(headerNameComparator).toList();
       List<String> keyStrings = new ArrayList<>(sortedHeaders.size() + 1);
       keyStrings.add(resolvedURI.toString());
 
@@ -208,4 +215,44 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   private static final Comparator<Pair<String, String>> headerNameComparator =
       Comparator.comparing((Pair<String, String> pair) -> pair.getLeft())
           .thenComparing(Comparator.comparing(pair -> pair.getRight()));
+
+  private static InputStream decodeContentEncoding(
+      InputStream stream, HttpHeaders headers) {
+    var encOpt = headers.firstValue("content-encoding");
+    if (!encOpt.isEmpty()) {
+      String encoding = encOpt.get().toLowerCase();
+      if ("gzip".equals(encoding)) {
+        try {
+          InputStream ret = new GZIPInputStream(stream);
+          return ret;
+        } catch (IOException e) {
+          // Fall back to raw stream; consumers may handle errors.
+          return stream;
+        }
+      } else {
+      }
+    }
+    return stream;
+  }
+
+  private static List<Pair<String, String>> withDefaultHeaders(
+      List<Pair<String, String>> headers) {
+    boolean hasAccept =
+        headers.stream().anyMatch(h -> "accept".equalsIgnoreCase(h.getLeft()));
+    boolean hasAcceptEncoding =
+        headers.stream().anyMatch(h -> "accept-encoding".equalsIgnoreCase(h.getLeft()));
+
+    if (hasAccept && hasAcceptEncoding) {
+      return headers;
+    }
+
+    var augmented = new ArrayList<Pair<String, String>>(headers);
+    if (!hasAccept) {
+      augmented.add(Pair.create("Accept", "*/*"));
+    }
+    if (!hasAcceptEncoding) {
+      augmented.add(Pair.create("Accept-Encoding", "gzip"));
+    }
+    return augmented;
+  }
 }
