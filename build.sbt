@@ -3927,9 +3927,6 @@ lazy val `engine-runner` = project
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
           `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-          `std-microsoft-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
           `std-snowflake-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
@@ -3960,13 +3957,11 @@ lazy val `engine-runner` = project
           sys.env.get("CI").isDefined && Platform.isMacOS && Platform.isArm64
         val maxLimit           = if (macArmOnCI) Some(14336) else Some(15608)
         val areStdlibsIncluded = !GraalVM.EnsoLauncher.fast
-        val azureFeature =
-          "org.enso.microsoft.nativeimage.AzureNativeImageFeature"
         val databaseFeature =
           "org.enso.database.nativeimage.SqliteJdbcPatchedFeature"
         val features = Seq(
           "org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature"
-        ) ++ (if (areStdlibsIncluded) Seq(databaseFeature, azureFeature)
+        ) ++ (if (areStdlibsIncluded) Seq(databaseFeature)
               else Seq())
         // heapdump monitoring is not supported on Windows
         val enableHeapDumpOpts =
