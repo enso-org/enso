@@ -217,32 +217,29 @@ public final class EnsoSecretHelper extends SecretValueResolver {
           .thenComparing(Comparator.comparing(pair -> pair.getRight()));
 
   private static InputStream decodeContentEncoding(
-      InputStream stream, HttpHeaders headers) {
-    var encOpt = headers.firstValue("content-encoding");
-    if (!encOpt.isEmpty()) {
-      String encoding = encOpt.get().toLowerCase();
-      if ("gzip".equals(encoding)) {
-        try {
-          InputStream ret = new GZIPInputStream(stream);
-          return ret;
-        } catch (IOException e) {
-          // Fall back to raw stream; consumers may handle errors.
-          return stream;
-        }
-      }
+      InputStream stream, HttpHeaders headers) throws IOException {
+    String encoding = headers.firstValue("content-encoding").map(String::toLowerCase).orElse("");
+    if ("gzip".equals(encoding)) {
+       return new GZIPInputStream(stream);
     }
     return stream;
   }
 
   private static List<Pair<String, String>> withDefaultHeaders(
       List<Pair<String, String>> headers) {
-    boolean hasAccept =
-        headers.stream().anyMatch(h -> "accept".equalsIgnoreCase(h.getLeft()));
-    boolean hasAcceptEncoding =
-        headers.stream().anyMatch(h -> "accept-encoding".equalsIgnoreCase(h.getLeft()));
+    boolean hasAccept = false;
+    boolean hasAcceptEncoding = false;
 
-    if (hasAccept && hasAcceptEncoding) {
-      return headers;
+    for (Pair<String, String> h : headers) {
+      String name = h.getLeft();
+      if ("accept".equalsIgnoreCase(name)) {
+        hasAccept = true;
+      } else if ("accept-encoding".equalsIgnoreCase(name)) {
+        hasAcceptEncoding = true;
+      }
+      if (hasAccept && hasAcceptEncoding) {
+        return headers;
+      }
     }
 
     var augmented = new ArrayList<Pair<String, String>>(headers);
