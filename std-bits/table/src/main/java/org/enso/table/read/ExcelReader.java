@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
 import org.apache.poi.ss.util.CellReference;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
@@ -74,7 +75,7 @@ public class ExcelReader {
    * @param workbook a {@link ExcelWorkbook} to read the sheet names from.
    * @return a String[] containing the sheet names.
    */
-  public static String[] readSheetNames(ExcelWorkbook workbook) {
+  private static String[] readSheetNames(ExcelWorkbook workbook) {
     int sheetCount = workbook.getNumberOfSheets();
     var output = new String[sheetCount];
     Context context = Context.getCurrent();
@@ -179,7 +180,7 @@ public class ExcelReader {
    * @return a {@link Table} containing the specified data.
    * @throws InvalidLocationException when the sheet index is not valid.
    */
-  public static Table readSheetByIndex(
+  private static Table readSheetByIndex(
       ExcelWorkbook workbook,
       int index,
       ExcelHeaders.HeaderBehavior headers,
@@ -246,7 +247,7 @@ public class ExcelReader {
    * @return a {@link Table} containing the specified data.
    * @throws InvalidLocationException when the range name or address is not found.
    */
-  public static Table readRangeByName(
+  private static Table readRangeByName(
       ExcelWorkbook workbook,
       String rangeNameOrAddress,
       ExcelHeaders.HeaderBehavior headers,
@@ -317,7 +318,7 @@ public class ExcelReader {
     }
   }
 
-  public static Table readRange(
+  private static Table readRange(
       ExcelWorkbook workbook,
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
