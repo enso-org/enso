@@ -131,19 +131,21 @@ public class BuiltinsProcessor extends AbstractProcessor {
       var fqn = processingEnv.getElementUtils().getBinaryName(forElement);
       out.println("    super(\"" + fqn + "\");");
       out.println("  }");
-      out.println("""
-          @Override
-          public boolean containsValues() {
-        """);
+      out.println(
+          """
+            @Override
+            public boolean containsValues() {
+          """);
       if (containsValues) {
         out.println("    return true;");
       } else {
         out.println("    return false;");
       }
-      out.println("""
-        }
-      }
-      """);
+      out.println(
+          """
+            }
+          }
+          """);
     }
   }
 

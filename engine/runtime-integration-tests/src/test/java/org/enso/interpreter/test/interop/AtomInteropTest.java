@@ -38,14 +38,14 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        import Standard.Base.Any.Any
+            import Standard.Base.Any.Any
 
-        type My_Type
-            Cons field_1 field_2
+            type My_Type
+                Cons field_1 field_2
 
-        main =
-            My_Type.Cons 1 2
-        """);
+            main =
+                My_Type.Cons 1 2
+            """);
     assertThat(myTypeAtom.hasMembers(), is(true));
     var memberNames = myTypeAtom.getMemberKeys();
     assertThat("Member names are not qualified", memberNames, hasItem(not(containsString("."))));
@@ -56,12 +56,12 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons field_1 field_2
+            type My_Type
+                Cons field_1 field_2
 
-        main =
-            My_Type.Cons 1 2
-        """);
+            main =
+                My_Type.Cons 1 2
+            """);
     assertThat(myTypeAtom.hasMembers(), is(true));
     var memberNames = myTypeAtom.getMemberKeys();
     assertThat("Has more than two fields", memberNames.size(), is(greaterThan(2)));
@@ -77,12 +77,12 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons field_1 field_2
+            type My_Type
+                Cons field_1 field_2
 
-        main =
-            My_Type.Cons 1 2
-        """);
+            main =
+                My_Type.Cons 1 2
+            """);
     assertThat(myTypeAtom.isMetaObject(), is(false));
     assertThat(myTypeAtom.getMetaObject().getMetaSimpleName(), is("My_Type"));
   }
@@ -92,11 +92,11 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons
+            type My_Type
+                Cons
 
-        main = My_Type.Cons
-        """);
+            main = My_Type.Cons
+            """);
     var myType = myTypeAtom.getMetaObject();
     assertThat(myType.hasMetaParents(), is(true));
     var metaParents = myType.getMetaParents();
@@ -111,13 +111,13 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons_1 f1 f2 f3 f4 f5 f6
-            Cons_2 g1 g2 g3
-            Cons_3 h1 h2 h3 h4 h5 h6 h7 h8 h9
+            type My_Type
+                Cons_1 f1 f2 f3 f4 f5 f6
+                Cons_2 g1 g2 g3
+                Cons_3 h1 h2 h3 h4 h5 h6 h7 h8 h9
 
-        main = My_Type.Cons_2 "g1" "g2" "g3"
-        """);
+            main = My_Type.Cons_2 "g1" "g2" "g3"
+            """);
     assertThat(
         "Member names correspond to constructor field names for a single constructor",
         myTypeAtom.getMemberKeys(),
@@ -129,12 +129,12 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons a b
-            method self = 42
+            type My_Type
+                Cons a b
+                method self = 42
 
-        main = My_Type.Cons "a" "b"
-        """);
+            main = My_Type.Cons "a" "b"
+            """);
     assertThat("Method is a member of the atom", myTypeAtom.getMemberKeys(), hasItem("method"));
     assertThat("method is an invokable member", myTypeAtom.canInvokeMember("method"), is(true));
   }
@@ -144,12 +144,12 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons a b
-            method self = 42
+            type My_Type
+                Cons a b
+                method self = 42
 
-        main = My_Type.Cons "a" "b"
-        """);
+            main = My_Type.Cons "a" "b"
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("Atom has members", interop.hasMembers(atom), is(true));
@@ -163,11 +163,11 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            private Cons a
+            type My_Type
+                private Cons a
 
-        main = My_Type.Cons "a"
-        """);
+            main = My_Type.Cons "a"
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("field a is internal", interop.isMemberInternal(atom, "a"), is(true));
@@ -182,11 +182,11 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            private Cons a
+            type My_Type
+                private Cons a
 
-        main = My_Type.Cons "a"
-        """);
+            main = My_Type.Cons "a"
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat(
@@ -212,13 +212,13 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons a
-            pub_method self = 42
-            private priv_method self = 42
+            type My_Type
+                Cons a
+                pub_method self = 42
+                private priv_method self = 42
 
-        main = My_Type.Cons "a"
-        """);
+            main = My_Type.Cons "a"
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat(
@@ -239,11 +239,11 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons a
+            type My_Type
+                Cons a
 
-        main = My_Type.Cons "a"
-        """);
+            main = My_Type.Cons "a"
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var memberNames = getAllMemberNames(atom);
     var anyBuiltinMethods = ctxRule.builtinMethodsFromAny();
@@ -261,13 +261,13 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-    from Standard.Base.Any import all
+            from Standard.Base.Any import all
 
-    type My_Type
-        Cons a
+            type My_Type
+                Cons a
 
-    main = My_Type.Cons "a"
-    """);
+            main = My_Type.Cons "a"
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var memberNames = getAllMemberNames(atom);
     var anyMethods = ctxRule.allMethodsFromAny();
@@ -282,13 +282,13 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons a
-            pub_method self = 42
-            private priv_method self = 42
+            type My_Type
+                Cons a
+                pub_method self = 42
+                private priv_method self = 42
 
-        main = My_Type.Cons "a"
-        """);
+            main = My_Type.Cons "a"
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     var members = interop.getMembers(atom, true);
@@ -310,12 +310,12 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons a b
-            method self = 42
+            type My_Type
+                Cons a b
+                method self = 42
 
-        main = My_Type.Cons "a" "b"
-        """);
+            main = My_Type.Cons "a" "b"
+            """);
     assertThat("Cons is not atom member", myTypeAtom.getMemberKeys(), not(hasItem("Cons")));
   }
 
@@ -328,11 +328,11 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons a b
+            type My_Type
+                Cons a b
 
-        main = My_Type.Cons 1 2
-        """);
+            main = My_Type.Cons 1 2
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("Field a is invocable", interop.isMemberInvocable(atom, "a"), is(true));
@@ -346,11 +346,11 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons a
+            type My_Type
+                Cons a
 
-        main = My_Type.Cons 1
-        """);
+            main = My_Type.Cons 1
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("Field a is readable", interop.isMemberReadable(atom, "a"), is(true));
@@ -361,12 +361,12 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons
-            static_method = 42
+            type My_Type
+                Cons
+                static_method = 42
 
-        main = My_Type.Cons
-        """);
+            main = My_Type.Cons
+            """);
     assertThat(
         "Static method is not atom member",
         myTypeAtom.getMemberKeys(),
@@ -378,12 +378,12 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-    type My_Type
-        Cons a b
-        method self = 42
+            type My_Type
+                Cons a b
+                method self = 42
 
-    main = My_Type.Cons "a" "b"
-    """);
+            main = My_Type.Cons "a" "b"
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("Cons is not atom member", interop.isMemberExisting(atom, "Cons"), is(false));
@@ -394,12 +394,12 @@ public class AtomInteropTest {
     var myType =
         ctxRule.evalModule(
             """
-        type My_Type
-            Cons_1
-            Cons_2
+            type My_Type
+                Cons_1
+                Cons_2
 
-        main = My_Type
-        """);
+            main = My_Type
+            """);
     assertThat("type has constructors as members", myType.hasMembers(), is(true));
     assertThat(myType.getMemberKeys(), containsInAnyOrder("Cons_1", "Cons_2"));
     assertThat(
@@ -417,18 +417,18 @@ public class AtomInteropTest {
     var atom =
         ctxRule.evalModule(
             """
-        from Standard.Base.Any import all
+            from Standard.Base.Any import all
 
-        type Generator
-            Value n ~next
+            type Generator
+                Value n ~next
 
-        natural =
-            gen n = Generator.Value n (gen n+1)
-            gen 2
+            natural =
+                gen n = Generator.Value n (gen n+1)
+                gen 2
 
-        main =
-            natural
-        """);
+            main =
+                natural
+            """);
     var atomUnwrapped = ctxRule.unwrapValue(atom);
     var interop = InteropLibrary.getUncached();
     var next = interop.invokeMember(atomUnwrapped, "next");
@@ -440,18 +440,18 @@ public class AtomInteropTest {
     var atom =
         ctxRule.evalModule(
             """
-        from Standard.Base.Any import all
+            from Standard.Base.Any import all
 
-        type Generator
-            Value n ~next
+            type Generator
+                Value n ~next
 
-            ahead self n = if n <= 1 then self.next else
-                @Tail_Call self.next.ahead n-1
+                ahead self n = if n <= 1 then self.next else
+                    @Tail_Call self.next.ahead n-1
 
-        main =
-            gen n = Generator.Value n (gen n+1)
-            gen 2
-        """);
+            main =
+                gen n = Generator.Value n (gen n+1)
+                gen 2
+            """);
     var atomUnwrapped = ctxRule.unwrapValue(atom);
     var interop = InteropLibrary.getUncached();
 

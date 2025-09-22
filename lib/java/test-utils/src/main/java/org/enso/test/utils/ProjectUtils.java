@@ -56,11 +56,12 @@ public class ProjectUtils {
           "Project directory " + projDir + " must already be created");
     }
     var projYaml =
-        """
+"""
 name: %s
 version: 0.0.1
 prefer-local-libraries: true
-        """.formatted(projName);
+"""
+            .formatted(projName);
     var yamlPath = projDir.resolve("package.yaml");
     Files.writeString(yamlPath, projYaml);
     assert yamlPath.toFile().exists();

@@ -295,8 +295,9 @@ final class EnsoPolyglotJava {
         switch (libState.length) {
           case 2 -> hostClassLoading.putIfAbsent(libState[0], libState[1]);
           case 1 -> hostClassLoading.putIfAbsent("", libState[0]);
-          default -> throw new IllegalStateException(
-              "Expecting [<namespace.name>]:hosted|guest, but was: " + entry);
+          default ->
+              throw new IllegalStateException(
+                  "Expecting [<namespace.name>]:hosted|guest, but was: " + entry);
         }
       }
       assert hostClassLoading.containsKey("");

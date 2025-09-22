@@ -21,7 +21,7 @@ public class SuccessfulAssertionExpressionTest {
           .build();
 
   private static final String imports =
-      """
+"""
 from Standard.Base import all
 polyglot java import java.lang.System as Java_System
 

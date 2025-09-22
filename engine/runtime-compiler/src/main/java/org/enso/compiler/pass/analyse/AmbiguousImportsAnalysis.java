@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.enso.scala.wrapper.ScalaConversions;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
@@ -23,6 +22,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.compiler.pass.MiniPassFactory;
+import org.enso.scala.wrapper.ScalaConversions;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
 
@@ -76,7 +76,6 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
     return null;
   }
 
-
   private static final class Mini extends MiniIRPass {
     private final EncounteredSymbols encounteredSymbols = new EncounteredSymbols();
     private final BindingsMap bindingsMap;
@@ -101,15 +100,18 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
     @Override
     public Module transformModule(Module moduleIr) {
       var newImports = new ArrayList<Import>();
-      moduleIr.imports().foreach(imp -> {
-        var errs = analyseAmbiguousSymbols(imp);
-        if (!errs.isEmpty()) {
-          newImports.addAll(errs);
-        } else {
-          newImports.add(imp);
-        }
-        return null;
-      });
+      moduleIr
+          .imports()
+          .foreach(
+              imp -> {
+                var errs = analyseAmbiguousSymbols(imp);
+                if (!errs.isEmpty()) {
+                  newImports.addAll(errs);
+                } else {
+                  newImports.add(imp);
+                }
+                return null;
+              });
       return moduleIr.copy(
           CollectionConverters.asScala(newImports).toList(),
           moduleIr.exports(),
@@ -142,7 +144,8 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
               var resolvedNames = resolution.toOption().get();
               for (var resolvedName : CollectionConverters.asJava(resolvedNames)) {
                 var symbolPath = resolvedName.qualifiedName().toString();
-                tryAddEncounteredSymbol(impMod, symbolName, symbolPath, resolvedName, errorsForImport);
+                tryAddEncounteredSymbol(
+                    impMod, symbolName, symbolPath, resolvedName, errorsForImport);
               }
             }
           }
@@ -151,18 +154,22 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
         // Import all symbols
         case Import.Module impMod when impMod.isAll() && !impMod.isSynthetic() -> {
           var importTargets = getImportTargets(impMod);
-          // Names of the symbols that are exported by a module or a type referred to via importTarget
-          var exportedSymbolNames = importTargets.stream()
-              .flatMap(target -> {
-                var expSymbols = target.exportedSymbols().keySet().toList();
-                return CollectionConverters.asJava(expSymbols).stream();
-              });
+          // Names of the symbols that are exported by a module or a type referred to via
+          // importTarget
+          var exportedSymbolNames =
+              importTargets.stream()
+                  .flatMap(
+                      target -> {
+                        var expSymbols = target.exportedSymbols().keySet().toList();
+                        return CollectionConverters.asJava(expSymbols).stream();
+                      });
           List<String> symbolsToIterate;
           if (impMod.hiddenNames().isDefined()) {
             var hiddenNames = impMod.hiddenNames().get().map(Literal::name);
-            symbolsToIterate = exportedSymbolNames
-                .filter(exportedSymName -> !hiddenNames.contains(exportedSymName))
-                .toList();
+            symbolsToIterate =
+                exportedSymbolNames
+                    .filter(exportedSymName -> !hiddenNames.contains(exportedSymName))
+                    .toList();
           } else {
             symbolsToIterate = exportedSymbolNames.toList();
           }
@@ -180,7 +187,8 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
               }
               var resolvedName = resolvedNames.head();
               var symbolPath = resolvedName.qualifiedName().toString();
-              tryAddEncounteredSymbol(impMod, symbolName, symbolPath, resolvedName, errorsForImport);
+              tryAddEncounteredSymbol(
+                  impMod, symbolName, symbolPath, resolvedName, errorsForImport);
             }
           }
         }
@@ -200,7 +208,8 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
         }
 
         case Polyglot polyglotImp -> {
-          var symbolName = polyglotImp.rename().getOrElse(() -> polyglotImp.entity().getVisibleName());
+          var symbolName =
+              polyglotImp.rename().getOrElse(() -> polyglotImp.entity().getVisibleName());
           String symbolPath;
           if (polyglotImp.entity() instanceof Polyglot.Java javaEntity) {
             symbolPath = javaEntity.packageName() + "." + javaEntity.className();
@@ -216,9 +225,10 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
     }
 
     /**
-     * Tries to add the encountered symbol to the encountered symbols map. If it is already contained
-     * in the map, checks whether the underlying entity path is the same as the original entity path.
-     * Based on that, either attaches a warning for a duplicated import, or returns an {@link ImportExport}.
+     * Tries to add the encountered symbol to the encountered symbols map. If it is already
+     * contained in the map, checks whether the underlying entity path is the same as the original
+     * entity path. Based on that, either attaches a warning for a duplicated import, or returns an
+     * {@link ImportExport}.
      *
      * @param currentImport Currently iterated import
      * @param symbolName Name of the symbol that is about to be processed
@@ -235,27 +245,25 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
         encounteredSymbols.addSymbol(currentImport, symbolName, symbolPath, resolvedName);
       } else {
         var encounteredFullName = encounteredSymbols.getPathForSymbol(symbolName);
-        var encounteredResolution =
-            encounteredSymbols.getResolvedNameForSymbol(symbolName);
+        var encounteredResolution = encounteredSymbols.getResolvedNameForSymbol(symbolName);
         var originalImport = encounteredSymbols.getOriginalImportForSymbol(symbolName);
-        if (symbolPath.equals(encounteredFullName) && !areResolvedNamesAllowedToClash(resolvedName, encounteredResolution)) {
+        if (symbolPath.equals(encounteredFullName)
+            && !areResolvedNamesAllowedToClash(resolvedName, encounteredResolution)) {
           // symbolName is already imported with the same symbolPath --> attach warning.
           var warn = createWarningForDuplicatedImport(originalImport, currentImport, symbolName);
           currentImport.getDiagnostics().add(warn);
         } else {
           // There is an encountered symbol with different physical path than symbolPath.
-          if (encounteredResolution instanceof BindingsMap.ResolvedMethod resMethod &&
-              resMethod.methodName().equals(symbolName)) {
-            // This is a valid ambiguous case - in previously encountered import, the symbol was resolved
+          if (encounteredResolution instanceof BindingsMap.ResolvedMethod resMethod
+              && resMethod.methodName().equals(symbolName)) {
+            // This is a valid ambiguous case - in previously encountered import, the symbol was
+            // resolved
             // to either an extension, static, or conversion method.
             return;
           } else {
-            var error = createErrorForAmbiguousImport(
-                originalImport,
-                encounteredFullName,
-                currentImport,
-                symbolName,
-                symbolPath);
+            var error =
+                createErrorForAmbiguousImport(
+                    originalImport, encounteredFullName, currentImport, symbolName, symbolPath);
             errors.add(error);
           }
         }
@@ -263,15 +271,9 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
     }
 
     private static Warning createWarningForDuplicatedImport(
-        Import originalImport,
-        Import duplicatingImport,
-        String duplicatedSymbol
-    ) {
+        Import originalImport, Import duplicatingImport, String duplicatedSymbol) {
       return new Warning.DuplicatedImport(
-          duplicatingImport.identifiedLocation(),
-          originalImport,
-          duplicatedSymbol
-      );
+          duplicatingImport.identifiedLocation(), originalImport, duplicatedSymbol);
     }
 
     private ImportExport createErrorForAmbiguousImport(
@@ -283,34 +285,31 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
       return ImportExport.apply(
           duplicatingImport,
           new ImportExport.AmbiguousImport(
-              originalImport,
-              originalSymbolPath,
-              ambiguousSymbol,
-              ambiguousSymbolPath
-          ),
-          new MetadataStorage()
-      );
+              originalImport, originalSymbolPath, ambiguousSymbol, ambiguousSymbolPath),
+          new MetadataStorage());
     }
 
     /**
-     * {@link org.enso.compiler.data.BindingsMap.ResolvedModuleMethod} and
-     * {@link org.enso.compiler.data.BindingsMap.ResolvedExtensionMethod} are allowed to
-     * clash - they are allowed to have the same fully qualified name, and no
-     * "duplicate import" warning should be generated for them.
+     * {@link org.enso.compiler.data.BindingsMap.ResolvedModuleMethod} and {@link
+     * org.enso.compiler.data.BindingsMap.ResolvedExtensionMethod} are allowed to clash - they are
+     * allowed to have the same fully qualified name, and no "duplicate import" warning should be
+     * generated for them.
      */
     private static boolean areResolvedNamesAllowedToClash(ResolvedName name1, ResolvedName name2) {
-      if (name1 instanceof BindingsMap.ResolvedExtensionMethod &&
-            name2 instanceof BindingsMap.ResolvedExtensionMethod) {
+      if (name1 instanceof BindingsMap.ResolvedExtensionMethod
+          && name2 instanceof BindingsMap.ResolvedExtensionMethod) {
         throw new AssertionError("Two extension methods with the same name should not be allowed.");
       }
-      if (name1 instanceof BindingsMap.ResolvedModuleMethod &&
-          name2 instanceof BindingsMap.ResolvedModuleMethod) {
+      if (name1 instanceof BindingsMap.ResolvedModuleMethod
+          && name2 instanceof BindingsMap.ResolvedModuleMethod) {
         throw new AssertionError("Two module methods with the same name should not be allowed.");
       }
-      if (name1 instanceof BindingsMap.ResolvedExtensionMethod && name2 instanceof BindingsMap.ResolvedModuleMethod) {
+      if (name1 instanceof BindingsMap.ResolvedExtensionMethod
+          && name2 instanceof BindingsMap.ResolvedModuleMethod) {
         return true;
       }
-      if (name1 instanceof BindingsMap.ResolvedModuleMethod && name2 instanceof BindingsMap.ResolvedExtensionMethod) {
+      if (name1 instanceof BindingsMap.ResolvedModuleMethod
+          && name2 instanceof BindingsMap.ResolvedExtensionMethod) {
         return true;
       }
       return false;
@@ -326,27 +325,24 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
     }
   }
 
-  /** @param symbolPath Fully qualified name of the symbol, i.e., its physical path.
+  /**
+   * @param symbolPath Fully qualified name of the symbol, i.e., its physical path.
    * @param resolvedName The optional resolved name of the symbol.
-   * @param originalImport The import IR from which the symbol was originally imported.
-   *                       i.e. the first encountered import IR that imports the symbol.
+   * @param originalImport The import IR from which the symbol was originally imported. i.e. the
+   *     first encountered import IR that imports the symbol.
    */
-  private record SymbolTarget(
-      String symbolPath,
-      ResolvedName resolvedName,
-      Import originalImport
-  ) {
+  private record SymbolTarget(String symbolPath, ResolvedName resolvedName, Import originalImport) {
     private SymbolTarget {
       assert symbolPath != null;
       assert originalImport != null;
     }
   }
 
-
-  /** For every encountered symbol name, we keep track of the original import from which it was imported,
-   * along with the entity path. The entity path is vital to decide whether an imported symbol is duplicated
-   * or ambiguous.
-   * Note that there are some exceptions that are allowed to be ambiguous, like extension methods.
+  /**
+   * For every encountered symbol name, we keep track of the original import from which it was
+   * imported, along with the entity path. The entity path is vital to decide whether an imported
+   * symbol is duplicated or ambiguous. Note that there are some exceptions that are allowed to be
+   * ambiguous, like extension methods.
    */
   private static final class EncounteredSymbols {
     private final Map<String, SymbolTarget> symbols = new HashMap<>();

@@ -124,8 +124,8 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
                 // Ignore: Workaround for bug https://bz.apache.org/bugzilla/show_bug.cgi?id=59252
               }
             }
-            default -> throw new IllegalStateException(
-                "Unknown workbook type: " + workbook.getClass());
+            default ->
+                throw new IllegalStateException("Unknown workbook type: " + workbook.getClass());
           }
         } else {
           try (OutputStream fileOut = Files.newOutputStream(file.toPath())) {
