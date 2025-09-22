@@ -15,10 +15,9 @@ import { injectInteractionHandler, type Interaction } from '@/providers/interact
 import type { PortId } from '@/providers/portInfo'
 import { type NodeId } from '@/stores/graph'
 import { requiredImports } from '@/stores/graph/imports'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { isAstId, type AstId } from '@/util/ast/abstract'
+import { unwrapOr, unwrapOrWithLog } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { ProjectPath } from '@/util/projectPath'
 import { toast } from 'react-toastify'
@@ -118,21 +117,6 @@ function disconnectEdge(target: PortId) {
   })
 }
 
-function getEntryAndParentTypes(path: ProjectPath, db: SuggestionDb) {
-  let next: ProjectPath | undefined = path
-  const result = []
-  while (next != null) {
-    const entry = db.getEntryByProjectPath(next)
-    if (entry?.kind !== SuggestionKind.Type) {
-      console.error("Typeinfo path didn't resolve to a type.")
-      break
-    }
-    result.push(entry)
-    next = entry.parentType
-  }
-  return result
-}
-
 function createEdge(source: AstId, target: PortId) {
   const ident = graph.db.getOutputPortIdentifier(source)
   if (ident == null) return
@@ -150,14 +134,26 @@ function createEdge(source: AstId, target: PortId) {
     toast.error('Could not connect due to circular dependency.')
   } else {
     const identAst = Ast.parseExpression(ident, edit)!
-    const expectedType = graph.getPortExpectedType(target)
+    const expectedType = unwrapOr(
+      projectNames.parseProjectPathRaw(graph.getPortExpectedType(target) ?? ''),
+      undefined,
+    )
     const connectionType = project.computedValueRegistry.getExpressionInfo(sourceNode)?.typeInfo
     // Check if type cast to the target type is both possible and necessary.
-    const targetType = connectionType?.hiddenTypes
-      .flatMap((type) => getEntryAndParentTypes(type, suggestionDb.entries))
-      .find((type) => expectedType === projectNames.printProjectPath(type.definitionPath))
+    const findCompatibleType = (
+      list: ProjectPath[] | undefined,
+      withType: ProjectPath | undefined,
+    ) => {
+      return list
+        ?.flatMap((type) =>
+          unwrapOrWithLog(suggestionDb.entries.getTypeAndItsParentsEntries(type), []),
+        )
+        .find((type) => withType?.equals(type.definitionPath))
+    }
+    const castNeeded = findCompatibleType(connectionType?.visibleTypes, expectedType) == null
+    const targetType = castNeeded && findCompatibleType(connectionType?.hiddenTypes, expectedType)
     let portValueToSet = undefined
-    if (targetType != null) {
+    if (targetType) {
       graph.addMissingImports(edit, requiredImports(suggestionDb.entries, targetType))
       if (!Ast.isIdentifier(targetType.name)) {
         console.error(
