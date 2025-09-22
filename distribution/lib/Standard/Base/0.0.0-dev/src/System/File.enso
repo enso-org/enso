@@ -15,8 +15,8 @@ import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
-import project.Internal.Path_Helpers
 import project.Internal.Meta_Helpers
+import project.Internal.Path_Helpers
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
@@ -33,8 +33,8 @@ import project.System.File.Local_File_Write_Strategy
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 import project.Warning.Warning
-from project.Error import all
 from project.Data.Boolean import Boolean, False, True
+from project.Error import all
 from project.Metadata.Choice import Option
 from project.System.File_Format import Auto_Detect, File_Format
 from project.System.Internal.File_Builtins import all
@@ -1147,7 +1147,6 @@ private handle_invalid_path ~path ~action =
    ```
    In your module then define conversion of its associated type singleton
    into `File_System_SPI` via its `new` static method.
-
 type File_System_SPI
     private Entry protocol:Text typ
 

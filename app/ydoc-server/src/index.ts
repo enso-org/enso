@@ -13,7 +13,7 @@ import type { Server } from 'http'
 import type { Http2SecureServer } from 'http2'
 import type WS from 'modern-isomorphic-ws'
 import type { IncomingMessage } from 'node:http'
-import { ConnectionData, docName } from './auth'
+import { docName, type ConnectionData } from './auth'
 import { deserializeIdMap } from './serialization'
 import { setupGatewayClient } from './ydoc'
 

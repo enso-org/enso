@@ -10,7 +10,7 @@ import {
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/data/opt'
 import { displayedIconOf } from '@/util/getIconName'
-import { type Icon } from '@/util/iconMetadata/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import * as map from 'lib0/map'

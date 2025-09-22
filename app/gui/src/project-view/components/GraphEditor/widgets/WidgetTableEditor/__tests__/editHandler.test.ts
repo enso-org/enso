@@ -1,10 +1,10 @@
 import { InteractionHandler } from '@/providers/interactionHandler'
 import { PortId } from '@/providers/portInfo'
 import { WidgetEditHandler, WidgetInstanceId } from '@/providers/widgetRegistry/editHandler'
-import { CellPosition } from 'ag-grid-enterprise'
+import type { CellPosition } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { nextTick } from 'vue'
-import { EditedCell, useTableEditHandler } from '../editHandler'
+import { useTableEditHandler, type EditedCell } from '../editHandler'
 import { NEW_COLUMN_ID, ROW_INDEX_COLUMN_ID } from '../tableInputArgument'
 
 const colDefs = [

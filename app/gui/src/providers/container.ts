@@ -3,7 +3,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
-import { computed, reactive, Ref } from 'vue'
+import { computed, reactive, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as z from 'zod'
 

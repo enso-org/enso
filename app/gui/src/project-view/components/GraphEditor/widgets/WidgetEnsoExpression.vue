@@ -3,10 +3,10 @@ import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import {
   defineWidget,
-  HandledUpdate,
   Score,
   WidgetInput,
   widgetProps,
+  type HandledUpdate,
 } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'

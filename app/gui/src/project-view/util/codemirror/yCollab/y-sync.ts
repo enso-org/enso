@@ -1,7 +1,7 @@
 import * as cmState from '@codemirror/state'
 import * as cmView from '@codemirror/view'
 import { markRaw } from 'vue'
-import { type Awareness } from 'y-protocols/awareness.js'
+import type { Awareness } from 'y-protocols/awareness.js'
 import { assertDefined } from 'ydoc-shared/util/assert'
 import type { LocalUserActionOrigin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'

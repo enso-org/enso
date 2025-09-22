@@ -6,7 +6,7 @@ import {
   type ExpressionInfo,
 } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
   makeArgument,
   makeConstructor,
@@ -16,7 +16,7 @@ import {
   makeType,
 } from '@/stores/suggestionDatabase/mockSuggestion'
 import { Ast } from '@/util/ast'
-import { type AstId } from '@/util/ast/abstract'
+import type { AstId } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   ArgumentAst,
@@ -24,7 +24,7 @@ import {
   getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
-import { type MethodCall } from '@/util/methodPointer'
+import type { MethodCall } from '@/util/methodPointer'
 import { parseAbsoluteProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type Identifier } from '@/util/qualifiedName'
 import { fail } from 'assert'

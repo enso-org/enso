@@ -1,7 +1,10 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { EnsoPath, ProjectId } from '#/services/Backend'
-import { ContainerData, useContainerData as useContainerDataVue } from '$/providers/container'
-import { RightPanelData, useRightPanelData as useRightPanelDataVue } from '$/providers/rightPanel'
+import { useContainerData as useContainerDataVue, type ContainerData } from '$/providers/container'
+import {
+  useRightPanelData as useRightPanelDataVue,
+  type RightPanelData,
+} from '$/providers/rightPanel'
 import { reactComponent } from '@/util/react'
 import * as react from 'react'
 import { useInReactFunction, useVueValue } from './common'

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
-import { type DisplayableActionName, resolveAction } from '@/providers/action'
+import { resolveAction, type DisplayableActionName } from '@/providers/action'
 import { computed, toValue } from 'vue'
 
 const { action: actionName, label } = defineProps<{

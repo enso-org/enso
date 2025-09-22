@@ -1,7 +1,7 @@
 import { Vec2 } from '@/util/data/vec2'
 import { reactive } from 'vue'
 import { Awareness as YjsAwareness } from 'y-protocols/awareness'
-import { type ExternalId } from 'ydoc-shared/yjsModel'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
 // === Public types ===

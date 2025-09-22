@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PlainTextEditor from '@/components/PlainTextEditor.vue'
 import { useFocusDelayed } from '@/composables/focus'
-import { type Node } from '@/stores/graph'
+import type { Node } from '@/stores/graph'
 import { nodeMutableDocumentation } from '@/util/ast/node'
 import { useYTextSync } from '@/util/codemirror'
 import { syncRef } from '@vueuse/core'

@@ -1,15 +1,15 @@
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
-import { GraphNavigator } from '@/providers/graphNavigator'
+import type { GraphNavigator } from '@/providers/graphNavigator'
 import { injectVisibility } from '@/providers/visibility'
-import { Ok, Result } from '@/util/data/result'
+import { Ok, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import { encodeMethodPointer, MethodPointer } from '@/util/methodPointer'
+import { encodeMethodPointer, type MethodPointer } from '@/util/methodPointer'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding } from 'lib0'
 import { computed, toValue } from 'vue'
-import { GraphStore } from './graph'
+import type { GraphStore } from './graph'
 
 export type PersistedStore = ReturnType<typeof usePersisted>
 

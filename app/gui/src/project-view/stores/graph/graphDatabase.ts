@@ -6,7 +6,7 @@ import {
 } from '@/stores/project/computedValueRegistry'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
-import { type CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
@@ -40,7 +40,7 @@ import {
   type Ref,
   type WatchStopHandle,
 } from 'vue'
-import { type SourceDocument } from 'ydoc-shared/ast/sourceDocument'
+import type { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'

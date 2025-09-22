@@ -12,7 +12,7 @@ import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
-import { Identifier, type QualifiedName } from '@/util/qualifiedName'
+import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import '@ag-grid-community/styles/ag-grid.css'
@@ -23,11 +23,11 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, ComputedRef, ref, watch } from 'vue'
+import { computed, ref, watch, type ComponentInstance, type ComputedRef } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import ResizableWidget from '../ResizableWidget.vue'
-import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
+import TableHeader, { type HeaderParams } from './WidgetTableEditor/TableHeader.vue'
 import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))

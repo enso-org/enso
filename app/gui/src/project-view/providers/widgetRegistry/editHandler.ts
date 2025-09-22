@@ -1,11 +1,11 @@
 import type { Interaction, InteractionHandler } from '@/providers/interactionHandler'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
-import { WidgetInput, WidgetTypeId } from '@/providers/widgetRegistry'
+import { WidgetInput, type WidgetTypeId } from '@/providers/widgetRegistry'
 import { injectWidgetTree, type CurrentEdit } from '@/providers/widgetTree'
 import type { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { computed, markRaw, shallowRef, useId, watch, WatchSource, type ShallowRef } from 'vue'
+import { computed, markRaw, shallowRef, useId, watch, type ShallowRef, type WatchSource } from 'vue'
 import { assertDefined } from 'ydoc-shared/util/assert'
 
 declare const widgetInstanceIdBrand: unique symbol

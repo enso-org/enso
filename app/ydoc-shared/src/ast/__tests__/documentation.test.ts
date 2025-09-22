@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 import * as Y from 'yjs'
 import { assert, assertDefined } from '../../util/assert'
 import { parseModule } from '../parse'
-import { MutableBodyBlock, MutableFunctionDef, Statement } from '../tree'
+import { MutableBodyBlock, MutableFunctionDef, type Statement } from '../tree'
 
 describe('Component documentation (plain text)', () => {
   const plaintextDocumentableStatements = [

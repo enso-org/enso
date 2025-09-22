@@ -1,5 +1,5 @@
 <script lang="ts">
-import { AnyIcon, svgUseHref } from '@/util/icons'
+import { svgUseHref, type AnyIcon } from '@/util/icons'
 // This export is to have this widely used component's docs displayed in IDE.
 /**
  * A component displaying a SVG icon.

@@ -18,7 +18,7 @@ import {
 } from '$/providers/react/container'
 
 import { useCanRunProjects } from '#/hooks/backendHooks'
-import { useUploadFileMutation } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFile } from '#/hooks/backendUploadFilesHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
@@ -307,7 +307,7 @@ export function useCloseProjectMutation() {
   const client = reactQuery.useQueryClient()
   const { remoteBackend, localBackend } = useBackends()
   const setProjectAsset = useSetProjectAsset()
-  const uploadFileMutation = useUploadFileMutation(remoteBackend, { updateProgress: false })
+  const uploadFile = useUploadFile(remoteBackend, { updateProgress: false })
   const toastAndLog = useToastAndLog()
 
   return useMutationCallback({
@@ -349,18 +349,16 @@ export function useCloseProjectMutation() {
       if (hybrid) {
         const fileName = 'project_root.enso-project'
         const file = await remoteBackend.getProjectArchive(parentId, fileName)
-        await uploadFileMutation
-          .mutateAsync([
-            {
-              fileId: hybrid.cloudProjectId,
-              fileName,
-              parentDirectoryId: hybrid.cloudParentId,
-            },
-            file,
-          ])
-          .catch((error) => {
-            toastAndLog('uploadProjectError', error)
-          })
+        await uploadFile([
+          {
+            fileId: hybrid.cloudProjectId,
+            fileName,
+            parentDirectoryId: hybrid.cloudParentId,
+          },
+          file,
+        ]).catch((error) => {
+          toastAndLog('uploadProjectError', error)
+        })
 
         invariant(localBackend != null, 'LocalBackend is null')
         await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
@@ -373,18 +371,16 @@ export function useCloseProjectMutation() {
       if (hybrid) {
         const fileName = 'project_root.enso-project'
         const file = await remoteBackend.getProjectArchive(parentId, fileName)
-        await uploadFileMutation
-          .mutateAsync([
-            {
-              fileId: hybrid.cloudProjectId,
-              fileName,
-              parentDirectoryId: hybrid.cloudParentId,
-            },
-            file,
-          ])
-          .catch((error) => {
-            toastAndLog('uploadProjectError', error)
-          })
+        await uploadFile([
+          {
+            fileId: hybrid.cloudProjectId,
+            fileName,
+            parentDirectoryId: hybrid.cloudParentId,
+          },
+          file,
+        ]).catch((error) => {
+          toastAndLog('uploadProjectError', error)
+        })
 
         invariant(localBackend != null, 'LocalBackend is null')
         await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)

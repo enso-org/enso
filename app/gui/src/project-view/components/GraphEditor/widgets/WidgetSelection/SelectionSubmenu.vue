@@ -1,12 +1,12 @@
 <script setup lang="ts" generic="T extends DropdownEntry | SubmenuEntry<T>">
 import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
-import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
 import { usePopoverRoot } from '@/providers/popoverRoot'
 import { targetIsOutside } from '@/util/autoBlur'
-import { Opt } from '@/util/data/opt'
-import { computed, ComputedRef, ref, toRef, useTemplateRef, watch } from 'vue'
+import type { Opt } from '@/util/data/opt'
+import { computed, ref, toRef, useTemplateRef, watch, type ComputedRef } from 'vue'
 import { submenuDropdownStyles } from './styles'
 import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 

@@ -5,8 +5,8 @@ import project.Data.Vector.Vector
 import project.Meta
 import project.Nothing.Nothing
 import project.Runtime
-from project.Error import all
 from project.Data.Boolean import False, True
+from project.Error import all
 
 polyglot java import java.lang.Throwable
 

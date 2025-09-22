@@ -9,9 +9,9 @@ import project.Internal.Time.Format.Tokenizer.Format_Token
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Ref.Ref
-from project.Error import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Error import all
 
 ## ---
    private: true

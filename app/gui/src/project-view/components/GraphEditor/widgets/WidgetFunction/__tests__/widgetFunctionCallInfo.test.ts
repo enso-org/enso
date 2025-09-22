@@ -6,7 +6,7 @@ import {
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { parseWithSpans } from '@/stores/graph/__tests__/graphDatabase.test'
 import { TypeInfo } from '@/stores/project/computedValueRegistry'
-import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
+import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import { mockProjectNameStore } from '@/stores/projectNames'
 import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
 import {
@@ -20,7 +20,7 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { expect, test } from 'vitest'
 import { ref, type Ref } from 'vue'
-import { type Opt } from 'ydoc-shared/util/data/opt'
+import type { Opt } from 'ydoc-shared/util/data/opt'
 import { SourceRange } from 'ydoc-shared/util/data/text'
 
 const projectNames = mockProjectNameStore('local', 'Project')

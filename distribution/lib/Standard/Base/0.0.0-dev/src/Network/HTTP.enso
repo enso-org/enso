@@ -26,10 +26,10 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
 import project.System.File.File
-from project.Error import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json.Extensions import all
 from project.Data.Text.Extensions import all
+from project.Error import all
 
 polyglot java import java.io.IOException
 polyglot java import java.lang.IllegalArgumentException
