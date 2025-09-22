@@ -36,7 +36,6 @@ import BUILD_INFO from './buildInfo'
 export interface Arguments {
   // The types come from a third-party API and cannot be changed.
   readonly target?: string | undefined
-  readonly iconsDist: string
   readonly guiDist: string
   readonly ideDist: string
   readonly projectManagerDist: string
@@ -85,12 +84,6 @@ export const args: Arguments = await yargs(process.argv.slice(2))
       alias: 'gui',
       type: 'string',
       description: 'Output directory with GUI',
-      demandOption: true,
-    },
-    iconsDist: {
-      alias: 'icons',
-      type: 'string',
-      description: 'Output directory with icons',
       demandOption: true,
     },
     projectManagerDist: {
@@ -218,7 +211,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
       // This type assertion is UNSAFE, and any users MUST verify that
       // they are passing a valid value to `target`.
       target: (passedArgs.target as any) ?? 'dmg',
-      icon: `${passedArgs.iconsDist}/icon.icns`,
+      icon: `./assets/icons/icon.icns`,
       category: 'public.app-category.developer-tools',
       darkModeSupport: true,
       type: 'distribution',
@@ -237,13 +230,13 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
       // Compression is not used as the build time is huge and file size saving
       // almost zero.
       target: passedArgs.target ?? 'dir',
-      icon: `${passedArgs.iconsDist}/icon.ico`,
+      icon: `./assets/icons/icon.ico`,
     },
     linux: {
       // Compression is not used as the build time is huge and file size saving
       // is almost zero.
       target: passedArgs.target ?? 'AppImage',
-      icon: `${passedArgs.iconsDist}/png`,
+      icon: `./assets/icons/png`,
       category: 'Development',
     },
     files: [
