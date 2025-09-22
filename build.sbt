@@ -3964,6 +3964,10 @@ lazy val `engine-runner` = project
           "org.enso.microsoft.nativeimage.AzureNativeImageFeature"
         val databaseFeature =
           "org.enso.database.nativeimage.SqliteJdbcPatchedFeature"
+        // Features from gax-grpc-2.31.0
+        val grpcFeatures =
+          "com.google.api.gax.grpc.nativeimage.ProtobufMessageFeature," +
+          "com.google.api.gax.grpc.nativeimage.GrpcNettyFeature"
         val features = Seq(
           "org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature"
         ) ++ (if (areStdlibsIncluded) Seq(databaseFeature, azureFeature)
@@ -4001,7 +4005,8 @@ lazy val `engine-runner` = project
             // native library from the jar.
             excludeConfigs = Seq(
               s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties",
-              s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*"
+              s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*",
+              ".*gax-grpc-.*\\.jar,META-INF/native-image/com.google.api/gax-grpc/native-image.properties"
             ),
             modulePath = mp,
             additionalOptions = Seq(
@@ -4017,7 +4022,9 @@ lazy val `engine-runner` = project
               // Needed for the NativeLibraryFeature
               "--add-opens=org.graalvm.nativeimage.builder/com.oracle.svm.core.jdk=ALL-UNNAMED",
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
-              "--add-opens=java.base/java.nio=ALL-UNNAMED"
+              "--add-opens=java.base/java.nio=ALL-UNNAMED",
+              // Needed for grpc-gax
+              "--add-opens=java.base/java.time=ALL-UNNAMED",
             ) ++ enableHeapDumpOpts ++ debugOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
