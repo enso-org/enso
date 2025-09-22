@@ -3935,9 +3935,6 @@ lazy val `engine-runner` = project
             .map(_.getAbsolutePath()) ++
           `std-tableau-polyglot-root`
             .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
-          `std-saas-polyglot-root`
-            .listFiles("*.jar")
             .map(_.getAbsolutePath())
         }
       }
