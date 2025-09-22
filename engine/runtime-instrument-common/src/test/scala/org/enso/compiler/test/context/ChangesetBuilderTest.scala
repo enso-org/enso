@@ -3,7 +3,7 @@ package org.enso.compiler.test.context
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.{ExternalID, IR, Identifier}
-import org.enso.compiler.core.ir.{CallArgument, Expression, Function}
+import org.enso.compiler.core.ir.{CallArgument, Expression, Function, Literal}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition

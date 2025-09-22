@@ -16,6 +16,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.instrument.Timer;
+import org.enso.polyglot.RuntimeID;
 import org.enso.polyglot.debugger.IdExecutionService;
 
 final class Instrumentor extends EnsoObject implements IdExecutionService.Callbacks {
@@ -69,7 +70,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
   // Callbacks
   //
   @Override
-  public Object findCachedResult(IdExecutionService.Info info, UUID downstreamDependency) {
+  public Object findCachedResult(IdExecutionService.Info info, RuntimeID parentID) {
     try {
       if (onEnter != null) {
         var ret = InteropLibrary.getUncached().execute(onEnter, idString(info));
@@ -135,10 +136,10 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
       UUID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess) {}
 
   @Override
-  public void updateParent(IdExecutionService.Info info, UUID parent) {}
+  public void updateParent(RuntimeID child, RuntimeID parent) {}
 
   @Override
-  public UUID restoreParent(UUID currentNodeUUID) {
+  public RuntimeID getAndRemoveParent(RuntimeID nodeUUID) {
     return null;
   }
 

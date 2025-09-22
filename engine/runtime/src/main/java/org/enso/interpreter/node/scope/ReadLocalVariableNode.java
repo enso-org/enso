@@ -14,6 +14,8 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.RuntimeAnalysis;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.polyglot.ExternalUUID;
+import org.enso.polyglot.InternalUUID;
 
 /**
  * Reads from a local target (variable or call target).
@@ -48,7 +50,7 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
    */
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected long readLong(VirtualFrame frame) throws FrameSlotTypeException {
-    registerLocalVariableAccess(getFramePointer().externalId());
+    registerLocalVariableAccess(getFramePointer().externalId(), getFramePointer().internalId());
     if (getFramePointer().parentLevel() == 0)
       return frame.getLong(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
@@ -65,7 +67,7 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
    */
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected Object readGeneric(VirtualFrame frame) throws FrameSlotTypeException {
-    registerLocalVariableAccess(getFramePointer().externalId());
+    registerLocalVariableAccess(getFramePointer().externalId(), getFramePointer().internalId());
     if (getFramePointer().parentLevel() == 0)
       return frame.getObject(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
@@ -74,7 +76,7 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
 
   @Specialization
   protected Object readGenericValue(VirtualFrame frame) {
-    registerLocalVariableAccess(getFramePointer().externalId());
+    registerLocalVariableAccess(getFramePointer().externalId(), getFramePointer().internalId());
     if (getFramePointer().parentLevel() == 0)
       return frame.getValue(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
@@ -91,10 +93,14 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
     return Function.ArgumentsHelper.getLocalScope(frame.getArguments());
   }
 
-  private void registerLocalVariableAccess(UUID uuid) {
-    if (uuid != null) {
+  private void registerLocalVariableAccess(UUID externalUUID, UUID internalUUID) {
+    var id =
+        externalUUID != null
+            ? new ExternalUUID(externalUUID)
+            : (internalUUID != null ? new InternalUUID(internalUUID) : null);
+    if (id != null) {
       RuntimeAnalysis runtimeAnalysis = EnsoContext.get(this).currentRuntimeAnalysis();
-      runtimeAnalysis.registerLocalDependency(getFramePointer().externalId());
+      runtimeAnalysis.registerLocalDependency(id);
     }
   }
 

@@ -100,11 +100,12 @@ import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.scope.ImportExportScope
 import org.enso.interpreter.{Constants, EnsoLanguage}
 import org.enso.interpreter.runtime.builtin.Builtins
+import org.enso.polyglot.{ExternalUUID, InternalUUID}
 
 import java.math.BigInteger
+import java.util.UUID
 import java.util.function.Supplier
 import java.util.logging.Level
-
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -298,7 +299,10 @@ private[runtime] class IrToTruffle(
                 () => bodyBuilder.bodyNode(),
                 makeSection(scopeBuilder.getModule, conversion.location),
                 toType,
-                conversion.methodName.name
+                conversion.methodName.name,
+                conversion.getExternalId
+                  .map(new ExternalUUID(_))
+                  .getOrElse(new InternalUUID(conversion.getId()))
               )
               val callTarget = rootNode.getCallTarget
               val arguments  = bodyBuilder.args()
@@ -485,7 +489,7 @@ private[runtime] class IrToTruffle(
           val assignmentArg = AssignmentNode.build(readArg, slotIdx)
           val argRead =
             ReadLocalVariableNode.build(
-              new FramePointer(0, slotIdx, fp.externalId())
+              new FramePointer(0, slotIdx, fp.externalId(), fp.internalId())
             )
           argumentExpressions.append((assignmentArg, argRead))
         }
@@ -519,7 +523,8 @@ private[runtime] class IrToTruffle(
             makeSection(scopeBuilder.getModule, annotation.location),
             closureName,
             true,
-            false
+            false,
+            null // FIXME
           )
           new RuntimeAnnotation(annotation.name, closureRootNode)
         }
@@ -629,7 +634,10 @@ private[runtime] class IrToTruffle(
           () => bodyBuilder.argsExpr._2,
           makeSection(scopeBuilder.getModule, methodDef.location),
           cons,
-          methodDef.methodName.name
+          methodDef.methodName.name,
+          methodDef.getExternalId
+            .map(new ExternalUUID(_))
+            .getOrElse(new InternalUUID(methodDef.getId()))
         )
       } else {
         MethodRootNode.build(
@@ -639,7 +647,10 @@ private[runtime] class IrToTruffle(
           () => bodyBuilder.bodyNode(),
           makeSection(scopeBuilder.getModule, methodDef.location),
           cons,
-          methodDef.methodName.name
+          methodDef.methodName.name,
+          methodDef.getExternalId
+            .map(new ExternalUUID(_))
+            .getOrElse(new InternalUUID(methodDef.getId()))
         )
       }
     val callTarget = rootNode.getCallTarget
@@ -695,7 +706,8 @@ private[runtime] class IrToTruffle(
               ),
               closureName,
               true,
-              false
+              false,
+              null
             )
             new RuntimeAnnotation(
               annotation.name,
@@ -902,12 +914,22 @@ private[runtime] class IrToTruffle(
     */
   private def setLocation[T <: RuntimeExpression](
     expr: T,
-    location: Option[IdentifiedLocation]
+    location: Option[IdentifiedLocation],
+    internalID: UUID = null
   ): T = {
+    var idSet = false;
     location.foreach { loc =>
       expr.setSourceLocation(loc.start, loc.length)
-      loc.id.foreach { id => expr.setId(id) }
+      loc.id.foreach { id =>
+        idSet = true
+        expr.setId(new ExternalUUID(id))
+      }
     }
+
+    if (!idSet && internalID != null) {
+      expr.setId(new InternalUUID(internalID))
+    }
+
     expr
   }
 
@@ -925,7 +947,7 @@ private[runtime] class IrToTruffle(
   ): T = {
     if (location ne null) {
       expr.setSourceLocation(location.start, location.length)
-      location.id.foreach { id => expr.setId(id) }
+      location.id.foreach { id => expr.setId(new ExternalUUID(id)) }
     }
     expr
   }
@@ -1299,7 +1321,8 @@ private[runtime] class IrToTruffle(
           makeSection(scopeBuilder.getModule, block.location),
           currentVarName,
           false,
-          false
+          false,
+          null // FIXME
         )
 
         val callTarget = defaultRootNode.getCallTarget
@@ -1781,7 +1804,8 @@ private[runtime] class IrToTruffle(
       val slotIdx = fp.frameSlotIdx()
       setLocation(
         AssignmentNode.build(this.run(binding.expression, true, true), slotIdx),
-        binding.location
+        binding.location,
+        binding.getId()
       )
     }
 
@@ -1904,7 +1928,8 @@ private[runtime] class IrToTruffle(
             new FramePointer(
               fpMeta.parentLevel() - 1,
               fpMeta.frameSlotIdx(),
-              fpMeta.externalId()
+              fpMeta.externalId(),
+              fpMeta.internalId()
             )
           )
         } else {
@@ -2218,7 +2243,12 @@ private[runtime] class IrToTruffle(
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>
           ReadLocalVariableNode.build(
-            new FramePointer(0, slotIdx, location.flatMap(_.id()).orNull)
+            new FramePointer(
+              0,
+              slotIdx,
+              location.flatMap(_.id()).orNull,
+              location.flatMap(_.id()).orNull
+            )
           )
         )
         .toArray[RuntimeExpression]
@@ -2253,7 +2283,8 @@ private[runtime] class IrToTruffle(
         makeSection(scopeBuilder.getModule, location),
         scopeName,
         false,
-        binding
+        binding,
+        null // FIXME
       )
       val callTarget = fnRootNode.getCallTarget
 
@@ -2454,7 +2485,8 @@ private[runtime] class IrToTruffle(
               section,
               displayName,
               subjectToInstrumentation,
-              false
+              false,
+              null // FIXME
             )
             val callTarget = closureRootNode.getCallTarget
 
@@ -2543,7 +2575,8 @@ private[runtime] class IrToTruffle(
               ),
               s"<default::$scopeName::${arg.name.showCode()}>",
               false,
-              false
+              false,
+              null // FIXME
             )
 
             CreateThunkNode.build(

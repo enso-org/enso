@@ -17,13 +17,13 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Arrays;
-import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * A node used for instrumenting function calls. It does nothing useful from the language
@@ -32,7 +32,7 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 @GenerateWrapper
 @NodeInfo(description = "A node used for instrumenting function calls.")
 public class FunctionCallInstrumentationNode extends Node implements InstrumentableNode {
-  private UUID id;
+  private RuntimeID id;
 
   FunctionCallInstrumentationNode() {}
 
@@ -209,7 +209,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
   /**
    * @return the expression ID of this node.
    */
-  public UUID getId() {
+  public RuntimeID getId() {
     return id;
   }
 
@@ -218,7 +218,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
    *
    * @param expressionId the ID to assign this node.
    */
-  public void setId(UUID expressionId) {
+  public void setId(RuntimeID expressionId) {
     this.id = expressionId;
   }
 }

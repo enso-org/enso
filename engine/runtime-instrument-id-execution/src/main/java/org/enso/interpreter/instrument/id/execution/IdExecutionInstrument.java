@@ -22,7 +22,6 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Objects;
-import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -40,6 +39,7 @@ import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.polyglot.RuntimeID;
 import org.enso.polyglot.debugger.IdExecutionService;
 
 /** An instrument for getting values from AST-identified expressions. */
@@ -49,7 +49,7 @@ import org.enso.polyglot.debugger.IdExecutionService;
 public class IdExecutionInstrument extends TruffleInstrument implements IdExecutionService {
 
   private Env env;
-  private static UUID globalParentNode;
+  private static RuntimeID parentNodeID;
 
   /**
    * Initializes the instrument. Substitute for a constructor, called by the Truffle framework.
@@ -98,7 +98,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     /** Implementation of {@link Info} for the instrumented {@link Node}. */
     private final class NodeInfo extends Info {
 
-      private final UUID nodeId;
+      private final RuntimeID nodeId;
       private final Object result;
       private final long elapsedTime;
       private final MaterializedFrame materializedFrame;
@@ -114,7 +114,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       public NodeInfo(MaterializedFrame materializedFrame, Node node) {
         super();
 
-        this.nodeId = getNodeId(node);
+        this.nodeId = getNodeID(node);
         this.result = null;
         this.elapsedTime = -1;
         this.materializedFrame = materializedFrame;
@@ -132,7 +132,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
        * @param node the executed node
        */
       public NodeInfo(
-          UUID nodeId,
+          RuntimeID nodeId,
           Object result,
           long elapsedTime,
           MaterializedFrame materializedFrame,
@@ -149,7 +149,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       }
 
       @Override
-      public UUID getId() {
+      public RuntimeID getId() {
         return nodeId;
       }
 
@@ -177,12 +177,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         return evalNode.execute(callerInfo, Text.create(code));
       }
 
-      @Override
-      public boolean shouldUpdateParentInfo() {
-        return needsParentInfoUpdate;
-      }
-
-      private static UUID getNodeId(Node node) {
+      private static RuntimeID getNodeID(Node node) {
         return switch (node) {
           case ExpressionNode n -> n.getId();
           case FunctionCallInstrumentationNode n -> n.getId();
@@ -219,15 +214,16 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
 
         Info info = new NodeInfo(frame.materialize(), context.getInstrumentedNode());
-        Object result = callbacks.findCachedResult(info, globalParentNode);
+        if (!info.getId().isExternal()) {
+          setParentNode(info.getId());
+          return;
+        }
+        Object result = callbacks.findCachedResult(info, parentNodeID);
 
         if (result != null && !callbacks.needsFullExecution()) {
           throw context.createUnwind(result);
         }
-        EnsoContext.get(this).currentRuntimeAnalysis().enterNode(info.getId());
-        if (info.shouldUpdateParentInfo()) {
-          setParentNode(info);
-        }
+        setParentNode(info.getId());
         setExecutionEnvironment(info);
         nanoTimeElapsed = timer.getTime();
       }
@@ -246,7 +242,13 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           return;
         }
         Node node = context.getInstrumentedNode();
-        var uuid = NodeInfo.getNodeId(node);
+        var uuid = NodeInfo.getNodeID(node);
+        assert uuid != null; // If it is instrumented, it has to have UUID.
+
+        if (!uuid.isExternal()) {
+          restoreParentNode(uuid);
+          return;
+        }
 
         if (node instanceof FunctionCallInstrumentationNode functionCallInstrumentationNode
             && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
@@ -259,7 +261,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   node);
           Object cachedResult = callbacks.onFunctionReturn(info);
           resetExecutionEnvironment(uuid);
-          EnsoContext.get(this).currentRuntimeAnalysis().exitNode(uuid);
+          restoreParentNode(uuid);
           if (cachedResult != null) {
             throw context.createUnwind(cachedResult);
           }
@@ -272,14 +274,14 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   nanoTimeElapsed,
                   frame == null ? null : frame.materialize(),
                   node);
-          restoreParentNode(node);
+          restoreParentNode(uuid);
           callbacks.updateCachedResult(info);
           resetExecutionEnvironment(uuid);
           if (info.isPanic()) {
             throw context.createUnwind(result);
           }
         } else {
-          restoreParentNode(node);
+          restoreParentNode(uuid);
           resetExecutionEnvironment(uuid);
         }
       }
@@ -346,7 +348,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             (ExecutionEnvironment) callbacks.getExecutionEnvironment(info);
         if (nodeEnvironment != null) {
           callbacks.updateLocalExecutionEnvironment(
-              info.getId(),
+              info.getId().uuid(),
               Objects::isNull,
               (savedEnvironment) -> {
                 EnsoContext context = EnsoContext.get(this);
@@ -357,27 +359,26 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
       }
 
-      private void setParentNode(IdExecutionService.Info info) {
-        assert info != null;
-        if (info.getId() != null) {
-          callbacks.updateParent(info, globalParentNode);
-          globalParentNode = info.getId();
+      private void setParentNode(RuntimeID thisNodeId) {
+        if (thisNodeId != null) {
+          callbacks.updateParent(thisNodeId, parentNodeID);
+          parentNodeID = thisNodeId;
         }
+        EnsoContext.get(this).currentRuntimeAnalysis().enterNode(thisNodeId);
       }
 
-      private void restoreParentNode(Node node) {
-        var uuid = NodeInfo.getNodeId(node);
-        if (uuid != null) {
-          var parent = callbacks.restoreParent(uuid);
-          globalParentNode = parent;
+      private void restoreParentNode(RuntimeID previousUUID) {
+        if (previousUUID != null) {
+          var parent = callbacks.getAndRemoveParent(previousUUID);
+          parentNodeID = parent;
         }
-        EnsoContext.get(this).currentRuntimeAnalysis().exitNode(uuid);
+        EnsoContext.get(this).currentRuntimeAnalysis().exitNode(previousUUID);
       }
 
-      private void resetExecutionEnvironment(UUID uuid) {
+      private void resetExecutionEnvironment(RuntimeID uuid) {
         if (uuid != null) {
           callbacks.updateLocalExecutionEnvironment(
-              uuid,
+              uuid.uuid(),
               Objects::nonNull,
               (originalExecutionEnvironment) -> {
                 EnsoContext context = EnsoContext.get(this);

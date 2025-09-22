@@ -9,7 +9,9 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import org.enso.interpreter.runtime.error.DataflowError;
+
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.polyglot.RuntimeID;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.service.GuestExecutionService;
 
@@ -20,9 +22,22 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Consumer<UUID> observer;
   private final GuestExecutionService executionService;
+  private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> enterables = new HashMap<>();
 
   public RuntimeCache(GuestExecutionService executionService) {
     this.executionService = executionService;
+  }
+
+  public void invalidate(Set<RuntimeID> keys) {
+    keys.stream().forEach(k -> enterables.remove(k.uuid()));
+  }
+
+  public FunctionCallInstrumentationNode.FunctionCall enterable(UUID key) {
+    return enterables.get(key);
+  }
+
+  public void updateEnterable(UUID key, FunctionCallInstrumentationNode.FunctionCall call) {
+    enterables.put(key, call);
   }
 
   /**
@@ -34,29 +49,34 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    * @return {@code true} if the value was added to the cache.
    */
   @CompilerDirectives.TruffleBoundary
-  public boolean offer(UUID key, Object value) {
-    var observable = cache.get(key);
-    // If one `offers` the value, then it means an Observable has been assigned to the key
+  public boolean offer(RuntimeID key, Object value) {
+    var observable = cache.get(key.uuid());
     assert observable != null;
-    var notDataflowError = !(value instanceof DataflowError);
-    observable.update(value, notDataflowError, executionService);
-    return notDataflowError;
+    if (observable.isUpdatable()) {
+      return observable.update(value, executionService);
+    } else {
+      return false;
+    }
   }
 
-  /** Get the observable from the cache. */
   public Observable get(UUID key) {
-    return cache.computeIfAbsent(key, k -> new Observable(key));
+    return cache.get(key);
+  }
+
+  /** Gets an instance of Observable from the cache. */
+  public Observable get(RuntimeID key) {
+    return cache.computeIfAbsent(key.uuid(), k -> Observable.fromUUID(key));
   }
 
   /** Get the observable from the cache. */
-  public Observable get(UUID expressionId, UUID downstreamDependency) {
-    var o = cache.computeIfAbsent(expressionId, _ -> new Observable(expressionId));
+  public Observable get(RuntimeID expressionId, RuntimeID downstreamDependency) {
+    var o = cache.computeIfAbsent(expressionId.uuid(), _ -> Observable.fromUUID(expressionId));
     return downstreamDependency == null ? o : o.register(cache.get(downstreamDependency));
   }
 
-  public CompletionStage<Boolean> registerAction(UUID expressionId, ObservableAction action) {
+  public CompletionStage<Boolean> registerAction(RuntimeID expressionId, ObservableVisualization action) {
     return cache
-        .computeIfAbsent(expressionId, k -> new Observable(expressionId))
+        .computeIfAbsent(expressionId.uuid(), k -> new CachingObservable(expressionId))
         .registerAction(action, executionService);
   }
 

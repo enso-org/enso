@@ -15,12 +15,12 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
-import java.util.UUID;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.scope.DebugLocalScope;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * A base class for all Enso expressions.
@@ -38,7 +38,7 @@ import org.enso.interpreter.runtime.tag.Patchable;
 public abstract class ExpressionNode extends BaseNode implements InstrumentableNode {
   private @CompilationFinal int sourceStartIndex;
   private @CompilationFinal int sourceLength;
-  private @CompilationFinal UUID id = null;
+  private @CompilationFinal RuntimeID id = null;
 
   public static boolean isWrapper(ExpressionNode node) {
     return node instanceof ExpressionNodeWrapper;
@@ -92,7 +92,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    *
    * @return this node's ID.
    */
-  public UUID getId() {
+  public RuntimeID getId() {
     return id;
   }
 
@@ -101,7 +101,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    *
    * @param id the ID for this node.
    */
-  public void setId(UUID id) {
+  public void setId(RuntimeID id) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     this.id = id;
   }

@@ -15,7 +15,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.UUID;
 import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ClosureRootNode;
@@ -37,6 +36,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * Value representing a by-name identified constructor of a yet unknown {@link Type}. Create new
@@ -180,7 +180,7 @@ public final class UnresolvedConstructor extends EnsoObject {
     }
 
     static DirectCallNode buildApplication(UnresolvedConstructor prototype) {
-      UUID id = null;
+      RuntimeID id = null;
       SourceSection section = null;
       var scope =
           prototype.where.getRootNode() instanceof EnsoRootNode root ? root.getModuleScope() : null;
@@ -214,7 +214,15 @@ public final class UnresolvedConstructor extends EnsoObject {
       body.adoptChildren();
       var root =
           ClosureRootNode.build(
-              lang, LocalScope.empty(), scope, body, section, prototype.getName(), true, true);
+              lang,
+              LocalScope.empty(),
+              scope,
+              body,
+              section,
+              prototype.getName(),
+              true,
+              true,
+              null);
       root.adoptChildren();
       assert Objects.equals(expr.getSourceSection(), section)
           : "Expr: " + expr.getSourceSection() + " orig: " + section;

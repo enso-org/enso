@@ -13,13 +13,14 @@ import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
 }
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
-  ObservableAction,
+  ObservableVisualization,
   RuntimeCache,
   Visualization
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.ExternalUUID
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
@@ -185,8 +186,8 @@ class UpsertVisualizationJob(
     }
     val registered =
       runtimeCache.registerAction(
-        expressionId,
-        new ObservableAction(visualizationId, action)
+        new ExternalUUID(expressionId),
+        new ObservableVisualization(visualizationId, action)
       )
     registered
       .thenApply(needsExecution => {

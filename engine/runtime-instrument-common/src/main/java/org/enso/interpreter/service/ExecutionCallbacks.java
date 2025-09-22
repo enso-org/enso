@@ -26,6 +26,7 @@ import org.enso.interpreter.runtime.type.Constants;
 import org.enso.interpreter.service.ExecutionService.ExpressionCall;
 import org.enso.interpreter.service.ExecutionService.ExpressionValue;
 import org.enso.interpreter.service.ExecutionService.FunctionCallInfo;
+import org.enso.polyglot.RuntimeID;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
 
@@ -46,7 +47,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onProgressCallbackOrNull;
   private ExecutionProgressObserver progressObserver;
   private final Map<UUID, Object> savedNodeExecutionEnvironment;
-  private final Map<UUID, UUID> parentDependencies;
+  private final Map<RuntimeID, RuntimeID> parentDependencies;
 
   /**
    * Creates callbacks instance.
@@ -91,9 +92,10 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @Override
-  public Object findCachedResult(IdExecutionService.Info info, UUID downstreamDependency) {
-    UUID nodeId = info.getId();
-    Observable observable = getCachedResult(nodeId, downstreamDependency);
+  public Object findCachedResult(IdExecutionService.Info info, RuntimeID parentID) {
+    RuntimeID runtimeID = info.getId();
+    UUID nodeId = runtimeID.uuid();
+    Observable observable = getCachedResult(runtimeID, parentID);
     Object result = observable.get(); // will result in null if pending
 
     // When executing the call stack we need to capture the FunctionCall of the next (top) stack
@@ -143,7 +145,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   public void updateCachedResult(IdExecutionService.Info info) {
     Object result = info.getResult();
     TypeInfo resultType = typeOf(result);
-    UUID nodeId = info.getId();
+    RuntimeID runtimeID = info.getId();
+    UUID nodeId = runtimeID.uuid();
 
     if (progressObserver instanceof ExecutionProgressObserver o && nodeId.equals(o.nodeId())) {
       refreshObserver(null);
@@ -180,7 +183,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     // like imports, and the invalidation mechanism can not always track those changes and
     // appropriately invalidate all dependent expressions.
     if (!isPanic) {
-      cache.offer(nodeId, result);
+      cache.offer(runtimeID, result);
       cache.putCall(nodeId, call);
     }
     cache.putType(nodeId, resultType);
@@ -201,11 +204,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
     FunctionCallInstrumentationNode.FunctionCall fnCall =
         (FunctionCallInstrumentationNode.FunctionCall) info.getResult();
-    UUID nodeId = info.getId();
+    RuntimeID runtimeID = info.getId();
+    UUID nodeId = runtimeID.uuid();
     calls.put(nodeId, FunctionCallInfo.fromFunctionCall(fnCall));
     functionCallCallback.accept(new ExpressionCall(nodeId, fnCall));
     // Return cached value after capturing the enterable function call in `functionCallCallback`.
-    Observable cachedResult = cache.get(nodeId);
+    Observable cachedResult = cache.get(runtimeID);
     methodCallsCache.setExecuted(nodeId);
     if (cachedResult != null) {
       return cachedResult.get();
@@ -216,7 +220,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @Override
   @CompilerDirectives.TruffleBoundary
   public Object getExecutionEnvironment(IdExecutionService.Info info) {
-    return expressionExecutionState.getExecutionEnvironment(info.getId());
+    return expressionExecutionState.getExecutionEnvironment(info.getId().uuid());
   }
 
   @Override
@@ -235,14 +239,17 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @Override
-  public void updateParent(IdExecutionService.Info info, UUID parent) {
-    var previous = parentDependencies.put(info.getId(), parent);
+  public void updateParent(RuntimeID child, RuntimeID parent) {
+    if (child == parent) {
+      return;
+    }
+    var previous = parentDependencies.put(child, parent);
     assert previous == null; // no previous setup is allowed
   }
 
   @Override
-  public UUID restoreParent(UUID currentNodeUUID) {
-    return parentDependencies.remove(currentNodeUUID);
+  public RuntimeID getAndRemoveParent(RuntimeID nodeUUID) {
+    return parentDependencies.remove(nodeUUID);
   }
 
   @Override
@@ -298,7 +305,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Observable getCachedResult(UUID nodeId, UUID downstreamDependency) {
+  private Observable getCachedResult(RuntimeID nodeId, RuntimeID downstreamDependency) {
     return cache.get(nodeId, downstreamDependency);
   }
 

@@ -24,6 +24,7 @@ import org.enso.interpreter.instrument.{
   Changeset,
   ChangesetBuilder,
   InstrumentFrame,
+  Observable,
   Visualization
 }
 import org.enso.interpreter.runtime.Module
@@ -39,8 +40,8 @@ import java.io.File
 import java.util
 import java.util.UUID
 import java.util.function.Consumer
-import scala.annotation.unused
-import scala.jdk.CollectionConverters.ListHasAsScala
+import scala.annotation.{tailrec, unused}
+import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsJava}
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -467,20 +468,16 @@ class EnsureCompiledJob(
             stack.headOption.flatMap(frame => Option(frame.cache))
           val uuids = changeset.invalidated ++ resolutionErrors
           runtimeCache.foreach { cache =>
-            val updates = uuids.flatMap { uuid =>
-              val observable = cache.get(uuid)
-              if (observable != null) {
-                collection.immutable.SortedSet(
-                  observable.invalidate().toList.asScala.toSeq: _*
-                )
-              } else {
-                Set.empty
-              }
-            }
+            val directlyInvalidated =
+              uuids.flatMap(uuid => Option(cache.get(uuid))).toSeq
+            val transitivelyInvalidated =
+              invalidateTransitiveDependenceis(directlyInvalidated)
+            cache.invalidate(transitivelyInvalidated.map(_.id()).asJava)
+            val allCachedUpdates = transitivelyInvalidated.filter(_.isUpdatable)
             // pending updates
-            val expressionUpdates = updates.map { key =>
+            val expressionUpdates = allCachedUpdates.map { key =>
               Api.ExpressionUpdate(
-                key,
+                key.id().uuid(),
                 None,
                 None,
                 Vector.empty,
@@ -547,6 +544,26 @@ class EnsureCompiledJob(
         ctx.endpoint.sendToClient(response)
       }
     }*/
+  }
+
+  private def invalidateTransitiveDependenceis(
+    toInvalidate: Seq[Observable]
+  ): Set[Observable] = {
+    @tailrec
+    def invalidateTransitiveDependenceis0(
+      toInvalidate: Seq[Observable],
+      acc: Set[Observable]
+    ): Set[Observable] = {
+      toInvalidate match {
+        case head :: tail =>
+          val toProcess =
+            head.invalidate().filter(o => !acc.contains(o)).toList.asScala
+          invalidateTransitiveDependenceis0(tail ++ toProcess, Set(head) ++ acc)
+        case _ =>
+          acc
+      }
+    }
+    invalidateTransitiveDependenceis0(toInvalidate, Set.empty)
   }
 
   /** Send notification about the compilation status.

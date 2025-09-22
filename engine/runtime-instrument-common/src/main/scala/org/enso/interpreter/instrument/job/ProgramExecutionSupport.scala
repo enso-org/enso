@@ -14,7 +14,6 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.instrument.execution.{ErrorResolver, RuntimeContext}
 import org.enso.interpreter.instrument.profiling.ExecutionTime
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
@@ -68,7 +67,6 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Unit = {
 
     val methodCallsCache = new MethodCallsCache
-    var enterables       = Map[UUID, FunctionCall]()
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
       logger.trace("ON_CACHED_CALL {}", value.getExpressionId)
@@ -118,7 +116,7 @@ object ProgramExecutionSupport {
 
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
-        enterables += fun.getExpressionId -> fun.getCall
+        executionFrame.cache.updateEnterable(fun.getExpressionId, fun.getCall)
       }
 
     val pendingResult = executionFrame match {
@@ -229,17 +227,15 @@ object ProgramExecutionSupport {
           )
         }
       case item :: tail =>
-        enterables.get(item.expressionId) match {
-          case Some(call) =>
-            val executionFrame =
-              ExecutionFrame(
-                ExecutionItem.CallData(item.expressionId, call),
-                item.cache,
-                item.syncState
-              )
-            executeProgram(contextId, executionFrame, tail)
-          case None =>
-            ()
+        val callInfo = executionFrame.cache.getCall(item.expressionId)
+        if (callInfo != null) {
+          val executionFrame =
+            ExecutionFrame(
+              ExecutionItem.CallData(item.expressionId, callInfo.ref()),
+              item.cache,
+              item.syncState
+            )
+          executeProgram(contextId, executionFrame, tail)
         }
     }
   }

@@ -16,6 +16,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.polyglot.RuntimeID;
 
 @ReportPolymorphism
 @NodeInfo(shortName = "Method", description = "A root node for Enso methods.")
@@ -32,7 +33,8 @@ public class MethodRootNode extends ClosureRootNode {
       ExpressionNode body,
       SourceSection section,
       Type type,
-      String methodName) {
+      String methodName,
+      RuntimeID id) {
     super(
         language,
         localScope,
@@ -41,7 +43,8 @@ public class MethodRootNode extends ClosureRootNode {
         section,
         shortName(type.getName(), methodName),
         null,
-        false);
+        false,
+        id);
 
     this.type = type;
     this.methodName = methodName;
@@ -70,9 +73,10 @@ public class MethodRootNode extends ClosureRootNode {
       Supplier<ExpressionNode> body,
       SourceSection section,
       Type type,
-      String methodName) {
+      String methodName,
+      RuntimeID id) {
     return build(
-        language, localScope, moduleScope, new LazyBodyNode(body), section, type, methodName);
+        language, localScope, moduleScope, new LazyBodyNode(body), section, type, methodName, id);
   }
 
   public static MethodRootNode build(
@@ -82,8 +86,10 @@ public class MethodRootNode extends ClosureRootNode {
       ExpressionNode body,
       SourceSection section,
       Type type,
-      String methodName) {
-    return new MethodRootNode(language, localScope, moduleScope, body, section, type, methodName);
+      String methodName,
+      RuntimeID id) {
+    return new MethodRootNode(
+        language, localScope, moduleScope, body, section, type, methodName, id);
   }
 
   /**
@@ -105,8 +111,9 @@ public class MethodRootNode extends ClosureRootNode {
       ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
-      AtomConstructor constructor) {
-    return new Constructor(language, localScope, moduleScope, body, section, constructor);
+      AtomConstructor constructor,
+      RuntimeID id) {
+    return new Constructor(language, localScope, moduleScope, body, section, constructor, id);
   }
 
   /**
@@ -133,7 +140,8 @@ public class MethodRootNode extends ClosureRootNode {
       Supplier<ExpressionNode> body,
       SourceSection section,
       Type type,
-      String methodName) {
+      String methodName,
+      RuntimeID id) {
     Supplier<ExpressionNode> supplyWholeBody =
         () -> {
           var readLeftNode = readLeft.get();
@@ -142,7 +150,7 @@ public class MethodRootNode extends ClosureRootNode {
           var operatorNode = new BinaryOperatorNode(readLeftNode, readRightNode, exprNode);
           return operatorNode;
         };
-    return build(language, localScope, moduleScope, supplyWholeBody, section, type, methodName);
+    return build(language, localScope, moduleScope, supplyWholeBody, section, type, methodName, id);
   }
 
   /**
@@ -235,7 +243,8 @@ public class MethodRootNode extends ClosureRootNode {
         ModuleScope moduleScope,
         ExpressionNode body,
         SourceSection section,
-        AtomConstructor constructor) {
+        AtomConstructor constructor,
+        RuntimeID id) {
       super(
           language,
           localScope,
@@ -243,7 +252,8 @@ public class MethodRootNode extends ClosureRootNode {
           body,
           section,
           constructor.getType(),
-          constructor.getName());
+          constructor.getName(),
+          id);
       this.constructor = constructor;
     }
   }

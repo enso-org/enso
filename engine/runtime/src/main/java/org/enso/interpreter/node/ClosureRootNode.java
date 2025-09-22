@@ -7,7 +7,10 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.compiler.context.LocalScope;
 import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.RuntimeAnalysis;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * This node represents the root of Enso closures and closure-like structures.
@@ -22,6 +25,7 @@ public class ClosureRootNode extends EnsoRootNode {
   @Child private ExpressionNode body;
   private final boolean subjectToInstrumentation;
   private final boolean usedInBinding;
+  private final RuntimeID id;
 
   ClosureRootNode(
       EnsoLanguage language,
@@ -31,11 +35,13 @@ public class ClosureRootNode extends EnsoRootNode {
       SourceSection section,
       String name,
       Boolean subjectToInstrumentation,
-      boolean usedInBinding) {
+      boolean usedInBinding,
+      RuntimeID id) {
     super(language, localScope, moduleScope, name, section);
     this.body = body;
     this.subjectToInstrumentation = Boolean.TRUE.equals(subjectToInstrumentation);
     this.usedInBinding = usedInBinding;
+    this.id = id;
   }
 
   /**
@@ -59,7 +65,8 @@ public class ClosureRootNode extends EnsoRootNode {
       SourceSection section,
       String name,
       Boolean subjectToInstrumentation,
-      boolean usedInBinding) {
+      boolean usedInBinding,
+      RuntimeID id) {
     return new ClosureRootNode(
         language,
         localScope,
@@ -68,7 +75,8 @@ public class ClosureRootNode extends EnsoRootNode {
         section,
         name,
         subjectToInstrumentation,
-        usedInBinding);
+        usedInBinding,
+        id);
   }
 
   /**
@@ -82,7 +90,18 @@ public class ClosureRootNode extends EnsoRootNode {
     if (CompilerDirectives.inCompilationRoot() || CompilerDirectives.inInterpreter()) {
       com.oracle.truffle.api.TruffleSafepoint.poll(this);
     }
-    return body.executeGeneric(frame);
+    RuntimeAnalysis runtimeAnalysis = EnsoContext.get(this).currentRuntimeAnalysis();
+    if (id != null) {
+      runtimeAnalysis.registerCallerCalleeDependency(id);
+      runtimeAnalysis.enterNode(id);
+    }
+    try {
+      return body.executeGeneric(frame);
+    } finally {
+      if (id != null) {
+        runtimeAnalysis.exitNode(id);
+      }
+    }
   }
 
   final ExpressionNode getBody() {

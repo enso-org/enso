@@ -171,7 +171,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         )
       }
 
-    val nodeIds = invalidated(edits)
+    val nodeIds = invalidateExact(edits)
     /*val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
     val transitive =
       go(
@@ -180,6 +180,48 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       )
     direct.flatMap(_.externalId) ++ transitive*/
     nodeIds.flatMap(_.externalId)
+  }
+
+  def invalidateExact(edits: Seq[TextEdit]): Set[ChangesetBuilder.NodeId] = {
+    val allEdits = edits.toSet
+
+    @scala.annotation.tailrec
+    def go(
+      tree: ChangesetBuilder.Tree,
+      source: A,
+      edits: mutable.Queue[TextEdit],
+      ids: mutable.Set[ChangesetBuilder.NodeId]
+    ): Set[ChangesetBuilder.NodeId] = {
+      if (edits.isEmpty) {
+        val allExpressionBindings =
+          findBindings(
+            new HashSet() concat ids
+              .filter(_.needsRhsInvalidation)
+              .map(_.internalId)
+              .toSet,
+            ir
+          )
+        ids.toSet ++ allExpressionBindings.flatMap(
+          invalidateRhsExpressionAndSelfArgs
+        )
+      } else {
+        val edit = edits.dequeue()
+        val locationEdit =
+          ChangesetBuilder.toLocationEdit(edit, source, allEdits)
+        val invalidatedSet =
+          ChangesetBuilder.invalidated(
+            tree,
+            locationEdit.location,
+            locationEdit.isNodeRemoved,
+            false
+          )
+        val newTree   = ChangesetBuilder.updateLocations(tree, locationEdit)
+        val newSource = TextEditor[A].edit(source, edit)
+        go(newTree, newSource, edits, ids ++= invalidatedSet.map(_.id))
+      }
+    }
+    val tree = ChangesetBuilder.buildTreeOfExternalIDs(ir)
+    go(tree, source, mutable.Queue.from(edits), mutable.HashSet())
   }
 
   /** Traverses the IR and returns a list of the most specific (the innermost)
@@ -220,7 +262,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
             tree,
             locationEdit.location,
             locationEdit.isNodeRemoved,
-            true
+            false
           )
         if (invalidatedSet.isEmpty) {
           invalidatedSet = ChangesetBuilder.invalidated(
@@ -484,6 +526,26 @@ object ChangesetBuilder {
               currentIr.children.map(depthFirstSearch(_, acc, false))
           }
         }
+      }
+    }
+    val collectNodes = new Tree()
+    depthFirstSearch(ir, collectNodes, false)
+    collectNodes
+  }
+
+  private def buildTreeOfExternalIDs(ir: IR): Tree = {
+    def depthFirstSearch(currentIr: IR, acc: Tree, isBinding: Boolean): Unit = {
+      val hasImportantId = currentIr.getExternalId.nonEmpty
+      if (hasImportantId) {
+        Node.fromIr(currentIr, isBinding).foreach(acc.add)
+      }
+
+      currentIr match {
+        case binding: Expression.Binding =>
+          depthFirstSearch(binding.name, acc, true)
+          depthFirstSearch(binding.expression, acc, false)
+        case _ =>
+          currentIr.children.foreach(depthFirstSearch(_, acc, isBinding))
       }
     }
     val collectNodes = new Tree()

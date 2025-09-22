@@ -9,7 +9,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
-import java.util.UUID;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
@@ -23,6 +22,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * This class represents the protocol for remapping the arguments provided at a call site into the
@@ -216,12 +216,12 @@ public abstract class InvokeFunctionNode extends BaseNode {
    *
    * @param id the expression ID to assign this node.
    */
-  public void setId(UUID id) {
+  public void setId(RuntimeID id) {
     functionCallInstrumentationNode.setId(id);
   }
 
   /** Returns expression ID of this node. */
-  public UUID getId() {
+  public RuntimeID getId() {
     return functionCallInstrumentationNode.getId();
   }
 }

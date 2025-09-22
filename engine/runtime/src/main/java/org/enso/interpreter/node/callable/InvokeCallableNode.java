@@ -16,7 +16,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.InlinedBranchProfile;
 import com.oracle.truffle.api.source.SourceSection;
-import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
@@ -39,6 +38,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * This class is responsible for performing the actual invocation of a given callable with its
@@ -446,7 +446,7 @@ public abstract class InvokeCallableNode extends BaseNode {
    *
    * @param id the ID to assign this node.
    */
-  public void setId(UUID id) {
+  public void setId(RuntimeID id) {
     invokeFunctionNode.setId(id);
     invokeMethodNode.setId(id);
     invokeConversionNode.setId(id);
@@ -456,7 +456,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   }
 
   /** Returns expression ID of this node. */
-  public UUID getId() {
+  public RuntimeID getId() {
     return invokeFunctionNode.getId();
   }
 }

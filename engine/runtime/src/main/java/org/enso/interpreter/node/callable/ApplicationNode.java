@@ -4,11 +4,11 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
-import java.util.UUID;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -103,7 +103,7 @@ public class ApplicationNode extends ExpressionNode {
    * @param id the ID for this node.
    */
   @Override
-  public void setId(UUID id) {
+  public void setId(RuntimeID id) {
     super.setId(id);
     invokeCallableNode.setId(id);
   }

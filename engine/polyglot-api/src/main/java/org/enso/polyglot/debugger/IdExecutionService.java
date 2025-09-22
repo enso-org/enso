@@ -7,6 +7,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import org.enso.polyglot.RuntimeID;
 
 public interface IdExecutionService {
   String INSTRUMENT_ID = "id-value-extractor";
@@ -16,7 +17,7 @@ public interface IdExecutionService {
     /**
      * @return UUID of the node, or {@code null} if no UUID has been assigned.
      */
-    public abstract UUID getId();
+    public abstract RuntimeID getId();
 
     /**
      * @return associated result or {@code null} if there is no associated result.
@@ -40,8 +41,6 @@ public interface IdExecutionService {
      * @return result of the evaluation.
      */
     public abstract Object eval(String code);
-
-    public abstract boolean shouldUpdateParentInfo();
   }
 
   public interface Callbacks {
@@ -51,10 +50,12 @@ public interface IdExecutionService {
      * execution of given node is skipped and the value is returned back.
      *
      * @param info info with UUID the node to be computed
+     * @param parentID ID of the parent of {@code info} for registering the relationship between the
+     *     two nodes
      * @return {@code null} should the execution of the node be performed; any other value to skip
      *     the execution and return the value as a result.
      */
-    Object findCachedResult(Info info, UUID downstreamDependency);
+    Object findCachedResult(Info info, RuntimeID parentID);
 
     /**
      * Notifies when an execution of a node is over.
@@ -97,10 +98,30 @@ public interface IdExecutionService {
     void updateLocalExecutionEnvironment(
         UUID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess);
 
-    void updateParent(Info info, UUID parent);
+    /**
+     * Stores information about child-parent relationship between two instrumented nodes.
+     *
+     * @param child id of the child node
+     * @param parent id of the parent node
+     */
+    void updateParent(RuntimeID child, RuntimeID parent);
 
-    UUID restoreParent(UUID currentNodeUUID);
+    /**
+     * Returns ID of the parent node of {@code nodeID} node. The call is not idempotent as once the
+     * information is retrieved, it is no longer available.
+     *
+     * @param nodeID uuid of the child node
+     * @return ID of the parent node, if available
+     */
+    RuntimeID getAndRemoveParent(RuntimeID nodeID);
 
+    /**
+     * Indicates if full execution in the given context, while ignoring the cached values, is
+     * necessary. Full execution is necessary to recreate the context around specific UUIDs for
+     * expression evaluation.
+     *
+     * @return {@code true} if full execution, ignoring cached values, is necessary
+     */
     boolean needsFullExecution();
   }
 

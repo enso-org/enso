@@ -23,7 +23,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.Constants.Names;
 import org.enso.interpreter.node.BaseNode;
@@ -60,6 +59,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.polyglot.RuntimeID;
 
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
@@ -918,7 +918,7 @@ public abstract class InvokeMethodNode extends BaseNode {
    *
    * @param id the expression ID to assign this node.
    */
-  public void setId(UUID id) {
+  public void setId(RuntimeID id) {
     invokeFunctionNode.setId(id);
     if (childDispatch != null) {
       childDispatch.setId(id);

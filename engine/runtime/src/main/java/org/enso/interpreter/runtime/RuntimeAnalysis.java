@@ -1,19 +1,23 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import org.enso.polyglot.RuntimeID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.UUID;
 
 public class RuntimeAnalysis {
-  private Stack<UUID> uuids;
-  private Map<UUID, Set<UUID>> deps;
+  private final Stack<RuntimeID> idStack;
+  private final Map<RuntimeID, Set<RuntimeID>> deps;
+  private final static Logger LOGGER = LoggerFactory.getLogger(RuntimeAnalysis.class);
 
   public RuntimeAnalysis(EnsoContext ctx) {
-    uuids = new Stack<>();
+    idStack = new Stack<>();
     deps = new HashMap<>();
   }
 
@@ -21,37 +25,56 @@ public class RuntimeAnalysis {
     return new RuntimeAnalysis(ctx);
   }
 
-  public void enterNode(UUID uuid) {
-    if (uuid != null) {
-      uuids.push(uuid);
+  public void enterNode(RuntimeID id) {
+    if (id != null) {
+      var top = idStack.isEmpty() ? null : idStack.peek();
+      if (top != null) {
+        deps.computeIfAbsent(top, _ -> new HashSet<>()).add(id);
+      }
+      idStack.push(id);
     }
   }
 
-  public void exitNode(UUID uuid) {
-    if (uuid != null) {
-      if (uuids.isEmpty()) {
-        System.err.println("Should not attempt to exit empty stack. Investigate");
+  public void exitNode(RuntimeID id) {
+    if (id != null) {
+      if (idStack.isEmpty()) {
+        LOGGER.warn("Should not attempt to exit empty stack for {}", id);
         return;
       }
-      assert (uuids.peek() == uuid);
-      uuids.pop();
+      assert (idStack.peek() == id);
+      idStack.pop();
     }
+  }
+
+  public RuntimeID peek() {
+    if (idStack.isEmpty()) return null;
+    else return idStack.peek();
   }
 
   @CompilerDirectives.TruffleBoundary
-  public void registerLocalDependency(UUID dependency) {
-    var top = uuids.isEmpty() ? null : uuids.peek();
+  public void registerLocalDependency(RuntimeID dependency) {
+    if (dependency == null) {
+      return;
+    }
+    var top = idStack.isEmpty() ? null : idStack.peek();
     if (top != null) {
       deps.computeIfAbsent(top, _ -> new HashSet<>()).add(dependency);
     } else {
-      throw new RuntimeException(
-          "Unable to register "
-              + dependency
-              + " as a top-level local variable for runtime analysis");
+      LOGGER.warn("Unable to register {} as a top-level local variable for runtime analysis", dependency);
     }
   }
 
-  public Map<UUID, Set<UUID>> currentSnapshot() {
+  public void registerCallerCalleeDependency(RuntimeID dependency) {
+    if (dependency == null) {
+      return;
+    }
+    var top = idStack.isEmpty() ? null : idStack.peek();
+    if (top != null) {
+      deps.computeIfAbsent(top, _ -> new HashSet<>()).add(dependency);
+    }
+  }
+
+  public Map<RuntimeID, Set<RuntimeID>> currentSnapshot() {
     return new HashMap<>(deps);
   }
 }

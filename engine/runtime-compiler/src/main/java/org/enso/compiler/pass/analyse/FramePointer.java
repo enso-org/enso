@@ -10,7 +10,7 @@ import scala.Option;
  * A representation of a pointer into a stack frame at a given number of levels above the current.
  */
 @Persistable(clazz = FramePointer.class, id = 1288)
-public record FramePointer(int parentLevel, int frameSlotIdx, UUID externalId)
+public record FramePointer(int parentLevel, int frameSlotIdx, UUID externalId, UUID internalId)
     implements FrameAnalysisMeta {
 
   public FramePointer {
@@ -19,7 +19,11 @@ public record FramePointer(int parentLevel, int frameSlotIdx, UUID externalId)
   }
 
   public FramePointer(int parentLevel, int frameSlotIdx) {
-    this(parentLevel, frameSlotIdx, null);
+    this(parentLevel, frameSlotIdx, null, null);
+  }
+
+  public FramePointer(int parentLevel, int frameSlotIdx, UUID internalId) {
+    this(parentLevel, frameSlotIdx, null, internalId);
   }
 
   @Override

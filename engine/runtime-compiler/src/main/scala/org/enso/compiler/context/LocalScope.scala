@@ -166,7 +166,8 @@ class LocalScope(
       parentResult += x.symbol -> new FramePointer(
         level,
         allFrameSlotIdxs(x.id),
-        x.externalId().orNull
+        x.externalId().orNull,
+        x.identifier()
       )
     }
     parentResult

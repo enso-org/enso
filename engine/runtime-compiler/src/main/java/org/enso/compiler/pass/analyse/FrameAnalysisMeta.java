@@ -48,10 +48,11 @@ public sealed interface FrameAnalysisMeta extends ProcessingPass.Metadata
           var defId = defLink.target();
           var defOcc = (GraphOccurrence.Def) graph.getOccurrence(defId).get();
           UUID externalId = defOcc == null ? null : defOcc.externalId().getOrElse(() -> null);
+          UUID internalId = defOcc == null ? null : defOcc.identifier();
           var defScope = graph.scopeFor(defId).get();
           var parentLevel = getScopeDistance(defScope, scope);
           var frameSlotIdx = getFrameSlotIdxInScope(graph, defScope, defOcc);
-          updateMetadata(ir, new FramePointer(parentLevel, frameSlotIdx, externalId));
+          updateMetadata(ir, new FramePointer(parentLevel, frameSlotIdx, externalId, internalId));
         }
       }
       case GraphOccurrence.Def defn -> {
@@ -59,8 +60,9 @@ public sealed interface FrameAnalysisMeta extends ProcessingPass.Metadata
         var parentLevel = 0;
         var frameSlotIdx = getFrameSlotIdxInScope(graph, scope, defn);
         UUID externalId = defn.externalId().getOrElse(() -> null);
+        var internalId = defn.identifier();
         FrameAnalysisMeta.updateMetadata(
-            ir, new FramePointer(parentLevel, frameSlotIdx, externalId));
+            ir, new FramePointer(parentLevel, frameSlotIdx, externalId, internalId));
       }
     }
   }

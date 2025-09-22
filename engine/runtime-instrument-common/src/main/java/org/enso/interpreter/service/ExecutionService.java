@@ -1021,7 +1021,10 @@ public final class ExecutionService implements GuestExecutionService {
   }
 
   /** Information about the function call. */
-  public record FunctionCallInfo(FunctionPointer functionPointer, int[] notAppliedArguments) {
+  public record FunctionCallInfo(
+      FunctionPointer functionPointer,
+      int[] notAppliedArguments,
+      FunctionCallInstrumentationNode.FunctionCall ref) {
 
     @Override
     public boolean equals(Object o) {
@@ -1052,7 +1055,7 @@ public final class ExecutionService implements GuestExecutionService {
       FunctionPointer functionPointer = FunctionPointer.fromFunction(call.getFunction());
       int[] notAppliedArguments = collectNotAppliedArguments(call);
 
-      return new FunctionCallInfo(functionPointer, notAppliedArguments);
+      return new FunctionCallInfo(functionPointer, notAppliedArguments, call);
     }
 
     private static int[] collectNotAppliedArguments(
