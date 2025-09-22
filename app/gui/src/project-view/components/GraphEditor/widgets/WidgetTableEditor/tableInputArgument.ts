@@ -1,7 +1,8 @@
+import { type ModuleStore } from '$/providers/openedProjects/module'
+import { requiredImportsByProjectPath } from '$/providers/openedProjects/module/imports'
+import type { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import type { WidgetInput, WidgetUpdate } from '$/providers/openedProjects/widgetRegistry'
 import { commonContextMenuActions, type MenuItem } from '@/components/shared/AgGridTableView.vue'
-import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
-import { requiredImportsByProjectPath, type RequiredImport } from '@/stores/graph/imports'
-import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
 import { findIndexOpt } from '@/util/data/array'
 import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
@@ -134,16 +135,13 @@ export function tableInputCallMayBeHandled(call: Ast.Expression) {
  * A composable responsible for interpreting `Table.input` expressions, creating AGGrid column
  * definitions allowing also editing AST through AGGrid editing.
  * @param input the widget's input
- * @param graph the graph store
+ * @param module the module store
  * @param onUpdate callback called when AGGrid was edited by user, resulting in AST change.
  */
 export function useTableInputArgument(
   input: ToValue<WidgetInput & { value: Ast.Expression }>,
-  graph: {
-    startEdit(): Ast.MutableModule
-    addMissingImports(edit: Ast.MutableModule, newImports: RequiredImport[]): void
-  },
-  suggestions: SuggestionDb,
+  module: ToValue<Pick<ModuleStore, 'addMissingImports'>>,
+  suggestions: ToValue<SuggestionDb>,
   onUpdate: (update: WidgetUpdate) => void,
 ) {
   const errorMessagePreamble = 'Table Editor Widget should not have been matched'
@@ -273,7 +271,7 @@ export function useTableInputArgument(
     name: 'Remove Row',
     action: ({ node }: { node: { data: RowData | undefined } | null }) => {
       if (!node?.data) return
-      const edit = graph.startEdit()
+      const edit = toValue(module).startEdit()
       fixColumns(edit)
       removeRow(edit, node.data.index)
       onUpdate({ edit, directInteraction: true })
@@ -283,7 +281,7 @@ export function useTableInputArgument(
   const removeColumnMenuItem = (colId: Ast.AstId) => ({
     name: 'Remove Column',
     action: () => {
-      const edit = graph.startEdit()
+      const edit = toValue(module).startEdit()
       fixColumns(edit)
       removeColumn(edit, colId)
       onUpdate({ edit, directInteraction: true })
@@ -304,7 +302,7 @@ export function useTableInputArgument(
         type: 'newColumn',
         enabled: mayAddNewColumnCurrently.value,
         newColumnRequested: () => {
-          const edit = graph.startEdit()
+          const edit = toValue(module).startEdit()
           fixColumns(edit)
           addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
           onUpdate({ edit, directInteraction: true })
@@ -364,7 +362,7 @@ export function useTableInputArgument(
               return false
             }
             const ast = colData.at(data.index)
-            const edit = graph.startEdit()
+            const edit = toValue(module).startEdit()
             fixColumns(edit)
             if (data.index === rowCount.value) {
               addRow(edit, (colId) => (colId === col.id ? newValue : null))
@@ -380,7 +378,7 @@ export function useTableInputArgument(
             columnParams: {
               type: 'astColumn',
               nameSetter: (newName: string) => {
-                const edit = graph.startEdit()
+                const edit = toValue(module).startEdit()
                 const column = columns.value[i]
                 if (column == null) {
                   console.error('Tried to rename column no longer existing in code')
@@ -421,13 +419,13 @@ export function useTableInputArgument(
   )
 
   const nothingImport = computed(() =>
-    requiredImportsByProjectPath(suggestions, NOTHING_PATH, true),
+    requiredImportsByProjectPath(toValue(suggestions), NOTHING_PATH, true),
   )
 
   function convertWithImport(value: unknown, edit: Ast.MutableModule) {
     const { ast, requireNothingImport } = cellValueConversion.agGridToAst(value, edit)
     if (requireNothingImport) {
-      graph.addMissingImports(edit, nothingImport.value)
+      toValue(module).addMissingImports(edit, nothingImport.value)
     }
     return ast
   }
@@ -441,7 +439,7 @@ export function useTableInputArgument(
       console.error('Cannot reorder columns on placeholders! This should not be possible in the UI')
       return
     }
-    const edit = graph.startEdit()
+    const edit = toValue(module).startEdit()
     const columns = edit.getVersion(columnsAst.value.value)
     const fromIndex = iter.find(columns.enumerate(), ([, ast]) => ast?.id === colId)?.[0]
     if (fromIndex != null) {
@@ -461,7 +459,7 @@ export function useTableInputArgument(
     }
     // If dragged out of grid, we do nothing.
     if (overIndex === -1) return
-    const edit = graph.startEdit()
+    const edit = toValue(module).startEdit()
     for (const col of columns.value) {
       const editedCol = edit.getVersion(col.data)
       editedCol.move(rowIndex, overIndex)
@@ -471,7 +469,7 @@ export function useTableInputArgument(
 
   function pasteFromClipboard(data: string[][], focusedCell: { rowIndex: number; colId: string }) {
     if (data.length === 0) return { rows: 0, columns: 0 }
-    const edit = graph.startEdit()
+    const edit = toValue(module).startEdit()
     const focusedColIndex =
       findIndexOpt(columns.value, ({ id }) => id === focusedCell.colId) ?? columns.value.length
 

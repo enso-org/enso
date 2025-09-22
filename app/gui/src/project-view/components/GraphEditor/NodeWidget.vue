@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import type { UpdateHandler, WidgetModule } from '@/providers/widgetRegistry'
-import { WidgetInput } from '@/providers/widgetRegistry'
+import type { UpdateHandler, WidgetModule } from '$/providers/openedProjects/widgetRegistry'
+import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import {
   injectWidgetUsageInfo,
   provideWidgetUsageInfo,

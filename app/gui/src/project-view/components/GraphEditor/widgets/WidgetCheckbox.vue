@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { requiredImportsByProjectPath } from '$/providers/openedProjects/module/imports'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import { ArgumentNameShownKey } from '@/components/GraphEditor/widgets/WidgetArgumentName.vue'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { requiredImportsByProjectPath } from '@/stores/graph/imports'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
@@ -12,12 +17,11 @@ import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
-const suggestionDb = useSuggestionDbStore()
+const { suggestionDb, module } = useCurrentProject().storesRefs
 
 const trueImport = computed(() =>
   requiredImportsByProjectPath(
-    suggestionDb.entries,
+    suggestionDb.value.entries,
     ProjectPath.create(
       'Standard.Base' as QualifiedName,
       'Data.Boolean.Boolean.True' as QualifiedName,
@@ -27,7 +31,7 @@ const trueImport = computed(() =>
 )
 const falseImport = computed(() =>
   requiredImportsByProjectPath(
-    suggestionDb.entries,
+    suggestionDb.value.entries,
     ProjectPath.create(
       'Standard.Base' as QualifiedName,
       'Data.Boolean.Boolean.False' as QualifiedName,
@@ -40,7 +44,7 @@ const value = computed({
     return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
-    const edit = graph.startEdit()
+    const edit = module.value.startEdit()
     const theImport = value ? trueImport.value : falseImport.value
     const inputValue: Ast.Expression | string | undefined = props.input.value
     if (inputValue instanceof Ast.Ast) {
@@ -48,10 +52,10 @@ const value = computed({
         edit.getVersion(inputValue),
         value ? ('True' as Identifier) : ('False' as Identifier),
       )
-      if (requiresImport) graph.addMissingImports(edit, theImport)
+      if (requiresImport) module.value.addMissingImports(edit, theImport)
       props.updateCallback({ edit, directInteraction: true })
     } else {
-      graph.addMissingImports(edit, theImport)
+      module.value.addMissingImports(edit, theImport)
       props.updateCallback({
         edit,
         portUpdate: {

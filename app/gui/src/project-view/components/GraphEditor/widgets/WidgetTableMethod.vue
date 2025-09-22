@@ -1,8 +1,8 @@
 <script lang="ts" setup>
+import { widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectFunctionInfo } from '@/providers/functionInfo'
 import { provideTableContext } from '@/providers/tableContext'
-import { widgetProps } from '@/providers/widgetRegistry'
 import { computed } from 'vue'
 
 defineProps(widgetProps(widgetDefinition))
@@ -13,8 +13,8 @@ provideTableContext(computed(() => fi.subject?.externalId))
 </script>
 
 <script lang="ts">
+import { defineWidget, Score } from '$/providers/openedProjects/widgetRegistry'
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
-import { defineWidget, Score } from '@/providers/widgetRegistry'
 import { ProjectPath } from '@/util/projectPath'
 import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 

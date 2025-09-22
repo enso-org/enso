@@ -1,7 +1,7 @@
+import type { WidgetInput, WidgetTypeId } from '$/providers/openedProjects/widgetRegistry'
 import type { Interaction, InteractionHandler } from '@/providers/interactionHandler'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
-import { WidgetInput, type WidgetTypeId } from '@/providers/widgetRegistry'
 import { injectWidgetTree, type CurrentEdit } from '@/providers/widgetTree'
 import type { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'

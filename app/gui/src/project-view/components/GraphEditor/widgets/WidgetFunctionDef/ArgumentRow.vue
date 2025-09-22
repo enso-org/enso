@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import {
+  rewritePortValueUpdate,
+  WidgetInput,
+  type UpdateHandler,
+  type WidgetUpdate,
+} from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { EnsoExpression } from '@/components/GraphEditor/widgets/WidgetEnsoExpression.vue'
 import {
   createDefaultExpressionOfKind,
@@ -9,15 +16,8 @@ import {
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import { EnsoTypeExpression } from '@/components/GraphEditor/widgets/WidgetTypeExpression.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
-import { syntheticPortId, type PortId } from '@/providers/portInfo'
-import {
-  rewritePortValueUpdate,
-  WidgetInput,
-  type UpdateHandler,
-  type WidgetUpdate,
-} from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import { PortId, syntheticPortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
 import { mapOrUndefined, type Opt } from '@/util/data/opt'
 import { Err, Ok } from '@/util/data/result'

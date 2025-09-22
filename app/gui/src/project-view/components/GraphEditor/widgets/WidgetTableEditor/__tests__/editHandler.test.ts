@@ -1,7 +1,10 @@
+import {
+  WidgetEditHandler,
+  WidgetInstanceId,
+} from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { InteractionHandler } from '@/providers/interactionHandler'
 import { PortId } from '@/providers/portInfo'
-import { WidgetEditHandler, WidgetInstanceId } from '@/providers/widgetRegistry/editHandler'
-import type { CellPosition } from 'ag-grid-enterprise'
+import { CellPosition } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { nextTick } from 'vue'
 import { useTableEditHandler, type EditedCell } from '../editHandler'

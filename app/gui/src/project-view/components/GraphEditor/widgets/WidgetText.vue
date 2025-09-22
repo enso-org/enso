@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
-import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   defineWidget,
   type HandledUpdate,
   Score,
   WidgetInput,
   widgetProps,
-} from '@/providers/widgetRegistry'
+} from '$/providers/openedProjects/widgetRegistry'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Ast } from '@/util/ast'
 import { useLanguageSupport } from '@/util/codemirror/language'
 import { computed, ref, useTemplateRef } from 'vue'
@@ -26,11 +26,10 @@ const textContents = computed(() =>
   props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
 )
 function acceptValue(text: string): HandledUpdate {
-  if (!currentProject.value) return Ok()
-  const graph = currentProject.value.graph
+  const module = currentProject.value.module
 
   if (props.input.value instanceof Ast.TextLiteral) {
-    const edit = graph.startEdit()
+    const edit = module.startEdit()
     const value = edit.getVersion(props.input.value)
     if (value.rawTextContent === text) return Ok()
     value.setRawTextContent(text)

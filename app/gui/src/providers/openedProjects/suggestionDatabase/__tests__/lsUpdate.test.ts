@@ -1,8 +1,11 @@
+import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { SuggestionDb, type GroupInfo } from '$/providers/openedProjects/suggestionDatabase'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+} from '$/providers/openedProjects/suggestionDatabase/entry'
+import { SuggestionUpdateProcessor } from '$/providers/openedProjects/suggestionDatabase/lsUpdate'
 import { frontmatter } from '@/components/ComponentHelp/metadata'
-import { mockProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { assert, assertDefined } from '@/util/assert'
 import { unwrap } from '@/util/data/result'
 import { parseAbsoluteProjectPathRaw, ProjectPath } from '@/util/projectPath'

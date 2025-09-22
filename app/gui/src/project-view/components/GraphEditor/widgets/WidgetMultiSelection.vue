@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
+import { multipleChoiceConfiguration } from '$/providers/openedProjects/widgetRegistry/configuration'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import SelectionArrow from '@/components/GraphEditor/widgets/WidgetSelection/SelectionArrow.vue'
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
@@ -12,9 +20,6 @@ import {
 import { unrefElement } from '@/composables/events'
 import { provideSelectionArrow } from '@/providers/selectionArrow'
 import { useTopLevelArgument } from '@/providers/topLevelArgument'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { multipleChoiceConfiguration } from '@/providers/widgetRegistry/configuration'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
@@ -23,7 +28,7 @@ import { computed, ref, toRef, useTemplateRef } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const {
-  graph,
+  module,
   names: projectNames,
   suggestionDb: suggestionDbStore,
 } = useCurrentProject().storesRefs
@@ -137,12 +142,11 @@ function onClick({
   tag: ExpressionTag | NestedChoiceTag
   selected: boolean
 }) {
-  if (!graph.value) return
   if (tag instanceof NestedChoiceTag) return
 
-  const edit = graph.value.startEdit()
+  const edit = module.value.startEdit()
   const directInteraction = true
-  const tagValue = tag.resolveExpression(edit, graph.value)
+  const tagValue = tag.resolveExpression(edit, module.value)
   const inputValue = editedValue.value ?? props.input.value
   if (inputValue instanceof Ast.Vector) {
     toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)

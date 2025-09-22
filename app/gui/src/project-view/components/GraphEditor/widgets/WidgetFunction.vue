@@ -1,12 +1,6 @@
 <script setup lang="ts">
-import {
-  useGraphStore,
-  useProjectNames,
-  useProjectStore,
-} from '$/components/WithCurrentProject.vue'
-import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
-import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
+import { useCurrentProject, useProjectNames } from '$/components/WithCurrentProject.vue'
+import type { MethodCallInfo } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   Score,
   WidgetInput,
@@ -14,8 +8,10 @@ import {
   widgetProps,
   type HandledUpdate,
   type WidgetUpdate,
-} from '@/providers/widgetRegistry'
-import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
+} from '$/providers/openedProjects/widgetRegistry'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
+import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -34,15 +30,14 @@ import { computed } from 'vue'
 import { Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
-const project = useProjectStore()
+const { store: project, module, graph } = useCurrentProject().storesRefs
 
-const exprInfo = computed(() => graph.db.getExpressionInfo(props.input.value.externalId))
+const exprInfo = computed(() => graph.value.db.getExpressionInfo(props.input.value.externalId))
 const outputType = computed(() => exprInfo.value?.typeInfo?.primaryType)
 
 const { methodCallInfo, application, subject, subjectInfo } = useWidgetFunctionCallInfo(
   () => props.input,
-  graph.db,
+  () => graph.value.db,
   project,
   useProjectNames(),
 )
@@ -94,7 +89,7 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
       directInteraction,
     } = update
 
-    const edit = update.edit ?? graph.startEdit()
+    const edit = update.edit ?? module.value.startEdit()
     // Find the updated argument by matching origin port/expression with the appropriate argument.
     // We are interested only in updates at the top level of the argument AST. Updates from nested
     // widgets do not need to be processed at the function application level.
@@ -189,7 +184,7 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
             // Found the application with the argument to remove. Skip the argument and use the
             // application target's code. This is the final iteration of the loop.
             const appTree = edit.getVersion(argApp.appTree)
-            if (graph.db.isNodeId(appTree.externalId)) {
+            if (graph.value.db.isNodeId(appTree.externalId)) {
               // If the modified application is a node root, preserve its identity and metadata.
               appTree.updateValue((appTree) => appTree.function.take())
             } else {
@@ -220,7 +215,7 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
 </script>
 <script lang="ts">
 export const CallInfo: unique symbol = Symbol.for('WidgetInput:CallInfo')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [CallInfo]?: MethodCallInfo
   }

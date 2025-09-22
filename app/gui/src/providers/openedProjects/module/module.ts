@@ -1,0 +1,225 @@
+import { type ProjectStore } from '$/providers/openedProjects/project'
+import { assert, assertDefined } from '@/util/assert'
+import { Ast } from '@/util/ast'
+import { type AstId, MutableModule } from '@/util/ast/abstract'
+import { reactiveModule } from '@/util/ast/reactive'
+import { Err, Ok, type Result } from '@/util/data/result'
+import { type MethodPointer } from '@/util/methodPointer'
+import { proxyRefs } from '@/util/reactivity'
+import { computedAsync } from '@vueuse/core'
+import { isPromise } from 'util/types'
+import { computed, reactive, type Ref, ref, watch } from 'vue'
+import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
+import type { Path as LsPath } from 'ydoc-shared/languageServerTypes'
+import { defaultLocalOrigin, type Origin } from 'ydoc-shared/yjsModel'
+import * as Y from 'yjs'
+import { type ProjectNameStore } from '../projectNames'
+import { type SuggestionDbStore } from '../suggestionDatabase'
+import {
+  type AbstractImport,
+  addImports,
+  analyzeImports,
+  type DetectedConflict,
+  detectImportConflicts,
+  filterOutRedundantImports,
+  type RequiredImport,
+} from './imports'
+
+export type ModuleStore = ReturnType<typeof createModuleStore>
+
+export function createModuleStore(
+  proj: ProjectStore,
+  projectNames: ProjectNameStore,
+  suggestionDb: SuggestionDbStore,
+) {
+  proj.setObservedFileName('Main.enso')
+
+  const source = SourceDocument.Empty(reactive)
+  const root = ref<Ast.BodyBlock>()
+  const synced = computed(() => root.value?.module as Ast.MutableModule | undefined)
+  const ast = computed((): Ast.Module => synced.value!)
+  const modulePath: Ref<LsPath | undefined> = computedAsync(
+    async () => {
+      const rootId = await proj.projectRootId
+      const segments = ['src', 'Main.enso']
+      return rootId ? { rootId, segments } : undefined
+    },
+    undefined,
+    { onError: console.error },
+  )
+
+  watch(
+    () => proj.module,
+    (projModule, _, onCleanup) => {
+      if (!projModule) return
+      const module = reactiveModule(projModule.doc.ydoc, onCleanup)
+      const handle = module.observe((update) => {
+        const rootAst = module.root()
+        if (rootAst instanceof Ast.BodyBlock) {
+          root.value = rootAst
+          if (
+            update.nodesAdded.size != 0 ||
+            update.nodesDeleted.size != 0 ||
+            update.nodesUpdated.size != 0 ||
+            update.updateRoots.size != 0
+          ) {
+            source.applyUpdate(module, update)
+            console.debug('Fix the below:')
+            // db.updateExternalIds(root)
+          }
+          // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
+          //   const nodeMetadataUpdates = update.metadataUpdated as any as {
+          //     id: AstId
+          //     changes: Ast.NodeMetadata
+          //   }[]
+          //   for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
+        } else {
+          root.value = undefined
+        }
+      })
+      onCleanup(() => {
+        module.unobserve(handle)
+        source.clear()
+      })
+    },
+  )
+
+  /**
+   * Edit the AST module.
+   *
+   * Optimization options: These are safe to use for metadata-only edits; otherwise, they require extreme caution.
+   *  @param skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
+   *  to `true` for better performance.
+   */
+  function edit<T, R extends Result<T> | Promise<Result<T>>>(
+    f: (edit: MutableModule) => R,
+    options: { skipTreeRepair?: boolean; origin?: Origin } = {},
+  ): R {
+    assertDefined(synced.value)
+    const edit = synced.value.edit()
+
+    const treeRepair = (result: Result<T>) => {
+      if (result.ok && options.skipTreeRepair !== true) {
+        const root = edit.root()
+        assert(root instanceof Ast.BodyBlock)
+        Ast.repair(root, edit)
+      }
+      return result
+    }
+
+    const applyEdit = (result: Result<T>) => {
+      if (result.ok) synced.value?.applyEdit(edit, options.origin)
+      return result
+    }
+
+    const result = edit.transact(() => {
+      const result = f(edit)
+      if (isPromise(result)) {
+        return result.then(treeRepair)
+      } else {
+        return treeRepair(result)
+      }
+    })
+    if (isPromise(result)) return result.then(applyEdit) as R
+    else return applyEdit(result) as R
+  }
+
+  function batchEdits(f: () => void, origin: Origin = defaultLocalOrigin) {
+    assert(synced.value != null)
+    synced.value.transact(f, origin)
+  }
+
+  function getMethodAst(ptr: MethodPointer, edit?: Ast.Module): Result<Ast.FunctionDef> {
+    const topLevel = (edit ?? ast.value).root()
+    if (!topLevel) return Err('Module unavailable')
+    assert(topLevel instanceof Ast.BodyBlock)
+    if (!proj.moduleProjectPath?.ok)
+      return proj.moduleProjectPath ?? Err('Unknown module project path')
+    if (!ptr.module.equals(proj.moduleProjectPath.value))
+      return Err('Cannot read method from different module')
+    if (!ptr.module.equals(ptr.definedOnType)) return Err('Method pointer is not a module method')
+    const method = Ast.findModuleMethod(topLevel, ptr.name)
+    if (!method) {
+      const modulePath = projectNames.printProjectPath(proj.moduleProjectPath.value)
+      return Err(`No method with name ${ptr.name} in ${modulePath}`)
+    }
+    return Ok(method.statement)
+  }
+
+  function mutableNodeMetadata(node: AstId | undefined, edit?: Ast.MutableModule) {
+    edit ??= synced.value
+    return edit?.tryGet(node)?.mutableNodeMetadata()
+  }
+
+  function setWidgetMetadata(widget: AstId, widgetKey: string, md: unknown) {
+    const ast = synced.value?.tryGet(widget)
+    if (!ast) return
+    ast.setWidgetMetadata(widgetKey, md)
+  }
+
+  /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
+  function addMissingImports(
+    edit: MutableModule,
+    newImports: RequiredImport[],
+  ): DetectedConflict[] | undefined {
+    if (!root.value) {
+      console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
+      return
+    }
+    const topLevel = edit.getVersion(root.value)
+    const existingImports = [...analyzeImports(topLevel, projectNames)]
+
+    const conflicts = []
+    const nonConflictingImports = []
+    for (const newImport of newImports) {
+      const conflictInfo = detectImportConflicts(suggestionDb.entries, existingImports, newImport)
+      if (conflictInfo?.detected) {
+        conflicts.push(conflictInfo)
+      } else {
+        nonConflictingImports.push(newImport)
+      }
+    }
+    addMissingImportsDisregardConflicts(edit, nonConflictingImports, existingImports)
+
+    if (conflicts.length > 0) return conflicts
+  }
+
+  /* Adds imports, ignores any possible conflicts.
+   * `existingImports` are optional and will be used instead of `readImports(topLevel)` if provided. */
+  function addMissingImportsDisregardConflicts(
+    edit: MutableModule,
+    imports: RequiredImport[],
+    existingImports?: AbstractImport[] | undefined,
+  ) {
+    if (!imports.length) return
+    if (!root.value) {
+      console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
+      return
+    }
+    const topLevel = edit.getVersion(root.value)
+    const existingImports_ = existingImports ?? [...analyzeImports(topLevel, projectNames)]
+
+    const importsToAdd = filterOutRedundantImports(existingImports_, imports)
+    if (!importsToAdd.length) return
+    addImports(edit.getVersion(topLevel), importsToAdd, projectNames)
+  }
+
+  function onBeforeEdit(f: (transaction: Y.Transaction) => void): { unregister: () => void } {
+    proj.module?.doc.ydoc.on('beforeTransaction', f)
+    return { unregister: () => proj.module?.doc.ydoc.off('beforeTransaction', f) }
+  }
+
+  return proxyRefs({
+    source,
+    ast,
+    root,
+    edit,
+    batchEdits,
+    onBeforeEdit,
+    getMethodAst,
+    mutableNodeMetadata,
+    setWidgetMetadata,
+    addMissingImports,
+    addMissingImportsDisregardConflicts,
+  })
+}

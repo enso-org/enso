@@ -4,6 +4,7 @@ import { isLocalProjectId } from '#/services/LocalBackend'
 import { injectOpenedProjects, type OpenedProject } from '$/providers/openedProjects'
 import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
+import { assert } from '@/util/assert'
 import { colorFromString } from '@/util/colors'
 import type { Opt } from '@/util/data/opt'
 import type { ToValue } from '@/util/reactivity'
@@ -18,42 +19,49 @@ import { computed, toValue, watch, type ToRefs } from 'vue'
  */
 const [provideCurrentProject, useCurrentProject] = createContextStore(
   'currentProject',
-  (projectId: ToValue<Opt<ProjectId>>) => {
-    const openedProjects = injectOpenedProjects()
-
-    const hybridResolvedProjectId = computed(() => {
-      const id = toValue(projectId)
-      // When we have a hybrid project opened, we have to translate cloud project ID to corresponding hybrid project.
-      if (id && openedProjects.get(id) == null && !isLocalProjectId(id)) {
-        for (const openedId of openedProjects.listIds()) {
-          if (openedId.includes('/cloud-' + id) && isLocalProjectId(openedId)) return openedId
-        }
-      }
-      return id
+  (project: ToValue<OpenedProject | undefined>) => {
+    const ref = computed(() => {
+      const proj = toValue(project)
+      assert(proj != null)
+      return proj
     })
-
-    const ref = computed((): OpenedProject | undefined => {
-      const id = hybridResolvedProjectId.value
-      return id != null ? openedProjects.get(id) : undefined
-    })
-
     return {
-      id: hybridResolvedProjectId,
       /* Current project as a single ref  */
       ref,
       /* Current project's stores decomposed to separate refs. */
       storesRefs: {
-        store: computed(() => ref.value?.store),
-        names: computed(() => ref.value?.names),
-        suggestionDb: computed(() => ref.value?.suggestionDb),
-        graph: computed(() => ref.value?.graph),
-        widgetRegistry: computed(() => ref.value?.widgetRegistry),
-      } satisfies ToRefs<{ [K in keyof OpenedProject]: OpenedProject[K] | undefined }>,
+        store: computed(() => ref.value.store),
+        names: computed(() => ref.value.names),
+        suggestionDb: computed(() => ref.value.suggestionDb),
+        module: computed(() => ref.value.module),
+        graph: computed(() => ref.value.graph),
+        widgetRegistry: computed(() => ref.value.widgetRegistry),
+      } satisfies ToRefs<{ [K in keyof OpenedProject]: OpenedProject[K] }>,
     }
   },
 )
 
 export { useCurrentProject }
+
+function useOpenedProject(projectId: ToValue<Opt<ProjectId>>) {
+  const openedProjects = injectOpenedProjects()
+
+  const hybridResolvedProjectId = computed(() => {
+    const id = toValue(projectId)
+    // When we have a hybrid project opened, we have to translate cloud project ID to corresponding hybrid project.
+    if (id && openedProjects.get(id) == null && !isLocalProjectId(id)) {
+      for (const openedId of openedProjects.listIds()) {
+        if (openedId.includes('/cloud-' + id) && isLocalProjectId(openedId)) return openedId
+      }
+    }
+    return id
+  })
+
+  return computed((): OpenedProject | undefined => {
+    const id = hybridResolvedProjectId.value
+    return id != null ? openedProjects.get(id) : undefined
+  })
+}
 
 function useStoreTemplate<K extends keyof OpenedProject>(
   storeKey: K,
@@ -92,7 +100,9 @@ export const useWidgetRegistry = useStoreTemplate('widgetRegistry')
 <script setup lang="ts">
 const { id } = defineProps<{ id: Opt<ProjectId> }>()
 
-const provided = provideCurrentProject(() => id).ref
+const project = useOpenedProject(() => id)
+
+const provided = provideCurrentProject(project).ref
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
@@ -105,9 +115,10 @@ const groupColors = computed(() => {
 </script>
 
 <template>
-  <div class="WithCurrentProject" :style="groupColors">
+  <div v-if="project != null" class="WithCurrentProject" :style="groupColors">
     <slot />
   </div>
+  <slot v-else name="fallback" />
 </template>
 
 <style scoped>

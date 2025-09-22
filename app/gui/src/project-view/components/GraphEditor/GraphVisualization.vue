@@ -213,10 +213,10 @@ const resizableWidgets = injectResizableWidgetRegistry(true)
 </script>
 
 <script lang="ts">
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import VisualizationHost, {
   type VisualizationHostParams,
 } from '@/components/visualizations/VisualizationHost.vue'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { defineCustomElement } from 'vue'
 
 // ==========================

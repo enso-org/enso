@@ -1,13 +1,13 @@
 import { ProjectId } from '#/services/Backend'
-import { Awareness } from '@/stores/awareness'
-import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
+import { ComputedValueRegistry } from '$/providers/openedProjects/project/computedValueRegistry'
 import {
   ExecutionContext,
   visualizationConfigPreprocessorEqual,
   type NodeVisualizationConfiguration,
-} from '@/stores/project/executionContext'
-import { VisualizationDataRegistry } from '@/stores/project/visualizationDataRegistry'
-import type { ProjectNameStore } from '@/stores/projectNames'
+} from '$/providers/openedProjects/project/executionContext'
+import { VisualizationDataRegistry } from '$/providers/openedProjects/project/visualizationDataRegistry'
+import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { Awareness } from '@/stores/awareness'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
 import type { Opt } from '@/util/data/opt'
@@ -55,38 +55,6 @@ const VISUALIZATION_PREPROCESSOR_PATH = ProjectPath.create(
   'Standard.Visualization' as QualifiedName,
   'Preprocessor' as Identifier,
 )
-
-function resolveYDocUrl(rpcUrl: string, url: string): URL {
-  let resolved
-  if (url == '') {
-    resolved = new URL(location.origin)
-    resolved.protocol = location.protocol.replace(/^http/, 'ws')
-  } else if (URL.canParse(url)) {
-    resolved = new URL(url)
-  } else {
-    resolved = new URL(rpcUrl)
-    resolved.port = '1234'
-  }
-  resolved.pathname = '/project'
-  return resolved
-}
-
-function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): LanguageServer {
-  const transport = createRpcTransport(url)
-  const connection = new LanguageServer(clientId, transport)
-  abort.onAbort(() => {
-    connection.stopReconnecting()
-    connection.release()
-  })
-  return connection
-}
-
-function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
-  const client = createDataWebsocket(url, 'arraybuffer')
-  const connection = new DataServer(clientId, client, abort)
-  onScopeDispose(() => connection.dispose())
-  return connection
-}
 
 export type ProjectStore = ReturnType<typeof createProjectStore>
 
@@ -504,6 +472,38 @@ export function createProjectStore(
     queuedExecuteExpression,
     renameProject,
   })
+}
+
+function resolveYDocUrl(rpcUrl: string, url: string): URL {
+  let resolved
+  if (url == '') {
+    resolved = new URL(location.origin)
+    resolved.protocol = location.protocol.replace(/^http/, 'ws')
+  } else if (URL.canParse(url)) {
+    resolved = new URL(url)
+  } else {
+    resolved = new URL(rpcUrl)
+    resolved.port = '1234'
+  }
+  resolved.pathname = '/project'
+  return resolved
+}
+
+function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): LanguageServer {
+  const transport = createRpcTransport(url)
+  const connection = new LanguageServer(clientId, transport)
+  abort.onAbort(() => {
+    connection.stopReconnecting()
+    connection.release()
+  })
+  return connection
+}
+
+function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
+  const client = createDataWebsocket(url, 'arraybuffer')
+  const connection = new DataServer(clientId, client, abort)
+  onScopeDispose(() => connection.dispose())
+  return connection
 }
 
 type ExecutionMode = 'live' | 'design'

@@ -1,6 +1,6 @@
-import type { ProjectNameStore } from '@/stores/projectNames'
-import type { DocumentationData } from '@/stores/suggestionDatabase/documentation'
-import type { MethodPointer } from '@/util/methodPointer'
+import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { type DocumentationData } from '$/providers/openedProjects/suggestionDatabase/documentation'
+import { type MethodPointer } from '@/util/methodPointer'
 import { standardBaseMainPath, type ProjectPath } from '@/util/projectPath'
 import {
   qnJoin,

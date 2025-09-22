@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { QualifiedImport } from '$/providers/openedProjects/module/imports'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { QualifiedImport } from '@/stores/graph/imports'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 
-const graph = useGraphStore()
-const projectNames = useProjectNames()
+const { names, module, graph } = useCurrentProject().storesRefs
 
 const props = defineProps<{
   message: string
@@ -21,7 +20,7 @@ function containsLibraryName(): ProjectPath | null {
     const rest = props.message.substring(prefix.length)
     const libName = rest.split(' ')
     if (!libName[0]) return null
-    const path = projectNames.parseProjectPathRaw(libName[0])
+    const path = names.value.parseProjectPathRaw(libName[0])
     if (!path.ok) return null
     return path.value
   } else {
@@ -38,7 +37,7 @@ function fixImport() {
       kind: 'Qualified',
       module: libName,
     } satisfies QualifiedImport
-    graph.edit((edit) => graph.addMissingImports(edit, [theImport]))
+    module.value.edit((edit) => module.value.addMissingImports(edit, [theImport]))
   }
 }
 </script>

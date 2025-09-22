@@ -1,5 +1,8 @@
-import type { ExecutionContext } from '@/stores/project/executionContext'
-import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
+import type { ExecutionContext } from '$/providers/openedProjects/project/executionContext'
+import {
+  mockProjectNameStore,
+  type ProjectNameStore,
+} from '$/providers/openedProjects/projectNames'
 import { Ok, type Result } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { arrayEquals } from '@/util/equals'

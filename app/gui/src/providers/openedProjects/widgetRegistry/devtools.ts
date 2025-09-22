@@ -1,4 +1,4 @@
-import { Score, type WidgetModule } from '@/providers/widgetRegistry'
+import { Score, type WidgetModule } from '$/providers/openedProjects/widgetRegistry'
 import { setupDevtoolsPlugin } from '@vue/devtools-api'
 import { getCurrentInstance, type App, type ComponentInternalInstance } from 'vue'
 

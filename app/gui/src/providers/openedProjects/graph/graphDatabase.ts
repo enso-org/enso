@@ -1,12 +1,15 @@
-import { computeNodeColor } from '@/composables/nodeColors'
 import {
   ComputedValueRegistry,
   translateMethodCall,
   type ExpressionInfo,
-} from '@/stores/project/computedValueRegistry'
-import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
-import type { CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
+} from '$/providers/openedProjects/project/computedValueRegistry'
+import {
+  mockProjectNameStore,
+  type ProjectNameStore,
+} from '$/providers/openedProjects/projectNames'
+import { SuggestionDb, type GroupInfo } from '$/providers/openedProjects/suggestionDatabase'
+import { type CallableSuggestionEntry } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { computeNodeColor } from '@/composables/nodeColors'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'

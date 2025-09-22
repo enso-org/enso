@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import type { NodeId } from '$/providers/openedProjects/graph'
 import { usePointer } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import type { NodeId } from '@/stores/graph'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, shallowRef } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'

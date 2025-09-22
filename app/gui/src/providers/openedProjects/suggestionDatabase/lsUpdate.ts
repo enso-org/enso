@@ -1,9 +1,9 @@
-import type { ProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
+import type { ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { SuggestionDb, type GroupInfo } from '$/providers/openedProjects/suggestionDatabase'
 import {
   documentationData,
   type DocumentationData,
-} from '@/stores/suggestionDatabase/documentation'
+} from '$/providers/openedProjects/suggestionDatabase/documentation'
 import {
   SuggestionKind,
   type ConstructorSuggestionEntry,
@@ -16,7 +16,7 @@ import {
   type SuggestionEntryCommon,
   type Typename,
   type TypeSuggestionEntry,
-} from '@/stores/suggestionDatabase/entry'
+} from '$/providers/openedProjects/suggestionDatabase/entry'
 import { assert, assertNever } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
 import { Err, Ok, withContext, type Result } from '@/util/data/result'

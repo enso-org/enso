@@ -1,5 +1,5 @@
+import type { ConnectedEdge } from '$/providers/openedProjects/graph/graph'
 import type { PortId } from '@/providers/portInfo'
-import type { ConnectedEdge } from '@/stores/graph/index'
 import { Vec2 } from '@/util/data/vec2'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, onBeforeUnmount, reactive, ref, watch, type WatchSource } from 'vue'

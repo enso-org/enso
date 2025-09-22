@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  useCurrentProject,
   useGraphStore,
   useProjectNames,
   useProjectStore,
@@ -7,6 +8,12 @@ import {
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
 import { useContainerData } from '$/providers/container'
+import type { Node, NodeId } from '$/providers/openedProjects/graph'
+import { isInputNode, nodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import type { RequiredImport } from '$/providers/openedProjects/module/imports'
+import { provideNodeExecution } from '$/providers/openedProjects/project/nodeExecution'
+import type { SuggestionId, Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { suggestionDocumentationUrl } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
@@ -42,13 +49,7 @@ import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
 import { provideLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
 import { providePopoverRoot } from '@/providers/popoverRoot'
-import type { Node, NodeId } from '@/stores/graph'
-import { isInputNode, nodeId } from '@/stores/graph/graphDatabase'
-import type { RequiredImport } from '@/stores/graph/imports'
 import { providePersisted } from '@/stores/persisted'
-import { provideNodeExecution } from '@/stores/project/nodeExecution'
-import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
-import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
@@ -80,6 +81,7 @@ const containerData = useContainerData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
+const { module } = useCurrentProject().storesRefs
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
 provideVisualizationStore(projectStore)
@@ -152,9 +154,7 @@ function panToSelected() {
 
 const projectNameEdited = ref(false)
 const stackNavigator = provideStackNavigator(projectStore, graphStore, projectNames)
-const graphMissing = computed(
-  () => graphStore.moduleRoot != null && !graphStore.currentMethod.ast.ok,
-)
+const graphMissing = computed(() => module.value.root != null && !graphStore.currentMethod.ast.ok)
 
 // === Toasts ===
 
@@ -305,7 +305,7 @@ const actionHandlers = registerHandlers({
         selected,
         (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
       )
-      graphStore.batchEdits(() => {
+      module.value.batchEdits(() => {
         for (const nodeId of selected) {
           graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
         }
@@ -506,7 +506,7 @@ function clearFocus() {
 function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
   if (sourcePort == null) return
-  const sourcePortAst = graphStore.viewModule.get(sourcePort)
+  const sourcePortAst = module.value.ast.get(sourcePort)
   assert(sourcePortAst.isExpression())
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
@@ -562,12 +562,12 @@ function collapseNodes(nodes: Node[]) {
     if (currentMethodName == null) {
       bail(`Cannot get the method name for the current execution stack item.`)
     }
-    const topLevel = graphStore.moduleRoot
+    const topLevel = module.value.root
     if (!topLevel) {
       bail('BUG: no top level, creating User Defined Component not possible.')
     }
     const selectedNodeRects = iter.filterDefined(iter.map(selected, graphStore.visibleArea))
-    graphStore.edit((edit) => {
+    module.value.edit((edit) => {
       const { collapsedCallRoot, collapsedNodeIds, outputAstId } = performCollapse(
         info.value,
         edit.getVersion(topLevel),

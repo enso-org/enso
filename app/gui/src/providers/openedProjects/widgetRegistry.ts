@@ -1,19 +1,19 @@
-import type { PortId } from '@/providers/portInfo'
-import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
-import type { GraphStore } from '@/stores/graph'
-import type { GraphDb } from '@/stores/graph/graphDatabase'
-import type { Typename } from '@/stores/suggestionDatabase/entry'
-import { Ast } from '@/util/ast'
-import type { Result } from '@/util/data/result'
-import type { ViteHotContext } from 'vite/types/hot.js'
-import { computed, shallowReactive, type Component, type PropType } from 'vue'
-import type { Class } from 'ydoc-shared/util/types'
+import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
+import type { Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
+import type { WidgetConfiguration } from '$/providers/openedProjects/widgetRegistry/configuration'
 import {
   devtoolsAddWidgetScore,
   devtoolsEndSelection,
   devtoolsStartSelection,
-} from './widgetRegistry/devtools'
-import type { WidgetEditHandlerParent } from './widgetRegistry/editHandler'
+} from '$/providers/openedProjects/widgetRegistry/devtools'
+import type { WidgetEditHandlerParent } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import type { PortId } from '@/providers/portInfo'
+import { Ast } from '@/util/ast'
+import { Err, Ok, type Result } from '@/util/data/result'
+import type { ViteHotContext } from 'vite/types/hot.js'
+import { computed, shallowReactive, type Component, type PropType } from 'vue'
+import type { Class } from 'ydoc-shared/util/types'
+import type { ModuleStore } from './module'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 
@@ -128,7 +128,7 @@ export namespace WidgetInput {
  * ```ts
  * export const ArgumentApplicationKey: unique symbol = Symbol('ArgumentApplicationKey')
  * export const ArgumentInfoKey: unique symbol = Symbol('ArgumentInfoKey')
- * declare module '@/providers/widgetRegistry' {
+ * declare module '$/providers/openedProjects/widgetRegistry' {
  *   export interface WidgetInput {
  *     [ArgumentApplicationKey]?: ArgumentApplication
  *     [ArgumentInfoKey]?: {
@@ -255,9 +255,9 @@ function originMatches(
 /**
  * Apply graph edits described by a `WidgetUpdate` struct.
  */
-export function applyWidgetUpdates(update: WidgetUpdate, graph: GraphStore) {
-  function reportInvalidOrigin(origin: PortId) {
-    console.error(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
+export function applyWidgetUpdates(update: WidgetUpdate, module: ModuleStore) {
+  function invalidOriginErr(origin: PortId) {
+    return Err(`[UPDATE ${origin}] Invalid top-level origin. Expected expression ID.`)
   }
 
   if (!update.edit && update.portUpdate && !('value' in update.portUpdate)) {
@@ -265,36 +265,41 @@ export function applyWidgetUpdates(update: WidgetUpdate, graph: GraphStore) {
     // and we don't need it in this case.
     const { origin, metadata, metadataKey } = update.portUpdate
     if (Ast.isAstId(origin)) {
-      graph.setWidgetMetadata(origin, metadataKey, metadata)
+      module.setWidgetMetadata(origin, metadataKey, metadata)
+      return Ok()
     } else {
-      reportInvalidOrigin(origin)
+      return invalidOriginErr(origin)
     }
   } else {
-    const edit = update.edit ?? graph.startEdit()
-    if (update.portUpdate) {
-      const { origin } = update.portUpdate
-      if (Ast.isAstId(origin)) {
-        if ('value' in update.portUpdate) {
-          const value = update.portUpdate.value
-          const ast =
-            value instanceof Ast.Ast ? value
-            : value == null ? Ast.Wildcard.new(edit)
-            : undefined
-          if (ast) {
-            edit.replaceValue(origin, ast)
-          } else if (typeof value === 'string') {
-            edit.tryGet(origin)?.syncToCode(value)
+    const f = (edit: Ast.MutableModule) => {
+      if (update.portUpdate) {
+        const { origin } = update.portUpdate
+        if (Ast.isAstId(origin)) {
+          if ('value' in update.portUpdate) {
+            const value = update.portUpdate.value
+            const ast =
+              value instanceof Ast.Ast ? value
+              : value == null ? Ast.Wildcard.new(edit)
+              : undefined
+            if (ast) {
+              edit.replaceValue(origin, ast)
+            } else if (typeof value === 'string') {
+              edit.tryGet(origin)?.syncToCode(value)
+            }
           }
+          if ('metadata' in update.portUpdate) {
+            const { metadataKey, metadata } = update.portUpdate
+            edit.tryGet(origin)?.setWidgetMetadata(metadataKey, metadata)
+          }
+          return Ok()
+        } else {
+          return invalidOriginErr(origin)
         }
-        if ('metadata' in update.portUpdate) {
-          const { metadataKey, metadata } = update.portUpdate
-          edit.tryGet(origin)?.setWidgetMetadata(metadataKey, metadata)
-        }
-      } else {
-        reportInvalidOrigin(origin)
-      }
+      } else return Ok()
     }
-    graph.commitEdit(edit)
+
+    if (update.edit) return f(update.edit)
+    else return module.edit(f)
   }
 }
 

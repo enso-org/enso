@@ -1,6 +1,6 @@
+import { type WidgetUpdate } from '$/providers/openedProjects/widgetRegistry'
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
-import type { PortId } from '@/providers/portInfo'
-import type { WidgetUpdate } from '@/providers/widgetRegistry'
+import { type PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import type { DynamicConfig } from '@/util/callTree'

@@ -36,7 +36,7 @@ export function captureResourceContext(context: ResourceContext): ResourceContex
 export function useCurrentProjectResourceContext(): ResourceContext {
   const currentProject = useCurrentProject(true)
   return {
-    project: () => currentProject?.id.value ?? undefined,
+    project: () => currentProject?.ref.value.store.id ?? undefined,
     basePathSegments: () => {
       if (!currentProject) return
       const openedProjectStore = currentProject.storesRefs.store.value

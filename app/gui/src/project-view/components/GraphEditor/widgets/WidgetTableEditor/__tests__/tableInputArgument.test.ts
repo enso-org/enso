@@ -1,3 +1,6 @@
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import { makeType } from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
+import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import {
   CELLS_LIMIT,
   DEFAULT_COLUMN_PREFIX,
@@ -8,10 +11,7 @@ import {
   useTableInputArgument,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import { MenuItem } from '@/components/shared/AgGridTableView.vue'
-import { WidgetInput } from '@/providers/widgetRegistry'
-import type { RequiredImport } from '@/stores/graph/imports'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { makeType } from '@/stores/suggestionDatabase/mockSuggestion'
+import { type RequiredImport } from '@/stores/graph/imports'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { Identifier } from '@/util/ast/abstract'

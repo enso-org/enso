@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import {
   CELLS_LIMIT,
@@ -8,8 +10,6 @@ import {
   type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
-import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
 import type { Identifier, QualifiedName } from '@/util/qualifiedName'
@@ -31,8 +31,7 @@ import TableHeader, { type HeaderParams } from './WidgetTableEditor/TableHeader.
 import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
-const suggestionDb = useSuggestionDbStore()
+const { suggestionDb, module } = useCurrentProject().storesRefs
 const grid = ref<
   ComponentInstance<typeof AgGridTableView<RowData, any>> &
     ComponentExposed<typeof AgGridTableView<RowData, any>>
@@ -59,8 +58,8 @@ const config = computed(() => {
 
 const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTableInputArgument(
   () => props.input,
-  graph,
-  suggestionDb.entries,
+  module,
+  () => suggestionDb.value.entries,
   props.updateCallback,
 )
 

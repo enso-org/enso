@@ -1,11 +1,14 @@
-import { frontmatter } from '@/components/ComponentHelp/metadata'
-import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
+import {
+  mockProjectNameStore,
+  type ProjectNameStore,
+} from '$/providers/openedProjects/projectNames'
 import {
   type MethodSuggestionEntry,
   type SuggestionEntry,
   type SuggestionEntryArgument,
-} from '@/stores/suggestionDatabase/entry'
-import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
+} from '$/providers/openedProjects/suggestionDatabase/entry'
+import { SuggestionUpdateProcessor } from '$/providers/openedProjects/suggestionDatabase/lsUpdate'
+import { frontmatter } from '@/components/ComponentHelp/metadata'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { isQualifiedName, qnParent, qnSplit, tryQualifiedName } from '@/util/qualifiedName'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'

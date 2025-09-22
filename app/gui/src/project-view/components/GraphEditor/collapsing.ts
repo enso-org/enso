@@ -1,5 +1,5 @@
-import type { GraphDb, NodeId } from '@/stores/graph/graphDatabase'
-import { nodeIdFromOuterAst } from '@/stores/graph/graphDatabase'
+import type { GraphDb, NodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import { nodeIdFromOuterAst } from '$/providers/openedProjects/graph/graphDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { Identifier } from '@/util/ast/abstract'

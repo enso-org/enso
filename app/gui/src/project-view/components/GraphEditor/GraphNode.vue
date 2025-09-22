@@ -5,7 +5,15 @@ const MENU_CLOSE_TIMEOUT_MS = 300
 </script>
 
 <script setup lang="ts">
-import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
+import {
+  useCurrentProject,
+  useGraphStore,
+  useProjectStore,
+} from '$/components/WithCurrentProject.vue'
+import { type Node } from '$/providers/openedProjects/graph'
+import { asNodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import { evaluationProgress } from '$/providers/openedProjects/project/computedValueRegistry'
+import { useNodeExecution } from '$/providers/openedProjects/project/nodeExecution'
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
@@ -32,10 +40,6 @@ import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
-import type { Node } from '@/stores/graph'
-import { asNodeId } from '@/stores/graph/graphDatabase'
-import { evaluationProgress } from '@/stores/project/computedValueRegistry'
-import { useNodeExecution } from '@/stores/project/nodeExecution'
 import { Ast } from '@/util/ast'
 import { prefixes } from '@/util/ast/node'
 import { onWindowBlur } from '@/util/autoBlur'
@@ -75,6 +79,7 @@ const emit = defineEmits<{
 const nodeSelection = injectGraphSelection(true)
 const projectStore = useProjectStore()
 const graph = useGraphStore()
+const { module } = useCurrentProject().storesRefs
 const navigator = injectGraphNavigator(true)
 const nodeExecution = useNodeExecution()
 
@@ -237,7 +242,7 @@ const isRecordingOverridden = computed({
         [Ast.TextLiteral.new(projectStore.executionMode, edit)]
       : undefined
     prefixes.value.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
-    graph.commitEdit(edit)
+    module.commitEdit(edit)
   },
 })
 

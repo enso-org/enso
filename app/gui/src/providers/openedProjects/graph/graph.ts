@@ -1,25 +1,28 @@
+import {
+  GraphDb,
+  nodeIdFromOuterAst,
+  type NodeId,
+} from '$/providers/openedProjects/graph/graphDatabase'
+import {
+  useUnconnectedEdges,
+  type UnconnectedEdge,
+} from '$/providers/openedProjects/graph/unconnectedEdges'
+import { type RequiredImport } from '$/providers/openedProjects/module/imports'
+import { type ProjectStore } from '$/providers/openedProjects/project'
+import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { type SuggestionDbStore } from '$/providers/openedProjects/suggestionDatabase'
+import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
+import type {
+  UpdateHandler,
+  UpdateResult,
+  WidgetUpdate,
+} from '$/providers/openedProjects/widgetRegistry'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
-import type { WidgetUpdate } from '@/providers/widgetRegistry'
-import { GraphDb, nodeIdFromOuterAst, type NodeId } from '@/stores/graph/graphDatabase'
-import {
-  addImports,
-  analyzeImports,
-  detectImportConflicts,
-  filterOutRedundantImports,
-  type AbstractImport,
-  type DetectedConflict,
-  type RequiredImport,
-} from '@/stores/graph/imports'
-import { useUnconnectedEdges, type UnconnectedEdge } from '@/stores/graph/unconnectedEdges'
-import type { ProjectStore } from '@/stores/project'
-import type { ProjectNameStore } from '@/stores/projectNames'
-import type { SuggestionDbStore } from '@/stores/suggestionDatabase'
-import { assert, assertDefined, assertNever } from '@/util/assert'
+import { assert, assertNever } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId, Identifier, MutableModule } from '@/util/ast/abstract'
 import { isAstId, isIdentifier } from '@/util/ast/abstract'
-import { reactiveModule } from '@/util/ast/reactive'
 import { partition } from '@/util/data/array'
 import { stringUnionToArray, type Events } from '@/util/data/observable'
 import { Rect } from '@/util/data/rect'
@@ -46,18 +49,12 @@ import {
   type ShallowReactive,
   type ShallowRef,
 } from 'vue'
-import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import type { ExpressionUpdate, Path as LsPath } from 'ydoc-shared/languageServerTypes'
 import { reachable } from 'ydoc-shared/util/data/graph'
-import type {
-  ExternalId,
-  LocalUserActionOrigin,
-  Origin,
-  VisualizationMetadata,
-} from 'ydoc-shared/yjsModel'
-import { defaultLocalOrigin, visMetadataEquals } from 'ydoc-shared/yjsModel'
+import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
+import { visMetadataEquals } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
-import type { Typename } from '../suggestionDatabase/entry'
+import { type ModuleStore } from '../module'
 
 const FALLBACK_BINDING_PREFIX = 'node'
 
@@ -73,7 +70,7 @@ export type {
   NodeDataFromAst,
   NodeDataFromMetadata,
   NodeId,
-} from '@/stores/graph/graphDatabase'
+} from '$/providers/openedProjects/graph/graphDatabase'
 
 export interface NodeEditInfo {
   id: NodeId
@@ -92,7 +89,7 @@ export class PortViewInstance {
     public rect: ShallowRef<Rect | undefined>,
     public expectedType: Ref<Typename | undefined>,
     public nodeId: NodeId,
-    public onUpdate: (update: WidgetUpdate) => void,
+    public onUpdate: UpdateHandler,
   ) {
     markRaw(this)
   }
@@ -141,9 +138,8 @@ export function createGraphStore(
   proj: ProjectStore,
   suggestionDb: SuggestionDbStore,
   projectNames: ProjectNameStore,
+  module: ModuleStore,
 ) {
-  proj.setObservedFileName('Main.enso')
-
   const { run: cleanup, register: onCleanup } =
     useCallbackRegistry<Parameters<(key: NodeId) => void>>()
   const nodeState = {
@@ -176,50 +172,7 @@ export function createGraphStore(
   const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
 
-  const moduleSource = SourceDocument.Empty(reactive)
-  const moduleRoot = ref<Ast.BodyBlock>()
-  const syncModule = computed(() => moduleRoot.value?.module as Ast.MutableModule | undefined)
-
-  watch(
-    () => proj.module,
-    (projModule, _, onCleanup) => {
-      if (!projModule) return
-      const module = reactiveModule(projModule.doc.ydoc, onCleanup)
-      const handle = module.observe((update) => {
-        const root = module.root()
-        if (root instanceof Ast.BodyBlock) {
-          moduleRoot.value = root
-          if (
-            update.nodesAdded.size != 0 ||
-            update.nodesDeleted.size != 0 ||
-            update.nodesUpdated.size != 0 ||
-            update.updateRoots.size != 0
-          ) {
-            moduleSource.applyUpdate(module, update)
-            db.updateExternalIds(root)
-          }
-          // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
-          const nodeMetadataUpdates = update.metadataUpdated as any as {
-            id: AstId
-            changes: Ast.NodeMetadata
-          }[]
-          for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
-        } else {
-          moduleRoot.value = undefined
-        }
-      })
-      onCleanup(() => {
-        module.unobserve(handle)
-        moduleSource.clear()
-      })
-    },
-  )
-
-  const immediateMethodAst = computed<Result<Ast.FunctionDef>>(() =>
-    syncModule.value ?
-      getExecutedMethodAst(syncModule.value)
-    : Err('Graph editor not yet initialized'),
-  )
+  const immediateMethodAst = computed<Result<Ast.FunctionDef>>(() => getExecutedMethodAst())
 
   // When renaming a function, we temporarily lose track of edited function AST. Ensure that we
   // still resolve it before the refactor code change is received.
@@ -237,7 +190,7 @@ export function createGraphStore(
 
   const fallbackMethodAst = computed(() => {
     const id = lastKnownResolvedMethodAstId.value
-    const ast = id != null ? syncModule.value?.tryGet(id) : undefined
+    const ast = id != null ? module.ast.tryGet(id) : undefined
     if (ast instanceof Ast.FunctionDef) return ast
     return undefined
   })
@@ -269,8 +222,8 @@ export function createGraphStore(
   })
 
   watchEffect(() => {
-    if (methodAst.value.ok && moduleSource.text)
-      db.updateBindings(methodAst.value.value, moduleSource)
+    if (methodAst.value.ok && module.source.text)
+      db.updateBindings(methodAst.value.value, module.source)
   })
 
   const currentMethodPointer = computed((): Result<MethodPointer> => {
@@ -291,25 +244,8 @@ export function createGraphStore(
     }
   })
 
-  function getExecutedMethodAst(module?: Ast.Module): Result<Ast.FunctionDef> {
-    return andThen(currentMethodPointer.value, (ptr) => getMethodAst(ptr, module))
-  }
-
-  function getMethodAst(ptr: MethodPointer, edit?: Ast.Module): Result<Ast.FunctionDef> {
-    const topLevel = (edit ?? syncModule.value)?.root()
-    if (!topLevel) return Err('Module unavailable')
-    assert(topLevel instanceof Ast.BodyBlock)
-    if (!proj.moduleProjectPath?.ok)
-      return proj.moduleProjectPath ?? Err('Unknown module project path')
-    if (!ptr.module.equals(proj.moduleProjectPath.value))
-      return Err('Cannot read method from different module')
-    if (!ptr.module.equals(ptr.definedOnType)) return Err('Method pointer is not a module method')
-    const method = Ast.findModuleMethod(topLevel, ptr.name)
-    if (!method) {
-      const modulePath = projectNames.printProjectPath(proj.moduleProjectPath.value)
-      return Err(`No method with name ${ptr.name} in ${modulePath}`)
-    }
-    return Ok(method.statement)
+  function getExecutedMethodAst(edit?: Ast.Module): Result<Ast.FunctionDef> {
+    return andThen(currentMethodPointer.value, (ptr) => module.getMethodAst(ptr, edit))
   }
 
   /**
@@ -354,55 +290,8 @@ export function createGraphStore(
     return edges
   })
 
-  /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
-  function addMissingImports(
-    edit: MutableModule,
-    newImports: RequiredImport[],
-  ): DetectedConflict[] | undefined {
-    if (!moduleRoot.value) {
-      console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
-      return
-    }
-    const topLevel = edit.getVersion(moduleRoot.value)
-    const existingImports = [...analyzeImports(topLevel, projectNames)]
-
-    const conflicts = []
-    const nonConflictingImports = []
-    for (const newImport of newImports) {
-      const conflictInfo = detectImportConflicts(suggestionDb.entries, existingImports, newImport)
-      if (conflictInfo?.detected) {
-        conflicts.push(conflictInfo)
-      } else {
-        nonConflictingImports.push(newImport)
-      }
-    }
-    addMissingImportsDisregardConflicts(edit, nonConflictingImports, existingImports)
-
-    if (conflicts.length > 0) return conflicts
-  }
-
-  /* Adds imports, ignores any possible conflicts.
-   * `existingImports` are optional and will be used instead of `readImports(topLevel)` if provided. */
-  function addMissingImportsDisregardConflicts(
-    edit: MutableModule,
-    imports: RequiredImport[],
-    existingImports?: AbstractImport[] | undefined,
-  ) {
-    if (!imports.length) return
-    if (!moduleRoot.value) {
-      console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)
-      return
-    }
-    const topLevel = edit.getVersion(moduleRoot.value)
-    const existingImports_ = existingImports ?? [...analyzeImports(topLevel, projectNames)]
-
-    const importsToAdd = filterOutRedundantImports(existingImports_, imports)
-    if (!importsToAdd.length) return
-    addImports(edit.getVersion(topLevel), importsToAdd, projectNames)
-  }
-
   function deleteNodes(ids: Iterable<NodeId>) {
-    edit((edit) => {
+    return module.edit(async (edit) => {
       const deletedNodes = new Set<NodeId>()
       for (const id of ids) {
         const node = db.nodeIdToNode.get(id)
@@ -414,29 +303,32 @@ export function createGraphStore(
           // Skip ports on already deleted nodes.
           if (nodeId && deletedNodes.has(nodeId)) continue
 
-          updatePortValue(edit, usage, undefined, false)
+          const result = await updatePortValue(usage, undefined, edit)
+          if (!result.ok) return result
         }
         const outerAst = edit.getVersion(node.outerAst)
         if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
         deletedNodes.add(id)
         cleanup(id)
       }
+      return Ok()
     })
   }
 
   function setNodeContent(id: NodeId, content: string, withImports?: RequiredImport[] | undefined) {
     const node = db.nodeIdToNode.get(id)
     if (!node) return
-    edit((edit) => {
+    module.edit((edit) => {
       const editExpr = edit.getVersion(node.innerExpr)
       editExpr.syncToCode(content)
       if (withImports) {
-        const conflicts = addMissingImports(edit, withImports)
-        if (conflicts == null) return
+        const conflicts = module.addMissingImports(edit, withImports)
+        if (conflicts == null) return Ok()
         const wholeAssignment = editExpr.mutableParent()
         if (wholeAssignment == null) {
           console.error('Cannot find parent of the node expression. Conflict resolution failed.')
-          return
+          // We still want to commit change.
+          return Ok()
         }
         for (const _conflict of conflicts) {
           // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
@@ -444,6 +336,7 @@ export function createGraphStore(
           // substituteQualifiedNameByPattern(wholeAssignment, conflict.pattern, conflict.fullyQualified)
         }
       }
+      return Ok()
     })
   }
 
@@ -485,18 +378,16 @@ export function createGraphStore(
   })
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
-    const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
-    if (!nodeAst) return
-    const metadata = nodeAst.mutableNodeMetadata()
+    const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
+    if (!metadata) return
     const oldPos = metadata.get('position')
     if (oldPos?.x !== position.x || oldPos?.y !== position.y)
       metadata.set('position', { x: position.x, y: position.y })
   }
 
   function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
-    const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
-    if (!nodeAst) return
-    nodeAst.mutableNodeMetadata().set('colorOverride', color)
+    const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
+    metadata?.set('colorOverride', color)
   }
 
   function getNodeColorOverride(node: NodeId) {
@@ -504,18 +395,11 @@ export function createGraphStore(
   }
 
   function setNodeVisualization(nodeId: NodeId, update: Partial<VisualizationMetadata>) {
-    const nodeAst = syncModule.value?.tryGet(db.idFromExternal(nodeId))
-    if (!nodeAst) return
-    const metadata = nodeAst.mutableNodeMetadata()
+    const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
+    if (!metadata) return
     const data = Object.assign({ ...VIS_METADATA_DEFAULTS }, metadata.get('visualization'), update)
     const normalized = visMetadataEquals(data, VIS_METADATA_DEFAULTS) ? undefined : data
     metadata.set('visualization', normalized)
-  }
-
-  function setWidgetMetadata(widget: AstId, widgetKey: string, md: unknown) {
-    const ast = syncModule.value?.tryGet(widget)
-    if (!ast) return
-    ast.setWidgetMetadata(widgetKey, md)
   }
 
   function updateNodeRect(nodeId: NodeId, rect: Rect) {
@@ -548,14 +432,13 @@ export function createGraphStore(
       })
       const nodesToProcess = [...nonInputNodesSortedByLines, ...inputNodesSortedByArgIndex]
       nodesToPlace.length = 0
-      batchEdits(() => {
+      module.batchEdits(() => {
         for (const nodeId of nodesToProcess) {
           const nodeType = db.nodeIdToNode.get(nodeId)?.type
           const rect = nodeRects.get(nodeId)
           if (!rect) continue
-          const nodeAst = syncModule.value?.get(db.idFromExternal(nodeId))
-          if (!nodeAst) continue
-          const metadata = nodeAst.mutableNodeMetadata()
+          const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
+          if (!metadata) continue
           if (metadata.get('position') != null) continue
           let position
           if (nodeType === 'input') {
@@ -640,82 +523,25 @@ export function createGraphStore(
   }
 
   /**
-   * Emit a value update to a port view under specific ID. Returns `true` if the port view is
-   * registered and the update was emitted, or `false` otherwise.
+   * Emit a value update to a port view under specific ID. Returns Err if the port view is
+   * not registered.
    *
    * The properties are analogous to {@link WidgetUpdate fields}.
-   *
-   * NOTE: If this returns `true,` The update handlers called `graph.commitEdit` on their own.
-   * Therefore, the passed in `edit` should not be modified afterward, as it is already committed.
    */
   function updatePortValue(
-    edit: MutableModule,
     id: PortId,
     value: Ast.Owned<Ast.MutableExpression> | undefined,
+    edit?: MutableModule,
     directInteraction: boolean = true,
-  ): boolean {
+  ): UpdateResult | Promise<UpdateResult> {
     const update = getPortPrimaryInstance(id)?.onUpdate
-    if (!update) return false
-    update({
+    if (!update) return Err('Port not registered')
+    return update({
       edit,
       portUpdate: { value, origin: id },
       directInteraction,
     })
-    return true
   }
-
-  function startEdit(): MutableModule {
-    return syncModule.value!.edit()
-  }
-
-  /**
-   * Apply the given `edit` to the state.
-   *  @param skipTreeRepair - If the edit is known not to require any parenthesis insertion, this may be set to `true`
-   *  for better performance.
-   */
-  function commitEdit(
-    edit: MutableModule,
-    skipTreeRepair?: boolean,
-    origin: LocalUserActionOrigin = defaultLocalOrigin,
-  ) {
-    const root = edit.root()
-    if (!(root instanceof Ast.BodyBlock)) {
-      console.error(`BUG: Cannot commit edit: No module root block.`)
-      return
-    }
-    if (!skipTreeRepair) edit.transact(() => Ast.repair(root, edit))
-    syncModule.value!.applyEdit(edit, origin)
-  }
-
-  /**
-   * Edit the AST module.
-   *
-   * Optimization options: These are safe to use for metadata-only edits; otherwise, they require extreme caution.
-   *  @param skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
-   *  to `true` for better performance.
-   */
-  function edit<T>(f: (edit: MutableModule) => T, skipTreeRepair?: boolean): T {
-    assertDefined(syncModule.value)
-    const edit = syncModule.value.edit()
-    let result
-    edit.transact(() => {
-      result = f(edit)
-      if (!skipTreeRepair) {
-        const root = edit.root()
-        assert(root instanceof Ast.BodyBlock)
-        Ast.repair(root, edit)
-      }
-    })
-    syncModule.value.applyEdit(edit)
-    return result!
-  }
-
-  function batchEdits(f: () => void, origin: Origin = defaultLocalOrigin) {
-    assert(syncModule.value != null)
-    syncModule.value.transact(f, origin)
-  }
-
-  const viewModule = computed((): Ast.Module => syncModule.value!)
 
   // expose testing hook
   ;(window as any)._mockExpressionUpdate = mockExpressionUpdate
@@ -757,8 +583,7 @@ export function createGraphStore(
   /** Iterate over code lines, return node IDs from `ids` set in the order of code positions. */
   function pickInCodeOrder(ids: Set<NodeId>): NodeId[] {
     if (ids.size === 0) return []
-    assert(syncModule.value != null)
-    const func = unwrap(getExecutedMethodAst(syncModule.value))
+    const func = unwrap(getExecutedMethodAst())
     const body = func.bodyExpressions()
     const result: NodeId[] = []
     for (const expr of body) {
@@ -860,23 +685,18 @@ export function createGraphStore(
     mockExpressionUpdate,
     doAfterUpdate,
     editedNodeInfo,
-    moduleSource,
     visibleNodeAreas,
     visibleArea,
     unregisterNodeRect,
-    getMethodAst,
     generateLocallyUniqueIdent,
-    moduleRoot,
     deleteNodes,
     pickInCodeOrder,
     ensureCorrectNodeOrder,
-    batchEdits,
     overrideNodeColor,
     getNodeColorOverride,
     setNodeContent,
     setNodePosition,
     setNodeVisualization,
-    setWidgetMetadata,
     undoManager,
     updateNodeRect,
     updateNodeOutputAnim,
@@ -890,13 +710,7 @@ export function createGraphStore(
     isPortEnabled,
     updatePortValue,
     setEditedNode,
-    startEdit,
-    commitEdit,
-    edit,
     onBeforeEdit,
-    viewModule,
-    addMissingImports,
-    addMissingImportsDisregardConflicts,
     isConnectedSource,
     isConnectedTarget,
     nodeCanBeEntered,

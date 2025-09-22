@@ -1,5 +1,5 @@
+import type { GroupInfo } from '$/providers/openedProjects/suggestionDatabase'
 import { extractMetadata } from '@/components/ComponentHelp/metadata'
-import type { GroupInfo } from '@/stores/suggestionDatabase'
 import { findIndexOpt } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { isIconName, type Icon } from '@/util/iconMetadata/iconName'

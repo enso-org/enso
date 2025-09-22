@@ -1,5 +1,8 @@
-import { mockProjectNameStore } from '@/stores/projectNames'
-import { getDocumentationSummary, getGroupIndex } from '@/stores/suggestionDatabase/documentation'
+import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
+import {
+  getDocumentationSummary,
+  getGroupIndex,
+} from '$/providers/openedProjects/suggestionDatabase/documentation'
 import { unwrap } from '@/util/data/result'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'

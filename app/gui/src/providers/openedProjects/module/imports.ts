@@ -1,6 +1,9 @@
-import type { ProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+} from '$/providers/openedProjects/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import {
   astToQualifiedName,

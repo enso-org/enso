@@ -1,4 +1,4 @@
-import { mockProjectNameStore } from '@/stores/projectNames'
+import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { unwrap } from '@/util/data/result'
 import {
   isQualifiedName,

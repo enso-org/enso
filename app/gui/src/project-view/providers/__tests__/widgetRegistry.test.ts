@@ -5,7 +5,7 @@ import {
   defineWidget,
   type WidgetDefinition,
   type WidgetModule,
-} from '@/providers/widgetRegistry'
+} from '$/providers/openedProjects/widgetRegistry'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'

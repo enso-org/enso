@@ -1,6 +1,5 @@
-import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
-import type { ProjectStore } from '@/stores/project'
-import type { ProjectNameStore } from '@/stores/projectNames'
+import type { ProjectStore } from '$/providers/openedProjects/project'
+import type { ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import {
   entryIsCallable,
   isUserSelectableType,
@@ -9,9 +8,9 @@ import {
   type MethodSuggestionEntry,
   type SuggestionEntry,
   type SuggestionId,
-  type TypeSuggestionEntry,
-} from '@/stores/suggestionDatabase/entry'
-import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
+} from '$/providers/openedProjects/suggestionDatabase/entry'
+import { SuggestionUpdateProcessor } from '$/providers/openedProjects/suggestionDatabase/lsUpdate'
+import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { assert } from '@/util/assert'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
