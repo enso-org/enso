@@ -6,6 +6,7 @@ import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
@@ -79,6 +80,10 @@ public final class MethodDefinitions implements MiniPassFactory {
     return CollectionConverters.asScala(java.util.List.of(item)).toList();
   }
 
+  private static boolean computeIsStatic(IR body) {
+    return Function.computeIsStatic(body);
+  }
+
   private static final class Mini extends MiniIRPass {
     private final BindingsMap bindingsMap;
 
@@ -112,11 +117,12 @@ public final class MethodDefinitions implements MiniPassFactory {
 
                       return switch (method) {
                         case Method.Explicit explicitMethod -> {
+                          var isStatic = computeIsStatic(explicitMethod.body());
                           var resolvedMethod =
                               explicitMethod.copy(
                                   resolvedMethodRef,
                                   explicitMethod.body(),
-                                  explicitMethod.isStatic(),
+                                  isStatic,
                                   explicitMethod.isPrivate(),
                                   explicitMethod.isStaticWrapperForInstanceMethod(),
                                   explicitMethod.location(),
