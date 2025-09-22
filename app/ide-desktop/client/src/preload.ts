@@ -28,6 +28,7 @@ const MENU_API_KEY = 'menuApi'
 const SYSTEM_API_KEY = 'systemApi'
 const VERSION_INFO_KEY = 'versionInfo'
 const MAPBOX_API_TOKEN_KEY = 'mapBoxApiToken'
+const LOG_API_KEY = 'logApi'
 
 /** A type-safe wrapper around {@link electron.contextBridge.exposeInMainWorld}. */
 function exposeInMainWorld<Key extends string & keyof Window>(
@@ -188,3 +189,15 @@ exposeInMainWorld(SYSTEM_API_KEY, {
 exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
 
 exposeInMainWorld(MAPBOX_API_TOKEN_KEY, () => process.env.ENSO_IDE_MAPBOX_API_TOKEN || '')
+
+exposeInMainWorld(LOG_API_KEY, {
+  log: (msg: any[]) => {
+    electron.ipcRenderer.send(ipc.Channel.log, msg)
+  },
+  warn: (msg: any[]) => {
+    electron.ipcRenderer.send(ipc.Channel.warn, msg)
+  },
+  error: (msg: any[]) => {
+    electron.ipcRenderer.send(ipc.Channel.error, msg)
+  },
+})

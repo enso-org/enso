@@ -4,6 +4,5 @@
  */
 
 import * as config from './config'
-import * as log from './log'
 
-export { config, log }
+export { config }

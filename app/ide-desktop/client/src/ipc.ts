@@ -9,6 +9,9 @@
 
 /** Channel names used by the IPC protocol. */
 export enum Channel {
+  /** Channels for passing log messages from renderer to main process. */
+  log = 'log',
+  warn = 'warn',
   error = 'error',
   /** Channel for requesting that a URL be opened by the system browser. */
   openUrlInSystemBrowser = 'open-url-in-system-browser',

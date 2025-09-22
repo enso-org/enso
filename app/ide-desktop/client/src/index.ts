@@ -42,7 +42,6 @@ import { toElectronFileFilter, type FileFilter } from './fileBrowser'
 import * as download from 'electron-dl'
 import type { DownloadUrlOptions } from './globals'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
-const logger = contentConfig.logger
 
 /** Convert path to proper `file://` URL. */
 function pathToURL(path: string): URL {
@@ -71,7 +70,7 @@ class App {
 
   /** Initialize and run the Electron application. */
   async run() {
-    log.addFileLog()
+    log.setupLogger()
     urlAssociations.registerAssociations()
     // Register file associations for macOS.
     fileAssociations.setOpenFileEventHandler((path) => {
@@ -103,7 +102,7 @@ class App {
         security.enableAll()
 
         this.onStart().catch((err) => {
-          logger.error(err)
+          console.error(err)
         })
 
         electron.app.on('before-quit', () => {
@@ -111,7 +110,7 @@ class App {
         })
 
         electron.app.on('second-instance', (_event, argv) => {
-          logger.log(`Got data from 'second-instance' event: '${argv.toString()}'.`)
+          console.error(`Got data from 'second-instance' event: '${argv.toString()}'.`)
 
           const isWin = os.platform() === 'win32'
 
@@ -131,12 +130,12 @@ class App {
             }
             this.window.focus()
           } else {
-            logger.error('No window found after receiving URL from second instance.')
+            console.error('No window found after receiving URL from second instance.')
           }
         })
         electron.app.whenReady().then(
           async () => {
-            logger.log('Electron application is ready.')
+            console.log('Electron application is ready.')
 
             electron.protocol.handle('enso', (request) =>
               projectManager.handleProjectProtocol(
@@ -147,12 +146,12 @@ class App {
             await this.main(windowSize)
           },
           (error) => {
-            logger.error('Failed to initialize Electron.', error)
+            console.error('Failed to initialize Electron.', error)
           },
         )
         this.registerShortcuts()
       } else {
-        logger.log('Another instance of the application is already running, exiting.')
+        console.log('Another instance of the application is already running, exiting.')
         electron.app.quit()
       }
     }
@@ -210,10 +209,10 @@ class App {
     // Make sure that we are not initialized yet, as this method should be called before the
     // application is ready.
     if (!electron.app.isReady()) {
-      logger.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
+      console.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
       this.args.groups.startup.options.project.value = projectUrl.toString()
     } else {
-      logger.error(
+      console.error(
         "Cannot set the project to open on startup to '" +
           projectUrl.toString() +
           "', as the application is already initialized.",
@@ -226,7 +225,7 @@ class App {
    * for a URL protocol or file extension.
    */
   handleItemOpening(fileToOpen: string | null, urlToOpen: URL | null) {
-    logger.log('Opening file or URL.', { fileToOpen, urlToOpen })
+    console.log('Opening file or URL.', { fileToOpen, urlToOpen })
     try {
       if (fileToOpen != null) {
         // The IDE must receive the project path, otherwise if the IDE has a custom root directory
@@ -257,36 +256,35 @@ class App {
         const chromeOption = new configParser.ChromeOption(chromeOptName, value)
         const chromeOptionStr = chromeOption.display()
         const optionName = option.qualifiedName()
-        logger.log(`Setting '${chromeOptionStr}' because '${optionName}' was enabled.`)
+        console.log(`Setting '${chromeOptionStr}' because '${optionName}' was enabled.`)
         chromeOptions.push(chromeOption)
       }
     }
     const add = (option: string, value?: string) => {
       const chromeOption = new configParser.ChromeOption(option, value)
       const chromeOptionStr = chromeOption.display()
-      logger.log(`Setting '${chromeOptionStr}'`)
+      console.log(`Setting '${chromeOptionStr}'`)
       chromeOptions.push(new configParser.ChromeOption(option, value))
     }
-    logger.groupMeasured('Setting Chrome options', () => {
-      const perfOpts = this.args.groups.performance.options
-      // Needed to accept localhost self-signed cert
-      add('ignore-certificate-errors')
-      addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
-      addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
-      addIf(perfOpts.disableSmoothScrolling, 'disable-smooth-scrolling')
-      addIf(perfOpts.enableNativeGpuMemoryBuffers, 'enable-native-gpu-memory-buffers')
-      addIf(perfOpts.forceHighPerformanceGpu, 'force_high_performance_gpu')
-      addIf(perfOpts.ignoreGpuBlocklist, 'ignore-gpu-blocklist')
-      add('use-angle', perfOpts.angleBackend.value)
-      chromeOptions.sort((a, b) => a.name.localeCompare(b.name))
-      if (chromeOptions.length > 0) {
-        for (const chromeOption of chromeOptions) {
-          electron.app.commandLine.appendSwitch(chromeOption.name, chromeOption.value)
-        }
-        const cfgName = config.HELP_EXTENDED_OPTION_NAME
-        logger.log(`See '-${cfgName}' to learn why these options were enabled.`)
+    console.log('Setting Chrome options')
+    const perfOpts = this.args.groups.performance.options
+    // Needed to accept localhost self-signed cert
+    add('ignore-certificate-errors')
+    addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
+    addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
+    addIf(perfOpts.disableSmoothScrolling, 'disable-smooth-scrolling')
+    addIf(perfOpts.enableNativeGpuMemoryBuffers, 'enable-native-gpu-memory-buffers')
+    addIf(perfOpts.forceHighPerformanceGpu, 'force_high_performance_gpu')
+    addIf(perfOpts.ignoreGpuBlocklist, 'ignore-gpu-blocklist')
+    add('use-angle', perfOpts.angleBackend.value)
+    chromeOptions.sort((a, b) => a.name.localeCompare(b.name))
+    if (chromeOptions.length > 0) {
+      for (const chromeOption of chromeOptions) {
+        electron.app.commandLine.appendSwitch(chromeOption.name, chromeOption.value)
       }
-    })
+      const cfgName = config.HELP_EXTENDED_OPTION_NAME
+      console.log(`See '-${cfgName}' to learn why these options were enabled.`)
+    }
   }
 
   /** Main app entry point. */
@@ -294,29 +292,24 @@ class App {
     // We catch all errors here. Otherwise, it might be possible that the app will run partially
     // and enter a "zombie mode", where user is not aware of the app still running.
     try {
-      // Light theme is needed for vibrancy to be light colored on Windows.
-      // electron.nativeTheme.themeSource = 'light'
-      await logger.asyncGroupMeasured('Starting the application', async () => {
-        // Note that we want to do all the actions synchronously, so when the window
-        // appears, it serves the website immediately.
-        await this.startContentServerIfEnabled()
-        await this.startBackendIfEnabled()
-        await this.createWindowIfEnabled(windowSize)
-        this.initIpc()
-        await this.loadWindowContent()
-        /**
-         * The non-null assertion on the following line is safe because the window
-         * initialization is guarded by the `createWindowIfEnabled` method. The window is
-         * not yet created at this point, but it will be created by the time the
-         * authentication module uses the lambda providing the window.
-         */
-        authentication.initAuthentication(() => this.window!)
-      })
+      console.log('Starting the application')
+      // Note that we want to do all the actions synchronously, so when the window
+      // appears, it serves the website immediately.
+      await this.startContentServerIfEnabled()
+      await this.startBackendIfEnabled()
+      await this.createWindowIfEnabled(windowSize)
+      this.initIpc()
+      await this.loadWindowContent()
+      /**
+       * The non-null assertion on the following line is safe because the window
+       * initialization is guarded by the `createWindowIfEnabled` method. The window is
+       * not yet created at this point, but it will be created by the time the
+       * authentication module uses the lambda providing the window.
+       */
+      authentication.initAuthentication(() => this.window!)
     } catch (err) {
-      logger.error('Failed to initialize the application, shutting down. Error: ', err)
+      console.error('Failed to initialize the application, shutting down. Error: ', err)
       electron.app.quit()
-    } finally {
-      logger.groupEnd()
     }
   }
 
@@ -325,7 +318,7 @@ class App {
     if (option.value) {
       await fn()
     } else {
-      logger.log(`The app is configured not to use ${option.name}.`)
+      console.log(`The app is configured not to use ${option.name}.`)
     }
   }
 
@@ -364,128 +357,124 @@ class App {
   /** Start the content server, which will serve the application content (HTML) to the window. */
   async startContentServerIfEnabled() {
     await this.runIfEnabled(this.args.options.server, async () => {
-      await logger
-        .asyncGroupMeasured('Starting the content server.', async () => {
-          const serverCfg = new server.Config({
-            dir: paths.ASSETS_PATH,
-            port: this.args.groups.server.options.port.value,
-            externalFunctions: {
-              runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
-                projectManager.runCommand(this.args, cliArguments, body),
-            },
-          })
-          this.server = await server.Server.create(serverCfg)
-        })
-        .finally(() => {
-          logger.groupEnd()
-        })
+      console.log('Starting the content server.')
+      const serverCfg = new server.Config({
+        dir: paths.ASSETS_PATH,
+        port: this.args.groups.server.options.port.value,
+        externalFunctions: {
+          runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
+            projectManager.runCommand(this.args, cliArguments, body),
+        },
+      })
+      this.server = await server.Server.create(serverCfg)
+      console.log('Content server started.')
     })
   }
 
   /** Create the Electron window and display it on the screen. */
   async createWindowIfEnabled(windowSize: config.WindowSize) {
     await this.runIfEnabled(this.args.options.window, () => {
-      logger.groupMeasured('Creating the window.', () => {
-        const argGroups = this.args.groups
-        const useFrame = this.args.groups.window.options.frame.value
-        const macOS = process.platform === 'darwin'
-        const useHiddenInsetTitleBar = !useFrame && macOS
-        this.args.groups.window.options.vibrancy.value &&= detect.supportsVibrancy()
-        const useVibrancy = this.args.groups.window.options.vibrancy.value
-        const webPreferences: electron.WebPreferences = {
-          preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
-          sandbox: true,
-          backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
-          enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
-          disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
-          spellcheck: false,
-          ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
-        }
-        const windowPreferences: electron.BrowserWindowConstructorOptions = {
-          webPreferences,
-          width: windowSize.width,
-          height: windowSize.height,
-          frame: useFrame,
-          titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
-          ...(process.env.DEV_DARK_BACKGROUND ? { backgroundColor: '#36312c' } : {}),
-          ...(useVibrancy ?
-            {
-              vibrancy: 'fullscreen-ui',
-              backgroundMaterial: 'acrylic',
-              ...(os.platform() === 'win32' || os.platform() === 'linux' ?
-                { transparent: true }
-              : {}),
-            }
-          : {}),
-        }
-        const window = new electron.BrowserWindow(windowPreferences)
+      console.log('Creating the window.')
+      const argGroups = this.args.groups
+      const useFrame = this.args.groups.window.options.frame.value
+      const macOS = process.platform === 'darwin'
+      const useHiddenInsetTitleBar = !useFrame && macOS
+      this.args.groups.window.options.vibrancy.value &&= detect.supportsVibrancy()
+      const useVibrancy = this.args.groups.window.options.vibrancy.value
+      const webPreferences: electron.WebPreferences = {
+        preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
+        sandbox: true,
+        backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
+        enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
+        disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
+        spellcheck: false,
+        ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
+      }
+      const windowPreferences: electron.BrowserWindowConstructorOptions = {
+        webPreferences,
+        width: windowSize.width,
+        height: windowSize.height,
+        frame: useFrame,
+        titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
+        ...(process.env.DEV_DARK_BACKGROUND ? { backgroundColor: '#36312c' } : {}),
+        ...(useVibrancy ?
+          {
+            vibrancy: 'fullscreen-ui',
+            backgroundMaterial: 'acrylic',
+            ...(os.platform() === 'win32' || os.platform() === 'linux' ?
+              { transparent: true }
+            : {}),
+          }
+        : {}),
+      }
+      const window = new electron.BrowserWindow(windowPreferences)
 
-        const oldMenu = electron.Menu.getApplicationMenu()
-        if (oldMenu != null) {
-          const newMenu = replaceMenuItems(oldMenu.items, [
-            {
-              filter: [filterByRole('help')],
-              replacement: (item) =>
-                inheritMenuItem(item, undefined, [
-                  makeMenuItem(window, `About ${common.PRODUCT_NAME}`, 'about'),
-                ]),
-            },
-            {
-              filter: [filterByRole('fileMenu'), filterByRole('close')],
-              replacement: () => makeMenuItem(window, 'Close Tab', 'closeTab', 'CmdOrCtrl+W'),
-            },
-            {
-              filter: [filterByRole('appMenu'), filterByRole('about')],
-              replacement: () => undefined,
-            },
-            {
-              filter: [filterByRole('appMenu'), filterByRole('hide')],
-              replacement: (item) => inheritMenuItem(item, `Hide ${common.PRODUCT_NAME}`),
-            },
-            {
-              filter: [filterByRole('appMenu'), filterByRole('quit')],
-              replacement: (item) => inheritMenuItem(item, `Quit ${common.PRODUCT_NAME}`),
-            },
-          ])
-          electron.Menu.setApplicationMenu(newMenu)
-        }
-        window.setMenuBarVisibility(false)
-
-        if (this.args.groups.debug.options.devTools.value) {
-          window.webContents.openDevTools()
-        }
-
-        const allowedPermissions = ['clipboard-read', 'clipboard-sanitized-write']
-        window.webContents.session.setPermissionRequestHandler(
-          (_webContents, permission, callback) => {
-            if (allowedPermissions.includes(permission)) {
-              callback(true)
-            } else {
-              console.error(`Denied permission check '${permission}'.`)
-              callback(false)
-            }
+      const oldMenu = electron.Menu.getApplicationMenu()
+      if (oldMenu != null) {
+        const newMenu = replaceMenuItems(oldMenu.items, [
+          {
+            filter: [filterByRole('help')],
+            replacement: (item) =>
+              inheritMenuItem(item, undefined, [
+                makeMenuItem(window, `About ${common.PRODUCT_NAME}`, 'about'),
+              ]),
           },
-        )
+          {
+            filter: [filterByRole('fileMenu'), filterByRole('close')],
+            replacement: () => makeMenuItem(window, 'Close Tab', 'closeTab', 'CmdOrCtrl+W'),
+          },
+          {
+            filter: [filterByRole('appMenu'), filterByRole('about')],
+            replacement: () => undefined,
+          },
+          {
+            filter: [filterByRole('appMenu'), filterByRole('hide')],
+            replacement: (item) => inheritMenuItem(item, `Hide ${common.PRODUCT_NAME}`),
+          },
+          {
+            filter: [filterByRole('appMenu'), filterByRole('quit')],
+            replacement: (item) => inheritMenuItem(item, `Quit ${common.PRODUCT_NAME}`),
+          },
+        ])
+        electron.Menu.setApplicationMenu(newMenu)
+      }
+      window.setMenuBarVisibility(false)
 
-        window.on('close', (event) => {
-          if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {
-            event.preventDefault()
-            window.hide()
+      if (this.args.groups.debug.options.devTools.value) {
+        window.webContents.openDevTools()
+      }
+
+      const allowedPermissions = ['clipboard-read', 'clipboard-sanitized-write']
+      window.webContents.session.setPermissionRequestHandler(
+        (_webContents, permission, callback) => {
+          if (allowedPermissions.includes(permission)) {
+            callback(true)
+          } else {
+            console.error(`Denied permission check '${permission}'.`)
+            callback(false)
           }
-        })
+        },
+      )
 
-        electron.app.on('activate', () => {
-          if (!this.args.groups.window.options.closeToQuit.value) {
-            window.show()
-          }
-        })
-
-        window.webContents.on('render-process-gone', (_event, details) => {
-          logger.error('Error, the render process crashed.', details)
-        })
-
-        this.window = window
+      window.on('close', (event) => {
+        if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {
+          event.preventDefault()
+          window.hide()
+        }
       })
+
+      electron.app.on('activate', () => {
+        if (!this.args.groups.window.options.closeToQuit.value) {
+          window.show()
+        }
+      })
+
+      window.webContents.on('render-process-gone', (_event, details) => {
+        console.error('Error, the render process crashed.', details)
+      })
+
+      this.window = window
+      console.log('Window created.')
     })
   }
 
@@ -495,7 +484,13 @@ class App {
    */
   initIpc() {
     electron.ipcMain.on(ipc.Channel.error, (_event, data) => {
-      logger.error(`IPC error: ${JSON.stringify(data)}`)
+      console.error(...data)
+    })
+    electron.ipcMain.on(ipc.Channel.warn, (_event, data) => {
+      console.warn(...data)
+    })
+    electron.ipcMain.on(ipc.Channel.log, (_event, data) => {
+      console.log(...data)
     })
     electron.ipcMain.on(
       ipc.Channel.importProjectFromPath,
@@ -558,7 +553,7 @@ class App {
         defaultPath?: string,
         filters?: FileFilter[],
       ) => {
-        logger.log('Request for opening browser for ', kind, defaultPath, JSON.stringify(filters))
+        console.log('Request for opening browser for ', kind, defaultPath, JSON.stringify(filters))
         let retval = null
         if (kind === 'filePath') {
           // "Accept", as the file won't be created immediately.
@@ -622,7 +617,7 @@ class App {
       const address = new URL('https://localhost')
       address.port = this.serverPort().toString()
       address.search = new URLSearchParams(searchParams).toString()
-      logger.log(`Loading the window address '${address.toString()}'.`)
+      console.log(`Loading the window address '${address.toString()}'.`)
       if (process.env.ELECTRON_DEV_MODE === 'true') {
         // Vite takes a while to be `import`ed, so the first load almost always fails.
         // Reload every second until Vite is ready

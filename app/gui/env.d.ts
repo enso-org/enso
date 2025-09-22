@@ -123,6 +123,13 @@ interface VersionInfo {
   readonly chrome: string
 }
 
+/** Custom logging API available from renderer process. */
+interface LogApi {
+  readonly log: (msg: any[]) => void
+  readonly warn: (msg: any[]) => void
+  readonly error: (msg: any[]) => void
+}
+
 // JSDocs here are intentionally empty as these interfaces originate from elsewhere.
 declare global {
   const $config: $Config
@@ -143,6 +150,7 @@ declare global {
      * This is used by integration tests to set feature flags.
      */
     readonly overrideFeatureFlags?: Partial<FeatureFlags>
+    readonly logApi: LogApi
   }
 
   interface Document {

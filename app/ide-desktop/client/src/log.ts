@@ -5,13 +5,12 @@
  * writes to a file.
  *
  * This is the primary entry point, though its building blocks are also exported,
- * like {@link FileConsumer}.
+ * like {@link Logger}.
  */
 
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
-
-import { Consumer, type LogLevel } from 'enso-runner/src/runner/log'
+import * as util from 'node:util'
 
 import * as contentConfig from '@/contentConfig'
 import * as paths from '@/paths'
@@ -20,21 +19,42 @@ import * as paths from '@/paths'
 // === Log File ===
 // ================
 
+const consoleLog = console.log
+const consoleError = console.error
+
+type LogLevel = 'log' | 'error' | 'warn'
+
 /**
- * Adds a new log consumer that writes to a file.
+ * Setup logging, overriding standard console methods with our own.
  *
  * The path of the log file is {@link generateUniqueLogFileName automatically generated}.
  *
  * The log file is created in the {@link paths.LOGS_DIRECTORY logs directory}
- * @returns The full path of the log file.
  */
-export function addFileLog(): string {
+export function setupLogger() {
   const dirname = paths.LOGS_DIRECTORY
   const filename = generateUniqueLogFileName()
   const logFilePath = pathModule.join(dirname, filename)
-  const consumer = new FileConsumer(logFilePath)
-  contentConfig.logger.addConsumer(consumer)
-  return logFilePath
+  const consumer = new Logger(logFilePath)
+  function handleException(f: () => void) {
+    try {
+      f()
+    } catch (error) {
+      consoleError('Error in logger: ', error)
+    }
+  }
+  console.log = (...args) => {
+    handleException(() => consumer.message('log', ...args))
+  }
+  console.info = (...args) => {
+    console.log(...args)
+  }
+  console.error = (...args) => {
+    handleException(() => consumer.message('error', ...args))
+  }
+  console.warn = (...args) => {
+    handleException(() => consumer.message('warn', ...args))
+  }
 }
 
 /**
@@ -48,21 +68,15 @@ export function generateUniqueLogFileName(): string {
   return `${timestamp}-ide-${version}.log`
 }
 
-// ================
-// === Consumer ===
-// ================
-
-/** Log consumer that writes to a file. */
-export class FileConsumer extends Consumer {
+/** Logger that writes both to file and stdout. */
+export class Logger {
   private readonly logFilePath: string
   private readonly logFileHandle: number
 
   /**
-   * Create a log consumer that writes to a file.
    * @param logPath - The path of the log file. Must be writeable.
    */
   constructor(logPath: string) {
-    super()
     // Create the directory if it doesn't exist, otherwise fsSync.openSync will fail.
     const logsDirectory = pathModule.dirname(logPath)
     fsSync.mkdirSync(logsDirectory, { recursive: true })
@@ -70,43 +84,12 @@ export class FileConsumer extends Consumer {
     this.logFileHandle = fsSync.openSync(this.logFilePath, 'a')
   }
 
-  /** Append a message to the log. */
-  override message(level: LogLevel, ...args: unknown[]): void {
+  /** Write a message to the stdout and the log file. */
+  message(level: LogLevel, ...args: unknown[]): void {
     const timestamp = new Date().toISOString()
-    const message = args
-      .map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
-      .join(' ')
-    const timestampedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`
-
-    if (this.logFileHandle) {
-      try {
-        fsSync.writeSync(this.logFileHandle, timestampedMessage)
-      } catch (error) {
-        console.error('Failed to write log:', error)
-      }
-    } else {
-      // This should never happen, as the log file handle is initialized in the constructor.
-      console.error('Log file not initialized.')
-    }
-  }
-
-  /** Start a log group. */
-  override startGroup(...args: unknown[]): void {
-    this.message('log', '[GROUP START]', ...args)
-  }
-
-  /**
-   * Start a collapsed log group - for `FileConsumer`, this does the same thing
-   * as `startGroup`.
-   */
-  override startGroupCollapsed(...args: unknown[]): void {
-    // We don't have a way to collapse groups in the file logger, so we just use the same
-    // function as startGroup.
-    this.message('log', '[GROUP START]', ...args)
-  }
-
-  /** End a log group. */
-  override groupEnd(...args: unknown[]): void {
-    this.message('log', '[GROUP END]', ...args)
+    const message = util.format(...args)
+    const timestampedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`
+    consoleLog(timestampedMessage)
+    fsSync.writeSync(this.logFileHandle, timestampedMessage + '\n')
   }
 }

@@ -7,7 +7,6 @@ import BUILD_INFO from '../buildInfo'
 
 export const Option = linkedDist.config.Option
 export const Group = linkedDist.config.Group
-export const logger = linkedDist.log.logger
 /** A configuration option. */
 export type Option<T> = linkedDist.config.Option<T>
 

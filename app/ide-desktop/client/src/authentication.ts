@@ -82,11 +82,8 @@ import opener from 'opener'
 import * as common from 'enso-common'
 import type * as accessToken from 'enso-common/src/accessToken'
 
-import * as contentConfig from '@/contentConfig'
 import * as ipc from '@/ipc'
 import * as urlAssociations from '@/urlAssociations'
-
-const logger = contentConfig.logger
 
 // ========================================
 // === Initialize Authentication Module ===
@@ -105,17 +102,17 @@ export function initAuthentication(window: () => electron.BrowserWindow) {
   // OAuth authentication, both for trustworthiness and for convenience (the ability to use the
   // browser's saved passwords).
   electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => {
-    logger.log(`Opening URL '${url}' in the default browser.`)
+    console.log(`Opening URL '${url}' in the default browser.`)
     opener(url)
   })
 
   // Listen for events to handle deep links.
   urlAssociations.registerUrlCallback((url) => {
-    logger.log(`Received 'open-url' event for '${url.toString()}'.`)
+    console.log(`Received 'open-url' event for '${url.toString()}'.`)
     if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
-      logger.error(`'${url.toString()}' is not a deep link, ignoring.`)
+      console.error(`'${url.toString()}' is not a deep link, ignoring.`)
     } else {
-      logger.log(`'${url.toString()}' is a deep link, sending to renderer.`)
+      console.log(`'${url.toString()}' is a deep link, sending to renderer.`)
       window().webContents.send(ipc.Channel.openDeepLink, url.toString())
     }
   })
@@ -142,7 +139,7 @@ export function initAuthentication(window: () => electron.BrowserWindow) {
       } else {
         fs.mkdir(credentialsHomePath, { recursive: true }, (error) => {
           if (error) {
-            logger.error(`Could not create '${credentialsDirectoryName}' directory.`)
+            console.error(`Could not create '${credentialsDirectoryName}' directory.`)
           } else {
             fs.writeFile(
               path.join(credentialsHomePath, credentialsFileName),
@@ -157,7 +154,7 @@ export function initAuthentication(window: () => electron.BrowserWindow) {
               }),
               (innerError) => {
                 if (innerError) {
-                  logger.error(`Could not write to '${credentialsFileName}' file.`)
+                  console.error(`Could not write to '${credentialsFileName}' file.`)
                 }
               },
             )

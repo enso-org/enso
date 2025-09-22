@@ -19,7 +19,6 @@ import { handleFilesystemCommand } from 'project-manager-shim'
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
-import * as contentConfig from '@/contentConfig'
 import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
 import * as paths from '@/paths'
 import { app } from 'electron'
@@ -67,11 +66,9 @@ import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
 import { createGzip } from 'node:zlib'
 
-const logger = contentConfig.logger
-
 ydocServer.configureAllDebugLogs(
   process.env.ENSO_IDE_YDOC_LS_DEBUG === 'true',
-  logger.log.bind(logger),
+  console.log.bind(console),
 )
 
 // =================
@@ -240,7 +237,7 @@ export class Server {
         (err, { https: httpsServer, http: httpServer }) => {
           void (async () => {
             if (err) {
-              logger.error(`Error creating server:`, err.http)
+              console.error(`Error creating server:`, err.http)
               reject(err)
             }
             const server = httpsServer ?? httpServer
@@ -248,11 +245,11 @@ export class Server {
               if (server) {
                 await ydocServer.createGatewayServer(server)
               } else {
-                logger.warn('YDocs server is not run, new GUI may not work properly!')
+                console.warn('YDocs server is not run, new GUI may not work properly!')
               }
             }
-            logger.log(`Server started on port ${this.config.port}.`)
-            logger.log(`Serving files from '${path.resolve(process.cwd(), this.config.dir)}'.`)
+            console.log(`Server started on port ${this.config.port}.`)
+            console.log(`Serving files from '${path.resolve(process.cwd(), this.config.dir)}'.`)
             if (IS_ELECTRON_DEV_MODE) {
               const vite = (await import(
                 pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
@@ -294,7 +291,7 @@ export class Server {
   async process(request: http.IncomingMessage, response: http.ServerResponse) {
     const requestUrl = request.url
     if (requestUrl == null) {
-      logger.error('Request URL is null.')
+      console.error('Request URL is null.')
     } else if (requestUrl.startsWith('/api/project-manager/')) {
       const actualUrl = new URL(
         requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
@@ -364,7 +361,7 @@ export class Server {
             await this.httpDownloadProject(request, response, params, [projectId as ProjectId])
             break
           }
-          logger.error(`Unknown Cloud middleware request:`, route.pathname)
+          console.error(`Unknown Cloud middleware request:`, route.pathname)
           const content = JSON.stringify({
             type: 'error',
             error: `Unknown endpoint '${route.pathname}'`,
@@ -409,7 +406,7 @@ export class Server {
           response.end(data)
         })
         .catch(() => {
-          logger.error(`Resource '${resource}' not found.`)
+          console.error(`Resource '${resource}' not found.`)
           response.writeHead(HTTP_STATUS_NOT_FOUND)
           response.end()
         })
@@ -511,7 +508,7 @@ export class Server {
         readonly parentDirectory: string
       }>(response, await this.apiCloudDownloadProject(downloadUrl, ProjectId(projectId)))
     } catch (error) {
-      logger.error(error)
+      console.error(error)
       const projectsDirectory = projectManagement.getProjectsDirectory()
       const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
       await access(parentDirectory)
@@ -519,7 +516,7 @@ export class Server {
           rm(parentDirectory, { maxRetries: 3, recursive: true, force: true })
         })
         .catch((e) => {
-          logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
+          console.error(`Failed to cleanup directory ${parentDirectory}.`, e)
         })
       response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
     }
@@ -561,7 +558,7 @@ export class Server {
         ])
         .end(projectBundle)
     } catch (error) {
-      logger.error(error)
+      console.error(error)
       response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COOP_COEP_CORP_HEADERS).end()
     }
   }

@@ -1,7 +1,5 @@
 /** @file Configuration options for the application. */
 
-import { logger } from './log'
-
 export const DEFAULT_ENTRY_POINT = 'ide'
 
 // =============
@@ -158,7 +156,7 @@ export class Option<T> {
    * Log an an error in case of an unparsable option input.
    */
   printValueUpdateError(input: string) {
-    logger.error(
+    console.error(
       `The provided value for '${this.qualifiedName()}' is invalid. Expected ${this.type}, ` +
         `got '${input}'. Using the default value '${String(this.default)}' instead.`,
     )
@@ -239,7 +237,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
   addOption(name: string, option: AnyOption) {
     const existingOption = this.options[name]
     if (existingOption != null) {
-      logger.error(`Duplicate config option found '${existingOption.qualifiedName()}'.`)
+      console.error(`Duplicate config option found '${existingOption.qualifiedName()}'.`)
     }
     const options = this.options as OptionsRecord
     options[name] = option
@@ -308,7 +306,7 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
       for (const [otherOptionName, otherOption] of Object.entries(other.options)) {
         const option = result.options[otherOptionName]
         if (option != null) {
-          logger.error(`Duplicate config option found '${option.qualifiedName()}'.`)
+          console.error(`Duplicate config option found '${option.qualifiedName()}'.`)
         }
         result.options[otherOptionName] = otherOption
       }

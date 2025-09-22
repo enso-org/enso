@@ -6,12 +6,9 @@ import stringLength from 'string-length'
 import yargs, { type Options } from 'yargs'
 
 import * as config from '@/config'
-import * as contentConfig from '@/contentConfig'
 import * as fileAssociations from '@/fileAssociations'
 import * as naming from '@/naming'
 import BUILD_INFO from '../buildInfo'
-
-const logger = contentConfig.logger
 
 // =================
 // === Constants ===
@@ -66,7 +63,7 @@ interface PrintHelpConfig {
  */
 function printHelp(cfg: PrintHelpConfig) {
   console.log(USAGE)
-  const totalWidth = logger.terminalWidth() ?? DEFAULT_TERMINAL_WIDTH
+  const totalWidth = process.stdout.columns ?? DEFAULT_TERMINAL_WIDTH
   const sections: Record<string, Section<unknown>> = {}
   const topLevelSection = new Section()
   topLevelSection.description =
@@ -154,7 +151,7 @@ function printHelp(cfg: PrintHelpConfig) {
  */
 function wordWrap(str: string, width: number): string[] {
   if (width <= 0) {
-    logger.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
+    console.error(`Cannot perform word wrap. The output width is set to '${width}'.`)
     return []
   } else {
     let firstLine = true
@@ -355,7 +352,7 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
   const parsedWindowSize = config.WindowSize.parse(providedWindowSize)
 
   if (parsedWindowSize instanceof Error) {
-    logger.error(`Wrong window size provided: '${providedWindowSize}'.`)
+    console.error(`Wrong window size provided: '${providedWindowSize}'.`)
   } else {
     windowSize = parsedWindowSize
   }
@@ -385,11 +382,11 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
   if (helpRequested) {
     printHelpAndExit()
   } else if (parseError != null) {
-    logger.error(parseError.message)
+    console.error(parseError.message)
     printHelpAndExit(1)
   } else if (unexpectedArgs != null) {
     const unexpectedArgsString = unexpectedArgs.map((arg) => JSON.stringify(arg)).join(' ')
-    logger.error(`Unexpected arguments found: '${unexpectedArgsString}'.`)
+    console.error(`Unexpected arguments found: '${unexpectedArgsString}'.`)
     printHelpAndExit(1)
   }
 

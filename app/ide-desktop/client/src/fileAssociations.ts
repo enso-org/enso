@@ -15,11 +15,8 @@ import electronIsDev from 'electron-is-dev'
 
 import * as common from 'enso-common'
 
-import * as contentConfig from '@/contentConfig'
 import * as project from 'project-manager-shim'
 import * as fileAssociations from '../fileAssociations'
-
-const logger = contentConfig.logger
 
 // =================
 // === Constants ===
@@ -109,14 +106,14 @@ export function isFileOpenable(path: string): boolean {
 
 /** Callback called when a file is opened via the `open-file` event. */
 export function onFileOpened(event: electron.Event, path: string): string | null {
-  logger.log(`Received 'open-file' event for path '${path}'.`)
+  console.log(`Received 'open-file' event for path '${path}'.`)
   if (isFileOpenable(path)) {
-    logger.log(`The file '${path}' is openable.`)
+    console.log(`The file '${path}' is openable.`)
     event.preventDefault()
-    logger.log(`Opening file '${path}'.`)
+    console.log(`Opening file '${path}'.`)
     return path
   } else {
-    logger.log(`The file '${path}' is not openable, ignoring the 'open-file' event.`)
+    console.log(`The file '${path}' is not openable, ignoring the 'open-file' event.`)
     return null
   }
 }
@@ -128,13 +125,13 @@ export function onFileOpened(event: electron.Event, path: string): string | null
  */
 export function setOpenFileEventHandler(setProjectToOpen: (path: string) => void) {
   electron.app.on('open-file', (_event, path) => {
-    logger.log(`Opening file '${path}'.`)
+    console.log(`Opening file '${path}'.`)
     setProjectToOpen(path)
   })
 
   electron.app.on('second-instance', (event, _argv, _workingDir, additionalData) => {
     // Check if additional data is an object that contains the URL.
-    logger.log(`Checking path`, additionalData)
+    console.log(`Checking path`, additionalData)
     const path =
       (
         additionalData != null &&
@@ -145,7 +142,7 @@ export function setOpenFileEventHandler(setProjectToOpen: (path: string) => void
         additionalData.fileToOpen
       : null
     if (path != null) {
-      logger.log(`Got path '${path.toString()}' from second instance.`)
+      console.log(`Got path '${path.toString()}' from second instance.`)
       event.preventDefault()
       const file = onFileOpened(event, path)
       if (file != null) {
@@ -179,7 +176,7 @@ export function handleOpenFile(openedFile: string): project.ProjectInfo {
     if (error instanceof Error && typeof error.stack !== 'undefined') {
       message += `\n\nDetails:\n${error.stack}`
     }
-    logger.error(error)
+    console.error(error)
     electron.dialog.showErrorBox(common.PRODUCT_NAME, message)
     throw error
   }

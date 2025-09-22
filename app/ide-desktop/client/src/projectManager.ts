@@ -6,12 +6,9 @@ import * as fsSync from 'node:fs'
 import * as url from 'node:url'
 import * as util from 'node:util'
 
-import * as contentConfig from '@/contentConfig'
-
 import type * as config from '@/config'
 import { getProjectRoot } from 'project-manager-shim'
 
-const logger = contentConfig.logger
 const execFile = util.promisify(childProcess.execFile)
 
 // =======================
@@ -50,24 +47,20 @@ export function spawn(
   processArgs: string[],
   env?: NodeJS.ProcessEnv,
 ): childProcess.ChildProcess {
-  return logger.groupMeasured(
-    `Starting the backend process with the following options: ${processArgs.join(', ')}.`,
-    () => {
-      const binPath = pathOrPanic(args)
-      const process = childProcess.spawn(binPath, processArgs, {
-        stdio: [/* stdin */ 'pipe', /* stdout */ 'inherit', /* stderr */ 'inherit'],
-        env,
-        // The Project Manager should never spawn any windows. On Windows OS this needs
-        // to be manually prevented, as the default is to spawn a console window.
-        windowsHide: true,
-      })
-      logger.log(`Backend has been spawned (pid = ${String(process.pid)}).`)
-      process.on('exit', (code) => {
-        logger.log(`Backend exited with code ${String(code)}.`)
-      })
-      return process
-    },
-  )
+  console.log(`Starting the backend process with the following options: ${processArgs.join(', ')}.`)
+  const binPath = pathOrPanic(args)
+  const process = childProcess.spawn(binPath, processArgs, {
+    stdio: [/* stdin */ 'pipe', /* stdout */ 'inherit', /* stderr */ 'inherit'],
+    env,
+    // The Project Manager should never spawn any windows. On Windows OS this needs
+    // to be manually prevented, as the default is to spawn a console window.
+    windowsHide: true,
+  })
+  console.log(`Backend has been spawned (pid = ${String(process.pid)}).`)
+  process.on('exit', (code) => {
+    console.log(`Backend exited with code ${String(code)}.`)
+  })
+  return process
 }
 
 /** Run an arbitrary command and return its output. */
@@ -110,7 +103,7 @@ export async function version(args: config.Args) {
  */
 export async function handleProjectProtocol(absolutePath: string) {
   if (getProjectRoot(absolutePath) == null) {
-    logger.error(`The given path is not inside a project: ${absolutePath}.`)
+    console.error(`The given path is not inside a project: ${absolutePath}.`)
     return new Response(null, { status: 403 })
   }
 

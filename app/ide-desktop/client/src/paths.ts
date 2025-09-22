@@ -24,6 +24,7 @@ export const APP_PATH = electron.app.getAppPath()
  * The path of the directory in which the log files of IDE are stored.
  *
  * This is based on the Electron `logs` directory, see {@link electron.app.getPath}.
+ * By default, it is `~/Library/Logs/enso` on Mac, and inside `userData` directory on Windows and Linux.
  */
 export const LOGS_DIRECTORY = electron.app.getPath('logs')
 

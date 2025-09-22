@@ -6,7 +6,6 @@
  * the API.
  */
 import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
-import type { Logger } from '#/providers/LoggerProvider'
 import Backend, * as backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 import type { ProjectManager } from '#/services/ProjectManager/ProjectManager'
@@ -82,13 +81,8 @@ export default class LocalBackend extends Backend {
   private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(
-    logger: Logger,
-    getText: GetText,
-    projectManagerInstance: ProjectManager,
-    client = new HttpClient(),
-  ) {
-    super(logger, getText, client)
+  constructor(getText: GetText, projectManagerInstance: ProjectManager, client = new HttpClient()) {
+    super(getText, client)
 
     this.projectManager = projectManagerInstance
   }

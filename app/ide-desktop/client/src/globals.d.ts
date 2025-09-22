@@ -155,6 +155,15 @@ interface VersionInfo {
   readonly chrome: string
 }
 
+// === Logging API ===
+
+/** Custom logging API available from renderer process. */
+interface LogApi {
+  readonly log: (msg: any[]) => void
+  readonly warn: (msg: any[]) => void
+  readonly error: (msg: any[]) => void
+}
+
 // =====================================
 // === Global namespace augmentation ===
 // =====================================
@@ -173,6 +182,7 @@ declare global {
     readonly projectManagementApi?: ProjectManagementApi
     readonly versionInfo?: VersionInfo
     readonly mapBoxApiToken: () => string
+    readonly logApi: LogApi
   }
 
   namespace NodeJS {
