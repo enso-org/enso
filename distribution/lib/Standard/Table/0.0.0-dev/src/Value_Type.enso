@@ -42,6 +42,11 @@ type Bits
     to_text : Text
     to_text self = self.to_integer.to_text + " bits"
 
+    > self that = Comparable.> self that
+    >= self that = Comparable.>= self that
+    < self that = Comparable.< self that
+    <= self that = Comparable.<= self that
+
 ## ---
    private: true
    ---
