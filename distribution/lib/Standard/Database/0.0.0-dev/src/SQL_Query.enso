@@ -1,9 +1,6 @@
 from Standard.Base import Missing_Argument, Text
 
 type SQL_Query
-    ## Query a whole table or view with a schema.
-    Table_And_Schema (name : Text = Missing_Argument.throw "name") (schema : Text = Missing_Argument.throw "schema")
-
     ## Query a whole table or view.
     Table_Name (name : Text = Missing_Argument.throw "name")
 
