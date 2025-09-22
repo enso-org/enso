@@ -23,12 +23,14 @@ type SQL_IR_Source
        ## Arguments
         - `table_name`: The name of the table for which the context is being
           created.
+        - `schema`: The schema in which the table resides, or "" if not
+          applicable.
         - `alias`: An alias name to use for table within the query.
         - `internal_temporary_keep_alive_reference`: See `SQL_IR_From_Part.Table`
           for more details.
-    for_table : Text -> Text -> Any -> SQL_IR_Source
-    for_table table_name:Text alias:Text=table_name internal_temporary_keep_alive_reference=Nothing =
-        SQL_IR_Source.Value (SQL_IR_From_Part.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
+    for_table : Text -> Text -> Text -> Any -> SQL_IR_Source
+    for_table table_name:Text schema:Text alias:Text=table_name internal_temporary_keep_alive_reference=Nothing =
+        SQL_IR_Source.Value (SQL_IR_From_Part.Table table_name schema alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
 
     ## ---
        private: true

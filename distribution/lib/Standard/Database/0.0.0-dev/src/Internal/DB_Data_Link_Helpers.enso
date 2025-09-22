@@ -54,7 +54,7 @@ save_table_as_data_link table destination on_existing_file:Existing_File_Behavio
 private _find_referred_temporary_tables connection context -> Nothing | Vector Text =
     encountered_table_names = Vector.build builder->
         context.from_spec.traverse x-> case x of
-            SQL_IR_From_Part.Table name _ _ ->
+            SQL_IR_From_Part.Table name _ _ _ ->
                 builder.append name
                 x
             _ -> x
