@@ -5,15 +5,15 @@ import {
   entryIsCallable,
   isUserSelectableType,
   SuggestionKind,
-  TypeSuggestionEntry,
   type CallableSuggestionEntry,
   type MethodSuggestionEntry,
   type SuggestionEntry,
   type SuggestionId,
+  type TypeSuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { assert } from '@/util/assert'
-import { Err, Ok, Result } from '@/util/data/result'
+import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import type { MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'

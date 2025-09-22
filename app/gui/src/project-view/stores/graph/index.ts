@@ -57,7 +57,7 @@ import type {
 } from 'ydoc-shared/yjsModel'
 import { defaultLocalOrigin, visMetadataEquals } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
-import { Typename } from '../suggestionDatabase/entry'
+import type { Typename } from '../suggestionDatabase/entry'
 
 const FALLBACK_BINDING_PREFIX = 'node'
 

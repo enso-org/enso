@@ -11,7 +11,7 @@ import {
   Score,
   WidgetInput,
   widgetProps,
-  WidgetUpdate,
+  type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
