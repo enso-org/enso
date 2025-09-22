@@ -118,8 +118,6 @@ object GraalVM {
     * When invoking the `java` command, these modules need to be put on the module-path.
     */
   val modules: Seq[ModuleID] = Seq(
-    "org.graalvm.nativeimage" % "svm" % version,
-    "org.graalvm.nativeimage" % "svm-configure" % version,
     "org.graalvm.sdk"      % "nativeimage"      % version,
     "org.graalvm.sdk"      % "word"             % version,
     "org.graalvm.sdk"      % "jniutils"         % version,
