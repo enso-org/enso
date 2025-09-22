@@ -29,6 +29,7 @@ object SmallJDK {
     "java.net.http",
     "java.prefs",
     "java.rmi",
+    "jdk.attach",
     "jdk.charsets",
     "jdk.crypto.ec",
     "jdk.httpserver",
