@@ -284,7 +284,7 @@ object Dependencies {
   val jgitVersion             = "6.7.0.202309050840-r"
   val kindProjectorVersion    = "0.13.3"
   val mockitoScalaVersion     = "1.17.14"
-  val mockitoJavaVersion      = "5.15.2"
+  val mockitoJavaVersion      = "5.20.0"
   val newtypeVersion          = "0.4.4"
   val pprintVersion           = "0.8.1"
   val pureconfigVersion       = "0.17.4"
