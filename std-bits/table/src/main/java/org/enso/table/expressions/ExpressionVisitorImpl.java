@@ -187,7 +187,12 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
                 name,
                 setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
-        name -> methodResolvers[0].module.invokeMember("eval_expression", ".." + name);
+        name -> {
+          var m = methodResolvers[0].module.getContext().eval("enso", "main=.." + name);
+          var cons = m.invokeMember("eval_expression", "main");
+          assert cons != null;
+          return cons;
+        };
 
     return evaluateImpl(
         expression, getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
