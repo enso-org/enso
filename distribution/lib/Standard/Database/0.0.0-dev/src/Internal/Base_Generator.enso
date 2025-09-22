@@ -134,7 +134,7 @@ type SQL_Generator
         SQL_IR_From_Part.Table name schema as_name _ ->
             wrapped_ident = if schema == "" then dialect.wrap_identifier name else
                 ## Assume's identifier is <schema>.<name>
-                dialect.wrap_identifier schema + "." + dialect.wrap_identifier name
+                dialect.wrap_identifier schema ++ "." ++ dialect.wrap_identifier name
             wrapped_ident ++ alias dialect as_name
         SQL_IR_From_Part.Query raw_sql as_name ->
             subquery = case raw_sql of
