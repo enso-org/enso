@@ -497,30 +497,6 @@ class App {
     electron.ipcMain.on(ipc.Channel.error, (_event, data) => {
       logger.error(`IPC error: ${JSON.stringify(data)}`)
     })
-    const argProfiles = this.args.groups.profile.options.load.value
-    const profilePromises: Promise<string>[] = argProfiles.map((path: string) =>
-      fs.readFile(path, 'utf8'),
-    )
-    const profilesPromise = Promise.all(profilePromises)
-    electron.ipcMain.on(ipc.Channel.loadProfiles, (event) => {
-      void profilesPromise.then((profiles) => {
-        event.reply('profiles-loaded', profiles)
-      })
-    })
-    const profileOutPath = this.args.groups.profile.options.save.value
-    if (profileOutPath) {
-      electron.ipcMain.on(ipc.Channel.saveProfile, (_event, data: string) => {
-        fsSync.writeFileSync(profileOutPath, data)
-      })
-    }
-    electron.ipcMain.on(ipc.Channel.openGpuDebugInfo, () => {
-      if (this.window != null) {
-        void this.window.loadURL('chrome://gpu')
-      }
-    })
-    electron.ipcMain.on(ipc.Channel.quit, () => {
-      electron.app.quit()
-    })
     electron.ipcMain.on(
       ipc.Channel.importProjectFromPath,
       (event, path: string, directory: string | null, title: string) => {
