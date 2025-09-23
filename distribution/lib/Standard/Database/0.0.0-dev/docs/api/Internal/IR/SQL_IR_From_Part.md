@@ -5,7 +5,7 @@
     - Literal_Values column_vectors:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) column_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text) alias:Standard.Base.Data.Text.Text
     - Query raw_sql:(Standard.Base.Data.Text.Text|Standard.Database.SQL.SQL_Statement) alias:Standard.Base.Data.Text.Text
     - Sub_Query columns:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) context:Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source alias:Standard.Base.Data.Text.Text
-    - Table table_name:Standard.Base.Data.Text.Text alias:Standard.Base.Data.Text.Text internal_temporary_keep_alive_reference:Standard.Base.Any.Any=
+    - Table table_name:Standard.Base.Data.Text.Text schema:Standard.Base.Data.Text.Text alias:Standard.Base.Data.Text.Text internal_temporary_keep_alive_reference:Standard.Base.Any.Any=
     - Union queries:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement) alias:Standard.Base.Data.Text.Text
     - traverse self f:Standard.Base.Any.Any -> Standard.Database.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 - type SQL_IR_From_Part_Comparator
