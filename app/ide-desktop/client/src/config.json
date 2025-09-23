@@ -13,11 +13,6 @@
           "value": true,
           "defaultDescription": "false on MacOS, true otherwise",
           "description": "Draw window frame."
-        },
-        "vibrancy": {
-          "value": false,
-          "description": "Enable the vibrancy effect.",
-          "primary": false
         }
       }
     },

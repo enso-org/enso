@@ -1,15 +1,5 @@
 {
   "groups": {
-    "window": {
-      "description": "The visual and tactile configurations of the application window.",
-      "options": {
-        "vibrancy": {
-          "description": "Enable the vibrancy effect.",
-          "value": false,
-          "primary": false
-        }
-      }
-    },
     "startup": {
       "options": {
         "project": {

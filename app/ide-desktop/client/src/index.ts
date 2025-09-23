@@ -26,7 +26,6 @@ import * as config from '@/config'
 import * as configParser from '@/configParser'
 import * as contentConfig from '@/contentConfig'
 import * as debug from '@/debug'
-import * as detect from '@/detect'
 import * as fileAssociations from '@/fileAssociations'
 import * as ipc from '@/ipc'
 import * as log from '@/log'
@@ -379,8 +378,6 @@ class App {
       const useFrame = this.args.groups.window.options.frame.value
       const macOS = process.platform === 'darwin'
       const useHiddenInsetTitleBar = !useFrame && macOS
-      this.args.groups.window.options.vibrancy.value &&= detect.supportsVibrancy()
-      const useVibrancy = this.args.groups.window.options.vibrancy.value
       const webPreferences: electron.WebPreferences = {
         preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
         sandbox: true,
@@ -397,15 +394,6 @@ class App {
         frame: useFrame,
         titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
         ...(process.env.DEV_DARK_BACKGROUND ? { backgroundColor: '#36312c' } : {}),
-        ...(useVibrancy ?
-          {
-            vibrancy: 'fullscreen-ui',
-            backgroundMaterial: 'acrylic',
-            ...(os.platform() === 'win32' || os.platform() === 'linux' ?
-              { transparent: true }
-            : {}),
-          }
-        : {}),
       }
       const window = new electron.BrowserWindow(windowPreferences)
 
