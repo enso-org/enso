@@ -81,8 +81,8 @@ sbt:enso> runEngineDistribution --jvm
 
 ## Observing the Channel Communication
 
-- Since #13780 enable histogram of messages with `org.enso.jvm.interop.limit`
-  property
+- Since [#13780](https://github.com/enso-org/enso/pull/13780) enable histogram
+  of messages with `org.enso.jvm.interop.limit` property
 - For example by:
 
 ```bash
@@ -92,8 +92,8 @@ sbt:enso> runEngineDistribution --jvm
   --run test/Generic_JDBC_Tests
 ```
 
-- one instructs then after each 100000 messages a histogram with most frequently
-  used messages is printed
+- one instructs the system to process messages and after each 100000 messages
+- print a histogram with most frequently used message types
 
 ## References
 
