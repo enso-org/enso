@@ -22,6 +22,9 @@
 [14026]: https://github.com/enso-org/enso/pull/14026
 [14039]: https://github.com/enso-org/enso/pull/14039
 
+[13769]: https://github.com/enso-org/enso/pull/13769
+[14026]: https://github.com/enso-org/enso/pull/14026
+
 #### Enso Language & Runtime
 
 - [Open type check `Type&Any` lets all visible types thru][13225]
