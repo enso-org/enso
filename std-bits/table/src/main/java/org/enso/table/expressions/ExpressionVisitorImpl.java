@@ -67,14 +67,42 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   public record MethodResolver(
       Value module, Value type, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+    private MethodResolver(
+        Context ctx,
+        String moduleName,
+        String typeName,
+        boolean isStaticMethod,
+        Function<Object, Value> makeTypedColumn) {
+      this(
+          ctx.getBindings("enso").invokeMember("get_module", moduleName),
+          typeName,
+          isStaticMethod,
+          makeTypedColumn);
+    }
+
+    private MethodResolver(
+        Value module,
+        String typeName,
+        boolean isStaticMethod,
+        Function<Object, Value> makeTypedColumn) {
+      this(module, module.invokeMember("get_type", typeName), isStaticMethod, makeTypedColumn);
+    }
+
     public boolean canResolve(String methodName) {
       return resolve(methodName).canExecute();
     }
 
     public Value resolve(String methodName) {
-      var m = type.getMember(methodName);
-      return m == null ? Value.asValue(null) : m;
+      return module.invokeMember("get_method", type, methodName);
     }
+  }
+
+  public static MethodResolver newMethodResolver(
+      Value module, Value type, boolean isStaticMethod, Function<Object, Value> makeTypedColumn) {
+    var moduleName = module.getMetaQualifiedName();
+    var typeName = type.getMetaSimpleName();
+    return new MethodResolver(
+        module.getContext(), moduleName, typeName, isStaticMethod, makeTypedColumn);
   }
 
   public static class Method implements MethodInterface {
@@ -187,12 +215,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
                 name,
                 setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
-        name -> {
-          var m = methodResolvers[0].module.getContext().eval("enso", "main=.." + name);
-          var cons = m.invokeMember("eval_expression", "main");
-          assert cons != null;
-          return cons;
-        };
+        name -> methodResolvers[0].module.invokeMember("eval_expression", ".." + name);
 
     return evaluateImpl(
         expression, getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
