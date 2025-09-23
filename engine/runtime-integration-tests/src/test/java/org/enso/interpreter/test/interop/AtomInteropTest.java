@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -171,6 +172,46 @@ public class AtomInteropTest {
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("field a is internal", interop.isMemberInternal(atom, "a"), is(true));
+  }
+
+  @Test
+  public void methodsAreVisibleEvenWithPrivateConstructors() throws Exception {
+    var myTypeAtom =
+        ctxRule.evalModule(
+            """
+        type My_Type
+            private Cons a
+
+            read self = self.a
+
+        main = My_Type.Cons "a"
+        """);
+    var atom = ctxRule.unwrapValue(myTypeAtom);
+    var interop = InteropLibrary.getUncached();
+    var read = interop.readMember(atom, "read");
+    assertNotNull("Found read member", read);
+    assertEquals("a", read.toString());
+  }
+
+  @Test
+  public void methodsAreVisibleOnTypeEvenWithPrivateConstructors() throws Exception {
+    var atom =
+        ctxRule.evalModule(
+            """
+        type My_Type
+            private Cons a
+
+            read self = self.a
+
+        main = My_Type.Cons "a"
+        """);
+    var type = ctxRule.unwrapValue(atom.getMetaObject());
+    var rawAtom = ctxRule.unwrapValue(atom);
+    var interop = InteropLibrary.getUncached();
+    var read = interop.readMember(type, "read");
+    assertNotNull("Found read member", read);
+    assertTrue("Can read", interop.isExecutable(read));
+    assertEquals("a", interop.execute(read, rawAtom).toString());
   }
 
   @Test

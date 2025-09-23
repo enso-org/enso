@@ -2,13 +2,18 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 from Standard.Base.Metadata import Widget
 
+import project.Internal.Expression_Statics as Expression_Statics_Module
+import project.Internal.Expression_Statics.Expression_Statics
+import project.Column as Column_Module
 import project.Column.Column
+import project.Refined_Types.Numeric_Column as Numeric_Column_Module
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Table.Table
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl
+polyglot java import org.enso.table.expressions.ExpressionVisitorImpl.MethodResolver
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl.SyntaxErrorException
 polyglot java import org.enso.table.expressions.ExpressionVisitorImpl.TypeErrorException
 
@@ -50,9 +55,9 @@ type Expression
         ## Helper for the expression to tell it which functions needs a Vector
         var_args_functions = ['is_in', 'coalesce', 'min', 'max']
         ## Define which enso types we will look in to resolve methods in the expression
-        mr1 = ExpressionVisitorImpl.newMethodResolver "Standard.Table.Internal.Expression_Statics" "Expression_Statics" isStaticMethod=True makeTypedColumn=Nothing
-        mr2 = ExpressionVisitorImpl.newMethodResolver "Standard.Table.Column" "Column" isStaticMethod=False makeTypedColumn=c->c
-        mr3 = ExpressionVisitorImpl.newMethodResolver "Standard.Table.Refined_Types.Numeric_Column" "Numeric_Column" isStaticMethod=False makeTypedColumn=c->(c : Numeric_Column)
+        mr1 = ExpressionVisitorImpl.newMethodResolver Expression_Statics_Module Expression_Statics isStaticMethod=True makeTypedColumn=Nothing
+        mr2 = ExpressionVisitorImpl.newMethodResolver Column_Module Column isStaticMethod=False makeTypedColumn=c->c
+        mr3 = ExpressionVisitorImpl.newMethodResolver Numeric_Column_Module Numeric_Column isStaticMethod=False makeTypedColumn=c->(c : Numeric_Column)
         method_resolvers = [mr1, mr2, mr3]
         handle_parse_error = Panic.catch SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))
         handle_unsupported = handle_java_error UnsupportedOperationException Expression_Error.Unsupported_Operation
