@@ -31,23 +31,23 @@ public class ExportCycleDetectionTest {
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        from project.B_Module export B_Type
-        type A_Type
-        """);
+            from project.B_Module export B_Type
+            type A_Type
+            """);
     var bMod =
         new SourceModule(
             QualifiedName.fromString("B_Module"),
             """
-        from project.A_Module export A_Type
-        type B_Type
-        """);
+            from project.A_Module export A_Type
+            type B_Type
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-                import project.A_Module
-                import project.B_Module
-                """);
+            import project.A_Module
+            import project.B_Module
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
     expectProjectCompilationError(
@@ -64,30 +64,30 @@ public class ExportCycleDetectionTest {
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        from project.B_Module export C_Type
-        type A_Type
-        """);
+            from project.B_Module export C_Type
+            type A_Type
+            """);
     var bMod =
         new SourceModule(
             QualifiedName.fromString("B_Module"),
             """
-        from project.C_Module export C_Type
-        """);
+            from project.C_Module export C_Type
+            """);
     var cMod =
         new SourceModule(
             QualifiedName.fromString("C_Module"),
             """
-        from project.A_Module export A_Type
-        type C_Type
-        """);
+            from project.A_Module export A_Type
+            type C_Type
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-                import project.A_Module
-                import project.B_Module
-                import project.C_Module
-                """);
+            import project.A_Module
+            import project.B_Module
+            import project.C_Module
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, cMod, mainMod), projDir);
     // The reported ordering of cycle error is non-deterministic. We don't care about it.
@@ -107,9 +107,9 @@ public class ExportCycleDetectionTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        type Main_Type
-        export project.Main.Main_Type
-        """);
+            type Main_Type
+            export project.Main.Main_Type
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
@@ -131,9 +131,9 @@ public class ExportCycleDetectionTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        type Main_Type
-        from project.Main export Main_Type
-        """);
+            type Main_Type
+            from project.Main export Main_Type
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {

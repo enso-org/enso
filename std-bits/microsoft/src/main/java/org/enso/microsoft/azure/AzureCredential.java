@@ -55,11 +55,10 @@ public sealed interface AzureCredential {
     return switch (value) {
       case HideableValue.PlainValue plainValue -> plainValue.value();
       case HideableValue.SecretValue secretID -> "{{Secret:" + secretID.secretId() + "}}";
-      case HideableValue.ConcatValues concatValues -> makeUnique(concatValues.left())
-          + "_"
-          + makeUnique(concatValues.right());
-      case HideableValue.Base64EncodeValue base64EncodeValue -> "base64_"
-          + makeUnique(base64EncodeValue.value());
+      case HideableValue.ConcatValues concatValues ->
+          makeUnique(concatValues.left()) + "_" + makeUnique(concatValues.right());
+      case HideableValue.Base64EncodeValue base64EncodeValue ->
+          "base64_" + makeUnique(base64EncodeValue.value());
       default -> throw new IllegalArgumentException("Unexpected value: " + value);
     };
   }

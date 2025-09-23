@@ -8,8 +8,8 @@ import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.Output_Stream.Output_Stream
-from project.Error import all
 from project.Data.Boolean import Boolean, False, True
+from project.Error import all
 
 ## ---
    private: true

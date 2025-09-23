@@ -37,7 +37,7 @@ import * as security from '@/security'
 import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
 import * as projectManagement from 'project-manager-shim'
-import { FileFilter, toElectronFileFilter } from './fileBrowser'
+import { toElectronFileFilter, type FileFilter } from './fileBrowser'
 
 import * as download from 'electron-dl'
 import type { DownloadUrlOptions } from './globals'

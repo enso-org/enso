@@ -97,6 +97,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -144,6 +146,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -346,6 +350,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -372,6 +378,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -454,6 +462,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -476,6 +486,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -500,6 +512,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -522,6 +536,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -688,6 +704,8 @@ echo_response_template method path data content_type content_length=data.length 
     template = '''
         {
           "headers": {
+            "Accept-Encoding": "gzip",
+            "Accept": "*/*",
             "Connection": "Upgrade, HTTP2-Settings",
             "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
             "User-Agent": "Java-http-client/21.0.1",

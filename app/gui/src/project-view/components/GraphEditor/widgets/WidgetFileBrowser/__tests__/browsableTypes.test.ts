@@ -6,9 +6,9 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
 import { assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { type DynamicConfig } from '@/util/callTree'
+import type { DynamicConfig } from '@/util/callTree'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
-import { type Identifier } from '@/util/qualifiedName'
+import type { Identifier } from '@/util/qualifiedName'
 import { describe, expect, test, vi } from 'vitest'
 import { unwrap } from 'ydoc-shared/util/data/result'
 

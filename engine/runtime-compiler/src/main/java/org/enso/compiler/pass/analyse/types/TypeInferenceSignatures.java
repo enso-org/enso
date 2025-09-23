@@ -123,7 +123,7 @@ public final class TypeInferenceSignatures implements IRPass {
   private TypeRepresentation resolveTopLevelTypeSignature(
       Expression body, boolean keepSelfArgument) {
     return switch (body) {
-        // Combine argument types with ascribed type (if available) for a function type signature
+      // Combine argument types with ascribed type (if available) for a function type signature
       case Function.Lambda lambda -> {
         boolean hasAnyDefaults =
             lambda.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
@@ -176,8 +176,8 @@ public final class TypeInferenceSignatures implements IRPass {
         yield TypeRepresentation.buildFunction(ScalaConversions.asJava(argTypesScala), returnType);
       }
 
-        // Otherwise, we encountered a 0-argument method, so its type is just its return type (if
-        // its known).
+      // Otherwise, we encountered a 0-argument method, so its type is just its return type (if
+      // its known).
       default -> findReturnTypeAscription(body);
     };
   }

@@ -1,6 +1,6 @@
-import { type VueHost } from '@/components/VueHostRender.vue'
+import type { VueHost } from '@/components/VueHostRender.vue'
 import { WidgetType } from '@codemirror/view'
-import { Component, h, markRaw } from 'vue'
+import { h, markRaw, type Component } from 'vue'
 
 /** Common base class for any Vue-based CodeMirror widget */
 export class VueDecorationWidget<Props> extends WidgetType {

@@ -4,7 +4,7 @@ import { Ast } from '@/util/ast'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
-import { type AstId } from 'ydoc-shared/ast'
+import type { AstId } from 'ydoc-shared/ast'
 import { SourceRange } from 'ydoc-shared/util/data/text'
 import { IdMap, type ExternalId } from 'ydoc-shared/yjsModel'
 

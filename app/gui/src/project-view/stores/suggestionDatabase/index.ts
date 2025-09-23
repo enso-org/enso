@@ -1,6 +1,6 @@
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
-import { type ProjectStore } from '@/stores/project'
-import { type ProjectNameStore } from '@/stores/projectNames'
+import type { ProjectStore } from '@/stores/project'
+import type { ProjectNameStore } from '@/stores/projectNames'
 import {
   entryIsCallable,
   isUserSelectableType,
@@ -13,15 +13,15 @@ import {
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { assert } from '@/util/assert'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
-import { type MethodPointer } from '@/util/methodPointer'
+import type { MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
 import { ProjectPath } from '@/util/projectPath'
-import { type QualifiedName } from '@/util/qualifiedName'
+import type { QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, markRaw, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
-import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
+import type { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 

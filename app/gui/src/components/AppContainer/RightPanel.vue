@@ -59,29 +59,28 @@ function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<void>>) {
 }
 
 const contentElement = useTemplateRef('contentElement')
-const style = computed(() =>
-  data.width != null ?
-    {
-      width: `${data.width}px`,
-    }
-  : undefined,
-)
 const size = useResizeObserver(contentElement)
 const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 </script>
 
 <template>
-  <div class="RightPanel bg-dashboard" data-testid="right-panel">
+  <div
+    class="RightPanel withBackgroundColor bg-dashboard"
+    data-testid="right-panel"
+    :style="{ '--panel-width': `${data.width}px` }"
+  >
     <SizeTransition width :duration="250">
-      <div v-if="component != null" ref="contentElement" class="content" :style="style">
-        <WithFullscreenMode v-model="data.fullscreen">
-          <WithCurrentProject :id="data.focusedProject">
-            <div class="contentInner">
-              <component :is="component" />
-            </div>
-          </WithCurrentProject>
-        </WithFullscreenMode>
-        <ResizeHandles left :modelValue="bounds" @update:modelValue="data.width = $event.width" />
+      <div v-if="component != null" class="sizeWrapper">
+        <div ref="contentElement" class="content">
+          <WithFullscreenMode v-model="data.fullscreen">
+            <WithCurrentProject :id="data.focusedProject">
+              <div class="contentInner withBackgroundColor">
+                <component :is="component" />
+              </div>
+            </WithCurrentProject>
+          </WithFullscreenMode>
+          <ResizeHandles left :modelValue="bounds" @update:modelValue="data.width = $event.width" />
+        </div>
       </div>
     </SizeTransition>
     <div class="rightBar">
@@ -104,19 +103,40 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 </template>
 
 <style lang="css" scoped>
+.withBackgroundColor {
+  --panel-background: white;
+}
+
 .RightPanel {
-  --tab-highlight: rgb(254, 253, 252);
+  --tab-highlight: white;
+  --min-panel-width: 312px;
+  /* 64px is the width of the SelectableTab component + 16px padding to avoid filling the whole screen. */
+  --max-panel-width: calc(100vw - 64px);
+  --default-panel-width: 400px;
   display: flex;
   position: relative;
   flex-direction: row;
+  height: 100%;
 }
 
 .content {
   display: flex;
   justify-content: stretch;
-  min-width: 312px;
-  width: 400px;
-  overflow: auto;
+  min-width: var(--min-panel-width);
+  width: var(--panel-width, var(--default-panel-width));
+  max-width: var(--max-panel-width);
+  height: 100%;
+  /* overflow: auto; */
+}
+
+/* This element's visible width will be overwritten by the size transition, but the inner content's
+ * will not, preventing content reflow. Content reflow is disruptive to the appearance of the transition, and can affect
+ * the framerate drastically.
+ */
+.sizeWrapper {
+  height: 100%;
+  width: 100%;
+  background-color: var(--panel-background);
 }
 
 /* React panels rely on being inside columned flex. */
@@ -125,7 +145,7 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: rgb(254, 253, 252);
+  background-color: var(--panel-background);
   padding: 1.25rem 1rem;
 }
 
@@ -142,7 +162,7 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 }
 
 .SelectableTab {
-  --selection-color: var(--color-background-hex);
+  --selection-color: var(--panel-background);
   --border-radius: 1rem;
 }
 

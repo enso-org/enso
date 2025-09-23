@@ -14,8 +14,8 @@ import {
 } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
+import type { SuggestionsDatabaseUpdate } from 'ydoc-shared/languageServerTypes/suggestions'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
-import { type SuggestionsDatabaseUpdate } from 'ydoc-shared/languageServerTypes/suggestions'
 
 function stdPath(path: string) {
   assert(path.startsWith('Standard.'))

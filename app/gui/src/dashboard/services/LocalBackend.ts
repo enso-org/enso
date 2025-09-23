@@ -331,7 +331,7 @@ export default class LocalBackend extends Backend {
       throw new backend.AssetDoesNotExistError()
     }
     // eslint-disable-next-line no-restricted-syntax
-    return entry as never
+    return entry as unknown as backend.AssetDetailsResponse<Id>
   }
 
   /** Get the UUID of a project. */

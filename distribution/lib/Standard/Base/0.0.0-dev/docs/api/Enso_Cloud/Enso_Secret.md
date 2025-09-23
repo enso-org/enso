@@ -3,6 +3,7 @@
 - type Derived_Secret_Value
     - Base_64_Encode value:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
     - Concat left:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value right:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+    - Interpret_As_Private_Key secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
     - Plain_Text text:Standard.Base.Data.Text.Text
     - Secret_Value secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
     - + self other:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value -> Standard.Base.Any.Any

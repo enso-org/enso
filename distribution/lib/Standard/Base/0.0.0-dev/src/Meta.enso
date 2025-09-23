@@ -10,8 +10,8 @@ import project.Function.Function as Real_Function
 import project.Internal.Meta_Helpers
 import project.Nothing.Nothing
 import project.Warning.Warning
-from project.Error import all hiding Error
 from project.Data.Boolean import Boolean, False, True
+from project.Error import all hiding Error
 
 type Type
     private Value value
@@ -512,7 +512,7 @@ is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
    Returns vector of instances of `spi_type` discovered among libraries
    present in the runtime. The vector may be associated with a warning,
    if some registrations found are found, but invalid - e.g. not producing the desired `spi_type`.
-   
+
    To register an implementation of a type:
    - create `private` module called `Services` in your project
    - put a singleton `type Impl` there

@@ -28,15 +28,15 @@ public class VectorTest {
         Source.newBuilder(
                 "enso",
                 """
-    import Standard.Base.Data.Vector
+                import Standard.Base.Data.Vector
 
-    choose x = case x of
-        Vector -> "is vector module"
-        _ : Vector.Vector -> "is vector type"
-        _ -> "nothing"
+                choose x = case x of
+                    Vector -> "is vector module"
+                    _ : Vector.Vector -> "is vector type"
+                    _ -> "nothing"
 
-    check = choose [1, 2, 3]
-    """,
+                check = choose [1, 2, 3]
+                """,
                 "choose.enso")
             .uri(facUri)
             .buildLiteral();
@@ -50,9 +50,12 @@ public class VectorTest {
   public void vectorToString() throws Exception {
     final URI facUri = new URI("memory://vector.enso");
     final Source src =
-        Source.newBuilder("enso", """
-    check = [1, 2, 3]
-    """, "vector.enso")
+        Source.newBuilder(
+                "enso",
+                """
+                check = [1, 2, 3]
+                """,
+                "vector.enso")
             .uri(facUri)
             .buildLiteral();
 
@@ -65,9 +68,12 @@ public class VectorTest {
   public void arrayToString() throws Exception {
     final URI facUri = new URI("memory://vector.enso");
     final Source src =
-        Source.newBuilder("enso", """
-    check = [1, 2, 3].to_array
-    """, "vector.enso")
+        Source.newBuilder(
+                "enso",
+                """
+                check = [1, 2, 3].to_array
+                """,
+                "vector.enso")
             .uri(facUri)
             .buildLiteral();
 
@@ -83,10 +89,10 @@ public class VectorTest {
         Source.newBuilder(
                 "enso",
                 """
-    import Standard.Base.Data.Vector
+                import Standard.Base.Data.Vector
 
-    callback f = f.accept ([1, 2, 3].map +5)
-    """,
+                callback f = f.accept ([1, 2, 3].map +5)
+                """,
                 "callback.enso")
             .uri(uri)
             .buildLiteral();
@@ -122,12 +128,12 @@ public class VectorTest {
         Source.newBuilder(
                 "enso",
                 """
-    import Standard.Base.Data.Array.Array
+                import Standard.Base.Data.Array.Array
 
-    how_long array = case array of
-        arr : Array -> arr.length
-        _ -> -1
-    """,
+                how_long array = case array of
+                    arr : Array -> arr.length
+                    _ -> -1
+                """,
                 "how_long.enso")
             .uri(uri)
             .buildLiteral();
@@ -190,21 +196,21 @@ public class VectorTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Warning
+                from Standard.Base import Warning
 
-    cb f type call_type =
-      v = [Warning.attach "OKeyish" 20]
-      container = case type of
-        1 -> v
-        2 -> v.to_array
-        3 -> v.to_array.to_vector
-        4 -> (v+[42]).slice 0 1
-        5 -> ([42]+v).slice 1 2
+                cb f type call_type =
+                  v = [Warning.attach "OKeyish" 20]
+                  container = case type of
+                    1 -> v
+                    2 -> v.to_array
+                    3 -> v.to_array.to_vector
+                    4 -> (v+[42]).slice 0 1
+                    5 -> ([42]+v).slice 1 2
 
-      case call_type of
-        1 -> container.each f
-        2 -> container.map f
-    """,
+                  case call_type of
+                    1 -> container.each f
+                    2 -> container.map f
+                """,
                 "warning.enso")
             .uri(srcUri)
             .buildLiteral();
@@ -280,14 +286,14 @@ public class VectorTest {
         Source.newBuilder(
                 "enso",
                 """
-    import Standard.Base.Data.Vector.Vector
-    polyglot java import org.enso.interpreter.test.VectorTest
+                import Standard.Base.Data.Vector.Vector
+                polyglot java import org.enso.interpreter.test.VectorTest
 
-    raw = VectorTest.${call}
-    copy = Vector.from_array VectorTest.${call}
-    lazy = Vector.from_polyglot_array VectorTest.${call}
+                raw = VectorTest.${call}
+                copy = Vector.from_array VectorTest.${call}
+                lazy = Vector.from_polyglot_array VectorTest.${call}
 
-    """
+                """
                     .replace("${call}", factoryName),
                 "vectors.enso")
             .uri(uri)

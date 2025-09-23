@@ -3,9 +3,9 @@ import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
 import { BackendType, EnsoPath, type ProjectId } from '#/services/Backend'
 import {
-  OpenedProject,
   useContainerData,
   type LaunchedProject,
+  type OpenedProject,
   type TabId,
 } from '$/providers/container'
 import { RightPanelDataProviderForReact } from '$/providers/react/container'

@@ -150,10 +150,10 @@ class TypeCompatibility {
 
     return switch (type) {
       case TypeRepresentation.TopType top -> true;
-      case TypeRepresentation.SumType sumType -> sumType.types().stream()
-          .anyMatch(this::mayBeFunctionLike);
-      case TypeRepresentation.IntersectionType intersectionType -> intersectionType.types().stream()
-          .anyMatch(this::mayBeFunctionLike);
+      case TypeRepresentation.SumType sumType ->
+          sumType.types().stream().anyMatch(this::mayBeFunctionLike);
+      case TypeRepresentation.IntersectionType intersectionType ->
+          intersectionType.types().stream().anyMatch(this::mayBeFunctionLike);
       default -> false;
     };
   }

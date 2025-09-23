@@ -23,10 +23,10 @@ import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
-from project.Error import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON
 from project.Data.Text.Extensions import all
+from project.Error import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 
@@ -465,9 +465,9 @@ type File_Name_Pattern
        File_Format_SPI.new "your info"
    ```
    and then add a registration into `package.yaml` of your library.
-
 type File_Format_SPI
     private Single typ data_link_format_name:Text|Nothing
+
     private Few arr:(Vector File_Format_SPI)
 
     ## ---
@@ -478,7 +478,6 @@ type File_Format_SPI
        ## Arguments
         - `typ`: type implementing the _"file format protocol"_
         - `name`: data link format name
-
     new typ name:Text|Nothing=Nothing -> File_Format_SPI =
         File_Format_SPI.Single typ name
 
@@ -488,7 +487,6 @@ type File_Format_SPI
        ---
        Concatenates two registrations together. Allows one conversion to
        register multiple file formats service providers
-
     + self that:File_Format_SPI = File_Format_SPI.Few self.to_vector+that.to_vector
 
     private to_vector self -> Vector File_Format_SPI = case self of
