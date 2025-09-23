@@ -31,11 +31,11 @@ common --@aspect_rules_ts//ts:default_to_tsc_transpiler
 startup --host_jvm_args=-DBAZEL_TRACK_SOURCE_DIRECTORIES=1
 
 ## GraalVM versions
-common --tool_java_runtime_version=graalvm_24
-common --tool_java_language_version=24
+common --tool_java_runtime_version=graalvm_25
+common --tool_java_language_version=25
 
-common --java_runtime_version=graalvm_24
-common --java_language_version=24
+common --java_runtime_version=graalvm_25
+common --java_language_version=25
 
 ## Rust
 startup --windows_enable_symlinks
