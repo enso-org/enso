@@ -944,9 +944,36 @@ type Date
         options = [Option "<Fixed Date>" "Date.new"] + (if include_today then [Option "<Today>" "Date.today"] else [])
         Widget.Single_Choice values=options display=display
 
+    ## ---
+      aliases: [greater than]
+      group: Operators
+      icon: operators
+      ---
+      Checks if `self` is greater than `that`.
     > self that = Comparable.> self that
+
+    ## ---
+       aliases: [greater than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than or equal to `that`.
     >= self that = Comparable.>= self that
+
+    ## ---
+       aliases: [less than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than `that`.
     < self that = Comparable.< self that
+
+    ## ---
+       aliases: [less than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than or equal to `that`.
     <= self that = Comparable.<= self that
 
 ## ---
