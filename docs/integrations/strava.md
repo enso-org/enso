@@ -14,7 +14,7 @@ and branding process, this credential *only* allows access to Enso's own Strava
 account, rather than the end-user's Strava account. Nonetheless, an end-user can
 authentication through their own Strava account to access the Enso account data.
 
-# Creating A Strava Credential
+## Creating A Strava Credential In The IDE
 
 1. Select **Cloud** projects
 1. **New Credential** (to the right of New Project)
@@ -22,7 +22,7 @@ authentication through their own Strava account to access the Enso account data.
 1. Give it name, e.g. "mycred"
 1. Create
 
-# Connecting To Strava
+## Connecting To Strava In The IDE
 
 In the IDE, create the following graph:
 
