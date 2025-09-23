@@ -14,6 +14,7 @@ import { Ast } from '@/util/ast'
 import { isIdentifier, substituteIdentifier, type Identifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
+import { Ok } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
@@ -150,6 +151,7 @@ export function useNodeCreation(
         graph.nodeRects.set(id, new Rect(Vec2.FromXY(options.metadata.position), Vec2.Zero))
       }
       insertNodeStatements(edit.getVersion(methodAst.value).bodyAsBlock(), statements)
+      return Ok()
     })
     graph.doAfterUpdate(() => onCreated(created))
   }

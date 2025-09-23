@@ -44,27 +44,28 @@ const value = computed({
     return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
-    const edit = module.value.startEdit()
-    const theImport = value ? trueImport.value : falseImport.value
-    const inputValue: Ast.Expression | string | undefined = props.input.value
-    if (inputValue instanceof Ast.Ast) {
-      const { requiresImport } = setBoolNode(
-        edit.getVersion(inputValue),
-        value ? ('True' as Identifier) : ('False' as Identifier),
-      )
-      if (requiresImport) module.value.addMissingImports(edit, theImport)
-      props.updateCallback({ edit, directInteraction: true })
-    } else {
-      module.value.addMissingImports(edit, theImport)
-      props.updateCallback({
-        edit,
-        portUpdate: {
-          value: value ? 'True' : 'False',
-          origin: props.input.portId,
-        },
-        directInteraction: true,
-      })
-    }
+    module.value.edit((edit) => {
+      const theImport = value ? trueImport.value : falseImport.value
+      const inputValue: Ast.Expression | string | undefined = props.input.value
+      if (inputValue instanceof Ast.Ast) {
+        const { requiresImport } = setBoolNode(
+          edit.getVersion(inputValue),
+          value ? ('True' as Identifier) : ('False' as Identifier),
+        )
+        if (requiresImport) module.value.addMissingImports(edit, theImport)
+        return props.updateCallback({ edit, directInteraction: true })
+      } else {
+        module.value.addMissingImports(edit, theImport)
+        return props.updateCallback({
+          edit,
+          portUpdate: {
+            value: value ? 'True' : 'False',
+            origin: props.input.portId,
+          },
+          directInteraction: true,
+        })
+      }
+    })
   },
 })
 

@@ -45,6 +45,7 @@ import { prefixes } from '@/util/ast/node'
 import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
+import { Ok } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, onUnmounted, ref, toRef, watch, watchEffect, type ComponentInstance } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
@@ -236,13 +237,14 @@ const isRecordingOverridden = computed({
     return props.node.prefixes.enableRecording != null
   },
   set(shouldOverride) {
-    const edit = props.node.rootExpr.module.edit()
-    const replacement =
-      shouldOverride && !projectStore.isRecordingEnabled ?
-        [Ast.TextLiteral.new(projectStore.executionMode, edit)]
-      : undefined
-    prefixes.value.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
-    module.commitEdit(edit)
+    module.value.edit((edit) => {
+      const replacement =
+        shouldOverride && !projectStore.isRecordingEnabled ?
+          [Ast.TextLiteral.new(projectStore.executionMode, edit)]
+        : undefined
+      prefixes.value.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
+      return Ok()
+    })
   },
 })
 

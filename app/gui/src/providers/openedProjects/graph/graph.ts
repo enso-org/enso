@@ -11,12 +11,8 @@ import { type RequiredImport } from '$/providers/openedProjects/module/imports'
 import { type ProjectStore } from '$/providers/openedProjects/project'
 import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { type SuggestionDbStore } from '$/providers/openedProjects/suggestionDatabase'
-import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
-import type {
-  UpdateHandler,
-  UpdateResult,
-  WidgetUpdate,
-} from '$/providers/openedProjects/widgetRegistry'
+import { Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
+import type { UpdateHandler, UpdateResult } from '$/providers/openedProjects/widgetRegistry'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import { assert, assertNever } from '@/util/assert'
@@ -30,7 +26,6 @@ import { andThen, Err, Ok, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import type { MethodPointer } from '@/util/methodPointer'
 import { proxyRefs, useWatchContext } from '@/util/reactivity'
-import { computedAsync } from '@vueuse/core'
 import { useCallbackRegistry } from 'enso-common/src/utilities/data/callbacks'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { map, set } from 'lib0'
@@ -49,7 +44,7 @@ import {
   type ShallowReactive,
   type ShallowRef,
 } from 'vue'
-import type { ExpressionUpdate, Path as LsPath } from 'ydoc-shared/languageServerTypes'
+import type { ExpressionUpdate } from 'ydoc-shared/languageServerTypes'
 import { reachable } from 'ydoc-shared/util/data/graph'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { visMetadataEquals } from 'ydoc-shared/yjsModel'
@@ -665,16 +660,6 @@ export function createGraphStore(
     return true
   }
 
-  const modulePath: Ref<LsPath | undefined> = computedAsync(
-    async () => {
-      const rootId = await proj.projectRootId
-      const segments = ['src', 'Main.enso']
-      return rootId ? { rootId, segments } : undefined
-    },
-    undefined,
-    { onError: console.error },
-  )
-
   function onBeforeEdit(f: (transaction: Y.Transaction) => void): { unregister: () => void } {
     proj.module?.doc.ydoc.on('beforeTransaction', f)
     return { unregister: () => proj.module?.doc.ydoc.off('beforeTransaction', f) }
@@ -714,7 +699,6 @@ export function createGraphStore(
     isConnectedSource,
     isConnectedTarget,
     nodeCanBeEntered,
-    modulePath,
     connectedEdges,
     currentMethod: proxyRefs({
       ast: methodAst,

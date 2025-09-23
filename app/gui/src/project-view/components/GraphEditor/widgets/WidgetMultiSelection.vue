@@ -144,25 +144,26 @@ function onClick({
 }) {
   if (tag instanceof NestedChoiceTag) return
 
-  const edit = module.value.startEdit()
-  const directInteraction = true
-  const tagValue = tag.resolveExpression(edit, module.value)
-  const inputValue = editedValue.value ?? props.input.value
-  if (inputValue instanceof Ast.Vector) {
-    toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
-    props.updateCallback({ edit, directInteraction })
-  } else {
-    const vector = Ast.Vector.new(
-      edit,
-      inputValue instanceof Ast.Ast ? [edit.take(inputValue.id)] : [],
-    )
-    toggleVectorValue(vector, tagValue, previousState)
-    props.updateCallback({
-      edit,
-      portUpdate: { value: vector, origin: props.input.portId },
-      directInteraction,
-    })
-  }
+  module.value.edit((edit) => {
+    const directInteraction = true
+    const tagValue = tag.resolveExpression(edit, module.value)
+    const inputValue = editedValue.value ?? props.input.value
+    if (inputValue instanceof Ast.Vector) {
+      toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
+      return props.updateCallback({ edit, directInteraction })
+    } else {
+      const vector = Ast.Vector.new(
+        edit,
+        inputValue instanceof Ast.Ast ? [edit.take(inputValue.id)] : [],
+      )
+      toggleVectorValue(vector, tagValue, previousState)
+      return props.updateCallback({
+        edit,
+        portUpdate: { value: vector, origin: props.input.portId },
+        directInteraction,
+      })
+    }
+  })
 }
 </script>
 

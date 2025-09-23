@@ -3,10 +3,11 @@ import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { QualifiedImport } from '$/providers/openedProjects/module/imports'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { Ok } from '@/util/data/result'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 
-const { names, module, graph } = useCurrentProject().storesRefs
+const { names, module } = useCurrentProject().storesRefs
 
 const props = defineProps<{
   message: string
@@ -37,7 +38,10 @@ function fixImport() {
       kind: 'Qualified',
       module: libName,
     } satisfies QualifiedImport
-    module.value.edit((edit) => module.value.addMissingImports(edit, [theImport]))
+    module.value.edit((edit) => {
+      module.value.addMissingImports(edit, [theImport])
+      return Ok()
+    })
   }
 }
 </script>

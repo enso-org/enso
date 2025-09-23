@@ -11,6 +11,7 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { targetIsOutside } from '@/util/autoBlur'
+import { Result } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
@@ -23,7 +24,7 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { computed, ref, watch, type ComponentInstance, type ComputedRef } from 'vue'
+import { ComponentInstance, computed, ComputedRef, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import ResizableWidget from '../ResizableWidget.vue'
@@ -116,13 +117,20 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
   const focusedCell = api.getFocusedCell()
   if (focusedCell === null) console.warn('Pasting while no cell is focused!')
   else {
+    const checkAndWarn = (pasted: Result<{ rows: number; columns: number }>) => {
+      if (
+        pasted.ok &&
+        (pasted.value.rows < data.length || pasted.value.columns < (data[0]?.length ?? 0))
+      ) {
+        pasteWarning.show(`Truncated pasted data to keep table within ${CELLS_LIMIT} limit`)
+      }
+    }
     const pasted = pasteFromClipboard(data, {
       rowIndex: focusedCell.rowIndex,
       colId: focusedCell.column.getColId(),
     })
-    if (pasted.rows < data.length || pasted.columns < (data[0]?.length ?? 0)) {
-      pasteWarning.show(`Truncated pasted data to keep table within ${CELLS_LIMIT} limit`)
-    }
+    if (pasted instanceof Promise) pasted.then(checkAndWarn)
+    else checkAndWarn(pasted)
   }
   return []
 }

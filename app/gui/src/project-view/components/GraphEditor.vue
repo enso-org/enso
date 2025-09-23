@@ -201,6 +201,7 @@ const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
 )
 
 const { scheduleCreateNode, createNodes, placeNode } = provideNodeCreation(
+  module,
   graphStore,
   toRef(graphNavigator, 'viewport'),
   toRef(graphNavigator, 'sceneMousePos'),
@@ -576,14 +577,15 @@ function collapseNodes(nodes: Node[]) {
       )
       const position = collapsedNodePlacement(selectedNodeRects)
       edit.get(collapsedCallRoot).mutableNodeMetadata().set('position', position.xy())
-      if (outputAstId != null) {
-        const collapsedNodeRects = iter.filterDefined(
-          iter.map(collapsedNodeIds, graphStore.visibleArea),
-        )
-        const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
-        const position = place(collapsedNodeRects)
-        edit.get(outputAstId).mutableNodeMetadata().set('position', position.xy())
-      }
+
+      const collapsedNodeRects = iter.filterDefined(
+        iter.map(collapsedNodeIds, graphStore.visibleArea),
+      )
+      const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
+      const outputPosition = place(collapsedNodeRects)
+      edit.get(outputAstId).mutableNodeMetadata().set('position', outputPosition.xy())
+
+      return Ok()
     })
   } catch (err) {
     console.error('Error while creating User Defined Component, this is not normal.', err)

@@ -6,11 +6,9 @@ import { reactiveModule } from '@/util/ast/reactive'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { proxyRefs } from '@/util/reactivity'
-import { computedAsync } from '@vueuse/core'
 import { isPromise } from 'util/types'
-import { computed, reactive, type Ref, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
-import type { Path as LsPath } from 'ydoc-shared/languageServerTypes'
 import { defaultLocalOrigin, type Origin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 import { type ProjectNameStore } from '../projectNames'
@@ -38,15 +36,6 @@ export function createModuleStore(
   const root = ref<Ast.BodyBlock>()
   const synced = computed(() => root.value?.module as Ast.MutableModule | undefined)
   const ast = computed((): Ast.Module => synced.value!)
-  const modulePath: Ref<LsPath | undefined> = computedAsync(
-    async () => {
-      const rootId = await proj.projectRootId
-      const segments = ['src', 'Main.enso']
-      return rootId ? { rootId, segments } : undefined
-    },
-    undefined,
-    { onError: console.error },
-  )
 
   watch(
     () => proj.module,
@@ -93,10 +82,16 @@ export function createModuleStore(
    */
   function edit<T, R extends Result<T> | Promise<Result<T>>>(
     f: (edit: MutableModule) => R,
-    options: { skipTreeRepair?: boolean; origin?: Origin } = {},
+    options: {
+      skipTreeRepair?: boolean
+      origin?: Origin
+      logLevel?: 'none' | 'info' | 'warn' | 'error'
+      logPreamble?: string
+    } = {},
   ): R {
     assertDefined(synced.value)
     const edit = synced.value.edit()
+    const logLevel = options.logLevel ?? 'error'
 
     const treeRepair = (result: Result<T>) => {
       if (result.ok && options.skipTreeRepair !== true) {
@@ -109,6 +104,8 @@ export function createModuleStore(
 
     const applyEdit = (result: Result<T>) => {
       if (result.ok) synced.value?.applyEdit(edit, options.origin)
+      else if (logLevel !== 'none')
+        console[logLevel](result.error.message(options.logPreamble ?? 'Cannot commit AST edit.'))
       return result
     }
 
@@ -157,7 +154,10 @@ export function createModuleStore(
     ast.setWidgetMetadata(widgetKey, md)
   }
 
-  /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
+  /**
+   * Try adding imports. Do not add those conflicting with existing imports - return
+   * `DectedConflict` in such case.
+   */
   function addMissingImports(
     edit: MutableModule,
     newImports: RequiredImport[],

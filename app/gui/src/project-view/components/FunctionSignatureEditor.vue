@@ -44,8 +44,7 @@ const docsData = computed(() => {
 })
 
 function handleWidgetUpdates(update: WidgetUpdate) {
-  applyWidgetUpdates(update, module.value)
-  return Ok()
+  return applyWidgetUpdates(update, module.value)
 }
 
 const funcNameInput = computed(() => {
@@ -78,10 +77,10 @@ function handleAddItem() {
 }
 
 function doEdit(editFn: (ast: Ast.MutableFunctionDef, edit: Ast.MutableModule) => void) {
-  const edit = module.value.startEdit()
-  if (!edit) return
-  editFn(edit.getVersion(functionAst), edit)
-  handleWidgetUpdates({ edit, directInteraction: true })
+  module.value.edit((edit) => {
+    editFn(edit.getVersion(functionAst), edit)
+    return Ok()
+  })
 }
 
 const currentArgNames = (ast: Ast.FunctionDef) =>

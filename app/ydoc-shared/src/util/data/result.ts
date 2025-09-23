@@ -3,6 +3,7 @@
  * or an error.
  */
 
+import { isPromise } from 'util/types'
 import { isSome, type Opt } from './opt'
 
 /**
@@ -58,6 +59,26 @@ export function okOr<T, E>(data: Opt<T>, error: E): Result<T, E> {
 export function unwrap<T, E>(result: Result<T, E>): T {
   if (result.ok) return result.value
   else throw result.error
+}
+
+export function logIfError<T, E>(result: Result<T, E>, preamble?: string): Result<T, E>
+export function logIfError<T, E>(
+  result: Promise<Result<T, E>>,
+  preamble?: string,
+): Promise<Result<T, E>>
+export function logIfError<T, E>(
+  result: Result<T, E> | Promise<Result<T, E>>,
+  preamble?: string,
+): Result<T, E> | Promise<Result<T, E>>
+/** Log if the result of this potentially asynchronous operation is an error. */
+export function logIfError<T, E>(result: Result<T, E> | Promise<Result<T, E>>, preamble?: string) {
+  if (isPromise(result))
+    return result.then((result) => {
+      if (!result.ok) result.error.log(preamble)
+      return result
+    })
+  else if (!result.ok) result.error.log(preamble)
+  return result
 }
 
 /**

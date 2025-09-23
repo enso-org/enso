@@ -215,12 +215,13 @@ function onClick(clickedEntry: Entry, keepOpen: boolean) {
 }
 
 function expressionTagClicked(tag: ExpressionTag) {
-  const edit = module.value.startEdit()
-  const tagValue = tag.resolveExpression(edit, module.value)
-  props.updateCallback({
-    edit,
-    portUpdate: { value: tagValue, origin: props.input.portId },
-    directInteraction: true,
+  module.value.edit((edit) => {
+    const tagValue = tag.resolveExpression(edit, module.value)
+    return props.updateCallback({
+      edit,
+      portUpdate: { value: tagValue, origin: props.input.portId },
+      directInteraction: true,
+    })
   })
 }
 </script>

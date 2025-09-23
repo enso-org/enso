@@ -28,28 +28,29 @@ const textContents = computed(() =>
 function acceptValue(text: string): HandledUpdate {
   const module = currentProject.value.module
 
-  if (props.input.value instanceof Ast.TextLiteral) {
-    const edit = module.startEdit()
-    const value = edit.getVersion(props.input.value)
-    if (value.rawTextContent === text) return Ok()
-    value.setRawTextContent(text)
-    return props.updateCallback({ edit, directInteraction: true })
-  } else {
-    let value: Ast.Owned<Ast.MutableTextLiteral>
-    if (inputTextLiteral.value) {
-      value = Ast.copyIntoNewModule(inputTextLiteral.value)
+  return module.edit((edit) => {
+    if (props.input.value instanceof Ast.TextLiteral) {
+      const value = edit.getVersion(props.input.value)
+      if (value.rawTextContent === text) return Ok()
       value.setRawTextContent(text)
+      return props.updateCallback({ edit, directInteraction: true })
     } else {
-      value = Ast.TextLiteral.new(text)
+      let value: Ast.Owned<Ast.MutableTextLiteral>
+      if (inputTextLiteral.value) {
+        value = Ast.copyIntoNewModule(inputTextLiteral.value)
+        value.setRawTextContent(text)
+      } else {
+        value = Ast.TextLiteral.new(text)
+      }
+      return props.updateCallback({
+        portUpdate: {
+          value,
+          origin: props.input.portId,
+        },
+        directInteraction: true,
+      })
     }
-    return props.updateCallback({
-      portUpdate: {
-        value,
-        origin: props.input.portId,
-      },
-      directInteraction: true,
-    })
-  }
+  })
 }
 
 /** Widget Input as Text Literal; undefined if there's no value, or the value is not a Text literal. */

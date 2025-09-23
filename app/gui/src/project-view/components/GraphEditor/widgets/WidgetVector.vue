@@ -21,18 +21,20 @@ const project = useCurrentProject().ref
 const tree = injectWidgetTree()
 
 function doEdit(editFn: (ast: Ast.MutableVector) => void) {
-  if (props.input.value instanceof Ast.Vector) {
-    const edit = project.value.module.startEdit()
-    editFn(edit.getVersion(props.input.value))
-    props.updateCallback({ edit, directInteraction: true })
-  } else {
-    const value = Ast.Vector.new(MutableModule.Transient(), [])
-    editFn(value)
-    props.updateCallback({
-      portUpdate: { value, origin: props.input.portId },
-      directInteraction: true,
-    })
-  }
+  project.value.module.edit((edit) => {
+    if (props.input.value instanceof Ast.Vector) {
+      editFn(edit.getVersion(props.input.value))
+      return props.updateCallback({ edit, directInteraction: true })
+    } else {
+      const value = Ast.Vector.new(MutableModule.Transient(), [])
+      editFn(value)
+      return props.updateCallback({
+        edit,
+        portUpdate: { value, origin: props.input.portId },
+        directInteraction: true,
+      })
+    }
+  })
 }
 
 const itemConfig = computed(() =>

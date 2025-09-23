@@ -63,7 +63,6 @@ const makeSetPathUpdate = useSetPath({
   currentPath: currentPathAst,
   preferRawPath: () => !!typeInfo.value.rawPath?.prefer,
   portId: () => props.input.portId,
-  edit: () => module.value.startEdit(),
   addMissingConstructorImports: (edit, type) =>
     module.value.addMissingImports(
       edit,
@@ -72,7 +71,7 @@ const makeSetPathUpdate = useSetPath({
 })
 
 function setPath(type: 'file' | 'secret', path: string) {
-  props.updateCallback(makeSetPathUpdate(type, path))
+  module.value.edit((edit) => props.updateCallback(makeSetPathUpdate(type, path, edit)))
 }
 
 const write = computed(() => typeInfo.value.write)
