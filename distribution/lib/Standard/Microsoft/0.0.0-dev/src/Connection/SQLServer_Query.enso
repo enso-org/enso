@@ -24,6 +24,8 @@ type SQLServer_Query
             connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|
                 make_table_from_query connection raw_sql alias
 
+SQLServer_Query.from (that:Text) = SQLServer_Query.Table_Name that
+
 SQLServer_Query.From (that:SQL_Query) = case that of
     SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
     SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql
