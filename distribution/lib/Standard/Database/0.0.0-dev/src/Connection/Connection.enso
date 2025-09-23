@@ -21,8 +21,8 @@ import project.Internal.DDL_Transaction
 import project.Internal.Hidden_Table_Registry
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
-import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import project.Internal.JDBC_Connection.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
@@ -31,7 +31,6 @@ import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
 import project.SQL_Query.SQL_Query
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
-from project.Internal.JDBC_Connection import handle_sql_errors, JDBC_Connection
 from project.Internal.Result_Set import result_set_to_table
 from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 from project.Internal.Upload.Operations.Create import create_table_implementation

@@ -46,7 +46,6 @@ import project.Internal.Telemetry
 import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
-import project.SQL_Query.SQL_Query
 from project.SQL_Query import make_table_for_name
 
 polyglot java import java.sql.JDBCType
