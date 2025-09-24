@@ -583,14 +583,13 @@ lazy val modularFatJarWrapperSettings = frgaalJavaCompilerSetting ++ Seq(
   Compile / exportedModule := (Compile / exportedModuleBin).value
 )
 
-/**
- * Mockito agent needs to be explicitly set as `-javaagent` to the JVM.
- * Note that starting agent programatically was deprecated in JDK 21 and is scheduled to be removed.
- * See https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
- */
+/** Mockito agent needs to be explicitly set as `-javaagent` to the JVM.
+  * Note that starting agent programatically was deprecated in JDK 21 and is scheduled to be removed.
+  * See https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+  */
 lazy val mockitoAgentSettings: SettingsDefinition = Seq(
   libraryDependencies ++= Seq(
-    "org.mockito" % "mockito-core" % mockitoJavaVersion % Test,
+    "org.mockito" % "mockito-core" % mockitoJavaVersion % Test
   ),
   Test / javaOptions += {
     val logger = streams.value.log
@@ -4056,7 +4055,7 @@ lazy val `engine-runner` = project
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
               "--add-opens=java.base/java.nio=ALL-UNNAMED",
               // Needed for grpc-gax
-              "--add-opens=java.base/java.time=ALL-UNNAMED",
+              "--add-opens=java.base/java.time=ALL-UNNAMED"
             ) ++ enableHeapDumpOpts ++ debugOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
