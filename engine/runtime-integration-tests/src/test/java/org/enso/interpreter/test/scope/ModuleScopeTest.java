@@ -53,9 +53,11 @@ public class ModuleScopeTest {
   public void moduleMethodIsRegisteredInModuleScope() throws IOException {
     var mainSrc =
         Source.newBuilder(
-                LanguageInfo.ID, """
-        module_method _ = 42
-        """, "test.enso")
+                LanguageInfo.ID,
+                """
+                module_method _ = 42
+                """,
+                "test.enso")
             .build();
     // ModuleScope is populated in IrToTruffle - at runtime. So we have to evaluate
     // the main module before we inspect the ModuleScope.
@@ -73,9 +75,9 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-                type My_Type
-                    Value x
-            method self = self.x
+                    type My_Type
+                        Value x
+                method self = self.x
                 """,
                 "test.enso")
             .build();
@@ -92,10 +94,10 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-        type My_Type
-            Value x
-            method self = self.x
-        """,
+                type My_Type
+                    Value x
+                    method self = self.x
+                """,
                 "test.enso")
             .build();
     var mainMod = ctxRule.eval(mainSrc);
@@ -116,9 +118,9 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-        type My_Type
-            static_method = 42
-        """,
+                type My_Type
+                    static_method = 42
+                """,
                 "test.enso")
             .build();
     var mainMod = ctxRule.eval(mainSrc);
@@ -141,10 +143,10 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-        type My_Type
-            Value x
-        My_Type.extension_method self = self.x
-        """,
+                type My_Type
+                    Value x
+                My_Type.extension_method self = self.x
+                """,
                 "test.enso")
             .build();
     var mainMod = ctxRule.eval(mainSrc);
@@ -167,10 +169,10 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-        type My_Type
-            Value x
-            method self = self.x
-        """,
+                type My_Type
+                    Value x
+                    method self = self.x
+                """,
                 "test.enso")
             .build();
     var mainMod = ctxRule.eval(mainSrc);
@@ -194,9 +196,9 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-        type My_Type
-            Value x
-        """,
+                type My_Type
+                    Value x
+                """,
                 "test.enso")
             .build();
     var mainMod = ctxRule.eval(mainSrc);
@@ -259,14 +261,14 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-        type My_Type
-            Cons x
-            instance_method self = self.x
-            static_method = 42
+                type My_Type
+                    Cons x
+                    instance_method self = self.x
+                    static_method = 42
 
-        My_Type.extension_instance_method self = self.x
-        My_Type.extension_static_method = 84
-        """,
+                My_Type.extension_instance_method self = self.x
+                My_Type.extension_static_method = 84
+                """,
                 "test.enso")
             .build();
     var mod = ctxRule.eval(src);
@@ -324,14 +326,14 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-        type My_Type
-            Cons x
-            instance_method self = self.x
-            static_method = 42
+                type My_Type
+                    Cons x
+                    instance_method self = self.x
+                    static_method = 42
 
-        My_Type.extension_instance_method self = self.x
-        My_Type.extension_static_method = 84
-        """,
+                My_Type.extension_instance_method self = self.x
+                My_Type.extension_static_method = 84
+                """,
                 "test.enso")
             .build();
     var mod = ctxRule.eval(src);
