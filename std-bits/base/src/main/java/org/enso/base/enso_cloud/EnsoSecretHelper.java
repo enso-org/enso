@@ -28,16 +28,20 @@ import org.graalvm.collections.Pair;
 public final class EnsoSecretHelper extends SecretValueResolver {
   private static EnsoHTTPResponseCache cache;
 
-  /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
+  /**
+   * Gets a JDBC connection resolving EnsoKeyValuePair into the properties.
+   *
+   * @param properties properties in the form of {@code List<Pair<String, HideableValue>>}
+   */
   public static Connection getJDBCConnection(
       String url, List<Pair<String, HideableValue>> properties) throws SQLException {
     var javaProperties = new Properties();
     for (var pair : properties) {
       HideableValue value = pair.getRight();
       // Special handling for PrivateKey parameter.
-      if (value instanceof InterpretAsPrivateKey(HideableValue innerValue)) {
+      if (value instanceof HideableImpl.InterpretAsPrivateKey(HideableValue innerValue)) {
         String rawKey = resolveValue(innerValue);
-        PrivateKey key = InterpretAsPrivateKey.decodePrivateKey(rawKey);
+        PrivateKey key = HideableImpl.InterpretAsPrivateKey.decodePrivateKey(rawKey);
         javaProperties.put(pair.getLeft(), key);
       } else {
         javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));
