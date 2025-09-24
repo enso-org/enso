@@ -365,7 +365,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
         args.groups.window.name,
         args.groups.server.name,
         args.groups.engine.name,
-        args.groups.performance.name,
         args.groups.debug.name,
       ],
       helpExtended: args.options.helpExtended.value,

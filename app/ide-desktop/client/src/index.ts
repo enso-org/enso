@@ -246,19 +246,6 @@ class App {
    * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches.
    */
   setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
-    const addIf = (
-      option: contentConfig.Option<boolean>,
-      chromeOptName: string,
-      value?: string,
-    ) => {
-      if (option.value) {
-        const chromeOption = new configParser.ChromeOption(chromeOptName, value)
-        const chromeOptionStr = chromeOption.display()
-        const optionName = option.qualifiedName()
-        console.log(`Setting '${chromeOptionStr}' because '${optionName}' was enabled.`)
-        chromeOptions.push(chromeOption)
-      }
-    }
     const add = (option: string, value?: string) => {
       const chromeOption = new configParser.ChromeOption(option, value)
       const chromeOptionStr = chromeOption.display()
@@ -266,16 +253,8 @@ class App {
       chromeOptions.push(new configParser.ChromeOption(option, value))
     }
     console.log('Setting Chrome options')
-    const perfOpts = this.args.groups.performance.options
     // Needed to accept localhost self-signed cert
     add('ignore-certificate-errors')
-    addIf(perfOpts.disableGpuSandbox, 'disable-gpu-sandbox')
-    addIf(perfOpts.disableGpuVsync, 'disable-gpu-vsync')
-    addIf(perfOpts.disableSmoothScrolling, 'disable-smooth-scrolling')
-    addIf(perfOpts.enableNativeGpuMemoryBuffers, 'enable-native-gpu-memory-buffers')
-    addIf(perfOpts.forceHighPerformanceGpu, 'force_high_performance_gpu')
-    addIf(perfOpts.ignoreGpuBlocklist, 'ignore-gpu-blocklist')
-    add('use-angle', perfOpts.angleBackend.value)
     chromeOptions.sort((a, b) => a.name.localeCompare(b.name))
     if (chromeOptions.length > 0) {
       for (const chromeOption of chromeOptions) {
@@ -374,14 +353,12 @@ class App {
   async createWindowIfEnabled(windowSize: config.WindowSize) {
     await this.runIfEnabled(this.args.options.window, () => {
       console.log('Creating the window.')
-      const argGroups = this.args.groups
       const useFrame = this.args.groups.window.options.frame.value
       const macOS = process.platform === 'darwin'
       const useHiddenInsetTitleBar = !useFrame && macOS
       const webPreferences: electron.WebPreferences = {
         preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
         sandbox: true,
-        backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
         spellcheck: false,
         ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
       }
