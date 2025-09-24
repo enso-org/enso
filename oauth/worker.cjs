@@ -1,16 +1,25 @@
 // worker.js
-    const { parentPort, workerData } = require('worker_threads');
+const { parentPort, workerData } = require('worker_threads');
 
-    // Perform a CPU-intensive task
-    function calculateSum(limit) {
-        let sum = 0;
-        for (let i = 0; i <= limit; i++) {
-            sum += i;
-        }
-        return sum;
-    }
+const http = require('http'); // Import the built-in HTTP module
 
-    const result = calculateSum(workerData.limit);
+const hostname = '127.0.0.1'; // Localhost
+const port = 3000; // Port to listen on
 
-    // Send the result back to the main thread
-    parentPort.postMessage(result);
+// Create the server
+const server = http.createServer((req, res) => {
+  // Set the response HTTP header with status code and content type
+  res.statusCode = 200; // OK
+  res.setHeader('Content-Type', 'text/plain'); // Plain text response
+
+  // Send the response body
+  res.end('Hello, World, limit = ' + workerData.limit + '!\n');
+
+  const result = { asdf: 10 };
+  parentPort.postMessage(result);
+});
+
+// Start the server and listen for incoming requests
+server.listen(port, hostname, () => {
+  console.log(`Server running at http://${hostname}:${port}/`);
+});
