@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Metadata.Display
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
+import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
 
@@ -21,6 +22,7 @@ from Standard.Database.Connection.Connection import make_database_selector, make
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
+import project.Connection.SQLServer_Query.SQLServer_Query
 import project.Internal.SQLServer_Dialect
 
 type SQLServer_Connection
@@ -32,9 +34,9 @@ type SQLServer_Connection
        ## Arguments
         - `url`: The URL to connect to.
         - `properties`: A vector of properties for the connection.
-        - `make_new`: A function that returns a new connection.
+        - `make_new`: A function that returns a new connection for a new database.
         - `data_link_setup`: the setup for saving the connection as a data link.
-    create : Text -> Vector -> (Text -> Text -> SQLServer_Connection) -> Data_Link_Setup -> SQLServer_Connection
+    create : Text -> Vector -> (Text -> SQLServer_Connection) -> Data_Link_Setup -> SQLServer_Connection
     create url properties make_new data_link_setup =
         jdbc_connection = JDBC_Connection.create url properties
         jdbc_entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
@@ -50,8 +52,8 @@ type SQLServer_Connection
 
        ## Arguments
         - `connection`: the underlying connection.
-        - `make_new`: a function that returns a new connection.
-    Value connection make_new
+        - `make_new`: a function that returns a new connection given a database name.
+    private Value (connection:Connection) make_new
 
     ## ---
        icon: close
@@ -87,7 +89,7 @@ type SQLServer_Connection
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
         if database . equals_ignore_case self.database then self else
-            self.make_new database Nothing Nothing
+            self.make_new database
 
     ## ---
        icon: metadata
@@ -96,14 +98,15 @@ type SQLServer_Connection
        (or catalog).
     schemas : Vector Text
     schemas self =
-        self.connection.read_text_column "show schemas in database" "name"
+        self.connection.read_text_column "select name from sys.schemas" "name"
 
     ## ---
        icon: metadata
        ---
        Returns the name of the current schema.
     schema : Text
-    schema self = self.connection.schema
+    schema self =
+        self.connection.schema
 
     ## ---
        icon: metadata
@@ -116,7 +119,7 @@ type SQLServer_Connection
     set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
         if schema . equals_ignore_case self.schema then self else
-            self.make_new Nothing schema Nothing
+            SQL_Error.throw_sql_error "Changing the schema is not supported for SQL Server - this is a user-level property."
 
     ## ---
        group: Standard.Base.Metadata
@@ -155,8 +158,9 @@ type SQLServer_Connection
     tables : Text -> Text -> Text -> Vector -> Boolean -> Table
     tables self name_like:Text="" database:Text=self.database schema:Text=self.schema types=["TABLE", "VIEW"] all_fields=False =
         parsed_database = if database == "*" then Nothing else (if database == "" then self.database else database)
+        used_connection = if parsed_database.if_nothing self.database != self.database then self.set_database parsed_database else self
         parsed_schema = if schema == "*" then Nothing else (if schema == "" then self.schema else schema)
-        self.connection.tables (if name_like == "" then Nothing else name_like) parsed_database parsed_schema types all_fields
+        used_connection.connection.tables (if name_like == "" then Nothing else name_like) parsed_database parsed_schema types all_fields
 
     ## ---
        aliases: [import, load, open, read, sql]
@@ -178,8 +182,13 @@ type SQLServer_Connection
         - If provided with a `Table_Name` or a text short-hand and the table is
           not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : SQL_Query -> Text -> Table & DB_Table ! Table_Not_Found
-    query self query:SQL_Query alias="" = self.connection.query query alias
+    query : (SQLServer_Query | SQL_Query) -> Text -> Table & DB_Table ! Table_Not_Found
+    query self query:(SQLServer_Query | SQL_Query) alias="" =
+        used_query = case query of
+            SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
+            SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql
+            _ : SQLServer_Query -> query
+        self.connection.query used_query alias
 
     ## ---
        aliases: [import, load, open, query, sql]
@@ -203,9 +212,13 @@ type SQLServer_Connection
        results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
     @limit Rows_To_Read.default_widget
-    read : SQL_Query -> Rows_To_Read -> Table ! Table_Not_Found
-    read self query:SQL_Query (limit : Rows_To_Read = ..First_With_Warning 1000) =
-        self.connection.read query limit
+    read : (SQLServer_Query | SQL_Query) -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query:(SQLServer_Query | SQL_Query) (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        used_query = case query of
+            SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
+            SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql
+            _ : SQLServer_Query -> query
+        self.connection.read used_query limit
 
     ## ---
        group: Standard.Base.Output
@@ -377,5 +390,12 @@ type SQLServer_Connection
 ## ---
    private: true
    ---
-Table_Viz_Data.from (that:SQLServer_Connection) = 
-    Connections_Helpers.get_table_viz_data (that.connection.tables.at "Name" . to_vector)
+Table_Viz_Data.from (that:SQLServer_Connection) =
+    tables = that.connection.tables.filter "Schema" (..Is_In schema_black_list ..Remove)
+    Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}} {{@Schema}})", Table_Viz_Header.Label "Schema"] [tables.at "Name" . to_vector, tables.at "Schema" . to_vector]
+
+## ---
+   private: true
+   ---
+schema_black_list =
+    ["INFORMATION_SCHEMA", "sys", "db_accessadmin", "db_backupoperator", "db_datareader", "db_datawriter", "db_ddladmin", "db_denydatareader", "db_denydatawriter", "db_owner", "db_securityadmin"]

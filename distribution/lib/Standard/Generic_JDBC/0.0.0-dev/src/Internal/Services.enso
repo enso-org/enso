@@ -1,0 +1,10 @@
+private
+
+import Standard.Database.Connection.Database.Database_Connection_Details_SPI
+
+import project.Generic_JDBC_Connection.Generic_JDBC_Details
+
+type Impl
+
+Database_Connection_Details_SPI.from (_:Impl) =
+    Database_Connection_Details_SPI.new Generic_JDBC_Details "JDBC" "(Generic_JDBC_Details.Value)"
