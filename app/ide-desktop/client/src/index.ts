@@ -353,9 +353,6 @@ class App {
   async createWindowIfEnabled(windowSize: config.WindowSize) {
     await this.runIfEnabled(this.args.options.window, () => {
       console.log('Creating the window.')
-      const useFrame = this.args.groups.window.options.frame.value
-      const macOS = process.platform === 'darwin'
-      const useHiddenInsetTitleBar = !useFrame && macOS
       const webPreferences: electron.WebPreferences = {
         preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
         sandbox: true,
@@ -366,8 +363,8 @@ class App {
         webPreferences,
         width: windowSize.width,
         height: windowSize.height,
-        frame: useFrame,
-        titleBarStyle: useHiddenInsetTitleBar ? 'hiddenInset' : 'default',
+        frame: true,
+        titleBarStyle: 'default',
         ...(process.env.DEV_DARK_BACKGROUND ? { backgroundColor: '#36312c' } : {}),
       }
       const window = new electron.BrowserWindow(windowPreferences)
