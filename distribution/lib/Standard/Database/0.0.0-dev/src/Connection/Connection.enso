@@ -243,7 +243,11 @@ type Connection
     @query make_table_name_selector
     query : SQL_Query -> Text -> Table & DB_Table ! Table_Not_Found | SQL_Error
     query self query alias:Text="" =
-        query.to_db_table self alias
+        used_query = case query of
+            _ : Function -> query:SQL_Query
+            _ : Text -> SQL_Query.Table_Name query
+            _ -> query
+        used_query.to_db_table self alias
 
     ## ---
        private: true
