@@ -1,4 +1,4 @@
-import { AnyIcon } from '@/util/icons'
+import type { AnyIcon } from '@/util/icons'
 import type { ToValue } from '@/util/reactivity'
 import type { Ref } from 'vue'
 

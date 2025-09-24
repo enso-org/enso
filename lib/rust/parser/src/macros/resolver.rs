@@ -37,9 +37,11 @@ use crate::syntax::Finish;
 use crate::syntax::Item;
 use crate::syntax::NewlineConsumer;
 use crate::syntax::TokenConsumer;
+use crate::SyntaxError;
 
 use std::collections::HashMap;
 use std::collections::VecDeque;
+
 
 
 // ================
@@ -507,7 +509,7 @@ impl<'s> ResolverState<'s> {
                     Err(tokens) => tokens,
                 };
                 if let Some(excess) = self.expression_parser.parse(&mut excess.into()) {
-                    let excess = excess.with_error("Unexpected tokens in macro invocation.");
+                    let excess = excess.with_error(SyntaxError::MacroUnexpectedTokens);
                     tokens.push(excess.into());
                 }
                 let body = self.expression_parser.parse(&mut tokens);
@@ -530,7 +532,8 @@ impl<'s> ResolverState<'s> {
             items.push(segment.header.into());
         }
         let segment0 = self.segments.pop().unwrap();
-        let header0 = syntax::tree::to_ast(segment0.header).with_error("Invalid macro invocation.");
+        let header0 =
+            syntax::tree::to_ast(segment0.header).with_error(SyntaxError::InvalidMacroInvocation);
         items.extend(self.items.drain(segment0.items_start..).rev());
         self.items.push(header0.into());
         self.items.extend(items.into_iter().rev());

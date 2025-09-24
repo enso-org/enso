@@ -1,19 +1,19 @@
 import CodeEditorTooltip from '@/components/CodeEditor/CodeEditorTooltip.vue'
 import { astProp } from '@/components/CodeEditor/ensoSyntax'
-import { type VueHost } from '@/components/VueHostRender.vue'
-import { type GraphStore } from '@/stores/graph'
-import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
+import type { VueHost } from '@/components/VueHostRender.vue'
+import type { GraphStore } from '@/stores/graph'
+import type { SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
-import { type ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import { syntaxTree } from '@codemirror/language'
-import { type Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import {
   type EditorView,
   hoverTooltip as originalHoverTooltip,
   tooltips,
   type TooltipView,
 } from '@codemirror/view'
-import { type SyntaxNode } from '@lezer/common'
+import type { SyntaxNode } from '@lezer/common'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { h, markRaw, toValue } from 'vue'
 import { syntaxNodeAncestors } from 'ydoc-shared/util/lezer'

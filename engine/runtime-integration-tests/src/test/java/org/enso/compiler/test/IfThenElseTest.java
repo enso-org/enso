@@ -23,9 +23,10 @@ public class IfThenElseTest {
 
   @Test
   public void simpleIfThenElse() {
-    var code = """
-    check x = if x then "Yes" else "No"
-    """;
+    var code =
+        """
+        check x = if x then "Yes" else "No"
+        """;
 
     var check = ctxRule.getMethodFromModule(code, "check");
 
@@ -35,9 +36,10 @@ public class IfThenElseTest {
 
   @Test
   public void simpleIfThen() {
-    var code = """
-    check x = if x then "Yes"
-    """;
+    var code =
+        """
+        check x = if x then "Yes"
+        """;
 
     var check = ctxRule.getMethodFromModule(code, "check");
 
@@ -47,11 +49,12 @@ public class IfThenElseTest {
 
   @Test
   public void variableDefinedInThen() {
-    var code = """
-    check x = if x then
-        xt = x.to_text
-        "Good:"+xt
-    """;
+    var code =
+        """
+        check x = if x then
+            xt = x.to_text
+            "Good:"+xt
+        """;
 
     var check = ctxRule.getMethodFromModule(code, "check");
 
@@ -63,10 +66,10 @@ public class IfThenElseTest {
   public void variableDefinedInElse() {
     var code =
         """
-    check x = if x then "OKeyish:"+x.to_text else
-        xt = x.to_text
-        "Bad:"+xt
-    """;
+        check x = if x then "OKeyish:"+x.to_text else
+            xt = x.to_text
+            "Bad:"+xt
+        """;
     var check = ctxRule.getMethodFromModule(code, "check");
 
     assertEquals("OKeyish:True", check.execute(true).asString());
@@ -78,13 +81,13 @@ public class IfThenElseTest {
     try {
       var code =
           """
-    check x =
-        res = if x then "OKeyish:"+x.to_text else
-            xt = x.to_text
-            "Bad:"+xt
+          check x =
+              res = if x then "OKeyish:"+x.to_text else
+                  xt = x.to_text
+                  "Bad:"+xt
 
-        xt
-    """;
+              xt
+          """;
 
       var check = ctxRule.getMethodFromModule(code, "check");
       fail("Expecting error, but got: " + check);
@@ -99,9 +102,10 @@ public class IfThenElseTest {
 
   @Test
   public void conditionMustBeBoolean() {
-    var code = """
-    check x = if x then "Yes" else "No"
-    """;
+    var code =
+        """
+        check x = if x then "Yes" else "No"
+        """;
 
     var check = ctxRule.getMethodFromModule(code, "check");
 
@@ -123,13 +127,13 @@ public class IfThenElseTest {
   public void javaScriptBooleanIsSupported() {
     var code =
         """
-    foreign js toBool txt = '''
-      if (txt == "Ano") return true;
-      if (txt == "Ne") return false;
-      throw "What do you mean by: " + txt;
+        foreign js toBool txt = '''
+          if (txt == "Ano") return true;
+          if (txt == "Ne") return false;
+          throw "What do you mean by: " + txt;
 
-    check x = if toBool x then "Yes" else "No"
-    """;
+        check x = if toBool x then "Yes" else "No"
+        """;
 
     var check = ctxRule.getMethodFromModule(code, "check");
 
@@ -142,10 +146,10 @@ public class IfThenElseTest {
   public void truffleObjectConvertibleToBooleanIsSupported() {
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    check x = if x then "Yes" else "No"
-    """;
+        check x = if x then "Yes" else "No"
+        """;
 
     var check = ctxRule.getMethodFromModule(code, "check");
 
@@ -179,18 +183,19 @@ public class IfThenElseTest {
   public void warningsAndIfThenElse() {
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    check x = if x then "Yes" else "No"
-    """;
+        check x = if x then "Yes" else "No"
+        """;
 
     var check = ctxRule.getMethodFromModule(code, "check");
 
-    var warnCode = """
-    from Standard.Base import all
+    var warnCode =
+        """
+        from Standard.Base import all
 
-    warn w v = Warning.attach w v
-    """;
+        warn w v = Warning.attach w v
+        """;
     var warn = ctxRule.getMethodFromModule(warnCode, "warn");
 
     var t = warn.execute("Maybe", true);
@@ -207,19 +212,21 @@ public class IfThenElseTest {
 
   @Test
   public void warningsInThenOrElse() {
-    var code = """
-    from Standard.Base import all
+    var code =
+        """
+        from Standard.Base import all
 
-    check x y n = if x then y else n
-    """;
+        check x y n = if x then y else n
+        """;
 
     var check = ctxRule.getMethodFromModule(code, "check");
 
-    var warnCode = """
-    from Standard.Base import all
+    var warnCode =
+        """
+        from Standard.Base import all
 
-    warn w v = Warning.attach w v
-    """;
+        warn w v = Warning.attach w v
+        """;
     var warn = ctxRule.getMethodFromModule(warnCode, "warn");
 
     var y = warn.execute("Good", "Yes");
@@ -236,19 +243,21 @@ public class IfThenElseTest {
 
   @Test
   public void warningsInCondAndThenOrElse() {
-    var code = """
-    from Standard.Base import all
+    var code =
+        """
+        from Standard.Base import all
 
-    check x y n = if x then y else n
-    """;
+        check x y n = if x then y else n
+        """;
 
     var check = ctxRule.getMethodFromModule(code, "check");
 
-    var warnCode = """
-    from Standard.Base import all
+    var warnCode =
+        """
+        from Standard.Base import all
 
-    warn w v = Warning.attach w v
-    """;
+        warn w v = Warning.attach w v
+        """;
     var warn = ctxRule.getMethodFromModule(warnCode, "warn");
 
     var y = warn.execute("Good", "Yes");

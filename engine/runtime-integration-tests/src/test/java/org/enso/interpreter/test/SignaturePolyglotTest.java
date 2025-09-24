@@ -24,12 +24,12 @@ public class SignaturePolyglotTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import all
+                from Standard.Base import all
 
-    polyglot java import java.time.format.DateTimeFormatter
+                polyglot java import java.time.format.DateTimeFormatter
 
-    fn (x : DateTimeFormatter) = x.to_text
-    """,
+                fn (x : DateTimeFormatter) = x.to_text
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -63,12 +63,12 @@ public class SignaturePolyglotTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import all
+                from Standard.Base import all
 
-    polyglot java import java.time.format.DateTimeFormatter
+                polyglot java import java.time.format.DateTimeFormatter
 
-    fn x:(DateTimeFormatter | Text) = x.to_text
-    """,
+                fn x:(DateTimeFormatter | Text) = x.to_text
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();

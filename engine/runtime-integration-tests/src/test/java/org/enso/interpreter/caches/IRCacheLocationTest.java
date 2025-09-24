@@ -31,10 +31,12 @@ public class IRCacheLocationTest {
   public void noGlobalCacheOption_IsRespected() throws IOException {
     var projDir = tmpDir.newFolder();
     ProjectUtils.createProject(
-        "Proj", """
+        "Proj",
+        """
         main =
             42
-        """, projDir.toPath());
+        """,
+        projDir.toPath());
     var mainSrcPath = projDir.toPath().resolve("src").resolve("Main.enso");
 
     try (var ctx =
@@ -42,6 +44,7 @@ public class IRCacheLocationTest {
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
+                        .option(RuntimeOptions.CHECK_CWD, "false")
                         .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
                         .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
             .withProjectRoot(projDir.toPath())
@@ -62,10 +65,12 @@ public class IRCacheLocationTest {
   public void irCacheIsCreatedAlsoForDependencies() throws IOException {
     var libDir = tmpDir.newFolder("Lib");
     ProjectUtils.createProject(
-        "Lib", """
+        "Lib",
+        """
         lib_method =
             42
-        """, libDir.toPath());
+        """,
+        libDir.toPath());
 
     var projDir = tmpDir.newFolder("Proj");
     ProjectUtils.createProject(
@@ -84,6 +89,7 @@ public class IRCacheLocationTest {
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
+                        .option(RuntimeOptions.CHECK_CWD, "false")
                         .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
                         .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
             .withProjectRoot(projDir.toPath())

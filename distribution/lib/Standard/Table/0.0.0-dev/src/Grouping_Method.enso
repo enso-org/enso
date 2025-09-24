@@ -39,6 +39,20 @@ type Grouping_Method
          the table.
     Equal_Sum (on:(Text | Integer)=(Missing_Argument.throw "on")) (group_count:Integer=5) (order_by:(Vector | Text)=[])
 
+    ## Group elements by standard deviation.from
+
+       This method takes the standard deviation of the entire column, and then
+       groups each element by how much its difference from the mean compares to
+       the standard deviation. The set of groups is scaled just enough to
+       contain the values that differ the most from the standard deviation.
+
+       Arguments
+       - on: The column whose values should be summed to determine group
+         assignment. Must be a numeric column.
+       - population: Whether to compute the population standard deviation
+         (True) or the sample standard deviation (False). Defaults to False.
+    Standard_Deviation (on:(Text | Integer)=(Missing_Argument.throw "on")) (population:Boolean=False)
+
 ## Specifies the row representing a group.
 type Group_Row
     ## The row representing the group is the first row of the group.

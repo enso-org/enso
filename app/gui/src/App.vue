@@ -31,7 +31,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { computed, onMounted, shallowRef } from 'vue'
-import { ComponentProps } from 'vue-component-type-helpers'
+import type { ComponentProps } from 'vue-component-type-helpers'
 
 const { projectViewOnly } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
@@ -77,24 +77,15 @@ const { globalEventRegistry } = provideGlobalEventRegistry()
 useEvent(window, 'keydown', bindingsHandlers)
 useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
 
-const platformClass = (() => {
-  switch (platform()) {
-    case Platform.windows:
-      return 'onWindows'
-    case Platform.macOS:
-      return 'onMacOs'
-    case Platform.linux:
-      return 'onLinux'
-    case Platform.windowsPhone:
-      return 'onWindowsPhone'
-    case Platform.iPhoneOS:
-      return 'onIPhoneOs'
-    case Platform.android:
-      return 'onAndroid'
-    default:
-      return undefined
-  }
-})()
+const platformClass = {
+  [Platform.windows]: 'onWindows',
+  [Platform.macOS]: 'onMacOs',
+  [Platform.linux]: 'onLinux',
+  [Platform.windowsPhone]: 'onWindowsPhone',
+  [Platform.iPhoneOS]: 'onIPhoneOs',
+  [Platform.android]: 'onAndroid',
+  [Platform.unknown]: undefined,
+}[platform()]
 
 onMounted(() => {
   if (config.params.window.vibrancy) {

@@ -630,11 +630,11 @@ type Locale
         code_string = fqn + "." + field_name
         Option display_string code_string
 
-   private with_locale locale ~test =
-      default_locale = JavaLocale.getDefault
-      JavaLocale.setDefault locale.java_locale
-      result = Panic.catch Any test caught_panic->
-          JavaLocale.setDefault default_locale
-          Panic.throw caught_panic
-      JavaLocale.setDefault default_locale
-      result
+    private with_locale locale ~test =
+        default_locale = JavaLocale.getDefault
+        JavaLocale.setDefault locale.java_locale
+        result = Panic.catch Any test caught_panic->
+            JavaLocale.setDefault default_locale
+            Panic.throw caught_panic
+        JavaLocale.setDefault default_locale
+        result

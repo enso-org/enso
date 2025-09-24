@@ -137,7 +137,7 @@ function AppRouter(props: React.PropsWithChildren) {
         !eventModule.isElementTextInput(document.activeElement)
       ) {
         const selection = document.getSelection()
-        const app = document.getElementById('app')
+        const app = document.getElementById('ProjectView')
         const appContainsSelection =
           app != null &&
           selection != null &&

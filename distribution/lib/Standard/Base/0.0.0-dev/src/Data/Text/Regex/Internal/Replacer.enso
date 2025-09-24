@@ -7,6 +7,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
 from project.Data.Text.Extensions import all
+from project.Error import all
 
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.text.Replacer_Cache

@@ -6,7 +6,7 @@ import {
 } from '@/stores/project/computedValueRegistry'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
-import { type CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
@@ -40,7 +40,7 @@ import {
   type Ref,
   type WatchStopHandle,
 } from 'vue'
-import { type SourceDocument } from 'ydoc-shared/ast/sourceDocument'
+import type { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
@@ -73,13 +73,13 @@ export class GraphDb {
 
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
-    if (entry.pattern) entry.pattern.visitRecursive((ast) => void exprs.push(ast.id))
+    if (entry.pattern != null) Ast.visitRecursive(entry.pattern, (ast) => void exprs.push(ast.id))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
   private nodeIdToExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
-    entry.innerExpr.visitRecursive((ast) => void exprs.push(ast.id))
+    Ast.visitRecursive(entry.innerExpr, (ast) => void exprs.push(ast.id))
     return Array.from(exprs, (expr) => [id, expr])
   })
 
@@ -115,7 +115,7 @@ export class GraphDb {
   nodeOutputPorts = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     if (entry.pattern == null) return []
     const ports = new Set<AstId>()
-    entry.pattern.visitRecursive((ast) => {
+    Ast.visitRecursive(entry.pattern, (ast) => {
       if (this.bindings.has(ast.id)) {
         ports.add(ast.id)
         return false
@@ -428,7 +428,7 @@ export class GraphDb {
   updateExternalIds(topLevel: Ast.Ast) {
     const idToExternalNew = new Map()
     const idFromExternalNew = new Map()
-    topLevel.visitRecursive((ast) => {
+    Ast.visitRecursive(topLevel, (ast) => {
       idToExternalNew.set(ast.id, ast.externalId)
       idFromExternalNew.set(ast.externalId, ast.id)
     })

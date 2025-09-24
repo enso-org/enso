@@ -34,17 +34,17 @@ public class ModuleScopeTest {
         new SourceModule(
             QualifiedName.fromString("A_module"),
             """
-        type My_Type
-        My_Type.extension_method self = 42
-        """);
+            type My_Type
+            My_Type.extension_method self = 42
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.A_Module.My_Type
-        export project.A_Module.extension_method
-        main = 42
-        """);
+            export project.A_Module.My_Type
+            export project.A_Module.extension_method
+            main = 42
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
   }
@@ -73,10 +73,10 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-        type My_Type
-            Value x
+                type My_Type
+                    Value x
             method self = self.x
-        """,
+                """,
                 "test.enso")
             .build();
     var mainMod = ctxRule.eval(mainSrc);
@@ -219,16 +219,16 @@ public class ModuleScopeTest {
         new SourceModule(
             QualifiedName.fromString("Mod"),
             """
-        type My_Type
-            static_method _ = 1
-        """);
+            type My_Type
+                static_method _ = 1
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.Mod import My_Type
-        main = 2
-        """);
+            from project.Mod import My_Type
+            main = 2
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mod, mainMod), projDir);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");

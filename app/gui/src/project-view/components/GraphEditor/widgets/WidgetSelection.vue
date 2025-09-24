@@ -6,13 +6,13 @@ import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/S
 import { activityDropdownStyles } from '@/components/GraphEditor/widgets/WidgetSelection/styles'
 import {
   ActionTag,
-  Actions,
-  CustomDropdownItem,
-  Entry,
   ExpressionTag,
   NestedChoiceTag,
   useExpressionTags,
   useTagEntries,
+  type Actions,
+  type CustomDropdownItem,
+  type Entry,
 } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import OptionallyKeepAlive from '@/components/OptionallyKeepAlive.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
@@ -24,12 +24,12 @@ import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widge
 import { singleChoiceConfiguration } from '@/providers/widgetRegistry/configuration'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { type SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
+import type { SuggestionEntryArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
-import { type ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import { computed, ref, shallowRef, toRef, toValue, useTemplateRef, type VNode } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -245,7 +245,10 @@ export const widgetDefinition = defineWidget(
   {
     priority: 50,
     score: (props) =>
+      // We don’t want to show the dropdown until the dynamic config is received
+      // to avoid showing stale dropdown items. Custom dropdown items should be displayed without delay, though.
       props.input[CustomDropdownItemsKey] != null ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'Pending' ? Score.Mismatch
       : props.input.dynamicConfig?.kind === 'Single_Choice' ? Score.Perfect
       : isHandledByCheckboxWidget(props.input[ArgumentInfoKey]?.info) ? Score.Mismatch
         // TODO[ao] here, instead of checking for existing dynamic config, we should rather return

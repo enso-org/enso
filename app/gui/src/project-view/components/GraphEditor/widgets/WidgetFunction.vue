@@ -8,11 +8,11 @@ import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import {
-  HandledUpdate,
   Score,
   WidgetInput,
   defineWidget,
   widgetProps,
+  type HandledUpdate,
   type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
@@ -40,7 +40,7 @@ const project = useProjectStore()
 const exprInfo = computed(() => graph.db.getExpressionInfo(props.input.value.externalId))
 const outputType = computed(() => exprInfo.value?.typeInfo?.primaryType)
 
-const { methodCallInfo, application, subjectInfo } = useWidgetFunctionCallInfo(
+const { methodCallInfo, application, subject, subjectInfo } = useWidgetFunctionCallInfo(
   () => props.input,
   graph.db,
   project,
@@ -60,6 +60,7 @@ provideFunctionInfo(
     }),
     callInfo: methodCallInfo,
     outputType,
+    subject,
     subjectInfo,
   }),
 )

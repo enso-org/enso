@@ -1,50 +1,38 @@
-import type { Completion, CompletionContext, CompletionResult } from '@codemirror/autocomplete'
-import { computed } from 'vue'
+import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete'
+import { useCompletionData, type MethodCompletionInfo } from './completions'
 import { completionTypeAt } from './completionType'
-
-/** Completion information for a method. */
-export interface MethodCompletionInfo {
-  name: string
-  description?: string | undefined
-}
-
-function getMethodOptions(infos: MethodCompletionInfo[]) {
-  const methods: Completion[] = []
-  const binaryOperators: Completion[] = []
-  for (const { name, description } of infos) {
-    if (/^[a-z]/.test(name)) {
-      methods.push({
-        label: name,
-        type: 'method',
-        ...(description ? { detail: description } : {}),
-        apply: name,
-      })
-    } else {
-      binaryOperators.push({ label: name, type: 'operator' })
-    }
-  }
-  return {
-    methods,
-    methodsWithParens: methods.map((method) => ({ ...method, apply: `${method.apply}(` })),
-    binaryOperators,
-  }
-}
+export type { MethodCompletionInfo }
 
 /** @returns a function that can be used as a completion provider. */
-export function useCompletions(methods: (() => MethodCompletionInfo[]) | undefined) {
-  const methodOptions = computed(() => getMethodOptions(methods?.() ?? []))
-
+export function useCompletions(
+  methods: (() => MethodCompletionInfo[]) | undefined,
+  columns: (() => string[]) | undefined,
+) {
+  const {
+    valueOptions,
+    valueOptionsStartingWithIdentifier,
+    methodOptions,
+    columnOptions,
+    columnsWithBracket,
+  } = useCompletionData(methods, columns)
   return (context: CompletionContext): CompletionResult | null => {
     const completion = completionTypeAt(context.pos, context.state)
     if (!completion) return null
-    if (completion.type === 'functionName') {
-      const { pos, auto, insertDelim } = completion
-      if (!auto && !context.explicit) return null
-      return {
-        from: pos,
-        options: insertDelim ? methodOptions.value.methodsWithParens : methodOptions.value.methods,
-      }
-    }
-    return null
+    if (completion.auto === false && !context.explicit) return null
+    const options =
+      completion.type === 'value' ? valueOptions.value
+      : completion.type === 'functionName' ?
+        completion.insertDelim ?
+          valueOptionsStartingWithIdentifier.value
+        : methodOptions.value.methods
+      : completion.type === 'columnName' ?
+        completion.insertDelim ?
+          columnsWithBracket.value
+        : columnOptions.value
+      : completion.type === 'binop' ?
+        [...methodOptions.value.binaryOperators, ...methodOptions.value.postfixOperators]
+      : null
+    if (options == null) return null
+    return { from: completion.pos ?? context.pos, options }
   }
 }

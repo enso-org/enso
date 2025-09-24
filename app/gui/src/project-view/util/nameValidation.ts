@@ -4,7 +4,7 @@
  * This module copies implementation from NameValidation.scala module in the backend.
  */
 
-import { Identifier, isIdentifier } from '@/util/qualifiedName'
+import { isIdentifier, type Identifier } from '@/util/qualifiedName'
 
 /**
  * Transforms the given string into a valid package name.

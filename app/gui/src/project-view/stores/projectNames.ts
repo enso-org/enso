@@ -1,10 +1,10 @@
-import { Ok, Result } from '@/util/data/result'
+import { Ok, type Result } from '@/util/data/result'
 import { normalizeName } from '@/util/nameValidation'
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
 import { normalizeQualifiedName, qnJoin, tryQualifiedName } from '@/util/qualifiedName'
-import { type ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import { computed, ref, toValue } from 'vue'
-import { type Identifier, type QualifiedName } from 'ydoc-shared/ast'
+import type { Identifier, QualifiedName } from 'ydoc-shared/ast'
 
 export type ProjectNameStore = ReturnType<typeof createProjectNameStore>
 
@@ -70,15 +70,14 @@ export function createProjectNameStore({
     return normalizeQualifiedName(serializeUnnormalized(path))
   }
 
-  /**
-   * Serialize the path, including the `Main` segment if applicable. This is appropriate when the backend will be the
-   * direct consumer of the result, e.g. when serializing a `StackItem` to send to the language server.
-   */
-  function serializeProjectPathForBackend(path: ProjectPath): QualifiedName {
-    return serializeUnnormalized(path)
-  }
-
-  function serializeUnnormalized(path: ProjectPath): QualifiedName {
+  function serializeUnnormalized(path: ProjectPath): QualifiedName
+  function serializeUnnormalized<Nullish extends null | undefined>(
+    path: ProjectPath | Nullish,
+  ): QualifiedName | Nullish
+  function serializeUnnormalized<Nullish extends null | undefined>(
+    path: ProjectPath | Nullish,
+  ): QualifiedName | Nullish {
+    if (path == null) return path
     const project = path.project ?? outboundProject.value
     return path.path ? qnJoin(project, path.path) : project
   }
@@ -87,7 +86,12 @@ export function createProjectNameStore({
     parseProjectPath,
     parseProjectPathRaw,
     printProjectPath,
-    serializeProjectPathForBackend,
+    /**
+     * Serialize the path, including the `Main` segment if applicable. This is appropriate when the
+     * backend will be the direct consumer of the result, e.g. when serializing a `StackItem` to
+     * send to the language server.
+     */
+    serializeProjectPathForBackend: serializeUnnormalized,
     onProjectRenameRequested: (newName: string) => {
       pendingName.value = newName
     },

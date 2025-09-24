@@ -37,14 +37,14 @@ public class ExportResolutionOrderingTest {
         new SourceModule(
             QualifiedName.fromString("Synthetic_Module.A_Module"),
             """
-        type A_Type
-        """);
+            type A_Type
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.Synthetic_Module.A_Module.A_Type
-        """);
+            export project.Synthetic_Module.A_Module.A_Type
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
 
@@ -68,21 +68,21 @@ public class ExportResolutionOrderingTest {
         new SourceModule(
             QualifiedName.fromString("Synthetic_Module.A_Module"),
             """
-        type A_Type
-        """);
+            type A_Type
+            """);
     var bMod =
         new SourceModule(
             QualifiedName.fromString("Synthetic_Module.B_Module"),
             """
-        type B_Type
-        """);
+            type B_Type
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.Synthetic_Module.A_Module.A_Type
-        export project.Synthetic_Module.B_Module.B_Type
-        """);
+            export project.Synthetic_Module.A_Module.A_Type
+            export project.Synthetic_Module.B_Module.B_Type
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
 
@@ -111,15 +111,16 @@ public class ExportResolutionOrderingTest {
   public void testOrderingWithTwoSyntheticModules() throws IOException {
     var aMod =
         new SourceModule(
-            QualifiedName.fromString("Syn_1.Syn_2.A_Module"), """
-        type A_Type
-        """);
+            QualifiedName.fromString("Syn_1.Syn_2.A_Module"),
+            """
+            type A_Type
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.Syn_1.Syn_2.A_Module.A_Type
-        """);
+            export project.Syn_1.Syn_2.A_Module.A_Type
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
 

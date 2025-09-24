@@ -125,10 +125,10 @@ type Return_As_Table_Mock
         Panic.catch Type_Error (value:Return_As_Table_Mock) _->Nothing
 
 type SPI
-   private Value typ
+    private Value typ
 
-   new typ -> SPI = SPI.Value typ
+    new typ -> SPI = SPI.Value typ
 
-   private _get_known_return_classes -> Vector =
-      Meta.lookup_services SPI . map .typ
+    private _get_known_return_classes -> Vector =
+        Meta.lookup_services SPI . map .typ
 

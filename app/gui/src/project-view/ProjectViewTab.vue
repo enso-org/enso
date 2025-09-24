@@ -8,7 +8,7 @@
  * `hidden` property.
  */
 import ProjectView from '@/ProjectView.vue'
-import { ComponentProps } from 'vue-component-type-helpers'
+import type { ComponentProps } from 'vue-component-type-helpers'
 
 const _props = defineProps<{
   hidden: boolean

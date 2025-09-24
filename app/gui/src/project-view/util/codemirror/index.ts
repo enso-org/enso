@@ -1,37 +1,36 @@
 import { textEditorsBindings } from '@/bindings'
 import type CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import { type VueHost } from '@/components/VueHostRender.vue'
+import type { VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
 import {
   contentFocused,
   contentFocusedExt,
   setContentFocused,
 } from '@/util/codemirror/contentFocusedExt'
-import { CmEventExt, extendCmEvent, keyBindings } from '@/util/codemirror/keymap'
+import { extendCmEvent, keyBindings, type CmEventExt } from '@/util/codemirror/keymap'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import type { Vec2 } from '@/util/data/vec2'
 import { elementHierarchy } from '@/util/dom'
-import { type ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import type { AnyHandlerEvent } from '@/util/shortcuts'
 import {
   Compartment,
   EditorState,
+  Text,
+  Transaction,
   type Extension,
   type SelectionRange,
   type StateEffect,
   type StateEffectType,
-  Text,
-  Transaction,
-  TransactionSpec,
+  type TransactionSpec,
 } from '@codemirror/state'
 import { EditorView, placeholder } from '@codemirror/view'
 import { find, takeUntil } from 'enso-common/src/utilities/data/iter'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import { createDebouncer } from 'lib0/eventloop.js'
 import {
-  type ComponentInstance,
   computed,
   isRef,
   markRaw,
@@ -39,11 +38,13 @@ import {
   ref,
   toValue,
   watch,
+  type ComponentInstance,
   type WatchSource,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
+import type { LocalUserActionOrigin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
 function disableEditContextApi() {
@@ -257,7 +258,7 @@ export function useStringSync({ onTextEdited, onUserAction }: StringSyncOptions 
 }
 
 /** An extension synchronizing CM with a Y.Text node in the ref. */
-export function useYTextSync(content: ToValue<Y.Text | undefined>) {
+export function useYTextSync(content: ToValue<Y.Text | undefined>, origin?: LocalUserActionOrigin) {
   const syncCompartment = new Compartment()
   const awareness = new Awareness(new Y.Doc())
 
@@ -266,7 +267,7 @@ export function useYTextSync(content: ToValue<Y.Text | undefined>) {
     if (contentValue != null) {
       assert(contentValue.doc !== null)
       const yTextWithDoc: Y.Text & { doc: Y.Doc } = contentValue as any
-      return { text: contentValue.toString(), extensions: yCollab(yTextWithDoc, awareness) }
+      return { text: contentValue.toString(), extensions: yCollab(yTextWithDoc, awareness, origin) }
     } else {
       return { text: '', extensions: [] }
     }

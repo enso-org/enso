@@ -12,6 +12,7 @@ module org.enso.pkg {
   requires static org.graalvm.nativeimage;
 
   exports org.enso.pkg;
+  exports org.enso.pkg.archive;
   exports org.enso.pkg.validation;
   exports org.enso.filesystem;
 }

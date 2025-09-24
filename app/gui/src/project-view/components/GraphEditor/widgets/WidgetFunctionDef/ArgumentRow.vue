@@ -2,19 +2,19 @@
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { EnsoExpression } from '@/components/GraphEditor/widgets/WidgetEnsoExpression.vue'
 import {
-  type ArgumentDefaultKind,
   createDefaultExpressionOfKind,
   getArgumentDefaultKind,
+  type ArgumentDefaultKind,
 } from '@/components/GraphEditor/widgets/WidgetFunctionDef/argumentAst'
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import { EnsoTypeExpression } from '@/components/GraphEditor/widgets/WidgetTypeExpression.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
-import { PortId, syntheticPortId } from '@/providers/portInfo'
+import type { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import { syntheticPortId, type PortId } from '@/providers/portInfo'
 import {
   rewritePortValueUpdate,
-  type UpdateHandler,
   WidgetInput,
+  type UpdateHandler,
   type WidgetUpdate,
 } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'

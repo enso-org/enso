@@ -11,6 +11,7 @@ import project.Panic.Panic
 import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Error import all
 
 ## ---
    private: true

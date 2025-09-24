@@ -1,9 +1,9 @@
 import { Plan } from '#/services/Backend'
 import type { UserSession } from '$/providers/auth'
 import { useText } from '$/providers/text'
-import { ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import { computed, toValue, watch } from 'vue'
-import { Opt } from 'ydoc-shared/util/data/opt'
+import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /**
  * Composable for managing the app title based on user authentication and plan.

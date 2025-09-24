@@ -1,6 +1,6 @@
 import { EnsoPath } from '#/services/Backend'
-import { Err, Ok, Result } from '@/util/data/result'
-import { ToValue } from '@/util/reactivity'
+import { Err, Ok, type Result } from '@/util/data/result'
+import type { ToValue } from '@/util/reactivity'
 import { urlParse } from '@/util/url'
 import { toValue } from 'vue'
 

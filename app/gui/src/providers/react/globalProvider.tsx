@@ -1,9 +1,11 @@
 import LocalStorage from '#/utilities/LocalStorage'
-import { AuthStore, useAuth } from '$/providers/auth'
-import { BackendsStore, useBackends } from '$/providers/backends'
+import { useActionsStore, type ActionsStore } from '$/providers/actions'
+import { useAuth, type AuthStore } from '$/providers/auth'
+import { useBackends, type BackendsStore } from '$/providers/backends'
 import { useHttpClient } from '$/providers/httpClient'
-import { QueryParams, useQueryParams } from '$/providers/queryParams'
+import { useQueryParams, type QueryParams } from '$/providers/queryParams'
 import {
+  ActionsContext,
   ConfigContext,
   HTTPClientContext,
   LocalStorageContext,
@@ -13,10 +15,10 @@ import {
 import { AuthContext } from '$/providers/react/auth'
 import { BackendsContext } from '$/providers/react/backends'
 import { QueryParamsContext } from '$/providers/react/queryParams'
-import { RouterContext, RouterForReact } from '$/providers/react/router'
-import { SessionStore, useSession } from '$/providers/session'
-import { TextStore, useText } from '$/providers/text'
-import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
+import { RouterContext, type RouterForReact } from '$/providers/react/router'
+import { useSession, type SessionStore } from '$/providers/session'
+import { useText, type TextStore } from '$/providers/text'
+import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { reactComponent } from '@/util/react'
 import { proxyRefs } from '@/util/reactivity'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
@@ -33,6 +35,7 @@ interface ContextsForReactProviderProps {
   session: SessionStore
   auth: AuthStore
   queryParams: QueryParams
+  actionsStore: ActionsStore
 }
 
 /**
@@ -54,6 +57,7 @@ export const ContextsForReactProvider = reactComponent(
       session,
       auth,
       queryParams,
+      actionsStore,
     } = props
     return (
       <RouterContext.Provider value={router}>
@@ -65,7 +69,9 @@ export const ContextsForReactProvider = reactComponent(
                   <AuthContext.Provider value={auth}>
                     <QueryParamsContext.Provider value={queryParams}>
                       <BackendsContext.Provider value={backends}>
-                        {children}
+                        <ActionsContext.Provider value={actionsStore}>
+                          {children}
+                        </ActionsContext.Provider>
                       </BackendsContext.Provider>
                     </QueryParamsContext.Provider>
                   </AuthContext.Provider>
@@ -94,6 +100,7 @@ export const ContextsForReactProvider = reactComponent(
         session: useSession(),
         auth: useAuth(),
         queryParams: useQueryParams(),
+        actionsStore: useActionsStore(),
       })
       // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
       // avoids the code path that assigns that property to overwrite a computed value with constant.

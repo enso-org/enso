@@ -7,7 +7,7 @@ import * as locate from './locate'
 import { edgesFromNode, edgesToNode } from './locate'
 import { mockSuggestion } from './suggestionUpdates'
 
-const MAIN_FILE_NODES = 13
+const MAIN_FILE_NODES = 14
 const EDGE_PARTS = 2
 
 const COLLAPSE_SHORTCUT = `${CONTROL_KEY}+G`

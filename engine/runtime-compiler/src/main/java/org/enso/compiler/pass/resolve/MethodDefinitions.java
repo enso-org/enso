@@ -136,10 +136,11 @@ public final class MethodDefinitions implements MiniPassFactory {
                           Name resolvedName =
                               switch (sourceTypeExpr) {
                                 case Name name -> resolveType(name, bindingsMap);
-                                default -> new Conversion(
-                                    sourceTypeExpr,
-                                    UnsupportedSourceType$.MODULE$,
-                                    new MetadataStorage());
+                                default ->
+                                    new Conversion(
+                                        sourceTypeExpr,
+                                        UnsupportedSourceType$.MODULE$,
+                                        new MetadataStorage());
                               };
                           var resolvedMethod =
                               conversionMethod.copy(
@@ -152,8 +153,9 @@ public final class MethodDefinitions implements MiniPassFactory {
                                   conversionMethod.id());
                           yield resolvedMethod;
                         }
-                        default -> throw new CompilerError(
-                            "Unexpected method type in MethodDefinitions pass.");
+                        default ->
+                            throw new CompilerError(
+                                "Unexpected method type in MethodDefinitions pass.");
                       };
                     } else {
                       return def;

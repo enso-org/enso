@@ -57,6 +57,7 @@ export const widgetDefinition = defineWidget(
     priority: 1001,
     score: (props) => {
       if (
+        props.input.dynamicConfig?.kind === 'Numeric_Input' ||
         props.input.value instanceof Ast.NumericLiteral ||
         (props.input.value instanceof Ast.NegationApp &&
           props.input.value.argument instanceof Ast.NumericLiteral)

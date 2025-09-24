@@ -1,7 +1,7 @@
 /** @file Context for a button group. */
 import { createContext, useContext, type PropsWithChildren, type RefObject } from 'react'
 import type { ButtonGroupSharedButtonProps, ButtonProps, PrivateJoinedButtonProps } from './types'
-import { type ButtonVariants } from './variants'
+import type { ButtonVariants } from './variants'
 
 /**
  * Context for a button group.

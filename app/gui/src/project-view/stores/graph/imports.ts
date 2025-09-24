@@ -1,4 +1,4 @@
-import { type ProjectNameStore } from '@/stores/projectNames'
+import type { ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
@@ -8,7 +8,7 @@ import {
   type Identifier,
   type IdentifierOrOperatorIdentifier,
 } from '@/util/ast/abstract'
-import { type ProjectPath } from '@/util/projectPath'
+import type { ProjectPath } from '@/util/projectPath'
 import {
   normalizeQualifiedName,
   qnLastSegment,

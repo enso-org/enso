@@ -1,4 +1,4 @@
-import { BackendsStore } from '$/providers/backends'
+import type { BackendsStore } from '$/providers/backends'
 import { useInReactFunction, useVueValue } from '$/providers/react/common'
 import * as react from 'react'
 

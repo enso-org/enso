@@ -77,14 +77,16 @@ public enum NumberWithSeparators {
         switch (thousands) {
           case Constants.NONE -> matchForNone(decimals);
           case Constants.UNKNOWN -> matchForUnknown(decimals);
-          case ',' -> switch (decimals) {
-            case Constants.UNKNOWN, Constants.NONE, '.' -> Optional.of(COMMA_DOT);
-            default -> Optional.empty();
-          };
-          case '.' -> switch (decimals) {
-            case Constants.UNKNOWN, Constants.NONE, ',' -> Optional.of(DOT_COMMA);
-            default -> Optional.empty();
-          };
+          case ',' ->
+              switch (decimals) {
+                case Constants.UNKNOWN, Constants.NONE, '.' -> Optional.of(COMMA_DOT);
+                default -> Optional.empty();
+              };
+          case '.' ->
+              switch (decimals) {
+                case Constants.UNKNOWN, Constants.NONE, ',' -> Optional.of(DOT_COMMA);
+                default -> Optional.empty();
+              };
           case ' ' -> matchForSpace(decimals);
           case '\'' -> matchForSwiss(decimals);
           case '_' -> matchForUnderscore(decimals);
@@ -299,12 +301,14 @@ public enum NumberWithSeparators {
         switch (separator) {
           case '.' -> DOT_COMMA;
           case ',' -> separatorCount == 1 ? COMMA_UNKNOWN : COMMA_DOT;
-          case ' ' -> (decimal == Constants.UNKNOWN
-              ? SPACE_UNKNOWN
-              : (decimal == '.' ? SPACE_DOT : SPACE_COMMA));
-          case '\'' -> (decimal == Constants.UNKNOWN
-              ? SWISS_UNKNOWN
-              : (decimal == '.' ? SWISS_DOT : SWISS_COMMA));
+          case ' ' ->
+              (decimal == Constants.UNKNOWN
+                  ? SPACE_UNKNOWN
+                  : (decimal == '.' ? SPACE_DOT : SPACE_COMMA));
+          case '\'' ->
+              (decimal == Constants.UNKNOWN
+                  ? SWISS_UNKNOWN
+                  : (decimal == '.' ? SWISS_DOT : SWISS_COMMA));
           default -> null;
         };
     if (format == null) {
@@ -445,12 +449,10 @@ public enum NumberWithSeparators {
           switch (firstSeparator) {
             case '.' -> secondSeparator == ',' ? DOT_COMMA : null;
             case ',' -> secondSeparator == '.' ? COMMA_DOT : null;
-            case ' ' -> secondSeparator == '.'
-                ? SPACE_DOT
-                : secondSeparator == ',' ? SPACE_COMMA : null;
-            case '\'' -> secondSeparator == '.'
-                ? SWISS_DOT
-                : secondSeparator == ',' ? SWISS_COMMA : null;
+            case ' ' ->
+                secondSeparator == '.' ? SPACE_DOT : secondSeparator == ',' ? SPACE_COMMA : null;
+            case '\'' ->
+                secondSeparator == '.' ? SWISS_DOT : secondSeparator == ',' ? SWISS_COMMA : null;
             default -> null;
           };
     } else if (firstSeparator == '.') {

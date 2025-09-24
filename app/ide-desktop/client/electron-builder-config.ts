@@ -22,6 +22,7 @@ import * as paths from './paths'
 import computeHashes from './tasks/computeHashes'
 import signArchivesMacOs from './tasks/signArchivesMacOs'
 
+import path from 'node:path'
 import BUILD_INFO from './buildInfo'
 
 // =============
@@ -292,7 +293,39 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
       sign: false,
     },
     afterAllArtifactBuild: computeHashes,
-    afterPack: (context: electronBuilder.AfterPackContext) => {
+    afterPack: async (context: electronBuilder.AfterPackContext) => {
+      // AppImage is known to have sandboxing issues, for example:
+      // https://github.com/enso-org/enso/issues/3801 or
+      // https://github.com/enso-org/enso/issues/11035
+      //
+      // A solution to them is to run AppImage with --no-sandbox option (just passing no-sandbox
+      // as chrome option didn't seem to work). Wrapped app in a "sandbox fix loader"
+      // similar to https://github.com/gergof/electron-builder-sandbox-fix/blob/master/lib/index.js
+      // 'electron-builder-sandbox-fix' failed to detect the necessity of sandbox, so we just always
+      // add the option instead. This does not lower security, because Enso processes have access
+      // to user's filesystem anyway.
+      if (passedArgs.platform === electronBuilder.Platform.LINUX) {
+        if (
+          !('executableName' in context.packager) ||
+          typeof context.packager.executableName !== 'string'
+        )
+          throw new Error('Expected executableName in context.packager')
+        const executableName = context.packager.executableName
+        const executable = path.join(context.appOutDir, executableName)
+        const loaderScript = `#!/usr/bin/env bash
+        set -u
+
+        SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+        exec "$SCRIPT_DIR/${executableName}.bin" --no-sandbox "$@"
+        `
+        try {
+          await fs.rename(executable, executable + '.bin')
+          await fs.writeFile(executable, loaderScript)
+          await fs.chmod(executable, 0o755)
+        } catch (e) {
+          throw new Error('Failed to create loader for sandbox fix', { cause: e })
+        }
+      }
       if (passedArgs.platform === electronBuilder.Platform.MAC) {
         // Make the subtree writable, so we can sign the binaries.
         // This is needed because GraalVM distribution comes with read-only binaries.

@@ -6,9 +6,9 @@ import GraphEditor from '@/components/GraphEditor.vue'
 import { provideEventLogger } from '@/providers/eventLogging'
 import { provideProjectBackend } from '@/providers/projectBackend'
 import { provideVisibility } from '@/providers/visibility'
-import { type LsUrls } from '@/stores/project'
+import type { LsUrls } from '@/stores/project'
 import { provideSettings } from '@/stores/settings'
-import { type Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 import { useEventListener } from '@vueuse/core'
 import {
   markRaw,
@@ -77,7 +77,7 @@ onDeactivated(() => (visible.value = false))
 </script>
 
 <template>
-  <div class="ProjectView">
+  <div id="ProjectView" class="ProjectView">
     <WithCurrentProject :id="projectId">
       <!-- Key property is needed because of still many usages of deprecated useXStore 
        (see WithCurrentProject.vue). Once all those usages disappear, fully remouting GraphEditor

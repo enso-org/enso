@@ -47,7 +47,8 @@ public class NativeLibraryFinderTest {
   @Test
   public void standardImageShouldHaveNativeLib() {
     // Evaluate dummy sources to force loading Standard.Image
-    ctxRule.evalModule("""
+    ctxRule.evalModule(
+        """
         from Standard.Image import all
         main = 42
         """);
@@ -67,7 +68,8 @@ public class NativeLibraryFinderTest {
   @Test
   public void standardTableauShouldHaveNativeLib() {
     // Evaluate dummy sources to force loading Standard.Tableau
-    ctxRule.evalModule("""
+    ctxRule.evalModule(
+        """
         from Standard.Tableau import all
         main = 42
         """);
