@@ -87,6 +87,7 @@ export default forwardRef(function Label(
 
           {onDelete && (
             <Button
+              href="#"
               icon="tab_close"
               variant="icon"
               size="small"
