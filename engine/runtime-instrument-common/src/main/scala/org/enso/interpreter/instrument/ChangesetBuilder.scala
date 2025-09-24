@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument
 
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
   Expression,
@@ -9,10 +8,8 @@ import org.enso.compiler.core.ir.{
   Location,
   Name
 }
-import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core._
 import org.enso.compiler.core.ir.expression.Application
-import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.suggestions.SimpleUpdate
 import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.text.editing.model.{IdMap, TextEdit}
@@ -133,43 +130,6 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     */
   @throws[CompilerError]
   def compute(edits: Seq[TextEdit]): Set[UUID @ExternalID] = {
-    @scala.annotation.unused
-    val metadata = ir
-      .unsafeGetMetadata(
-        DataflowAnalysis,
-        "Empty dataflow analysis metadata during changeset calculation."
-      )
-
-    @scala.annotation.tailrec
-    @scala.annotation.unused
-    def go(
-      queue: mutable.Queue[DataflowAnalysis.DependencyInfo.Type],
-      visited: mutable.Set[DataflowAnalysis.DependencyInfo.Type]
-    ): Set[UUID @ExternalID] =
-      if (queue.isEmpty) visited.flatMap(_.externalId).toSet
-      else {
-        val elem       = queue.dequeue()
-        val transitive = metadata.dependents.get(elem).getOrElse(Set())
-        val dynamic = transitive
-          .flatMap {
-            case DataflowAnalysis.DependencyInfo.Type.Static(int, _) =>
-              ChangesetBuilder
-                .getExpressionName(ir, int)
-                .map(DataflowAnalysis.DependencyInfo.Type.Dynamic(_, None))
-            case dyn: DataflowAnalysis.DependencyInfo.Type.Dynamic =>
-              Some(dyn)
-            case _ =>
-              None
-          }
-          .flatMap(metadata.dependents.get)
-          .flatten
-        val combined = transitive.union(dynamic)
-
-        go(
-          queue ++= combined.diff(visited),
-          visited ++= combined
-        )
-      }
 
     val nodeIds = invalidateExact(edits)
     /*val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
@@ -182,7 +142,9 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     nodeIds.flatMap(_.externalId)
   }
 
-  def invalidateExact(edits: Seq[TextEdit]): Set[ChangesetBuilder.NodeId] = {
+  private def invalidateExact(
+    edits: Seq[TextEdit]
+  ): Set[ChangesetBuilder.NodeId] = {
     val allEdits = edits.toSet
 
     @scala.annotation.tailrec
@@ -719,51 +681,6 @@ object ChangesetBuilder {
       IndexedSource[A].toIndex(edit.range.start, source),
       IndexedSource[A].toIndex(edit.range.end, source)
     )
-  }
-
-  /** Convert invalidated node to the dataflow dependency type.
-    *
-    * @param node the invalidated node
-    * @return the dataflow dependency type
-    */
-  @scala.annotation.unused
-  private def toDataflowDependencyTypes(
-    node: NodeId
-  ): Seq[DataflowAnalysis.DependencyInfo.Type] = {
-    val static = DataflowAnalysis.DependencyInfo.Type
-      .Static(node.internalId, node.externalId)
-    val dynamic = node.name.map { name =>
-      DataflowAnalysis.DependencyInfo.Type.Dynamic(name, node.externalId)
-    }
-    static +: dynamic.toSeq
-  }
-
-  /** Get expression name by the given id.
-    *
-    * @param ir the IR tree
-    * @param id the node identifier
-    * @return the node name
-    */
-  @scala.annotation.unused
-  private def getExpressionName(
-    ir: IR,
-    id: UUID @Identifier
-  ): Option[String] = {
-    IR.preorder(
-      ir,
-      { ir =>
-        if (ir.getId == id)
-          ir match {
-            case name: Name =>
-              return Some(name.name)
-            case method: definition.Method =>
-              return Some(method.methodName.name)
-            case _ =>
-              return None
-          }
-      }
-    )
-    None
   }
 
 }

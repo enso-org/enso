@@ -2388,13 +2388,21 @@ private[runtime] class IrToTruffle(
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE
       }
 
+      val funId = application
+        .function()
+        .getExternalId()
+        .map(new ExternalUUID(_)) getOrElse (new InternalUUID(
+        application.function().getId
+      ))
       val appNode = ApplicationNode.build(
         this.run(application.function, subjectToInstrumentation),
         callArgs.toArray,
         defaultsExecutionMode
       )
 
-      setLocation(appNode, application.identifiedLocation)
+      val r = setLocation(appNode, application.identifiedLocation)
+      r.setCallableDirectId(funId)
+      r
     }
 
   }

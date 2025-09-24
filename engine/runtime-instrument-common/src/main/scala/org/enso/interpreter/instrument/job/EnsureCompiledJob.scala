@@ -464,20 +464,23 @@ class EnsureCompiledJob(
     ctx.state.executionHooks.add(new Runnable {
       override def run(): Unit = {
         ctx.contextManager.getAllContexts.values.foreach { stack =>
-          val runtimeCache =
-            stack.headOption.flatMap(frame => Option(frame.cache))
+          val runtimeCaches =
+            stack.flatMap(frame => Option(frame.cache)).toSeq
           val uuids = changeset.invalidated ++ resolutionErrors
-          runtimeCache.foreach { cache =>
+          val allCachedUpdates = runtimeCaches.flatMap { cache =>
             val directlyInvalidated =
               uuids.flatMap(uuid => Option(cache.get(uuid))).toSeq
             val transitivelyInvalidated =
               invalidateTransitiveDependenceis(directlyInvalidated)
             cache.invalidate(transitivelyInvalidated.map(_.id()).asJava)
-            val allCachedUpdates = transitivelyInvalidated.filter(_.isUpdatable)
-            // pending updates
-            val expressionUpdates = allCachedUpdates.map { key =>
+            transitivelyInvalidated.filter(_.isUpdatable)
+          }
+
+          // pending updates
+          val expressionUpdates =
+            allCachedUpdates.map(_.id().uuid()).toSet.map { key =>
               Api.ExpressionUpdate(
-                key.id().uuid(),
+                key,
                 None,
                 None,
                 Vector.empty,
@@ -486,13 +489,13 @@ class EnsureCompiledJob(
                 Api.ExpressionUpdate.Payload.Pending(None, None)
               )
             }
-            if (expressionUpdates.nonEmpty) {
-              ctx.contextManager.getAllContexts.keys.foreach { contextId =>
-                val response = Api.Response(
-                  Api.ExpressionUpdates(contextId, expressionUpdates)
-                )
-                ctx.endpoint.sendToClient(response)
-              }
+
+          if (expressionUpdates.nonEmpty) {
+            ctx.contextManager.getAllContexts.keys.foreach { contextId =>
+              val response = Api.Response(
+                Api.ExpressionUpdates(contextId, expressionUpdates)
+              )
+              ctx.endpoint.sendToClient(response)
             }
           }
         }

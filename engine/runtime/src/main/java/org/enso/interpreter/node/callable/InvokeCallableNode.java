@@ -22,6 +22,7 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.RuntimeAnalysis;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -98,6 +99,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Child private ThunkExecutorNode thisExecutor;
   @Child private ThunkExecutorNode thatExecutor;
   @Child private InvokeCallableNode childDispatch;
+  private @CompilerDirectives.CompilationFinal RuntimeID funId = null;
 
   private final boolean canApplyThis;
   private final boolean canApplyThat;
@@ -283,7 +285,13 @@ public abstract class InvokeCallableNode extends BaseNode {
             thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = selfArgument;
       }
-      return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
+      RuntimeAnalysis runtimeAnalysis = EnsoContext.get(this).currentRuntimeAnalysis();
+      try {
+        runtimeAnalysis.enterNode(funId);
+        return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
+      } finally {
+        runtimeAnalysis.exitNode(funId);
+      }
     } else {
       CompilerDirectives.transferToInterpreter();
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
@@ -455,8 +463,14 @@ public abstract class InvokeCallableNode extends BaseNode {
     }
   }
 
+  public void setDirectId(RuntimeID id) {
+    this.funId = id;
+  }
+
   /** Returns expression ID of this node. */
   public RuntimeID getId() {
+    // Must not return `funId` as different calls to the same method
+    // would be treated as cached.
     return invokeFunctionNode.getId();
   }
 }

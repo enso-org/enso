@@ -9,6 +9,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.polyglot.RuntimeID;
@@ -118,6 +119,10 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    */
   public Set<UUID> getKeys() {
     return cache.keySet();
+  }
+
+  public Set<Observable> allCached() {
+    return cache.values().stream().filter(v -> v instanceof CachingObservable).collect(Collectors.toSet());
   }
 
   /** Clear the cached values. */

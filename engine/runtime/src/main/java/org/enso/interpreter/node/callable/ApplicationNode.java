@@ -107,4 +107,8 @@ public class ApplicationNode extends ExpressionNode {
     super.setId(id);
     invokeCallableNode.setId(id);
   }
+
+  public void setCallableDirectId(RuntimeID id) {
+    invokeCallableNode.setDirectId(id);
+  }
 }

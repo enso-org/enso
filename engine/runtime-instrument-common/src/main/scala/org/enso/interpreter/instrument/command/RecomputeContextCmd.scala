@@ -7,14 +7,17 @@ import org.enso.interpreter.instrument.command.RecomputeContextCmd.InvalidateExp
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
   ExecutionConfig,
-  InstrumentFrame
+  InstrumentFrame,
+  Observable
 }
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+import scala.annotation.{tailrec, unused}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 /** A command that forces a recomputation of the current position.
   *
@@ -137,14 +140,23 @@ object RecomputeContextCmd {
             val expressionsInvalidationCommands = expressions.toSeq
               .map(CacheInvalidation.Command(_))
               .map(CacheInvalidation(CacheInvalidation.StackSelector.All, _))
-            val expressionConfigsDependentInvalidationCommands =
-              expressionConfigs
+            val expressionConfigsDependentInvalidationCommands = {
+              val expressionsToInvalidate = expressionConfigs
                 .map(_.expressionId)
-                .flatMap(RecomputeContextCmd.invalidateDependent)
+                .toVector
+                .distinct
+
+              if (expressionsToInvalidate.isEmpty) Seq.empty
+              else {
+                val cmd = CacheInvalidation.Command(
+                  Api.InvalidatedExpressions
+                    .Expressions(expressionsToInvalidate, "recompute")
+                )
+                Seq(CacheInvalidation(CacheInvalidation.StackSelector.All, cmd))
+              }
+            }
             val allInvalidationCommands =
               expressionsInvalidationCommands ++ expressionConfigsDependentInvalidationCommands
-
-            CacheInvalidation.runAll(stack, allInvalidationCommands)
 
             allInvalidationCommands
           }
@@ -159,6 +171,7 @@ object RecomputeContextCmd {
     * @param expressionId the expression id
     * @return commands to invalidate dependent nodes of the provided expression
     */
+  @unused
   private def invalidateDependent(
     expressionId: Api.ExpressionId
   )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
@@ -199,38 +212,74 @@ object RecomputeContextCmd {
     cacheInvalidations: Seq[CacheInvalidation]
   )(implicit ctx: RuntimeContext): Unit = {
     // FIXME: Needs to be re-done
-    /*
+    System.out.println(
+      "SHOULD SEND PENDING UPDATES FOR TRANSITIVE DEPS OF " + cacheInvalidations
+        .map(_.command)
+    )
+
     val builder = Set.newBuilder[Api.ExpressionId]
     cacheInvalidations.map(_.command).foreach {
       case CacheInvalidation.Command.InvalidateAll =>
-        stack.headOption
-          .map { frame =>
-            frame.cache.getPreferences.preferences
-              .keySet()
-              .forEach(builder.addOne)
+        stack
+          //.headOption // TOOD: shouldn't it invalidate all stack elements?
+          .foreach { frame =>
+            val toInvalidate = frame.cache.allCached()
+            System.out.println("CACHE SIZE : " + frame.cache.getKeys.size())
+            toInvalidate.forEach { observable =>
+              observable.invalidate()
+              builder.addOne(observable.id().uuid())
+            }
           }
       case CacheInvalidation.Command.InvalidateKeys(expressionIds, _) =>
-        builder ++= expressionIds
+        stack
+          //.headOption
+          .foreach { frame =>
+            val toInvalidate =
+              expressionIds.flatMap(id => Option(frame.cache.get(id))).toSeq
+            val transitive = invalidateTransitiveDependenceis(toInvalidate)
+              .filter(_.isUpdatable)
+            builder ++= transitive.map(_.id().uuid())
+          }
       case _ =>
     }
 
     val invalidatedExpressions = builder.result()
+    System.out.println("Invalidated ? " + invalidatedExpressions)
     if (invalidatedExpressions.nonEmpty) {
-      val updates = invalidatedExpressions.collect {
-        case expressionId if expressionId ne null =>
-          Api.ExpressionUpdate(
-            expressionId,
-            None,
-            None,
-            Vector.empty,
-            true,
-            false,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
-          )
+      val updates = invalidatedExpressions.map { expressionId =>
+        Api.ExpressionUpdate(
+          expressionId,
+          None,
+          None,
+          Vector.empty,
+          true,
+          false,
+          Api.ExpressionUpdate.Payload.Pending(None, None)
+        )
       }
       ctx.endpoint.sendToClient(
         Api.Response(Api.ExpressionUpdates(contextId, updates))
       )
-    }*/
+    }
+  }
+
+  private def invalidateTransitiveDependenceis(
+    toInvalidate: Seq[Observable]
+  ): Set[Observable] = {
+    @tailrec
+    def invalidateTransitiveDependenceis0(
+      toInvalidate: Seq[Observable],
+      acc: Set[Observable]
+    ): Set[Observable] = {
+      toInvalidate match {
+        case head :: tail =>
+          val toProcess =
+            head.invalidate().filter(o => !acc.contains(o)).toList.asScala
+          invalidateTransitiveDependenceis0(tail ++ toProcess, Set(head) ++ acc)
+        case _ =>
+          acc
+      }
+    }
+    invalidateTransitiveDependenceis0(toInvalidate, Set.empty)
   }
 }
