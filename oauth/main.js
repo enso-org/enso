@@ -2,6 +2,7 @@
     import open from "open";
     import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
     import https from 'https';
+    import axios from 'axios';
     //const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
     //const open = require('open');
 
@@ -17,14 +18,52 @@
     }
 
     function get_auth_token(auth_code) {
+
+      {
+        const tokenEndpoint = 'https://login.microsoftonline.com/59c2b5a8-8575-4ce0-9ff5-be8f2b34ad63/oauth2/v2.0/token';
+
+        const data = new URLSearchParams();
+
+        data.append('client_id', '087cad1c-ab83-476d-bb1b-47ed1c5be4ef');
+        data.append('scope', 'openid offline_access https://graph.microsoft.com/mail.read');
+        data.append('code', auth_code);
+        data.append('redirect_uri', 'https://ensoanalytics.com/msoauthtest');
+        data.append('grant_type', 'authorization_code');
+        data.append('client_secret', client_secret);
+
+        axios.post(tokenEndpoint, data, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        })
+        .then(response => {
+            console.log('Access Token:', response.data.access_token);
+        })
+        .catch(error => {
+            console.error('Error:', error.response.data);
+        });
+      }
+
+
+
+
+
+
+
+
+
+
+
+
       const data = JSON.stringify({
         'client_id': '087cad1c-ab83-476d-bb1b-47ed1c5be4ef',
         'scope': 'openid offline_access https://graph.microsoft.com/mail.read',
         'code': auth_code,
         'redirect_uri': 'https://ensoanalytics.com/msoauthtest',
-        grant_type: 'authorization_code',
+        'grant_type': 'authorization_code',
         'client_secret': client_secret,
       });
+      console.log("data " + data);
 
       const options = {
         hostname: 'login.microsoftonline.com',
@@ -32,7 +71,9 @@
         port: 443, // 80 for HTTP
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json',
+          'Content-Length': data.length
+          //'Content-Type': 'application/x-www-form-urlencoded'
         }
       };
 
