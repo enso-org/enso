@@ -36,6 +36,8 @@
         // Listen for messages from the worker thread
         worker.on('message', (result) => {
             console.log('Result from worker:', result);
+            const { auth_code } = result;
+            console.log('auth_code ' + auth_code);
         });
 
         // Listen for errors from the worker thread
