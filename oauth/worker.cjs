@@ -12,8 +12,14 @@ const server = http.createServer((req, res) => {
   res.statusCode = 200; // OK
   res.setHeader('Content-Type', 'text/plain'); // Plain text response
 
+  const url = require('url');
+
   // Send the response body
-  res.end('Hello, World, limit = ' + workerData.limit + '!\n');
+  var s = "";
+  s += 'Hello, World, limit = ' + workerData.limit + '!\n\n';
+  //s += req.url + "\n\n";
+  s += JSON.stringify(url.parse(req.url, true).query.code) + "\n\n";
+  res.end(s);
 
   const result = { asdf: 10 };
   parentPort.postMessage(result);

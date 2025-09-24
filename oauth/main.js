@@ -22,10 +22,12 @@
             workerData: { limit: 1000000000 } // Data to pass to the worker
         });
 
+        console.log("Starting oauth");
         open(make_get('https://login.microsoftonline.com/557a086b-ff83-4d39-a7d4-3cedd3e30b8c/oauth2/v2.0/authorize', {
           'client_id': '225e3188-e3ec-4613-b8a5-4e0efac1694a',
           'response_type': 'code',
-          'redirect_uri': 'https://ensoanalytics.com/msoauthtest',
+          //'redirect_uri': 'https://ensoanalytics.com/msoauthtest',
+          'redirect_uri': 'http://localhost:3000',
           'response_mode': 'query',
           'scope': 'https://graph.microsoft.com/mail.read',
           'state': '12345'
