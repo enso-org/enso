@@ -1,4 +1,5 @@
 import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
+import { ModuleStore } from '$/providers/openedProjects/module'
 import type { Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
 import type { WidgetConfiguration } from '$/providers/openedProjects/widgetRegistry/configuration'
 import {
@@ -13,7 +14,6 @@ import { Err, Ok, type Result } from '@/util/data/result'
 import type { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
 import type { Class } from 'ydoc-shared/util/types'
-import type { ModuleStore } from './module'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>
 

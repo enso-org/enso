@@ -1,3 +1,4 @@
+import { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   Score,
   WidgetInput,
@@ -6,13 +7,15 @@ import {
   type WidgetDefinition,
   type WidgetModule,
 } from '$/providers/openedProjects/widgetRegistry'
-import { GraphDb } from '@/stores/graph/graphDatabase'
+import {
+  DisplayMode,
+  argsWidgetConfigurationSchema,
+} from '$/providers/openedProjects/widgetRegistry/configuration'
+import type { PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
 import { describe, expect, test } from 'vitest'
 import { defineComponent } from 'vue'
-import type { PortId } from '../portInfo'
-import { DisplayMode, argsWidgetConfigurationSchema } from '../widgetRegistry/configuration'
 
 describe('WidgetRegistry', () => {
   function makeMockWidget<T extends WidgetInput>(
@@ -70,6 +73,7 @@ describe('WidgetRegistry', () => {
       },
       appKind: ApplicationKind.Prefix,
       argId: undefined,
+      callInfo: undefined,
     },
   }
 

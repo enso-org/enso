@@ -1,3 +1,4 @@
+import { GraphDb, NodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   ComputedValueRegistry,
   TypeInfo,
@@ -5,7 +6,6 @@ import {
 import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
 import { makeMethod, makeType } from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
 import { useComponentBrowserInput } from '@/components/ComponentBrowser/input'
-import { GraphDb, NodeId } from '@/stores/graph/graphDatabase'
 import { stdPath } from '@/util/projectPath'
 import { expect, test } from 'vitest'
 import { assert, assertUnreachable } from 'ydoc-shared/util/assert'

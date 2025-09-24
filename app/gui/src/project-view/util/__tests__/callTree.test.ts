@@ -1,3 +1,4 @@
+import { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   ComputedValueRegistry,
   TypeInfo,
@@ -14,7 +15,6 @@ import {
   makeType,
 } from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
 import * as widgetCfg from '$/providers/openedProjects/widgetRegistry/configuration'
-import { GraphDb } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import {

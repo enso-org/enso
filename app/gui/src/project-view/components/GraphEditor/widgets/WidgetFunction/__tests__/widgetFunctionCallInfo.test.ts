@@ -1,3 +1,4 @@
+import { parseWithSpans } from '$/providers/openedProjects/graph/__tests__/graphDatabase.test'
 import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import { type NodeVisualizationConfiguration } from '$/providers/openedProjects/project/executionContext'
 import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
@@ -15,7 +16,6 @@ import {
   WIDGETS_ENSO_MODULE,
   useWidgetFunctionCallInfo,
 } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
-import { parseWithSpans } from '@/stores/graph/__tests__/graphDatabase.test'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { expect, test } from 'vitest'

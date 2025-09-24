@@ -1,12 +1,3 @@
-import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
-import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
-import {
-  makeConstructor,
-  makeMethod,
-  makeModule,
-  makeStaticMethod,
-  makeType,
-} from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
 import {
   addImports,
   covers,
@@ -17,7 +8,16 @@ import {
   type ConflictInfo,
   type Import,
   type RequiredImport,
-} from '@/stores/graph/imports'
+} from '$/providers/openedProjects/module/imports'
+import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import {
+  makeConstructor,
+  makeMethod,
+  makeModule,
+  makeStaticMethod,
+  makeType,
+} from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
 import { Ast } from '@/util/ast'
 import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName, type Identifier } from '@/util/qualifiedName'

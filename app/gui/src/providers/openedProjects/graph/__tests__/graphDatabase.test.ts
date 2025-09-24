@@ -1,4 +1,4 @@
-import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
+import { asNodeId, GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
 import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import * as iter from 'enso-common/src/utilities/data/iter'

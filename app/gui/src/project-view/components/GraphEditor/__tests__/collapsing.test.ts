@@ -1,9 +1,9 @@
+import { GraphDb, type NodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   COLLAPSED_FUNCTION_NAME,
   performCollapseImpl,
   prepareCollapsedInfo,
 } from '@/components/GraphEditor/collapsing'
-import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { findExpressions } from '@/util/ast/__tests__/testCase'
