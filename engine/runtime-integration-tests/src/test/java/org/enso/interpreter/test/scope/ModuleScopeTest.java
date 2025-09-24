@@ -1,15 +1,18 @@
 package org.enso.interpreter.test.scope;
 
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import org.enso.common.LanguageInfo;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
@@ -61,7 +64,7 @@ public class ModuleScopeTest {
     var assocType = mainRuntimeMod.getScope().getAssociatedType();
     assertThat(assocType, is(notNullValue()));
     var moduleMethod = mainRuntimeMod.getScope().getMethodForType(assocType, "module_method");
-    assertThat(moduleMethod, is(notNullValue()));
+    assertOnlyFirstArgumentIsSelf(moduleMethod);
   }
 
   @Test
@@ -102,6 +105,7 @@ public class ModuleScopeTest {
     var myEigenType = myType.getEigentype();
     var method = scope.getMethodForType(myType, "method");
     assertThat("My_Type.method is registered", method, is(notNullValue()));
+    assertOnlyFirstArgumentIsSelf(method);
     var eigenMethod = scope.getMethodForType(myEigenType, "method");
     assertThat("My_Type.type.method is not registered", eigenMethod, is(nullValue()));
   }
@@ -123,6 +127,7 @@ public class ModuleScopeTest {
     var myType = scope.getType("My_Type", true);
     var myEigenType = myType.getEigentype();
     var staticMethod = scope.getMethodForType(myEigenType, "static_method");
+    assertOnlyFirstArgumentIsSelf(staticMethod);
     assertThat("My_Type.type.static_method is registered", staticMethod, is(notNullValue()));
     assertThat(
         "My_Type.static_method is not registered",
@@ -148,6 +153,7 @@ public class ModuleScopeTest {
     var myType = scope.getType("My_Type", true);
     var extensionMethod = scope.getMethodForType(myType, "extension_method");
     assertThat("My_Type.extension_method is registered", extensionMethod, is(notNullValue()));
+    assertOnlyFirstArgumentIsSelf(extensionMethod);
     var myEigenType = myType.getEigentype();
     assertThat(
         "My_Type.type.extension_method is not registered",
@@ -175,6 +181,7 @@ public class ModuleScopeTest {
     var myEigenType = myType.getEigentype();
     var ctor = scope.getMethodForType(myEigenType, "Value");
     assertThat("My_Type.type.Value is registered", ctor, is(notNullValue()));
+    assertOnlyFirstArgumentIsSelf(ctor);
     assertThat(
         "My_Type.Value is not registered",
         scope.getMethodForType(myType, "Value"),
@@ -198,6 +205,7 @@ public class ModuleScopeTest {
     var myType = scope.getType("My_Type", true);
     var fieldGetter = scope.getMethodForType(myType, "x");
     assertThat("My_Type.x is registered", fieldGetter, is(notNullValue()));
+    assertOnlyFirstArgumentIsSelf(fieldGetter);
     var myEigenType = myType.getEigentype();
     assertThat(
         "My_Type.type.x is not registered",
@@ -303,6 +311,17 @@ public class ModuleScopeTest {
               + (onAssocType != null),
           foundCount,
           is(1));
+    }
+  }
+
+  private static void assertOnlyFirstArgumentIsSelf(Function function) {
+    var argInfos = function.getSchema().getArgumentInfos();
+    var firstArgInfo = argInfos[0];
+    assertThat("First arg definition is self", firstArgInfo.getName(), is("self"));
+    // There should be no other self in the argument list.
+    for (int i = 1; i < argInfos.length; i++) {
+      var argInfo = argInfos[i];
+      assertThat("No other arg is self", argInfo.getName(), is(not("self")));
     }
   }
 }
