@@ -179,13 +179,13 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            private Cons a
+            type My_Type
+                private Cons a
 
-            read self = self.a
+                read self = self.a
 
-        main = My_Type.Cons "a"
-        """);
+            main = My_Type.Cons "a"
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     var read = interop.readMember(atom, "read");
@@ -198,13 +198,13 @@ public class AtomInteropTest {
     var atom =
         ctxRule.evalModule(
             """
-        type My_Type
-            private Cons a
+            type My_Type
+                private Cons a
 
-            read self = self.a
+                read self = self.a
 
-        main = My_Type.Cons "a"
-        """);
+            main = My_Type.Cons "a"
+            """);
     var type = ctxRule.unwrapValue(atom.getMetaObject());
     var rawAtom = ctxRule.unwrapValue(atom);
     var interop = InteropLibrary.getUncached();
