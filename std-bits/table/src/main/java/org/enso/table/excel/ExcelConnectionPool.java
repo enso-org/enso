@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.function.Function;
+
 import org.enso.base.cache.ReloadDetector;
 import org.enso.table.util.FunctionWithException;
 import org.slf4j.Logger;
@@ -58,7 +59,6 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   public synchronized <R> R performWriteAction(
       File file,
       ExcelFileFormat format,
-      File[] accompanyingFiles,
       Function<ExcelWriteHelper, R> action)
       throws IOException, InterruptedException {
     if (isCurrentlyWriting) {
@@ -72,11 +72,6 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
       // file being locked.
       closeCachedConnection(file, format);
       verifyIsWritable(file);
-
-      for (File accompanyingFile : accompanyingFiles) {
-        closeCachedConnection(accompanyingFile, format);
-        verifyIsWritable(accompanyingFile);
-      }
 
       ExcelWriteHelper helper = new ExcelWriteHelper(format);
       return action.apply(helper);
