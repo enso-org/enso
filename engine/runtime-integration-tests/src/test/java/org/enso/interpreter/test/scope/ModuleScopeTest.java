@@ -314,6 +314,53 @@ public class ModuleScopeTest {
     }
   }
 
+  /**
+   * For all methods it should hold that there is just a single `self` argument defined on the first
+   * position.
+   */
+  @Test
+  public void allMethodsHaveOnlyOneSelfArgument() throws IOException {
+    var src =
+        Source.newBuilder(
+                LanguageInfo.ID,
+                """
+        type My_Type
+            Cons x
+            instance_method self = self.x
+            static_method = 42
+
+        My_Type.extension_instance_method self = self.x
+        My_Type.extension_static_method = 84
+        """,
+                "test.enso")
+            .build();
+    var mod = ctxRule.eval(src);
+    var runtimeMod = (Module) ctxRule.unwrapValue(mod);
+    var scope = runtimeMod.getScope();
+    var myType = scope.getType("My_Type", true);
+    var myEigenType = myType.getEigentype();
+    var moduleAssocType = scope.getAssociatedType();
+    var methodNamesToCheck =
+        List.of(
+            "instance_method",
+            "static_method",
+            "extension_instance_method",
+            "extension_static_method");
+    for (var methodName : methodNamesToCheck) {
+      Function func = null;
+      if (scope.getMethodForType(myType, methodName) instanceof Function f) {
+        func = f;
+      } else if (scope.getMethodForType(myEigenType, methodName) instanceof Function f) {
+        func = f;
+      } else if (scope.getMethodForType(moduleAssocType, methodName) instanceof Function f) {
+        func = f;
+      } else {
+        fail("Method " + methodName + " not found");
+      }
+      assertOnlyFirstArgumentIsSelf(func);
+    }
+  }
+
   private static void assertOnlyFirstArgumentIsSelf(Function function) {
     var argInfos = function.getSchema().getArgumentInfos();
     var firstArgInfo = argInfos[0];
