@@ -24,12 +24,13 @@ public class ArrowEvalNode extends RootNode {
 
   public Object execute(VirtualFrame frame) {
     return switch (code.physicalLayout()) {
-      case Primitive -> switch (code.mode()) {
-        case Allocate -> new ArrowFixedSizeArrayFactory(code.logicalLayout());
-        case Cast -> new ArrowCastToFixedSizeArrayFactory(code.logicalLayout());
-        case Plus -> new ArrowOperationPlus(code.logicalLayout());
-        default -> throw CompilerDirectives.shouldNotReachHere("unsupported mode");
-      };
+      case Primitive ->
+          switch (code.mode()) {
+            case Allocate -> new ArrowFixedSizeArrayFactory(code.logicalLayout());
+            case Cast -> new ArrowCastToFixedSizeArrayFactory(code.logicalLayout());
+            case Plus -> new ArrowOperationPlus(code.logicalLayout());
+            default -> throw CompilerDirectives.shouldNotReachHere("unsupported mode");
+          };
       default -> throw CompilerDirectives.shouldNotReachHere("unsupported physical layout");
     };
   }

@@ -271,8 +271,8 @@ public class ExcelWriter {
           InterruptedException {
     Table mappedTable =
         switch (existingDataMode) {
-          case APPEND_BY_INDEX -> ColumnMapper.mapColumnsByPosition(
-              table, expanded.getColumnCount());
+          case APPEND_BY_INDEX ->
+              ColumnMapper.mapColumnsByPosition(table, expanded.getColumnCount());
           case APPEND_BY_NAME -> {
             if (headers == ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES) {
               throw new IllegalArgumentException(
@@ -285,10 +285,11 @@ public class ExcelWriter {
             yield ColumnMapper.mapColumnsByName(
                 table, NameDeduplicator.createIgnoringProblems().makeUniqueArray(currentHeaders));
           }
-          default -> throw new IllegalArgumentException(
-              "Internal Error: appendRangeWithTable called with illegal existing data mode '"
-                  + existingDataMode
-                  + "'.");
+          default ->
+              throw new IllegalArgumentException(
+                  "Internal Error: appendRangeWithTable called with illegal existing data mode '"
+                      + existingDataMode
+                      + "'.");
         };
 
     if (range.isSingleCell()) {

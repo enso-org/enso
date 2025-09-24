@@ -22,7 +22,8 @@ import org.enso.interpreter.runtime.error.DataflowError;
 @BuiltinMethod(
     type = "Dictionary",
     name = "remove_builtin",
-    description = """
+    description =
+        """
         Removes an entry from this map specified with the key.
         """)
 @GenerateUncached

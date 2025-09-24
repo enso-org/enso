@@ -82,8 +82,8 @@ public abstract class BuildScopeFromModuleAlgorithm<TypeScopeReferenceType, Impo
         case Definition.Type typ -> processTypeDefinition(typ);
         case Method.Explicit method -> processMethodDefinition(method);
         case Method.Conversion conversion -> processConversion(conversion);
-        default -> logger.warn(
-            "Unexpected binding type: {}", binding.getClass().getCanonicalName());
+        default ->
+            logger.warn("Unexpected binding type: {}", binding.getClass().getCanonicalName());
       }
     }
   }
@@ -136,12 +136,13 @@ public abstract class BuildScopeFromModuleAlgorithm<TypeScopeReferenceType, Impo
       }
 
       return switch (metadata.target()) {
-        case BindingsMap.ResolvedType resolvedType -> associatedTypeFromResolvedType(
-            resolvedType, method.isStatic());
-        case BindingsMap.ResolvedModule resolvedModule -> associatedTypeFromResolvedModule(
-            resolvedModule);
-        default -> throw new IllegalStateException(
-            "Unexpected target type: " + metadata.target().getClass().getCanonicalName());
+        case BindingsMap.ResolvedType resolvedType ->
+            associatedTypeFromResolvedType(resolvedType, method.isStatic());
+        case BindingsMap.ResolvedModule resolvedModule ->
+            associatedTypeFromResolvedModule(resolvedModule);
+        default ->
+            throw new IllegalStateException(
+                "Unexpected target type: " + metadata.target().getClass().getCanonicalName());
       };
     }
   }
@@ -155,14 +156,15 @@ public abstract class BuildScopeFromModuleAlgorithm<TypeScopeReferenceType, Impo
     }
 
     return switch (resolution.target()) {
-      case BindingsMap.ResolvedType resolvedType -> associatedTypeFromResolvedType(
-          resolvedType, false);
-      case BindingsMap.ResolvedModule resolvedModule -> associatedTypeFromResolvedModule(
-          resolvedModule);
-      default -> throw new IllegalStateException(
-          "Unexpected target type: "
-              + resolution.target().getClass().getCanonicalName()
-              + ", should be caught by MethodDefinitions pass.");
+      case BindingsMap.ResolvedType resolvedType ->
+          associatedTypeFromResolvedType(resolvedType, false);
+      case BindingsMap.ResolvedModule resolvedModule ->
+          associatedTypeFromResolvedModule(resolvedModule);
+      default ->
+          throw new IllegalStateException(
+              "Unexpected target type: "
+                  + resolution.target().getClass().getCanonicalName()
+                  + ", should be caught by MethodDefinitions pass.");
     };
   }
 

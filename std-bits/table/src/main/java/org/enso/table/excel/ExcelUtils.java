@@ -98,8 +98,8 @@ public class ExcelUtils {
   public static double toExcelDateTime(Temporal temporal) {
     return switch (temporal) {
       case ZonedDateTime zonedDateTime -> toExcelDateTime(zonedDateTime.toLocalDateTime());
-      case LocalDateTime dateTime -> toExcelDateTime(dateTime.toLocalDate())
-          + toExcelDateTime(dateTime.toLocalTime());
+      case LocalDateTime dateTime ->
+          toExcelDateTime(dateTime.toLocalDate()) + toExcelDateTime(dateTime.toLocalTime());
       case LocalDate date -> {
         long days = ChronoUnit.DAYS.between(EPOCH_1900, date);
 
@@ -119,8 +119,8 @@ public class ExcelUtils {
         yield days;
       }
       case LocalTime time -> time.toNanoOfDay() / 1000000.0 / MILLIS_PER_DAY;
-      default -> throw new IllegalArgumentException(
-          "Unsupported Temporal type: " + temporal.getClass());
+      default ->
+          throw new IllegalArgumentException("Unsupported Temporal type: " + temporal.getClass());
     };
   }
 
@@ -128,12 +128,12 @@ public class ExcelUtils {
   public static double toExcelDateTime1904(Temporal temporal) {
     return switch (temporal) {
       case ZonedDateTime zonedDateTime -> toExcelDateTime1904(zonedDateTime.toLocalDateTime());
-      case LocalDateTime dateTime -> toExcelDateTime1904(dateTime.toLocalDate())
-          + toExcelDateTime1904(dateTime.toLocalTime());
+      case LocalDateTime dateTime ->
+          toExcelDateTime1904(dateTime.toLocalDate()) + toExcelDateTime1904(dateTime.toLocalTime());
       case LocalDate date -> ChronoUnit.DAYS.between(EPOCH_1904, date);
       case LocalTime time -> time.toNanoOfDay() / 1000000.0 / MILLIS_PER_DAY;
-      default -> throw new IllegalArgumentException(
-          "Unsupported Temporal type: " + temporal.getClass());
+      default ->
+          throw new IllegalArgumentException("Unsupported Temporal type: " + temporal.getClass());
     };
   }
 }

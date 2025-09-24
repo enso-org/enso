@@ -191,24 +191,24 @@ public final class SectionsToBinOp implements MiniPassFactory {
               .build();
         }
 
-          /* Note [Blanks in Sections]
-           * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-           * While the naiive compositional translation of `(- _)` first translates
-           * the section into a function applying `-` to two arguments, one of which
-           * is a blank, the compositional nature of the blanks translation actually
-           * works against us here.
-           *
-           * As the `LambdaShorthandToLambda` pass can only operate on the
-           * application with the blanks, it can't know to push the blank outside
-           * that application chain. To that end, we have to handle this case
-           * specially here instead. What we want it to translate to is as follows:
-           *
-           * `(- _)` == `x -> (- x)` == `x -> y -> y - x`
-           *
-           * We implement this special case here.
-           *
-           * The same is true of left sections.
-           */
+        /* Note [Blanks in Sections]
+         * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         * While the naiive compositional translation of `(- _)` first translates
+         * the section into a function applying `-` to two arguments, one of which
+         * is a blank, the compositional nature of the blanks translation actually
+         * works against us here.
+         *
+         * As the `LambdaShorthandToLambda` pass can only operate on the
+         * application with the blanks, it can't know to push the blank outside
+         * that application chain. To that end, we have to handle this case
+         * specially here instead. What we want it to translate to is as follows:
+         *
+         * `(- _)` == `x -> (- x)` == `x -> y -> y - x`
+         *
+         * We implement this special case here.
+         *
+         * The same is true of left sections.
+         */
 
         case Section.Right sectionRight -> {
           var arg = sectionRight.arg();

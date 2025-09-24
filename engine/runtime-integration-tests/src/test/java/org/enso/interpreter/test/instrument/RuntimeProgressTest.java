@@ -66,18 +66,18 @@ public class RuntimeProgressTest {
 
     var code =
         """
-      import Standard.Base.Logging.Progress
+        import Standard.Base.Logging.Progress
 
-      main =
-          res = steps
-          res
+        main =
+            res = steps
+            res
 
-      steps = Progress.run "Six steps" 6 progress->
-          progress.advance 1
-          progress.advance 2
-          progress.advance 3
-          10
-      """;
+        steps = Progress.run "Six steps" 6 progress->
+            progress.advance 1
+            progress.advance 2
+            progress.advance 3
+            10
+        """;
 
     metadata.assertInCode(mainRes, code, "steps");
     var contents = metadata.appendToCode(code);
@@ -135,19 +135,19 @@ public class RuntimeProgressTest {
 
     var code =
         """
-      import Standard.Base.Logging.Progress
+        import Standard.Base.Logging.Progress
 
-      main =
-          res = steps
-          res
+        main =
+            res = steps
+            res
 
-      steps = Progress.run "Few steps" 5 progress->
-          progress.advance
-          progress.log "I've just finished 1st step"
-          progress.advance 3
-          progress.log "Returning a value"
-          42
-      """;
+        steps = Progress.run "Few steps" 5 progress->
+            progress.advance
+            progress.log "I've just finished 1st step"
+            progress.advance 3
+            progress.log "Returning a value"
+            42
+        """;
 
     metadata.assertInCode(mainRes, code, "steps");
     var contents = metadata.appendToCode(code);
