@@ -88,7 +88,7 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
                 Java_File.new preexisting_dry_run_file
         accompanying_files = [possible_backup_file, possible_dry_run_file].filter (!= Nothing) . filter (!= java_file)
 
-        ExcelConnectionPool.INSTANCE.lockForWriting java_file file_format accompanying_files write_helper-> Context.Output.with_enabled <|
+        ExcelConnectionPool.INSTANCE.performWriteAction java_file file_format accompanying_files write_helper-> Context.Output.with_enabled <|
             temp_file = if is_dry_run then file.create_dry_run_file copy_original=False else
                 find_temp_file file
 

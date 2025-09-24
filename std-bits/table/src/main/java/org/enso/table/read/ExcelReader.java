@@ -21,7 +21,6 @@ import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.excel.ExcelWorkbook;
-import org.enso.table.excel.ReadOnlyExcelConnection;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.FunctionWithException;
 import org.graalvm.polyglot.Context;
@@ -311,10 +310,7 @@ public class ExcelReader {
       ExcelFileFormat format,
       FunctionWithException<ExcelWorkbook, T, InterruptedException> action)
       throws IOException, InterruptedException {
-    try (ReadOnlyExcelConnection connection =
-        ExcelConnectionPool.INSTANCE.openReadOnlyConnection(file, format)) {
-      return connection.withWorkbook(action);
-    }
+    return ExcelConnectionPool.INSTANCE.performReadOnlyAction(file, format, action);
   }
 
   private static Table readRange(

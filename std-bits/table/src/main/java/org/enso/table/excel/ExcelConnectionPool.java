@@ -1,29 +1,15 @@
 package org.enso.table.excel;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.AccessMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.function.Function;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
-import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
-import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.openxml4j.opc.PackageAccess;
-import org.apache.poi.poifs.filesystem.NotOLE2FileException;
-import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
-import org.apache.poi.poifs.filesystem.POIFSFileSystem;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.streaming.SXSSFWorkbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import org.enso.base.cache.ReloadDetector;
-import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
 import org.enso.table.util.FunctionWithException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,106 +17,31 @@ import org.slf4j.LoggerFactory;
 public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   public static final ExcelConnectionPool INSTANCE = new ExcelConnectionPool();
 
+  static {
+    // Register after construction to avoid leaking `this` from the constructor.
+    ReloadDetector.register(INSTANCE);
+  }
+
   private static final Logger LOGGER = LoggerFactory.getLogger(ExcelConnectionPool.class);
 
-  private ExcelConnectionPool() {
-    ReloadDetector.register(this);
-  }
+  private final HashMap<String, ExcelWorkbook> workbooksCache = new HashMap<>();
+  private boolean isCurrentlyWriting = false;
 
-  public ReadOnlyExcelConnection openReadOnlyConnection(File file, ExcelFileFormat format)
+  private ExcelConnectionPool() {}
+
+  public synchronized <R> R performReadOnlyAction(
+      File file,
+      ExcelFileFormat format,
+      FunctionWithException<ExcelWorkbook, R, InterruptedException> action)
       throws IOException, InterruptedException {
-    synchronized (this) {
-      if (isCurrentlyWriting) {
-        throw new IllegalStateException(
-            "Cannot open a read-only Excel connection while an Excel file is being "
-                + "written to. This is a bug in the Table library.");
-      }
-
-      ReloadDetector.clearOnReload(this);
-
-      if (!file.exists()) {
-        throw new FileNotFoundException(file.toString());
-      }
-
-      String key = getKeyForFile(file, format);
-      ConnectionRecord existingRecord = records.get(key);
-      if (existingRecord != null) {
-        // Adapt the existing record
-        return new ReadOnlyExcelConnection(this, key, existingRecord);
-      } else {
-        // Create the new record
-        ConnectionRecord record = new ConnectionRecord();
-        record.file = file;
-        record.format = format;
-        record.reopen();
-        records.put(key, record);
-        return new ReadOnlyExcelConnection(this, key, record);
-      }
-    }
-  }
-
-  public synchronized void closeConnection(File file, ExcelFileFormat format) throws IOException {
     if (isCurrentlyWriting) {
       throw new IllegalStateException(
-          "Cannot close a Excel connection while an Excel file is being "
+          "Cannot open a read-only Excel connection while an Excel file is being "
               + "written to. This is a bug in the Table library.");
     }
-    String key = getKeyForFile(file, format);
-    ConnectionRecord existingRecord = records.get(key);
-    if (existingRecord != null) {
-      existingRecord.close();
-      records.remove(key);
-    }
-  }
-
-  public static class WriteHelper {
-    private final ExcelFileFormat format;
-
-    public WriteHelper(ExcelFileFormat format) {
-      this.format = format;
-    }
-
-    public <R> R writeWorkbook(File file, Function<Workbook, R> writeAction) throws IOException {
-      boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
-
-      try (Workbook workbook =
-          preExistingFile
-              ? ExcelConnectionPool.openWorkbook(file, format, true)
-              : createEmptyWorkbook(format)) {
-        R result = writeAction.apply(workbook);
-
-        if (preExistingFile) {
-          // Save the file in place.
-          switch (workbook) {
-            case HSSFWorkbook wb -> {
-              wb.write();
-            }
-            case XSSFWorkbook wb -> {
-              try {
-                wb.write(null);
-              } catch (OpenXML4JRuntimeException e) {
-                // Ignore: Workaround for bug https://bz.apache.org/bugzilla/show_bug.cgi?id=59252
-              }
-            }
-            default ->
-                throw new IllegalStateException("Unknown workbook type: " + workbook.getClass());
-          }
-        } else {
-          try (OutputStream fileOut = Files.newOutputStream(file.toPath())) {
-            try (BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
-              workbook.write(workbookOut);
-            }
-          }
-        }
-
-        // If we used the streaming workbook, ensure temp files are deleted.
-        if (workbook instanceof SXSSFWorkbook sxssf) {
-          sxssf.dispose();
-        }
-
-        return result;
-      }
-    }
+    ReloadDetector.clearOnReload(this);
+    var workbook = openCachedConnection(file, format);
+    return action.apply(workbook);
   }
 
   /**
@@ -145,48 +56,83 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
    * {@code accompanyingFiles} argument. These may be related temporary files that are written
    * during the write operation and also need to get 'unlocked' for the time of write.
    */
-  public <R> R lockForWriting(
-      File file, ExcelFileFormat format, File[] accompanyingFiles, Function<WriteHelper, R> action)
+  public synchronized <R> R performWriteAction(
+      File file,
+      ExcelFileFormat format,
+      File[] accompanyingFiles,
+      Function<ExcelWriteHelper, R> action)
       throws IOException, InterruptedException {
-    synchronized (this) {
-      if (isCurrentlyWriting) {
-        throw new IllegalStateException(
-            "Another Excel write is in progress on the same thread. This is a bug in the "
-                + "Table library.");
+    if (isCurrentlyWriting) {
+      throw new IllegalStateException(
+          "Another Excel write is in progress on the same thread. This is a bug in the "
+              + "Table library.");
+    }
+    isCurrentlyWriting = true;
+    try {
+      // Close the existing connection, if any - to avoid the write operation failing due to the
+      // file being locked.
+      closeCachedConnection(file, format);
+      verifyIsWritable(file);
+
+      for (File accompanyingFile : accompanyingFiles) {
+        closeCachedConnection(accompanyingFile, format);
+        verifyIsWritable(accompanyingFile);
       }
 
-      isCurrentlyWriting = true;
+      ExcelWriteHelper helper = new ExcelWriteHelper(format);
+      return action.apply(helper);
+    } finally {
+      isCurrentlyWriting = false;
+    }
+  }
+
+  public synchronized void closeConnection(File file, ExcelFileFormat format) throws IOException {
+    if (isCurrentlyWriting) {
+      throw new IllegalStateException(
+          "Cannot close a Excel connection while an Excel file is being "
+              + "written to. This is a bug in the Table library.");
+    }
+    closeCachedConnection(file, format);
+  }
+
+  /** If a reload has just happened, clear the ConnectionRecord cache. */
+  @Override
+  public synchronized void clearCache() {
+    for (var record : workbooksCache.values()) {
       try {
-        String key = getKeyForFile(file, format);
-
-        try {
-          // Close the existing connection, if any - to avoid the write operation failing due to the
-          // file being locked.
-          ConnectionRecord existingRecord = records.get(key);
-          if (existingRecord != null) {
-            existingRecord.close();
-          }
-
-          verifyIsWritable(file);
-
-          for (File accompanyingFile : accompanyingFiles) {
-            String accompanyingKey = getKeyForFile(accompanyingFile, format);
-            ConnectionRecord accompanyingRecord = records.get(accompanyingKey);
-            if (accompanyingRecord != null) {
-              accompanyingRecord.close();
-            }
-
-            verifyIsWritable(accompanyingFile);
-          }
-
-          WriteHelper helper = new WriteHelper(format);
-          return action.apply(helper);
-        } finally {
-        }
-
-      } finally {
-        isCurrentlyWriting = false;
+        record.close();
+      } catch (IOException e) {
+        LOGGER.error("Unable to close " + record, e);
       }
+    }
+    workbooksCache.clear();
+  }
+
+  /** Public for testing. */
+  public synchronized int getConnectionRecordCount() {
+    return workbooksCache.size();
+  }
+
+  private ExcelWorkbook openCachedConnection(File file, ExcelFileFormat format)
+      throws IOException, InterruptedException {
+    if (!file.exists()) {
+      throw new FileNotFoundException(file.toString());
+    }
+    String key = getKeyForFile(file, format);
+    var workbook = workbooksCache.get(key);
+    if (workbook == null) {
+      workbook = ExcelWorkbook.getExcelWorkbook(file, format);
+      workbooksCache.put(key, workbook);
+    }
+    return workbook;
+  }
+
+  private void closeCachedConnection(File file, ExcelFileFormat format) throws IOException {
+    String key = getKeyForFile(file, format);
+    ExcelWorkbook existingWorkbook = workbooksCache.get(key);
+    if (existingWorkbook != null) {
+      existingWorkbook.close();
+      workbooksCache.remove(key);
     }
   }
 
@@ -204,133 +150,5 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   private String getKeyForFile(File file, ExcelFileFormat format) throws IOException {
     String pathPart = file.getCanonicalPath();
     return pathPart + "::" + format.name();
-  }
-
-  private final HashMap<String, ConnectionRecord> records = new HashMap<>();
-  private boolean isCurrentlyWriting = false;
-
-  /** If a reload has just happened, clear the ConnectionRecord cache. */
-  public void clearCache() {
-    synchronized (this) {
-      for (var record : records.values()) {
-        try {
-          record.close();
-        } catch (IOException e) {
-          LOGGER.error("Unable to close " + record, e);
-        }
-      }
-    }
-    records.clear();
-  }
-
-  /** Public for testing. */
-  public int getConnectionRecordCount() {
-    synchronized (this) {
-      return records.size();
-    }
-  }
-
-  static class ConnectionRecord {
-    private File file;
-    private ExcelFileFormat format;
-    private ExcelWorkbook workbook;
-    private IOException initializationException = null;
-
-    <T> T withWorkbook(FunctionWithException<ExcelWorkbook, T, InterruptedException> action)
-        throws IOException, InterruptedException {
-      synchronized (this) {
-        return action.apply(accessCurrentWorkbook());
-      }
-    }
-
-    public void close() throws IOException {
-      synchronized (this) {
-        if (workbook != null) {
-          workbook.close();
-        }
-
-        workbook = null;
-      }
-    }
-
-    void reopen() throws IOException, InterruptedException {
-      synchronized (this) {
-        if (workbook != null) {
-          throw new IllegalStateException("The workbook is already open.");
-        }
-
-        try {
-          workbook =
-              format == ExcelFileFormat.XLSX
-                  ? new XSSFReaderWorkbook(file.getAbsolutePath())
-                  : ExcelWorkbook.forPOIUserModel(openWorkbook(file, format, false));
-        } catch (OLE2NotOfficeXmlFileException | NotOLE2FileException e) {
-          throw new IOException(
-              "Invalid format encountered when opening the file " + file + " as " + format + ".",
-              e);
-        }
-      }
-    }
-
-    private ExcelWorkbook accessCurrentWorkbook() throws IOException, InterruptedException {
-      synchronized (this) {
-        if (workbook == null) {
-          reopen();
-        }
-
-        return workbook;
-      }
-    }
-
-    public String toString() {
-      return "ConnectionRecord " + file;
-    }
-  }
-
-  private static Workbook openWorkbook(File file, ExcelFileFormat format, boolean writeAccess)
-      throws IOException {
-    return switch (format) {
-      case XLS -> {
-        try {
-          boolean readOnly = !writeAccess;
-          POIFSFileSystem fs = new POIFSFileSystem(file, readOnly);
-          try {
-            // If the initialization succeeds, the POIFSFileSystem will be closed by the
-            // HSSFWorkbook::close.
-            yield new HSSFWorkbook(fs);
-          } catch (IOException e) {
-            fs.close();
-            throw e;
-          }
-        } catch (OfficeXmlFileException | OLE2NotOfficeXmlFileException e) {
-          throw new IOException(
-              "Invalid format encountered when opening the file " + file + " as " + format + ".",
-              e);
-        }
-      }
-      case XLSX, XLSX_FALLBACK -> {
-        try {
-          PackageAccess access = writeAccess ? PackageAccess.READ_WRITE : PackageAccess.READ;
-          OPCPackage pkg = OPCPackage.open(file, access);
-          try {
-            yield new XSSFWorkbook(pkg);
-          } catch (IOException e) {
-            pkg.close();
-            throw e;
-          }
-        } catch (InvalidFormatException | OLE2NotOfficeXmlFileException e) {
-          throw new IOException(
-              "Invalid format encountered when opening the file " + file + " as " + format + ".",
-              e);
-        }
-      }
-    };
-  }
-
-  private static Workbook createEmptyWorkbook(ExcelFileFormat format) {
-    return switch (format) {
-      case XLS -> new HSSFWorkbook();
-      case XLSX, XLSX_FALLBACK -> new SXSSFWorkbook();
-    };
   }
 }
