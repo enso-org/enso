@@ -192,7 +192,6 @@ export interface AnyGroup {
   groups: GroupsRecord
   setPath(path: string[]): void
   clone(): this
-  merge<Other extends AnyGroup>(other: Other): this & Other
   load(config: StringConfig, stack?: string[]): string[]
   stringify(): StringConfig
   prettyPrint(indent: number): string
@@ -248,14 +247,9 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
    *
    */
   addGroup(name: string, group: AnyGroup) {
-    const existingGroup = this.groups[name]
-    if (existingGroup != null) {
-      existingGroup.merge(group)
-    } else {
-      const groups = this.groups as GroupsRecord
-      groups[name] = group
-      group.name = name
-    }
+    const groups = this.groups as GroupsRecord
+    groups[name] = group
+    group.name = name
     group.setPath([name])
   }
 
@@ -282,38 +276,6 @@ export class Group<Options extends OptionsRecord, Groups extends GroupsRecord> {
       result.options[name] = option.clone()
     }
     return result as this
-  }
-
-  /**
-   * Merge this group definition with another group definition. Returns a deeply merged group. In
-   * case the argument will override some options, errors will be logged.
-   */
-  merge<Other extends AnyGroup>(other?: Other | null): this & Other {
-    if (other == null) {
-      return this as this & Other
-    } else {
-      const result: AnyGroup = new Group()
-      Object.assign(result.groups, this.groups)
-      for (const [otherGroupName, otherGroup] of Object.entries(other.groups)) {
-        const group = result.groups[otherGroupName]
-        if (group == null) {
-          result.groups[otherGroupName] = otherGroup
-        } else {
-          result.groups[otherGroupName] = group.merge(otherGroup)
-        }
-      }
-      Object.assign(result.options, this.options)
-      for (const [otherOptionName, otherOption] of Object.entries(other.options)) {
-        const option = result.options[otherOptionName]
-        if (option != null) {
-          console.error(`Duplicate config option found '${option.qualifiedName()}'.`)
-        }
-        result.options[otherOptionName] = otherOption
-      }
-      result.name = this.name
-      result.description = this.description
-      return result as this & Other
-    }
   }
 
   /**
