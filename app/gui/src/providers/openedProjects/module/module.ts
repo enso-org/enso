@@ -6,8 +6,7 @@ import { reactiveModule } from '@/util/ast/reactive'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { type MethodPointer } from '@/util/methodPointer'
 import { proxyRefs } from '@/util/reactivity'
-import { isPromise } from 'util/types'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, type Ref, ref, watch } from 'vue'
 import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import { defaultLocalOrigin, type Origin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
@@ -35,7 +34,8 @@ export function createModuleStore(
   const source = SourceDocument.Empty(reactive)
   const root = ref<Ast.BodyBlock>()
   const synced = computed(() => root.value?.module as Ast.MutableModule | undefined)
-  const ast = computed((): Ast.Module => synced.value!)
+  const ast = synced as Ref<Ast.Module | undefined>
+  const observers: ((update: Ast.ModuleUpdate) => void)[] = []
 
   watch(
     () => proj.module,
@@ -53,15 +53,8 @@ export function createModuleStore(
             update.updateRoots.size != 0
           ) {
             source.applyUpdate(module, update)
-            console.debug('Fix the below:')
-            // db.updateExternalIds(root)
           }
-          // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
-          //   const nodeMetadataUpdates = update.metadataUpdated as any as {
-          //     id: AstId
-          //     changes: Ast.NodeMetadata
-          //   }[]
-          //   for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
+          for (const observer of observers) observer(update)
         } else {
           root.value = undefined
         }
@@ -72,6 +65,14 @@ export function createModuleStore(
       })
     },
   )
+
+  function observe(f: (update: Ast.ModuleUpdate) => void) {
+    observers.push(f)
+    return () => {
+      const index = observers.indexOf(f)
+      if (index !== -1) observers.splice(index, 1)
+    }
+  }
 
   /**
    * Edit the AST module.
@@ -111,13 +112,13 @@ export function createModuleStore(
 
     const result = edit.transact(() => {
       const result = f(edit)
-      if (isPromise(result)) {
+      if (result instanceof Promise) {
         return result.then(treeRepair)
       } else {
         return treeRepair(result)
       }
     })
-    if (isPromise(result)) return result.then(applyEdit) as R
+    if (result instanceof Promise) return result.then(applyEdit) as R
     else return applyEdit(result) as R
   }
 
@@ -127,7 +128,7 @@ export function createModuleStore(
   }
 
   function getMethodAst(ptr: MethodPointer, edit?: Ast.Module): Result<Ast.FunctionDef> {
-    const topLevel = (edit ?? ast.value).root()
+    const topLevel = (edit ?? ast.value)?.root()
     if (!topLevel) return Err('Module unavailable')
     assert(topLevel instanceof Ast.BodyBlock)
     if (!proj.moduleProjectPath?.ok)
@@ -213,6 +214,7 @@ export function createModuleStore(
     source,
     ast,
     root,
+    observe,
     edit,
     batchEdits,
     onBeforeEdit,

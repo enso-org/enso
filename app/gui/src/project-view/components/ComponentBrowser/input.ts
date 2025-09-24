@@ -25,7 +25,7 @@ import type { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
-import { computed, readonly, ref, shallowRef, toValue, type ComputedRef } from 'vue'
+import { computed, readonly, ref, shallowRef, toRef, toValue, type ComputedRef } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
 
 /** Information how the component browser is used, needed for proper input initializing. */
@@ -57,8 +57,11 @@ export type ComponentBrowserMode =
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
-  graphDb: ToValue<GraphDb> = () => useCurrentProject().ref.value.graph.db,
-  suggestionDb: ToValue<SuggestionDb> = () => useCurrentProject().ref.value.suggestionDb.entries,
+  graphDb: ToValue<GraphDb> = toRef(useCurrentProject().storesRefs.graph.value, 'db'),
+  suggestionDb: ToValue<SuggestionDb> = toRef(
+    useCurrentProject().storesRefs.suggestionDb.value,
+    'entries',
+  ),
   ai: { query(query: string, sourcePort: string): Promise<Result<string>> } = useAI(),
 ) {
   const text = ref('')

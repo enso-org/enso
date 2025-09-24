@@ -6,26 +6,20 @@ import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
 import { assert } from '@/util/assert'
 import { colorFromString } from '@/util/colors'
-import type { Opt } from '@/util/data/opt'
-import type { ToValue } from '@/util/reactivity'
-import { computed, toValue, watch, type ToRefs } from 'vue'
+import { Opt } from '@/util/data/opt'
+import { ToValue } from '@/util/reactivity'
+import { computed, Ref, shallowRef, ToRefs, toValue, watch } from 'vue'
 
-/**
- * A context of a single opened project.
- *
- * Use `WithCurrentProject` component to provide which project is the current for entire component
- * tree (it's injects context and also sets proper css properties). Inside, inject will bring all
- * project-related stores. If the project is closed, all stores becomes undefined.
- */
-const [provideCurrentProject, useCurrentProject] = createContextStore(
+export type CurrentProjectStore = ReturnType<typeof useCurrentProjectRaw>
+const [provideCurrentProject, useCurrentProjectRaw] = createContextStore(
   'currentProject',
-  (project: ToValue<OpenedProject | undefined>) => {
+  (project: Ref<OpenedProject | undefined>) => {
     const ref = computed(() => {
-      const proj = toValue(project)
-      assert(proj != null)
-      return proj
+      assert(project.value != null)
+      return project.value
     })
     return {
+      maybeRef: project,
       /* Current project as a single ref  */
       ref,
       /* Current project's stores decomposed to separate refs. */
@@ -41,7 +35,25 @@ const [provideCurrentProject, useCurrentProject] = createContextStore(
   },
 )
 
-export { useCurrentProject }
+export function useCurrentProject(allowMissing: true): CurrentProjectStore | undefined
+export function useCurrentProject(allowMissing?: false): CurrentProjectStore
+export function useCurrentProject(allowMissing?: boolean): CurrentProjectStore | undefined
+/**
+ * A context of a single opened project.
+ *
+ * Use `WithCurrentProject` component to provide which project is the current for entire component
+ * tree (it injects context, makes sure the project is available, and sets proper css properties).
+ */
+export function useCurrentProject(allowMissing?: boolean) {
+  const currentProjectStore = useCurrentProjectRaw(allowMissing)
+  if (currentProjectStore == null) return undefined
+  // If the store is defined, but there is no project in it, it has to be fallback component.
+  if (currentProjectStore.maybeRef.value == null) {
+    if (allowMissing) return undefined
+    else throw new Error(`Trying to inject currentProject in WithProject's fallback component`)
+  }
+  return currentProjectStore
+}
 
 function useOpenedProject(projectId: ToValue<Opt<ProjectId>>) {
   const openedProjects = injectOpenedProjects()
@@ -101,12 +113,27 @@ export const useWidgetRegistry = useStoreTemplate('widgetRegistry')
 const { id } = defineProps<{ id: Opt<ProjectId> }>()
 
 const project = useOpenedProject(() => id)
+const providedProject = shallowRef<OpenedProject | undefined>(project.value)
+watch(
+  project,
+  (project) => {
+    if (project != null) providedProject.value = project
+  },
+  { flush: 'pre' },
+)
+watch(
+  project,
+  (project) => {
+    if (project == null) providedProject.value = project
+  },
+  { flush: 'post' },
+)
 
-const provided = provideCurrentProject(project).ref
+provideCurrentProject(providedProject)
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
-  const groups = provided.value?.suggestionDb.groups ?? []
+  const groups = project.value?.suggestionDb.groups ?? []
   for (const group of groups) {
     styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
   }
@@ -115,10 +142,10 @@ const groupColors = computed(() => {
 </script>
 
 <template>
-  <div v-if="project != null" class="WithCurrentProject" :style="groupColors">
-    <slot />
+  <div class="WithCurrentProject" :style="groupColors">
+    <slot v-if="project != null" />
+    <slot v-else name="fallback" />
   </div>
-  <slot v-else name="fallback" />
 </template>
 
 <style scoped>

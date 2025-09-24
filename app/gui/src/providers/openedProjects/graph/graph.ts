@@ -11,7 +11,7 @@ import { type RequiredImport } from '$/providers/openedProjects/module/imports'
 import { type ProjectStore } from '$/providers/openedProjects/project'
 import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { type SuggestionDbStore } from '$/providers/openedProjects/suggestionDatabase'
-import { Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
 import type { UpdateHandler, UpdateResult } from '$/providers/openedProjects/widgetRegistry'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
@@ -33,6 +33,7 @@ import {
   computed,
   markRaw,
   nextTick,
+  onScopeDispose,
   reactive,
   ref,
   shallowReactive,
@@ -137,6 +138,7 @@ export function createGraphStore(
 ) {
   const { run: cleanup, register: onCleanup } =
     useCallbackRegistry<Parameters<(key: NodeId) => void>>()
+
   const nodeState = {
     nodeHovered: useAssociatedFlag({ onCleanup }),
     nodeExtended: useAssociatedFlag({ onCleanup }),
@@ -147,6 +149,28 @@ export function createGraphStore(
     nodeOutputAnimations: useAssociatedValue<NodeId, number>({ onCleanup }),
   } as const
   const { nodeRects, vizRects, nodeOutputAnimations } = nodeState
+
+  const currentMethodPointer = computed((): Result<MethodPointer> => {
+    const executionStackTop = proj.executionContext.getStackTop()
+    switch (executionStackTop.type) {
+      case 'ExplicitCall': {
+        return Ok(executionStackTop.methodPointer)
+      }
+      case 'LocalCall': {
+        const exprId = executionStackTop.expressionId
+        const info = db.getExpressionInfo(exprId)
+        const ptr = info?.methodCall?.methodPointer
+        if (!ptr) return Err("Unknown method pointer of execution stack's top frame")
+        return Ok(ptr)
+      }
+      default:
+        return assertNever(executionStackTop)
+    }
+  })
+
+  function getExecutedMethodAst(edit?: Ast.Module): Result<Ast.FunctionDef> {
+    return andThen(currentMethodPointer.value, (ptr) => module.getMethodAst(ptr, edit))
+  }
 
   // The currently visible nodes' areas (including visualization).
   const visibleNodeAreas = computed(() => {
@@ -166,7 +190,6 @@ export function createGraphStore(
   )
   const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
   const editedNodeInfo = ref<NodeEditInfo>()
-
   const immediateMethodAst = computed<Result<Ast.FunctionDef>>(() => getExecutedMethodAst())
 
   // When renaming a function, we temporarily lose track of edited function AST. Ensure that we
@@ -185,7 +208,7 @@ export function createGraphStore(
 
   const fallbackMethodAst = computed(() => {
     const id = lastKnownResolvedMethodAstId.value
-    const ast = id != null ? module.ast.tryGet(id) : undefined
+    const ast = id != null ? module.ast?.tryGet(id) : undefined
     if (ast instanceof Ast.FunctionDef) return ast
     return undefined
   })
@@ -197,6 +220,25 @@ export function createGraphStore(
     if (flb) return Ok(flb)
     return imm
   })
+
+  const unobserveModule = module.observe((update) => {
+    if (
+      module.root &&
+      (update.nodesAdded.size != 0 ||
+        update.nodesDeleted.size != 0 ||
+        update.nodesUpdated.size != 0 ||
+        update.updateRoots.size != 0)
+    ) {
+      db.updateExternalIds(module.root)
+    }
+    // We can cast maps of unknown metadata fields to `NodeMetadata` because all `NodeMetadata` fields are optional.
+    const nodeMetadataUpdates = update.metadataUpdated as any as {
+      id: AstId
+      changes: Ast.NodeMetadata
+    }[]
+    for (const { id, changes } of nodeMetadataUpdates) db.updateMetadata(id, changes)
+  })
+  onScopeDispose(unobserveModule)
 
   const watchContext = useWatchContext()
 
@@ -220,28 +262,6 @@ export function createGraphStore(
     if (methodAst.value.ok && module.source.text)
       db.updateBindings(methodAst.value.value, module.source)
   })
-
-  const currentMethodPointer = computed((): Result<MethodPointer> => {
-    const executionStackTop = proj.executionContext.getStackTop()
-    switch (executionStackTop.type) {
-      case 'ExplicitCall': {
-        return Ok(executionStackTop.methodPointer)
-      }
-      case 'LocalCall': {
-        const exprId = executionStackTop.expressionId
-        const info = db.getExpressionInfo(exprId)
-        const ptr = info?.methodCall?.methodPointer
-        if (!ptr) return Err("Unknown method pointer of execution stack's top frame")
-        return Ok(ptr)
-      }
-      default:
-        return assertNever(executionStackTop)
-    }
-  })
-
-  function getExecutedMethodAst(edit?: Ast.Module): Result<Ast.FunctionDef> {
-    return andThen(currentMethodPointer.value, (ptr) => module.getMethodAst(ptr, edit))
-  }
 
   /**
    * Generate unique identifier from `prefix` and some numeric suffix.

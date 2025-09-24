@@ -12,7 +12,6 @@ import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import { cachedGetter, type ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
-import { isPromise } from 'util/types'
 import { computed, toValue } from 'vue'
 import type { ColumnSpecificParams } from './TableHeader.vue'
 
@@ -389,7 +388,7 @@ export function useTableInputArgument(
               },
               { logPreamble: 'Cannot set value on table cell' },
             )
-            return isPromise(result) ? true : result.ok
+            return result instanceof Promise ? true : result.ok
           },
           headerComponentParams: {
             columnParams: {

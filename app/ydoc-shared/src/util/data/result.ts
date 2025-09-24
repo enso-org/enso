@@ -3,7 +3,6 @@
  * or an error.
  */
 
-import { isPromise } from 'util/types'
 import { isSome, type Opt } from './opt'
 
 /**
@@ -72,7 +71,7 @@ export function logIfError<T, E>(
 ): Result<T, E> | Promise<Result<T, E>>
 /** Log if the result of this potentially asynchronous operation is an error. */
 export function logIfError<T, E>(result: Result<T, E> | Promise<Result<T, E>>, preamble?: string) {
-  if (isPromise(result))
+  if (result instanceof Promise)
     return result.then((result) => {
       if (!result.ok) result.error.log(preamble)
       return result

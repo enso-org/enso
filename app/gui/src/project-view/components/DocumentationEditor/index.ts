@@ -1,3 +1,4 @@
-import * as DocumentationEditor from './DocumentationEditor.vue'
+import DocumentationEditor from './DocumentationEditor.vue'
 
+export * from './DocumentationEditor.vue'
 export default DocumentationEditor

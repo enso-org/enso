@@ -507,8 +507,8 @@ function clearFocus() {
 function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
   if (sourcePort == null) return
-  const sourcePortAst = module.value.ast.get(sourcePort)
-  assert(sourcePortAst.isExpression())
+  const sourcePortAst = module.value.ast?.get(sourcePort)
+  assert(sourcePortAst?.isExpression() === true)
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
     toCommit.map((options: NodeCreationOptions) => ({
