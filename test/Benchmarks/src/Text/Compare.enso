@@ -5,7 +5,10 @@ from Standard.Test import Bench, Faker
 
 compare_all_adjacent text_vector =
     res = 1.up_to text_vector.length . fold False acc-> ix->
-        compare_result = (text_vector.at ix-1) < (text_vector.at ix)
+        compare_result =
+            prev = text_vector.at ix-1
+            next = text_vector.at ix
+            prev < next
         acc && compare_result
     res
 
