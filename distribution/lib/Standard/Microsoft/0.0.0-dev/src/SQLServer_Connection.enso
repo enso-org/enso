@@ -17,6 +17,7 @@ import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Nam
 import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL.SQL_Statement
+import Standard.Database.SQL_Query.SQL_Query
 from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
@@ -181,8 +182,13 @@ type SQLServer_Connection
         - If provided with a `Table_Name` or a text short-hand and the table is
           not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
-    query : SQLServer_Query -> Text -> Table & DB_Table ! Table_Not_Found
-    query self query:SQLServer_Query alias="" = self.connection.query query alias
+    query : (SQLServer_Query | SQL_Query) -> Text -> Table & DB_Table ! Table_Not_Found
+    query self query:(SQLServer_Query | SQL_Query) alias="" =
+        used_query = case query of
+            SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
+            SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql
+            _ : SQLServer_Query -> query
+        self.connection.query used_query alias
 
     ## ---
        aliases: [import, load, open, query, sql]
@@ -206,9 +212,13 @@ type SQLServer_Connection
        results, the `read` should be wrapped in an execution context check.
     @query make_table_name_selector
     @limit Rows_To_Read.default_widget
-    read : SQLServer_Query -> Rows_To_Read -> Table ! Table_Not_Found
-    read self query:SQLServer_Query (limit : Rows_To_Read = ..First_With_Warning 1000) =
-        self.connection.read query limit
+    read : (SQLServer_Query | SQL_Query) -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query:(SQLServer_Query | SQL_Query) (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        used_query = case query of
+            SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
+            SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql
+            _ : SQLServer_Query -> query
+        self.connection.read used_query limit
 
     ## ---
        group: Standard.Base.Output
