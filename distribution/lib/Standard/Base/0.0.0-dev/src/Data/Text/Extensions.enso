@@ -57,6 +57,63 @@ polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.WithProblems
 
 ## ---
+    group: Conversions
+    icon: text
+    ---
+    Generic conversion of an arbitrary Enso value to a corresponding textual
+    representation.
+
+    ## Examples
+    ### Getting a textual representation of the number 7.
+
+    ```
+            7.to_text
+    ```
+Any.to_text self -> Text = @Builtin_Method "Any.to_text"
+
+## ---
+    group: convert
+    icon: enso_logo
+    ---
+    Convert the value to a corresponding Enso code representation.
+
+    ## Examples
+    ### Getting the Enso code of the number 7.
+
+    ```
+            7.pretty
+    ```
+
+    Returns a Text
+
+            7
+
+    ### Getting the Enso code of the text Hello World!.
+
+    ```
+            "Hello World!".pretty
+    ```
+
+    Returns a Text
+
+            'Hello World!'
+Any.pretty self -> Text = @Builtin_Method "Any.pretty"
+
+## ---
+    private: true
+    ---
+    Generic conversion of an arbitrary Enso value to a corresponding short
+    human-readable representation.
+
+    ## Examples
+    ### Getting a short human-readable textual representation of the number 7.
+
+    ```
+            7.to_display_text
+    ```
+Any.to_display_text self -> Text = @Builtin_Method "Any.to_display_text"
+
+## ---
    group: Text
    icon: text
    ---
@@ -76,8 +133,7 @@ polyglot java import org.enso.base.WithProblems
    A character is defined as an Extended Grapheme Cluster, see Unicode Standard
    Annex 29. This is the smallest unit that still has semantic meaning in most
    text-processing applications.
-Text.reverse : Text
-Text.reverse self =
+Text.reverse self -> Text =
     reverseStringBuilder = StringBuilder.new self.length
     iterator = BreakIterator.getCharacterInstance
     iterator.setText self
