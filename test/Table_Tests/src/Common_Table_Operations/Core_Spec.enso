@@ -401,7 +401,7 @@ add_core_specs suite_builder setup =
 
         if setup.is_database then group_builder.specify "should allow similar API on Connection.read" <|
             connection = Internals_Access.get_connection (data.t_big:DB_Table)
-            table_name = (data.t_big:DB_Table).name
+            table_name = SQL_Query.Table_Name (data.t_big:DB_Table).name
             connection.query table_name . row_count . should_equal 1500
 
             t1 = connection.read table_name
