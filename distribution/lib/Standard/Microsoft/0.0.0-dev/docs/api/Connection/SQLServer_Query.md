@@ -5,3 +5,4 @@
     - Table_Name name:Standard.Base.Data.Text.Text= schema:Standard.Base.Data.Text.Text=
     - From that:Standard.Database.SQL_Query.SQL_Query -> Standard.Base.Any.Any
     - to_db_table self connection:Standard.Database.Connection.Connection.Connection alias:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- Standard.Microsoft.Connection.SQLServer_Query.SQLServer_Query.from that:Standard.Base.Data.Text.Text -> Standard.Microsoft.Connection.SQLServer_Query.SQLServer_Query
