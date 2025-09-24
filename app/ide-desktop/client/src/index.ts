@@ -613,21 +613,21 @@ class App {
     for (const name in debug.VERSION_INFO) {
       maxNameLen = Math.max(maxNameLen, name.length)
     }
-    console.log('Frontend:')
+    process.stdout.write('Frontend:\n')
     for (const [name, value] of Object.entries(debug.VERSION_INFO)) {
       const label = naming.capitalizeFirstLetter(name)
       const spacing = ' '.repeat(maxNameLen - name.length)
-      console.log(`${indent}${label}:${spacing} ${value}`)
+      process.stdout.write(`${indent}${label}:${spacing} ${value}\n`)
     }
-    console.log('')
-    console.log('Backend:')
+    process.stdout.write('\n')
+    process.stdout.write('Backend:\n')
     const backend = await projectManager.version(this.args)
     if (backend == null) {
-      console.log(`${indent}No backend available.`)
+      process.stdout.write(`${indent}No backend available.\n`)
     } else {
       const lines = backend.split(/\r?\n/).filter((line) => line.length > 0)
       for (const line of lines) {
-        console.log(`${indent}${line}`)
+        process.stdout.write(`${indent}${line}\n`)
       }
     }
   }

@@ -81,13 +81,6 @@ export const CONFIG = new contentConfig.Group({
       value: false,
       description: `Print the version.`,
     }),
-    help: new contentConfig.Option({
-      passToWebApplication: false,
-      value: false,
-      description:
-        `Display the common configuration options help page. Use ` +
-        `'${HELP_EXTENDED_OPTION_NAME}' to see all options.`,
-    }),
     [HELP_EXTENDED_NAME]: new contentConfig.Option({
       passToWebApplication: false,
       value: false,
