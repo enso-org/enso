@@ -362,16 +362,11 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
       args,
       groupsOrdering: [
         args.groups.startup.name,
-        args.groups.style.name,
-        args.groups.featurePreview.name,
         args.groups.window.name,
         args.groups.server.name,
         args.groups.engine.name,
         args.groups.performance.name,
         args.groups.debug.name,
-        args.groups.profile.name,
-        args.groups.authentication.name,
-        args.groups.chrome.name,
       ],
       helpExtended: args.options.helpExtended.value,
     })

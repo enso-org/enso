@@ -382,8 +382,6 @@ class App {
         preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
         sandbox: true,
         backgroundThrottling: argGroups.performance.options.backgroundThrottling.value,
-        enableBlinkFeatures: argGroups.chrome.options.enableBlinkFeatures.value,
-        disableBlinkFeatures: argGroups.chrome.options.disableBlinkFeatures.value,
         spellcheck: false,
         ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
       }
