@@ -27,13 +27,16 @@ object SmallJDK {
   private val JDK_MODULES = Seq(
     "java.naming",
     "java.net.http",
-    "java.prefs",
     "java.rmi",
     "jdk.attach",
     "jdk.charsets",
     "jdk.crypto.ec",
     "jdk.httpserver",
     "jdk.localedata"
+  )
+
+  private val ADDITIONAL_NI_BUILD_MODS = Seq(
+    "java.prefs"
   )
 
   private val DEBUG_MODULES = Seq(
@@ -55,7 +58,7 @@ object SmallJDK {
       IO.delete(targetJdkDirectory)
     }
     val niModules     = (NI_BASE_MODULES ++ NI_BUILDER_MODULES).mkString(",")
-    val jdkModules    = JDK_MODULES.mkString(",")
+    val jdkModules    = (JDK_MODULES ++ ADDITIONAL_NI_BUILD_MODS).mkString(",")
     val debugModules  = DEBUG_MODULES.mkString(",")
     val pythonModules = PYTHON_MODULES.mkString(",")
 
