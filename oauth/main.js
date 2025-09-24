@@ -1,5 +1,8 @@
     // main.js
-    const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
+    import open from "open";
+    import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
+    //const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
+    //const open = require('open');
 
     if (isMainThread) {
         console.log('Main thread started.');
@@ -8,6 +11,8 @@
         const worker = new Worker('./worker.cjs', {
             workerData: { limit: 1000000000 } // Data to pass to the worker
         });
+
+        open('https://cnn.com/');
 
         // Listen for messages from the worker thread
         worker.on('message', (result) => {

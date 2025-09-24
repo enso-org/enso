@@ -1,0 +1,15 @@
+{
+  "name": "oauth",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "main.cjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "open": "^10.2.0"
+  }
+}
