@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.function.Function;
-
 import org.enso.base.cache.ReloadDetector;
 import org.enso.table.util.FunctionWithException;
 import org.slf4j.Logger;
