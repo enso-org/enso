@@ -1,12 +1,12 @@
 /** @file An label that can be applied to an asset. */
+import * as aria from '#/components/aria'
 import { Button } from '#/components/Button'
 import FocusRing from '#/components/styled/FocusRing'
 import { Text } from '#/components/Text'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Label as BackendLabel } from '#/services/Backend'
 import { lChColorToCssColor, type LChColor } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-import { forwardRef, type ForwardedRef, type MouseEvent, type PropsWithChildren } from 'react'
+import { forwardRef, type ForwardedRef, type PropsWithChildren } from 'react'
 
 const MAXIMUM_LIGHTNESS_FOR_DARK_COLORS = 50
 
@@ -26,15 +26,17 @@ interface LabelProps extends Readonly<PropsWithChildren> {
 
 /** An label that can be applied to an asset. */
 export default forwardRef(function Label(props: LabelProps, ref: ForwardedRef<HTMLDivElement>) {
-  const { active = false, isDisabled = false, color, title, onPress, label, onDelete } = props
-  const { children: childrenRaw } = props
+  const {
+    children: childrenRaw,
+    active = false,
+    isDisabled = false,
+    color,
+    title,
+    onPress,
+    label,
+    onDelete,
+  } = props
   const isLight = color.lightness > MAXIMUM_LIGHTNESS_FOR_DARK_COLORS
-
-  const handleDelete = useEventCallback(onDelete)
-  const onClick = useEventCallback((event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation()
-    onPress?.(label)
-  })
 
   return (
     <FocusRing within placement="after">
@@ -48,13 +50,13 @@ export default forwardRef(function Label(props: LabelProps, ref: ForwardedRef<HT
           )}
           style={{ backgroundColor: lChColorToCssColor(color) }}
         >
-          {/* An `aria.Button` MUST NOT be used here, as it breaks dragging. */}
-          {/* eslint-disable-next-line no-restricted-syntax */}
-          <button
+          <aria.Button
             data-testid={props['data-testid']}
             type="button"
-            disabled={isDisabled}
-            onClick={onClick}
+            isDisabled={isDisabled}
+            onPress={() => {
+              onPress?.(label)
+            }}
           >
             {typeof childrenRaw !== 'string' ?
               childrenRaw
@@ -67,13 +69,13 @@ export default forwardRef(function Label(props: LabelProps, ref: ForwardedRef<HT
                 {childrenRaw}
               </Text>
             }
-          </button>
+          </aria.Button>
           {onDelete && (
             <Button
               icon="tab_close"
               variant="icon"
               size="small"
-              onPress={handleDelete}
+              onPress={onDelete}
               className={twJoin('ml-2', !isLight && 'text-white')}
             />
           )}
