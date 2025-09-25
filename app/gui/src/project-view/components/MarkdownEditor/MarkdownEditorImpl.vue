@@ -12,9 +12,9 @@ import {
 import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
-import { useAsyncResources, type StartedUpload } from '@/providers/asyncResources'
-import { useCurrentProjectResourceContext } from '@/providers/asyncResources/context'
-import { selectResourceFiles, type AnyUploadSource } from '@/providers/asyncResources/upload'
+import { type StartedUpload, useAsyncResources } from '@/providers/asyncResources'
+import type { ResourceContext } from '@/providers/asyncResources/context'
+import { type AnyUploadSource, selectResourceFiles } from '@/providers/asyncResources/upload'
 import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
@@ -23,7 +23,7 @@ import { useToast } from '@/util/toast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import type { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { computed, useCssModule, useTemplateRef, watch, type ComponentInstance } from 'vue'
+import { type ComponentInstance, computed, useCssModule, useTemplateRef, watch } from 'vue'
 
 const {
   toolbar = true,
@@ -32,6 +32,7 @@ const {
   contentTestId,
   scrollerTestId,
   editorReadyCallback = () => {},
+  resourceContext = { project: undefined, asset: undefined, basePathSegments: undefined },
 } = defineProps<{
   toolbar?: boolean | undefined
   readonly?: boolean | undefined
@@ -48,10 +49,10 @@ const {
    * defined as signal)
    */
   editorReadyCallback?: ((view: EditorView) => void) | undefined
+  resourceContext?: ResourceContext | undefined
 }>()
 defineOptions({ inheritAttrs: false })
 
-const resourceContext = useCurrentProjectResourceContext()
 const res = useAsyncResources(true)
 
 async function selectAndUpload() {

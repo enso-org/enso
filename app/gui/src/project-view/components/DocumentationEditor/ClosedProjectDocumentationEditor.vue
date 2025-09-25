@@ -56,6 +56,11 @@ const editorMarkdown = computed(() =>
   mapOk(currentMethodAst.value, (ast) => ast.mutableDocumentationMarkdown()),
 )
 const editorContent = computed(() => unwrapOr(editorMarkdown.value, undefined))
+const resourceContext = {
+  project: projectId,
+  // We display documentation of `main` function, so image access is relative to the main module.
+  basePathSegments: ['src', 'Main.enso'],
+}
 
 const { syncExt, connectSync } = useYTextSync(editorContent, 'local:userAction:DocEditor')
 const editorPersistenceExt = editorPersistence({
@@ -78,6 +83,7 @@ const extensions = [syncExt, editorPersistenceExt]
     contentTestId="documentation-editor-content"
     scrollerTestId="documentation-editor-scroller"
     :editorReadyCallback="connectSync"
+    :resourceContext="resourceContext"
   >
   </MarkdownEditor>
   <!-- Specifying `<ResultComponent ... centered /> does not work with React components

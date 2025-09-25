@@ -1,5 +1,4 @@
 import { ProjectId } from '#/services/Backend'
-import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import type { ToValue } from '@/util/reactivity'
 import { toValue } from 'vue'
 
@@ -27,24 +26,5 @@ export function captureResourceContext(context: ResourceContext): ResourceContex
   return {
     project: toValue(context.project),
     basePathSegments: toValue(context.basePathSegments),
-  }
-}
-
-/**
- * Assemble resource context based on `currentProject` structure present in Vue's context.
- */
-export function useCurrentProjectResourceContext(): ResourceContext {
-  const currentProject = useCurrentProject(true)
-  return {
-    project: () => currentProject?.ref.value.store.id ?? undefined,
-    basePathSegments: () => {
-      if (!currentProject) return
-      const openedProjectStore = currentProject.storesRefs.store.value
-      // When project is not opened, we assume that all image access is relative to main module.
-      if (!openedProjectStore) return ['src', 'Main.enso']
-
-      const fileName = openedProjectStore.observedFileName
-      if (fileName) return ['src', ...fileName.split('/')]
-    },
   }
 }

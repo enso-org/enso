@@ -318,7 +318,7 @@ export function createGraphStore(
           // Skip ports on already deleted nodes.
           if (nodeId && deletedNodes.has(nodeId)) continue
 
-          const result = await updatePortValue(usage, undefined, edit)
+          const result = await updatePortValue(usage, undefined, edit, false)
           if (!result.ok) return result
         }
         const outerAst = edit.getVersion(node.outerAst)

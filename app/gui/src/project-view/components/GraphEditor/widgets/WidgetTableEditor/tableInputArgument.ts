@@ -503,7 +503,7 @@ export function useTableInputArgument(
     const newValueGetter = (rowIndex: number, colIndex: number) => {
       if (rowIndex < focusedCell.rowIndex) return undefined
       if (colIndex < focusedColIndex) return undefined
-      return Ok(data[rowIndex - focusedCell.rowIndex]?.[colIndex - focusedColIndex])
+      return data[rowIndex - focusedCell.rowIndex]?.[colIndex - focusedColIndex]
     }
     const pastedRowsEnd = focusedCell.rowIndex + data.length
     const pastedColsEnd = focusedColIndex + data[0]!.length
