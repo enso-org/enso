@@ -57,7 +57,7 @@ import axios from 'axios';
           worker.on('message', async (result) => {
               //console.log('Result from worker:', result);
               const { auth_code } = result;
-              console.log('* auth_code ' + auth_code);
+              //console.log('* auth_code ' + auth_code);
               resolve(auth_code);
           });
 
@@ -91,7 +91,7 @@ import axios from 'axios';
 
         const authentication_code = await get_authentication_code(worker);
         const access_token = await get_access_token(authentication_code);
-        console.log('* access_token: ' + access_token);
+        //console.log('* access_token: ' + access_token);
 
         const api_url = 'https://graph.microsoft.com/v1.0/me';
         //const api_url = 'https://graph.microsoft.com/v1.0/me/drive/root/children';
