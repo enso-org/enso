@@ -941,6 +941,10 @@ private[runtime] class IrToTruffle(
     expr
   }
 
+  /**
+   * This method iterates over every [[BindingsMap.exportedSymbols exported]] symbol, and
+   * registers it in the current [[TruffleCompilerModuleScopeBuilder module scope]].
+   */
   private def generateReExportBindings(module: Module): Unit = {
     def mkConsGetter(constructor: AtomConstructor): RuntimeFunction =
       constructor.getAccessorFunction()
@@ -1035,18 +1039,24 @@ private[runtime] class IrToTruffle(
                     tp != null,
                     s"Type should be defined in module ${modWithTp.getName}"
                   )
-                  // We have to search for the method on eigen type, because it is a static method.
-                  // Static methods are always defined on eigen types
                   val eigenTp = tp.getEigentype
-                  val fun =
+                  // The method with the given name can be present either in `tp` or in
+                  // `eigenTp`, but not in both.
+                  var fun =
                     currentScope.getMethodForType(
+                      tp,
+                      staticMethod.methodName
+                    )
+                  if (fun == null) {
+                    fun = currentScope.getMethodForType(
                       eigenTp,
                       staticMethod.methodName
                     )
+                  }
                   org.enso.common.Asserts.assertInJvm(
                     fun != null,
-                    s"exported symbol (static method) `${staticMethod.name}` on type '${eigenTp.getName}' " +
-                    s"needs to be registered first in the module '${actualModule.getName.toString}'."
+                    s"exported extension method `${staticMethod.name}` was not found either in " +
+                    s"${tp} or in ${eigenTp} inside module '${actualModule.getName.toString}'."
                   )
                   scopeBuilder.registerMethod(
                     scopeAssociatedType,
