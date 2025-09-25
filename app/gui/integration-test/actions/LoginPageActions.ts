@@ -45,7 +45,7 @@ export default class LoginPageActions<Context = object> extends BaseActions<Cont
       } else {
         await this.loginInternal(email, password)
       }
-
+      await expect(page.getByTestId('after-auth-layout')).toBeAttached({ timeout: 30_000 })
       const agreementModalVisible = (await page.locator('#agreements-modal').count()) > 0
       if (agreementModalVisible) {
         await passAgreementsDialog(page)
