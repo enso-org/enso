@@ -1,10 +1,13 @@
 package org.enso.table.write;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.function.Function;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
@@ -23,7 +26,14 @@ import org.enso.table.error.ColumnNameMismatchException;
 import org.enso.table.error.ExistingDataException;
 import org.enso.table.error.InvalidLocationException;
 import org.enso.table.error.RangeExceededException;
-import org.enso.table.excel.*;
+import org.enso.table.excel.ExcelFileFormat;
+import org.enso.table.excel.ExcelHeaders;
+import org.enso.table.excel.ExcelRange;
+import org.enso.table.excel.ExcelRow;
+import org.enso.table.excel.ExcelSheet;
+import org.enso.table.excel.ExcelUtils;
+import org.enso.table.excel.ExcelWriteHelper;
+import org.enso.table.excel.internal.ExcelConnectionPool;
 import org.enso.table.util.ColumnMapper;
 import org.enso.table.util.NameDeduplicator;
 
@@ -38,6 +48,14 @@ public class ExcelWriter {
     if (ensoToTextCallback == null) {
       ensoToTextCallback = callback;
     }
+  }
+
+  public static <T> T withWorkbook(
+      File file,
+      ExcelFileFormat format,
+      Function<ExcelWriteHelper, T> action)
+      throws IOException, InterruptedException {
+    return ExcelConnectionPool.INSTANCE.performWriteAction(file, format, action);
   }
 
   public static void writeTableToSheet(

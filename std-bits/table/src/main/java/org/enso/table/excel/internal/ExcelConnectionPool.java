@@ -1,4 +1,4 @@
-package org.enso.table.excel;
+package org.enso.table.excel.internal;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.function.Function;
 
 import org.enso.base.cache.ReloadDetector;
+import org.enso.table.excel.ExcelFileFormat;
+import org.enso.table.excel.ExcelWorkbook;
+import org.enso.table.excel.ExcelWriteHelper;
 import org.enso.table.util.FunctionWithException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

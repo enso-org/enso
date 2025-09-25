@@ -20,9 +20,6 @@ polyglot java import org.enso.base.DryRunFileManager
 polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import org.enso.table.error.RangeExceededException
-polyglot java import org.enso.table.excel.ExcelConnectionPool
-polyglot java import org.enso.table.excel.ExcelConnectionPool.ConnectionRecord
-polyglot java import org.enso.table.excel.ExcelConnectionPool.WriteHelper
 polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ExcelWorkbook
 polyglot java import org.enso.table.read.ExcelReader
@@ -88,9 +85,9 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
                 Java_File.new preexisting_dry_run_file
         
         ## Make sure all of the files we may touch as part of the write operation are not open for reading in the cache
-        possible_backup_file.if_not_nothing <| ExcelConnectionPool.INSTANCE.closeConnection possible_backup_file file_format
-        possible_dry_run_file.if_not_nothing <| ExcelConnectionPool.INSTANCE.closeConnection possible_dry_run_file file_format
-        ExcelConnectionPool.INSTANCE.closeConnection java_file file_format
+        possible_backup_file.if_not_nothing <| ExcelReader.closeFile possible_backup_file file_format
+        possible_dry_run_file.if_not_nothing <| ExcelReader.closeFile possible_dry_run_file file_format
+        ExcelReader.closeFile java_file file_format
 
         temp_file = if is_dry_run then file.create_dry_run_file copy_original=False else
                 find_temp_file file
@@ -100,8 +97,10 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
         Context.Output.with_enabled <| Panic.rethrow <|
             if file.exists then (file.copy_to temp_file replace_existing=True) else (temp_file.delete_if_exists)
 
-        ExcelConnectionPool.INSTANCE.performWriteAction (file_as_java temp_file) file_format write_helper-> Context.Output.with_enabled <|
+        ExcelWriter.withWorkbook (file_as_java temp_file) file_format write_helper->
             write_helper.writeWorkbook modification_strategy
+
+        Context.Output.with_enabled <|
             result_file = if is_dry_run then temp_file else
                 needs_backup = on_existing_file == Existing_File_Behavior.Backup
                 if needs_backup && file.exists then

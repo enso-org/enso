@@ -24,7 +24,7 @@ from project.IO.Read_Many_Spec import with_temp_dir
 
 polyglot java import org.enso.base.cache.ReloadDetector
 polyglot java import org.enso.table_test_helpers.RandomHelpers
-polyglot java import org.enso.table.excel.ExcelConnectionPool
+polyglot java import org.enso.table.excel.internal.ExcelConnectionPool
 
 spec_fmt suite_builder header file =
     suite_builder.group header group_builder->
