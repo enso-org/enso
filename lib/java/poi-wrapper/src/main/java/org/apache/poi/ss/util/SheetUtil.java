@@ -173,8 +173,24 @@ public class SheetUtil {
      * A system property which can be enabled to not fail when the
      * font-system is not available on the current machine
      */
-    private static final boolean ignoreMissingFontSystem =
-            Boolean.parseBoolean(System.getProperty("org.apache.poi.ss.ignoreMissingFontSystem"));
+    private static final boolean ignoreMissingFontSystem;
+    static {
+        final String propValue = System.getProperty("org.apache.poi.ss.ignoreMissingFontSystem");
+        boolean ignore;
+        if (propValue != null) {
+            ignore = Boolean.parseBoolean(propValue);
+        } else {
+            try {
+                Class.forName("java.awt.font.TextAttribute");
+                ignore = false;
+            } catch (ClassNotFoundException ex) {
+                // if there is no java.desktop module then ignoreMissingFontSystem
+                // as the system has clearly been configured without a font system
+                ignore = true;
+            }
+        }
+        ignoreMissingFontSystem = ignore;
+    }
 
     /**
      * Which default char-width to use if the font-system is unavailable.
