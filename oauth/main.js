@@ -55,12 +55,10 @@ import axios from 'axios';
 
           // Listen for messages from the worker thread
           worker.on('message', async (result) => {
-              console.log('Result from worker:', result);
+              //console.log('Result from worker:', result);
               const { auth_code } = result;
-              console.log('auth_code ' + auth_code);
-              const access_token = await get_access_token(auth_code);
-              console.log('access_token: ' + access_token);
-              resolve(access_token);
+              console.log('* auth_code ' + auth_code);
+              resolve(auth_code);
           });
 
           // Listen for errors from the worker thread
@@ -89,10 +87,11 @@ import axios from 'axios';
             workerData: { limit: 1000000000 } // Data to pass to the worker
         });
 
-        const p = get_authentication_code(worker);
-        const foo = await p;
-        console.log("foo " + JSON.stringify(foo));
         console.log('Main thread continues its work...');
+
+        const authentication_code = await get_authentication_code(worker);
+        const access_token = await get_access_token(authentication_code);
+        console.log('* access_token: ' + access_token);
 
     } else {
         // This block will be executed if this file is run as a worker
