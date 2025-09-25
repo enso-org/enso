@@ -25,9 +25,9 @@ public class PrivateMethodAccessTest {
           ctx.eval(
               LanguageInfo.ID,
               """
-          private priv_method x = x
-          pub_method x = x
-          """);
+              private priv_method x = x
+              pub_method x = x
+              """);
       var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
       var privMethod = module.invokeMember(Module.GET_METHOD, assocType, "priv_method");
       assertThat("private method must not be exposed to polyglot", privMethod.isNull(), is(true));
@@ -43,10 +43,10 @@ public class PrivateMethodAccessTest {
           ctx.eval(
               LanguageInfo.ID,
               """
-          type My_Type
-              private priv_method x = x
-              pub_method x = x
-          """);
+              type My_Type
+                  private priv_method x = x
+                  pub_method x = x
+              """);
       var myType = module.invokeMember(Module.GET_TYPE, "My_Type");
       var privMethod = module.invokeMember(Module.GET_METHOD, myType, "priv_method");
       assertThat("private method must not be exposed to polyglot", privMethod.isNull(), is(true));
@@ -145,10 +145,12 @@ public class PrivateMethodAccessTest {
   public void canCallPrivateMethod_UnresolvedSymbol() throws IOException {
     var libDir = tempFolder.newFolder("Lib").toPath();
     ProjectUtils.createProject(
-        "Lib", """
-            apply obj func =
-                func obj
-            """, libDir);
+        "Lib",
+        """
+        apply obj func =
+            func obj
+        """,
+        libDir);
 
     var projDir = tempFolder.newFolder("Proj").toPath();
     ProjectUtils.createProject(

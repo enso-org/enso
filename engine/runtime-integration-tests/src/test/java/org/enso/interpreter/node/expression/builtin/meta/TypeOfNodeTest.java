@@ -34,11 +34,11 @@ public class TypeOfNodeTest {
     var typeOf =
         ctxRule.evalModule(
             """
-    from Standard.Base import all
+            from Standard.Base import all
 
-    typ obj = Meta.type_of obj
-    main = typ
-    """);
+            typ obj = Meta.type_of obj
+            main = typ
+            """);
     var data = new ArrayList<Object[]>();
     for (var v : g.allValues()) {
       var t = typeOf.execute(v);

@@ -31,10 +31,12 @@ public class IRCacheLocationTest {
   public void noGlobalCacheOption_IsRespected() throws IOException {
     var projDir = tmpDir.newFolder();
     ProjectUtils.createProject(
-        "Proj", """
+        "Proj",
+        """
         main =
             42
-        """, projDir.toPath());
+        """,
+        projDir.toPath());
     var mainSrcPath = projDir.toPath().resolve("src").resolve("Main.enso");
 
     try (var ctx =
@@ -63,10 +65,12 @@ public class IRCacheLocationTest {
   public void irCacheIsCreatedAlsoForDependencies() throws IOException {
     var libDir = tmpDir.newFolder("Lib");
     ProjectUtils.createProject(
-        "Lib", """
+        "Lib",
+        """
         lib_method =
             42
-        """, libDir.toPath());
+        """,
+        libDir.toPath());
 
     var projDir = tmpDir.newFolder("Proj");
     ProjectUtils.createProject(

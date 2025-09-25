@@ -99,11 +99,12 @@ final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
   public String describe() {
     return switch (formatterKind) {
       case SIMPLE -> "Date_Time_Formatter.from_simple_pattern " + getOriginalPattern();
-      case ISO_WEEK_DATE -> "Date_Time_Formatter.from_iso_week_date_pattern "
-          + getOriginalPattern();
-      case RAW_JAVA -> originalPattern != null
-          ? "Date_Time_Formatter.from_java " + getOriginalPattern()
-          : "Date_Time_Formatter.from_java " + formatter.toString();
+      case ISO_WEEK_DATE ->
+          "Date_Time_Formatter.from_iso_week_date_pattern " + getOriginalPattern();
+      case RAW_JAVA ->
+          originalPattern != null
+              ? "Date_Time_Formatter.from_java " + getOriginalPattern()
+              : "Date_Time_Formatter.from_java " + formatter.toString();
       case CONSTANT -> "Date_Time_Formatter." + getOriginalPattern();
     };
   }
@@ -113,8 +114,9 @@ final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
     return switch (formatterKind) {
       case SIMPLE -> originalPattern;
       case ISO_WEEK_DATE -> "(ISO Week Date Format) " + originalPattern;
-      case RAW_JAVA -> "(Java DateTimeFormatter) "
-          + (originalPattern != null ? originalPattern : formatter.toString());
+      case RAW_JAVA ->
+          "(Java DateTimeFormatter) "
+              + (originalPattern != null ? originalPattern : formatter.toString());
       case CONSTANT -> originalPattern;
     };
   }

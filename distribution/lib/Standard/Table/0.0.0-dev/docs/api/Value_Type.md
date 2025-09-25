@@ -5,6 +5,10 @@
     - Bits_16
     - Bits_32
     - Bits_64
+    - < self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - <= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - from_integer bits:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_integer self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any

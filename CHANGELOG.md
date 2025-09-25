@@ -25,12 +25,15 @@
 - [Implement `Text_Column` for in-memory backend.][13769]
 - [Implement `Text_Column.to_case` for in-memory backend.][13769]
 - [Add support for gzip encoded return from web APIs][14026]
+- [Fixes for JDBC connection and schema support for SQL Server.][14039]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
+[14039]: https://github.com/enso-org/enso/pull/14039
 
 #### Enso Language & Runtime
 
+- [Moving >, >=, <, <= to types where such operators make sense][14017]
 - [Moving warning releated methods outside of `Any`][13978]
 - [Moving error relelated methods outside of `Any`][14003]
 - [Register and `lookup_services` in package.yaml][11868]
@@ -40,6 +43,7 @@
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
 
+[14017]: https://github.com/enso-org/enso/pull/14017
 [14003]: https://github.com/enso-org/enso/pull/14003
 [13978]: https://github.com/enso-org/enso/pull/13978
 [11868]: https://github.com/enso-org/enso/pull/11868

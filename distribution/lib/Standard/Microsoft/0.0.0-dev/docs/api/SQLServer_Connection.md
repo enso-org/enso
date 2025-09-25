@@ -1,7 +1,6 @@
 ## Enso Signatures 1.0
 ## module Standard.Microsoft.SQLServer_Connection
 - type SQLServer_Connection
-    - Value connection:Standard.Base.Any.Any make_new:Standard.Base.Any.Any
     - base_connection self -> Standard.Base.Any.Any
     - close self -> Standard.Base.Any.Any
     - create url:Standard.Base.Any.Any properties:Standard.Base.Any.Any make_new:Standard.Base.Any.Any data_link_setup:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -14,8 +13,8 @@
     - execute_query self query:Standard.Base.Any.Any limit:Standard.Table.Rows_To_Read.Rows_To_Read= write_operation:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - execute_update self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - jdbc_connection self -> Standard.Base.Any.Any
-    - query self query:Standard.Database.SQL_Query.SQL_Query alias:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - read self query:Standard.Database.SQL_Query.SQL_Query limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
+    - query self query:(Standard.Microsoft.Connection.SQLServer_Query.SQLServer_Query|Standard.Database.SQL_Query.SQL_Query) alias:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - read self query:(Standard.Microsoft.Connection.SQLServer_Query.SQLServer_Query|Standard.Database.SQL_Query.SQL_Query) limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
     - save_as_data_link self destination:Standard.Base.Any.Any on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
     - schema self -> Standard.Base.Any.Any
     - schemas self -> Standard.Base.Any.Any
@@ -25,4 +24,5 @@
     - tables self name_like:Standard.Base.Data.Text.Text= database:Standard.Base.Data.Text.Text= schema:Standard.Base.Data.Text.Text= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - truncate_table self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- schema_black_list -> Standard.Base.Any.Any
 - Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.Microsoft.SQLServer_Connection.SQLServer_Connection -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data

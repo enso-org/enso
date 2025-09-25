@@ -60,39 +60,39 @@ public class EqualsBenchmarks {
     var codeBuilder =
         new StringBuilder(
             """
-        import Standard.Base.Data.Range.Extensions
-        import Standard.Base.Data.Numbers.Number
-        import Standard.Base.Data.Ordering.Ordering
-        import Standard.Base.Data.Ordering.Comparable
+            import Standard.Base.Data.Range.Extensions
+            import Standard.Base.Data.Numbers.Number
+            import Standard.Base.Data.Ordering.Ordering
+            import Standard.Base.Data.Ordering.Comparable
 
-        type Num
-            Value n
+            type Num
+                Value n
 
-        Num.from (that:Number) = Num.Value that
-        Comparable.from (_:Number) = Num_Comparator
-        Comparable.from (_:Num) = Num_Comparator
+            Num.from (that:Number) = Num.Value that
+            Comparable.from (_:Number) = Num_Comparator
+            Comparable.from (_:Num) = Num_Comparator
 
-        type Num_Comparator
-            compare x:Num y:Num = Ordering.compare x.n y.n
-            hash x:Num = Ordering.hash x.n
+            type Num_Comparator
+                compare x:Num y:Num = Ordering.compare x.n y.n
+                hash x:Num = Ordering.hash x.n
 
-        type Node
-            C1 f1
-            C2 f1 f2
-            C3 f1 f2 f3
-            C4 f1 f2 f3 f4
-            C5 f1 f2 f3 f4 f5
-            Nil
-            Value value
+            type Node
+                C1 f1
+                C2 f1 f2
+                C3 f1 f2 f3
+                C4 f1 f2 f3 f4
+                C5 f1 f2 f3 f4 f5
+                Nil
+                Value value
 
-        eq_vec vec1 vec2 =
-            (0.up_to vec1.length).map idx->
-                v1 = vec1.at idx
-                v2 = vec2.at idx
-                v1 == v2
+            eq_vec vec1 vec2 =
+                (0.up_to vec1.length).map idx->
+                    v1 = vec1.at idx
+                    v2 = vec2.at idx
+                    v1 == v2
 
-        eq x y = x == y
-        """);
+            eq x y = x == y
+            """);
     // Indexes where `True` is expected. Inside the generated vectors, on a predefined indexes,
     // we put "constant" values, such that when the elements at these indexes are compared,
     // `True` is returned.
@@ -169,7 +169,8 @@ public class EqualsBenchmarks {
       default -> throw new IllegalStateException("Unexpected benchmark: " + params.getBenchmark());
     }
 
-    codeBuilder.append("""
+    codeBuilder.append(
+        """
         bench _ = eq_vec vec1 vec2
         """);
 
@@ -418,8 +419,8 @@ public class EqualsBenchmarks {
             case 3 -> "(Node.C3 ";
             case 4 -> "(Node.C4 ";
             case 5 -> "(Node.C5 ";
-            default -> throw new AssertionError(
-                "Unexpected number of children: " + children.size());
+            default ->
+                throw new AssertionError("Unexpected number of children: " + children.size());
           };
       var sb = new StringBuilder();
       sb.append(ctor);

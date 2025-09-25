@@ -3,7 +3,7 @@ layout: developer-doc
 title: Logging Service
 category: infrastructure
 tags: [infrastructure, logging, debug]
-order: 6
+order: 7
 ---
 
 # Logging

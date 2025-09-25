@@ -19,11 +19,11 @@ public class StdLibLoggingTest {
       Source.newBuilder(
               "enso",
               """
-                  polyglot java import org.enso.example.LoggingTestUtils
+              polyglot java import org.enso.example.LoggingTestUtils
 
-                  test =
-                      LoggingTestUtils.logSomething
-                  """,
+              test =
+                  LoggingTestUtils.logSomething
+              """,
               "logs.enso")
           .buildLiteral();
 
