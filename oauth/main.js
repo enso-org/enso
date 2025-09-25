@@ -19,15 +19,18 @@
 
     function get_auth_token(auth_code) {
 
-      {
-        const tokenEndpoint = 'https://login.microsoftonline.com/59c2b5a8-8575-4ce0-9ff5-be8f2b34ad63/oauth2/v2.0/token';
+      if (true) {
+        console.log("==== axios");
+        const tokenEndpoint = 'https://login.microsoftonline.com/557a086b-ff83-4d39-a7d4-3cedd3e30b8c/oauth2/v2.0/token';
+        //const tokenEndpoint = 'https://login.microsoftonline.com/59c2b5a8-8575-4ce0-9ff5-be8f2b34ad63/oauth2/v2.0/token';
 
         const data = new URLSearchParams();
 
-        data.append('client_id', '087cad1c-ab83-476d-bb1b-47ed1c5be4ef');
+        data.append('client_id', '225e3188-e3ec-4613-b8a5-4e0efac1694a');
+        //data.append('client_id', '087cad1c-ab83-476d-bb1b-47ed1c5be4ef');
         data.append('scope', 'openid offline_access https://graph.microsoft.com/mail.read');
         data.append('code', auth_code);
-        data.append('redirect_uri', 'https://ensoanalytics.com/msoauthtest');
+        data.append('redirect_uri', 'http://localhost:3000');
         data.append('grant_type', 'authorization_code');
         data.append('client_secret', client_secret);
 
@@ -42,56 +45,51 @@
         .catch(error => {
             console.error('Error:', error.response.data);
         });
+        console.log("==== axios done");
       }
 
-
-
-
-
-
-
-
-
-
-
-
-      const data = JSON.stringify({
-        'client_id': '087cad1c-ab83-476d-bb1b-47ed1c5be4ef',
-        'scope': 'openid offline_access https://graph.microsoft.com/mail.read',
-        'code': auth_code,
-        'redirect_uri': 'https://ensoanalytics.com/msoauthtest',
-        'grant_type': 'authorization_code',
-        'client_secret': client_secret,
-      });
-      console.log("data " + data);
-
-      const options = {
-        hostname: 'login.microsoftonline.com',
-        path: '/59c2b5a8-8575-4ce0-9ff5-be8f2b34ad63/oauth2/v2.0/token',
-        port: 443, // 80 for HTTP
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': data.length
-          //'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      };
-
-      const req = https.request(options, (res) => {
-        console.log(`auth token request statusCode: ${res.statusCode}`);
-
-        res.on('data', (d) => {
-          process.stdout.write(d);
-          console.log(d);
+      if (false) {
+        console.log("==== mine");
+        const data = JSON.stringify({
+          'client_id': '225e3188-e3ec-4613-b8a5-4e0efac1694a',
+          //'client_id': '087cad1c-ab83-476d-bb1b-47ed1c5be4ef',
+          'scope': 'openid offline_access https://graph.microsoft.com/mail.read',
+          'code': auth_code,
+          'redirect_uri': 'https://ensoanalytics.com/msoauthtest',
+          'grant_type': 'authorization_code',
+          'client_secret': client_secret,
         });
-      });
+        console.log("data " + data);
 
-      req.on('error', (error) => {
-        console.error(error);
-      });
+        const options = {
+          hostname: 'login.microsoftonline.com',
+          path: '/557a086b-ff83-4d39-a7d4-3cedd3e30b8c/oauth2/v2.0/token',
+          //path: '/59c2b5a8-8575-4ce0-9ff5-be8f2b34ad63/oauth2/v2.0/token',
+          port: 443, // 80 for HTTP
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': data.length
+            //'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        };
 
-      req.write(data);
-      req.end();
+        const req = https.request(options, (res) => {
+          console.log(`auth token request statusCode: ${res.statusCode}`);
+
+          res.on('data', (d) => {
+            process.stdout.write(d);
+            console.log(d);
+          });
+        });
+
+        req.on('error', (error) => {
+          console.error(error);
+        });
+
+        req.write(data);
+        req.end();
+      }
     }
 
     if (isMainThread) {
