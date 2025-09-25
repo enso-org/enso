@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.function.Function;
+
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
@@ -19,13 +20,15 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class ExcelWriteHelper {
+  private final File file;
   private final ExcelFileFormat format;
 
-  public ExcelWriteHelper(ExcelFileFormat format) {
+  public ExcelWriteHelper(File file, ExcelFileFormat format) {
+    this.file = file;
     this.format = format;
   }
 
-  public <R> R writeWorkbook(File file, Function<Workbook, R> writeAction) throws IOException {
+  public <R> R writeWorkbook(Function<Workbook, R> writeAction) throws IOException {
     boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
 
     try (Workbook workbook =

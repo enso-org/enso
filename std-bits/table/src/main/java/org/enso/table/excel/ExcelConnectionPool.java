@@ -73,7 +73,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
       closeCachedConnection(file, format);
       verifyIsWritable(file);
 
-      ExcelWriteHelper helper = new ExcelWriteHelper(format);
+      ExcelWriteHelper helper = new ExcelWriteHelper(file, format);
       return action.apply(helper);
     } finally {
       isCurrentlyWriting = false;
