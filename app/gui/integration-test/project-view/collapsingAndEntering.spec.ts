@@ -11,21 +11,26 @@ const EDGE_PARTS = 2
 
 const COLLAPSE_SHORTCUT = `${CONTROL_KEY}+G`
 
-test.only('Entering nodes', async ({ page, editorPage }) => {
+test.only('Entering nodes', async ({ editorPage }) => {
+  // test.setTimeout(1000000)
+
   await editorPage
-  await actions.goToGraph(page)
-  await mockUserDefinedFunctionInfo(page, 'final', 'func1')
-  await expectInsideMain(page)
-  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project'])
+    .step('step entering nodes', async (page) => {
+      await actions.goToGraph(page)
+      await mockUserDefinedFunctionInfo(page, 'final', 'func1')
+      await expectInsideMain(page)
+      await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project'])
 
-  await locate.graphNodeByBinding(page, 'final').dblclick()
-  await expectInsideFunc1(page)
-  await mockUserDefinedFunctionInfo(page, 'f2', 'func2')
-  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
+      await locate.graphNodeByBinding(page, 'final').dblclick()
+      await expectInsideFunc1(page)
+      await mockUserDefinedFunctionInfo(page, 'f2', 'func2')
+      await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
 
-  await locate.graphNodeByBinding(page, 'f2').dblclick()
-  await expectInsideFunc2(page)
-  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
+      await locate.graphNodeByBinding(page, 'f2').dblclick()
+      await expectInsideFunc2(page)
+      await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
+    })
+    .run()
 })
 
 test('Entering component shows error when function cannot be found (#12533)', async ({ page }) => {
@@ -400,7 +405,7 @@ async function expectInsideMain(page: Page) {
 async function expectInsideFunc1(page: Page) {
   // The mouse is often in output port area, making our checks fooled by the edge ghost.
   await page.mouse.move(0, 0)
-  await actions.expectNodePositionsInitialized(page, -88)
+  await actions.expectNodePositionsInitialized(page, -16)
   await expect(locate.graphNode(page)).toHaveCount(4)
   await expect(locate.inputNode(page)).toHaveCount(1)
   await expect(locate.graphNodeByBinding(page, 'f2')).toExist()
@@ -413,7 +418,7 @@ async function expectInsideFunc1(page: Page) {
 async function expectInsideFunc2(page: Page) {
   // The mouse is often in input's output port area, making our checks fooled by the edge ghost.
   await page.mouse.move(0, 0)
-  await actions.expectNodePositionsInitialized(page, -88)
+  await actions.expectNodePositionsInitialized(page, -16)
   await expect(locate.graphNode(page)).toHaveCount(3)
   await expect(locate.inputNode(page)).toHaveCount(1)
   await expect(locate.graphNodeByBinding(page, 'r')).toExist()

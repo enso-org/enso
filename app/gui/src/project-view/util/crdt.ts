@@ -57,8 +57,7 @@ export function attachProvider(
   doc: Y.Doc,
   awareness: Awareness,
 ) {
-  const ProviderClass = WebsocketProvider
-  const provider = new ProviderClass(url, room, doc, { awareness, params })
+  const provider = new WebsocketProvider(url, room, doc, { awareness, params })
   const onSync = () => doc.emit('sync', [true, doc])
   const onDrop = () => doc.emit('sync', [false, doc])
 

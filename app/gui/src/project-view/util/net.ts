@@ -31,54 +31,6 @@ export interface WebSocketHandler {
   ): void
 }
 
-/** TODO: Add docs */
-export class MockWebSocket extends EventTarget implements WebSocket {
-  static mocks: Map<string, WebSocketHandler> = new Map()
-  readonly CONNECTING = WebSocket.CONNECTING
-  readonly OPEN = WebSocket.OPEN
-  readonly CLOSING = WebSocket.CLOSING
-  readonly CLOSED = WebSocket.CLOSED
-  readyState: number = WebSocket.OPEN
-  binaryType: BinaryType = 'blob'
-  readonly bufferedAmount = 0
-  readonly extensions = ''
-  readonly protocol = ''
-  onopen: ((this: WebSocket, ev: Event) => any) | null = null
-  onclose: ((this: WebSocket, ev: CloseEvent) => any) | null = null
-  onmessage: ((this: WebSocket, ev: MessageEvent<any>) => any) | null = null
-  onerror: ((this: WebSocket, ev: Event) => any) | null = null
-
-  /** TODO: Add docs */
-  static addMock(name: string, data: WebSocketHandler) {
-    MockWebSocket.mocks.set(name, data)
-  }
-
-  /** TODO: Add docs */
-  constructor(
-    public url: string,
-    public name: string,
-  ) {
-    super()
-    this.addEventListener('open', (ev) => this.onopen?.(ev))
-    this.addEventListener('close', (ev) => this.onclose?.(ev as CloseEvent))
-    // deepcode ignore InsufficientPostmessageValidation: This is not a `postMessage`.
-    this.addEventListener('message', (ev) => this.onmessage?.(ev as MessageEvent<any>))
-    this.addEventListener('error', (ev) => this.onerror?.(ev))
-    setTimeout(() => this.dispatchEvent(new Event('open')), 0)
-  }
-
-  /** TODO: Add docs */
-  send(data: string | ArrayBufferLike | Blob | ArrayBufferView): void {
-    MockWebSocket.mocks.get(this.name)?.(data, (data) =>
-      this.dispatchEvent(new MessageEvent('message', { data })),
-    )
-  }
-  /** TODO: Add docs */
-  close() {
-    this.readyState = WebSocket.CLOSED
-  }
-}
-
 type QueueTask<State> = (state: State) => Promise<State>
 
 /**

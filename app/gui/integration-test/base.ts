@@ -30,19 +30,23 @@ export const test = base.extend<{
     const loginPage = new LoginPageActions(page, {}).do(async () => {
       await page.goto('/')
     })
-    return use(loginPage)
+    console.log('loginPage pre use')
+    await use(loginPage)
+    console.log('loginPage post use')
+    return
   },
-  drivePage: ({ loginPage }, use) => use(loginPage.loginIfNeeded()),
-  editorPage: ({ drivePage, cloudApi }, use) => {
-    cloudApi.addProject({
-      title: 'Mock Project.project',
-    })
-    use(
-      drivePage.goToCategory
-        .cloud()
-        .driveTable.openProject('Mock Project')
-        .expectProjectEditorOpened('Mock Project'),
-    )
+  drivePage: async ({ loginPage }, use) => await use(loginPage.loginIfNeeded()),
+
+  editorPage: async ({ drivePage, cloudApi }, use) => {
+    cloudApi.addProject({ title: 'Mock Project' })
+    const editorPage = drivePage.goToCategory
+      .cloud()
+      .driveTable.openProject('Mock Project')
+      .expectProjectEditorOpened('Mock Project')
+    console.log('editorPage pre use')
+    await use(editorPage)
+    console.log('editorPage post use')
+    return
   },
 })
 

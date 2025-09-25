@@ -27,6 +27,7 @@ import type {
 } from 'ydoc-shared/languageServerTypes'
 import type { SuggestionEntry } from 'ydoc-shared/languageServerTypes/suggestions'
 import { uuidToBits } from 'ydoc-shared/uuid'
+import { Doc } from 'yjs'
 import mockDb from './data/mockSuggestions.json' with { type: 'json' }
 import { mockDataWSHandler } from './dataServer'
 
@@ -452,7 +453,7 @@ function makeVizData(id: Uuid, config: VisualizationConfiguration, expressionId?
     )
   if (!vizData) return
   const exprId = expressionId ?? visualizationExprIds.get(id)
-  makeVizUpdate(id, config.executionContextId, exprId, vizData)
+  return makeVizUpdate(id, config.executionContextId, exprId, vizData)
 }
 
 function makeVizUpdate(
@@ -487,7 +488,8 @@ function makeVizUpdate(
 export const mockLSHandler = async (
   method: string,
   params: object,
-  respond: (method: string, params: object) => void,
+  sendMessage: (message: { method: string; result: object }) => void,
+  sendBinary: (data?: ArrayBuffer) => void,
 ) => {
   switch (method) {
     case 'session/initProtocolConnection':
@@ -499,12 +501,14 @@ export const mockLSHandler = async (
         contextId: ContextId
       }
       setTimeout(
-        () => respond('executionContext/executionComplete', { contextId: data_.contextId }),
+        () =>
+          sendMessage({
+            method: 'executionContext/executionComplete',
+            result: { contextId: data_.contextId },
+          }),
         100,
       )
-      return {
-        contextId: data_.contextId,
-      }
+      return
     }
     case 'executionContext/attachVisualization': {
       const data_ = params as {
@@ -514,7 +518,7 @@ export const mockLSHandler = async (
       }
       visualizations.set(data_.visualizationId, data_.visualizationConfig)
       visualizationExprIds.set(data_.visualizationId, data_.expressionId)
-      makeVizData(data_.visualizationId, data_.visualizationConfig)
+      sendBinary(makeVizData(data_.visualizationId, data_.visualizationConfig))
       return
     }
     case 'executionContext/detachVisualization': {
@@ -533,7 +537,7 @@ export const mockLSHandler = async (
         visualizationConfig: VisualizationConfiguration
       }
       visualizations.set(data_.visualizationId, data_.visualizationConfig)
-      makeVizData(data_.visualizationId, data_.visualizationConfig)
+      sendBinary(makeVizData(data_.visualizationId, data_.visualizationConfig))
       return
     }
     case 'executionContext/executeExpression': {
@@ -548,11 +552,13 @@ export const mockLSHandler = async (
       )
       const exprAst = Ast.parseExpression(data_.expression)!
       if (aiPromptPat.test(exprAst)) {
-        makeVizUpdate(
-          data_.visualizationId,
-          data_.executionContextId,
-          data_.expressionId,
-          encodeJSON('Could you __$$GOAL$$__, please?'),
+        sendBinary(
+          makeVizUpdate(
+            data_.visualizationId,
+            data_.executionContextId,
+            data_.expressionId,
+            encodeJSON('Could you __$$GOAL$$__, please?'),
+          ),
         )
       } else {
         // Check if there's existing preprocessor mock which matches our expression
@@ -564,7 +570,7 @@ export const mockLSHandler = async (
           expression: func.rhs.code(),
           positionalArgumentsExpressions: args.map((ast) => ast.code()),
         }
-        makeVizData(data_.visualizationId, visualizationConfig, data_.expressionId)
+        sendBinary(makeVizData(data_.visualizationId, visualizationConfig, data_.expressionId))
       }
       return
     }
@@ -664,19 +670,16 @@ export const mockDataHandler = mockDataWSHandler(async (segments) => {
   return await file?.arrayBuffer()
 })
 
-// export const mockYdocProvider = (msg, room, doc) => {
-//   setTimeout(() => {
-//     const srcFiles: Record<string, string> = fileTree.src
-//     if (room === 'index') {
-//       const modules = doc.getMap('modules')
-//       for (const file in srcFiles) modules.set(file, new Y.Doc({ guid: `mock-${file}` }))
-//     } else if (room.startsWith('mock-')) {
-//       const fileContents = srcFiles[room.slice('mock-'.length)]
-//       if (fileContents) new Ast.MutableModule(doc).syncToCode(fileContents)
-//     }
-//     msg.emit('sync', [])
-//   }, 0)
-// }
+export const mockYdocProvider = (room: string, doc: Doc) => {
+  const srcFiles: Record<string, string> = fileTree.src
+  if (room === 'index') {
+    const modules = doc.getMap('modules')
+    for (const file in srcFiles) modules.set(file, new Doc({ guid: `mock-${file}` }))
+  } else if (room.startsWith('mock-')) {
+    const fileContents = srcFiles[room.slice('mock-'.length)]
+    if (fileContents) new Ast.MutableModule(doc).syncToCode(fileContents)
+  }
+}
 
 /// <reference types="wicg-file-system-access" />
 export interface FileTree {

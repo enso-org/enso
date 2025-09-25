@@ -353,6 +353,13 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
     }
   }
 
+  openEditorPage(project: string) {
+    return this.goToCategory
+      .cloud()
+      .driveTable.openProject(project)
+      .expectProjectEditorOpened(project)
+  }
+
   /** Expect editor is opened due to external causes (like auto opening Welcome project). */
   expectProjectEditorOpened(name: string) {
     return this.step('Expect Editor is opened', async (page) => {

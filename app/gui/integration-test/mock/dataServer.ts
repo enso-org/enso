@@ -69,8 +69,7 @@ const PAYLOAD_CONSTRUCTOR = {
 export function mockDataWSHandler(
   readFile: (segments: string[]) => Promise<ArrayBuffer | null | undefined>,
 ) {
-  return async (message: string | Blob | ArrayBufferLike | ArrayBufferView) => {
-    if (!(message instanceof ArrayBuffer)) return
+  return async (message: ArrayBuffer) => {
     const binaryMessage = InboundMessage.getRootAsInboundMessage(new ByteBuffer(message))
     const payloadType = binaryMessage.payloadType()
     const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())

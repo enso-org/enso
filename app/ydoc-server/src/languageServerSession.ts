@@ -46,28 +46,26 @@ const debugLog = createDebug('ydoc-server:session')
 
 /** TODO: Add docs */
 export class LanguageServerSession {
-  clientId: Uuid
   indexDoc: WSSharedDoc
   docs: Map<string, WSSharedDoc>
   retainCount: number
-  url: string
   ls: LanguageServer
   connection: response.InitProtocolConnection | undefined
   model: DistributedProject
   projectRootId: Uuid | null
   authoritativeModules: Map<string, ModulePersistence>
   clientScope: AbortScope
+  cleanup: () => void
 
   static DEBUG = false
 
   /** Create a {@link LanguageServerSession}. */
-  constructor(url: string) {
+  constructor(ls: LanguageServer, cleanup: () => void) {
     this.clientScope = new AbortScope()
-    this.clientId = crypto.randomUUID() as Uuid
     this.docs = new Map()
     this.retainCount = 0
-    this.url = url
-    console.log('new session with', url)
+    this.ls = ls
+    this.cleanup = cleanup
     this.indexDoc = new WSSharedDoc()
     this.docs.set('index', this.indexDoc)
     this.model = new DistributedProject(this.indexDoc.doc)
@@ -82,7 +80,6 @@ export class LanguageServerSession {
         if (!persistence) continue
       }
     })
-    this.ls = new LanguageServer(this.clientId, new ReconnectingWebSocketTransport(this.url))
     this.clientScope.onAbort(() => this.ls.release())
     this.setupClient()
   }
@@ -91,11 +88,11 @@ export class LanguageServerSession {
 
   /** Get a {@link LanguageServerSession} by its URL. */
   static get(url: string): LanguageServerSession {
-    const session = map.setIfUndefined(
-      LanguageServerSession.sessions,
-      url,
-      () => new LanguageServerSession(url),
-    )
+    const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
+      const ws = new ReconnectingWebSocketTransport(url)
+      const ls = new LanguageServer(crypto.randomUUID(), ws)
+      return new LanguageServerSession(ls, () => LanguageServerSession.sessions.delete(url))
+    })
     session.retain()
     return session
   }
@@ -253,7 +250,6 @@ export class LanguageServerSession {
     this.authoritativeModules.clear()
     this.model.doc.destroy()
     this.clientScope.dispose('LangueServerSession disposed.')
-    LanguageServerSession.sessions.delete(this.url)
     await Promise.all(moduleDisposePromises)
   }
 

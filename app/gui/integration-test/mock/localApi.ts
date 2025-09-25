@@ -25,7 +25,8 @@ import { test } from 'integration-test/base'
 import { uuidv4 } from 'lib0/random.js'
 import { join } from 'node:path'
 import type { Page, WebSocketRoute } from 'playwright'
-import { makeVisUpdates, mockDataHandler, mockLSHandler } from './lsHandler'
+import { WSSharedDoc, YjsConnection, type YjsSocket } from 'ydoc-server'
+import { makeVisUpdates, mockDataHandler, mockLSHandler, mockYdocProvider } from './lsHandler'
 
 function array<T>(): Readonly<T>[] {
   return []
@@ -37,6 +38,7 @@ const DOWNLOAD_PATH = Path('/home/user/enso/Downloads')
 
 const languageServerJsonAddress = { host: 'localhost', port: 1235 }
 const languageServerBinaryAddress = { host: 'localhost', port: 1234 }
+const languageServerYdocAddress = { host: 'mock', port: 1233 }
 
 const INITIAL_CALLS_OBJECT = {
   getRootDirectory: array<object>(),
@@ -252,7 +254,6 @@ export async function mockLocalApi(page: Page) {
   addDirectory({ path: DOWNLOAD_PATH })
 
   let languageServerBinaryWs: WebSocketRoute | null = null
-  let languageServerJsonWs: WebSocketRoute | null = null
 
   await test.step('Mock Local API', async () => {
     await page.routeWebSocket('ws://localhost:30535/', (ws) => {
@@ -316,6 +317,7 @@ export async function mockLocalApi(page: Page) {
               engineVersion: '0.0.0-dev',
               languageServerBinaryAddress,
               languageServerJsonAddress,
+              languageServerYdocAddress,
               projectNamespace: 'local',
               ...project.metadata,
             }
@@ -349,27 +351,77 @@ export async function mockLocalApi(page: Page) {
       (ws) => {
         languageServerBinaryWs = ws
         ws.onMessage(async (messageRaw) => {
-          const response = await mockDataHandler(messageRaw)
+          const response = await mockDataHandler(new Uint8Array(Buffer.from(messageRaw)).buffer)
           if (response) ws.send(Buffer.from(response))
-          console.log('languageServerBinaryAddress msg', messageRaw, response)
         })
       },
     )
-    // languageServerJsonAddress
     await page.routeWebSocket(
       `ws://${languageServerJsonAddress.host}:${languageServerJsonAddress.port}/`,
       (ws) => {
-        languageServerJsonWs = ws
-
         ws.onMessage(async (messageRaw) => {
           const { method, params, jsonrpc, id } = JSON.parse(messageRaw.toString())
-          mockLSHandler(method, params, (method, params) =>
-            ws.send(JSON.stringify({ jsonrpc, id, method, params })),
-          )
-          console.log('languageServerJsonAddress msg', messageRaw)
+          const response =
+            (await mockLSHandler(
+              method,
+              params,
+              (message) => ws.send(JSON.stringify({ jsonrpc, ...message })),
+              (binaryData?: ArrayBuffer) => {
+                if (binaryData) languageServerBinaryWs?.send(Buffer.from(binaryData))
+              },
+            )) ?? null
+          ws.send(JSON.stringify({ jsonrpc, id, result: response }))
         })
       },
     )
+    const ydocAddressBase = `ws://${languageServerYdocAddress.host}:${languageServerYdocAddress.port}`
+
+    class MockWs implements YjsSocket {
+      binaryType = 'arraybuffer' as const
+      readyState = WebSocket.OPEN
+      constructor(private wsRoute: WebSocketRoute) {}
+      on(event: 'close', listener: (code: number, reason: Buffer) => void): this
+      on(event: 'message', listener: (data: ArrayBuffer, isBinary: boolean) => void): this
+      on(event: 'ping' | 'pong', listener: (data: Buffer) => void): this
+      on(event: unknown, listener: unknown): this {
+        switch (event) {
+          case 'close':
+            this.wsRoute.onClose((code, reason) => {
+              const _listener = listener as (code: number, reason: Buffer) => void
+              _listener(code ?? 0, Buffer.from(reason ?? []))
+            })
+            return this
+          case 'message':
+            this.wsRoute.onMessage((data) => {
+              const _listener = listener as (data: ArrayBuffer, isBinary: boolean) => void
+              _listener(Buffer.from(data), true)
+            })
+            return this
+          case 'ping':
+          case 'pong':
+            return this
+        }
+        throw new Error(`Event ${event} not implemented.`)
+      }
+      send(data: ArrayBuffer, cb?: (err?: Error) => void): void {
+        this.wsRoute.send(Buffer.from(data))
+        if (cb) Promise.resolve().then(() => cb())
+      }
+      ping(): void {}
+      close(): void {
+        this.wsRoute.close()
+      }
+    }
+
+    await page.routeWebSocket(`${ydocAddressBase}/**`, (wsRoute) => {
+      const parsedUrl = new URL(wsRoute.url())
+      const room = parsedUrl.pathname.substring('/project/'.length)
+
+      const mockWs = new MockWs(wsRoute)
+      const wsDoc = new WSSharedDoc()
+      const _connection = new YjsConnection(mockWs, wsDoc)
+      mockYdocProvider(room, wsDoc.doc)
+    })
 
     await page.route('/api/root-directory-path', async (route, request) => {
       called('getRootDirectory', {})
@@ -590,7 +642,6 @@ export async function mockLocalApi(page: Page) {
 
   async function updateVisualization(preprocessor: string, data: unknown) {
     for (const update of makeVisUpdates(preprocessor, data)) {
-      console.log('update', update)
       languageServerBinaryWs?.send(Buffer.from(update))
     }
   }

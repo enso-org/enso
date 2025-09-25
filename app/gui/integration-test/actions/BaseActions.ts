@@ -46,9 +46,8 @@ function makeDeferred(): Deferred {
  *
  * [`thenable`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
  */
-export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never>
-  implements Promise<void>
-{
+export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never> {
+  // implements Promise<void>
   private readonly promise: Promise<void>
   private readonly deferredResolve: () => void
 
@@ -92,7 +91,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
         const ctrlKey = isMacOS ? 'Meta' : 'Control'
         const deleteKey = isMacOS ? 'Backspace' : 'Delete'
         const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
-        return await callback(shortcut)
+        return callback(shortcut)
       } else {
         return callback(keyOrShortcut)
       }
@@ -109,34 +108,49 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
     )
   }
 
-  /** Proxies the `then` method of the internal {@link Promise}. Called on first `await` point. */
-  async then<T, E>(
-    onfulfilled?: (() => PromiseLike<T> | T) | null | undefined,
-    onrejected?: ((reason: unknown) => E | PromiseLike<E>) | null | undefined,
-  ) {
-    this.deferredResolve()
-    return await this.promise.then(onfulfilled, onrejected)
+  // /** Proxies the `then` method of the internal {@link Promise}. Called on first `await` point. */
+  // async then<T, E>(
+  //   onfulfilled?: (() => PromiseLike<T> | T) | null | undefined,
+  //   onrejected?: ((reason: unknown) => E | PromiseLike<E>) | null | undefined,
+  // ) {
+  //   // console.log('RESOLVE', new Error().stack)
+  //   // this.deferredResolve()
+  //   return await this.promise.then(onfulfilled, onrejected)
+  // }
+  /** Invoke run immediately */
+  async run() {
+    console.log('RUN')
+
+    try {
+      this.deferredResolve()
+      console.log('this.promise', this.promise)
+      return await this.promise
+    } catch (e) {
+      console.log('CAUGHT', e)
+    } finally {
+      console.log('POST RUN')
+    }
   }
 
-  /**
-   * Proxies the `catch` method of the internal {@link Promise}.
-   * This method is not required for this to be a `thenable`, but it is still useful
-   * to treat this class as a {@link Promise}.
-   */
-  async catch<T>(onrejected?: ((reason: unknown) => PromiseLike<T> | T) | null | undefined) {
-    this.deferredResolve()
-    return await this.promise.catch(onrejected)
-  }
+  // /**
+  //  * Proxies the `catch` method of the internal {@link Promise}.
+  //  * This method is not required for this to be a `thenable`, but it is still useful
+  //  * to treat this class as a {@link Promise}.
+  //  */
+  // async catch<T>(onrejected?: ((reason: unknown) => PromiseLike<T> | T) | null | undefined) {
+  //   this.deferredResolve()
+  //   return await this.promise.catch(onrejected)
+  // }
 
-  /**
-   * Proxies the `catch` method of the internal {@link Promise}.
-   * This method is not required for this to be a `thenable`, but it is still useful
-   * to treat this class as a {@link Promise}.
-   */
-  async finally(onfinally?: (() => void) | null | undefined): Promise<void> {
-    this.deferredResolve()
-    await this.promise.finally(onfinally)
-  }
+  // /**
+  //  * Proxies the `catch` method of the internal {@link Promise}.
+  //  * This method is not required for this to be a `thenable`, but it is still useful
+  //  * to treat this class as a {@link Promise}.
+  //  */
+  // async finally(onfinally?: (() => void) | null | undefined): Promise<void> {
+  //   this.deferredResolve()
+  //   await this.promise.finally(onfinally)
+  // }
 
   /** Return a {@link BaseActions} with the same {@link Promise} but the parent's type. */
   intoParent() {
@@ -177,7 +191,10 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
 
   /** Perform an action. */
   step(name: string, callback: PageCallback<Context, this>) {
-    return this.do(() => test.step(name, () => callback(this.page, this.context, this)))
+    return this.do(async () => {
+      console.log('run step', name)
+      return await test.step(name, async () => await callback(this.page, this.context, this))
+    })
   }
 
   /**

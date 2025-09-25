@@ -13,6 +13,6 @@ setup('authenticate', async ({ page, loginPage }) => {
   const authFilePath = getAuthFilePath()
   setup.skip(existsSync(authFilePath), 'Already authenticated')
   setup.slow()
-  await loginPage.login()
+  await loginPage.login().run()
   await page.context().storageState({ path: authFilePath })
 })

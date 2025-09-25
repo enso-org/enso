@@ -1,9 +1,9 @@
 import { expect, test, type Locator, type Page } from 'integration-test/base'
+import { resetMockWidgetConfigurations } from 'integration-test/mock/lsHandler'
 import * as actions from './actions'
 import { mockMethodCallInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
-import { mockVisualizationDataUpdate, resetMockWidgetConfigurations } from './visualizationUpdates'
 
 class DropDownLocator {
   readonly rootWidget: Locator
@@ -302,7 +302,7 @@ async function dataReadNodeWithMethodCallInfo(page: Page): Promise<Locator> {
 test.describe('Dynamic configuration updates', () => {
   test.beforeEach(async ({ page }) => {
     await actions.goToGraph(page)
-    await resetMockWidgetConfigurations(page)
+    await resetMockWidgetConfigurations()
   })
 
   /**
@@ -312,7 +312,7 @@ test.describe('Dynamic configuration updates', () => {
    * dynamic configuration.
    * We check that no dropdown is shown until dynamic configuration arrives.
    */
-  test('Dynamic dropdown', async ({ page }) => {
+  test('Dynamic dropdown', async ({ page, localApi }) => {
     const node = await dataReadNodeWithMethodCallInfo(page)
     const topLevelArgs = node.locator('.WidgetTopLevelArgument')
     await node.click()
@@ -324,7 +324,7 @@ test.describe('Dynamic configuration updates', () => {
     ).not.toBeVisible()
 
     // Provide dynamic configuration for `format` arg.
-    await mockVisualizationDataUpdate(page, '.read', [
+    await localApi.updateVisualization('.read', [
       [
         'format',
         {
@@ -362,7 +362,7 @@ test.describe('Dynamic configuration updates', () => {
    * Check that numeric widget is displayed even if dynamic configuration is not provided.
    * Unlike dynamic dropdowns, numeric widget can work normally without dynamic configuration.
    */
-  test('Number widget', async ({ page }) => {
+  test('Number widget', async ({ page, localApi }) => {
     const node = locate.graphNodeByBinding(page, 'selected')
     await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
     await expect(locate.componentBrowser(page)).toBeVisible()
@@ -388,7 +388,7 @@ test.describe('Dynamic configuration updates', () => {
     await expect(node.locator('.AutoSizedInput')).not.toHaveClass(/slider/)
 
     // Provide limits from dynamic configuration.
-    await mockVisualizationDataUpdate(page, '.select_columns', [
+    await localApi.updateVisualization('.select_columns', [
       [
         'columns',
         {
@@ -408,7 +408,7 @@ test.describe('Dynamic configuration updates', () => {
    * File browser widget is weird. We want to match it even when dynamic configuration is not yet provided,
    * but it also uses a dropdown widget internally. This is why we have a special test case for it.
    */
-  test('File browser widget', async ({ page }) => {
+  test('File browser widget', async ({ page, localApi }) => {
     const node = await dataReadNodeWithMethodCallInfo(page)
     await node.click()
     await expect(node.locator('.WidgetTopLevelArgument')).toHaveCount(3)
@@ -418,7 +418,7 @@ test.describe('Dynamic configuration updates', () => {
     await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS])
     // Provide dynamic configuration for `path` argument.
     // (we use Folder_Browser here, and check how dropdown items have changed)
-    await mockVisualizationDataUpdate(page, '.read', [
+    await localApi.updateVisualization('.read', [
       [
         'path',
         {
@@ -436,7 +436,7 @@ test.describe('Dynamic configuration updates', () => {
    * Inherited config has a priority even if newer configuration for the child expression arrives.
    * We are using `aggregated` node to test this.
    */
-  test('Inherited configuration', async ({ page }) => {
+  test('Inherited configuration', async ({ page, localApi }) => {
     const node = locate.graphNodeByBinding(page, 'aggregated')
     await mockMethodCallInfo(page, 'aggregated', {
       methodPointer: {
@@ -449,7 +449,7 @@ test.describe('Dynamic configuration updates', () => {
     await node.click()
     await expect(node.locator('.WidgetTopLevelArgument')).toHaveCount(4)
     // Top-level configuration, including configuration for child widgets.
-    await mockVisualizationDataUpdate(page, '.aggregate', [
+    await localApi.updateVisualization('.aggregate', [
       [
         'columns',
         {
@@ -530,7 +530,7 @@ test.describe('Dynamic configuration updates', () => {
     // Provide dynamic configuration for `column` argument of `Aggregate_Column.Group_By`.
     // It shouldn’t affect the selectable variants of the dropdown, because parent
     // config has a priority.
-    await mockVisualizationDataUpdate(page, '.Group_By', [
+    await localApi.updateVisualization('.Group_By', [
       [
         'column',
         {
@@ -560,7 +560,7 @@ test.describe('Dynamic configuration updates', () => {
     await firstItemDropdown.expectVisibleWithOptions(['column 1', 'column 2'])
 
     // Update parent configuration
-    await mockVisualizationDataUpdate(page, '.aggregate', [
+    await localApi.updateVisualization('.aggregate', [
       [
         'columns',
         {
