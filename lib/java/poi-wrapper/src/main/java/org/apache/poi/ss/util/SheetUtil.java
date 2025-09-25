@@ -38,6 +38,7 @@ import org.apache.poi.ss.usermodel.RichTextString;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.util.ExceptionUtil;
 import org.apache.poi.util.Internal;
 
 
@@ -93,104 +94,16 @@ public class SheetUtil {
     };
 
     /**
-     * Helper utilities to use <b>only</b> when dealing when java.desktop module is available.
-     * By moving these definitions into its own class, we prevent {@link NoClassDefFoundError}
-     * to happen <em>too early</em>. The rest of SheetUtil is resolved sooner,
-     * but WithJavaDesktop only when first accessed - e.g. when really java.desktop module
-     * is needed.
+     * drawing context to measure text
      */
-    private static final class WithJavaDesktop {
-        /**
-         * drawing context to measure text
-         */
-        private static final FontRenderContext fontRenderContext = new FontRenderContext(null, true, true);
-
-        /**
-         * Copy text attributes from the supplied Font to Java2D AttributedString
-         */
-        private static void copyAttributes(Font font, AttributedString str, @SuppressWarnings("SameParameterValue") int startIdx, int endIdx) {
-            str.addAttribute(TextAttribute.FAMILY, font.getFontName(), startIdx, endIdx);
-            str.addAttribute(TextAttribute.SIZE, (float)font.getFontHeightInPoints());
-            if (font.getBold()) str.addAttribute(TextAttribute.WEIGHT, TextAttribute.WEIGHT_BOLD, startIdx, endIdx);
-            if (font.getItalic() ) str.addAttribute(TextAttribute.POSTURE, TextAttribute.POSTURE_OBLIQUE, startIdx, endIdx);
-            if (font.getUnderline() == Font.U_SINGLE ) str.addAttribute(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON, startIdx, endIdx);
-        }
-
-        /**
-         * Calculate the best-fit width for a cell
-         * If a merged cell spans multiple columns, evenly distribute the column width among those columns
-         *
-         * @param defaultCharWidth the width of a character using the default font in a workbook
-         * @param colspan the number of columns that is spanned by the cell (1 if the cell is not part of a merged region)
-         * @param style the cell style, which contains text rotation and indention information needed to compute the cell width
-         * @param minWidth the minimum best-fit width. This algorithm will only return values greater than or equal to the minimum width.
-         * @param str the text contained in the cell
-         * @return the best fit cell width
-         */
-        private static double getCellWidth(int defaultCharWidth, int colspan,
-                CellStyle style, double minWidth, AttributedString str) {
-            TextLayout layout = new TextLayout(str.getIterator(), WithJavaDesktop.fontRenderContext);
-            final Rectangle2D bounds;
-            if(style.getRotation() != 0){
-                /*
-                 * Transform the text using a scale so that it's height is increased by a multiple of the leading,
-                 * and then rotate the text before computing the bounds. The scale results in some whitespace around
-                 * the unrotated top and bottom of the text that normally wouldn't be present if unscaled, but
-                 * is added by the standard Excel autosize.
-                 */
-                AffineTransform trans = new AffineTransform();
-                trans.concatenate(AffineTransform.getRotateInstance(style.getRotation()*2.0*Math.PI/360.0));
-                trans.concatenate(
-                        AffineTransform.getScaleInstance(1, fontHeightMultiple)
-                );
-                bounds = layout.getOutline(trans).getBounds();
-            } else {
-                bounds = layout.getBounds();
-            }
-            // frameWidth accounts for leading spaces which is excluded from bounds.getWidth()
-            final double frameWidth = bounds.getX() + bounds.getWidth();
-            return Math.max(minWidth, ((frameWidth / colspan) / defaultCharWidth) + style.getIndention());
-        }
-
-        private static int getDefaultCharWidthFromLayout(Font defaultFont, AttributedString str) {
-            WithJavaDesktop.copyAttributes(defaultFont, str, 0, 1);
-            TextLayout layout = new TextLayout(str.getIterator(), WithJavaDesktop.fontRenderContext);
-            return (int) layout.getAdvance();
-        }
-
-        private static boolean canComputeColumnWidthFromLayout(Font font) {
-            // not sure what is the best value sample-here, only "1" did not work on some platforms...
-            AttributedString str = new AttributedString("1w");
-            WithJavaDesktop.copyAttributes(font, str, 0, "1w".length());
-
-            TextLayout layout = new TextLayout(str.getIterator(), WithJavaDesktop.fontRenderContext);
-            return (layout.getBounds().getWidth() > 0);
-        }
-        
-    }
+    private static FontRenderContext fontRenderContext = new FontRenderContext(null, true, true);
 
     /**
      * A system property which can be enabled to not fail when the
-     * font-system is not available on the current machine
+     * font-system is not available on the current machine.
+     * Since POI 5.4.0, this flag is enabled by default.
      */
-    private static final boolean ignoreMissingFontSystem;
-    static {
-        final String propValue = System.getProperty("org.apache.poi.ss.ignoreMissingFontSystem");
-        boolean ignore;
-        if (propValue != null) {
-            ignore = Boolean.parseBoolean(propValue);
-        } else {
-            try {
-                Class.forName("java.awt.font.TextAttribute");
-                ignore = false;
-            } catch (ClassNotFoundException ex) {
-                // if there is no java.desktop module then ignoreMissingFontSystem
-                // as the system has clearly been configured without a font system
-                ignore = true;
-            }
-        }
-        ignoreMissingFontSystem = ignore;
-    }
+    private static boolean ignoreMissingFontSystem = initIgnoreMissingFontSystemFlag();
 
     /**
      * Which default char-width to use if the font-system is unavailable.
@@ -205,8 +118,24 @@ public class SheetUtil {
      * @param formatter formatter used to prepare the text to be measured
      * @param useMergedCells    whether to use merged cells
      * @return  the width in pixels or -1 if cell is empty
+     * @deprecated since POI 5.2.5, it is better to pass defaultCharWidth as a float
      */
     public static double getCellWidth(Cell cell, int defaultCharWidth, DataFormatter formatter, boolean useMergedCells) {
+        return getCellWidth(cell, (float) defaultCharWidth, formatter, useMergedCells);
+    }
+
+
+    /**
+     * Compute width of a single cell
+     *
+     * @param cell the cell whose width is to be calculated
+     * @param defaultCharWidth the width of a single character
+     * @param formatter formatter used to prepare the text to be measured
+     * @param useMergedCells    whether to use merged cells
+     * @return  the width in pixels or -1 if cell is empty
+     * @since POI 5.2.5
+     */
+    public static double getCellWidth(Cell cell, float defaultCharWidth, DataFormatter formatter, boolean useMergedCells) {
         List<CellRangeAddress> mergedRegions = cell.getSheet().getMergedRegions();
         return getCellWidth(cell, defaultCharWidth, formatter, useMergedCells, mergedRegions);
     }
@@ -224,8 +153,29 @@ public class SheetUtil {
      * @param useMergedCells    whether to use merged cells
      * @param mergedRegions The list of merged regions as received via cell.getSheet().getMergedRegions()
      * @return  the width in pixels or -1 if cell is empty
+     * @deprecated since POI 5.2.5, it is better to pass defaultCharWidth as a float
      */
     public static double getCellWidth(Cell cell, int defaultCharWidth, DataFormatter formatter, boolean useMergedCells,
+                                      List<CellRangeAddress> mergedRegions) {
+        return getCellWidth(cell, (float) defaultCharWidth, formatter, useMergedCells, mergedRegions);
+    }
+
+    /**
+     * Compute width of a single cell
+     *
+     * This method receives the list of merged regions as querying it from the cell/sheet
+     * is time-consuming and thus caching the list across cells speeds up certain operations
+     * considerably.
+     *
+     * @param cell the cell whose width is to be calculated
+     * @param defaultCharWidth the width of a single character
+     * @param formatter formatter used to prepare the text to be measured
+     * @param useMergedCells    whether to use merged cells
+     * @param mergedRegions The list of merged regions as received via cell.getSheet().getMergedRegions()
+     * @return  the width in pixels or -1 if cell is empty
+     * @since POI 5.2.5
+     */
+    public static double getCellWidth(Cell cell, float defaultCharWidth, DataFormatter formatter, boolean useMergedCells,
                                       List<CellRangeAddress> mergedRegions) {
         Sheet sheet = cell.getSheet();
         Workbook wb = sheet.getWorkbook();
@@ -264,13 +214,13 @@ public class SheetUtil {
                     String txt = line + defaultChar;
 
                     AttributedString str = new AttributedString(txt);
-                    WithJavaDesktop.copyAttributes(font, str, 0, txt.length());
+                    copyAttributes(font, str, 0, txt.length());
 
                     /*if (rt.numFormattingRuns() > 0) {
                         // TODO: support rich text fragments
                     }*/
 
-                    width = WithJavaDesktop.getCellWidth(defaultCharWidth, colspan, style, width, str);
+                    width = getCellWidth(defaultCharWidth, colspan, style, width, str);
                 }
             }
         } else {
@@ -288,14 +238,57 @@ public class SheetUtil {
             if(sval != null) {
                 String txt = sval + defaultChar;
                 AttributedString str = new AttributedString(txt);
-                WithJavaDesktop.copyAttributes(font, str, 0, txt.length());
+                copyAttributes(font, str, 0, txt.length());
 
-                width = WithJavaDesktop.getCellWidth(defaultCharWidth, colspan, style, width, str);
+                width = getCellWidth(defaultCharWidth, colspan, style, width, str);
             }
         }
         return width;
     }
 
+    /**
+     * Calculate the best-fit width for a cell
+     * If a merged cell spans multiple columns, evenly distribute the column width among those columns
+     *
+     * @param defaultCharWidth the width of a character using the default font in a workbook
+     * @param colspan the number of columns that is spanned by the cell (1 if the cell is not part of a merged region)
+     * @param style the cell style, which contains text rotation and indention information needed to compute the cell width
+     * @param minWidth the minimum best-fit width. This algorithm will only return values greater than or equal to the minimum width.
+     * @param str the text contained in the cell
+     * @return the best fit cell width
+     */
+    private static double getCellWidth(float defaultCharWidth, final int colspan,
+            final CellStyle style, final double minWidth, final AttributedString str) {
+        TextLayout layout;
+        try {
+            layout = new TextLayout(str.getIterator(), fontRenderContext);
+        } catch (Throwable t) {
+            if (shouldIgnoreMissingFontSystem(t)) {
+                return FAILOVER_FUNCTION.apply(defaultCharWidth, colspan, style, minWidth, str);
+            }
+            throw t;
+        }
+        final Rectangle2D bounds;
+        if (style.getRotation() != 0) {
+            /*
+             * Transform the text using a scale so that its height is increased by a multiple of the leading,
+             * and then rotate the text before computing the bounds. The scale results in some whitespace around
+             * the unrotated top and bottom of the text that normally wouldn't be present if unscaled, but
+             * is added by the standard Excel autosize.
+             */
+            AffineTransform trans = new AffineTransform();
+            trans.concatenate(AffineTransform.getRotateInstance(style.getRotation()*2.0*Math.PI/360.0));
+            trans.concatenate(
+                    AffineTransform.getScaleInstance(1, fontHeightMultiple)
+            );
+            bounds = layout.getOutline(trans).getBounds();
+        } else {
+            bounds = layout.getBounds();
+        }
+        // frameWidth accounts for leading spaces which is excluded from bounds.getWidth()
+        final double frameWidth = bounds.getX() + bounds.getWidth();
+        return Math.max(minWidth, ((frameWidth / colspan) / defaultCharWidth) + style.getIndention());
+    }
 
     /**
      * Compute width of a column and return the result.
@@ -323,7 +316,7 @@ public class SheetUtil {
      */
     public static double getColumnWidth(Sheet sheet, int column, boolean useMergedCells, int firstRow, int lastRow){
         DataFormatter formatter = new DataFormatter();
-        int defaultCharWidth = getDefaultCharWidth(sheet.getWorkbook());
+        float defaultCharWidth = getDefaultCharWidthAsFloat(sheet.getWorkbook());
 
         List<CellRangeAddress> mergedRegions = sheet.getMergedRegions();
         double width = -1;
@@ -343,21 +336,82 @@ public class SheetUtil {
      *
      * @param wb the workbook to get the default character width from
      * @return default character width in pixels
+     * @deprecated since POI 5.2.5, it is recommended to switch to {@link #getDefaultCharWidthAsFloat(Workbook)}.
      */
     @Internal
     public static int getDefaultCharWidth(final Workbook wb) {
+        return Math.round(getDefaultCharWidthAsFloat(wb));
+    }
 
+    /**
+     * Get default character width using the Workbook's default font. Note that this can
+     * fail if your OS does not have the right fonts installed.
+     *
+     * @param wb the workbook to get the default character width from
+     * @return default character width in pixels (as a float)
+     * @since POI 5.2.5
+     */
+    @Internal
+    public static float getDefaultCharWidthAsFloat(final Workbook wb) {
+        Font defaultFont = wb.getFontAt( 0);
+
+        AttributedString str = new AttributedString(String.valueOf(defaultChar));
+        copyAttributes(defaultFont, str, 0, 1);
         try {
-            Font defaultFont = wb.getFontAt( 0);
-            AttributedString str = new AttributedString(String.valueOf(defaultChar));
-            return WithJavaDesktop.getDefaultCharWidthFromLayout(defaultFont, str);
-        } catch (UnsatisfiedLinkError | NoClassDefFoundError | InternalError e) {
-            if (ignoreMissingFontSystem) {
+            TextLayout layout = new TextLayout(str.getIterator(), fontRenderContext);
+            return layout.getAdvance();
+        } catch (Throwable t) {
+            if (shouldIgnoreMissingFontSystem(t)) {
                 return DEFAULT_CHAR_WIDTH;
             }
-
-            throw e;
+            throw t;
         }
+    }
+
+    /**
+     * A function with 5 inputs and a return value.
+     * @param <A> the type of the first input to the function
+     * @param <B> the type of the second input to the function
+     * @param <C> the type of the third input to the function
+     * @param <D> the type of the fourth input to the function
+     * @param <E> the type of the fifth input to the function
+     * @param <R> the return type of the function
+     * @since POI 5.4.1
+     */
+    @FunctionalInterface
+    public interface Function5Arity<A, B, C, D, E, R> {
+        R apply(A a, B b, C c, D d, E e);
+    }
+
+    private static final Function5Arity<Float, Integer, CellStyle, Double, AttributedString, Float> DEFAULT_FAILOVER_FUNCTION =
+            (defaultCharWidth, colspan, style, minWidth, string) -> defaultCharWidth;
+
+    private static Function5Arity<Float, Integer, CellStyle, Double, AttributedString, Float> FAILOVER_FUNCTION =
+            DEFAULT_FAILOVER_FUNCTION;
+
+    /**
+     * Define a function to be used as a failover when the font system is not available.
+     * This function will be called with the default character width, the colspan, the cell style,
+     * the minimum width and the attributed string of the cell.
+     * <p>
+     *     The default function will return the default character width.
+     * </p>
+     * @since POI 5.4.1
+     */
+    public static void setFailoverFunction(Function5Arity<Float, Integer, CellStyle, Double, AttributedString, Float> failoverFunction) {
+        FAILOVER_FUNCTION = failoverFunction == null ? DEFAULT_FAILOVER_FUNCTION : failoverFunction;
+    }
+
+    private static boolean shouldIgnoreMissingFontSystem(final Throwable t) {
+        return ignoreMissingFontSystem && (
+                // the three types of exception usually indicate here that the font
+                // system is not fully installed, i.e. system libraries missing or
+                // some JDK classes cannot be loaded
+                t instanceof UnsatisfiedLinkError ||
+                        t instanceof NoClassDefFoundError ||
+                        t instanceof InternalError ||
+                        // other fatal exceptions will always be rethrown
+                        !ExceptionUtil.isFatal(t));
     }
 
     /**
@@ -372,7 +426,7 @@ public class SheetUtil {
      * @return  the width in pixels or -1 if cell is empty
      */
     private static double getColumnWidthForRow(
-            Row row, int column, int defaultCharWidth, DataFormatter formatter, boolean useMergedCells,
+            Row row, int column, float defaultCharWidth, DataFormatter formatter, boolean useMergedCells,
             List<CellRangeAddress> mergedRegions) {
         if( row == null ) {
             return -1;
@@ -400,14 +454,23 @@ public class SheetUtil {
      * @return true if computing the size for this Font will succeed, false otherwise
      */
     public static boolean canComputeColumnWidth(Font font) {
-        try {
-            return WithJavaDesktop.canComputeColumnWidthFromLayout(font);
-        } catch (UnsatisfiedLinkError | NoClassDefFoundError | InternalError e) {
-            if (ignoreMissingFontSystem) {
-                return false;
-            }
-            throw e;
-        }
+        // not sure what is the best value sample-here, only "1" did not work on some platforms...
+        AttributedString str = new AttributedString("1w");
+        copyAttributes(font, str, 0, "1w".length());
+
+        TextLayout layout = new TextLayout(str.getIterator(), fontRenderContext);
+        return (layout.getBounds().getWidth() > 0);
+    }
+
+    /**
+     * Copy text attributes from the supplied Font to Java2D AttributedString
+     */
+    private static void copyAttributes(Font font, AttributedString str, @SuppressWarnings("SameParameterValue") int startIdx, int endIdx) {
+        str.addAttribute(TextAttribute.FAMILY, font.getFontName(), startIdx, endIdx);
+        str.addAttribute(TextAttribute.SIZE, (float)font.getFontHeightInPoints());
+        if (font.getBold()) str.addAttribute(TextAttribute.WEIGHT, TextAttribute.WEIGHT_BOLD, startIdx, endIdx);
+        if (font.getItalic() ) str.addAttribute(TextAttribute.POSTURE, TextAttribute.POSTURE_OBLIQUE, startIdx, endIdx);
+        if (font.getUnderline() == Font.U_SINGLE ) str.addAttribute(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON, startIdx, endIdx);
     }
 
     /**
@@ -468,5 +531,30 @@ public class SheetUtil {
         // If we get here, then the cell isn't defined, and doesn't
         //  live within any merged regions
         return null;
+    }
+
+    // Getters/Setters are available to allow in-depth testing
+    protected static boolean isIgnoreMissingFontSystem() {
+        return ignoreMissingFontSystem;
+    }
+
+    protected static void setIgnoreMissingFontSystem(boolean value) {
+        ignoreMissingFontSystem = value;
+    }
+
+    protected static FontRenderContext getFontRenderContext() {
+        return fontRenderContext;
+    }
+
+    protected static void setFontRenderContext(FontRenderContext fontRenderContext) {
+        SheetUtil.fontRenderContext = fontRenderContext;
+    }
+
+    private static boolean initIgnoreMissingFontSystemFlag() {
+        final String flag = System.getProperty("org.apache.poi.ss.ignoreMissingFontSystem");
+        if (flag != null) {
+            return !flag.trim().equalsIgnoreCase("false");
+        }
+        return true;
     }
 }
