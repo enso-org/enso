@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
-
 import org.enso.base.cache.ReloadDetector;
 import org.enso.table.excel.ExcelFileFormat;
 import org.enso.table.excel.ExcelWorkbook;

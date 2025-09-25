@@ -10,7 +10,6 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.function.Function;
-
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
@@ -53,14 +52,12 @@ public class ExcelWriter {
   }
 
   public static <T> T withWorkbook(
-      File file,
-      ExcelFileFormat format,
-      Function<ExcelWriteHelper, T> action)
+      File file, ExcelFileFormat format, Function<ExcelWriteHelper, T> action)
       throws IOException, InterruptedException {
-        verifyIsWritable(file);
+    verifyIsWritable(file);
 
-      ExcelWriteHelper helper = new ExcelWriteHelper(file, format);
-      return action.apply(helper);
+    ExcelWriteHelper helper = new ExcelWriteHelper(file, format);
+    return action.apply(helper);
   }
 
   private static void verifyIsWritable(File file) throws IOException {
