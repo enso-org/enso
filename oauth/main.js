@@ -3,8 +3,9 @@ import open from "open";
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import https from 'https';
 import axios from 'axios';
-//const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
-//const open = require('open');
+
+const tenant_id = '557a086b-ff83-4d39-a7d4-3cedd3e30b8c';
+const client_id = '225e3188-e3ec-4613-b8a5-4e0efac1694a';
 
 (async () => {
     const client_secret = process.env.OAUTH_CLIENT_SECRET;
@@ -21,8 +22,8 @@ import axios from 'axios';
     async function get_authentication_code(worker) {
         return new Promise((resolve, reject) => {
           console.log("Starting oauth");
-          open(make_get('https://login.microsoftonline.com/557a086b-ff83-4d39-a7d4-3cedd3e30b8c/oauth2/v2.0/authorize', {
-            client_id: '225e3188-e3ec-4613-b8a5-4e0efac1694a',
+          open(make_get(`https://login.microsoftonline.com/${tenant_id}/oauth2/v2.0/authorize`, {
+            client_id: client_id,
             response_type: 'code',
             //'redirect_uri': 'https://ensoanalytics.com/msoauthtest',
             redirect_uri: 'http://localhost:3000',
@@ -58,12 +59,12 @@ import axios from 'axios';
     }
 
     async function get_access_token(auth_code) {
-      const tokenEndpoint = 'https://login.microsoftonline.com/557a086b-ff83-4d39-a7d4-3cedd3e30b8c/oauth2/v2.0/token';
+      const tokenEndpoint = `https://login.microsoftonline.com/${tenant_id}/oauth2/v2.0/token`;
       //const tokenEndpoint = 'https://login.microsoftonline.com/59c2b5a8-8575-4ce0-9ff5-be8f2b34ad63/oauth2/v2.0/token';
 
       const data = new URLSearchParams();
 
-      data.append('client_id', '225e3188-e3ec-4613-b8a5-4e0efac1694a');
+      data.append('client_id', client_id);
       //data.append('client_id', '087cad1c-ab83-476d-bb1b-47ed1c5be4ef');
       data.append('scope', 'openid offline_access https://graph.microsoft.com/mail.read');
       data.append('code', auth_code);
