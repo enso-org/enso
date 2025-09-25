@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import { QualifiedImport } from '$/providers/openedProjects/module/imports'
+import type { QualifiedImport } from '$/providers/openedProjects/module/imports'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { Ok } from '@/util/data/result'

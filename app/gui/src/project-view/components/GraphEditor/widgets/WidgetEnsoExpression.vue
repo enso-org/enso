@@ -4,6 +4,7 @@ import {
   Score,
   WidgetInput,
   widgetProps,
+  type HandledUpdate,
 } from '$/providers/openedProjects/widgetRegistry'
 import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'

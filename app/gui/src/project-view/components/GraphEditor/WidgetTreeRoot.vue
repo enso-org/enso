@@ -3,7 +3,7 @@ import {
   emptyPrimaryApplication,
   type PrimaryApplication,
 } from '$/providers/openedProjects/graph/graphDatabase'
-import { UpdateHandler, WidgetInput } from '$/providers/openedProjects/widgetRegistry'
+import { type UpdateHandler, WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import { WidgetEditHandlerParent } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'

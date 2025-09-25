@@ -1,8 +1,8 @@
 import { type ModuleStore } from '$/providers/openedProjects/module'
 import {
   printRequiredImport,
-  type RequiredImport,
   requiredImports,
+  type RequiredImport,
 } from '$/providers/openedProjects/module/imports'
 import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
@@ -10,6 +10,7 @@ import {
   entryDisplayPath,
   entryIsStatic,
   SuggestionKind,
+  type SuggestionEntry,
 } from '$/providers/openedProjects/suggestionDatabase/entry'
 import type {
   Choice,

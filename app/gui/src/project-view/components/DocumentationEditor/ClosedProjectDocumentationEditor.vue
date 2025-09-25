@@ -7,7 +7,7 @@ import { Ast } from '@/util/ast'
 import { parseModule } from '@/util/ast/abstract'
 import { useYTextSync } from '@/util/codemirror'
 import { editorPersistence } from '@/util/codemirror/persistence'
-import { Err, mapOk, Ok, Result, unwrapOr } from '@/util/data/result'
+import { Err, mapOk, Ok, type Result, unwrapOr } from '@/util/data/result'
 import { ResultComponent } from '@/util/react'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
@@ -56,11 +56,6 @@ const editorMarkdown = computed(() =>
   mapOk(currentMethodAst.value, (ast) => ast.mutableDocumentationMarkdown()),
 )
 const editorContent = computed(() => unwrapOr(editorMarkdown.value, undefined))
-const resourceContext = {
-  project: projectId,
-  // We display documentation of `main` function, so image access is relative to the main module.
-  basePathSegments: ['src', 'Main.enso'],
-}
 
 const { syncExt, connectSync } = useYTextSync(editorContent, 'local:userAction:DocEditor')
 const editorPersistenceExt = editorPersistence({
@@ -83,7 +78,6 @@ const extensions = [syncExt, editorPersistenceExt]
     contentTestId="documentation-editor-content"
     scrollerTestId="documentation-editor-scroller"
     :editorReadyCallback="connectSync"
-    :resourceContext="resourceContext"
   >
   </MarkdownEditor>
   <!-- Specifying `<ResultComponent ... centered /> does not work with React components

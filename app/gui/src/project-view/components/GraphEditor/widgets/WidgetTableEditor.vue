@@ -5,13 +5,13 @@ import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/edi
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import {
   CELLS_LIMIT,
+  type RowData,
   tableInputCallMayBeHandled,
   useTableInputArgument,
-  type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { targetIsOutside } from '@/util/autoBlur'
-import { Result } from '@/util/data/result'
+import type { Result } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
@@ -24,7 +24,7 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, ComputedRef, ref, watch } from 'vue'
+import { type ComponentInstance, computed, type ComputedRef, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import ResizableWidget from '../ResizableWidget.vue'

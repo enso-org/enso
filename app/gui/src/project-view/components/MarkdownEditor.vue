@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { ResourceContext } from '@/providers/asyncResources/context'
 import type { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { defineAsyncComponent } from 'vue'
@@ -13,7 +12,6 @@ const { toolbar = true, ...props } = defineProps<{
   contentTestId?: string
   scrollerTestId?: string | undefined
   editorReadyCallback?: ((view: EditorView) => void) | undefined
-  resourceContext?: ResourceContext
 }>()
 
 defineOptions({

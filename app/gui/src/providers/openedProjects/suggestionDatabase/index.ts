@@ -8,6 +8,7 @@ import {
   type MethodSuggestionEntry,
   type SuggestionEntry,
   type SuggestionId,
+  type TypeSuggestionEntry,
 } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '$/providers/openedProjects/suggestionDatabase/lsUpdate'
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'

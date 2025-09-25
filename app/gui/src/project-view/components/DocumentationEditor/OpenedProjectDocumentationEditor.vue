@@ -24,13 +24,6 @@ const editorMarkdown = computed(() =>
   mapOk(graph.value.currentMethod.ast, (ast) => ast.mutableDocumentationMarkdown()),
 )
 const editorContent = computed(() => unwrapOr(editorMarkdown.value, undefined))
-const resourceContext = {
-  project: () => project.value.id,
-  basePathSegments: () => {
-    const fileName = project.value.observedFileName
-    if (fileName) return ['src', ...fileName.split('/')]
-  },
-}
 
 const { syncExt, connectSync } = useYTextSync(editorContent, 'local:userAction:DocEditor')
 const editorPersistenceExt = editorPersistence({
@@ -52,7 +45,6 @@ const extensions = [syncExt, editorPersistenceExt]
     contentTestId="documentation-editor-content"
     scrollerTestId="documentation-editor-scroller"
     :editorReadyCallback="connectSync"
-    :resourceContext="resourceContext"
   >
     <template #belowToolbar>
       <FunctionSignatureEditor

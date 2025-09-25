@@ -8,6 +8,7 @@ import {
   argsWidgetConfigurationSchema,
   functionCallConfiguration,
   pending,
+  type FunctionCall,
 } from '$/providers/openedProjects/widgetRegistry/configuration'
 import { Ast } from '@/util/ast'
 import {

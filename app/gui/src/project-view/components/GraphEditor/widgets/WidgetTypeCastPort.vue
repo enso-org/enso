@@ -10,7 +10,7 @@ import {
   Score,
   WidgetInput,
   widgetProps,
-  WidgetUpdate,
+  type WidgetUpdate,
 } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Ast } from '@/util/ast'

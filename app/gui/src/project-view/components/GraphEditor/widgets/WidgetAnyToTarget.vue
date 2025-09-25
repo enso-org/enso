@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import {
-  SuggestionEntry,
+  type SuggestionEntry,
   SuggestionKind,
 } from '$/providers/openedProjects/suggestionDatabase/entry'
 import {

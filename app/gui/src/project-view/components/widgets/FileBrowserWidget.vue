@@ -6,7 +6,7 @@ export default {
 
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
-import { FileType } from '$/providers/openedProjects/widgetRegistry/configuration'
+import type { FileType } from '$/providers/openedProjects/widgetRegistry/configuration'
 import ActionButton from '@/components/ActionButton.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import UpsertSecretPanel from '@/components/UpsertSecretPanel.vue'

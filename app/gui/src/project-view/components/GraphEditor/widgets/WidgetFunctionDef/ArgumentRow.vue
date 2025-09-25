@@ -17,7 +17,7 @@ import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/S
 import { EnsoTypeExpression } from '@/components/GraphEditor/widgets/WidgetTypeExpression.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
-import { PortId, syntheticPortId } from '@/providers/portInfo'
+import { syntheticPortId, type PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
 import { mapOrUndefined, type Opt } from '@/util/data/opt'
 import { Err, Ok } from '@/util/data/result'

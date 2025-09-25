@@ -12,6 +12,7 @@ import {
 } from './asyncResources/AsyncResource'
 import {
   captureResourceContext,
+  useCurrentProjectResourceContext,
   type ResourceContext,
   type ResourceContextSnapshot,
 } from './asyncResources/context'
@@ -85,7 +86,7 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
        */
       useResourceFromUrl(
         resourceUrl: ToValue<string>,
-        context: ResourceContext,
+        context: ResourceContext = useCurrentProjectResourceContext(),
       ): ComputedRef<Result<AsyncResource>> {
         const resolved = computed(() => resolveResourceInContext(toValue(resourceUrl), context))
 

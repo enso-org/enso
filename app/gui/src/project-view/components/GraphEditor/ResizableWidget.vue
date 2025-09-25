@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { UpdateHandler, WidgetInput } from '$/providers/openedProjects/widgetRegistry'
+import { type UpdateHandler, WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'

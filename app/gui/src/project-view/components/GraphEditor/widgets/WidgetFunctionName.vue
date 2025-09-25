@@ -9,6 +9,7 @@ import {
   Score,
   WidgetInput,
   widgetProps,
+  type UpdateResult,
 } from '$/providers/openedProjects/widgetRegistry'
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import { usePersisted } from '@/stores/persisted'

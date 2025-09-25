@@ -4,7 +4,7 @@ import { documentationData } from '$/providers/openedProjects/suggestionDatabase
 import {
   applyWidgetUpdates,
   WidgetInput,
-  WidgetUpdate,
+  type WidgetUpdate,
 } from '$/providers/openedProjects/widgetRegistry'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
