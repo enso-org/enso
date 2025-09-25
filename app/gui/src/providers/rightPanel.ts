@@ -1,6 +1,6 @@
 import type { PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
-import { AssetType, BackendType, type AnyAsset, type ProjectId } from '#/services/Backend'
+import { AssetType, type AnyAsset, type ProjectId } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
@@ -9,7 +9,7 @@ import type { Icon } from '@/util/iconMetadata/iconName'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { useQuery } from '@tanstack/vue-query'
 import { encoding } from 'lib0'
-import { computed, reactive, readonly, ref, toValue, type Ref } from 'vue'
+import { computed, reactive, readonly, ref, toValue, watchEffect, type Ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { isProjectTab, type TabId } from './container'
 import { useText, type TextStore } from './text'
@@ -214,23 +214,18 @@ function useRightPanel(
     return typeof currentItem === 'object' ? currentItem : undefined
   })
 
-  const backendType = computed(() => context.value?.category?.backend ?? BackendType.remote)
+  const backendType = computed(() => context.value?.category?.backend)
+  watchEffect(() => console.error('RP backendType', backendType.value), { flush: 'sync' })
 
   const focusedAssetDetailsQuery = useQuery({
-    queryKey: [
-      backendType,
-      'getAssetDetails',
-      computed(() => context.value?.item ?? context.value?.defaultItem),
-    ] as const,
+    queryKey: [backendType, 'getAssetDetails', focusedAsset] as const,
     queryFn: async (query) => {
       const [backendType, , currentItem] = query.queryKey
       if (!backendType || !currentItem) return null
-      if (typeof currentItem === 'object' && currentItem.type === AssetType.specialUp) return null
-      return await backendForType(backendType).getAssetDetails(
-        typeof currentItem === 'object' ? currentItem.id : currentItem,
-        undefined,
-      )
+      if (currentItem.type === AssetType.specialUp) return null
+      return await backendForType(backendType).getAssetDetails(currentItem.id, undefined)
     },
+    enabled: () => backendType.value != null && focusedAsset.value != null,
   })
   const focusedAssetDetails = focusedAssetDetailsQuery.data
 
