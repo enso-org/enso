@@ -34,7 +34,7 @@
     "test:unit": "vitest run",
     "test:integration": "cross-env NODE_OPTIONS='--experimental-wasm-modules' NODE_ENV=production playwright test",
     "test-dev:unit": "vitest",
-    "test-dev:integration": "cross-env NODE_ENV=production playwright test --ui",
+    "test-dev:integration": "cross-env NODE_OPTIONS='--experimental-wasm-modules' NODE_ENV=production playwright test --ui",
     "playwright:install": "playwright install chromium"
   },
   "dependencies": {
