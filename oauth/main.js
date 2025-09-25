@@ -18,39 +18,17 @@ import axios from 'axios';
       return url.href;
     }
 
-    async function get_access_token(auth_code) {
-      const tokenEndpoint = 'https://login.microsoftonline.com/557a086b-ff83-4d39-a7d4-3cedd3e30b8c/oauth2/v2.0/token';
-      //const tokenEndpoint = 'https://login.microsoftonline.com/59c2b5a8-8575-4ce0-9ff5-be8f2b34ad63/oauth2/v2.0/token';
-
-      const data = new URLSearchParams();
-
-      data.append('client_id', '225e3188-e3ec-4613-b8a5-4e0efac1694a');
-      //data.append('client_id', '087cad1c-ab83-476d-bb1b-47ed1c5be4ef');
-      data.append('scope', 'openid offline_access https://graph.microsoft.com/mail.read');
-      data.append('code', auth_code);
-      data.append('redirect_uri', 'http://localhost:3000');
-      data.append('grant_type', 'authorization_code');
-      data.append('client_secret', client_secret);
-
-      const result = await axios.post(tokenEndpoint, data, {
-          headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-          }
-      });
-      return result.data.access_token;
-    }
-
     async function get_authentication_code(worker) {
         return new Promise((resolve, reject) => {
           console.log("Starting oauth");
           open(make_get('https://login.microsoftonline.com/557a086b-ff83-4d39-a7d4-3cedd3e30b8c/oauth2/v2.0/authorize', {
-            'client_id': '225e3188-e3ec-4613-b8a5-4e0efac1694a',
-            'response_type': 'code',
+            client_id: '225e3188-e3ec-4613-b8a5-4e0efac1694a',
+            response_type: 'code',
             //'redirect_uri': 'https://ensoanalytics.com/msoauthtest',
-            'redirect_uri': 'http://localhost:3000',
-            'response_mode': 'query',
-            'scope': 'https://graph.microsoft.com/mail.read',
-            'state': '12345'
+            redirect_uri: 'http://localhost:3000',
+            response_mode: 'query',
+            scope: 'https://graph.microsoft.com/mail.read',
+            state: '12345'
           }));
 
           // Listen for messages from the worker thread
@@ -77,6 +55,28 @@ import axios from 'axios';
               }
           });
         });
+    }
+
+    async function get_access_token(auth_code) {
+      const tokenEndpoint = 'https://login.microsoftonline.com/557a086b-ff83-4d39-a7d4-3cedd3e30b8c/oauth2/v2.0/token';
+      //const tokenEndpoint = 'https://login.microsoftonline.com/59c2b5a8-8575-4ce0-9ff5-be8f2b34ad63/oauth2/v2.0/token';
+
+      const data = new URLSearchParams();
+
+      data.append('client_id', '225e3188-e3ec-4613-b8a5-4e0efac1694a');
+      //data.append('client_id', '087cad1c-ab83-476d-bb1b-47ed1c5be4ef');
+      data.append('scope', 'openid offline_access https://graph.microsoft.com/mail.read');
+      data.append('code', auth_code);
+      data.append('redirect_uri', 'http://localhost:3000');
+      data.append('grant_type', 'authorization_code');
+      data.append('client_secret', client_secret);
+
+      const result = await axios.post(tokenEndpoint, data, {
+          headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+          }
+      });
+      return result.data.access_token;
     }
 
     if (isMainThread) {
