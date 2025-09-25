@@ -310,10 +310,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
             data-selected={isSelected}
             data-id={item.id}
             onDoubleClick={() => {
-              if (eventModule.isElementTextInput(document.activeElement)) {
-                // The name is being edited, do nothing.
-                return
-              }
               if (item.type === backendModule.AssetType.directory) {
                 startNavigation(() => {
                   setDriveLocation(item.id, category.id)
