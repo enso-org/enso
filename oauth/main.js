@@ -40,6 +40,47 @@ import axios from 'axios';
       return result.data.access_token;
     }
 
+    async function get_authentication_code(worker) {
+        return new Promise((resolve, reject) => {
+          console.log("Starting oauth");
+          open(make_get('https://login.microsoftonline.com/557a086b-ff83-4d39-a7d4-3cedd3e30b8c/oauth2/v2.0/authorize', {
+            'client_id': '225e3188-e3ec-4613-b8a5-4e0efac1694a',
+            'response_type': 'code',
+            //'redirect_uri': 'https://ensoanalytics.com/msoauthtest',
+            'redirect_uri': 'http://localhost:3000',
+            'response_mode': 'query',
+            'scope': 'https://graph.microsoft.com/mail.read',
+            'state': '12345'
+          }));
+
+          // Listen for messages from the worker thread
+          worker.on('message', async (result) => {
+              console.log('Result from worker:', result);
+              const { auth_code } = result;
+              console.log('auth_code ' + auth_code);
+              const access_token = await get_access_token(auth_code);
+              console.log('access_token: ' + access_token);
+              resolve(access_token);
+          });
+
+          // Listen for errors from the worker thread
+          worker.on('error', (err) => {
+              console.error('Worker error:', err);
+              reject(err);
+          });
+
+          // Listen for the worker thread to exit
+          worker.on('exit', (code) => {
+              if (code !== 0) {
+                  console.error(`Worker stopped with exit code ${code}`);
+                  reject(new Error(`Worker exited with code ${code}`));
+              } else {
+                  console.log('Worker finished successfully.');
+              }
+          });
+        });
+    }
+
     if (isMainThread) {
         console.log('Main thread started.');
 
@@ -48,40 +89,9 @@ import axios from 'axios';
             workerData: { limit: 1000000000 } // Data to pass to the worker
         });
 
-        console.log("Starting oauth");
-        open(make_get('https://login.microsoftonline.com/557a086b-ff83-4d39-a7d4-3cedd3e30b8c/oauth2/v2.0/authorize', {
-          'client_id': '225e3188-e3ec-4613-b8a5-4e0efac1694a',
-          'response_type': 'code',
-          //'redirect_uri': 'https://ensoanalytics.com/msoauthtest',
-          'redirect_uri': 'http://localhost:3000',
-          'response_mode': 'query',
-          'scope': 'https://graph.microsoft.com/mail.read',
-          'state': '12345'
-        }));
-
-        // Listen for messages from the worker thread
-        worker.on('message', async (result) => {
-            console.log('Result from worker:', result);
-            const { auth_code } = result;
-            console.log('auth_code ' + auth_code);
-            const access_token = await get_access_token(auth_code);
-            console.log('access_token: ' + access_token);
-        });
-
-        // Listen for errors from the worker thread
-        worker.on('error', (err) => {
-            console.error('Worker error:', err);
-        });
-
-        // Listen for the worker thread to exit
-        worker.on('exit', (code) => {
-            if (code !== 0) {
-                console.error(`Worker stopped with exit code ${code}`);
-            } else {
-                console.log('Worker finished successfully.');
-            }
-        });
-
+        const p = get_authentication_code(worker);
+        const foo = await p;
+        console.log("foo " + JSON.stringify(foo));
         console.log('Main thread continues its work...');
 
     } else {
