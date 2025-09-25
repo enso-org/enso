@@ -93,11 +93,6 @@ export async function loginAsTestUser(page: Page) {
   await page.getByRole('textbox', { name: 'password' }).fill(process.env.ENSO_TEST_USER_PASSWORD)
   await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
-  await expect(
-    page
-      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
-      .getByText(TEXT.licenseAgreementCheckbox),
-  ).toBeVisible({ timeout: 60000 })
   await page
     .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
     .getByText(TEXT.licenseAgreementCheckbox)
@@ -114,8 +109,7 @@ export async function loginAsTestUser(page: Page) {
  * The funcion creates a new Enso project
  */
 export async function createNewProject(page: Page) {
-  const newProjectTab = page.getByRole('button', { name: 'New Project' })
-  await newProjectTab.click()
+  await page.getByRole('button', { name: 'New Project' }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
 
   const tableViz = page.locator('.TableVisualization')
@@ -144,7 +138,6 @@ export async function closeWelcome(page: Page) {
 export async function getNewestProject(page: Page): Promise<Locator> {
   // Returning back to the data catalog
   const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
-  await expect(dataCatalogTab).toBeVisible()
   await dataCatalogTab.click()
 
   const projects = await page
@@ -168,7 +161,6 @@ export async function getNewestProject(page: Page): Promise<Locator> {
  */
 export async function visualizeData(page: Page) {
   const showViz = page.getByLabel('Show visualization (Space)')
-  await expect(showViz).toBeVisible({ timeout: 5000 })
   await showViz.click()
 }
 
@@ -177,7 +169,6 @@ export async function visualizeData(page: Page) {
  */
 export async function createNewComponent(page: Page) {
   const moreButton = page.getByTestId('more-button').getByRole('button', { name: 'More' }).last()
-  await expect(moreButton).toBeVisible()
   await moreButton.click()
 
   await page.keyboard.press('Enter')
@@ -198,7 +189,6 @@ export async function fillWidgetText(page: Page, containerName: string, value: s
   const cont = page.getByText(containerName)
 
   const box = cont.getByTestId('widget-text-content')
-  await expect(box).toBeVisible()
   await box.fill(value)
 }
 
