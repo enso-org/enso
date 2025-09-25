@@ -93,6 +93,23 @@ import axios from 'axios';
         const access_token = await get_access_token(authentication_code);
         console.log('* access_token: ' + access_token);
 
+        const api_url = 'https://graph.microsoft.com/v1.0/me';
+        //const api_url = 'https://graph.microsoft.com/v1.0/me/drive/root/children';
+        const headers = { 'Authorization': access_token };
+        try {
+          const response = await axios.get(api_url, { headers: headers });
+          console.log('Response Status:', response.status);
+          const data = response.data;
+          console.log('Response Data:', data);
+          //console.log('Response Headers:', response.headers);
+        } catch (error) {
+          console.error('Error fetching data:', error.message);
+          if (error.response) {
+            console.error('Error Response Data:', error.response.data);
+            console.error('Error Response Status:', error.response.status);
+            console.error('Error Response Headers:', error.response.headers);
+          }
+        }
     } else {
         // This block will be executed if this file is run as a worker
         // (though in this example, it's not designed to be)
