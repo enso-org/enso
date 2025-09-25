@@ -9,7 +9,7 @@ import type { Icon } from '@/util/iconMetadata/iconName'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { useQuery } from '@tanstack/vue-query'
 import { encoding } from 'lib0'
-import { computed, reactive, readonly, ref, toValue, watchEffect, type Ref } from 'vue'
+import { computed, reactive, readonly, ref, toValue, type Ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { isProjectTab, type TabId } from './container'
 import { useText, type TextStore } from './text'
@@ -215,7 +215,6 @@ function useRightPanel(
   })
 
   const backendType = computed(() => context.value?.category?.backend)
-  watchEffect(() => console.error('RP backendType', backendType.value), { flush: 'sync' })
 
   const focusedAssetDetailsQuery = useQuery({
     queryKey: [backendType, 'getAssetDetails', focusedAsset] as const,
