@@ -18,6 +18,7 @@
   "main": "index.mjs",
   "dependencies": {
     "chalk": "^5.4.1",
+    "commander": "^14.0.1",
     "create-servers": "3.2.0",
     "electron-dl": "4.0.0",
     "electron-dl-manager": "4.0.0",

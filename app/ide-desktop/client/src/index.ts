@@ -81,7 +81,7 @@ class App {
       }
     })
 
-    const { windowSize, chromeOptions, fileToOpen, urlToOpen } = this.processArguments()
+    const { windowSize, fileToOpen, urlToOpen } = this.processArguments()
     if (this.args.options.version.value) {
       await this.printVersion()
       electron.app.quit()
@@ -97,7 +97,7 @@ class App {
       })
       if (isOriginalInstance) {
         this.handleItemOpening(fileToOpen, urlToOpen)
-        this.setChromeOptions(chromeOptions)
+        this.setChromeOptions()
         security.enableAll()
 
         this.onStart().catch((err) => {
@@ -245,24 +245,9 @@ class App {
    * Set Chrome options based on the app configuration. For comprehensive list of available
    * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches.
    */
-  setChromeOptions(chromeOptions: configParser.ChromeOption[]) {
-    const add = (option: string, value?: string) => {
-      const chromeOption = new configParser.ChromeOption(option, value)
-      const chromeOptionStr = chromeOption.display()
-      console.log(`Setting '${chromeOptionStr}'`)
-      chromeOptions.push(new configParser.ChromeOption(option, value))
-    }
-    console.log('Setting Chrome options')
+  setChromeOptions() {
     // Needed to accept localhost self-signed cert
-    add('ignore-certificate-errors')
-    chromeOptions.sort((a, b) => a.name.localeCompare(b.name))
-    if (chromeOptions.length > 0) {
-      for (const chromeOption of chromeOptions) {
-        electron.app.commandLine.appendSwitch(chromeOption.name, chromeOption.value)
-      }
-      const cfgName = config.HELP_EXTENDED_OPTION_NAME
-      console.log(`See '-${cfgName}' to learn why these options were enabled.`)
-    }
+    electron.app.commandLine.appendSwitch('ignore-certificate-errors')
   }
 
   /** Main app entry point. */

@@ -1,85 +1,13 @@
 /** @file Command line options parser. */
 
-import yargs, { type Options } from 'yargs'
-
 import * as config from '@/config'
 import * as fileAssociations from '@/fileAssociations'
 import * as naming from '@/naming'
+import * as paths from '@/paths'
+import { Command, InvalidArgumentError, program } from 'commander'
 
-// ======================
-// === Chrome Options ===
-// ======================
-
-/** Represents a command line option to be passed to the Chrome instance powering Electron. */
-export class ChromeOption {
-  /** Create a {@link ChromeOption}. */
-  constructor(
-    public name: string,
-    public value?: string,
-  ) {}
-
-  /** Return the option as it would appear on the command line. */
-  display(): string {
-    const value = this.value == null ? '' : `=${this.value}`
-    return `--${this.name}${value}`
-  }
-}
-
-/**
- * Replace `-no-...` with `--no-...`. This is a hotfix for a Yargs bug:
- * https://github.com/yargs/yargs-parser/issues/468.
- */
-function fixArgvNoPrefix(argv: readonly string[]): readonly string[] {
-  const singleDashPrefix = '-no-'
-  const doubleDashPrefix = '--no-'
-  return argv.map((arg) => {
-    if (arg.startsWith(singleDashPrefix)) {
-      return doubleDashPrefix + arg.slice(singleDashPrefix.length)
-    } else {
-      return arg
-    }
-  })
-}
-
-/** Command line options, split into regular arguments and Chrome options. */
-interface ArgvAndChromeOptions {
-  readonly argv: readonly string[]
-  readonly chromeOptions: ChromeOption[]
-}
-
-/**
- * Parse the given list of arguments into two distinct sets: regular arguments and those specific
- * to Chrome.
- */
-function argvAndChromeOptions(processArgs: readonly string[]): ArgvAndChromeOptions {
-  const chromeOptionRegex = /--?chrome.([^=]*)(?:=(.*))?/
-  const argv = []
-  const chromeOptions: ChromeOption[] = []
-  for (let i = 0; i < processArgs.length; i++) {
-    const processArg = processArgs[i]
-    if (processArg != null) {
-      const match = processArg.match(chromeOptionRegex)
-      if (match?.[1] != null) {
-        const optionName = match[1]
-        const optionValue = match[2]
-        if (optionValue != null) {
-          chromeOptions.push(new ChromeOption(optionName, optionValue))
-        } else {
-          const nextArgValue = processArgs[i + 1]
-          if (nextArgValue != null && !nextArgValue.startsWith('-')) {
-            chromeOptions.push(new ChromeOption(optionName, nextArgValue))
-            i++
-          } else {
-            chromeOptions.push(new ChromeOption(optionName))
-          }
-        }
-      } else {
-        argv.push(processArg)
-      }
-    }
-  }
-  return { argv, chromeOptions }
-}
+const DEFAULT_PROFILING_TIME = 120
+const DEFAULT_PORT = 8080
 
 // =====================
 // === Option Parser ===
@@ -88,7 +16,7 @@ function argvAndChromeOptions(processArgs: readonly string[]): ArgvAndChromeOpti
 /** Parse command line arguments. */
 export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIENT_ARGUMENTS) {
   const args = config.CONFIG
-  const { argv, chromeOptions } = argvAndChromeOptions(fixArgvNoPrefix(clientArgs))
+  const argv = clientArgs
   const yargsOptions = args.optionsRecursive().reduce((opts: Record<string, Options>, option) => {
     opts[naming.camelToKebabCase(option.qualifiedName())] = {
       ...option,
@@ -101,56 +29,247 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
     return opts
   }, {})
 
-  const optParser = yargs()
-    .version(false)
-    .parserConfiguration({
-      // Allow single-dash arguments, like `-help`.
-      'short-option-groups': false,
-      // Treat dot-arguments as string keys, like `foo.bar`.
-      'dot-notation': false,
-      // Do not expand `--foo-bar` to `--fooBar`. This prevents an error when both the former
-      // and later argument are reported as invalid at the same time.
-      'camel-case-expansion': false,
-    })
-    .strict()
-    .wrap(yargs().terminalWidth())
-    .options(yargsOptions)
-
-  // === Parsing ===
-
-  /** Command line arguments after being parsed by `yargs`. */
-  interface YargsArgs {
-    readonly [key: string]: string[] | string
-    readonly _: string[]
-    readonly $0: string
+  interface OptionBoolean {
+    type: 'boolean'
+    defaultValue: boolean
   }
 
-  // The type assertion is required since `parse` may return a `Promise`
-  // when an async middleware has been registered, but we are not doing that.
-  const { ...parsedArgs } = optParser.parse(argv, {}, (_err, _argv, output) => {
-    process.stdout.write(output)
-  }) as YargsArgs
+  interface OptionNumber {
+    type: 'number'
+    defaultValue: number
+  }
 
-  for (const option of args.optionsRecursive()) {
-    const arg = parsedArgs[naming.camelToKebabCase(option.qualifiedName())]
-    const isArray = Array.isArray(arg)
-    // Yargs parses missing array options as `[undefined]`.
-    const isInvalidArray = isArray && arg.length === 1 && arg[0] == null
-    if (arg != null && !isInvalidArray) {
-      option.value = arg
-      option.setByUser = true
+  interface OptionString {
+    type: 'string'
+    defaultValue: string
+  }
+
+  interface OptionCommon {
+    flag: string
+    passToWebApplication: boolean
+    description: string
+  }
+
+  type Option = (OptionBoolean | OptionNumber | OptionString) & OptionCommon
+
+  function makeOption({
+    flag,
+    passToWebApplication = true,
+    description,
+    defaultValue,
+  }: {
+    flag: string
+    passToWebApplication?: boolean
+    description: string
+    defaultValue: boolean | number | string
+  }): Option {
+    const common: OptionCommon = {
+      flag,
+      description,
+      passToWebApplication,
+    }
+    if (typeof defaultValue === 'boolean') {
+      return {
+        type: 'boolean',
+        defaultValue,
+        ...common,
+      }
+    } else if (typeof defaultValue === 'number') {
+      return {
+        type: 'number',
+        defaultValue,
+        ...common,
+      }
+    } else if (typeof defaultValue === 'string') {
+      return {
+        type: 'string',
+        defaultValue,
+        ...common,
+      }
+    } else {
+      throw new Error('Invalid default value')
     }
   }
 
-  let windowSize = config.WindowSize.default()
-  const providedWindowSize = args.groups.window.options.size.value
-  const parsedWindowSize = config.WindowSize.parse(providedWindowSize)
-
-  if (parsedWindowSize instanceof Error) {
-    console.error(`Wrong window size provided: '${providedWindowSize}'.`)
-  } else {
-    windowSize = parsedWindowSize
+  const options = {
+    displayWindow: makeOption({
+      flag: '--window',
+      defaultValue: true,
+      description:
+        'Display the window. When set to false, only the server runs. An alternative client or browser can connect to it.',
+      passToWebApplication: false,
+    }),
+    useServer: makeOption({
+      flag: '--server',
+      defaultValue: true,
+      description:
+        'Run the server. When set to false, connect to an existing server on the provided port.',
+      passToWebApplication: false,
+    }),
+    useEngine: makeOption({
+      flag: '--engine',
+      defaultValue: true,
+      description: 'Start the engine process.',
+      passToWebApplication: false,
+    }),
+    useJvm: makeOption({
+      flag: '--jvm',
+      defaultValue: false,
+      description: 'Start engine in JVM mode.',
+      passToWebApplication: false,
+    }),
+    startup: {
+      project: makeOption({
+        flag: '--startup.project',
+        defaultValue: '',
+        description:
+          'The name of the project to open at startup. If the project does not exist, it will be created.',
+        passToWebApplication: true,
+      }),
+      displayedProjectName: makeOption({
+        flag: '--startup.displayedProjectName',
+        defaultValue: '',
+        description: 'The name of the project to be displayed to the user.',
+        passToWebApplication: true,
+      }),
+    },
+    authentication: {
+      enabled: makeOption({
+        flag: '--authentication.enabled',
+        defaultValue: true,
+        description:
+          'Determines whether user authentication is enabled. This option is always true when executed in the cloud.',
+        passToWebApplication: true,
+      }),
+      email: makeOption({
+        flag: '--authentication.email',
+        defaultValue: '',
+        description: 'The user email, if the user is logged in.',
+        passToWebApplication: true,
+      }),
+    },
+    window: {
+      size: makeOption({
+        flag: '--window.size',
+        defaultValue: config.WindowSize.default().pretty(),
+        description: 'Set the initial window size.',
+        passToWebApplication: false,
+      }),
+      closeToQuit: makeOption({
+        flag: '--window.closeToQuit',
+        defaultValue: process.platform !== 'darwin',
+        description: 'Determine whether the app should quit when the window is closed.',
+        passToWebApplication: false,
+      }),
+    },
+    server: {
+      port: makeOption({
+        flag: '--server.port',
+        defaultValue: DEFAULT_PORT,
+        description: 'Port to use. If the port is unavailable, the next available port is used.',
+        passToWebApplication: false,
+      }),
+    },
+    engine: {
+      projectManagerPath: makeOption({
+        flag: '--engine.projectManagerPath',
+        defaultValue: paths.PROJECT_MANAGER_PATH,
+        description:
+          'Set the path of a local project manager executable to use for running projects.',
+        passToWebApplication: false,
+      }),
+      projectManagerUrl: makeOption({
+        flag: '--engine.projectManagerUrl',
+        defaultValue: '',
+        description: 'The address of the Project Manager service.',
+        passToWebApplication: true,
+      }),
+      ydocUrl: makeOption({
+        flag: '--engine.ydocUrl',
+        defaultValue: '',
+        description: 'The address of the Ydoc Server endpoint.',
+        passToWebApplication: true,
+      }),
+    },
+    debug: {
+      info: makeOption({
+        flag: '--debug.info',
+        defaultValue: false,
+        description:
+          'Print the system debug information. It is recommended to copy the output of this command when submitting a report regarding any bugs encountered.',
+        passToWebApplication: false,
+      }),
+      verbose: makeOption({
+        flag: '--debug.verbose',
+        defaultValue: false,
+        description: 'Increase logs verbosity. Affects both IDE and the backend.',
+        passToWebApplication: false,
+      }),
+      devTools: makeOption({
+        flag: '--debug.devTools',
+        defaultValue: false,
+        description: 'Run the application in development mode.',
+        passToWebApplication: false,
+      }),
+      profile: makeOption({
+        flag: '--debug.profile',
+        defaultValue: false,
+        description: 'Start backend profiler on startup and log data to a profiling.npss file',
+        passToWebApplication: false,
+      }),
+      profileTime: makeOption({
+        flag: '--debug.profileTime',
+        defaultValue: DEFAULT_PROFILING_TIME,
+        description:
+          'Time since backend startup for which profiling data will be collected, if enabled',
+        passToWebApplication: false,
+      }),
+    },
   }
 
-  return { args, windowSize, chromeOptions }
+  function parseNumber(value: string, _: number): number {
+    const parsed = parseInt(value)
+    if (isNaN(parsed)) {
+      throw new InvalidArgumentError('expected a number')
+    }
+    return parsed
+  }
+
+  function addOptions(program: Command, option: Option | Record<string, Option>) {
+    if ('type' in option) {
+      switch (option.type) {
+        case 'boolean':
+          program.option(option.flag, option.description, option.defaultValue)
+          break
+        case 'number':
+          program.option(option.flag, option.description, parseNumber, option.defaultValue)
+          break
+        case 'string':
+          program.option(option.flag, option.description, option.defaultValue)
+          break
+      }
+    } else {
+      for (const [optionName, opt] of Object.entries(option as Record<string, Option>)) {
+        addOptions(program, opt)
+      }
+    }
+  }
+
+  addOptions(program, options)
+
+  program.parse(argv)
+
+  const opts = program.opts()
+
+  // let windowSize = config.WindowSize.default()
+  // const providedWindowSize = populatedOptions['window.size'].value
+  // const parsedWindowSize = config.WindowSize.parse(providedWindowSize)
+
+  // if (parsedWindowSize instanceof Error) {
+  //   console.error(`Wrong window size provided: '${providedWindowSize}'.`)
+  // } else {
+  //   windowSize = parsedWindowSize
+  // }
+
+  return { args, windowSize }
 }
