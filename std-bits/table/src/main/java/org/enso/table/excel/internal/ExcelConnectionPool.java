@@ -26,7 +26,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
 
   private ExcelConnectionPool() {}
 
-  public synchronized <R> R performReadOnlyAction(
+  public <R> R performReadOnlyAction(
       File file,
       ExcelFileFormat format,
       FunctionWithException<ExcelWorkbook, R, InterruptedException> action)
@@ -36,7 +36,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
     return action.apply(workbook);
   }
 
-  public synchronized void closeConnection(File file, ExcelFileFormat format) throws IOException {
+  public void closeConnection(File file, ExcelFileFormat format) throws IOException {
     String key = getKeyForFile(file, format);
     ExcelWorkbook existingWorkbook = workbooksCache.get(key);
     if (existingWorkbook != null) {
@@ -47,7 +47,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
 
   /** If a reload has just happened, clear the ConnectionRecord cache. */
   @Override
-  public synchronized void clearCache() {
+  public void clearCache() {
     for (var record : workbooksCache.values()) {
       try {
         record.close();
@@ -59,7 +59,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   }
 
   /** Public for testing. */
-  public synchronized int getConnectionRecordCount() {
+  public int getConnectionRecordCount() {
     return workbooksCache.size();
   }
 
