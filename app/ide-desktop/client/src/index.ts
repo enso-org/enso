@@ -37,8 +37,9 @@ import * as urlAssociations from '@/urlAssociations'
 import * as projectManagement from 'project-manager-shim'
 import { toElectronFileFilter, type FileFilter } from './fileBrowser'
 
-import type { ParsedArgs, WebOptionsRecord } from '@/configParser'
+import type { ParsedArgs } from '@/configParser'
 import * as download from 'electron-dl'
+import type { WebOptionsRecord } from 'enso-common/src/options'
 import type { DownloadUrlOptions } from './globals'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 

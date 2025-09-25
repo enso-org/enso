@@ -2,26 +2,97 @@
 
 import { Command, InvalidArgumentError } from 'commander'
 import {
-  OPTIONS,
+  OptionsSchema,
   buildWebAppURLSearchParamsFromArgs as _buildWebAppURLSearchParamsFromArgs,
   collectWebAppOptionsFromArgs as _collectWebAppOptionsFromArgs,
-  iterateOptions,
-  type AnyOption,
-  type ArgsFromOptions,
-  type OptionsTree,
+  defaultOptions,
+  flattenObject,
+  unflattenObject,
+  type Options,
 } from 'enso-common/src/options'
+
+// CLI-only metadata defining flags and descriptions.
+const OPTIONS_META: Readonly<Record<string, { flag: string; description: string }>> = {
+  version: { flag: '-v, --version', description: 'Print the version' },
+  displayWindow: {
+    flag: '--no-window',
+    description: 'Only the server runs. An alternative client or browser can connect to it',
+  },
+  useServer: {
+    flag: '--no-server',
+    description:
+      'When passed, the server will not be run and the application will connect to an existing server on --server.port',
+  },
+  engineEnabled: { flag: '--no-engine', description: 'Do not start the engine process' },
+  useJvm: { flag: '--jvm', description: 'Start engine in JVM mode' },
+  'startup.project': {
+    flag: '--startup.project <name>',
+    description:
+      'The name of the project to open at startup. If the project does not exist, it will be created',
+  },
+  'startup.displayedProjectName': {
+    flag: '--startup.displayedProjectName <name>',
+    description: 'The name of the project to be displayed to the user',
+  },
+  'authentication.enabled': {
+    flag: '--authentication.enabled',
+    description:
+      'Determines whether user authentication is enabled. This option is always true when executed in the cloud',
+  },
+  'authentication.email': {
+    flag: '--authentication.email <email>',
+    description: 'The user email, if the user is logged in',
+  },
+  'server.port': {
+    flag: '--server.port',
+    description: 'Port to use. If the port is unavailable, the next available port is used',
+  },
+  'engine.projectManagerPath': {
+    flag: '--engine.projectManagerPath <path>',
+    description: 'Set the path of a local project manager executable to use for running projects',
+  },
+  'engine.projectManagerUrl': {
+    flag: '--engine.projectManagerUrl <url>',
+    description: 'The address of the Project Manager service',
+  },
+  'engine.ydocUrl': {
+    flag: '--engine.ydocUrl <url>',
+    description: 'The address of the Ydoc Server endpoint',
+  },
+  'debug.info': {
+    flag: '--debug.info',
+    description:
+      'Print the system debug information. It is recommended to copy the output of this command when submitting a report regarding any bugs encountered',
+  },
+  'debug.verbose': {
+    flag: '--debug.verbose',
+    description: 'Increase logs verbosity. Affects both IDE and the backend',
+  },
+  'debug.devTools': {
+    flag: '--debug.devTools',
+    description: 'Run the application in development mode',
+  },
+  'debug.profile': {
+    flag: '--debug.profile',
+    description: 'Start backend profiler on startup and log data to a profiling.npss file',
+  },
+  'debug.profileTime': {
+    flag: '--debug.profileTime <seconds>',
+    description:
+      'Time since backend startup for which profiling data will be collected, if enabled',
+  },
+} as const
 
 // =====================
 // === Types & Utils ===
 // =====================
 
-export type ParsedArgs = ArgsFromOptions<typeof OPTIONS>
+export type ParsedArgs = Options
 
-function joinPath(path: string[]) {
-  return path.join('.')
-}
+// (no-op helper removed)
 
 /** Parse command line arguments. */
+/** Parse command line arguments to validated options. */
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const command = new Command()
 
@@ -33,86 +104,41 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     return parsed
   }
 
-  // Map from logical option path (e.g. "window.size") to Commander attribute name used in opts().
+  // Register options based on defaults and metadata.
+  const defaults = defaultOptions()
+  const flatDefaults = flattenObject(defaults)
   const optionPathToAttrName = new Map<string, string>()
-
-  // Register Commander options using the iterator
-  iterateOptions(OPTIONS, (path: string[], node: AnyOption) => {
-    const opt = command.createOption(node.flag, node.description)
-    if (node.type === 'number') opt.argParser(parseNumber)
-    opt.default(node.defaultValue)
+  for (const [path, meta] of Object.entries(OPTIONS_META)) {
+    const def = flatDefaults[path]
+    const opt = command.createOption(meta.flag, meta.description)
+    if (typeof def === 'number') opt.argParser(parseNumber)
+    opt.default(def)
     command.addOption(opt)
-    optionPathToAttrName.set(joinPath(path), opt.attributeName())
-  })
+    optionPathToAttrName.set(path, opt.attributeName())
+  }
 
   command.parse(argv, { from: 'user' })
   const raw = command.opts<Record<string, unknown>>()
 
-  function buildArgs<T extends OptionsTree>(node: T, path: string[] = []): ArgsFromOptions<T> {
-    if ('type' in (node as any)) {
-      const attrName = optionPathToAttrName.get(joinPath(path))
-      const value = attrName ? raw[attrName] : undefined
-      switch ((node as any).type) {
-        case 'boolean':
-          return (typeof value === 'boolean' ? value : (
-            (node as any).defaultValue
-          )) as unknown as ArgsFromOptions<T>
-        case 'number':
-          return (typeof value === 'number' ? value : (
-            (node as any).defaultValue
-          )) as unknown as ArgsFromOptions<T>
-        case 'string':
-          return (typeof value === 'string' ? value : (
-            (node as any).defaultValue
-          )) as unknown as ArgsFromOptions<T>
-      }
-    }
-    const out: Record<string, unknown> = {}
-    const group = node as unknown as Record<string, OptionsTree>
-    for (const [key, child] of Object.entries(group) as [string, OptionsTree][]) {
-      out[key] = buildArgs(child, [...path, key])
-    }
-    return out as ArgsFromOptions<T>
+  // Materialize values by merging raw opts into defaults via the attribute-name map.
+  const mergedFlat: Record<string, unknown> = { ...flatDefaults }
+  for (const [path, attr] of optionPathToAttrName.entries()) {
+    if (attr in raw) mergedFlat[path] = raw[attr]
   }
-
-  return buildArgs(OPTIONS)
+  const candidate = unflattenObject<Options>(mergedFlat)
+  return OptionsSchema.parse(candidate)
 }
 
 // ==============================
 // === Web Options (URL sync) ===
 // ==============================
 
-// Compute union of dotted paths to leaf options that are passToWebApplication: true
-type WebOptionPaths<T, Prefix extends string = ''> =
-  T extends AnyOption<infer P> ?
-    P extends true ?
-      Prefix
-    : never
-  : {
-      [K in keyof T & string]: WebOptionPaths<T[K], Prefix extends '' ? `${K}` : `${Prefix}.${K}`>
-    }[keyof T & string]
-
-// Value at dotted path P in object T
-type PathValue<T, P extends string> =
-  P extends `${infer K}.${infer Rest}` ?
-    K extends keyof T ?
-      PathValue<T[K], Rest>
-    : never
-  : P extends keyof T ? T[P]
-  : never
-
-// All passToWebApplication option keys and their values (based on original ArgsFromOptions types)
-export type WebOptionKey = WebOptionPaths<typeof OPTIONS>
-export type WebOptionsRecord = {
-  [K in WebOptionKey]: PathValue<ArgsFromOptions<typeof OPTIONS>, K>
+/** Collect non-default pass-to-web options from parsed args. */
+export function collectWebAppOptions(args: ParsedArgs): Record<string, string | number | boolean> {
+  return _collectWebAppOptionsFromArgs(args) as any
 }
 
-/** Collect non-default values of passToWebApplication options from parsed args. */
-export function collectWebAppOptions(args: ParsedArgs): Partial<WebOptionsRecord> {
-  return _collectWebAppOptionsFromArgs(args as any, OPTIONS)
-}
-
-/** Build URLSearchParams for non-default passToWebApplication options. */
+/** Build URLSearchParams for non-default pass-to-web options. */
 export function buildWebAppURLSearchParams(args: ParsedArgs): URLSearchParams {
-  return _buildWebAppURLSearchParamsFromArgs(args as any, OPTIONS)
+  return _buildWebAppURLSearchParamsFromArgs(args)
 }
