@@ -2,6 +2,9 @@ package org.enso.table.write;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.AccessMode;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -33,7 +36,6 @@ import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.excel.ExcelUtils;
 import org.enso.table.excel.ExcelWriteHelper;
-import org.enso.table.excel.internal.ExcelConnectionPool;
 import org.enso.table.util.ColumnMapper;
 import org.enso.table.util.NameDeduplicator;
 
@@ -55,7 +57,21 @@ public class ExcelWriter {
       ExcelFileFormat format,
       Function<ExcelWriteHelper, T> action)
       throws IOException, InterruptedException {
-    return ExcelConnectionPool.INSTANCE.performWriteAction(file, format, action);
+        verifyIsWritable(file);
+
+      ExcelWriteHelper helper = new ExcelWriteHelper(file, format);
+      return action.apply(helper);
+  }
+
+  private static void verifyIsWritable(File file) throws IOException {
+    Path path = file.toPath();
+
+    if (!Files.exists(path)) {
+      // If the file does not exist, we assume that we can create it.
+      return;
+    }
+
+    path.getFileSystem().provider().checkAccess(path, AccessMode.WRITE, AccessMode.READ);
   }
 
   public static void writeTableToSheet(
