@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
-
 import org.enso.base.cache.ReloadDetector;
 import org.enso.table.excel.ExcelFileFormat;
 import org.enso.table.excel.ExcelWorkbook;
@@ -15,9 +14,9 @@ import org.slf4j.LoggerFactory;
 /**
  * A singleton cache for {@link ExcelWorkbook} connections.
  *
- * <p>Provides read-only access helpers that reuse an open workbook connection per
- * excel workbook. Integrates with {@link ReloadDetector} to clear
- * state on reload and allows explicit closing of cached connections.
+ * <p>Provides read-only access helpers that reuse an open workbook connection per excel workbook.
+ * Integrates with {@link ReloadDetector} to clear state on reload and allows explicit closing of
+ * cached connections.
  */
 public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   public static final ExcelConnectionPool INSTANCE = new ExcelConnectionPool();
@@ -31,17 +30,15 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
 
   private final HashMap<String, ExcelWorkbook> workbooksCache = new HashMap<>();
 
-  /**
-   * Private constructor to enforce the singleton pattern. Use {@link #INSTANCE}.
-   */
+  /** Private constructor to enforce the singleton pattern. Use {@link #INSTANCE}. */
   private ExcelConnectionPool() {}
 
   /**
    * Performs a read-only action using a cached {@link ExcelWorkbook} connection.
    *
-   * <p>Registers this pool with {@link ReloadDetector} so the cache is cleared on reload,
-   * opens (or reuses) a cached workbook for the given file and format, and applies the
-   * provided action. The action is allowed to throw {@link InterruptedException}.
+   * <p>Registers this pool with {@link ReloadDetector} so the cache is cleared on reload, opens (or
+   * reuses) a cached workbook for the given file and format, and applies the provided action. The
+   * action is allowed to throw {@link InterruptedException}.
    *
    * @param file the Excel workbook file to open
    * @param format the expected {@link ExcelFileFormat}
@@ -82,8 +79,8 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   /**
    * Clears and closes all cached workbook connections.
    *
-   * <p>Invoked when a reload occurs to ensure no stale resources remain open.
-   * Any IO errors during close are logged and suppressed.
+   * <p>Invoked when a reload occurs to ensure no stale resources remain open. Any IO errors during
+   * close are logged and suppressed.
    */
   @Override
   public void clearCache() {
@@ -101,18 +98,18 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
    * Returns the number of cached workbook connections.
    *
    * <p>Public for testing and diagnostics.
-     * @return count of cached workbooks
+   *
+   * @return count of cached workbooks
    */
   public int getWorkbooksCacheSize() {
     return workbooksCache.size();
   }
 
   /**
-   * Returns a cached {@link ExcelWorkbook} for the given file and format, opening it if
-   * necessary.
+   * Returns a cached {@link ExcelWorkbook} for the given file and format, opening it if necessary.
    *
-   * <p>Validates that the file exists, then uses a canonical-path-based key to locate or
-   * create a cached connection.
+   * <p>Validates that the file exists, then uses a canonical-path-based key to locate or create a
+   * cached connection.
    *
    * @param file the Excel file to access
    * @param format the {@link ExcelFileFormat} of the file
