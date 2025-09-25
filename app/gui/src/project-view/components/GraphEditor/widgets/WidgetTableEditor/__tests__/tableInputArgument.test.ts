@@ -7,7 +7,7 @@ import {
   DEFAULT_COLUMN_PREFIX,
   NEW_COLUMN_ID,
   ROW_INDEX_HEADER,
-  RowData,
+  type RowData,
   tableInputCallMayBeHandled,
   useTableInputArgument,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'

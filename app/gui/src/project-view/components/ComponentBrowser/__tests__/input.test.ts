@@ -1,4 +1,4 @@
-import { GraphDb, NodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import { GraphDb, type NodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   ComputedValueRegistry,
   TypeInfo,

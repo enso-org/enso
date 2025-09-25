@@ -6,9 +6,9 @@ import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
 import { assert } from '@/util/assert'
 import { colorFromString } from '@/util/colors'
-import { Opt } from '@/util/data/opt'
-import { ToValue } from '@/util/reactivity'
-import { computed, Ref, shallowRef, ToRefs, toValue, watch } from 'vue'
+import type { Opt } from '@/util/data/opt'
+import type { ToValue } from '@/util/reactivity'
+import { computed, type Ref, shallowRef, type ToRefs, toValue, watch } from 'vue'
 
 export type CurrentProjectStore = ReturnType<typeof useCurrentProjectRaw>
 const [provideCurrentProject, useCurrentProjectRaw] = createContextStore(

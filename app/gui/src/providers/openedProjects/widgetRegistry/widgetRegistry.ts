@@ -1,5 +1,5 @@
 import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
-import { ModuleStore } from '$/providers/openedProjects/module'
+import type { ModuleStore } from '$/providers/openedProjects/module'
 import type { Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
 import type { WidgetConfiguration } from '$/providers/openedProjects/widgetRegistry/configuration'
 import {

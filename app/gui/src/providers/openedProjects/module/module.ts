@@ -24,6 +24,9 @@ import {
 
 export type ModuleStore = ReturnType<typeof createModuleStore>
 
+/**
+ *
+ */
 export function createModuleStore(
   proj: ProjectStore,
   projectNames: ProjectNameStore,

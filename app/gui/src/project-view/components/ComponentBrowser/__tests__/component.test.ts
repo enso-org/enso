@@ -17,7 +17,7 @@ import {
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { allRanges } from '@/util/data/range'
 import { ProjectPath, stdPath } from '@/util/projectPath'
-import { QualifiedName } from '@/util/qualifiedName'
+import { type QualifiedName } from '@/util/qualifiedName'
 import shuffleSeed from 'shuffle-seed'
 import { expect, test } from 'vitest'
 
