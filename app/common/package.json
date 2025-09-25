@@ -5,13 +5,13 @@
   "exports": {
     ".": {
       "source": "./src/index.ts",
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
       "import": "./dist/index.js"
     },
     "./src/config.json": "./src/config.json",
     "./src/*": {
       "source": "./src/*.ts",
-      "types": "./dist/*.d.ts",
+      "types": "./src/*.ts",
       "import": "./dist/*.js"
     }
   },

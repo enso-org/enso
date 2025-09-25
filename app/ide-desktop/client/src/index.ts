@@ -42,6 +42,9 @@ import * as download from 'electron-dl'
 import type { DownloadUrlOptions } from './globals'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 
+const DEFAULT_WINDOW_WIDTH = 1380
+const DEFAULT_WINDOW_HEIGHT = 900
+
 /** Convert path to proper `file://` URL. */
 function pathToURL(path: string): URL {
   if (process.platform === 'win32') {
@@ -340,8 +343,8 @@ class App {
       }
       const windowPreferences: electron.BrowserWindowConstructorOptions = {
         webPreferences,
-        width: args.window.size.width,
-        height: args.window.size.height,
+        width: DEFAULT_WINDOW_WIDTH,
+        height: DEFAULT_WINDOW_HEIGHT,
         frame: true,
         titleBarStyle: 'default',
         ...(process.env.DEV_DARK_BACKGROUND ? { backgroundColor: '#36312c' } : {}),
@@ -395,15 +398,18 @@ class App {
         },
       )
 
+      // Quit application on window close on all platforms except Mac (it is default behavior on Mac).
+      const closeToQuit = process.platform !== 'darwin'
+
       window.on('close', (event) => {
-        if (!this.isQuitting && !args.window.closeToQuit) {
+        if (!this.isQuitting && !closeToQuit) {
           event.preventDefault()
           window.hide()
         }
       })
 
       electron.app.on('activate', () => {
-        if (!args.window.closeToQuit) {
+        if (!closeToQuit) {
           window.show()
         }
       })

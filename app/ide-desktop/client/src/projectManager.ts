@@ -6,6 +6,7 @@ import * as fsSync from 'node:fs'
 import * as url from 'node:url'
 import * as util from 'node:util'
 
+import * as paths from '@/paths'
 import { getProjectRoot } from 'project-manager-shim'
 import type { ParsedArgs } from './configParser'
 
@@ -20,7 +21,7 @@ const execFile = util.promisify(childProcess.execFile)
  * @throws If the Project Manager path is invalid.
  */
 export function pathOrPanic(args: ParsedArgs): string {
-  const binPath = args.engine.projectManagerPath
+  const binPath = args.engine.projectManagerPath || paths.PROJECT_MANAGER_PATH
   const binExists = fsSync.existsSync(binPath)
   if (!binExists) {
     throw new Error(`Could not find the project manager binary at ${binPath}.`)
