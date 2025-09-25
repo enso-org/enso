@@ -29,13 +29,17 @@ save_table_as_data_link table destination on_existing_file:Existing_File_Behavio
         Error.throw (Illegal_Argument.Error "Saving a Table as data link is currently not supported in this backend.")
 
     # For a trivial query we return the table name.
-    link_type = if table.is_trivial_query fail_if_not_found=False then DB_Data_Link_Type.Table table.name else
-        sql_statement = table.to_sql
-        prepared = sql_statement.prepare
-        # If there are no interpolations, we can do a raw query represented by Text (more friendly in the GUI).
-        if prepared.second.is_empty then DB_Data_Link_Type.Query prepared.first else
-            # Lastly, if there are interpolations, we need to fully serialize
-            DB_Data_Link_Type.SQL_Statement sql_statement
+    table_schema_name = table.table_name_schema
+    link_type = case table_schema_name of
+        _ : Text -> DB_Data_Link_Type.Table table.name
+        _ : Vector -> DB_Data_Link_Type.Table_Schema table_schema_name.first table_schema_name.second
+        Nothing ->
+            sql_statement = table.to_sql
+            prepared = sql_statement.prepare
+            # If there are no interpolations, we can do a raw query represented by Text (more friendly in the GUI).
+            if prepared.second.is_empty then DB_Data_Link_Type.Query prepared.first else
+                # Lastly, if there are interpolations, we need to fully serialize
+                DB_Data_Link_Type.SQL_Statement sql_statement
     result = data_link_setup.save_as_data_link destination on_existing_file link_type
     referred_temporary_tables = _find_referred_temporary_tables table.connection table.context
     if referred_temporary_tables.is_nothing then result else
