@@ -216,7 +216,7 @@ jobs:
           name: ide-macos
           path: dist/ide/enso-*.dmg
       - name: Prepare Package Tests
-        run: 'mkdir -p app/ide-desktop/client/playwright/.auth && touch app/ide-desktop/client/playwright/.auth/user.json && chmod 600 app/ide-desktop/client/playwright/.auth/user.json && echo "{\"user\": \"$ENSO_TEST_USER\",\"password\":\"$ENSO_TEST_USER_PASSWORD\"}" >> app/ide-desktop/client/playwright/.auth/user.json'
+        run: 'mkdir -p app/ide-desktop/client/playwright/.auth && touch app/ide-desktop/client/playwright/.auth/user.json && chmod 600 app/ide-desktop/client/playwright/.auth/user.json && echo "{\"user\": \"$ENSO_TEST_USER\",\"password\":\"$ENSO_TEST_USER_PASSWORD\"}" > app/ide-desktop/client/playwright/.auth/user.json'
         shell: bash
         env:
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
