@@ -6,8 +6,8 @@ import * as fsSync from 'node:fs'
 import * as url from 'node:url'
 import * as util from 'node:util'
 
-import type * as config from '@/config'
 import { getProjectRoot } from 'project-manager-shim'
+import type { ParsedArgs } from './configParser'
 
 const execFile = util.promisify(childProcess.execFile)
 
@@ -19,8 +19,8 @@ const execFile = util.promisify(childProcess.execFile)
  * Return the Project Manager path.
  * @throws If the Project Manager path is invalid.
  */
-export function pathOrPanic(args: config.Args): string {
-  const binPath = args.groups.engine.options.projectManagerPath.value
+export function pathOrPanic(args: ParsedArgs): string {
+  const binPath = args.engine.projectManagerPath
   const binExists = fsSync.existsSync(binPath)
   if (!binExists) {
     throw new Error(`Could not find the project manager binary at ${binPath}.`)
@@ -30,7 +30,7 @@ export function pathOrPanic(args: config.Args): string {
 }
 
 /** Execute the Project Manager with given arguments. */
-async function exec(args: config.Args, processArgs: string[], env?: NodeJS.ProcessEnv) {
+async function exec(args: ParsedArgs, processArgs: string[], env?: NodeJS.ProcessEnv) {
   const binPath = pathOrPanic(args)
   return await execFile(binPath, processArgs, { env })
 }
@@ -43,7 +43,7 @@ async function exec(args: config.Args, processArgs: string[], env?: NodeJS.Proce
  * finishes.
  */
 export function spawn(
-  args: config.Args,
+  args: ParsedArgs,
   processArgs: string[],
   env?: NodeJS.ProcessEnv,
 ): childProcess.ChildProcess {
@@ -65,7 +65,7 @@ export function spawn(
 
 /** Run an arbitrary command and return its output. */
 export function runCommand(
-  args: config.Args,
+  args: ParsedArgs,
   processArgs: string[],
   body?: NodeJS.ReadableStream,
   env?: NodeJS.ProcessEnv,
@@ -87,8 +87,8 @@ export function runCommand(
 }
 
 /** Get the Project Manager version. */
-export async function version(args: config.Args) {
-  if (args.options.engine.value) {
+export async function version(args: ParsedArgs) {
+  if (args.engine) {
     return await exec(args, ['--version']).then((t) => t.stdout)
   } else {
     return

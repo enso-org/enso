@@ -22,7 +22,6 @@ import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
 import * as authentication from '@/authentication'
-import * as config from '@/config'
 import * as configParser from '@/configParser'
 import * as contentConfig from '@/contentConfig'
 import * as debug from '@/debug'
@@ -38,6 +37,7 @@ import * as urlAssociations from '@/urlAssociations'
 import * as projectManagement from 'project-manager-shim'
 import { toElectronFileFilter, type FileFilter } from './fileBrowser'
 
+import type { ParsedArgs, WebOptionsRecord } from '@/configParser'
 import * as download from 'electron-dl'
 import type { DownloadUrlOptions } from './globals'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
@@ -62,7 +62,7 @@ function pathToURL(path: string): URL {
 class App {
   window: electron.BrowserWindow | null = null
   server: server.Server | null = null
-  args: config.Args = config.CONFIG
+  webOptions: Partial<WebOptionsRecord> = {}
   projectManagerHost: string | null = null
   projectManagerPort: number | null = null
   isQuitting = false
@@ -81,11 +81,12 @@ class App {
       }
     })
 
-    const { windowSize, fileToOpen, urlToOpen } = this.processArguments()
-    if (this.args.options.version.value) {
-      await this.printVersion()
+    const { args, fileToOpen, urlToOpen } = this.processArguments()
+    console.log('Parsed args: ', args)
+    if (args.version) {
+      await this.printVersion(args)
       electron.app.quit()
-    } else if (this.args.groups.debug.options.info.value) {
+    } else if (args.debug.info) {
       await electron.app.whenReady().then(async () => {
         await debug.printInfo()
         electron.app.quit()
@@ -142,7 +143,7 @@ class App {
               ),
             )
 
-            await this.main(windowSize)
+            await this.main(args)
           },
           (error) => {
             console.error('Failed to initialize Electron.', error)
@@ -193,7 +194,7 @@ class App {
     // the argument) or URL, it means that effectively we don't have any non-standard arguments.
     // We just need to let caller know that we are opening a file.
     const argsToParse = fileToOpen != null || urlToOpen != null ? [] : args
-    return { ...configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
+    return { args: configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
   }
 
   /**
@@ -209,7 +210,7 @@ class App {
     // application is ready.
     if (!electron.app.isReady()) {
       console.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
-      this.args.groups.startup.options.project.value = projectUrl.toString()
+      this.webOptions['startup.project'] = projectUrl.toString()
     } else {
       console.error(
         "Cannot set the project to open on startup to '" +
@@ -251,18 +252,18 @@ class App {
   }
 
   /** Main app entry point. */
-  async main(windowSize: config.WindowSize) {
+  async main(args: ParsedArgs) {
     // We catch all errors here. Otherwise, it might be possible that the app will run partially
     // and enter a "zombie mode", where user is not aware of the app still running.
     try {
       console.log('Starting the application')
       // Note that we want to do all the actions synchronously, so when the window
       // appears, it serves the website immediately.
-      await this.startContentServerIfEnabled()
-      await this.startBackendIfEnabled()
-      await this.createWindowIfEnabled(windowSize)
+      await this.startContentServerIfEnabled(args)
+      await this.startBackendIfEnabled(args)
+      await this.createWindowIfEnabled(args)
       this.initIpc()
-      await this.loadWindowContent()
+      await this.loadWindowContent(args)
       /**
        * The non-null assertion on the following line is safe because the window
        * initialization is guarded by the `createWindowIfEnabled` method. The window is
@@ -277,17 +278,15 @@ class App {
   }
 
   /** Run the provided function if the provided option was enabled. Log a message otherwise. */
-  async runIfEnabled(option: contentConfig.Option<boolean>, fn: () => Promise<void> | void) {
-    if (option.value) {
+  async runIfEnabled(option: boolean, fn: () => Promise<void> | void) {
+    if (option) {
       await fn()
-    } else {
-      console.log(`The app is configured not to use ${option.name}.`)
     }
   }
 
   /** Start the backend processes. */
-  async startBackendIfEnabled() {
-    await this.runIfEnabled(this.args.options.engine, async () => {
+  async startBackendIfEnabled(args: ParsedArgs) {
+    await this.runIfEnabled(args.engineEnabled, async () => {
       // The first return value is the original string, which is not needed.
       // These all cannot be null as the format is known at runtime.
       const [, projectManagerHost, projectManagerPort] =
@@ -297,36 +296,31 @@ class App {
         port: parseInt(projectManagerPort!),
       })
       const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
-      this.args.groups.engine.options.projectManagerUrl.value = projectManagerUrl
-      const backendVerboseOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
-      const backendProfileTime =
-        this.args.groups.debug.options.profileTime.value ?
-          ['--profiling-time', String(this.args.groups.debug.options.profileTime.value)]
-        : ['--profiling-time', '120']
+      this.webOptions['engine.projectManagerUrl'] = projectManagerUrl
+      const backendVerboseOpts = args.debug.verbose ? ['-vv'] : []
+      const backendProfileTime = ['--profiling-time', String(args.debug.profileTime)]
       const backendProfileOpts =
-        this.args.groups.debug.options.profile.value ?
-          ['--profiling-path', 'profiling.npss', ...backendProfileTime]
-        : []
-      const backendJvmOpts = this.args.options.jvm.value ? ['--jvm'] : []
+        args.debug.profile ? ['--profiling-path', 'profiling.npss', ...backendProfileTime] : []
+      const backendJvmOpts = args.useJvm ? ['--jvm'] : []
       const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
       const backendEnv = Object.assign({}, process.env, {
         SERVER_HOST: this.projectManagerHost,
         SERVER_PORT: `${this.projectManagerPort}`,
       })
-      projectManager.spawn(this.args, backendOpts, backendEnv)
+      projectManager.spawn(args, backendOpts, backendEnv)
     })
   }
 
   /** Start the content server, which will serve the application content (HTML) to the window. */
-  async startContentServerIfEnabled() {
-    await this.runIfEnabled(this.args.options.server, async () => {
+  async startContentServerIfEnabled(args: ParsedArgs) {
+    await this.runIfEnabled(args.useServer, async () => {
       console.log('Starting the content server.')
       const serverCfg = new server.Config({
         dir: paths.ASSETS_PATH,
-        port: this.args.groups.server.options.port.value,
+        port: args.server.port,
         externalFunctions: {
           runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
-            projectManager.runCommand(this.args, cliArguments, body),
+            projectManager.runCommand(args, cliArguments, body),
         },
       })
       this.server = await server.Server.create(serverCfg)
@@ -335,8 +329,8 @@ class App {
   }
 
   /** Create the Electron window and display it on the screen. */
-  async createWindowIfEnabled(windowSize: config.WindowSize) {
-    await this.runIfEnabled(this.args.options.window, () => {
+  async createWindowIfEnabled(args: ParsedArgs) {
+    await this.runIfEnabled(args.displayWindow, () => {
       console.log('Creating the window.')
       const webPreferences: electron.WebPreferences = {
         preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
@@ -346,8 +340,8 @@ class App {
       }
       const windowPreferences: electron.BrowserWindowConstructorOptions = {
         webPreferences,
-        width: windowSize.width,
-        height: windowSize.height,
+        width: args.window.size.width,
+        height: args.window.size.height,
         frame: true,
         titleBarStyle: 'default',
         ...(process.env.DEV_DARK_BACKGROUND ? { backgroundColor: '#36312c' } : {}),
@@ -385,7 +379,7 @@ class App {
       }
       window.setMenuBarVisibility(false)
 
-      if (this.args.groups.debug.options.devTools.value) {
+      if (args.debug.devTools) {
         window.webContents.openDevTools()
       }
 
@@ -402,14 +396,14 @@ class App {
       )
 
       window.on('close', (event) => {
-        if (!this.isQuitting && !this.args.groups.window.options.closeToQuit.value) {
+        if (!this.isQuitting && !args.window.closeToQuit) {
           event.preventDefault()
           window.hide()
         }
       })
 
       electron.app.on('activate', () => {
-        if (!this.args.groups.window.options.closeToQuit.value) {
+        if (!args.window.closeToQuit) {
           window.show()
         }
       })
@@ -546,22 +540,17 @@ class App {
    * is returned. This might be used to connect this application window to another, existing
    * application server.
    */
-  serverPort(): number {
-    return this.server?.config.port ?? this.args.groups.server.options.port.value
+  serverPort(args: ParsedArgs): number {
+    return this.server?.config.port ?? args.server.port
   }
 
   /** Redirect the web view to `localhost:<port>` to see the served website. */
-  async loadWindowContent() {
+  async loadWindowContent(args: ParsedArgs) {
     if (this.window != null) {
-      const searchParams: Record<string, string> = {}
-      for (const option of this.args.optionsRecursive()) {
-        if (option.value !== option.default && option.passToWebApplication) {
-          searchParams[option.qualifiedName()] = option.value.toString()
-        }
-      }
+      const searchParams = configParser.buildWebAppURLSearchParams(args)
       const address = new URL('https://localhost')
-      address.port = this.serverPort().toString()
-      address.search = new URLSearchParams(searchParams).toString()
+      address.port = this.serverPort(args).toString()
+      address.search = searchParams.toString()
       console.log(`Loading the window address '${address.toString()}'.`)
       if (process.env.ELECTRON_DEV_MODE === 'true') {
         // Vite takes a while to be `import`ed, so the first load almost always fails.
@@ -592,7 +581,7 @@ class App {
   }
 
   /** Print the version of the frontend and the backend. */
-  async printVersion(): Promise<void> {
+  async printVersion(args: ParsedArgs): Promise<void> {
     const indent = '    '
     let maxNameLen = 0
     for (const name in debug.VERSION_INFO) {
@@ -606,7 +595,7 @@ class App {
     }
     process.stdout.write('\n')
     process.stdout.write('Backend:\n')
-    const backend = await projectManager.version(this.args)
+    const backend = await projectManager.version(args)
     if (backend == null) {
       process.stdout.write(`${indent}No backend available.\n`)
     } else {
