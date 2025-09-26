@@ -237,7 +237,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
       // Compression is not used as the build time is huge and file size saving
       // is almost zero.
       target: passedArgs.target ?? 'AppImage',
-      icon: `./assets/icons/png`,
+      icon: `./assets/icons/icon.icns`,
       category: 'Development',
     },
     files: [
