@@ -236,7 +236,12 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("types") @CachedLibrary(limit = "10") TypesLibrary typesLibrary,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     Type selfTpe = typesLibrary.getType(self);
-    Function function = resolveFunction(symbol, selfTpe, methodResolverNode);
+    Function function;
+    if (isAnyEigenType(selfTpe) && self instanceof Type anyType) {
+      function = resolveFunction(symbol, anyType, methodResolverNode);
+    } else {
+      function = resolveFunction(symbol, selfTpe, methodResolverNode);
+    }
     if (function == null) {
       var ctx = EnsoContext.get(this);
       var imported =
