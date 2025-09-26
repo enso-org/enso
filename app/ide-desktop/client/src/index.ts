@@ -20,6 +20,11 @@ import * as portfinder from 'portfinder'
 
 import * as common from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
+import {
+  buildWebAppURLSearchParamsFromArgs,
+  defaultOptions,
+  type Options,
+} from 'enso-common/src/options'
 
 import * as authentication from '@/authentication'
 import * as configParser from '@/configParser'
@@ -37,9 +42,7 @@ import * as urlAssociations from '@/urlAssociations'
 import * as projectManagement from 'project-manager-shim'
 import { toElectronFileFilter, type FileFilter } from './fileBrowser'
 
-import type { ParsedArgs } from '@/configParser'
 import * as download from 'electron-dl'
-import type { WebOptionsRecord } from 'enso-common/src/options'
 import type { DownloadUrlOptions } from './globals'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 
@@ -66,7 +69,7 @@ function pathToURL(path: string): URL {
 class App {
   window: electron.BrowserWindow | null = null
   server: server.Server | null = null
-  webOptions: Partial<WebOptionsRecord> = {}
+  webOptions: Options = defaultOptions()
   projectManagerHost: string | null = null
   projectManagerPort: number | null = null
   isQuitting = false
@@ -214,7 +217,7 @@ class App {
     // application is ready.
     if (!electron.app.isReady()) {
       console.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
-      this.webOptions['startup.project'] = projectUrl.toString()
+      this.webOptions.startup.project = projectUrl.toString()
     } else {
       console.error(
         "Cannot set the project to open on startup to '" +
@@ -256,7 +259,7 @@ class App {
   }
 
   /** Main app entry point. */
-  async main(args: ParsedArgs) {
+  async main(args: Options) {
     // We catch all errors here. Otherwise, it might be possible that the app will run partially
     // and enter a "zombie mode", where user is not aware of the app still running.
     try {
@@ -289,7 +292,7 @@ class App {
   }
 
   /** Start the backend processes. */
-  async startBackendIfEnabled(args: ParsedArgs) {
+  async startBackendIfEnabled(args: Options) {
     await this.runIfEnabled(args.engineEnabled, async () => {
       // The first return value is the original string, which is not needed.
       // These all cannot be null as the format is known at runtime.
@@ -300,7 +303,7 @@ class App {
         port: parseInt(projectManagerPort!),
       })
       const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
-      this.webOptions['engine.projectManagerUrl'] = projectManagerUrl
+      this.webOptions.engine.projectManagerUrl = projectManagerUrl
       const backendVerboseOpts = args.debug.verbose ? ['-vv'] : []
       const backendProfileTime = ['--profiling-time', String(args.debug.profileTime)]
       const backendProfileOpts =
@@ -316,7 +319,7 @@ class App {
   }
 
   /** Start the content server, which will serve the application content (HTML) to the window. */
-  async startContentServerIfEnabled(args: ParsedArgs) {
+  async startContentServerIfEnabled(args: Options) {
     await this.runIfEnabled(args.useServer, async () => {
       console.log('Starting the content server.')
       const serverCfg = new server.Config({
@@ -333,7 +336,7 @@ class App {
   }
 
   /** Create the Electron window and display it on the screen. */
-  async createWindowIfEnabled(args: ParsedArgs) {
+  async createWindowIfEnabled(args: Options) {
     await this.runIfEnabled(args.displayWindow, () => {
       console.log('Creating the window.')
       const webPreferences: electron.WebPreferences = {
@@ -547,14 +550,17 @@ class App {
    * is returned. This might be used to connect this application window to another, existing
    * application server.
    */
-  serverPort(args: ParsedArgs): number {
+  serverPort(args: Options): number {
     return this.server?.config.port ?? args.server.port
   }
 
   /** Redirect the web view to `localhost:<port>` to see the served website. */
-  async loadWindowContent(args: ParsedArgs) {
+  async loadWindowContent(args: Options) {
     if (this.window != null) {
-      const searchParams = configParser.buildWebAppURLSearchParams(args)
+      const searchParams = buildWebAppURLSearchParamsFromArgs({
+        ...this.webOptions,
+        ...args,
+      })
       const address = new URL('https://localhost')
       address.port = this.serverPort(args).toString()
       address.search = searchParams.toString()
@@ -588,7 +594,7 @@ class App {
   }
 
   /** Print the version of the frontend and the backend. */
-  async printVersion(args: ParsedArgs): Promise<void> {
+  async printVersion(args: Options): Promise<void> {
     const indent = '    '
     let maxNameLen = 0
     for (const name in debug.VERSION_INFO) {

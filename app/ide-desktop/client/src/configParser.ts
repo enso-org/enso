@@ -2,11 +2,9 @@
 
 import { Command, InvalidArgumentError } from 'commander'
 import {
-  OptionsSchema,
-  buildWebAppURLSearchParamsFromArgs as _buildWebAppURLSearchParamsFromArgs,
-  collectWebAppOptionsFromArgs as _collectWebAppOptionsFromArgs,
   defaultOptions,
   flattenObject,
+  OptionsSchema,
   unflattenObject,
   type Options,
 } from 'enso-common/src/options'
@@ -83,62 +81,38 @@ const OPTIONS_META: Readonly<Record<string, { flag: string; description: string 
   },
 } as const
 
-// =====================
-// === Types & Utils ===
-// =====================
-
-export type ParsedArgs = Options
-
-// (no-op helper removed)
-
-/** Parse command line arguments. */
 /** Parse command line arguments to validated options. */
-export function parseArgs(argv: readonly string[]): ParsedArgs {
+export function parseArgs(argv: readonly string[]): Options {
   const command = new Command()
 
-  function parseNumber(value: string, _: number): number {
-    const parsed = parseInt(value)
-    if (isNaN(parsed)) {
-      throw new InvalidArgumentError('expected a number')
-    }
-    return parsed
-  }
-
-  // Register options based on defaults and metadata.
-  const defaults = defaultOptions()
-  const flatDefaults = flattenObject(defaults)
+  const options = flattenObject(defaultOptions())
   const optionPathToAttrName = new Map<string, string>()
-  for (const [path, meta] of Object.entries(OPTIONS_META)) {
-    const def = flatDefaults[path]
+  for (const [key, meta] of Object.entries(OPTIONS_META)) {
+    const def = options[key]
+    if (def == null) {
+      throw new Error(`Option ${key} provided in CLI, but not defined in the schema.`)
+    }
     const opt = command.createOption(meta.flag, meta.description)
     if (typeof def === 'number') opt.argParser(parseNumber)
     opt.default(def)
     command.addOption(opt)
-    optionPathToAttrName.set(path, opt.attributeName())
+    optionPathToAttrName.set(key, opt.attributeName())
   }
 
   command.parse(argv, { from: 'user' })
-  const raw = command.opts<Record<string, unknown>>()
+  const raw = command.opts()
 
-  // Materialize values by merging raw opts into defaults via the attribute-name map.
-  const mergedFlat: Record<string, unknown> = { ...flatDefaults }
-  for (const [path, attr] of optionPathToAttrName.entries()) {
-    if (attr in raw) mergedFlat[path] = raw[attr]
+  for (const [key, attr] of optionPathToAttrName.entries()) {
+    if (attr in raw) options[key] = raw[attr]
   }
-  const candidate = unflattenObject<Options>(mergedFlat)
-  return OptionsSchema.parse(candidate)
+  return OptionsSchema.parse(unflattenObject(options))
 }
 
-// ==============================
-// === Web Options (URL sync) ===
-// ==============================
-
-/** Collect non-default pass-to-web options from parsed args. */
-export function collectWebAppOptions(args: ParsedArgs): Record<string, string | number | boolean> {
-  return _collectWebAppOptionsFromArgs(args) as any
-}
-
-/** Build URLSearchParams for non-default pass-to-web options. */
-export function buildWebAppURLSearchParams(args: ParsedArgs): URLSearchParams {
-  return _buildWebAppURLSearchParamsFromArgs(args)
+/** Parse an integer value from input string. */
+function parseNumber(value: string, _: number): number {
+  const parsed = parseInt(value)
+  if (isNaN(parsed)) {
+    throw new InvalidArgumentError('expected a number')
+  }
+  return parsed
 }

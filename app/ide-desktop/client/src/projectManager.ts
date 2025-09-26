@@ -7,8 +7,8 @@ import * as url from 'node:url'
 import * as util from 'node:util'
 
 import * as paths from '@/paths'
+import type { Options } from 'enso-common/src/options'
 import { getProjectRoot } from 'project-manager-shim'
-import type { ParsedArgs } from './configParser'
 
 const execFile = util.promisify(childProcess.execFile)
 
@@ -20,7 +20,7 @@ const execFile = util.promisify(childProcess.execFile)
  * Return the Project Manager path.
  * @throws If the Project Manager path is invalid.
  */
-export function pathOrPanic(args: ParsedArgs): string {
+export function pathOrPanic(args: Options): string {
   const binPath = args.engine.projectManagerPath || paths.PROJECT_MANAGER_PATH
   const binExists = fsSync.existsSync(binPath)
   if (!binExists) {
@@ -31,7 +31,7 @@ export function pathOrPanic(args: ParsedArgs): string {
 }
 
 /** Execute the Project Manager with given arguments. */
-async function exec(args: ParsedArgs, processArgs: string[], env?: NodeJS.ProcessEnv) {
+async function exec(args: Options, processArgs: string[], env?: NodeJS.ProcessEnv) {
   const binPath = pathOrPanic(args)
   return await execFile(binPath, processArgs, { env })
 }
@@ -44,7 +44,7 @@ async function exec(args: ParsedArgs, processArgs: string[], env?: NodeJS.Proces
  * finishes.
  */
 export function spawn(
-  args: ParsedArgs,
+  args: Options,
   processArgs: string[],
   env?: NodeJS.ProcessEnv,
 ): childProcess.ChildProcess {
@@ -66,7 +66,7 @@ export function spawn(
 
 /** Run an arbitrary command and return its output. */
 export function runCommand(
-  args: ParsedArgs,
+  args: Options,
   processArgs: string[],
   body?: NodeJS.ReadableStream,
   env?: NodeJS.ProcessEnv,
@@ -88,7 +88,7 @@ export function runCommand(
 }
 
 /** Get the Project Manager version. */
-export async function version(args: ParsedArgs) {
+export async function version(args: Options) {
   if (args.engine) {
     return await exec(args, ['--version']).then((t) => t.stdout)
   } else {
