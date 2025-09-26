@@ -65,11 +65,7 @@ const style = computed(() => (data.width == null ? {} : { '--panel-width': `${da
 </script>
 
 <template>
-  <div
-    class="RightPanel withBackgroundColor bg-dashboard"
-    data-testid="right-panel"
-    :style="style"
-  >
+  <div class="RightPanel withBackgroundColor bg-dashboard" data-testid="right-panel" :style="style">
     <SizeTransition width :duration="250">
       <div v-if="component != null" class="sizeWrapper">
         <div ref="contentElement" class="content">
