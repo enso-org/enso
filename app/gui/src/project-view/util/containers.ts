@@ -75,6 +75,7 @@ export class MappedKeyMap<Key, Value> {
  * @template T The type of the values.
  */
 export class MappedSet<T extends object> {
+  private readonly valueMapper: (key: T) => any
   /** The inner set that stores the keys. */
   private readonly set: Map<any, T>
 
@@ -84,10 +85,8 @@ export class MappedSet<T extends object> {
    * some sort of hash function or custom to-string converter. The function should return values
    * that are `===`-equal for keys that should be considered equal.
    */
-  constructor(
-    private readonly valueMapper: (key: T) => any,
-    elements: Iterable<T> = [],
-  ) {
+  constructor(valueMapper: (key: T) => any, elements: Iterable<T> = []) {
+    this.valueMapper = valueMapper
     this.set = new Map(iter.map(elements, (elem) => [valueMapper(elem), elem]))
   }
 

@@ -16,6 +16,9 @@ type NotUndefined = {} | null
  * returned by `Map.get(k)` method indicates that the key `k` was not present in the map.
  */
 export class LRUCache<K, V extends NotUndefined> {
+  private readonly minimumCapacity: number
+  private readonly onEvict?: ((value: V, key: K) => void) | undefined
+
   /**
    * A table of at most N recently added values.
    */
@@ -35,11 +38,10 @@ export class LRUCache<K, V extends NotUndefined> {
    *
    * Note: `minimumCapacity` must be greater than 0.
    */
-  constructor(
-    private readonly minimumCapacity: number,
-    private readonly onEvict?: (value: V, key: K) => void,
-  ) {
+  constructor(minimumCapacity: number, onEvict?: (value: V, key: K) => void) {
     assert(minimumCapacity > 0)
+    this.minimumCapacity = minimumCapacity
+    this.onEvict = onEvict
     this.recentGeneration = new Map()
     this.oldGeneration = new Map()
   }

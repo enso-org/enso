@@ -125,6 +125,9 @@ const SyncStatus = {
  */
 export class ExecutionContext extends ObservableV2<ExecutionContextNotification> {
   readonly id: ContextId = crypto.randomUUID() as ContextId
+  private lsRpc: LanguageServer
+  private abort: AbortScope
+  private readonly projectNames: ProjectNameStore
   private queue: AsyncQueue<ExecutionContextState>
   private syncStatus: SyncStatus = SyncStatus.NOT_SYNCED
   private clearScheduled = false
@@ -134,12 +137,15 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
 
   /** TODO: Add docs */
   constructor(
-    private lsRpc: LanguageServer,
+    lsRpc: LanguageServer,
     entryPoint: EntryPoint,
-    private abort: AbortScope,
-    private readonly projectNames: ProjectNameStore,
+    abort: AbortScope,
+    projectNames: ProjectNameStore,
   ) {
     super()
+    this.lsRpc = lsRpc
+    this.abort = abort
+    this.projectNames = projectNames
     this.abort.handleDispose(this)
     this.lsRpc.retain()
     this.queue = new AsyncQueue<ExecutionContextState>(Promise.resolve({ status: 'not-created' }))

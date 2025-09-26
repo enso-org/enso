@@ -31,14 +31,14 @@ export interface ScrollStatePluginOptions {
 
 /** {@link PersistableStatePlugin} for editor scroll position. */
 class ScrollStatePlugin implements PluginValue, PersistableStatePlugin<ScrollState> {
+  private readonly view: EditorView
   private readonly scrollEffectRef: ShallowRef<undefined> = shallowRef()
   private restoringScroll: boolean = false
   private readonly x: boolean
   private readonly y: boolean
-  constructor(
-    private readonly view: EditorView,
-    { x, y }: ScrollStatePluginOptions,
-  ) {
+
+  constructor(view: EditorView, { x, y }: ScrollStatePluginOptions) {
+    this.view = view
     this.x = x
     this.y = y
   }

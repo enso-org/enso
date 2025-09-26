@@ -15,6 +15,8 @@ import type { Range } from 'ydoc-shared/util/data/range'
 /** Maintains a set of decorations based on the tree, lazily-constructed for the visible range of the document. */
 export class TreeViewDecorator implements PluginValue {
   decorations: DecorationSet
+  private readonly nodeDecorators: readonly NodeStateDecorator[]
+  private readonly isInvalidatedBy: (update: ViewUpdate) => boolean
 
   /** Constructor. */
   constructor(
@@ -24,10 +26,12 @@ export class TreeViewDecorator implements PluginValue {
      * the height of the document, or scrolling issues would result, because decorations are lazily computed based on
      * the current viewport.
      */
-    private readonly nodeDecorators: NodeStateDecorator[],
-    private readonly isInvalidatedBy: (update: ViewUpdate) => boolean,
+    nodeDecorators: readonly NodeStateDecorator[],
+    isInvalidatedBy: (update: ViewUpdate) => boolean,
   ) {
     this.decorations = this.buildDeco(syntaxTree(view.state), view)
+    this.nodeDecorators = nodeDecorators
+    this.isInvalidatedBy = isInvalidatedBy
   }
 
   /** Applies the view update to the decoration set. */

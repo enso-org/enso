@@ -120,11 +120,11 @@ export function visitBlocks(range: Range, tree: Tree, visit: (node: SyntaxNodeRe
   new BlockVisitor(range, visit).visit(tree)
 }
 class BlockVisitor extends ExclusiveTreeVisitor {
-  constructor(
-    range: Range,
-    private emit: (node: SyntaxNodeRef) => void,
-  ) {
+  private emit: (node: SyntaxNodeRef) => void
+
+  constructor(range: Range, emit: (node: SyntaxNodeRef) => void) {
     super(range)
+    this.emit = emit
   }
 
   enter(node: SyntaxNodeRef): boolean {
@@ -241,13 +241,13 @@ export function getUnformattableAncestor(pos: number, tree: Tree): Range {
 
 class AnalyzeContainedDelimiters extends ContainedNodeVisitor {
   private ancestorIsNodeType: number = 0
+  private readonly nodeType: FormatNode
+  private readonly emit: (range: Range) => void
 
-  constructor(
-    range: Range,
-    private readonly nodeType: FormatNode,
-    private readonly emit: (range: Range) => void,
-  ) {
+  constructor(range: Range, nodeType: FormatNode, emit: (range: Range) => void) {
     super(range)
+    this.nodeType = nodeType
+    this.emit = emit
   }
 
   enter(node: SyntaxNodeRef) {
@@ -336,14 +336,20 @@ class RangeSplitter extends ExclusiveTreeVisitor {
    * block node.
    */
   private currentRange: Range | undefined = undefined
+  private readonly tree: Tree
+  private readonly emit: (range: NormalizedRange) => void
+  private readonly trimRange: (range: Range) => Range
 
   constructor(
     range: TrimmedRange,
-    private readonly tree: Tree,
-    private readonly emit: (range: NormalizedRange) => void,
-    private readonly trimRange: (range: Range) => Range,
+    tree: Tree,
+    emit: (range: NormalizedRange) => void,
+    trimRange: (range: Range) => Range,
   ) {
     super(range)
+    this.tree = tree
+    this.emit = emit
+    this.trimRange = trimRange
   }
 
   enter(node: SyntaxNodeRef): boolean {
@@ -607,13 +613,13 @@ class AnalyzeRemoval extends AnalyzeSplits {
   readonly contractAtFrom: { name: string; delimiter: Range }[] = []
   readonly contractAtTo: { name: string; delimiter: Range }[] = []
   private insideNodeType = false
+  private readonly extended: Range
+  private readonly nodeType: string
 
-  constructor(
-    range: NormalizedRange,
-    private readonly extended: Range,
-    private readonly nodeType: string,
-  ) {
+  constructor(range: NormalizedRange, extended: Range, nodeType: string) {
     super(range)
+    this.extended = extended
+    this.nodeType = nodeType
   }
 
   override enter(node: SyntaxNodeRef) {

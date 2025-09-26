@@ -23,11 +23,15 @@ export const ApplicationKind = {
 } as const
 
 class ArgumentFactory {
-  constructor(
-    private callId: AstId,
-    private kind: ApplicationKind,
-    private widgetCfg: widgetCfg.FunctionCall | undefined,
-  ) {}
+  private callId: AstId
+  private kind: ApplicationKind
+  private widgetCfg: widgetCfg.FunctionCall | undefined
+
+  constructor(callId: AstId, kind: ApplicationKind, widgetCfg: widgetCfg.FunctionCall | undefined) {
+    this.callId = callId
+    this.kind = kind
+    this.widgetCfg = widgetCfg
+  }
 
   placeholder(index: number, info: SuggestionEntryArgument, insertAsNamed: boolean) {
     return new ArgumentPlaceholder(

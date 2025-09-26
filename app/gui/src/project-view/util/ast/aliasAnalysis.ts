@@ -22,6 +22,8 @@ const LAMBDA_OPERATOR = '->'
 const LOGGING_ENABLED = false
 
 class Scope {
+  range: SourceRange | undefined
+  parent: Scope | undefined
   /** The variables defined in this scope. */
   bindings: Map<string, RawAst.Token> = new Map()
 
@@ -31,10 +33,10 @@ class Scope {
    * @param range The range of the code that is covered by this scope.
    * @param parent The parent scope.
    */
-  constructor(
-    public range?: SourceRange,
-    public parent?: Scope,
-  ) {}
+  constructor(range?: SourceRange, parent?: Scope) {
+    this.range = range
+    this.parent = parent
+  }
 
   /**
    * Resolve the given identifier to a token that defines it.
@@ -80,6 +82,8 @@ export function identifierKind(token: RawAst.Token.Ident): IdentifierType {
 
 /** TODO: Add docs */
 export class AliasAnalyzer {
+  private readonly code: string
+
   /** All symbols that are not yet resolved (i.e. that were not bound in the analyzed tree). */
   readonly unresolvedSymbols = new MappedSet<SourceRange>(sourceRangeKey)
 
@@ -101,10 +105,8 @@ export class AliasAnalyzer {
    * @param code text representation of the code.
    * @param ast AST representation of the code. If not provided, it will be parsed from the text.
    */
-  constructor(
-    private readonly code: string,
-    ast?: RawAst.Tree,
-  ) {
+  constructor(code: string, ast?: RawAst.Tree) {
+    this.code = code
     this.ast = ast ?? rawParseModule(code)
     this.rootScope = new Scope(parsedTreeOrTokenRange(this.ast))
     this.scopes = new NonEmptyStack(this.rootScope)

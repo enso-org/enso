@@ -193,17 +193,22 @@ function run(cmd: string, args: string[], cwd?: string) {
 class ArchiveToSign implements Signable {
   /** Looks up for archives to sign using the given path patterns. */
   static lookupMany = lookupManyHelper(ArchiveToSign.lookup.bind(this))
+  path: string
+  binaries: readonly glob.Pattern[]
 
   /** Create a new instance. */
   constructor(
     /** An absolute path to the archive. */
-    public path: string,
+    path: string,
     /**
      * A list of patterns for files to sign inside the archive.
      * Relative to the root of the archive.
      */
-    public binaries: glob.Pattern[],
-  ) {}
+    binaries: readonly glob.Pattern[],
+  ) {
+    this.path = path
+    this.binaries = binaries
+  }
 
   /** Looks up for archives to sign using the given path pattern. */
   static async lookup(base: string, [pattern, binaries]: ArchivePattern) {
@@ -272,11 +277,13 @@ class BinaryToSign implements Signable {
   /** Looks up for binaries to sign using the given path patterns. */
   static lookupMany = lookupManyHelper(BinaryToSign.lookup)
 
+  /** An absolute path to the binary. */
+  path: string
+
   /** Create a new instance. */
-  constructor(
-    /** An absolute path to the binary. */
-    public path: string,
-  ) {}
+  constructor(path: string) {
+    this.path = path
+  }
 
   /** Sign this binary. */
   async sign({ entitlements, identity }: SigningContext) {
@@ -336,9 +343,9 @@ function lookupHelper<R extends Signable>(mapper: (path: string) => R) {
 
 /** Generate a lookup function for a given Signable type. */
 function lookupManyHelper<T, R extends Signable>(
-  lookup: (base: string, pattern: T) => Promise<R[]>,
+  lookup: (base: string, pattern: T) => Promise<readonly R[]>,
 ) {
-  return async function (base: string, patterns: T[]) {
+  return async function (base: string, patterns: readonly T[]) {
     const results = await Promise.all(
       patterns.map(async (pattern) => {
         const ret = await lookup(base, pattern)

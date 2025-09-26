@@ -21,6 +21,10 @@ import { computed, toValue, type ComputedRef, type Ref, type VNode } from 'vue'
  * The most basic dropdown item. When you click on it, the expression is inserted.
  */
 export class ExpressionTag {
+  readonly expression: string
+  readonly explicitLabel?: Opt<string> | undefined
+  private explicitIcon?: Opt<Icon> | undefined
+  readonly requiredImports?: readonly RequiredImport[] | undefined
   private cachedExpressionAst: Ast.Expression | undefined
 
   /**
@@ -30,11 +34,16 @@ export class ExpressionTag {
    * @param requiredImports - The imports required by the expression, will be added to the code when the item is clicked.
    */
   constructor(
-    readonly expression: string,
-    readonly explicitLabel?: Opt<string>,
-    private explicitIcon?: Opt<Icon>,
-    readonly requiredImports?: RequiredImport[],
-  ) {}
+    expression: string,
+    explicitLabel?: Opt<string>,
+    explicitIcon?: Opt<Icon>,
+    requiredImports?: readonly RequiredImport[],
+  ) {
+    this.expression = expression
+    this.explicitLabel = explicitLabel
+    this.explicitIcon = explicitIcon
+    this.requiredImports = requiredImports
+  }
 
   /**
    * Create a new {@link ExpressionTag} from qualified path to a suggestion entry.
@@ -150,21 +159,18 @@ export class ExpressionTag {
   }
 }
 
-/**
- * A dropdown item that contains a list of other dropdown items.
- */
+/** A dropdown item that contains a list of other dropdown items. */
 export class NestedChoiceTag {
-  /**
-   * Create a new {@link NestedChoiceTag}.
-   */
-  constructor(
-    private internalLabel: string,
-    readonly choices: (ExpressionTag | NestedChoiceTag)[],
-  ) {}
+  private internalLabel: string
+  readonly choices: readonly (ExpressionTag | NestedChoiceTag)[]
 
-  /**
-   * Get the label for this tag.
-   */
+  /** Create a new {@link NestedChoiceTag}. */
+  constructor(internalLabel: string, choices: (ExpressionTag | NestedChoiceTag)[]) {
+    this.internalLabel = internalLabel
+    this.choices = choices
+  }
+
+  /** Get the label for this tag. */
   get label(): string {
     return this.internalLabel + ' →'
   }

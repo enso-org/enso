@@ -107,19 +107,25 @@ abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
 
 class FunctionSuggestionEntryImpl extends BaseSuggestionEntry implements FunctionSuggestionEntry {
   readonly kind = 'Function'
+  readonly name: IdentifierOrOperatorIdentifier
+  scope: lsTypes.SuggestionEntryScope | undefined
   arguments: lsTypes.SuggestionEntryArgument[]
+  private lsReturnType: Typename
 
   private constructor(
-    readonly name: IdentifierOrOperatorIdentifier,
-    public scope: lsTypes.SuggestionEntryScope | undefined,
+    name: IdentifierOrOperatorIdentifier,
+    scope: lsTypes.SuggestionEntryScope | undefined,
     args: lsTypes.SuggestionEntryArgument[],
     definedIn: ProjectPath,
-    private lsReturnType: Typename,
+    lsReturnType: Typename,
     documentation: string | undefined,
     context: UpdateContext,
   ) {
     super(documentation, definedIn, context)
+    this.name = name
+    this.scope = scope
     this.arguments = args
+    this.lsReturnType = lsReturnType
   }
 
   returnType() {
@@ -319,22 +325,34 @@ class ConstructorSuggestionEntryImpl
 
 class MethodSuggestionEntryImpl extends BaseSuggestionEntry implements MethodSuggestionEntry {
   readonly kind = 'Method'
+  readonly name: IdentifierOrOperatorIdentifier
+  reexportedIn: ProjectPath | undefined
+  annotations: string[]
+  memberOf: ProjectPath
   arguments: lsTypes.SuggestionEntryArgument[]
+  private readonly isStatic: boolean
+  private lsReturnType: Typename
 
   private constructor(
-    readonly name: IdentifierOrOperatorIdentifier,
+    name: IdentifierOrOperatorIdentifier,
     args: lsTypes.SuggestionEntryArgument[],
-    public reexportedIn: ProjectPath | undefined,
-    public annotations: string[],
-    private readonly isStatic: boolean,
-    public memberOf: ProjectPath,
+    reexportedIn: ProjectPath | undefined,
+    annotations: string[],
+    isStatic: boolean,
+    memberOf: ProjectPath,
     definedIn: ProjectPath,
-    private lsReturnType: Typename,
+    lsReturnType: Typename,
     documentation: string | undefined,
     context: UpdateContext,
   ) {
     super(documentation, definedIn, context)
+    this.name = name
     this.arguments = args
+    this.reexportedIn = reexportedIn
+    this.annotations = annotations
+    this.isStatic = isStatic
+    this.memberOf = memberOf
+    this.lsReturnType = lsReturnType
   }
 
   returnType() {
@@ -389,16 +407,22 @@ class MethodSuggestionEntryImpl extends BaseSuggestionEntry implements MethodSug
 
 class LocalSuggestionEntryImpl extends BaseSuggestionEntry implements LocalSuggestionEntry {
   readonly kind = 'Local'
+  readonly name: IdentifierOrOperatorIdentifier
+  scope: lsTypes.SuggestionEntryScope | undefined
+  private lsReturnType: Typename
 
   private constructor(
-    readonly name: IdentifierOrOperatorIdentifier,
-    public scope: lsTypes.SuggestionEntryScope | undefined,
+    name: IdentifierOrOperatorIdentifier,
+    scope: lsTypes.SuggestionEntryScope | undefined,
     definedIn: ProjectPath,
-    private lsReturnType: Typename,
+    lsReturnType: Typename,
     documentation: string | undefined,
     context: UpdateContext,
   ) {
     super(documentation, definedIn, context)
+    this.name = name
+    this.scope = scope
+    this.lsReturnType = lsReturnType
   }
 
   returnType() {
@@ -536,11 +560,14 @@ function modifyArgument(
 
 /** Interprets language server messages to create and update suggestion database entries. */
 export class SuggestionUpdateProcessor {
+  groups: ToValue<DeepReadonly<GroupInfo[]>>
+  projectNames: ProjectNameStore
+
   /** Constructor. */
-  constructor(
-    private readonly groups: ToValue<DeepReadonly<GroupInfo[]>>,
-    private readonly projectNames: ProjectNameStore,
-  ) {}
+  constructor(groups: ToValue<DeepReadonly<GroupInfo[]>>, projectNames: ProjectNameStore) {
+    this.groups = groups
+    this.projectNames = projectNames
+  }
 
   /** Create a suggestion DB entry from data provided by the given language server. */
   entryFromLs(lsEntry: lsTypes.SuggestionEntry): Result<SuggestionEntry> {

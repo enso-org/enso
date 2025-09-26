@@ -256,12 +256,19 @@ export interface ISessionProvider {
  * The caller can then handle them via pattern matching on the {@link results.Result} type.
  */
 export class Cognito implements ISessionProvider {
+  private readonly logger: loggerProvider.Logger
+  private readonly supportsDeepLinks: boolean
+  private readonly amplifyConfig: service.AmplifyConfig
+
   /** Create a new Cognito wrapper. */
   constructor(
-    private readonly logger: loggerProvider.Logger,
-    private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: service.AmplifyConfig,
+    logger: loggerProvider.Logger,
+    supportsDeepLinks: boolean,
+    amplifyConfig: service.AmplifyConfig,
   ) {
+    this.logger = logger
+    this.supportsDeepLinks = supportsDeepLinks
+    this.amplifyConfig = amplifyConfig
     /**
      * Amplify expects `Auth.configure` to be called before any other `Auth` methods are
      * called. By wrapping all the `Auth` methods we care about and returning an `Cognito` API

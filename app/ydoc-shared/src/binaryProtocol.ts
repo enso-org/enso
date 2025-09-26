@@ -217,7 +217,13 @@ const TEXT_DECODER = new TextDecoder()
 export const Null = 0 as Offset<never>
 
 declare const offsetType: unique symbol
-type OffsetConstraint = Table | number | string | Uint8Array | ArrayBuffer | OffsetConstraint[]
+type OffsetConstraint =
+  | Table
+  | number
+  | string
+  | Uint8Array
+  | ArrayBuffer
+  | readonly OffsetConstraint[]
 export type Offset<T extends OffsetConstraint> = number & {
   [offsetType]: T
 }
@@ -666,7 +672,9 @@ export class Builder {
   }
 
   /** Add a string to this buffer. */
-  createString(s: string | Uint8Array | ArrayBuffer | null | undefined): Offset<Uint8Array> {
+  createString(
+    s: string | Uint8Array | ArrayBuffer | null | undefined,
+  ): Offset<Uint8Array<ArrayBuffer>> {
     if (s === null || s === undefined) return Null
     let utf8: string | Uint8Array | number[]
     if (s instanceof Uint8Array) {
@@ -1636,15 +1644,18 @@ export class Path implements Table {
   }
 
   /** TODO: Add docs */
-  static addSegments(builder: Builder, segmentsOffset: Offset<string[] | ArrayBuffer[]>) {
+  static addSegments(
+    builder: Builder,
+    segmentsOffset: Offset<readonly string[] | readonly ArrayBuffer[]>,
+  ) {
     builder.addFieldOffset(1, segmentsOffset, Null)
   }
 
   /** TODO: Add docs */
   static createSegmentsVector(
     builder: Builder,
-    data: Offset<string>[] | Offset<ArrayBuffer>[],
-  ): Offset<string[] | ArrayBuffer[]> {
+    data: readonly Offset<string>[] | readonly Offset<ArrayBuffer | Uint8Array>[],
+  ): Offset<readonly string[] | readonly ArrayBuffer[]> {
     builder.startVector(4, data.length, 4)
     // An iterator is more type-safe, but less performant.
     for (let i = data.length - 1; i >= 0; i -= 1) {
@@ -1668,7 +1679,7 @@ export class Path implements Table {
   static createPath(
     builder: Builder,
     createRootId: CreateOffset<EnsoUUID>,
-    segmentsOffset: Offset<string[] | ArrayBuffer[]>,
+    segmentsOffset: Offset<readonly string[] | readonly ArrayBuffer[]>,
   ): Offset<Path> {
     Path.startPath(builder)
     Path.addRootId(builder, createRootId?.(builder) ?? Null)

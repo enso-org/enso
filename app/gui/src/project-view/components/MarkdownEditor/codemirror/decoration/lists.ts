@@ -22,13 +22,15 @@ export function listDecoratorExt() {
 type ListStackEntry = { type: 'BulletList' } | { type: 'OrderedList'; nextValue?: number }
 
 class ListHierarchyVisitor {
+  private readonly doc: Text
+  private readonly emit: (from: number, to: number, value: Decoration) => void
   private readonly listStack: ListStackEntry[] = []
   private oddBulletDepth: boolean = true
 
-  constructor(
-    private readonly doc: Text,
-    private readonly emit: (from: number, to: number, value: Decoration) => void,
-  ) {}
+  constructor(doc: Text, emit: (from: number, to: number, value: Decoration) => void) {
+    this.doc = doc
+    this.emit = emit
+  }
 
   private updateDepth(node: SyntaxNodeRef, enterOrLeave: 'enter' | 'leave') {
     if (node.name === 'BulletList' || node.name === 'OrderedList') {

@@ -83,15 +83,19 @@ function containsInclusive(range: { from: number; to: number }, pos: number) {
 }
 
 class LinkMarker implements LayerMarker {
+  private readonly element: HTMLElement
+  private readonly href: string
+  private readonly vueHost: VueHost
+  private readonly popOut: boolean
   private container: HTMLElement | undefined = undefined
   private vueHostRegistration: { unregister: () => void } | undefined = undefined
 
-  constructor(
-    private readonly element: HTMLElement,
-    private readonly href: string,
-    private readonly vueHost: VueHost,
-    private readonly popOut: boolean,
-  ) {}
+  constructor(element: HTMLElement, href: string, vueHost: VueHost, popOut: boolean) {
+    this.element = element
+    this.href = href
+    this.vueHost = vueHost
+    this.popOut = popOut
+  }
 
   eq(other: LayerMarker) {
     return (

@@ -30,6 +30,8 @@ export interface HttpClientRequestOptions<Method extends HttpMethod> {
 
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
 export class HttpClient {
+  defaultHeaders: Record<string, string> = {}
+
   /** Create a new HTTP client with the specified headers to be sent on every request. */
   constructor(
     /**
@@ -38,8 +40,10 @@ export class HttpClient {
      * This is useful for setting headers that are required for every request, like
      * authentication tokens.
      */
-    public defaultHeaders: Record<string, string> = {},
-  ) {}
+    defaultHeaders: Record<string, string> = {},
+  ) {
+    this.defaultHeaders = defaultHeaders
+  }
 
   /** Send an HTTP GET request to the specified URL. */
   get<T = void>(url: string, abort?: AbortSignal) {

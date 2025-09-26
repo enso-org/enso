@@ -28,6 +28,7 @@ interface EditorPersistencePluginOptions {
  * {@link PersistableStatePlugin}s (such as {@link scrollStatePlugin}) present in the view.
  */
 class EditorPersistencePluginValue implements PluginValue {
+  private readonly view: EditorView
   private readonly documentViewId: ToValue<Opt<string>>
   /**
    * This will be changed to `true` when the `isConnected` state is first observed and the
@@ -45,10 +46,7 @@ class EditorPersistencePluginValue implements PluginValue {
    * becomes ready.
    */
   private deferredUpdate: (() => void) | undefined = undefined
-  constructor(
-    private readonly view: EditorView,
-    { documentViewId }: EditorPersistencePluginOptions,
-  ) {
+  constructor(view: EditorView, { documentViewId }: EditorPersistencePluginOptions) {
     useSyncLocalStorage({
       storageKey: 'textEditor',
       mapKeyEncoder: (enc) =>
@@ -58,6 +56,7 @@ class EditorPersistencePluginValue implements PluginValue {
       restoreState: this.restoreState.bind(this),
     })
 
+    this.view = view
     this.documentViewId = documentViewId
   }
 

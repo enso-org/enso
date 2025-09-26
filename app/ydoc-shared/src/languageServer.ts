@@ -140,6 +140,8 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
    * field becomes again an unresolved promise until reconnected and reinitialized.
    */
   initialized: Promise<LsRpcResult<response.InitProtocolConnection>>
+  private clientID: Uuid
+  private transport: ReconnectingWebSocketTransport
   private clientScope: AbortScope = new AbortScope()
   private initializationScheduled = false
   private shouldReconnect = true
@@ -147,11 +149,10 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   debug = false
 
   /** Create a {@link LanguageServer}. */
-  constructor(
-    private clientID: Uuid,
-    private transport: ReconnectingWebSocketTransport,
-  ) {
+  constructor(clientID: Uuid, transport: ReconnectingWebSocketTransport) {
     super()
+    this.clientID = clientID
+    this.transport = transport
     this.initialized = this.scheduleInitializationAfterConnect()
     const requestManager = new RequestManager([transport])
     this.client = new Client(requestManager)

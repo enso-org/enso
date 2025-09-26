@@ -11,11 +11,15 @@ interface MatchResult<T> {
 
 /** TODO: Add docs */
 export class Prefixes<T extends Record<keyof T, Pattern>> {
+  prefixes: T
+
   /** TODO: Add docs */
   constructor(
     /** Note that these are checked in order of definition. */
-    public prefixes: T,
-  ) {}
+    prefixes: T,
+  ) {
+    this.prefixes = prefixes
+  }
 
   /** Note that these are checked in order of definition. */
   static FromLines<T>(lines: Record<keyof T, string>) {

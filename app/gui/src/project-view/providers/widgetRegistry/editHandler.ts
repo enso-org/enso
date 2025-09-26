@@ -18,16 +18,19 @@ export function newWidgetInstanceId(): WidgetInstanceId {
 
 /** TODO: Add docs */
 export abstract class WidgetEditHandlerParent {
+  private readonly parent: WidgetEditHandlerParent | undefined
+  private readonly hooks: Partial<WidgetEditHooks>
   private readonly activeChild: ShallowRef<WidgetEditHandlerParent | undefined> =
     shallowRef(undefined)
   private readonly active = computed(() => this.parent?.activeChild.value === this)
   private resumableDescendants: ResumableWidgetEdits | undefined = undefined
 
   protected constructor(
-    private readonly parent: WidgetEditHandlerParent | undefined,
-    private readonly hooks: Partial<WidgetEditHooks> = {},
+    parent: WidgetEditHandlerParent | undefined,
+    hooks: Partial<WidgetEditHooks> = {},
   ) {
-    markRaw(this)
+    this.parent = parent
+    this.hooks = hooks
   }
 
   protected onStart(origin: PortId) {
@@ -132,17 +135,18 @@ export abstract class WidgetEditHandlerParent {
     return false
   }
 }
+markRaw(WidgetEditHandlerParent.prototype)
 
 type ResumeCallback = () => void
 type ResumableWidgetEdits = Map<WidgetInstanceId, ResumeCallback | undefined>
 
 /** TODO: Add docs */
 export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements Interaction {
+  private readonly currentEditCtx: CurrentEdit | undefined
+  private readonly interactionHandler: InteractionHandler
+
   /** TODO: Add docs */
-  constructor(
-    private readonly currentEditCtx: CurrentEdit | undefined,
-    private readonly interactionHandler: InteractionHandler,
-  ) {
+  constructor(currentEditCtx: CurrentEdit | undefined, interactionHandler: InteractionHandler) {
     super(undefined, {
       start: () => {
         this.interactionHandler.setCurrent(this)
@@ -152,6 +156,8 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
       cancel: () => this.interactionHandler.ended(this),
       childEnded: () => {},
     })
+    this.currentEditCtx = currentEditCtx
+    this.interactionHandler = interactionHandler
   }
 
   /** TODO: Add docs */

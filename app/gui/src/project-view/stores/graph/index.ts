@@ -87,16 +87,25 @@ export interface NodeEditInfo {
  * This information is then used to display edges and handle connect/disconnect operations.
  */
 export class PortViewInstance {
+  rect: ShallowRef<Rect | undefined>
+  expectedType: Ref<Typename | undefined>
+  nodeId: NodeId
+  onUpdate: (update: WidgetUpdate) => void
+
   /** Constructor making the object non-reactive (only the rect and type are reactive field). */
   constructor(
-    public rect: ShallowRef<Rect | undefined>,
-    public expectedType: Ref<Typename | undefined>,
-    public nodeId: NodeId,
-    public onUpdate: (update: WidgetUpdate) => void,
+    rect: ShallowRef<Rect | undefined>,
+    expectedType: Ref<Typename | undefined>,
+    nodeId: NodeId,
+    onUpdate: (update: WidgetUpdate) => void,
   ) {
-    markRaw(this)
+    this.rect = rect
+    this.expectedType = expectedType
+    this.nodeId = nodeId
+    this.onUpdate = onUpdate
   }
 }
+markRaw(PortViewInstance.prototype)
 
 function useAssociatedFlag<K extends string>({
   onCleanup,
@@ -357,7 +366,7 @@ export function createGraphStore(
   /* Try adding imports. Does nothing if conflict is detected, and returns `DectedConflict` in such case. */
   function addMissingImports(
     edit: MutableModule,
-    newImports: RequiredImport[],
+    newImports: readonly RequiredImport[],
   ): DetectedConflict[] | undefined {
     if (!moduleRoot.value) {
       console.error(`BUG: Cannot add required imports: No BodyBlock module root.`)

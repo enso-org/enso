@@ -65,12 +65,14 @@ export interface CreateProject {
 /** Service for managing Enso projects. */
 export class ProjectService {
   private static readonly DEFAULT_NAMESPACE = 'local'
+  private readonly runner: Runner
+  private readonly logger: Console
 
   /** Creates a new ProjectService with the specified runner. */
-  constructor(
-    private readonly runner: Runner,
-    private readonly logger: Console = console,
-  ) {}
+  constructor(runner: Runner, logger: Console = console) {
+    this.runner = runner
+    this.logger = logger
+  }
 
   /** Creates a default ProjectService using the Enso executable found in the environment. */
   static default(): ProjectService {

@@ -59,14 +59,16 @@ let mockEmail = localStorage.getItem(MOCK_EMAIL_KEY)
  * The caller can then handle them via pattern matching on the {@link results.Result} type.
  */
 export class Cognito {
+  private readonly logger: null
+  private readonly supportsDeepLinks: boolean
+  private readonly amplifyConfig: null
   isSignedIn = false
 
   /** Create a new Cognito wrapper. */
-  constructor(
-    private readonly logger: null,
-    private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: null,
-  ) {
+  constructor(logger: null, supportsDeepLinks: boolean, amplifyConfig: null) {
+    this.logger = logger
+    this.supportsDeepLinks = supportsDeepLinks
+    this.amplifyConfig = amplifyConfig
     const username = localStorage.getItem(MOCK_EMAIL_KEY)
     if (username != null) {
       this.isSignedIn = true

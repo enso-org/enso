@@ -51,6 +51,8 @@ export class MockWebSocket extends EventTarget implements WebSocket {
   readonly OPEN = WebSocket.OPEN
   readonly CLOSING = WebSocket.CLOSING
   readonly CLOSED = WebSocket.CLOSED
+  url: string
+  name: string
   readyState: number = WebSocket.OPEN
   binaryType: BinaryType = 'blob'
   readonly bufferedAmount = 0
@@ -67,11 +69,10 @@ export class MockWebSocket extends EventTarget implements WebSocket {
   }
 
   /** TODO: Add docs */
-  constructor(
-    public url: string,
-    public name: string,
-  ) {
+  constructor(url: string, name: string) {
     super()
+    this.url = url
+    this.name = name
     this.addEventListener('open', (ev) => this.onopen?.(ev))
     this.addEventListener('close', (ev) => this.onclose?.(ev as CloseEvent))
     // deepcode ignore InsufficientPostmessageValidation: This is not a `postMessage`.

@@ -270,20 +270,24 @@ function parseCursorDelimiters(
 /** Accepts a sequence of ranges, and applies a visitor to the gaps between them. */
 class RangeGapVisitor {
   private prevEnd: number
-  constructor(
-    from: number,
-    private readonly to: number,
-    private readonly emit: (range: Range) => void,
-  ) {
+  private readonly to: number
+  private readonly emit: (range: Range) => void
+
+  constructor(from: number, to: number, emit: (range: Range) => void) {
     this.prevEnd = from
+    this.to = to
+    this.emit = emit
   }
+
   push(from: number, to: number) {
     this.flush(from)
     this.prevEnd = to
   }
+
   finish() {
     this.flush(this.to)
   }
+
   private flush(to: number) {
     if (this.prevEnd < to) this.emit(Range.unsafeFromBounds(this.prevEnd, to))
   }

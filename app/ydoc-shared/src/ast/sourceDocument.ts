@@ -16,11 +16,14 @@ import type { AstId } from './tree'
  *  that can be kept up-to-date by applying AST changes.
  */
 export class SourceDocument {
+  private readonly state: SourceDocumentState
+  private readonly rawState: SourceDocumentState
   private readonly observers: SourceDocumentObserver[] = []
-  private constructor(
-    private readonly state: SourceDocumentState,
-    private readonly rawState: SourceDocumentState,
-  ) {}
+
+  private constructor(state: SourceDocumentState, rawState: SourceDocumentState) {
+    this.state = state
+    this.rawState = rawState
+  }
 
   /**
    * Create an empty {@link SourceDocument}.

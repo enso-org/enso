@@ -264,15 +264,14 @@ class FilteringWithPattern {
 export class Filtering {
   pattern: FilteringWithPattern | undefined
   selfArg: SelfArg | undefined
+  currentModule: ProjectPath | undefined = undefined
 
   /** TODO: Add docs */
-  constructor(
-    filter: Filter,
-    public currentModule: ProjectPath | undefined = undefined,
-  ) {
+  constructor(filter: Filter, currentModule: ProjectPath | undefined = undefined) {
     const { pattern, selfArg } = filter
     this.pattern = pattern ? new FilteringWithPattern(pattern) : undefined
     this.selfArg = selfArg
+    this.currentModule = currentModule
   }
 
   private selfTypeMatches(entry: SuggestionEntry): MatchResult | null {

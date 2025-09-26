@@ -36,13 +36,23 @@ export interface BaseActionsClass<Context, Args extends readonly unknown[] = []>
 export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never>
   implements Promise<void>
 {
+  protected readonly page: Page
+  protected readonly context: Context
+  private readonly promise: Promise<void>
+  private readonly parentClass: ParentClass = null!
+
   /** Create a {@link BaseActions}. */
   constructor(
-    protected readonly page: Page,
-    protected readonly context: Context,
-    private readonly promise = Promise.resolve(),
-    private readonly parentClass: ParentClass = null!,
-  ) {}
+    page: Page,
+    context: Context,
+    promise = Promise.resolve(),
+    parentClass: ParentClass = null!,
+  ) {
+    this.page = page
+    this.context = context
+    this.promise = promise
+    this.parentClass = parentClass
+  }
 
   /**
    * Get the string name of the class of this instance. Required for this class to implement

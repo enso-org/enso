@@ -201,12 +201,14 @@ export interface GroupInfo {
 
 class Synchronizer {
   queue: AsyncQueue<{ currentVersion: number }>
+  entries: SuggestionDb
 
   constructor(
     projectStore: ProjectStore,
-    public entries: SuggestionDb,
+    entries: SuggestionDb,
     updateProcessor: Promise<SuggestionUpdateProcessor>,
   ) {
+    this.entries = entries
     const lsRpc = projectStore.lsRpcConnection
     const initState = exponentialBackoff(() =>
       lsRpc.acquireCapability('search/receivesSuggestionsDatabaseUpdates', {}),

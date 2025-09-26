@@ -17,10 +17,13 @@ export interface Directory {
 }
 
 class CannotEnterDir {
-  constructor(
-    public reason: 'notFound' | 'notDir',
-    public name: string,
-  ) {}
+  public reason: 'notFound' | 'notDir'
+  public name: string
+
+  constructor(reason: 'notFound' | 'notDir', name: string) {
+    this.reason = reason
+    this.name = name
+  }
 
   toString() {
     switch (this.reason) {

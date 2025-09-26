@@ -8,14 +8,12 @@ import { Range } from 'ydoc-shared/util/data/range'
 export class MarkdownEdit extends MarkdownDocument {
   readonly changes: ChangeSpec[] = []
   adjustedSelection: Range = Range.empty
+  selection: Range = Range.empty
 
   /** Constructor. */
-  constructor(
-    text: Text,
-    tree: Tree,
-    public selection: Range = Range.empty,
-  ) {
+  constructor(text: Text, tree: Tree, selection: Range = Range.empty) {
     super(text, tree)
+    this.selection = selection
     this.adjustedSelection = selection
   }
 

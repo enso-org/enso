@@ -54,6 +54,10 @@ export interface MethodCallInfo {
 /** TODO: Add docs */
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
+  private readonly suggestionDb: SuggestionDb
+  private readonly groups: Ref<DeepReadonly<GroupInfo[]>>
+  private readonly valuesRegistry: ComputedValueRegistry
+  private readonly projectNames: ProjectNameStore
   private readonly nodeSources = new Map<NodeId, { data: NodeSource; stop: WatchStopHandle }>()
   private highestZIndex = 0
   private readonly idToExternalMap = reactive(new Map<Ast.AstId, ExternalId>())
@@ -65,11 +69,16 @@ export class GraphDb {
 
   /** Constructor. */
   constructor(
-    private readonly suggestionDb: SuggestionDb,
-    private readonly groups: Ref<DeepReadonly<GroupInfo[]>>,
-    private readonly valuesRegistry: ComputedValueRegistry,
-    private readonly projectNames: ProjectNameStore,
-  ) {}
+    suggestionDb: SuggestionDb,
+    groups: Ref<DeepReadonly<GroupInfo[]>>,
+    valuesRegistry: ComputedValueRegistry,
+    projectNames: ProjectNameStore,
+  ) {
+    this.suggestionDb = suggestionDb
+    this.groups = groups
+    this.valuesRegistry = valuesRegistry
+    this.projectNames = projectNames
+  }
 
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []

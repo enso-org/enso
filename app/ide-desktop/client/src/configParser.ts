@@ -208,11 +208,14 @@ function wordWrap(str: string, width: number): string[] {
 
 /** Represents a command line option to be passed to the Chrome instance powering Electron. */
 export class ChromeOption {
+  name: string
+  value: string | undefined
+
   /** Create a {@link ChromeOption}. */
-  constructor(
-    public name: string,
-    public value?: string,
-  ) {}
+  constructor(name: string, value?: string) {
+    this.name = name
+    this.value = value
+  }
 
   /** Return the option as it would appear on the command line. */
   display(): string {

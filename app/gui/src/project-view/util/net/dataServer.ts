@@ -53,17 +53,17 @@ export type DataServerEvents = {
 
 /** TODO: Add docs */
 export class DataServer extends ObservableV2<DataServerEvents> {
+  clientId: string
+  websocket: WebSocket
   initialized: Promise<Result<void, Error>>
   private initializationScheduled = false
   resolveCallbacks = new Map<string, (data: any) => void>()
 
   /** `websocket.binaryType` should be `ArrayBuffer`. */
-  constructor(
-    public clientId: string,
-    public websocket: WebSocket,
-    abort: AbortScope,
-  ) {
+  constructor(clientId: string, websocket: WebSocket, abort: AbortScope) {
     super()
+    this.clientId = clientId
+    this.websocket = websocket
     abort.handleDispose(this)
 
     websocket.addEventListener('message', ({ data: rawPayload }) => {

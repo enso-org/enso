@@ -21,17 +21,25 @@ import { SuggestionDb } from '../suggestionDatabase'
  * Represents type information for expressions, managing both visible and hidden intersection types.
  */
 export class TypeInfo {
+  primaryType: ProjectPath
+  visibleTypes: readonly ProjectPath[]
+  hiddenTypes: readonly ProjectPath[]
+
   private constructor(
     /** The primary type is the first visible type (e.g., `A` in `A & B`). */
-    public primaryType: ProjectPath,
+    primaryType: ProjectPath,
     /**
      * A list of 'visible' intersection types, e.g., [`A`] in `(A & B) : A`, or [`A`, `B`] in `A & B`.
      * It is never empty.
      */
-    public visibleTypes: ProjectPath[],
+    visibleTypes: ProjectPath[],
     /** A list of 'hidden' intersection types, e.g., [`B`] in `(A & B) : A` */
-    public hiddenTypes: ProjectPath[],
-  ) {}
+    hiddenTypes: ProjectPath[],
+  ) {
+    this.primaryType = primaryType
+    this.visibleTypes = visibleTypes
+    this.hiddenTypes = hiddenTypes
+  }
 
   /** @returns The ancestor types of the primary type by traversing the suggestion database. */
   ancestors(db: SuggestionDb): Iterable<ProjectPath> {
@@ -95,7 +103,7 @@ export interface ExpressionInfo {
   typeInfo: TypeInfo | undefined
   methodCall: MethodCall | undefined
   payload: ExpressionUpdatePayload
-  profilingInfo: ProfilingInfo[]
+  profilingInfo: readonly ProfilingInfo[]
   /**
    * This value is incremented when a new evaluation is reported, so that when interpreting the
    * `progress` in a `Pending` payload, we can distinguish an incremental update from a separate

@@ -27,11 +27,14 @@ const DEFAULT_PROFILING_TIME = 120
 /** Window size (width and height). */
 export class WindowSize {
   static separator = 'x'
+  width: number
+  height: number
+
   /** Create a new {@link WindowSize}. */
-  constructor(
-    public width: number,
-    public height: number,
-  ) {}
+  constructor(width: number, height: number) {
+    this.width = width
+    this.height = height
+  }
 
   /** Constructor of the default window size. */
   static default(): WindowSize {

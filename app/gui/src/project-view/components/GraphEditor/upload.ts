@@ -43,6 +43,12 @@ export interface UploadResult {
  * Checking the checksum is not implemented yet because of https://github.com/enso-org/enso/issues/6691
  */
 export class Uploader {
+  private file: File
+  private filePath: string | undefined
+  private position: Vec2
+  private isOnLocalBackend: boolean
+  private disableDirectRead: boolean
+  private readonly method: ExternalId
   private checksum: Hash<Keccak>
   private uploadedBytes: bigint
   private awareness: Awareness
@@ -55,13 +61,19 @@ export class Uploader {
       dataConnection: DataServer
       awareness: Awareness
     },
-    private file: File,
-    private filePath: string | undefined,
-    private position: Vec2,
-    private isOnLocalBackend: boolean,
-    private disableDirectRead: boolean,
-    private readonly method: ExternalId,
+    file: File,
+    filePath: string | undefined,
+    position: Vec2,
+    isOnLocalBackend: boolean,
+    disableDirectRead: boolean,
+    method: ExternalId,
   ) {
+    this.file = file
+    this.filePath = filePath
+    this.position = position
+    this.isOnLocalBackend = isOnLocalBackend
+    this.disableDirectRead = disableDirectRead
+    this.method = method
     this.checksum = SHA3.create()
     this.uploadedBytes = BigInt(0)
     this.awareness = projectStore.awareness

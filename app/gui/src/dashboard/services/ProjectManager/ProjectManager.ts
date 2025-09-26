@@ -47,6 +47,8 @@ type WithProjectPath<T> = Omit<T, 'projectId' | 'projectsDirectory'> & {
  * `app/gui/controller/engine-protocol/src/project_manager.rs`.
  */
 export class ProjectManager {
+  public readonly rootDirectory: Path
+  private readonly connectionUrl: string
   // This is required so that projects get recursively updated (deleted, renamed or moved).
   private readonly directories = new Map<Path, readonly FileSystemEntry[]>()
   private readonly projects = new Map<UUID, ProjectState>()
@@ -58,11 +60,10 @@ export class ProjectManager {
   private socketPromise: Promise<WebSocket>
 
   /** Create a {@link ProjectManager} */
-  constructor(
-    private readonly connectionUrl: string,
-    public readonly rootDirectory: Path,
-  ) {
+  constructor(connectionUrl: string, rootDirectory: Path) {
     this.socketPromise = this.reconnect()
+    this.connectionUrl = connectionUrl
+    this.rootDirectory = rootDirectory
   }
 
   /** Begin reconnecting the {@link WebSocket}. */
