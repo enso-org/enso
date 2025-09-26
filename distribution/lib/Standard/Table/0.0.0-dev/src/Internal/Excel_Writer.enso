@@ -97,9 +97,8 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
             doesn't exist we also ensure that the temp file is not polluted with data from previous (dry-run) writes.
         Context.Output.with_enabled <| Panic.rethrow <|
             if file.exists then (file.copy_to temp_file replace_existing=True) else (temp_file.delete_if_exists)
-
-        ExcelWriter.withWorkbook (file_as_java temp_file) file_format write_helper->
-            write_helper.writeWorkbook modification_strategy
+        
+        write_to_workbook (file_as_java temp_file) file_format table section on_existing_file match_columns
 
         Context.Output.with_enabled <|
             result_file = if is_dry_run then temp_file else
@@ -154,6 +153,22 @@ prepare_file_modification_strategy table section on_existing_file match_columns 
                 _ : Text -> address
             workbook_to_modify->
                 ExcelWriter.writeTableToRange workbook_to_modify java_range existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
+
+## ---
+   private: true
+   ---
+write_to_workbook java_file format table section on_existing_file match_columns =
+    existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
+    java_headers = Excel_Reader.make_java_headers section.headers
+    java_limit = section.row_limit.rows_to_write
+    case section of
+        Excel_Section.Worksheet sheet _ skip_rows _ ->
+            ExcelWriter.writeTableToSheet java_file format sheet existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
+        Excel_Section.Cell_Range address _ skip_rows _ ->
+            java_range = case address of
+                _ : Excel_Range -> address.java_range
+                _ : Text -> address
+            ExcelWriter.writeTableToRange java_file format java_range existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
 
 ## ---
    private: true

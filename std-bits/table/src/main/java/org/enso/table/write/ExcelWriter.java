@@ -10,6 +10,7 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.function.Function;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
@@ -70,6 +71,77 @@ public class ExcelWriter {
 
     path.getFileSystem().provider().checkAccess(path, AccessMode.WRITE, AccessMode.READ);
   }
+
+  public static void writeTableToSheet(
+      File file, 
+      ExcelFileFormat format,
+      int sheetIndex,
+      ExistingDataMode existingDataMode,
+      int firstRow,
+      Table table,
+      Long rowLimit,
+      ExcelHeaders.HeaderBehavior headers)
+             throws IOException, InvalidLocationException,
+          RangeExceededException,
+          ExistingDataException,
+          IllegalStateException,
+          ColumnNameMismatchException,
+          ColumnCountMismatchException,
+          InterruptedException
+      {
+            try (Workbook workbook = ExcelWriteHelper.openWorkbookForWrite(file, format)) {
+          writeTableToSheet(workbook, sheetIndex, existingDataMode, firstRow, table, rowLimit, headers);
+                   ExcelWriteHelper.finaliseWorkbookWrite(file, workbook);
+     }
+  }
+  
+
+  public static void writeTableToSheet(
+      File file,
+      ExcelFileFormat format,
+      String sheetName,
+      ExistingDataMode existingDataMode,
+      int firstRow,
+      Table table,
+      Long rowLimit,
+      ExcelHeaders.HeaderBehavior headers) 
+       throws IOException, InvalidLocationException,
+          RangeExceededException,
+          ExistingDataException,
+          IllegalStateException,
+          ColumnNameMismatchException,
+          ColumnCountMismatchException,
+          InterruptedException
+     {
+        verifyIsWritable(file);
+        try (Workbook workbook = ExcelWriteHelper.openWorkbookForWrite(file, format)) {
+          writeTableToSheet(workbook, sheetName, existingDataMode, firstRow, table, rowLimit, headers);
+                   ExcelWriteHelper.finaliseWorkbookWrite(file, workbook);
+     }
+     }
+
+  public static void writeTableToRange(
+      File file, 
+      ExcelFileFormat format,
+      String rangeNameOrAddress,
+      ExistingDataMode existingDataMode,
+      int skipRows,
+      Table table,
+      Long rowLimit,
+      ExcelHeaders.HeaderBehavior headers)
+             throws IOException, InvalidLocationException,
+          RangeExceededException,
+          ExistingDataException,
+          IllegalStateException,
+          ColumnNameMismatchException,
+          ColumnCountMismatchException,
+          InterruptedException
+      {
+            try (Workbook workbook = ExcelWriteHelper.openWorkbookForWrite(file, format)) {
+          writeTableToRange(workbook, rangeNameOrAddress, existingDataMode, skipRows, table, rowLimit, headers);
+                   ExcelWriteHelper.finaliseWorkbookWrite(file, workbook);
+     }
+     }
 
   public static void writeTableToSheet(
       Workbook workbook,

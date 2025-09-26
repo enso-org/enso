@@ -1485,6 +1485,25 @@ add_specs suite_builder =
             t1 = Table.new [column1,column2,column3,column4,column5,column10,column6,column9,column8,column7]
             t1.write oneMInts (..Sheet "AllTypes") . should_succeed
 
+        
+        group_builder.specify 'wXrite integers 1 to 1M to xlsx to multiple sheets' pending="TODO" <|
+            oneMInts = enso_project.data / "transient" / ("oneMInts.xlsx")
+            oneMInts.delete_if_exists . should_succeed
+            range1 = 0.up_to 1000000
+            column1 = range1.to_column "C1"
+            column2 = range1.to_column "C2"
+            column3 = range1.to_column "C3"
+            column4 = range1.to_column "C4"
+            column5 = range1.to_column "C5"
+            column6 = range1.to_column "C7"
+            column7 = range1.to_column "C10"
+            column8 = range1.to_column "C9"
+            column9 = range1.to_column "C8"
+            column10 = range1.to_column "C6"
+            t1 = Table.new [column1,column2,column3,column4,column5,column10,column6,column9,column8,column7]
+            t1.write oneMInts (..Sheet "1MillionA") . should_succeed
+            t1.write oneMInts (..Sheet "1MillionB") . should_succeed
+
     spec_fmt suite_builder 'XLSX reading' Examples.xlsx
 
     spec_fmt suite_builder 'XLS reading' Examples.xls
