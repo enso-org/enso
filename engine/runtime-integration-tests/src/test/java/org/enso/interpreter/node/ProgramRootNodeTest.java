@@ -42,7 +42,8 @@ public class ProgramRootNodeTest {
 
   @Test
   public void sourceSectionAndName() throws Exception {
-    var code = """
+    var code =
+        """
         main = "Error!
         """;
     var src = Source.newBuilder("enso", code, "error_test.enso").build();

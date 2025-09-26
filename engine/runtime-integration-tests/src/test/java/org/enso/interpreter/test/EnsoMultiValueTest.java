@@ -25,34 +25,34 @@ public class EnsoMultiValueTest {
   public void keepIdentityOfAandB() throws Exception {
     var types =
         """
-    from project.PrivateConversion import all
-    type A
-        A_Ctor x
+        from project.PrivateConversion import all
+        type A
+            A_Ctor x
 
-        id_a self -> A = self
-    type B
-        B_Ctor x
+            id_a self -> A = self
+        type B
+            B_Ctor x
 
-    ab =
-        a = A.A_Ctor 1
-        (a : A & B)
-    """;
+        ab =
+            a = A.A_Ctor 1
+            (a : A & B)
+        """;
 
     var privateConversion =
         """
-    from project.Types import all
+        from project.Types import all
 
-    B.from (that : A) = B.B_Ctor that
-    """;
+        B.from (that : A) = B.B_Ctor that
+        """;
 
     var main =
         """
-    from project.Types import all
+        from project.Types import all
 
-    main =
-        v = ab.id_a
-        [v.to_text, (v:A).to_text, (v:B).to_text]
-    """;
+        main =
+            v = ab.id_a
+            [v.to_text, (v:A).to_text, (v:B).to_text]
+        """;
 
     var prjDir = dir.newFolder();
     var sources = new HashSet<SourceModule>();
@@ -85,26 +85,26 @@ public class EnsoMultiValueTest {
   private void sameFieldAccess(String cast) {
     var code =
         """
-    type A
-        A_Ctor x y
+        type A
+            A_Ctor x y
 
-        x_from_a self = self.x
+            x_from_a self = self.x
 
-    type B
-        B_Ctor x y
+        type B
+            B_Ctor x y
 
-        x_from_b self = self.x
+            x_from_b self = self.x
 
-    B.from (that : A) = B.B_Ctor "B" that.y
+        B.from (that : A) = B.B_Ctor "B" that.y
 
-    pair =
-        a = A.A_Ctor "A" 1
-        both = (a : $cast)
+        pair =
+            a = A.A_Ctor "A" 1
+            both = (a : $cast)
 
-        v_a = both.x_from_a
-        v_b = both.x_from_b
-        [v_a, v_b]
-    """
+            v_a = both.x_from_a
+            v_b = both.x_from_b
+            [v_a, v_b]
+        """
             .replace("$cast", cast);
 
     var pair = ctxRule.evalModule(code, "fields.enso", "pair");
@@ -118,26 +118,26 @@ public class EnsoMultiValueTest {
   public void trippleCastConfusion() {
     var code =
         """
-    type A
-        A_Ctor x
-    type B
-        B_Ctor x
-    type C
-        C_Ctor x
+        type A
+            A_Ctor x
+        type B
+            B_Ctor x
+        type C
+            C_Ctor x
 
-    B.from (that : A) = B.B_Ctor that
-    C.from (that:B) = C.C_Ctor that
+        B.from (that : A) = B.B_Ctor that
+        C.from (that:B) = C.C_Ctor that
 
-    texts =
-        a = A.A_Ctor 1
-        ab = (a : A & B)
-        abc = ab:(A & B & C)
-        c = abc:C
+        texts =
+            a = A.A_Ctor 1
+            ab = (a : A & B)
+            abc = ab:(A & B & C)
+            c = abc:C
 
-        text_a = (c:A).to_text
-        text_b = (c:B).to_text
-        [text_a, text_b, c.to_text]
-    """;
+            text_a = (c:A).to_text
+            text_b = (c:B).to_text
+            [text_a, text_b, c.to_text]
+        """;
 
     var tripple = ctxRule.evalModule(code, "tripple.enso", "texts");
     var texts = tripple.as(new TypeLiteral<List<String>>() {});
@@ -151,21 +151,21 @@ public class EnsoMultiValueTest {
   public void dataflowErrorPassingThroughMultiChecks() {
     var code =
         """
-    from Standard.Base import Error
+        from Standard.Base import Error
 
-    type A
-    type B
-    type My_Error
-        Error msg
+        type A
+        type B
+        type My_Error
+            Error msg
 
-    make -> A & B =
-        Error.throw (My_Error.Error "msg")
+        make -> A & B =
+            Error.throw (My_Error.Error "msg")
 
-    foo =
-        a = make
-        fun (x : A & B) = x
-        fun a
-    """;
+        foo =
+            a = make
+            fun (x : A & B) = x
+            fun a
+        """;
 
     var foo = ctxRule.evalModule(code, "dataflow.enso", "foo");
     assertTrue("Returns a dataflow error", foo.isException());
@@ -176,48 +176,48 @@ public class EnsoMultiValueTest {
   public void makeAbx13272() throws Exception {
     var types =
         """
-    from project.PrivateConversion import all
-    type A
-        A_Ctor x
+        from project.PrivateConversion import all
+        type A
+            A_Ctor x
 
-        a_method self = "A method"
-    type B
-        B_Ctor x
+            a_method self = "A method"
+        type B
+            B_Ctor x
 
-        b_method self = "B method"
+            b_method self = "B method"
 
-    type X
-        X_Ctor x
+        type X
+            X_Ctor x
 
-        x_method self = "X method"
+            x_method self = "X method"
 
-    make_abx -> A & B & X =
-        a = A.A_Ctor 1
-        # Relies on the hidden conversions
-        (a : A & B & X)
-    """;
+        make_abx -> A & B & X =
+            a = A.A_Ctor 1
+            # Relies on the hidden conversions
+            (a : A & B & X)
+        """;
 
     var privateConversion =
         """
-    from project.Types import all
+        from project.Types import all
 
-    B.from (that : A) = B.B_Ctor that
-    X.from (that : A) -> X =
-        X.X_Ctor that
-    """;
+        B.from (that : A) = B.B_Ctor that
+        X.from (that : A) -> X =
+            X.X_Ctor that
+        """;
 
     var main =
         """
-    from project.Types import all
+        from project.Types import all
 
-    main =
-        abx = make_abx
-        # X is hidden in A & B
-        ab = (abx : A & B)
-        # but should still be possible to uncover it
-        x = (ab:X)
-        [abx, ab, x]
-    """;
+        main =
+            abx = make_abx
+            # X is hidden in A & B
+            ab = (abx : A & B)
+            # but should still be possible to uncover it
+            x = (ab:X)
+            [abx, ab, x]
+        """;
 
     var prjDir = dir.newFolder();
     var sources = new HashSet<SourceModule>();

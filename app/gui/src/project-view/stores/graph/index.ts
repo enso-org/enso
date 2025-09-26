@@ -57,6 +57,7 @@ import type {
 } from 'ydoc-shared/yjsModel'
 import { defaultLocalOrigin, visMetadataEquals } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
+import type { Typename } from '../suggestionDatabase/entry'
 
 const FALLBACK_BINDING_PREFIX = 'node'
 
@@ -79,11 +80,17 @@ export interface NodeEditInfo {
   initialCursorPos: number
 }
 
-/** TODO: Add docs */
+/**
+ * A registered information about connectible port.
+ *
+ * When some widget wants to be connectible port, it registers itself using `addPortInstance`.
+ * This information is then used to display edges and handle connect/disconnect operations.
+ */
 export class PortViewInstance {
-  /** TODO: Add docs */
+  /** Constructor making the object non-reactive (only the rect and type are reactive field). */
   constructor(
     public rect: ShallowRef<Rect | undefined>,
+    public expectedType: Ref<Typename | undefined>,
     public nodeId: NodeId,
     public onUpdate: (update: WidgetUpdate) => void,
   ) {
@@ -612,6 +619,10 @@ export function createGraphStore(
     return getPortPrimaryInstance(id)?.rect.value
   }
 
+  function getPortExpectedType(id: PortId): Typename | undefined {
+    return getPortPrimaryInstance(id)?.expectedType.value
+  }
+
   function isPortEnabled(id: PortId): boolean {
     return getPortRelativeRect(id) != null
   }
@@ -873,6 +884,7 @@ export function createGraphStore(
     addPortInstance,
     removePortInstance,
     getPortRelativeRect,
+    getPortExpectedType,
     getPortNodeId,
     getSourceNodeId,
     isPortEnabled,

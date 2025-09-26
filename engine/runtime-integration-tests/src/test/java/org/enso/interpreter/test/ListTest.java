@@ -33,25 +33,25 @@ public class ListTest {
 
     final String code =
         """
-    from Standard.Base.Data.List.List import Cons, Nil
+        from Standard.Base.Data.List.List import Cons, Nil
 
-    init list = list.init
+        init list = list.init
 
-    taken list n = list.take_start n
+        taken list n = list.take_start n
 
-    even_ones list = list.filter (x -> x % 2 == 0)
+        even_ones list = list.filter (x -> x % 2 == 0)
 
-    plus_one list = list.map (x -> x + 1)
+        plus_one list = list.map (x -> x + 1)
 
-    as_vector list = list.to_vector
+        as_vector list = list.to_vector
 
-    as_text list = list.to_text
+        as_text list = list.to_text
 
-    generator n =
-        go x v l = if x > n then l else
-            @Tail_Call go x+1 v+1 (Cons v l)
-        go 1 1 Nil
-    """;
+        generator n =
+            go x v l = if x > n then l else
+                @Tail_Call go x+1 v+1 (Cons v l)
+            go 1 1 Nil
+        """;
 
     generator = evalCode(code, "generator");
     plusOne = evalCode(code, "plus_one");

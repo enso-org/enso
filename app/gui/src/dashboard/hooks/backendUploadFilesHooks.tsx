@@ -17,11 +17,11 @@ import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveP
 import type LocalBackend from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import {
   queryOptions,
-  useMutation,
   useQueryClient,
   type QueryClient,
   type QueryKey,
@@ -44,7 +44,6 @@ import {
   type UploadedAsset,
   type UploadFileRequestParams,
 } from 'enso-common/src/services/Backend'
-import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
@@ -64,7 +63,7 @@ const UPLOADING_FILES_QUERY_KEY = ['uploadingFiles'] satisfies QueryKey
 /** A function to upload files. */
 export function useUploadFiles(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const uploadFileMutation = useUploadFileMutation(backend)
+  const uploadFile = useUploadFile(backend)
   const setSelectedAssets = useSetSelectedAssets()
 
   return useEventCallback(async (filesToUpload: readonly File[], parentId: DirectoryId) => {
@@ -97,29 +96,26 @@ export function useUploadFiles(backend: Backend, category: Category) {
         const { extension } = extractProjectExtension(file.name)
         title = escapeSpecialCharacters(stripProjectExtension(title))
 
-        await uploadFileMutation
-          .mutateAsync([
-            { fileId, fileName: `${title}.${extension}`, parentDirectoryId: parentId },
-            file,
-          ])
-          .then((result) => {
-            if (result.jobId != null) {
-              return
-            }
-            addToSelection({
-              type: AssetType.project,
-              // This is SAFE, because it is guarded behind `assetIsProject`.
-              // eslint-disable-next-line no-restricted-syntax
-              id: result.id as ProjectId,
-              parentId,
-              title,
-            })
+        await uploadFile([
+          { fileId, fileName: `${title}.${extension}`, parentDirectoryId: parentId },
+          file,
+        ]).then((result) => {
+          if (result.jobId != null) {
+            return
+          }
+          addToSelection({
+            type: AssetType.project,
+            // This is SAFE, because it is guarded behind `assetIsProject`.
+            // eslint-disable-next-line no-restricted-syntax
+            id: result.id as ProjectId,
+            parentId,
+            title,
           })
+        })
       } else {
         title = escapeSpecialCharacters(title)
-        await uploadFileMutation
-          .mutateAsync([{ fileId, fileName: title, parentDirectoryId: parentId }, file])
-          .then((result) => {
+        await uploadFile([{ fileId, fileName: title, parentDirectoryId: parentId }, file]).then(
+          (result) => {
             if (result.jobId != null) {
               return
             }
@@ -131,7 +127,8 @@ export function useUploadFiles(backend: Backend, category: Category) {
               parentId,
               title,
             })
-          })
+          },
+        )
       }
     }
 
@@ -173,7 +170,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
   })
 }
 
-/** Upload progress for {@link useUploadFileMutation}. */
+/** Upload progress for {@link useUploadFile}. */
 export interface UploadFileMutationProgress {
   /**
    * Whether this is the first progress update.
@@ -184,7 +181,7 @@ export interface UploadFileMutationProgress {
   readonly totalBytes: number
 }
 
-/** Options for {@link useUploadFileMutation}. */
+/** Options for {@link useUploadFile}. */
 export interface UploadFileMutationOptions {
   /** Defaults to `true`. */
   readonly updateProgress?: boolean | undefined
@@ -214,7 +211,7 @@ export interface UploadFileMutationOptions {
     | undefined
 }
 
-/** The result of a {@link useUploadFileMutation}. */
+/** The result of a {@link useUploadFile}. */
 export type UploadFileMutationResult = UseMutationResult<
   UploadedAsset,
   Error,
@@ -266,7 +263,7 @@ function clearUploadingFileProgressIfDone(queryClient: QueryClient) {
 }
 
 /**
- * Options for {@link useUploadFileToCloudMutation}.
+ * Options for {@link useUploadFileToCloud}.
  */
 export interface UploadFileToCloudMutationOptions {
   /** The assets to upload. */
@@ -350,12 +347,12 @@ function useGetSiblings() {
  * Packs a project into a file and uploads it to the cloud.
  * Does not work in environments that do not have a local backend.
  */
-export function useUploadFileToCloudMutation() {
+export function useUploadFileToCloud() {
   const { getText } = useText()
   const httpClient = useHttpClient()
   const toastAndLog = useToastAndLog()
   const { remoteBackend } = useBackends()
-  const uploadFileMutation = useUploadFileMutation(remoteBackend)
+  const uploadFile = useUploadFile(remoteBackend)
   const getSiblings = useGetSiblings()
   const { cloudCategories } = useCategoriesAPI()
   const cloudHomeCategory = cloudCategories.categories.find((category) => category.type === 'cloud')
@@ -492,7 +489,7 @@ export function useUploadFileToCloudMutation() {
               }
             })()
 
-            await uploadFileMutation.mutateAsync([
+            await uploadFile([
               {
                 fileName: fileData.fileName,
                 fileId: asset.cloudId ?? null,
@@ -517,10 +514,7 @@ export function useUploadFileToCloudMutation() {
  * Call "upload file" mutations for a file.
  * Always uses multipart upload for Cloud backend.
  */
-export function useUploadFileMutation(
-  backend: Backend,
-  options: UploadFileMutationOptions = {},
-): UploadFileMutationResult {
+export function useUploadFile(backend: Backend, options: UploadFileMutationOptions = {}) {
   const queryClient = useQueryClient()
   const toastAndLog = useToastAndLog()
   const { getText } = useText()
@@ -536,160 +530,84 @@ export function useUploadFileMutation(
   } = options
   const setProgress: typeof setUploadingFileProgress =
     updateProgress ? setUploadingFileProgress : noop
-  const uploadFileStartMutation = useMutation(backendMutationOptions(backend, 'uploadFileStart'))
-  const [variables, setVariables] = useState<[params: UploadFileRequestParams, file: File]>()
-  const [sentBytes, setSentBytes] = useState(0)
-  const [totalBytes, setTotalBytes] = useState(0)
-  const uploadFileChunkMutation = useMutation(
+  const uploadFileStart = useMutationCallback(backendMutationOptions(backend, 'uploadFileStart'))
+  const [isPending, setIsPending] = useState(false)
+  const uploadFileChunk = useMutationCallback(
     backendMutationOptions(backend, 'uploadFileChunk', {
       retry: chunkRetries,
       meta: { pool: { id: 'uploadFileChunk', parallelism: fileChunkUploadPoolSize } },
     }),
   )
-  const uploadFileEndMutation = useMutation(
+  const uploadFileEnd = useMutationCallback(
     backendMutationOptions(backend, 'uploadFileEnd', { retry: endRetries }),
   )
-  const mutateAsync = useEventCallback(
-    async ([body, file]: [body: UploadFileRequestParams, file: File]) => {
-      const progressId = uniqueString()
-      setVariables([body, file])
-      const fileSizeBytes = file.size
-      const beginProgress: UploadFileMutationProgress = {
-        event: 'begin',
-        sentBytes: 0,
-        totalBytes: fileSizeBytes,
-      }
-      options.onBegin?.(beginProgress)
-      setProgress(queryClient, progressId, beginProgress)
-      setSentBytes(0)
-      setTotalBytes(fileSizeBytes)
-      try {
-        const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync([
-          body,
-          file,
-        ])
-        let completedChunkCount = 0
-        const parts = await Promise.all(
-          presignedUrls.map((url, i) =>
-            uploadFileChunkMutation.mutateAsync([url, file, i]).then((part) => {
-              // This cannot be the `onSuccess` callback in `mutateAsync` because then it would not run
-              // if the component is unmounted beforehand (which seems to be the case?).
-              completedChunkCount += 1
-              const newSentBytes = Math.min(
-                completedChunkCount * S3_CHUNK_SIZE_BYTES,
-                fileSizeBytes,
-              )
-              setSentBytes(newSentBytes)
-              const chunkProgress: UploadFileMutationProgress = {
-                event: 'chunk',
-                sentBytes: newSentBytes,
-                totalBytes: fileSizeBytes,
-              }
-              options.onChunkSuccess?.(chunkProgress)
-              setProgress(queryClient, progressId, chunkProgress)
-              return part
-            }),
-          ),
-        )
-        const result = await uploadFileEndMutation.mutateAsync([
-          {
-            parentDirectoryId: body.parentDirectoryId,
-            parts,
-            sourcePath: sourcePath,
-            uploadId: uploadId,
-            assetId: body.fileId,
-            fileName: body.fileName,
-          },
-        ])
-        setSentBytes(fileSizeBytes)
-        const endProgress: UploadFileMutationProgress = {
-          event: 'end',
-          sentBytes: fileSizeBytes,
-          totalBytes: fileSizeBytes,
-        }
-        options.onSuccess?.(endProgress)
-        options.onSettled?.(endProgress, null)
-        setProgress(queryClient, progressId, endProgress)
-        if (updateProgress) {
-          setTimeout(() => {
-            clearUploadingFileProgressIfDone(queryClient)
-          }, CLEAR_PROGRESS_DELAY_MS)
-        }
-        return result
-      } catch (error) {
-        onError(error)
-        options.onSettled?.(null, error)
-        throw error
-      }
-    },
-  )
-
-  const mutate = useEventCallback(
-    ([params, file]: [params: UploadFileRequestParams, file: File]) => {
-      void mutateAsync([params, file])
-    },
-  )
-
-  const reset = useEventCallback(() => {
-    uploadFileStartMutation.reset()
-    uploadFileChunkMutation.reset()
-    uploadFileEndMutation.reset()
-  })
-
-  const submittedAt = uploadFileStartMutation.submittedAt
-
-  const isError =
-    uploadFileStartMutation.isError ||
-    uploadFileChunkMutation.isError ||
-    uploadFileEndMutation.isError
-  const isSuccess = uploadFileEndMutation.isSuccess
-  const isPending =
-    uploadFileStartMutation.isPending ||
-    uploadFileChunkMutation.isPending ||
-    uploadFileEndMutation.isPending
-  const isIdle =
-    uploadFileStartMutation.isIdle && uploadFileChunkMutation.isIdle && uploadFileEndMutation.isIdle
 
   usePreventNavigation({ message: getText('anUploadIsInProgress'), isEnabled: isPending })
 
-  const result: MergeValuesOfObjectUnion<UploadFileMutationResult> = {
-    sentBytes,
-    totalBytes,
-    variables,
-    mutate,
-    mutateAsync,
-    context: uploadFileEndMutation.context,
-    data: uploadFileEndMutation.data,
-    failureCount:
-      uploadFileEndMutation.failureCount +
-      uploadFileChunkMutation.failureCount +
-      uploadFileStartMutation.failureCount,
-    failureReason:
-      uploadFileEndMutation.failureReason ??
-      uploadFileChunkMutation.failureReason ??
-      uploadFileStartMutation.failureReason,
-    isError,
-    error:
-      uploadFileEndMutation.error ?? uploadFileChunkMutation.error ?? uploadFileStartMutation.error,
-    isPaused:
-      uploadFileStartMutation.isPaused ||
-      uploadFileChunkMutation.isPaused ||
-      uploadFileEndMutation.isPaused,
-    isPending,
-    isSuccess,
-    isIdle,
-    status:
-      isPending ? 'pending'
-      : isIdle ? 'idle'
-      : isSuccess ? 'success'
-      : isError ? 'error'
-      : 'error',
-    reset,
-    submittedAt,
-  }
-  // This is UNSAFE. Care must be taken to ensire all state is merged properly.
-  // eslint-disable-next-line no-restricted-syntax
-  return result as UploadFileMutationResult
+  return useEventCallback(async ([body, file]: [body: UploadFileRequestParams, file: File]) => {
+    setIsPending(true)
+    const progressId = uniqueString()
+    const fileSizeBytes = file.size
+    const beginProgress: UploadFileMutationProgress = {
+      event: 'begin',
+      sentBytes: 0,
+      totalBytes: fileSizeBytes,
+    }
+    options.onBegin?.(beginProgress)
+    setProgress(queryClient, progressId, beginProgress)
+    try {
+      const { sourcePath, uploadId, presignedUrls } = await uploadFileStart([body, file])
+      let completedChunkCount = 0
+      const parts = await Promise.all(
+        presignedUrls.map((url, i) =>
+          uploadFileChunk([url, file, i]).then((part) => {
+            // This cannot be the `onSuccess` callback in `mutateAsync` because then it would not run
+            // if the component is unmounted beforehand (which seems to be the case?).
+            completedChunkCount += 1
+            const newSentBytes = Math.min(completedChunkCount * S3_CHUNK_SIZE_BYTES, fileSizeBytes)
+            const chunkProgress: UploadFileMutationProgress = {
+              event: 'chunk',
+              sentBytes: newSentBytes,
+              totalBytes: fileSizeBytes,
+            }
+            options.onChunkSuccess?.(chunkProgress)
+            setProgress(queryClient, progressId, chunkProgress)
+            return part
+          }),
+        ),
+      )
+      const result = await uploadFileEnd([
+        {
+          parentDirectoryId: body.parentDirectoryId,
+          parts,
+          sourcePath: sourcePath,
+          uploadId: uploadId,
+          assetId: body.fileId,
+          fileName: body.fileName,
+        },
+      ])
+      const endProgress: UploadFileMutationProgress = {
+        event: 'end',
+        sentBytes: fileSizeBytes,
+        totalBytes: fileSizeBytes,
+      }
+      options.onSuccess?.(endProgress)
+      options.onSettled?.(endProgress, null)
+      setProgress(queryClient, progressId, endProgress)
+      if (updateProgress) {
+        setTimeout(() => {
+          clearUploadingFileProgressIfDone(queryClient)
+        }, CLEAR_PROGRESS_DELAY_MS)
+      }
+      return result
+    } catch (error) {
+      onError(error)
+      options.onSettled?.(null, error)
+      throw error
+    } finally {
+      setIsPending(false)
+    }
+  })
 }
 
 /**

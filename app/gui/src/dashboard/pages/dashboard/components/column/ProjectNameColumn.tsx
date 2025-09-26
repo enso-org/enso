@@ -2,15 +2,17 @@
 import EditableSpan from '#/components/EditableSpan'
 import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
+import { useDriveStore } from '#/providers/DriveProvider'
 import { BackendType, titleSchema, type ProjectAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
-import { merger } from '#/utilities/object'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession } from '$/providers/react'
 import { isOnMacOS } from 'enso-common/src/detect'
+import { useStore } from 'zustand'
 
 /** Props for a {@link ProjectNameColumn}. */
 export interface ProjectNameColumnProps extends AssetNameColumnProps {
@@ -19,22 +21,24 @@ export interface ProjectNameColumnProps extends AssetNameColumnProps {
 
 /** The icon and name of a {@link ProjectAsset}. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const {
-    item,
-    rowState,
-    setRowState,
-    state,
-    isEditable,
-    isOpened,
-    isPlaceholder,
-    closeProject,
-    openProject,
-  } = props
-  const { backend } = state
+  const { item, isEditable, isOpened, isPlaceholder, closeProject, openProject } = props
 
+  const { associatedBackend: backend } = useCategoriesAPI()
   const { user } = useFullUserSession()
   const getAssetChildren = useGetAssetChildren()
   const renameAsset = useRenameAsset(backend)
+  const driveStore = useDriveStore()
+
+  const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
+  const setIsEditing = (isEditing: boolean) => {
+    if (isEditing) {
+      if (isEditable) {
+        driveStore.setState({ assetToRename: item.id })
+      }
+    } else {
+      driveStore.setState({ assetToRename: null })
+    }
+  }
 
   const ownPermission = tryFindSelfPermission(user, item.permissions)
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
@@ -49,12 +53,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const isOtherUserUsingProject =
     isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
 
-  const setIsEditing = (isEditingName: boolean) => {
-    if (isEditable) {
-      setRowState(merger({ isEditingName }))
-    }
-  }
-
   const doRename = async (newTitle: string) => {
     await renameAsset(item.id, newTitle)
     setIsEditing(false)
@@ -64,12 +62,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     <div
       className="flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
-        if (rowState.isEditingName && isOnMacOS() && event.key === 'Enter') {
+        if (isEditingName && isOnMacOS() && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
       onClick={async (event) => {
-        if (rowState.isEditingName || isOtherUserUsingProject) {
+        if (isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
         } else if (isDoubleClick(event) && canExecute) {
           await openProject(item.id)
@@ -88,11 +86,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
       <EditableSpan
         data-testid="asset-row-name"
-        editable={rowState.isEditingName}
+        editable={isEditingName}
         className={twMerge(
           'grow bg-transparent font-naming',
           canExecute && !isOtherUserUsingProject && 'cursor-pointer',
-          rowState.isEditingName && 'cursor-text',
+          isEditingName && 'cursor-text',
         )}
         onSubmit={doRename}
         onCancel={() => {

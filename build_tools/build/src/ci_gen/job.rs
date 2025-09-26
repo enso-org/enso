@@ -985,7 +985,7 @@ rm dist/backend/project-manager.tar"
                     mkdir -p app/ide-desktop/client/playwright/.auth && \
                     touch app/ide-desktop/client/playwright/.auth/user.json && \
                     chmod 600 app/ide-desktop/client/playwright/.auth/user.json && \
-                    echo \"{\\\"user\\\": \\\"$ENSO_TEST_USER\\\",\\\"password\\\":\\\"$ENSO_TEST_USER_PASSWORD\\\"}\" >> app/ide-desktop/client/playwright/.auth/user.json\
+                    echo \"{\\\"user\\\": \\\"$ENSO_TEST_USER\\\",\\\"password\\\":\\\"$ENSO_TEST_USER_PASSWORD\\\"}\" > app/ide-desktop/client/playwright/.auth/user.json\
                     ").with_shell(Shell::Bash).with_secret_exposed_as(
                         secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
                         "ENSO_TEST_USER",

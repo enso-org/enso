@@ -22,12 +22,12 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Nothing.Nothing
 import project.Panic.Panic
-from project.Error import all
 from project.Data.Boolean import Boolean, False
 from project.Data.Json.Extensions import all
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
+from project.Error import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
 from project.Widget_Helpers import make_all_selector

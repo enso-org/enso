@@ -85,24 +85,24 @@ public class WarningBenchmarks {
     var setupCode =
         new StringBuilder(
             """
-        from Standard.Base import all
+            from Standard.Base import all
 
-        create_vec size elem = Runtime.no_inline <|
-            Vector.fill size elem
+            create_vec size elem = Runtime.no_inline <|
+                Vector.fill size elem
 
-        elem =
-            42
+            elem =
+                42
 
-        elem_const_with_warning = Runtime.no_inline <|
-            x = 42
-            Warning.attach "Foo!" x
+            elem_const_with_warning = Runtime.no_inline <|
+                x = 42
+                Warning.attach "Foo!" x
 
-        elem_with_warning v = Runtime.no_inline <|
-            Warning.attach "Foo!" v
+            elem_with_warning v = Runtime.no_inline <|
+                Warning.attach "Foo!" v
 
-        map_vector_with_warnings vec = Runtime.no_inline <|
-            vec.map (e-> elem_with_warning e)
-        """);
+            map_vector_with_warnings vec = Runtime.no_inline <|
+                vec.map (e-> elem_with_warning e)
+            """);
 
     // generate random vector
     var randomIntVectorName = "vector_with_random_values";

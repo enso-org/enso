@@ -1,7 +1,7 @@
 /** @file Column types and column display modes. */
-import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
+import { memo, type JSX } from 'react'
 
-import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
+import type { AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type {
   AnyAsset,
@@ -31,8 +31,6 @@ export interface AssetColumnProps {
   readonly backendType: BackendType
   readonly setSelected: (selected: boolean) => void
   readonly state: AssetsTableState
-  readonly rowState: AssetRowState
-  readonly setRowState: Dispatch<SetStateAction<AssetRowState>>
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
   readonly labels: readonly Label[]

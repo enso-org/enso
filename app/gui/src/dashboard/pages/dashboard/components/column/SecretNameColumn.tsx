@@ -5,15 +5,17 @@ import SvgMask from '#/components/SvgMask'
 import { backendMutationOptions, useRenameAsset } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
+import { useDriveStore } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import { isAssetCredential, titleSchema, type SecretAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
-import { merger } from '#/utilities/object'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { toast } from 'react-toastify'
+import { useStore } from 'zustand'
 
 /** Props for a {@link SecretNameColumn}. */
 export interface SecretNameColumnProps extends AssetNameColumnProps {
@@ -22,32 +24,38 @@ export interface SecretNameColumnProps extends AssetNameColumnProps {
 
 /** The icon and name of a {@link SecretAsset}. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, rowState, state, setRowState, isEditable } = props
-  const { backend } = state
+  const { item, isEditable } = props
 
+  const { associatedBackend: backend } = useCategoriesAPI()
   const toastAndLog = useToastAndLog()
   const { getText } = useText()
   const getAssetChildren = useGetAssetChildren()
   const renameAsset = useRenameAsset(backend)
+  const driveStore = useDriveStore()
 
-  const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
+  const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
+  const setIsEditing = (isEditing: boolean) => {
+    if (isEditing) {
+      if (isEditable) {
+        driveStore.setState({ assetToRename: item.id })
+      }
+    } else {
+      driveStore.setState({ assetToRename: null })
+    }
+  }
+
+  const updateSecret = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
 
   const doRename = async (newTitle: string) => {
     await renameAsset(item.id, newTitle)
     setIsEditing(false)
   }
 
-  const setIsEditing = (isEditingName: boolean) => {
-    if (isEditable) {
-      setRowState(merger({ isEditingName }))
-    }
-  }
-
   return (
     <div
       className="flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
@@ -63,7 +71,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
                 name={item.title}
                 doCreate={async (title, value) => {
                   try {
-                    await updateSecretMutation([item.id, { title, value }, item.title])
+                    await updateSecret([item.id, { title, value }, item.title])
                   } catch (error) {
                     toastAndLog(null, error)
                   }
@@ -77,7 +85,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
       <SvgMask src={KeyIcon} className="m-name-column-icon size-4" />
       <EditableSpan
         data-testid="asset-row-name"
-        editable={rowState.isEditingName}
+        editable={isEditingName}
         className="grow bg-transparent font-naming"
         onSubmit={doRename}
         onCancel={() => {

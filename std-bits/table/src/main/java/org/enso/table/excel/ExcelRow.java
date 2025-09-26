@@ -144,8 +144,8 @@ public interface ExcelRow {
 
       return switch (cellType) {
         case ERROR ->
-        // Want to show the error message rather than empty.
-        FormulaError.forInt(cell.getErrorCellValue()).getString();
+            // Want to show the error message rather than empty.
+            FormulaError.forInt(cell.getErrorCellValue()).getString();
         case NUMERIC -> {
           // Special handling for Number or Date cells as want to keep formatting.
           var format = ExcelNumberFormat.from(cell, null);

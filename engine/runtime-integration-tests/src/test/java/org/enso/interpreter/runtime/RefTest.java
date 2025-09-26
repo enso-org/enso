@@ -24,9 +24,9 @@ public class RefTest {
     refType =
         ctxRule.evalModule(
             """
-        import Standard.Base.Runtime.Ref.Ref
-        main = Ref
-        """);
+            import Standard.Base.Runtime.Ref.Ref
+            main = Ref
+            """);
   }
 
   @AfterClass

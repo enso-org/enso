@@ -12,8 +12,8 @@ import project.Panic.Panic
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
-from project.Error import all
 from project.Data.Text.Extensions import all
+from project.Error import all
 from project.Metadata import Display, Widget
 
 ## ---

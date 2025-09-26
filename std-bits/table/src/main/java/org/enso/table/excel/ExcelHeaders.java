@@ -23,8 +23,8 @@ public class ExcelHeaders {
     names =
         switch (headers) {
           case EXCEL_COLUMN_NAMES -> null;
-          case USE_FIRST_ROW_AS_HEADERS -> readRowAsHeaders(
-              startRow, startCol, endCol, deduplicator);
+          case USE_FIRST_ROW_AS_HEADERS ->
+              readRowAsHeaders(startRow, startCol, endCol, deduplicator);
           case INFER -> inferHeaders(startRow, nextRow, startCol, endCol, deduplicator);
         };
   }

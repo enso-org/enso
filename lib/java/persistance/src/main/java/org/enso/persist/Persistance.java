@@ -13,10 +13,12 @@ import java.util.function.Function;
 /**
  * Central persistance class. Use {@link Pool#write(java.lang.Object, java.util.function.Function)
  * write} method to turn a graph of JVM objects into a {@code byte[]}. <br>
+ *
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="write"}
  *
  * <p>Use sibling {@link Persistance.Pool#read read} method to read the byte buffer back into their
  * memory representation. <br>
+ *
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
  *
  * <h2>Manual Persistance</h2>
@@ -25,7 +27,10 @@ import java.util.function.Function;
  * one to implement the persistance manually. For each class that one wants to support, one has to
  * subclass {@link Persistance} and implement its {@link Persistance#writeObject} and {@link
  * Persistance#readObject} method. <br>
- * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"} <br>
+ *
+ * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"}
+ *
+ * <br>
  * There is a semi-automatic way to generate such subclasses of {@link Persistance} via the {@link
  * Persistable @Persistable} annotation.
  *
@@ -39,7 +44,10 @@ public abstract class Persistance<T> implements Cloneable {
   /**
    * Constructor for subclasses to register persistance for certain {@code clazz}. Sample
    * registration: <br>
-   * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"} <br>
+   *
+   * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"}
+   *
+   * <br>
    * Each persistance requires unique ID. A stream created by {@link Pool#write(Object,
    * Function<Object, Object>)} and read by {@link Pool#read(byte[], Function<Object, Object>)}
    * contains a header derived from the all the IDs present in the system. When versioning the
@@ -260,7 +268,11 @@ public abstract class Persistance<T> implements Cloneable {
 
     /**
      * Read object written down by {@link #write} from an array. <br>
-     * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"} <br>
+     *
+     * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
+     *
+     * <br>
+     *
      * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
      *
      * @param arr the stored bytes

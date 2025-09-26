@@ -24,23 +24,24 @@ public class ExportStaticMethodTest {
   public void staticMethodCanBeExportedByName() throws IOException {
     var tMod =
         new SourceModule(
-            QualifiedName.fromString("T_Module"), """
-        static_method x = x
-        """);
+            QualifiedName.fromString("T_Module"),
+            """
+            static_method x = x
+            """);
     var aMod =
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        export project.T_Module.static_method
-        """);
+            export project.T_Module.static_method
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.A_Module import all
-        main =
-            static_method 42
-        """);
+            from project.A_Module import all
+            main =
+                static_method 42
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, aMod, mainMod), projDir);
 
@@ -58,18 +59,18 @@ public class ExportStaticMethodTest {
         new SourceModule(
             QualifiedName.fromString("T_Module"),
             """
-        type My_Type
+            type My_Type
+                method x = x
             method x = x
-        method x = x
-        """);
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.T_Module import My_Type, method
-        main =
-            My_Type.method 42 == method 42
-        """);
+            from project.T_Module import My_Type, method
+            main =
+                My_Type.method 42 == method 42
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
 
@@ -85,15 +86,16 @@ public class ExportStaticMethodTest {
   public void moduleMethodIsInBindingMap() throws IOException {
     var tMod =
         new SourceModule(
-            QualifiedName.fromString("T_Module"), """
-        module_method x = x
-        """);
+            QualifiedName.fromString("T_Module"),
+            """
+            module_method x = x
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.T_Module.module_method
-        """);
+            export project.T_Module.module_method
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
 
@@ -112,15 +114,15 @@ public class ExportStaticMethodTest {
         new SourceModule(
             QualifiedName.fromString("T_Module"),
             """
-        type My_Type
-        My_Type.static_method x = x
-        """);
+            type My_Type
+            My_Type.static_method x = x
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.T_Module.static_method
-        """);
+            export project.T_Module.static_method
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
 
@@ -137,9 +139,10 @@ public class ExportStaticMethodTest {
   public void staticMethodIsDefinedEntity() throws IOException {
     var mainMod =
         new SourceModule(
-            QualifiedName.fromString("Main"), """
-        static_method x = x
-        """);
+            QualifiedName.fromString("Main"),
+            """
+            static_method x = x
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
 

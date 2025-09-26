@@ -1,92 +1,66 @@
 package org.enso.base.enso_cloud;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-
-/** Represents a value that is input of various operation that may contain a Secret. */
+/**
+ * Represents a hidden value. Such a value can be an input of various operation that may contain a
+ * Secret.
+ */
 public sealed interface HideableValue
-    permits HideableValue.Base64EncodeValue,
-        HideableValue.ConcatValues,
-        InterpretAsPrivateKey,
-        HideableValue.PlainValue,
-        HideableValue.SecretValue {
+    permits HideableImpl.Base64EncodeValue,
+        HideableImpl.ConcatValues,
+        HideableImpl.InterpretAsPrivateKey,
+        HideableImpl.PlainValue,
+        HideableImpl.SecretValue {
 
-  record SecretValue(String secretId) implements HideableValue {
-    @Override
-    public String render() {
-      return "__SECRET__";
-    }
-
-    @Override
-    public String safeResolve() throws EnsoSecretAccessDenied {
-      throw new EnsoSecretAccessDenied();
-    }
-
-    @Override
-    public boolean containsSecrets() {
-      return true;
-    }
+  /**
+   * Creates new instance of plain value. It doesn't {@link #containsSecrets()} and {@link
+   * #render()} exactly as the provided value.
+   *
+   * @param value the provided value
+   * @return new instance of hideable value with provided value
+   */
+  static HideableValue plain(String value) {
+    return new HideableImpl.PlainValue(value);
   }
 
-  record PlainValue(String value) implements HideableValue {
-    @Override
-    public String render() {
-      return value;
-    }
-
-    @Override
-    public String safeResolve() throws EnsoSecretAccessDenied {
-      return value;
-    }
-
-    @Override
-    public boolean containsSecrets() {
-      return false;
-    }
+  /**
+   * Creates new instance of a secret value. The value {@link #containsSecrets() contains secrets}.
+   *
+   * @param secretId the ID of the secret
+   * @return new instance of hideable value with provided value
+   */
+  static HideableValue secret(String secretId) {
+    return new HideableImpl.SecretValue(secretId);
   }
 
-  record ConcatValues(HideableValue left, HideableValue right) implements HideableValue {
-    @Override
-    public String render() {
-      return left.render() + right.render();
-    }
-
-    @Override
-    public String safeResolve() throws EnsoSecretAccessDenied {
-      return left.safeResolve() + right.safeResolve();
-    }
-
-    @Override
-    public boolean containsSecrets() {
-      return left.containsSecrets() || right.containsSecrets();
-    }
+  /**
+   * Concatenates two hideable values into one.
+   *
+   * @param left first hideable value
+   * @param right second hideable value
+   * @return new instance of hideable value
+   */
+  static HideableValue concat(HideableValue left, HideableValue right) {
+    return new HideableImpl.ConcatValues(left, right);
   }
 
-  record Base64EncodeValue(HideableValue value) implements HideableValue {
-    @Override
-    public String render() {
-      if (value.containsSecrets()) {
-        // If the value contains secrets, we cannot encode it so we render as 'pseudocode'
-        return "base64(" + value.render() + ")";
-      } else {
-        // But if there are no secrets inside, there is no harm in encoding for preview.
-        return encode(value.render());
-      }
-    }
+  /**
+   * Creates new base64 encoded value.
+   *
+   * @param inner the value to encode
+   * @return new instance of hideable value
+   */
+  static HideableValue base64(HideableValue inner) {
+    return new HideableImpl.Base64EncodeValue(inner);
+  }
 
-    @Override
-    public String safeResolve() throws EnsoSecretAccessDenied {
-      return encode(value.safeResolve());
-    }
-
-    @Override
-    public boolean containsSecrets() {
-      return value.containsSecrets();
-    }
-
-    public static String encode(String value) {
-      return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
-    }
+  /**
+   * Creates a value interpreted as private key.
+   *
+   * @param k
+   * @return new instance of hideable value
+   */
+  static HideableValue privateKey(HideableValue k) {
+    return new HideableImpl.InterpretAsPrivateKey(k);
   }
 
   /**
@@ -100,5 +74,13 @@ public sealed interface HideableValue
    */
   String safeResolve() throws EnsoSecretAccessDenied;
 
+  /**
+   * Does this value contain some secrets.
+   *
+   * @return
+   */
   boolean containsSecrets();
+
+  /** Creates a unique string representation of the value. */
+  String toString();
 }

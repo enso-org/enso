@@ -10,7 +10,7 @@ import {
 import { useCanRunProjects, useNewProject } from '#/hooks/backendHooks'
 import {
   isUploadableAsset,
-  useUploadFileToCloudMutation,
+  useUploadFileToCloud,
   useUploadFileToLocal,
 } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
@@ -18,21 +18,19 @@ import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useCategories } from '#/layouts/Drive/Categories'
+import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
-import type * as assetRow from '#/pages/dashboard/components/AssetRow'
 import { useExportArchive } from '#/pages/useExportArchive'
-import { usePasteData } from '#/providers/DriveProvider'
+import { useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import * as backendModule from '#/services/Backend'
-import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
-import type { RightPanelData } from '$/providers/rightPanel'
+import { useRightPanelData } from '$/providers/rightPanel'
 import {
   TEAMS_DIRECTORY_ID,
   USERS_DIRECTORY_ID,
@@ -41,7 +39,7 @@ import * as React from 'react'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
-  readonly innerProps: assetRow.AssetRowInnerProps
+  readonly asset: backendModule.AnyAsset
   readonly triggerRef: React.MutableRefObject<HTMLElement | null>
   readonly currentDirectoryId: backendModule.DirectoryId
   readonly doCopy: () => void
@@ -50,7 +48,6 @@ export interface AssetContextMenuProps {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
   ) => void
-  readonly rightPanel: RightPanelData
   readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
 }
 
@@ -59,15 +56,14 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   props: AssetContextMenuProps,
   ref: React.ForwardedRef<ContextMenuApi>,
 ) {
-  const { innerProps, triggerRef, currentDirectoryId, rightPanel, initialPosition } = props
-  const { doCopy, doCut, doPaste } = props
-  const { asset, state, setRowState } = innerProps
-  const { backend, category } = state
+  const { asset, triggerRef, currentDirectoryId, initialPosition, doCopy, doCut, doPaste } = props
 
+  const { category, associatedBackend: backend } = useCategoriesAPI()
   const isCloud = categoryModule.isCloudCategory(category)
-
+  const rightPanel = useRightPanelData()
   const { router } = useRouter()
   const { localCategories } = useCategories()
+  const driveStore = useDriveStore()
 
   const getAsset = useGetAsset()
   const canRunProjects = useCanRunProjects()
@@ -84,7 +80,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const encodedEnsoPath = asset.ensoPath ? encodeURI(asset.ensoPath) : undefined
   const copyMutation = useCopy()
-  const uploadFileToCloud = useUploadFileToCloudMutation()
+  const uploadFileToCloud = useUploadFileToCloud()
   const uploadFileToLocal = useUploadFileToLocal(category)
   const exportArchive = useExportArchive({ backend })
   const disabledTooltip =
@@ -264,7 +260,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
                 id: asset.id,
                 title: asset.title,
                 parentId: asset.parentId,
-                type: state.backend.type,
+                type: backend.type,
               })
             },
           },
@@ -335,7 +331,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             action: 'rename',
             doAction: () => {
               void goToDrive()
-              setRowState(object.merger({ isEditingName: true }))
+              driveStore.setState({ assetToRename: asset.id })
             },
           },
         (asset.type === backendModule.AssetType.secret ||
@@ -422,6 +418,9 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
       aria-label={getText('assetContextMenuLabel')}
       entries={entries}
       initialPosition={initialPosition}
+      onClose={() => {
+        driveStore.setState({ contextMenuData: null })
+      }}
     />
   )
 })
