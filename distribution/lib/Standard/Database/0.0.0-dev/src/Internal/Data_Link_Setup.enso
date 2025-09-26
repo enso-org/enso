@@ -8,7 +8,7 @@ from Standard.Base.Enso_Cloud.Data_Link_Helpers import save_password_for_data_li
 
 import project.Connection.Credentials.Credentials
 import project.SQL.SQL_Statement
-from project.Connection.Connection import make_table_from_query
+from project.SQL_Query import make_table_from_query
 
 ## ---
    private: true

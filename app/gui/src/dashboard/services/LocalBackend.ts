@@ -30,7 +30,6 @@ import {
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
-import { isUuid } from 'ydoc-shared/yjsModel'
 
 const LOCAL_API_URL = '/api/'
 
@@ -53,14 +52,17 @@ export function newProjectId(path: projectManager.Path) {
   return backend.ProjectId(`${PROJECT_ID_PREFIX}${encodeURIComponent(path)}`)
 }
 
+/** Check if given string resembles KSUID. */
+function isKsuid(candidate: string) {
+  return /^[a-zA-Z0-9]{27}$/.test(candidate)
+}
+
 /** Check if given {@link backend.ProjectId} represents a local project. */
 export function isLocalProjectId(projectId: backend.ProjectId): boolean {
-  // Local projects use UUIDs after the prefix, cloud projects have a different ID format.
-  const uuidLength = 36
+  // Local projects use path after the prefix, cloud projects have a KSUID right after prefix.
   return (
     projectId.startsWith(PROJECT_ID_PREFIX) &&
-    projectId[PROJECT_ID_PREFIX.length + uuidLength] === '-' &&
-    isUuid(projectId.substring(PROJECT_ID_PREFIX.length, PROJECT_ID_PREFIX.length + uuidLength))
+    !isKsuid(projectId.substring(PROJECT_ID_PREFIX.length))
   )
 }
 

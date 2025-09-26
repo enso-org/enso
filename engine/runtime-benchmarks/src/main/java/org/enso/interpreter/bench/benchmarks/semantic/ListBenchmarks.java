@@ -39,84 +39,84 @@ public class ListBenchmarks {
     var benchmarkName = SrcUtil.findName(params);
     var code =
         """
-      from Standard.Base.Any import Any
-      from Standard.Base.Data.List.List import Cons, Nil
-      from Standard.Base.Data.Text import Text
-      from Standard.Base.Data.Numbers import Float
-      from Standard.Base import Integer
-      import Standard.Base.IO
+        from Standard.Base.Any import Any
+        from Standard.Base.Data.List.List import Cons, Nil
+        from Standard.Base.Data.Text import Text
+        from Standard.Base.Data.Numbers import Float
+        from Standard.Base import Integer
+        import Standard.Base.IO
 
-      type V
-          Val (a : Integer)
+        type V
+            Val (a : Integer)
 
-          zero = V.Val 0
+            zero = V.Val 0
 
-          plus_v self (other : V) = V.Val self.a+other.a
+            plus_v self (other : V) = V.Val self.a+other.a
 
-          + self other:V -> Integer = self.a+other.a
+            + self other:V -> Integer = self.a+other.a
 
-          sum_int list (acc:V) =
-              case list of
-                  Nil -> acc.a
-                  Cons x xs -> @Tail_Call V.sum_int xs (acc.plus_v (V.Val x))
+            sum_int list (acc:V) =
+                case list of
+                    Nil -> acc.a
+                    Cons x xs -> @Tail_Call V.sum_int xs (acc.plus_v (V.Val x))
 
-          sum_conv list (acc:V) =
-              case list of
-                  Nil -> acc.a
-                  Cons x xs -> @Tail_Call V.sum_conv xs (acc.plus_v x)
+            sum_conv list (acc:V) =
+                case list of
+                    Nil -> acc.a
+                    Cons x xs -> @Tail_Call V.sum_conv xs (acc.plus_v x)
 
-      v_zero = V.zero
-      v_sum_int = V.sum_int
-      v_sum_conv = V.sum_conv
+        v_zero = V.zero
+        v_sum_int = V.sum_int
+        v_sum_conv = V.sum_conv
 
-      V.from (that : Integer) = V.Val that
+        V.from (that : Integer) = V.Val that
 
-      type Lenivy
-          Nic
-          Hlava ~x ~xs
+        type Lenivy
+            Nic
+            Hlava ~x ~xs
 
-          map self fn = case self of
-              Lenivy.Nic -> Lenivy.Nic
-              Lenivy.Hlava x xs -> Lenivy.Hlava (fn x) (xs.map fn)
+            map self fn = case self of
+                Lenivy.Nic -> Lenivy.Nic
+                Lenivy.Hlava x xs -> Lenivy.Hlava (fn x) (xs.map fn)
 
-      plus_one list = list.map (x -> x + 1)
+        plus_one list = list.map (x -> x + 1)
 
-      leniva_suma list acc = case list of
-          Lenivy.Nic -> acc
-          Lenivy.Hlava x xs -> @Tail_Call leniva_suma xs acc+x
+        leniva_suma list acc = case list of
+            Lenivy.Nic -> acc
+            Lenivy.Hlava x xs -> @Tail_Call leniva_suma xs acc+x
 
-      lenivy_generator n =
-          go x v l = if x > n then l else
-              @Tail_Call go x+1 v+1 (Lenivy.Hlava v l)
-          go 1 1 Lenivy.Nic
+        lenivy_generator n =
+            go x v l = if x > n then l else
+                @Tail_Call go x+1 v+1 (Lenivy.Hlava v l)
+            go 1 1 Lenivy.Nic
 
-      sum list acc =
-          case list of
-              Nil -> acc
-              Cons x xs -> @Tail_Call sum xs acc+x
+        sum list acc =
+            case list of
+                Nil -> acc
+                Cons x xs -> @Tail_Call sum xs acc+x
 
-      sum_any list (acc:Any) =
-          case list of
-              Nil -> acc
-              Cons x xs -> @Tail_Call sum_any xs acc+x
+        sum_any list (acc:Any) =
+            case list of
+                Nil -> acc
+                Cons x xs -> @Tail_Call sum_any xs acc+x
 
-      sum_int list (acc:Integer) =
-          case list of
-              Nil -> acc
-              Cons x xs -> @Tail_Call sum_int xs acc+x
+        sum_int list (acc:Integer) =
+            case list of
+                Nil -> acc
+                Cons x xs -> @Tail_Call sum_int xs acc+x
 
-      sum_multi list (acc:Text|Float|Integer|Any) =
-          case list of
-              Nil -> acc
-              Cons x xs -> @Tail_Call sum_multi xs acc+x
+        sum_multi list (acc:Text|Float|Integer|Any) =
+            case list of
+                Nil -> acc
+                Cons x xs -> @Tail_Call sum_multi xs acc+x
 
-      generator n =
-          go x v l = if x > n then l else
-              @Tail_Call go x+1 v+1 (Cons v l)
-          go 1 1 Nil
+        generator n =
+            go x v l = if x > n then l else
+                @Tail_Call go x+1 v+1 (Cons v l)
+            go 1 1 Nil
 
-      wrap_v s = s.map v-> V.Val v
-      """;
+        wrap_v s = s.map v-> V.Val v
+        """;
 
     var module = ctx.eval(SrcUtil.source(benchmarkName, code));
 

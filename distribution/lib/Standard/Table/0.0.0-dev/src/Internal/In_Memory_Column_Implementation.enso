@@ -107,28 +107,28 @@ type In_Memory_Column_Implementation
         new_name = naming_helper.binary_operation_name ">=" this_column other
         fallback problem_builder a b =
             _ = problem_builder
-            a >= b
+            Comparable.>= a b
         _call_comparator this_column other new_name (Comparators.greaterThanEq this_column.java_column (_java_other other)) fallback
 
     less_than_eq (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name "<=" this_column other
         fallback problem_builder a b =
             _ = problem_builder
-            a <= b
+            Comparable.<= a b
         _call_comparator this_column other new_name (Comparators.lessThanEq this_column.java_column (_java_other other)) fallback
 
     greater_than (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name ">" this_column other
         fallback problem_builder a b =
             _ = problem_builder
-            a > b
+            Comparable.> a b
         _call_comparator this_column other new_name (Comparators.greaterThan this_column.java_column (_java_other other)) fallback
 
     less_than (this_column : Column & In_Memory_Column) (other : Column | Any) = Value_Type.expect_comparable this_column other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name "<" this_column other
         fallback problem_builder a b =
             _ = problem_builder
-            a < b
+            Comparable.< a b
         _call_comparator this_column other new_name (Comparators.lessThan this_column.java_column (_java_other other)) fallback
 
     between (this_column : Column & In_Memory_Column) (lower : Column | Any) (upper : Column | Any) = Value_Type.expect_comparable this_column lower <| Value_Type.expect_comparable this_column upper <|

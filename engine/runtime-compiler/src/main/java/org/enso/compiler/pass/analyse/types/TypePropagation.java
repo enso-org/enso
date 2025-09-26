@@ -244,13 +244,13 @@ abstract class TypePropagation {
 
   private TypeRepresentation processLiteral(Literal literal) {
     return switch (literal) {
-      case Literal.Number number -> number.isFractional()
-          ? BuiltinTypes.FLOAT
-          : BuiltinTypes.INTEGER;
+      case Literal.Number number ->
+          number.isFractional() ? BuiltinTypes.FLOAT : BuiltinTypes.INTEGER;
       case Literal.Text text -> BuiltinTypes.TEXT;
-        // This branch is needed only because Java is unable to infer that the match is exhaustive
-      default -> throw new IllegalStateException(
-          "Impossible - unknown literal type: " + literal.getClass().getCanonicalName());
+      // This branch is needed only because Java is unable to infer that the match is exhaustive
+      default ->
+          throw new IllegalStateException(
+              "Impossible - unknown literal type: " + literal.getClass().getCanonicalName());
     };
   }
 
@@ -468,8 +468,8 @@ abstract class TypePropagation {
         return methodTypeResolver.resolveMethod(TypeScopeReference.ANY, function.name());
       }
 
-        // This is not calling this function, instead it is calling the _method_ represented by the
-        // UnresolvedSymbol on this Function object.
+      // This is not calling this function, instead it is calling the _method_ represented by the
+      // UnresolvedSymbol on this Function object.
       case TypeRepresentation.ArrowType functionAsObject -> {
         var typeScope = TypeScopeReference.atomType(functionAsObject.getAssociatedType());
         var resolvedMethod = methodTypeResolver.resolveMethod(typeScope, function.name());
@@ -556,8 +556,8 @@ abstract class TypePropagation {
 
         case BindingsMap.ResolvedType tpe -> typeResolver.resolvedTypeAsTypeObject(tpe);
 
-        case BindingsMap.ResolvedModule mod -> new TypeRepresentation.ModuleReference(
-            mod.qualifiedName());
+        case BindingsMap.ResolvedModule mod ->
+            new TypeRepresentation.ModuleReference(mod.qualifiedName());
 
         default -> {
           logger.trace(

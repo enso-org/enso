@@ -389,8 +389,9 @@ type SQLite_Dialect
        Returns `Nothing` if the key is not defined.
        Custom handling is required, because the default DatabaseMetaData
        implementation does not correctly handle temporary tables.
-    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name =
+    fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
+    fetch_primary_key self connection table_name schema_name =
+        _ = schema_name
         wrapped_name = self.wrap_identifier table_name
         query = SQL_Builder.code "pragma table_info(" ++ wrapped_name ++ ")"
         info_table = connection.read_statement query.build

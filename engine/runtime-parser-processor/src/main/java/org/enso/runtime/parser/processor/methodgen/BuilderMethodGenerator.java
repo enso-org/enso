@@ -37,11 +37,11 @@ public class BuilderMethodGenerator {
             .map(
                 field ->
                     """
-        public Builder $fieldName($fieldType $fieldName) {
-          this.$fieldName = $fieldName;
-          return this;
-        }
-        """
+                    public Builder $fieldName($fieldType $fieldName) {
+                      this.$fieldName = $fieldName;
+                      return this;
+                    }
+                    """
                         .replace("$fieldName", field.name())
                         .replace("$fieldType", field.getSimpleTypeName()))
             .collect(Collectors.joining(System.lineSeparator()));
@@ -53,10 +53,10 @@ public class BuilderMethodGenerator {
             .map(
                 field ->
                     """
-            if (this.$fieldName == null) {
-              throw new IllegalArgumentException("$fieldName is required");
-            }
-            """
+                    if (this.$fieldName == null) {
+                      throw new IllegalArgumentException("$fieldName is required");
+                    }
+                    """
                         .replace("$fieldName", field.getName()))
             .collect(Collectors.joining(System.lineSeparator()));
 

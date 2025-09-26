@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import {
+  useGraphStore,
+  useProjectNames,
+  useProjectStore,
+  useSuggestionDbStore,
+} from '$/components/WithCurrentProject.vue'
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
@@ -9,13 +14,19 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import type { NodeId } from '@/stores/graph'
+import { requiredImports } from '@/stores/graph/imports'
 import { Ast } from '@/util/ast'
 import { isAstId, type AstId } from '@/util/ast/abstract'
+import { unwrapOr, unwrapOrWithLog } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
+import { ProjectPath } from '@/util/projectPath'
 import { toast } from 'react-toastify'
 import { computed } from 'vue'
 
+const project = useProjectStore()
+const projectNames = useProjectNames()
 const graph = useGraphStore()
+const suggestionDb = useSuggestionDbStore()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
 const nodeSelection = injectGraphSelection(true)
@@ -123,10 +134,42 @@ function createEdge(source: AstId, target: PortId) {
     toast.error('Could not connect due to circular dependency.')
   } else {
     const identAst = Ast.parseExpression(ident, edit)!
-    if (!graph.updatePortValue(edit, target, identAst)) {
+    const expectedType = unwrapOr(
+      projectNames.parseProjectPathRaw(graph.getPortExpectedType(target) ?? ''),
+      undefined,
+    )
+    const connectionType = project.computedValueRegistry.getExpressionInfo(sourceNode)?.typeInfo
+    // Check if type cast to the target type is both possible and necessary.
+    const findCompatibleType = (
+      list: ProjectPath[] | undefined,
+      withType: ProjectPath | undefined,
+    ) => {
+      return list
+        ?.flatMap((type) =>
+          unwrapOrWithLog(suggestionDb.entries.getTypeAndItsParentsEntries(type), []),
+        )
+        .find((type) => withType?.equals(type.definitionPath))
+    }
+    const castNeeded = findCompatibleType(connectionType?.visibleTypes, expectedType) == null
+    const targetType = castNeeded && findCompatibleType(connectionType?.hiddenTypes, expectedType)
+    let portValueToSet = undefined
+    if (targetType) {
+      graph.addMissingImports(edit, requiredImports(suggestionDb.entries, targetType))
+      if (!Ast.isIdentifier(targetType.name)) {
+        console.error(
+          'SuggestionDB has a type which is not an identifier:',
+          targetType.definitionPath,
+        )
+      } else {
+        portValueToSet = Ast.TypeAnnotated.new(edit, identAst, Ast.Ident.new(edit, targetType.name))
+      }
+    }
+    portValueToSet = portValueToSet ?? identAst
+
+    if (!graph.updatePortValue(edit, target, portValueToSet)) {
       if (isAstId(target)) {
         console.warn(`Failed to connect edge to port ${target}, falling back to direct edit.`)
-        edit.replaceValue(target, identAst)
+        edit.replaceValue(target, portValueToSet)
         graph.commitEdit(edit)
       } else {
         console.error(`Failed to connect edge to port ${target}, no fallback possible.`)

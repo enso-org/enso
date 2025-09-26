@@ -16,9 +16,11 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void unfinishedLiteral1() throws Exception {
-    var ir = parse("""
-    foo = "unfinished literal...
-    """);
+    var ir =
+        parse(
+            """
+            foo = "unfinished literal...
+            """);
 
     assertSingleSyntaxError(
         ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
@@ -26,10 +28,12 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void brokenAnnotationMissingArgument() throws Exception {
-    var ir = parse("""
-    @anno
-    fn = 10
-    """);
+    var ir =
+        parse(
+            """
+            @anno
+            fn = 10
+            """);
 
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 5);
@@ -37,20 +41,24 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void dotUnderscore() throws Exception {
-    var ir = parse("""
-    run op =
-      op._
-    """);
+    var ir =
+        parse(
+            """
+            run op =
+              op._
+            """);
 
     assertSingleSyntaxError(ir, Syntax.InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
   }
 
   @Test
   public void spaceDotUnderscore() throws Exception {
-    var ir = parse("""
-    run op =
-      op ._
-    """);
+    var ir =
+        parse(
+            """
+            run op =
+              op ._
+            """);
 
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 14, 16);
@@ -58,37 +66,45 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void dotUnderscore2() throws Exception {
-    var ir = parse("""
-    run op =
-      op._.something
-    """);
+    var ir =
+        parse(
+            """
+            run op =
+              op._.something
+            """);
 
     assertSingleSyntaxError(ir, Syntax.InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
   }
 
   @Test
   public void unfinishedLiteral2() throws Exception {
-    var ir = parse("""
-    foo = 'unfinished literal...
-    """);
+    var ir =
+        parse(
+            """
+            foo = 'unfinished literal...
+            """);
     assertSingleSyntaxError(
         ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
   }
 
   @Test
   public void unpairedLiteral1() throws Exception {
-    var ir = parse("""
-    foo = "unpaired literal'
-    """);
+    var ir =
+        parse(
+            """
+            foo = "unpaired literal'
+            """);
     assertSingleSyntaxError(
         ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 24);
   }
 
   @Test
   public void unpairedLiteral2() throws Exception {
-    var ir = parse("""
-    foo = 'unpaired literal"
-    """);
+    var ir =
+        parse(
+            """
+            foo = 'unpaired literal"
+            """);
     assertSingleSyntaxError(
         ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 24);
   }
@@ -113,61 +129,73 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void lessThanTwoArgumentsToAnOperator() throws Exception {
-    var ir = parse("""
-    type T
-       %& self = 0
-    """);
+    var ir =
+        parse(
+            """
+            type T
+               %& self = 0
+            """);
     assertSingleSyntaxError(
         ir, Syntax.InvalidOperator$.MODULE$, "Operator must have two arguments", 10, 21);
   }
 
   @Test
   public void moreThanTwoArgumentsToAnOperator() throws Exception {
-    var ir = parse("""
-    type X
-       &% self one two = one+two
-    """);
+    var ir =
+        parse(
+            """
+            type X
+               &% self one two = one+two
+            """);
     assertSingleSyntaxError(
         ir, Syntax.InvalidOperator$.MODULE$, "Operator must have two arguments", 10, 35);
   }
 
   @Test
   public void badCase1() throws Exception {
-    var ir = parse("""
-    foo = case x of
-     4
-    """);
+    var ir =
+        parse(
+            """
+            foo = case x of
+             4
+            """);
     assertSingleSyntaxError(
         ir, new Syntax.UnsupportedSyntax("Invalid case expression"), null, 6, 18);
   }
 
   @Test
   public void badCase2() throws Exception {
-    var ir = parse("""
-    foo = case x of
-     4 ->
-    """);
+    var ir =
+        parse(
+            """
+            foo = case x of
+             4 ->
+            """);
     assertSingleSyntaxError(
         ir, new Syntax.UnsupportedSyntax("Invalid case expression"), null, 6, 21);
   }
 
   @Test
   public void badCase3() throws Exception {
-    var ir = parse("""
-    foo = case x of
-     4->
-    """);
+    var ir =
+        parse(
+            """
+            foo = case x of
+             4->
+            """);
     assertSingleSyntaxError(
         ir, new Syntax.UnsupportedSyntax("Invalid case expression"), null, 6, 20);
   }
 
   @Test
   public void badCase4() throws Exception {
-    var ir = parse("""
-    main =
-        case value of
-        -1 ->"minus one"
-    """);
+    var ir =
+        parse(
+            """
+            main =
+                case value of
+                -1 ->"minus one"
+            """);
     assertSingleSyntaxError(
         ir, new Syntax.UnsupportedSyntax("Operator must be applied to two operands"), null, 32, 45);
   }
@@ -341,9 +369,9 @@ public class ErrorCompilerTest extends CompilerTests {
     var ir =
         parse(
             """
-    fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> | Nothing -> Problem_Behavior -> Table | Nothing
-    fan_out_to_columns table text_or_integer any_to_vector_any wat problem_behavior = Nothing
-    """);
+            fan_out_to_columns : Table -> Text | Integer -> (Any -> Vector Any) -> | Nothing -> Problem_Behavior -> Table | Nothing
+            fan_out_to_columns table text_or_integer any_to_vector_any wat problem_behavior = Nothing
+            """);
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 48, 119);
   }
@@ -504,10 +532,12 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void illegalPrivateKeywordUseInType() throws Exception {
-    var ir = parse("""
-        type T
-            private
-        """);
+    var ir =
+        parse(
+            """
+            type T
+                private
+            """);
     assertSingleSyntaxError(
         ir,
         Syntax.UnexpectedDeclarationInType$.MODULE$,
@@ -518,20 +548,24 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void illegalPrivateKeywordRepeatedDeclarations() throws Exception {
-    var ir = parse("""
-        private
-        private
-        """);
+    var ir =
+        parse(
+            """
+            private
+            private
+            """);
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 8, 15);
   }
 
   @Test
   public void illegalPrivateKeywordUseInMethodBody() throws Exception {
-    var ir = parse("""
-        method =
-            private priv_nested_method x = x
-        """);
+    var ir =
+        parse(
+            """
+            method =
+                private priv_nested_method x = x
+            """);
     assertSingleSyntaxError(
         ir,
         new Syntax.UnsupportedSyntax("The \"private\" keyword is not expected in this context"),
@@ -542,18 +576,22 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void illegalPrivateTypeDeclaration() throws Exception {
-    var ir = parse("""
-        private type T
-        """);
+    var ir =
+        parse(
+            """
+            private type T
+            """);
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 14);
   }
 
   @Test
   public void illegalEscapeSequence() throws Exception {
-    var ir = parse("""
-    escape = 'wrong \\c sequence'
-    """);
+    var ir =
+        parse(
+            """
+            escape = 'wrong \\c sequence'
+            """);
     assertSingleSyntaxError(
         ir,
         new Syntax.InvalidEscapeSequence("wrong  sequence"),
@@ -567,24 +605,26 @@ public class ErrorCompilerTest extends CompilerTests {
     var ir =
         parse(
             """
-    from Standard.Base import all
+            from Standard.Base import all
 
-    main =
-        x = "foo"
-        z = x. length
-        IO.println z
-    """);
+            main =
+                x = "foo"
+                z = x. length
+                IO.println z
+            """);
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 60, 62);
   }
 
   @Test
   public void testNPE183863754() throws Exception {
-    var ir = parse("""
-    main =
-    #    meh
-         42
-    """);
+    var ir =
+        parse(
+            """
+            main =
+            #    meh
+                 42
+            """);
     var errors = ir.preorder().filter(Syntax.class::isInstance).map(Syntax.class::cast);
     assertEquals("One error", 1, errors.size());
     assertEquals(Syntax.UnexpectedExpression$.MODULE$, errors.head().reason());
@@ -594,11 +634,13 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void testMissingEqualsInMethodDefinition() throws Exception {
-    var ir = parse("""
-    type T
-      method self
-        42
-    """);
+    var ir =
+        parse(
+            """
+            type T
+              method self
+                42
+            """);
     assertSingleSyntaxError(
         ir,
         Syntax.UnexpectedDeclarationInType$.MODULE$,
@@ -609,28 +651,34 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void testAnnotation1() throws Exception {
-    var ir = parse("""
-    @x `
-    id x = x
-    """);
+    var ir =
+        parse(
+            """
+            @x `
+            id x = x
+            """);
     assertSingleSyntaxError(ir, new Syntax.UnsupportedSyntax("Unexpected token"), null, 3, 4);
   }
 
   @Test
   public void testAnnotation2() throws Exception {
-    var ir = parse("""
-    @` foo
-    id x = x
-    """);
+    var ir =
+        parse(
+            """
+            @` foo
+            id x = x
+            """);
     assertSingleSyntaxError(
         ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
   }
 
   @Test
   public void testEmptyBody() throws Exception {
-    var ir = parse("""
-    main =
-    """);
+    var ir =
+        parse(
+            """
+            main =
+            """);
 
     var method = (Method) ir.bindings().apply(0);
     assertTrue(method.body() instanceof Empty);
@@ -638,10 +686,12 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void testBodyWithComment() throws Exception {
-    var ir = parse("""
-    main =
-        # comment
-    """);
+    var ir =
+        parse(
+            """
+            main =
+                # comment
+            """);
 
     var method = (Method) ir.bindings().apply(0);
     var body = (Expression.Block) method.body();
@@ -651,40 +701,48 @@ public class ErrorCompilerTest extends CompilerTests {
 
   @Test
   public void exportAllIsNotAllowed() {
-    var ir = parse("""
-        from project.Module export all
-        """);
+    var ir =
+        parse(
+            """
+            from project.Module export all
+            """);
     assertSingleSyntaxError(
         ir, new Syntax.UnsupportedSyntax("\"all\" not allowed in export statement"), null, 0, 30);
   }
 
   @Test
   public void exportHidingIsNotAllowed() {
-    var ir = parse("""
-        from project.Module export all hiding Foo
-        """);
+    var ir =
+        parse(
+            """
+            from project.Module export all hiding Foo
+            """);
     assertSingleSyntaxError(
         ir, new Syntax.UnsupportedSyntax("\"all\" not allowed in export statement"), null, 0, 41);
   }
 
   @Test
   public void inlineDocCommentIsNotAllowed_1() {
-    var ir = parse("""
-        main args =
-            v = 42 ## meh
-            v
-        """);
+    var ir =
+        parse(
+            """
+            main args =
+                v = 42 ## meh
+                v
+            """);
     assertSingleSyntaxError(
         ir, new Syntax.UnsupportedSyntax("Unexpected documentation at end of line"), null, 23, 29);
   }
 
   @Test
   public void inlineDocCommentIsNotAllowed_2() {
-    var ir = parse("""
-        main args =
-            v = 42
-            v ## meh
-        """);
+    var ir =
+        parse(
+            """
+            main args =
+                v = 42
+                v ## meh
+            """);
     assertSingleSyntaxError(
         ir, new Syntax.UnsupportedSyntax("Unexpected documentation at end of line"), null, 29, 35);
   }
