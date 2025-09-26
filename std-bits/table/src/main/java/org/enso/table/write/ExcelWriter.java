@@ -68,7 +68,7 @@ public class ExcelWriter {
       {
             try (Workbook workbook = ExcelWriteHelper.openWorkbookForWrite(file, format)) {
           writeTableToSheet(workbook, sheetIndex, existingDataMode, firstRow, table, rowLimit, headers);
-                   ExcelWriteHelper.finaliseWorkbookWrite(file, workbook);
+                   ExcelWriteHelper.finaliseWorkbookWrite(file, format, workbook);
      }
   }
   
@@ -92,7 +92,7 @@ public class ExcelWriter {
      {
         try (Workbook workbook = ExcelWriteHelper.openWorkbookForWrite(file, format)) {
           writeTableToSheet(workbook, sheetName, existingDataMode, firstRow, table, rowLimit, headers);
-                   ExcelWriteHelper.finaliseWorkbookWrite(file, workbook);
+                   ExcelWriteHelper.finaliseWorkbookWrite(file, format, workbook);
      }
      }
 
@@ -115,7 +115,7 @@ public class ExcelWriter {
       {
             try (Workbook workbook = ExcelWriteHelper.openWorkbookForWrite(file, format)) {
           writeTableToRange(workbook, rangeNameOrAddress, existingDataMode, skipRows, table, rowLimit, headers);
-                   ExcelWriteHelper.finaliseWorkbookWrite(file, workbook);
+                   ExcelWriteHelper.finaliseWorkbookWrite(file, format, workbook);
      }
      }
 
