@@ -22,6 +22,7 @@ import {
   useAreOtherProjectsOpening,
   useIsProjectClosing,
   useIsProjectOpening,
+  useLaunchedProject,
 } from '$/providers/react/container'
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -83,6 +84,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     openProject,
   } = props
 
+  const launched = useLaunchedProject(item.id)
   const isUnconditionallyDisabled = !useCanRunProjects().locally[backend.type]
 
   const { user } = useFullUserSession()
@@ -145,8 +147,13 @@ export default function ProjectIcon(props: ProjectIconProps) {
     void openProject(item.id)
   })
 
-  const doCloseProject = useEventCallback(async () => {
-    await closeProject({ ...item, type: backend.type })
+  const doCloseProject = useEventCallback(() => {
+    if (launched != null) {
+      // This may be a hybrid project; use "launched" information to close properly.
+      return closeProject(launched)
+    } else {
+      return closeProject({ ...item, type: backend.type })
+    }
   })
 
   const getTooltip = (defaultTooltip: string) =>

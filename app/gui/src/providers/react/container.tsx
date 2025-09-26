@@ -1,6 +1,10 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { EnsoPath, ProjectId } from '#/services/Backend'
-import { useContainerData as useContainerDataVue, type ContainerData } from '$/providers/container'
+import {
+  useContainerData as useContainerDataVue,
+  type ContainerData,
+  type LaunchedProject,
+} from '$/providers/container'
 import {
   useRightPanelData as useRightPanelDataVue,
   type RightPanelData,
@@ -112,19 +116,19 @@ export function useRemoveOpeningProject() {
 
 /** A hook returning information if given project is opened. */
 export function useIsProjectOpening(id: Opt<ProjectId>) {
-  const { openingProjects } = useContainerData()
+  const data = useContainerData()
   return useVueValue(
-    react.useCallback(() => (id != null ? openingProjects.has(id) : false), [openingProjects, id]),
+    react.useCallback(() => (id != null ? data.openingProjects.has(id) : false), [data, id]),
   )
 }
 
 /** A hook returning information if any other project is opened. */
 export function useAreOtherProjectsOpening(id: ProjectId) {
-  const { openingProjects } = useContainerData()
+  const data = useContainerData()
   return useVueValue(
     react.useCallback(
-      () => openingProjects.size !== 0 && !openingProjects.has(id),
-      [openingProjects, id],
+      () => data.openingProjects.size !== 0 && !data.openingProjects.has(id),
+      [data, id],
     ),
   )
 }
@@ -147,8 +151,30 @@ export function useRemoveClosingProject() {
 
 /** A hook returning information if given project is closing. */
 export function useIsProjectClosing(id: Opt<ProjectId>) {
-  const { closingProjects } = useContainerData()
+  const data = useContainerData()
   return useVueValue(
-    react.useCallback(() => (id != null ? closingProjects.has(id) : false), [closingProjects, id]),
+    react.useCallback(() => (id != null ? data.closingProjects.has(id) : false), [data, id]),
+  )
+}
+
+/**
+ * Finds the project on "launched projects" list and returns its details.
+ *
+ * The "cloudId" of hybrid project is also considered.
+ */
+export function useLaunchedProject(id: Opt<ProjectId>): LaunchedProject | undefined {
+  const data = useContainerData()
+  return useVueValue(
+    react.useCallback(() => {
+      if (id == null) return undefined
+      const project = data.openedProjects.find(
+        (proj) =>
+          proj.id === id || (proj.state === 'launched' && proj.hybrid?.cloudProjectId === id),
+      )
+      if (project?.state === 'launched') {
+        return project
+      }
+      return undefined
+    }, [data, id]),
   )
 }

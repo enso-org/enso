@@ -64,8 +64,6 @@ LocalStorage.registerKey('launchedProjects', {
  *
  * State "launched" is a state where {@link LaunchedProject} is available. The project may still
  * be initializing, though.
- *
- *
  */
 // TODO[ao]: this is convoluted and shall be improved in https://github.com/enso-org/enso/issues/13491
 export type OpenedProject = (
