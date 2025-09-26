@@ -209,7 +209,7 @@ export class Server {
   }
 
   /** Get the project service. */
-  async getProjectService(): Promise<ProjectService> {
+  getProjectService(): ProjectService {
     if (!this.projectService) {
       this.projectService = ProjectService.default()
     }
@@ -336,7 +336,7 @@ export class Server {
         request,
         response,
         requestUrl,
-        () => this.getProjectService(),
+        async () => this.getProjectService(),
         headers,
       )
     } else if (request.url?.startsWith('/api/')) {

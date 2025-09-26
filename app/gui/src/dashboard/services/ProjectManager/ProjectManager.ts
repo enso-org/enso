@@ -509,9 +509,7 @@ export class ProjectManager {
   /** Send a JSON-RPC request to the project manager. */
   private async sendRequest<T = void>(method: string, params: unknown): Promise<T> {
     // Initialize socket lazily if not already initialized
-    if (!this.socketPromise) {
-      this.socketPromise = this.reconnect()
-    }
+    this.socketPromise ??= this.reconnect()
     const socket = await this.socketPromise
     const id = this.id++
     socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))
