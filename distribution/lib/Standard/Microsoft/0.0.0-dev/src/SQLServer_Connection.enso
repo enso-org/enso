@@ -410,7 +410,7 @@ properties_as_java_props properties =
         # Some parameters may be passed by the dialect as a `HideableValue` directly, so they do not need to be converted.
         value = pair.second
         java_value = if value.is_a HideableValue then value else
-            as_hideable_value value
+            as_hideable_value value factory=HideableValue
         Java_Pair.create pair.first java_value
 
 schema_black_list =
