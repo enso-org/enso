@@ -15,7 +15,6 @@ import AssetSummary from '#/pages/dashboard/components/AssetSummary'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import { FilterBy } from '#/services/Backend'
 import { regexEscape } from '#/utilities/string'
 import { useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQueries } from '@tanstack/react-query'
@@ -151,7 +150,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
         category,
         backend,
         parentId: targetId,
-        filterBy: FilterBy.trashed,
+        filterBy: 'Trashed',
         labels: null,
         sortExpression: null,
         sortDirection: null,

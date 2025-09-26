@@ -1,4 +1,4 @@
-import { Score, type WidgetModule } from '@/providers/widgetRegistry'
+import { Score, SCORE_NAMES, type WidgetModule } from '@/providers/widgetRegistry'
 import { setupDevtoolsPlugin } from '@vue/devtools-api'
 import { getCurrentInstance, type App, type ComponentInternalInstance } from 'vue'
 
@@ -51,7 +51,7 @@ function printScoreResult(result: ScoreResult, isSelected: boolean): string {
     case 'inputMismatch':
       return 'input mismatch'
     case 'scored':
-      return `Score.${Score[result[1]]}${isSelected ? ' ★' : ''}`
+      return `Score.${SCORE_NAMES[result[1]]}${isSelected ? ' ★' : ''}`
   }
 }
 

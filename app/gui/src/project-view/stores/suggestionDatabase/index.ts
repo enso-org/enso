@@ -4,11 +4,11 @@ import type { ProjectNameStore } from '@/stores/projectNames'
 import {
   entryIsCallable,
   isUserSelectableType,
-  SuggestionKind,
   type CallableSuggestionEntry,
   type MethodSuggestionEntry,
   type SuggestionEntry,
   type SuggestionId,
+  type SuggestionKind,
   type TypeSuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
@@ -52,7 +52,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
   private readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
   private readonly constructorFields = new ReactiveIndex(this, (id, entry) => {
-    if (entry.kind !== SuggestionKind.Constructor) return []
+    if (entry.kind !== 'Constructor') return []
     const fields = entry.arguments.map((arg) => arg.name)
     const path = entry.memberOf
     const fieldKeys = fields.map((field) => constructorFieldKey(path, field))
@@ -77,7 +77,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   }
 
   selectableTypes = computed(() => {
-    const allTypeEntries = this.getAllEntriesOfKind(SuggestionKind.Type)
+    const allTypeEntries = this.getAllEntriesOfKind('Type')
     return [...iter.filter(allTypeEntries, isUserSelectableType)]
   })
 
@@ -98,7 +98,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     } = {},
   ): MethodSuggestionEntry[] {
     const results: MethodSuggestionEntry[] = []
-    for (const method of this.getAllEntriesOfKind(SuggestionKind.Method)) {
+    for (const method of this.getAllEntriesOfKind('Method')) {
       if (!filter.includePrivate && method.isPrivate) continue
       if (filter.selfType != null && !filter.selfType.equals(method.selfType)) continue
       if (filter.memberOf != null && !filter.memberOf.equals(method.memberOf)) continue
@@ -130,7 +130,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     const result = []
     while (next != null) {
       const entry = this.getEntryByProjectPath(next)
-      if (entry?.kind !== SuggestionKind.Type) {
+      if (entry?.kind !== 'Type') {
         if (result.length > 0) {
           console.error(
             `Suggestion Database inconsitency: parent type of ${result[result.length - 1]?.definedIn.key()} is not a non-type entity ${next.key()}`,
@@ -173,7 +173,7 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
 
   /** Returns the entry's ancestors, starting with its parent. */
   *ancestors(entry: SuggestionEntry): Iterable<ProjectPath> {
-    while (entry.kind === SuggestionKind.Type && entry.parentType) {
+    while (entry.kind === 'Type' && entry.parentType) {
       yield entry.parentType
       const parent = this.getEntryByProjectPath(entry.parentType)
       if (!parent) break

@@ -183,6 +183,7 @@ export const Score = {
   /** Widget matches perfectly and can be used outright, without checking other kinds. */
   Perfect: 3,
 } as const
+export const SCORE_NAMES = Object.keys(Score) as readonly (keyof typeof Score)[]
 
 export interface WidgetProps<T> {
   input: T

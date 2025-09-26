@@ -3,8 +3,8 @@ import type { SvgUseIcon } from '#/components/types'
 import type { UserId } from '#/services/Backend'
 import {
   BACKEND_TYPES,
-  FilterBy,
   type DirectoryId,
+  type FilterBy,
   type Path,
   type User,
   type UserGroup,
@@ -164,14 +164,14 @@ export type CategoryId = Category['id']
 export type CategoryByType<T extends Category['type']> = Extract<Category, { type: T }>
 
 export const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], FilterBy | null>> = {
-  cloud: FilterBy.active,
-  local: FilterBy.active,
+  cloud: 'Active',
+  local: 'Active',
   recent: null,
-  trash: FilterBy.trashed,
-  user: FilterBy.active,
-  team: FilterBy.active,
+  trash: 'Trashed',
+  user: 'Active',
+  team: 'Active',
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  'local-directory': FilterBy.active,
+  'local-directory': 'Active',
 }
 
 /** Whether the category is only accessible from the cloud. */

@@ -1,6 +1,9 @@
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
-import type { SuggestionEntry, SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { SuggestionKind } from '@/stores/suggestionDatabase/entry'
+import type {
+  SuggestionEntry,
+  SuggestionId,
+  SuggestionKind,
+} from '@/stores/suggestionDatabase/entry'
 import type { ProjectPath } from '@/util/projectPath'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import type { SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
@@ -114,9 +117,7 @@ type DocsHandler<Kind extends SuggestionKind> = (
   id: SuggestionId,
 ) => Docs
 
-const handleFunction: DocsHandler<
-  SuggestionKind.Function | SuggestionKind.Method | SuggestionKind.Constructor
-> = (_db, entry, id) => ({
+const handleFunction: DocsHandler<'Function' | 'Method' | 'Constructor'> = (_db, entry, id) => ({
   kind: 'Function',
   id,
   name: entry.definitionPath,
@@ -126,33 +127,33 @@ const handleFunction: DocsHandler<
 })
 
 const handleDocumentation: { [Kind in SuggestionKind]: DocsHandler<Kind> } = {
-  [SuggestionKind.Function]: handleFunction,
-  [SuggestionKind.Method]: handleFunction,
-  [SuggestionKind.Constructor]: handleFunction,
-  [SuggestionKind.Local]: (_db, entry, id) => ({
+  ['Function']: handleFunction,
+  ['Method']: handleFunction,
+  ['Constructor']: handleFunction,
+  ['Local']: (_db, entry, id) => ({
     kind: 'Local',
     id,
     name: entry.definitionPath,
     documentation: entry.documentation,
     documentationSummary: entry.documentationSummary,
   }),
-  [SuggestionKind.Type]: (db, entry, id) => ({
+  ['Type']: (db, entry, id) => ({
     kind: 'Type',
     id,
     name: entry.definitionPath,
     arguments: entry.arguments,
     documentation: entry.documentation,
     documentationSummary: entry.documentationSummary,
-    methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
-    constructors: asFunctionDocs(getChildren(db, id, SuggestionKind.Constructor)),
+    methods: asFunctionDocs(getChildren(db, id, 'Method')),
+    constructors: asFunctionDocs(getChildren(db, id, 'Constructor')),
   }),
-  [SuggestionKind.Module]: (db, entry, id) => ({
+  ['Module']: (db, entry, id) => ({
     kind: 'Module',
     id,
     name: entry.definitionPath,
     documentation: entry.documentation,
     documentationSummary: entry.documentationSummary,
-    types: asTypeDocs(getChildren(db, id, SuggestionKind.Type)),
-    methods: asFunctionDocs(getChildren(db, id, SuggestionKind.Method)),
+    types: asTypeDocs(getChildren(db, id, 'Type')),
+    methods: asFunctionDocs(getChildren(db, id, 'Method')),
   }),
 }

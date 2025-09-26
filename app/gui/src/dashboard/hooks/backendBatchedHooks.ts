@@ -13,7 +13,6 @@ import {
 } from '@tanstack/react-query'
 import {
   DuplicateAssetError,
-  FilterBy,
   type AnyAsset,
   type AssetId,
   type default as Backend,
@@ -373,7 +372,7 @@ export async function getAllTrashedItems(
         {
           parentId: category.homeDirectoryId,
           labels: null,
-          filterBy: FilterBy.trashed,
+          filterBy: 'Trashed',
           recentProjects: false,
           from: null,
           pageSize: null,

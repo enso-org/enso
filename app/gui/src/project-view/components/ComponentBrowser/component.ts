@@ -3,7 +3,6 @@ import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryDisplayPath,
   entryIsStatic,
-  SuggestionKind,
   type SuggestionEntry,
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
@@ -113,8 +112,7 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
   if (matchCompare !== 0) return matchCompare
   const groupCompare = compareOpt(a.entry.groupIndex, b.entry.groupIndex, 1)
   if (groupCompare !== 0) return groupCompare
-  const kindCompare =
-    +(a.entry.kind === SuggestionKind.Module) - +(b.entry.kind === SuggestionKind.Module)
+  const kindCompare = +(a.entry.kind === 'Module') - +(b.entry.kind === 'Module')
   if (kindCompare !== 0) return kindCompare
   const moduleCompare =
     (a.entry.definedIn.project ?? '').localeCompare(b.entry.definedIn.project ?? '') ||

@@ -7,7 +7,6 @@ import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryDisplayPath,
   entryIsStatic,
-  SuggestionKind,
   type SuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
@@ -90,7 +89,7 @@ export class ExpressionTag {
   ): ExpressionTag {
     const expression =
       entryIsStatic(entry) ? entryDisplayPath(entry)
-      : entry.kind === SuggestionKind.Method ? `_.${entry.name}`
+      : entry.kind === 'Method' ? `_.${entry.name}`
       : entry.name
     return new ExpressionTag(
       expression,

@@ -1,6 +1,6 @@
 import type { ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import {
   astToQualifiedName,
@@ -202,7 +202,7 @@ export function requiredImports(
     },
   ]
   switch (entry.kind) {
-    case SuggestionKind.Module:
+    case 'Module':
       return entry.reexportedIn ?
           unqualifiedImport(entry.reexportedIn)
         : [
@@ -211,16 +211,16 @@ export function requiredImports(
               module: entry.definedIn.normalized(),
             },
           ]
-    case SuggestionKind.Type:
+    case 'Type':
       return unqualifiedImport(entry.reexportedIn ?? entry.definedIn)
-    case SuggestionKind.Constructor:
+    case 'Constructor':
       if (directConImport) {
         return unqualifiedImport(entry.reexportedIn ?? entry.memberOf)
       } else {
         const selfType = selfTypeEntry(db, entry)
         return selfType ? requiredImports(db, selfType) : []
       }
-    case SuggestionKind.Method: {
+    case 'Method': {
       const isStatic = entry.selfType == null
       const selfType = selfTypeEntry(db, entry)
       const isExtension = selfType && !selfType.definedIn.equals(entry.definedIn)
@@ -233,8 +233,8 @@ export function requiredImports(
         return [...extensionImports]
       }
     }
-    case SuggestionKind.Function:
-    case SuggestionKind.Local:
+    case 'Function':
+    case 'Local':
     default:
       return []
   }
@@ -251,10 +251,7 @@ export function requiredImportsByProjectPath(
 }
 
 function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
-  if (
-    (entry.kind === SuggestionKind.Method || entry.kind === SuggestionKind.Constructor) &&
-    entry.memberOf
-  ) {
+  if ((entry.kind === 'Method' || entry.kind === 'Constructor') && entry.memberOf) {
     return db.getEntryByProjectPath(entry.memberOf)
   }
 }

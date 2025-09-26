@@ -4,18 +4,18 @@ import {
   documentationData,
   type DocumentationData,
 } from '@/stores/suggestionDatabase/documentation'
-import {
+import type {
+  ConstructorSuggestionEntry,
+  FunctionSuggestionEntry,
+  LocalSuggestionEntry,
+  MethodSuggestionEntry,
+  ModuleSuggestionEntry,
+  SuggestionEntry,
+  SuggestionEntryArgument,
+  SuggestionEntryCommon,
   SuggestionKind,
-  type ConstructorSuggestionEntry,
-  type FunctionSuggestionEntry,
-  type LocalSuggestionEntry,
-  type MethodSuggestionEntry,
-  type ModuleSuggestionEntry,
-  type SuggestionEntry,
-  type SuggestionEntryArgument,
-  type SuggestionEntryCommon,
-  type Typename,
-  type TypeSuggestionEntry,
+  Typename,
+  TypeSuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { assert, assertNever } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
@@ -106,7 +106,7 @@ abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
 }
 
 class FunctionSuggestionEntryImpl extends BaseSuggestionEntry implements FunctionSuggestionEntry {
-  readonly kind = SuggestionKind.Function
+  readonly kind = 'Function'
   arguments: lsTypes.SuggestionEntryArgument[]
 
   private constructor(
@@ -157,7 +157,7 @@ class FunctionSuggestionEntryImpl extends BaseSuggestionEntry implements Functio
 }
 
 class ModuleSuggestionEntryImpl extends BaseSuggestionEntry implements ModuleSuggestionEntry {
-  readonly kind = SuggestionKind.Module
+  readonly kind = 'Module'
 
   private constructor(
     definedIn: ProjectPath,
@@ -202,7 +202,7 @@ class ModuleSuggestionEntryImpl extends BaseSuggestionEntry implements ModuleSug
 }
 
 class TypeSuggestionEntryImpl extends BaseSuggestionEntry implements TypeSuggestionEntry {
-  readonly kind = SuggestionKind.Type
+  readonly kind = 'Type'
   arguments: lsTypes.SuggestionEntryArgument[]
 
   private constructor(
@@ -256,7 +256,7 @@ class ConstructorSuggestionEntryImpl
   extends BaseSuggestionEntry
   implements ConstructorSuggestionEntry
 {
-  readonly kind = SuggestionKind.Constructor
+  readonly kind = 'Constructor'
   arguments: lsTypes.SuggestionEntryArgument[]
 
   private constructor(
@@ -318,7 +318,7 @@ class ConstructorSuggestionEntryImpl
 }
 
 class MethodSuggestionEntryImpl extends BaseSuggestionEntry implements MethodSuggestionEntry {
-  readonly kind = SuggestionKind.Method
+  readonly kind = 'Method'
   arguments: lsTypes.SuggestionEntryArgument[]
 
   private constructor(
@@ -388,7 +388,7 @@ class MethodSuggestionEntryImpl extends BaseSuggestionEntry implements MethodSug
 }
 
 class LocalSuggestionEntryImpl extends BaseSuggestionEntry implements LocalSuggestionEntry {
-  readonly kind = SuggestionKind.Local
+  readonly kind = 'Local'
 
   private constructor(
     readonly name: IdentifierOrOperatorIdentifier,

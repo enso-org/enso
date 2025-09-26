@@ -5,7 +5,7 @@ import { withDropdownItems } from '@/components/GraphEditor/widgets/WidgetSelect
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { injectFunctionInfo } from '@/providers/functionInfo'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { ProjectPath } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'
@@ -30,7 +30,7 @@ function* selectPossibleTargetTypes(
   sourceType: QualifiedName,
 ): Iterable<ProjectPath> {
   for (const entry of entries) {
-    if (entry.kind !== SuggestionKind.Method || entry.name !== 'from') {
+    if (entry.kind !== 'Method' || entry.name !== 'from') {
       continue
     }
 

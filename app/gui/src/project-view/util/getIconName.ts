@@ -1,7 +1,7 @@
 import type { NodeId } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { evaluationProgress } from '@/stores/project/computedValueRegistry'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import type { MethodPointer } from '@/util/methodPointer'
 import type { ProjectPath } from '@/util/projectPath'
@@ -36,8 +36,8 @@ export function typeNameToIcon(typePath: ProjectPath): Icon {
 /** Returns an icon override for a suggestion entry kind. */
 export function suggestionEntryToIcon(entry: SuggestionEntry) {
   if (entry.iconName) return entry.iconName
-  if (entry.kind === SuggestionKind.Local) return 'local_scope2'
-  if (entry.kind === SuggestionKind.Module) return 'collection'
+  if (entry.kind === 'Local') return 'local_scope2'
+  if (entry.kind === 'Module') return 'collection'
   return DEFAULT_ICON
 }
 

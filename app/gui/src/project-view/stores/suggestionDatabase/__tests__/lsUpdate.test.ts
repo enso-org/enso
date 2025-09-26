@@ -1,7 +1,7 @@
 import { frontmatter } from '@/components/ComponentHelp/metadata'
 import { mockProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { assert, assertDefined } from '@/util/assert'
 import { unwrap } from '@/util/data/result'
@@ -344,8 +344,8 @@ class Fixture {
   staticMethodDocs = frontmatter({ group: 'Test2' }) + 'A static method'
   functionDocs = 'A local function'
   localDocs = 'A local variable'
-  expectedModule = suggestionEntry<SuggestionKind.Module>({
-    kind: SuggestionKind.Module,
+  expectedModule = suggestionEntry<'Module'>({
+    kind: 'Module',
     name: unwrap(tryIdentifier('Base')),
     definedIn: stdPath('Standard.Base.Main'),
     definitionPath: stdPath('Standard.Base.Main'),
@@ -361,8 +361,8 @@ class Fixture {
     macros: {},
     suggestedRank: undefined,
   })
-  expectedType = suggestionEntry<SuggestionKind.Type>({
-    kind: SuggestionKind.Type,
+  expectedType = suggestionEntry<'Type'>({
+    kind: 'Type',
     name: unwrap(tryIdentifier('Type')),
     definedIn: stdPath('Standard.Base.Main'),
     definitionPath: stdPath('Standard.Base.Main.Type'),
@@ -380,8 +380,8 @@ class Fixture {
     macros: {},
     suggestedRank: undefined,
   })
-  expectedCon = suggestionEntry<SuggestionKind.Constructor>({
-    kind: SuggestionKind.Constructor,
+  expectedCon = suggestionEntry<'Constructor'>({
+    kind: 'Constructor',
     name: unwrap(tryIdentifier('Con')),
     definedIn: stdPath('Standard.Base.Main'),
     memberOf: stdPath('Standard.Base.Main.Type'),
@@ -400,8 +400,8 @@ class Fixture {
     macros: {},
     suggestedRank: undefined,
   })
-  expectedMethod = suggestionEntry<SuggestionKind.Method>({
-    kind: SuggestionKind.Method,
+  expectedMethod = suggestionEntry<'Method'>({
+    kind: 'Method',
     name: unwrap(tryIdentifier('method')),
     definedIn: stdPath('Standard.Base.Main'),
     memberOf: stdPath('Standard.Base.Main.Type'),
@@ -421,8 +421,8 @@ class Fixture {
     macros: {},
     suggestedRank: undefined,
   })
-  expectedStaticMethod = suggestionEntry<SuggestionKind.Method>({
-    kind: SuggestionKind.Method,
+  expectedStaticMethod = suggestionEntry<'Method'>({
+    kind: 'Method',
     name: unwrap(tryIdentifier('static_method')),
     definedIn: stdPath('Standard.Base.Main'),
     memberOf: stdPath('Standard.Base.Main.Type'),
@@ -442,8 +442,8 @@ class Fixture {
     macros: {},
     suggestedRank: undefined,
   })
-  expectedFunction = suggestionEntry<SuggestionKind.Function>({
-    kind: SuggestionKind.Function,
+  expectedFunction = suggestionEntry<'Function'>({
+    kind: 'Function',
     name: unwrap(tryIdentifier('function')),
     definedIn: stdPath('Standard.Base.Main'),
     definitionPath: stdPath('Standard.Base.Main.function'),
@@ -460,8 +460,8 @@ class Fixture {
     macros: {},
     suggestedRank: undefined,
   })
-  expectedLocal = suggestionEntry<SuggestionKind.Local>({
-    kind: SuggestionKind.Local,
+  expectedLocal = suggestionEntry<'Local'>({
+    kind: 'Local',
     name: unwrap(tryIdentifier('local')),
     definedIn: stdPath('Standard.Base.Main'),
     definitionPath: stdPath('Standard.Base.Main.local'),
@@ -477,8 +477,8 @@ class Fixture {
     macros: {},
     suggestedRank: undefined,
   })
-  expectedLocalStaticMethod = suggestionEntry<SuggestionKind.Method>({
-    kind: SuggestionKind.Method,
+  expectedLocalStaticMethod = suggestionEntry<'Method'>({
+    kind: 'Method',
     arguments: [
       {
         name: 'a',
