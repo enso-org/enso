@@ -17,21 +17,9 @@ public class ExcelWriteHelper {
   }
 
   public static Workbook openWorkbookForWrite(File file, ExcelFileFormat format) throws IOException {
-    verifyIsWritable(file);
     ExcelFormatStrategy strategy = format.createStrategy();
     strategy.openForWrite(file);
     return strategy.getWorkbook();
-  }
-
-  private static void verifyIsWritable(File file) throws IOException {
-    Path path = file.toPath();
-
-    if (!Files.exists(path)) {
-      // If the file does not exist, we assume that we can create it.
-      return;
-    }
-
-    path.getFileSystem().provider().checkAccess(path, AccessMode.WRITE, AccessMode.READ);
   }
 
   public static void finaliseWorkbookWrite(File file, ExcelFileFormat format, Workbook workbook)

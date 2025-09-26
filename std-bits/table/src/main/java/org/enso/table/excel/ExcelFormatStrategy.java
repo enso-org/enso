@@ -4,7 +4,9 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.AccessMode;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.apache.poi.ss.usermodel.Workbook;
 
@@ -45,6 +47,7 @@ public abstract class ExcelFormatStrategy {
    * chooses between {@link #openExisting(File, boolean)} and {@link #createNew()} accordingly.
    */
   public void openForWrite(File file) throws IOException {
+    verifyIsWritable(file);
     this.preExistingFile = file.exists() && Files.exists(file.toPath()) && Files.size(file.toPath()) > 0;
     if (preExistingFile) {
       openExisting(file, true);
@@ -69,5 +72,16 @@ public abstract class ExcelFormatStrategy {
       }
     }
     cleanup();
+  }
+
+  private static void verifyIsWritable(File file) throws IOException {
+    Path path = file.toPath();
+
+    if (!Files.exists(path)) {
+      // If the file does not exist, we assume that we can create it.
+      return;
+    }
+
+    path.getFileSystem().provider().checkAccess(path, AccessMode.WRITE, AccessMode.READ);
   }
 }
