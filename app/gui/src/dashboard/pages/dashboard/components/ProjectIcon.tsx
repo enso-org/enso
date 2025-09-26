@@ -6,6 +6,7 @@ import { Spinner } from '#/components/Spinner'
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
 import { useCanRunProjects } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { CLOSING_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { projectsStore } from '#/providers/ProjectsProvider/hooks'
 import type Backend from '#/services/Backend'
@@ -128,7 +129,20 @@ export default function ProjectIcon(props: ProjectIconProps) {
     { unsafeEnableTransition: true },
   )
   const isAnotherProjectOpening = areOtherProjectsOpening && !IS_OPENING_OR_OPENED[state]
-  const isDisabled = isDisabledRaw || isUnconditionallyDisabled || isAnotherProjectOpening
+  const isDisabled =
+    isDisabledRaw ||
+    isUnconditionallyDisabled ||
+    isAnotherProjectOpening ||
+    CLOSING_PROJECT_STATES.has(state)
+  console.debug(
+    'isDisabled',
+    isDisabled,
+    isDisabledRaw,
+    isUnconditionallyDisabled,
+    isAnotherProjectOpening,
+    state,
+    CLOSING_PROJECT_STATES.has(state),
+  )
 
   const userOpeningProjectTooltip =
     isOtherUserUsingProject ? getText('xIsUsingTheProject', projectState.openedBy) : null
