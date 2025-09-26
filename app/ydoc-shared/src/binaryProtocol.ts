@@ -724,10 +724,10 @@ export class Builder {
 /** An {@link ArrayBuffer} wrapper with added utility methods. */
 export class ByteBuffer {
   position = 0
-  view: DataView
+  view: DataView<ArrayBuffer>
 
   /** TODO: Add docs */
-  constructor(buffer: ArrayBufferLike) {
+  constructor(buffer: ArrayBuffer) {
     this.view = new DataView(buffer)
   }
 
@@ -776,15 +776,16 @@ export class ByteBuffer {
   }
 }
 
-export enum InboundPayload {
-  NONE = 0,
-  INIT_SESSION_CMD = 1,
-  WRITE_FILE_CMD = 2,
-  READ_FILE_CMD = 3,
-  WRITE_BYTES_CMD = 4,
-  READ_BYTES_CMD = 5,
-  CHECKSUM_BYTES_CMD = 6,
-}
+export type InboundPayload = (typeof InboundPayload)[keyof typeof InboundPayload]
+export const InboundPayload = {
+  NONE: 0,
+  INIT_SESSION_CMD: 1,
+  WRITE_FILE_CMD: 2,
+  READ_FILE_CMD: 3,
+  WRITE_BYTES_CMD: 4,
+  READ_BYTES_CMD: 5,
+  CHECKSUM_BYTES_CMD: 6,
+} as const
 
 export type AnyInboundPayload =
   | None
@@ -795,16 +796,17 @@ export type AnyInboundPayload =
   | ReadBytesCommand
   | ChecksumBytesCommand
 
-export enum OutboundPayload {
-  NONE = 0,
-  ERROR = 1,
-  SUCCESS = 2,
-  VISUALIZATION_UPDATE = 3,
-  FILE_CONTENTS_REPLY = 4,
-  WRITE_BYTES_REPLY = 5,
-  READ_BYTES_REPLY = 6,
-  CHECKSUM_BYTES_REPLY = 7,
-}
+export type OutboundPayload = (typeof OutboundPayload)[keyof typeof OutboundPayload]
+export const OutboundPayload = {
+  NONE: 0,
+  ERROR: 1,
+  SUCCESS: 2,
+  VISUALIZATION_UPDATE: 3,
+  FILE_CONTENTS_REPLY: 4,
+  WRITE_BYTES_REPLY: 5,
+  READ_BYTES_REPLY: 6,
+  CHECKSUM_BYTES_REPLY: 7,
+} as const
 
 export type AnyOutboundPayload =
   | None
@@ -816,10 +818,11 @@ export type AnyOutboundPayload =
   | ReadBytesReply
   | ChecksumBytesReply
 
-export enum ErrorPayload {
-  NONE = 0,
-  READ_OOB = 1,
-}
+export type ErrorPayload = (typeof ErrorPayload)[keyof typeof ErrorPayload]
+export const ErrorPayload = {
+  NONE: 0,
+  READ_OOB: 1,
+} as const
 
 export type AnyErrorPayload = None | ReadOutOfBoundsError
 
@@ -860,7 +863,9 @@ export class InboundMessage implements Table {
   /** TODO: Add docs */
   payloadType(): InboundPayload {
     const offset = this.bb.offset(this.bbPos, 8)
-    return offset ? this.bb.view.getUint8(this.bbPos + offset) : InboundPayload.NONE
+    return offset ?
+        (this.bb.view.getUint8(this.bbPos + offset) as InboundPayload)
+      : InboundPayload.NONE
   }
 
   /** TODO: Add docs */
@@ -967,7 +972,9 @@ export class OutboundMessage implements Table {
   /** Get the `payloadType` field of this message. */
   payloadType(): OutboundPayload {
     const offset = this.bb.offset(this.bbPos, 8)
-    return offset ? this.bb.view.getUint8(this.bbPos + offset) : OutboundPayload.NONE
+    return offset ?
+        (this.bb.view.getUint8(this.bbPos + offset) as OutboundPayload)
+      : OutboundPayload.NONE
   }
 
   /** Get the `payload` field of this message. */
@@ -1105,7 +1112,7 @@ export class Error implements Table {
   /** Get the `dataType` field of this message. */
   dataType(): ErrorPayload {
     const offset = this.bb.offset(this.bbPos, 8)
-    return offset ? this.bb.view.getUint8(this.bbPos + offset) : ErrorPayload.NONE
+    return offset ? (this.bb.view.getUint8(this.bbPos + offset) as ErrorPayload) : ErrorPayload.NONE
   }
 
   /** Get the `data` field of this message. */
@@ -1604,7 +1611,7 @@ export class Path implements Table {
     const offset = this.bb.offset(this.bbPos, 6)
     return offset ?
         this.bb.rawMessage(this.bb.vector(this.bbPos + offset) + index * 4)
-      : new Uint8Array()
+      : new ArrayBuffer()
   }
 
   /** TODO: Add docs */

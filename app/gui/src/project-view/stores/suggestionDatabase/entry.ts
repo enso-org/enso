@@ -29,14 +29,7 @@ export type {
 export type Typename = string
 
 // The kind of a suggestion.
-export enum SuggestionKind {
-  Module = 'Module',
-  Type = 'Type',
-  Constructor = 'Constructor',
-  Method = 'Method',
-  Function = 'Function',
-  Local = 'Local',
-}
+export type SuggestionKind = 'Module' | 'Type' | 'Constructor' | 'Method' | 'Function' | 'Local'
 
 export interface SuggestionEntryCommon extends DocumentationData {
   readonly kind: SuggestionKind
@@ -75,11 +68,11 @@ interface IsMemberOf {
 }
 
 export interface ModuleSuggestionEntry extends SuggestionEntryCommon, Reexportable {
-  readonly kind: SuggestionKind.Module
+  readonly kind: 'Module'
 }
 
 export interface TypeSuggestionEntry extends SuggestionEntryCommon, Reexportable, TakesArguments {
-  readonly kind: SuggestionKind.Type
+  readonly kind: 'Type'
   /** Qualified name of the parent type. */
   parentType: ProjectPath | undefined
 }
@@ -118,7 +111,7 @@ export interface ConstructorSuggestionEntry
     Annotatable,
     TakesArguments,
     IsMemberOf {
-  readonly kind: SuggestionKind.Constructor
+  readonly kind: 'Constructor'
 }
 
 export interface MethodSuggestionEntry
@@ -127,17 +120,17 @@ export interface MethodSuggestionEntry
     Annotatable,
     TakesArguments,
     IsMemberOf {
-  readonly kind: SuggestionKind.Method
+  readonly kind: 'Method'
   /** Type of the "self" argument. */
   selfType: ProjectPath | undefined
 }
 
 export interface FunctionSuggestionEntry extends SuggestionEntryCommon, Scoped, TakesArguments {
-  readonly kind: SuggestionKind.Function
+  readonly kind: 'Function'
 }
 
 export interface LocalSuggestionEntry extends SuggestionEntryCommon, Scoped {
-  readonly kind: SuggestionKind.Local
+  readonly kind: 'Local'
 }
 
 export type SuggestionEntry =
@@ -150,7 +143,7 @@ export type SuggestionEntry =
 
 /**
  * A type that can be called. This includes every suggestion kind that takes arguments, except
- * {@link SuggestionKind.Type}.
+ * {@link 'Type'}.
  */
 export type CallableSuggestionEntry =
   | MethodSuggestionEntry
@@ -159,33 +152,26 @@ export type CallableSuggestionEntry =
 
 /** Type predicate for {@link CallableSuggestionEntry}. */
 export function entryIsCallable(entry: SuggestionEntry): entry is CallableSuggestionEntry {
-  return (
-    entry.kind === SuggestionKind.Method ||
-    entry.kind === SuggestionKind.Function ||
-    entry.kind === SuggestionKind.Constructor
-  )
+  return entry.kind === 'Method' || entry.kind === 'Function' || entry.kind === 'Constructor'
 }
 
 /** Predicate for types that can have annotated arguments. */
 export function entryIsAnnotatable(
   entry: SuggestionEntry,
 ): entry is MethodSuggestionEntry | ConstructorSuggestionEntry {
-  return entry.kind === SuggestionKind.Method || entry.kind === SuggestionKind.Constructor
+  return entry.kind === 'Method' || entry.kind === 'Constructor'
 }
 
 /** Predicate for members that can be called on a type. */
 export function entryIsStatic(
   entry: SuggestionEntry,
 ): entry is ConstructorSuggestionEntry | (MethodSuggestionEntry & { selfType: undefined }) {
-  return (
-    entry.kind === SuggestionKind.Constructor ||
-    (entry.kind === SuggestionKind.Method && entry.selfType == null)
-  )
+  return entry.kind === 'Constructor' || (entry.kind === 'Method' && entry.selfType == null)
 }
 
 /** Get the MethodPointer pointing to definition represented by the entry. */
 export function entryMethodPointer(entry: SuggestionEntry | undefined): MethodPointer | undefined {
-  if (entry == null || entry.kind !== SuggestionKind.Method) return
+  if (entry == null || entry.kind !== 'Method') return
   return {
     module: entry.definedIn,
     definedOnType: entry.memberOf,
@@ -210,14 +196,14 @@ export function entryDisplayOwner(entry: SuggestionEntry & IsMemberOf): Qualifie
 
 /** Type predicate for {@link SuggestionEntry} that have the `memberOf` field. */
 export function entryHasOwner(entry: SuggestionEntry): entry is SuggestionEntry & IsMemberOf {
-  return entry.kind === SuggestionKind.Method || entry.kind === SuggestionKind.Constructor
+  return entry.kind === 'Method' || entry.kind === 'Constructor'
 }
 
 const DOCUMENTATION_ROOT = 'https://help.enso.org/docs/api'
 
 /** TODO: Add docs */
 export function suggestionDocumentationUrl(entry: SuggestionEntry): string | undefined {
-  if (entry.kind !== SuggestionKind.Method && entry.kind !== SuggestionKind.Function) return
+  if (entry.kind !== 'Method' && entry.kind !== 'Function') return
 
   const { project, path } = entry.definedIn
   if (!project?.startsWith('Standard.') || !path) return

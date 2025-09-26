@@ -294,20 +294,20 @@ type PointerEventType = 'start' | 'move' | 'stop' | 'cancel'
  * A mask of all available pointer buttons. The values are compatible with DOM's `PointerEvent.buttons` value. The mask values
  * can be ORed together to create a mask of multiple buttons.
  */
-export const enum PointerButtonMask {
+export const PointerButtonMask = {
   /** No buttons are pressed. */
-  Empty = 0,
+  Empty: 0,
   /** Main mouse button, usually left. */
-  Main = 1,
+  Main: 1,
   /** Secondary mouse button, usually right. */
-  Secondary = 2,
+  Secondary: 2,
   /** Auxiliary mouse button, usually middle or wheel press. */
-  Auxiliary = 4,
+  Auxiliary: 4,
   /** Additional fourth mouse button, usually assigned to "browser back" action. */
-  ExtBack = 8,
+  ExtBack: 8,
   /** Additional fifth mouse button, usually assigned to "browser forward" action. */
-  ExtForward = 16,
-}
+  ExtForward: 16,
+} as const
 
 /** Options for `usePointer` composable. */
 export interface UsePointerOptions {

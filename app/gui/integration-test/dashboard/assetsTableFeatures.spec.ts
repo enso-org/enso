@@ -1,5 +1,5 @@
 /** @file Test the drive view. */
-import { EmailAddress, ProjectState } from '#/services/Backend'
+import { EmailAddress } from '#/services/Backend'
 import { expect, test, type Page } from 'playwright/test'
 import { getText, mockAllAndLogin, TEXT } from './actions'
 
@@ -124,7 +124,7 @@ test("can't start an already running by another user", ({ page }) =>
       api.addProject({
         title: 'a',
         projectState: {
-          type: ProjectState.opened,
+          type: 'Opened' as const,
           volumeId: '123',
           openedBy: peer.email,
         },

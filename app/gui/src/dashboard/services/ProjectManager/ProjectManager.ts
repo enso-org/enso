@@ -12,7 +12,6 @@ import { normalizeName } from '@/util/nameValidation'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import invariant from 'tiny-invariant'
 import {
-  MissingComponentAction,
   Path,
   PROJECT_MANAGER_LOADING_FAILED_EVENT,
   type CloseProjectParams,
@@ -159,13 +158,13 @@ export class ProjectManager {
     } else {
       const promise = this.sendRequest<OpenProject>('project/open', fullParams)
       this.projects.set(fullParams.projectId, {
-        state: backend.ProjectState.openInProgress,
+        state: 'OpenInProgress',
         data: promise,
       })
       try {
         const result = await promise
         this.projects.set(fullParams.projectId, {
-          state: backend.ProjectState.opened,
+          state: 'Opened',
           data: result,
         })
         return result
@@ -180,12 +179,12 @@ export class ProjectManager {
   async closeProject(params: WithProjectPath<CloseProjectParams>): Promise<void> {
     const id = this.projectIds.get(params.projectPath)
     const state = id != null ? this.projects.get(id) : null
-    if (state?.state === backend.ProjectState.openInProgress) {
+    if (state?.state === 'OpenInProgress') {
       // Projects that are not opened cannot be closed.
       // This is the only way to wait until the project is open.
       await this.openProject({
         projectPath: params.projectPath,
-        missingComponentAction: MissingComponentAction.install,
+        missingComponentAction: 'Install',
       })
     }
     const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
@@ -202,7 +201,7 @@ export class ProjectManager {
       result = await this.runProjectServiceCommandJson('project/create', { ...params })
     } else {
       result = await this.sendRequest('project/create', {
-        missingComponentAction: MissingComponentAction.install,
+        missingComponentAction: 'Install',
         ...params,
       })
     }
@@ -234,7 +233,7 @@ export class ProjectManager {
     const fullParams: RenameProjectParams = this.paramsWithPathToWithId(params)
     await this.sendRequest('project/rename', fullParams)
     const state = this.projects.get(fullParams.projectId)
-    if (state?.state === backend.ProjectState.opened) {
+    if (state?.state === 'Opened') {
       this.projects.set(fullParams.projectId, {
         state: state.state,
         data: {

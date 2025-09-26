@@ -97,27 +97,27 @@ function useSetProjectAsset() {
 }
 
 export const OPENING_PROJECT_STATES = new Set([
-  backendModule.ProjectState.provisioned,
-  backendModule.ProjectState.scheduled,
-  backendModule.ProjectState.openInProgress,
-  backendModule.ProjectState.closing,
+  'Provisioned',
+  'Scheduled',
+  'OpenInProgress',
+  'Closing',
 ])
-export const OPENED_PROJECT_STATES = new Set([backendModule.ProjectState.opened])
-export const CLOSED_PROJECT_STATES = new Set([backendModule.ProjectState.closed])
-export const CLOSING_PROJECT_STATES = new Set([backendModule.ProjectState.closing])
+export const OPENED_PROJECT_STATES = new Set(['Opened'])
+export const CLOSED_PROJECT_STATES = new Set(['Closed'])
+export const CLOSING_PROJECT_STATES = new Set(['Closing'])
 export const STATIC_PROJECT_STATES = new Set([
-  backendModule.ProjectState.opened,
-  backendModule.ProjectState.closed,
+  'Opened',
+  'Closed',
 ])
 export const CREATED_PROJECT_STATES = new Set([
-  backendModule.ProjectState.created,
-  backendModule.ProjectState.new,
+  'Created',
+  'New',
 ])
 export const BUSY_PROJECT_STATES = new Set([
   ...Array.from(OPENING_PROJECT_STATES),
   ...Array.from(CLOSING_PROJECT_STATES),
-  backendModule.ProjectState.opened,
-  backendModule.ProjectState.hybridOpened,
+  'Opened',
+  'HybridOpened',
 ])
 
 /** Stale time for local projects, set to 10 seconds. */
@@ -275,10 +275,10 @@ export function useOpenProjectMutation() {
     onMutate: ({ type, id, parentId }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
-      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
+      client.setQueryData(queryKey, { state: { type: 'OpenInProgress' } })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
-        projectState: { ...asset.projectState, type: backendModule.ProjectState.openInProgress },
+        projectState: { ...asset.projectState, type: 'OpenInProgress' },
       }))
     },
     onSuccess: async (_data, { title, hybrid, suppressHybridProjectOpen = false }) => {
@@ -328,10 +328,10 @@ export function useCloseProjectMutation() {
     onMutate: ({ type, id, parentId }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
-      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closing } })
+      client.setQueryData(queryKey, { state: { type: 'Closing' } })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
-        projectState: { ...asset.projectState, type: backendModule.ProjectState.closing },
+        projectState: { ...asset.projectState, type: 'Closing' },
       }))
 
       void client.cancelQueries({ queryKey })
@@ -340,7 +340,7 @@ export function useCloseProjectMutation() {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
-        projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
+        projectState: { ...asset.projectState, type: 'Closed' },
       }))
 
       if (hybrid) {
@@ -450,7 +450,7 @@ export function useRenameProjectMutation() {
 }
 
 const OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA = z.object({
-  state: z.object({ type: z.literal(backendModule.ProjectState.openInProgress) }),
+  state: z.object({ type: z.literal('OpenInProgress') }),
 })
 
 /** A callback to open a project. */
@@ -475,7 +475,7 @@ function useOpenProject() {
 
     if (!isOpeningTheSameProject) {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
-      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
+      client.setQueryData(queryKey, { state: { type: 'OpenInProgress' } })
 
       addOpeningProject(project.hybrid?.cloudProjectId ?? project.id, project.ensoPath)
 
@@ -496,7 +496,7 @@ function useOpenProject() {
           const newData = client.getQueryData(queryKey)
           // If state has not changed from optimistic state, then:
           if (OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA.safeParse(newData).success) {
-            client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closed } })
+            client.setQueryData(queryKey, { state: { type: 'Closed' } })
             void client.invalidateQueries({ queryKey: ['project'] })
           }
         })

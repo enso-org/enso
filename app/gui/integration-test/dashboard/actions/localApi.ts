@@ -328,7 +328,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
               ...project.metadata,
             }
             openProjects.set(params.projectId, {
-              state: backend.ProjectState.opened,
+              state: 'Opened',
               data: result,
             })
             delay = 1_000

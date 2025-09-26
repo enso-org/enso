@@ -122,7 +122,7 @@ export default class LocalBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams & { readonly recursive?: boolean },
   ): Promise<backend.ListDirectoryResponseBody> {
-    if (query.filterBy != null && query.filterBy !== backend.FilterBy.active) {
+    if (query.filterBy != null && query.filterBy !== 'Active') {
       return { assets: [], paginationToken: null }
     }
     const { rootPath = this.rootPath() } = query
@@ -184,9 +184,7 @@ export default class LocalBackend extends Backend {
                 modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
                 parentId,
                 projectState: {
-                  type:
-                    (await this.projectManager.getProject(entry.path))?.state ??
-                    backend.ProjectState.closed,
+                  type: (await this.projectManager.getProject(entry.path))?.state ?? 'Closed',
                 },
               } satisfies backend.ProjectAsset
             }
@@ -273,7 +271,7 @@ export default class LocalBackend extends Backend {
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const project = await this.projectManager.createProject({
       name: projectManager.ProjectName(body.projectName),
-      missingComponentAction: projectManager.MissingComponentAction.install,
+      missingComponentAction: 'Install',
       projectsDirectory,
     })
     return {
@@ -281,7 +279,7 @@ export default class LocalBackend extends Backend {
       organizationId: backend.OrganizationId('organization-'),
       projectId: newProjectId(project.projectPath),
       packageName: project.projectName,
-      state: { type: backend.ProjectState.closed, volumeId: '' },
+      state: { type: 'Closed', volumeId: '' },
       ensoPath: backend.EnsoPath(`${projectsDirectory}/${project.projectNormalizedName}`),
     }
   }
@@ -370,7 +368,7 @@ export default class LocalBackend extends Backend {
           organizationId: backend.OrganizationId('organization-'),
           packageName: project.name,
           projectId,
-          state: { type: backend.ProjectState.closed, volumeId: '' },
+          state: { type: 'Closed', volumeId: '' },
           url: backend.HttpsUrl(this.resolvePath(downloadProjectPath(projectId))),
           ensoPath,
         }
@@ -386,7 +384,7 @@ export default class LocalBackend extends Backend {
         packageName: cachedProject.projectNormalizedName,
         projectId,
         state: {
-          type: backend.ProjectState.opened,
+          type: 'Opened',
           volumeId: '',
         },
         url: backend.HttpsUrl(this.resolvePath(downloadProjectPath(projectId))),
@@ -408,7 +406,7 @@ export default class LocalBackend extends Backend {
     try {
       await this.projectManager.openProject({
         projectPath: path,
-        missingComponentAction: projectManager.MissingComponentAction.install,
+        missingComponentAction: 'Install',
         ...(body?.openHybridProjectParameters != null ?
           { cloud: body.openHybridProjectParameters }
         : {}),
@@ -453,7 +451,7 @@ export default class LocalBackend extends Backend {
         organizationId: backend.OrganizationId('organization-'),
         projectId,
         packageName: project.name,
-        state: { type: backend.ProjectState.closed },
+        state: { type: 'Closed' },
       }
     }
   }
@@ -467,7 +465,7 @@ export default class LocalBackend extends Backend {
       name: project.projectName,
       packageName: project.projectNormalizedName,
       organizationId: backend.OrganizationId('organization-'),
-      state: { type: backend.ProjectState.closed, volumeId: '' },
+      state: { type: 'Closed', volumeId: '' },
       ensoPath: backend.EnsoPath(`${path}/${project.projectNormalizedName}`),
     }
   }

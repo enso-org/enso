@@ -176,27 +176,18 @@ export interface CreatedDirectory {
 }
 
 /** Possible states that a project can be in. */
-export enum ProjectState {
-  created = 'Created',
-  new = 'New',
-  scheduled = 'Scheduled',
-  openInProgress = 'OpenInProgress',
-  provisioned = 'Provisioned',
-  opened = 'Opened',
-  hybridOpenInProgress = 'HybridOpenInProgress',
-  hybridOpened = 'HybridOpened',
-  closed = 'Closed',
-  /**
-   * A frontend-specific state, representing a project that should be displayed as
-   * `openInProgress`, but has not yet been added to the backend.
-   */
-  placeholder = 'Placeholder',
-  /**
-   * A frontend-specific state, representing a project that should be displayed as `closed`,
-   * but is still in the process of shutting down.
-   */
-  closing = 'Closing',
-}
+export type ProjectState =
+  | 'Created'
+  | 'New'
+  | 'Scheduled'
+  | 'OpenInProgress'
+  | 'Provisioned'
+  | 'Opened'
+  | 'HybridOpenInProgress'
+  | 'HybridOpened'
+  | 'Closed'
+  | 'Placeholder'
+  | 'Closing'
 
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
@@ -213,31 +204,31 @@ export interface ProjectStateType {
 }
 
 export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
-  [ProjectState.created]: false,
-  [ProjectState.new]: false,
-  [ProjectState.scheduled]: true,
-  [ProjectState.openInProgress]: true,
-  [ProjectState.provisioned]: true,
-  [ProjectState.opened]: false,
-  [ProjectState.hybridOpenInProgress]: true,
-  [ProjectState.hybridOpened]: false,
-  [ProjectState.closed]: false,
-  [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
+  ['Created']: false,
+  ['New']: false,
+  ['Scheduled']: true,
+  ['OpenInProgress']: true,
+  ['Provisioned']: true,
+  ['Opened']: false,
+  ['HybridOpenInProgress']: true,
+  ['HybridOpened']: false,
+  ['Closed']: false,
+  ['Placeholder']: true,
+  ['Closing']: false,
 }
 
 export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
-  [ProjectState.created]: false,
-  [ProjectState.new]: false,
-  [ProjectState.scheduled]: true,
-  [ProjectState.openInProgress]: true,
-  [ProjectState.provisioned]: true,
-  [ProjectState.hybridOpenInProgress]: true,
-  [ProjectState.opened]: true,
-  [ProjectState.hybridOpened]: true,
-  [ProjectState.closed]: false,
-  [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
+  ['Created']: false,
+  ['New']: false,
+  ['Scheduled']: true,
+  ['OpenInProgress']: true,
+  ['Provisioned']: true,
+  ['HybridOpenInProgress']: true,
+  ['Opened']: true,
+  ['HybridOpened']: true,
+  ['Closed']: false,
+  ['Placeholder']: true,
+  ['Closing']: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
@@ -490,12 +481,7 @@ export interface Label {
 }
 
 /** Stability of an IDE or backend version. */
-export enum VersionLifecycle {
-  stable = 'Stable',
-  releaseCandidate = 'ReleaseCandidate',
-  nightly = 'Nightly',
-  development = 'Development',
-}
+export type VersionLifecycle = 'Stable' | 'ReleaseCandidate' | 'Nightly' | 'Development'
 
 /** Version number of an IDE or backend. */
 export interface VersionNumber {
@@ -703,12 +689,7 @@ export interface CopyAssetResponse {
 }
 
 /** Possible filters for the "list directory" endpoint. */
-export enum FilterBy {
-  all = 'All',
-  active = 'Active',
-  recent = 'Recent',
-  trashed = 'Trashed',
-}
+export type FilterBy = 'All' | 'Active' | 'Recent' | 'Trashed'
 
 /** An event in an audit log. */
 export interface AuditLogEvent {
@@ -725,52 +706,51 @@ export interface AuditLogEvent {
 }
 
 /** Possible types of event in an audit log. */
-export enum EventType {
-  GetSecret = 'getSecret',
-  DeleteAssets = 'deleteAssets',
-  ListSecrets = 'listSecrets',
-  OpenProject = 'openProject',
-  UploadFile = 'uploadFile',
-  Lib = 'lib',
-  Telemetry = 'telemetry',
-}
-
-export const EVENT_TYPES = Object.freeze(Object.values(EventType))
+export type EventType = (typeof EVENT_TYPES)[number]
+export const EVENT_TYPES = [
+  'getSecret',
+  'deleteAssets',
+  'listSecrets',
+  'openProject',
+  'uploadFile',
+  'lib',
+  'telemetry',
+] as const
 
 /** An event indicating that a secret was accessed. */
 interface GetSecretEventMetadata {
-  readonly type: EventType.GetSecret
+  readonly type: 'getSecret'
   readonly secretId: SecretId
 }
 
 /** An event indicating that one or more assets were deleted. */
 interface DeleteAssetsEventMetadata {
-  readonly type: EventType.DeleteAssets
+  readonly type: 'deleteAssets'
 }
 
 /** An event indicating that all secrets were listed. */
 interface ListSecretsEventMetadata {
-  readonly type: EventType.ListSecrets
+  readonly type: 'listSecrets'
 }
 
 /** An event indicating that a project was opened. */
 interface OpenProjectEventMetadata {
-  readonly type: EventType.OpenProject
+  readonly type: 'openProject'
 }
 
 /** An event indicating that a file was uploaded. */
 interface UploadFileEventMetadata {
-  readonly type: EventType.UploadFile
+  readonly type: 'uploadFile'
 }
 
 /** An event indicating that an action was performed by the Standard libraries. */
 interface LibEventMetadata {
-  readonly type: EventType.Lib
+  readonly type: 'lib'
 }
 
 /** An event indicating telemetry data sent from the IDE. */
 interface TelemetryEventMetadata {
-  readonly type: EventType.Telemetry
+  readonly type: 'telemetry'
 }
 
 /** All possible types of metadata for an event in the audit log. */
@@ -1034,7 +1014,7 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
     parentId,
     permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: { type: ProjectState.new },
+    projectState: { type: 'New' },
     extension: null,
     parentsPath: ParentsPath(''),
     virtualParentsPath: VirtualParentsPath(''),
@@ -1489,15 +1469,15 @@ export interface ExportedArchive {
 }
 
 /** Extract the {@link VersionLifecycle} from a version string. */
-export function detectVersionLifecycle(version: string) {
+export function detectVersionLifecycle(version: string): VersionLifecycle {
   if (/rc/i.test(version)) {
-    return VersionLifecycle.releaseCandidate
+    return 'ReleaseCandidate'
   } else if (/\bnightly\b/i.test(version)) {
-    return VersionLifecycle.nightly
+    return 'Nightly'
   } else if (/\bdev\b|\balpha\b/i.test(version)) {
-    return VersionLifecycle.development
+    return 'Development'
   } else {
-    return VersionLifecycle.stable
+    return 'Stable'
   }
 }
 

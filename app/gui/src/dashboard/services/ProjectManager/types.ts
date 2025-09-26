@@ -3,16 +3,11 @@
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md
  */
-import type * as backend from '#/services/Backend'
 import * as newtype from '#/utilities/newtype'
 import type * as dateTime from 'enso-common/src/utilities/data/dateTime'
 
 /** Possible actions to take when a component is missing. */
-export enum MissingComponentAction {
-  fail = 'Fail',
-  install = 'Install',
-  forceInstallBroken = 'ForceInstallBroken',
-}
+export type MissingComponentAction = 'Fail' | 'ForceInstallBroken' | 'Install'
 
 /** Metadata for a JSON-RPC error. */
 export interface JSONRPCError {
@@ -169,13 +164,13 @@ export interface DuplicatedProject {
 
 /** A project that is currently opening. */
 interface OpenInProgressProjectState {
-  readonly state: backend.ProjectState.openInProgress
+  readonly state: 'OpenInProgress'
   readonly data: Promise<OpenProject>
 }
 
 /** A project that is currently opened. */
 interface OpenedProjectState {
-  readonly state: backend.ProjectState.opened
+  readonly state: 'Opened'
   readonly data: OpenProject
 }
 

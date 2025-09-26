@@ -164,24 +164,25 @@ export interface WidgetInput {
  * Description of how well a widget matches given input. Used to determine which widget should be
  * used, or whether the applied widget override is valid in given context.
  */
-export enum Score {
+export type Score = (typeof Score)[keyof typeof Score]
+export const Score = {
   /**
    * This widget kind cannot accept the node. It will never be used, even if it was explicitly
    * requested using an override.
    */
-  Mismatch,
+  Mismatch: 0,
   /**
    * A last resort match. This widget will be used only if there is no other good option present.
    */
-  Weak,
+  Weak: 1,
   /**
    * A good match, but there might be a better one. This widget will be used if there is no better
    * option.
    */
-  Good,
+  Good: 2,
   /** Widget matches perfectly and can be used outright, without checking other kinds. */
-  Perfect,
-}
+  Perfect: 3,
+} as const
 
 export interface WidgetProps<T> {
   input: T
@@ -505,7 +506,7 @@ export class WidgetRegistry {
 
     // The type and score of the best widget found so far.
     let best: WidgetModule<T> | undefined = undefined
-    let bestScore = Score.Mismatch
+    let bestScore: Score = Score.Mismatch
     let foundLeafMatch = false
 
     // Iterate over all loaded widget kinds in order of decreasing priority.

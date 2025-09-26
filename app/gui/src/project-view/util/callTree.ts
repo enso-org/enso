@@ -16,10 +16,11 @@ import { findLastIndex, tryGetIndex } from '@/util/data/array'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 import { assert } from './assert'
 
-export const enum ApplicationKind {
-  Prefix,
-  Infix,
-}
+export type ApplicationKind = (typeof ApplicationKind)[keyof typeof ApplicationKind]
+export const ApplicationKind = {
+  Prefix: 0,
+  Infix: 1,
+} as const
 
 class ArgumentFactory {
   constructor(

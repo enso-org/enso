@@ -1,6 +1,6 @@
 import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { ANY_TYPE } from '@/util/ensoTypes'
 import type { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
@@ -20,11 +20,12 @@ export interface Filter {
   selfArg?: SelfArg
 }
 
-export enum MatchTypeScore {
-  NameWordMatchFirst = 0,
-  NameWordMatch = 2000,
-  NameInitialMatch = 4000,
-}
+export type MatchTypeScore = (typeof MatchTypeScore)[keyof typeof MatchTypeScore]
+export const MatchTypeScore = {
+  NameWordMatchFirst: 0,
+  NameWordMatch: 2000,
+  NameInitialMatch: 4000,
+} as const
 const NONEXACT_MATCH_PENALTY = 50
 const ALIAS_PENALTY = 1000
 /** If we match by both entry name and owner name, the owner name is less important. */
@@ -276,8 +277,8 @@ export class Filtering {
 
   private selfTypeMatches(entry: SuggestionEntry): MatchResult | null {
     if (this.selfArg == null)
-      return entry.kind !== SuggestionKind.Method || entry.selfType == null ? exactMatch() : null
-    if (entry.kind !== SuggestionKind.Method || entry.selfType == null) return null
+      return entry.kind !== 'Method' || entry.selfType == null ? exactMatch() : null
+    if (entry.kind !== 'Method' || entry.selfType == null) return null
     if (this.selfArg.type !== 'known') return exactMatch()
     const entrySelfType = entry.selfType
     const visibleTypes = this.selfArg.typeInfo.visibleTypes
@@ -316,7 +317,7 @@ export class Filtering {
    * entries with a group defined or in the top module.
    */
   filter(entry: SuggestionEntry, db: SuggestionDb): MatchResult | null {
-    if (entry.isPrivate || entry.kind != SuggestionKind.Method) return null
+    if (entry.isPrivate || entry.kind != 'Method') return null
     if (this.selfArg == null && isInternal(entry)) return null
     let result = this.selfTypeMatches(entry)
     if (result == null) return null
@@ -339,7 +340,7 @@ export class Filtering {
     }
 
     // Defer the expensive constructor privacy check until all other filters pass.
-    if (entry.kind === SuggestionKind.Method) {
+    if (entry.kind === 'Method') {
       const constructors = db.lookupConstructorField(entry.memberOf, entry.name)
       const allPrivate =
         constructors.size > 0 && [...constructors].every((id) => db.get(id)?.isPrivate)

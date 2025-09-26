@@ -21,7 +21,6 @@ import {
   ParentsPath,
   Path,
   ProjectId,
-  ProjectState,
   stripProjectExtension,
   UnzipAssetsJobId,
   VirtualParentsPath,
@@ -437,7 +436,7 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
           type: 'project',
           id: ProjectId(`project-${encodeURIComponent(path)}`),
           // FIXME: Get correct state.
-          projectState: { type: ProjectState.closed },
+          projectState: { type: 'Closed' },
         }
         // This is SAFE because `type` has been narrowed in the `switch` above.
         return result as AnyAsset<Type>
@@ -713,7 +712,7 @@ async function apiUploadArchive({
         id: ProjectId(
           `project-${encodeURIComponent(destinationPath.replace('.enso-project', '/'))}`,
         ),
-        projectState: { type: ProjectState.closed },
+        projectState: { type: 'Closed' },
       })
       await entry.extract({
         rootDirectory: directory,

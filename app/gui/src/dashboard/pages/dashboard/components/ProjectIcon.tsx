@@ -12,50 +12,50 @@ import type Backend from '#/services/Backend'
 import {
   IS_OPENING,
   IS_OPENING_OR_OPENED,
-  ProjectState,
   type ProjectAsset,
   type ProjectId,
+  type ProjectState,
 } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import type { LaunchedProject } from '$/providers/container'
 import { useFullUserSession, useText } from '$/providers/react'
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const CLOSED_PROJECT_STATE = { type: ProjectState.closed } as const
+export const CLOSED_PROJECT_STATE = { type: 'Closed' } as const
 
 /**
  * The corresponding {@link SpinnerState} for each {@link ProjectState},
  * when using the remote backend.
  */
 const REMOTE_SPINNER_STATE: Readonly<Record<ProjectState, SpinnerState>> = {
-  [ProjectState.closed]: 'loading-slow',
-  [ProjectState.closing]: 'loading-medium',
-  [ProjectState.created]: 'loading-slow',
-  [ProjectState.new]: 'loading-slow',
-  [ProjectState.placeholder]: 'loading-slow',
-  [ProjectState.openInProgress]: 'loading-slow',
-  [ProjectState.hybridOpenInProgress]: 'loading-slow',
-  [ProjectState.provisioned]: 'loading-slow',
-  [ProjectState.scheduled]: 'loading-slow',
-  [ProjectState.opened]: 'done',
-  [ProjectState.hybridOpened]: 'done',
+  ['Closed']: 'loading-slow',
+  ['Closing']: 'loading-medium',
+  ['Created']: 'loading-slow',
+  ['New']: 'loading-slow',
+  ['Placeholder']: 'loading-slow',
+  ['OpenInProgress']: 'loading-slow',
+  ['HybridOpenInProgress']: 'loading-slow',
+  ['Provisioned']: 'loading-slow',
+  ['Scheduled']: 'loading-slow',
+  ['Opened']: 'done',
+  ['HybridOpened']: 'done',
 }
 /**
  * The corresponding {@link SpinnerState} for each {@link ProjectState},
  * when using the local backend.
  */
 const LOCAL_SPINNER_STATE: Readonly<Record<ProjectState, SpinnerState>> = {
-  [ProjectState.closed]: 'loading-slow',
-  [ProjectState.closing]: 'loading-medium',
-  [ProjectState.created]: 'loading-slow',
-  [ProjectState.new]: 'loading-slow',
-  [ProjectState.placeholder]: 'loading-medium',
-  [ProjectState.openInProgress]: 'loading-slow',
-  [ProjectState.hybridOpenInProgress]: 'loading-slow',
-  [ProjectState.provisioned]: 'loading-medium',
-  [ProjectState.scheduled]: 'loading-medium',
-  [ProjectState.opened]: 'done',
-  [ProjectState.hybridOpened]: 'done',
+  ['Closed']: 'loading-slow',
+  ['Closing']: 'loading-medium',
+  ['Created']: 'loading-slow',
+  ['New']: 'loading-slow',
+  ['Placeholder']: 'loading-medium',
+  ['OpenInProgress']: 'loading-slow',
+  ['HybridOpenInProgress']: 'loading-slow',
+  ['Provisioned']: 'loading-medium',
+  ['Scheduled']: 'loading-medium',
+  ['Opened']: 'done',
+  ['HybridOpened']: 'done',
 }
 
 /** Props for a {@link ProjectIcon}. */
@@ -103,20 +103,20 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const state = (() => {
     if (isProjectOpening) {
-      return ProjectState.openInProgress
+      return 'OpenInProgress'
     }
 
     if (!isOpened && !isPlaceholder) {
-      return ProjectState.closed
+      return 'Closed'
     }
     // Project is closed, show open button
     if (!isOpened) {
       return projectState.type
     }
 
-    if (status === ProjectState.closed) {
+    if (status === 'Closed') {
       // Project is opened locally, but not on the backend yet.
-      return ProjectState.openInProgress
+      return 'OpenInProgress'
     }
     return status
   })()
@@ -216,7 +216,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           aria-label={getTooltip(getText('openInEditor'))}
           tooltipPlacement="left"
           extraClickZone="xsmall"
-          isDisabled={isDisabled || projectState.type === ProjectState.closing}
+          isDisabled={isDisabled || projectState.type === 'Closing'}
           className="shrink-0"
           onPress={doOpenProject}
           testId="open-project"

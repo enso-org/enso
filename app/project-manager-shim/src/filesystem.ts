@@ -52,29 +52,25 @@ export interface Attributes {
 export type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
 
 /** The discriminator value for {@link FileSystemEntry}. */
-export enum FileSystemEntryType {
-  DirectoryEntry = 'DirectoryEntry',
-  ProjectEntry = 'ProjectEntry',
-  FileEntry = 'FileEntry',
-}
+export type FileSystemEntryType = 'DirectoryEntry' | 'ProjectEntry' | 'FileEntry'
 
 /** Metadata for a file. */
 export interface FileEntry {
-  readonly type: FileSystemEntryType.FileEntry
+  readonly type: 'FileEntry'
   readonly path: string
   readonly attributes: Attributes
 }
 
 /** Metadata for a directory. */
 export interface DirectoryEntry {
-  readonly type: FileSystemEntryType.DirectoryEntry
+  readonly type: 'DirectoryEntry'
   readonly path: string
   readonly attributes: Attributes
 }
 
 /** Metadata for a project. */
 export interface ProjectEntry {
-  readonly type: FileSystemEntryType.ProjectEntry
+  readonly type: 'ProjectEntry'
   readonly path: string
   readonly metadata: ProjectMetadata
   readonly attributes: Attributes
@@ -208,7 +204,7 @@ export async function handleFilesystemCommand(
             }
             if (stat.isFile()) {
               entries.push({
-                type: FileSystemEntryType.FileEntry,
+                type: 'FileEntry',
                 path: entryPath,
                 attributes,
               } satisfies FileEntry)
@@ -249,7 +245,7 @@ export async function handleFilesystemCommand(
                 if (metadata != null) {
                   // This is a project.
                   entries.push({
-                    type: FileSystemEntryType.ProjectEntry,
+                    type: 'ProjectEntry',
                     path: entryPath,
                     attributes,
                     metadata,
@@ -262,7 +258,7 @@ export async function handleFilesystemCommand(
               } catch {
                 // This is a regular directory, not a project.
                 entries.push({
-                  type: FileSystemEntryType.DirectoryEntry,
+                  type: 'DirectoryEntry',
                   path: entryPath,
                   attributes,
                 } satisfies DirectoryEntry)

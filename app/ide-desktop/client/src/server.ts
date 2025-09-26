@@ -34,7 +34,6 @@ import {
   ParentsPath,
   Path,
   ProjectId,
-  ProjectState,
   S3FilePath,
   stripProjectExtension,
   UnzipAssetsJobId,
@@ -732,7 +731,7 @@ export class Server {
           ...shared,
           type: 'project',
           id: ProjectId(`project-${destinationPath.replace(BUNDLED_PROJECT_SUFFIX, '/')}`),
-          projectState: { type: ProjectState.closed },
+          projectState: { type: 'Closed' },
         })
         await entry.extract({
           rootDirectory: directory,
@@ -953,7 +952,7 @@ export class Server {
             type: 'project',
             id: ProjectId(`project-${path}`),
             // FIXME: Get correct state.
-            projectState: { type: ProjectState.closed },
+            projectState: { type: 'Closed' },
           }
           // This is SAFE because `type` has been narrowed in the `switch` above.
           return result as AnyAsset<Type>

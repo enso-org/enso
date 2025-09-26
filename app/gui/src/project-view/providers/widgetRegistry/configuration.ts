@@ -18,15 +18,16 @@ const withKindSchema: z.ZodType<WithKind, z.ZodTypeDef, Input> = inputSchema.tra
   return { kind, ...structuredClone(value) }
 })
 
+export type DisplayMode = (typeof DisplayMode)[keyof typeof DisplayMode]
 /** Widget display mode. Determines when the widget should be expanded. */
-export enum DisplayMode {
+export const DisplayMode = {
   /** The widget should always be in its expanded mode. */
-  Always,
+  Always: 0,
   /** The widget should only be in its expanded mode when it has non-default value. */
-  WhenModified,
-  /** The widget should only be in its expanded mode whe the whole node is expanded. */
-  ExpandedOnly,
-}
+  WhenModified: 1,
+  /** The widget should only be in its expanded mode when the whole node is expanded. */
+  ExpandedOnly: 2,
+} as const
 
 const displaySchema = withKindSchema.pipe(
   z.union([

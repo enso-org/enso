@@ -33,10 +33,7 @@ interface GitHubSimpleUser {
 }
 
 /** State of an asset attached to a GitHub release. */
-export enum GitHubReleaseAssetState {
-  uploaded = 'uploaded',
-  open = 'open',
-}
+export type GitHubReleaseAssetState = 'open' | 'uploaded'
 
 /** Metadata for an asset attached to a GitHub release. */
 interface GitHubReleaseAsset {

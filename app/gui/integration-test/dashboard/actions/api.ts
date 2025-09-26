@@ -298,19 +298,19 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     const parentId = query.parent_id ?? defaultDirectoryId
     let filteredAssets = assets.filter((asset) => asset.parentId === parentId)
     switch (query.filter_by) {
-      case backend.FilterBy.active: {
+      case 'Active': {
         filteredAssets = filteredAssets.filter((asset) => !deletedAssets.has(asset.id))
         break
       }
-      case backend.FilterBy.trashed: {
+      case 'Trashed': {
         filteredAssets = assets.filter((asset) => deletedAssets.has(asset.id))
         break
       }
-      case backend.FilterBy.recent: {
+      case 'Recent': {
         filteredAssets = assets.filter((asset) => !deletedAssets.has(asset.id)).slice(0, 10)
         break
       }
-      case backend.FilterBy.all:
+      case 'All':
       case null:
       case undefined: {
         // do nothing
@@ -508,7 +508,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       id: backend.ProjectId('project-' + uniqueString.uniqueString()),
       title,
       projectState: {
-        type: backend.ProjectState.closed,
+        type: 'Closed',
         volumeId: '',
       },
       ...rest,
@@ -961,7 +961,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       called('closeProject', { projectId })
       const project = assetMap.get(projectId)
       if (project?.projectState) {
-        object.unsafeMutable(project.projectState).type = backend.ProjectState.closed
+        object.unsafeMutable(project.projectState).type = 'Closed'
       }
       await route.fulfill()
     })
@@ -979,7 +979,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
 
       if (project?.projectState) {
-        object.unsafeMutable(project.projectState).type = backend.ProjectState.opened
+        object.unsafeMutable(project.projectState).type = 'Opened'
       }
 
       route.fulfill()
@@ -1001,7 +1001,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
         const projectSessionId = backend.ProjectSessionId('projectsession-0000')
         if (project?.projectState) {
-          object.unsafeMutable(project.projectState).type = backend.ProjectState.openInProgress
+          object.unsafeMutable(project.projectState).type = 'OpenInProgress'
           object.unsafeMutable(project.projectState).currentSessionId = projectSessionId
         }
 
@@ -1022,7 +1022,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       }
 
       if (project?.projectState) {
-        object.unsafeMutable(project.projectState).type = backend.ProjectState.opened
+        object.unsafeMutable(project.projectState).type = 'Opened'
       }
 
       route.fulfill()
@@ -1349,7 +1349,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const parentId =
         body.parentDirectoryId ?? backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
 
-      const state = { type: backend.ProjectState.closed, volumeId: '' }
+      const state = { type: 'Closed' as const, volumeId: '' }
 
       const project = addProject({
         id,
