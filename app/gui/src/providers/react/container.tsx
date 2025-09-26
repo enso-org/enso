@@ -110,6 +110,7 @@ export function useRemoveOpeningProject() {
   })
 }
 
+/** A hook returning information if given project is opened. */
 export function useIsProjectOpening(id: Opt<ProjectId>) {
   const { openingProjects } = useContainerData()
   return useVueValue(
@@ -117,6 +118,7 @@ export function useIsProjectOpening(id: Opt<ProjectId>) {
   )
 }
 
+/** A hook returning information if any other project is opened. */
 export function useAreOtherProjectsOpening(id: ProjectId) {
   const { openingProjects } = useContainerData()
   return useVueValue(
@@ -127,7 +129,7 @@ export function useAreOtherProjectsOpening(id: ProjectId) {
   )
 }
 
-/** A function to add project to "opening projects" list */
+/** A function to add project to "closing projects" list */
 export function useAddClosingProject() {
   const { closingProjects } = useContainerData()
   return useEventCallback((id: ProjectId) => {
@@ -135,7 +137,7 @@ export function useAddClosingProject() {
   })
 }
 
-/** A function to remove project from "opening projects" list */
+/** A function to remove project from "closing projects" list */
 export function useRemoveClosingProject() {
   const { closingProjects } = useContainerData()
   return useEventCallback((id: ProjectId) => {
@@ -143,6 +145,7 @@ export function useRemoveClosingProject() {
   })
 }
 
+/** A hook returning information if given project is closing. */
 export function useIsProjectClosing(id: Opt<ProjectId>) {
   const { closingProjects } = useContainerData()
   return useVueValue(

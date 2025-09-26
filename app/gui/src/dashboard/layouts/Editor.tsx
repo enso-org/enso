@@ -69,7 +69,7 @@ function EditorContents(props: EditorProps) {
       const isProjectClosed = projectHooks.CLOSED_PROJECT_STATES.has(data.state.type)
       const isProjectOpened = projectHooks.OPENED_PROJECT_STATES.has(data.state.type)
 
-      return { ...data, isProjectOpening, isProjectClosed, isProjectOpened, isProjectClosing }
+      return { ...data, isProjectOpening, isProjectClosed, isProjectOpened }
     },
   })
 

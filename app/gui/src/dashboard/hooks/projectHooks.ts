@@ -25,6 +25,7 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useLogger } from '#/providers/LoggerProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { assert } from '#/utilities/error'
 import { useBackends } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { z } from 'zod'
@@ -227,6 +228,7 @@ export function useOpenProjectMutation() {
   const setProjectAsset = useSetProjectAsset()
   const addOpeningProject = useAddOpeningProject()
   const removeOpeningProject = useRemoveOpeningProject()
+  const { closingProjects } = useContainerData()
 
   return reactQuery.useMutation({
     mutationKey: OPEN_PROJECT_MUTATION_KEY,
@@ -240,6 +242,7 @@ export function useOpenProjectMutation() {
       suppressHybridProjectOpen: _ = false,
       ensoPath,
     }: LaunchedProject & { inBackground?: boolean; suppressHybridProjectOpen?: boolean }) => {
+      assert(() => !closingProjects.has(id))
       addOpeningProject(hybrid?.cloudProjectId ?? id, ensoPath)
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
