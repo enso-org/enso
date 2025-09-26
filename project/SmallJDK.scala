@@ -11,7 +11,6 @@ object SmallJDK {
   private val NI_BUILDER_MODULES = Seq(
     "org.graalvm.nativeimage.builder",
     "org.graalvm.nativeimage.driver",
-    "org.graalvm.nativeimage.configure",
     "org.graalvm.nativeimage.librarysupport",
     "org.graalvm.nativeimage.objectfile",
     "org.graalvm.nativeimage.pointsto"
