@@ -1482,19 +1482,7 @@ public class Main {
       File component,
       File javaExecutable)
       throws IOException, InterruptedException {
-    /* Cannot use JNI when not in Native Image code. Otherwise:
-     Exception in thread "main" java.lang.Error: 
-     The class ImageSingletons can only be used when building native images, 
-     i.e., when using the native-image command.
-        at org.graalvm.nativeimage/org.graalvm.nativeimage.impl.ImageSingletonsSupport.checkInstalled(ImageSingletonsSupport.java:69)
-        at org.graalvm.nativeimage/org.graalvm.nativeimage.impl.ImageSingletonsSupport.get(ImageSingletonsSupport.java:63)
-        at org.graalvm.nativeimage/org.graalvm.nativeimage.ImageSingletons.lookup(ImageSingletons.java:86)
-        at org.graalvm.nativeimage/org.graalvm.nativeimage.Platform.includedIn(Platform.java:84)
-        at org.enso.jvm.channel/org.enso.jvm.channel.JVM.create(JVM.java:34)
-        at org.enso.runner/org.enso.runner.Main.launchJvm(Main.java:1513)
-        at org.enso.runner/org.enso.runner.Main.launch(Main.java:1602)
-        at org.enso.runner/org.enso.runner.Main.main(Main.java:1116)
-     */
+    /* Cannot use JNI when not in Native Image code. Fallback to launching a process. */
     var useJNI = ImageInfo.inImageCode();
     var commandAndArgs = new ArrayList<String>();
     if (originalCwdOrNull != null) {
