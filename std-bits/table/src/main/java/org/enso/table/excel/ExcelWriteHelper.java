@@ -1,9 +1,7 @@
 package org.enso.table.excel;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.AccessMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,13 +18,8 @@ public class ExcelWriteHelper {
 
   public static Workbook openWorkbookForWrite(File file, ExcelFileFormat format) throws IOException {
     verifyIsWritable(file);
-    boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
     ExcelFormatStrategy strategy = format.createStrategy();
-    if (preExistingFile) {
-      strategy.openExisting(file, true);
-    } else {
-      strategy.createNew();
-    }
+    strategy.openForWrite(file);
     return strategy.getWorkbook();
   }
 
@@ -43,19 +36,9 @@ public class ExcelWriteHelper {
 
   public static void finaliseWorkbookWrite(File file, ExcelFileFormat format, Workbook workbook)
       throws IOException {
-    boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
     ExcelFormatStrategy strategy = format.createStrategy();
     strategy.workbook = workbook;
-    if (preExistingFile) {
-      strategy.saveInPlace();
-    } else {
-      try (OutputStream fileOut = Files.newOutputStream(file.toPath())) {
-        try (BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
-          strategy.saveToStream(workbookOut);
-        }
-      }
-    }
-    strategy.cleanup();
+    strategy.finaliseWrite(file);
   }
 
   public static Workbook openWorkbook(File file, ExcelFileFormat format, boolean writeAccess)

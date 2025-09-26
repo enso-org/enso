@@ -1,8 +1,10 @@
 package org.enso.table.excel;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 
 import org.apache.poi.ss.usermodel.Workbook;
 
@@ -16,6 +18,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 public abstract class ExcelFormatStrategy {
 
   protected Workbook workbook;
+  protected boolean preExistingFile;
 
   /** Returns the managed workbook instance (after {@link #openExisting} or {@link #createNew}). */
   public Workbook getWorkbook() {
@@ -36,4 +39,35 @@ public abstract class ExcelFormatStrategy {
 
   /** Performs any format-specific cleanup after saving/closing. Default is no-op. */
   public void cleanup() throws IOException {}
+
+  /**
+   * Opens a workbook for write. Detects whether the file already exists and is non-empty and
+   * chooses between {@link #openExisting(File, boolean)} and {@link #createNew()} accordingly.
+   */
+  public void openForWrite(File file) throws IOException {
+    this.preExistingFile = file.exists() && Files.exists(file.toPath()) && Files.size(file.toPath()) > 0;
+    if (preExistingFile) {
+      openExisting(file, true);
+    } else {
+      createNew();
+    }
+  }
+
+  /**
+   * Finalises a write by saving either in-place (for existing files) or to a newly created file
+   * stream. Always calls {@link #cleanup()} afterwards.
+   */
+  public void finaliseWrite(File file) throws IOException {
+    // Recompute in case this strategy was not the same instance used to open.
+    boolean exists = file.exists() && Files.exists(file.toPath()) && Files.size(file.toPath()) > 0;
+    if (exists) {
+      saveInPlace();
+    } else {
+      try (OutputStream fileOut = Files.newOutputStream(file.toPath());
+          BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
+        saveToStream(workbookOut);
+      }
+    }
+    cleanup();
+  }
 }
