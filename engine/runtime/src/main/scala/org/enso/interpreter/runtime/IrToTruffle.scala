@@ -1044,12 +1044,12 @@ private[runtime] class IrToTruffle(
                   // `eigenTp`, but not in both.
                   var fun =
                     currentScope.getMethodForType(
-                      tp,
+                      eigenTp,
                       staticMethod.methodName
                     )
                   if (fun == null) {
                     fun = currentScope.getMethodForType(
-                      eigenTp,
+                      tp,
                       staticMethod.methodName
                     )
                   }
