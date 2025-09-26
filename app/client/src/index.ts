@@ -89,7 +89,6 @@ class App {
     })
 
     const { args, fileToOpen, urlToOpen } = this.processArguments()
-    console.log('Parsed args: ', args)
     if (args.version) {
       await this.printVersion(args)
       electron.app.quit()
