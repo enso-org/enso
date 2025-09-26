@@ -2,9 +2,6 @@ package org.enso.table.write;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.AccessMode;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -52,26 +49,6 @@ public class ExcelWriter {
     }
   }
 
-  public static <T> T withWorkbook(
-      File file, ExcelFileFormat format, Function<ExcelWriteHelper, T> action)
-      throws IOException, InterruptedException {
-    verifyIsWritable(file);
-
-    ExcelWriteHelper helper = new ExcelWriteHelper(file, format);
-    return action.apply(helper);
-  }
-
-  private static void verifyIsWritable(File file) throws IOException {
-    Path path = file.toPath();
-
-    if (!Files.exists(path)) {
-      // If the file does not exist, we assume that we can create it.
-      return;
-    }
-
-    path.getFileSystem().provider().checkAccess(path, AccessMode.WRITE, AccessMode.READ);
-  }
-
   public static void writeTableToSheet(
       File file, 
       ExcelFileFormat format,
@@ -113,7 +90,6 @@ public class ExcelWriter {
           ColumnCountMismatchException,
           InterruptedException
      {
-        verifyIsWritable(file);
         try (Workbook workbook = ExcelWriteHelper.openWorkbookForWrite(file, format)) {
           writeTableToSheet(workbook, sheetName, existingDataMode, firstRow, table, rowLimit, headers);
                    ExcelWriteHelper.finaliseWorkbookWrite(file, workbook);

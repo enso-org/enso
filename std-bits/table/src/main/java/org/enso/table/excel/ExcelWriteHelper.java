@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.function.Function;
+import java.nio.file.AccessMode;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -29,8 +32,20 @@ public class ExcelWriteHelper {
   }
 
   public static Workbook openWorkbookForWrite(File file, ExcelFileFormat format) throws IOException {
+    verifyIsWritable(file);
     boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
     return preExistingFile ? openWorkbook(file, format, true) : createEmptyWorkbook(format);
+  }
+
+  private static void verifyIsWritable(File file) throws IOException {
+    Path path = file.toPath();
+
+    if (!Files.exists(path)) {
+      // If the file does not exist, we assume that we can create it.
+      return;
+    }
+
+    path.getFileSystem().provider().checkAccess(path, AccessMode.WRITE, AccessMode.READ);
   }
 
   public static void finaliseWorkbookWrite(File file, Workbook workbook) throws IOException {
@@ -63,46 +78,6 @@ public class ExcelWriteHelper {
           if (workbook instanceof SXSSFWorkbook sxssf) {
             sxssf.dispose();
           }
-  }
-
-  public <R> R writeWorkbook(Function<Workbook, R> writeAction) throws IOException {
-    boolean preExistingFile = file.exists() && Files.size(file.toPath()) > 0;
-
-    try (Workbook workbook =
-        preExistingFile ? openWorkbook(file, format, true) : createEmptyWorkbook(format)) {
-      R result = writeAction.apply(workbook);
-
-      if (preExistingFile) {
-        // Save the file in place.
-        switch (workbook) {
-          case HSSFWorkbook wb -> {
-            wb.write();
-          }
-          case XSSFWorkbook wb -> {
-            try {
-              wb.write(null);
-            } catch (OpenXML4JRuntimeException e) {
-              // Ignore: Workaround for bug https://bz.apache.org/bugzilla/show_bug.cgi?id=59252
-            }
-          }
-          default ->
-              throw new IllegalStateException("Unknown workbook type: " + workbook.getClass());
-        }
-      } else {
-        try (OutputStream fileOut = Files.newOutputStream(file.toPath())) {
-          try (BufferedOutputStream workbookOut = new BufferedOutputStream(fileOut)) {
-            workbook.write(workbookOut);
-          }
-        }
-      }
-
-      // If we used the streaming workbook, ensure temp files are deleted.
-      if (workbook instanceof SXSSFWorkbook sxssf) {
-        sxssf.dispose();
-      }
-
-      return result;
-    }
   }
 
   public static Workbook openWorkbook(File file, ExcelFileFormat format, boolean writeAccess)
