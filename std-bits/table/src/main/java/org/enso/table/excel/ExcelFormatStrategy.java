@@ -21,6 +21,7 @@ public abstract class ExcelFormatStrategy {
 
   protected Workbook workbook;
   protected boolean preExistingFile;
+  protected File file;
 
   /** Returns the managed workbook instance (after {@link #openExisting} or {@link #createNew}). */
   public Workbook getWorkbook() {
@@ -48,6 +49,7 @@ public abstract class ExcelFormatStrategy {
    */
   public void openForWrite(File file) throws IOException {
     verifyIsWritable(file);
+    this.file = file;
     this.preExistingFile = file.exists() && Files.exists(file.toPath()) && Files.size(file.toPath()) > 0;
     if (preExistingFile) {
       openExisting(file, true);
@@ -60,10 +62,8 @@ public abstract class ExcelFormatStrategy {
    * Finalises a write by saving either in-place (for existing files) or to a newly created file
    * stream. Always calls {@link #cleanup()} afterwards.
    */
-  public void finaliseWrite(File file) throws IOException {
-    // Recompute in case this strategy was not the same instance used to open.
-    boolean exists = file.exists() && Files.exists(file.toPath()) && Files.size(file.toPath()) > 0;
-    if (exists) {
+  public void finaliseWrite() throws IOException {
+    if (preExistingFile) {
       saveInPlace();
     } else {
       try (OutputStream fileOut = Files.newOutputStream(file.toPath());

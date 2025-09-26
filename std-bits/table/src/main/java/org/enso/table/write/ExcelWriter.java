@@ -27,12 +27,12 @@ import org.enso.table.error.ExistingDataException;
 import org.enso.table.error.InvalidLocationException;
 import org.enso.table.error.RangeExceededException;
 import org.enso.table.excel.ExcelFileFormat;
+import org.enso.table.excel.ExcelFormatStrategy;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.excel.ExcelUtils;
-import org.enso.table.excel.ExcelWriteHelper;
 import org.enso.table.util.ColumnMapper;
 import org.enso.table.util.NameDeduplicator;
 
@@ -66,11 +66,11 @@ public class ExcelWriter {
           ColumnCountMismatchException,
           InterruptedException
       {
-            try (Workbook workbook = ExcelWriteHelper.openWorkbookForWrite(file, format)) {
-          writeTableToSheet(workbook, sheetIndex, existingDataMode, firstRow, table, rowLimit, headers);
-                   ExcelWriteHelper.finaliseWorkbookWrite(file, format, workbook);
+        ExcelFormatStrategy strategy = format.createStrategy();
+        strategy.openForWrite(file);
+        writeTableToSheet(strategy.getWorkbook(), sheetIndex, existingDataMode, firstRow, table, rowLimit, headers);
+        strategy.finaliseWrite();
      }
-  }
   
 
   public static void writeTableToSheet(
@@ -90,10 +90,10 @@ public class ExcelWriter {
           ColumnCountMismatchException,
           InterruptedException
      {
-        try (Workbook workbook = ExcelWriteHelper.openWorkbookForWrite(file, format)) {
-          writeTableToSheet(workbook, sheetName, existingDataMode, firstRow, table, rowLimit, headers);
-                   ExcelWriteHelper.finaliseWorkbookWrite(file, format, workbook);
-     }
+        ExcelFormatStrategy strategy = format.createStrategy();
+        strategy.openForWrite(file);
+        writeTableToSheet(strategy.getWorkbook(), sheetName, existingDataMode, firstRow, table, rowLimit, headers);
+        strategy.finaliseWrite();
      }
 
   public static void writeTableToRange(
@@ -113,10 +113,10 @@ public class ExcelWriter {
           ColumnCountMismatchException,
           InterruptedException
       {
-            try (Workbook workbook = ExcelWriteHelper.openWorkbookForWrite(file, format)) {
-          writeTableToRange(workbook, rangeNameOrAddress, existingDataMode, skipRows, table, rowLimit, headers);
-                   ExcelWriteHelper.finaliseWorkbookWrite(file, format, workbook);
-     }
+        ExcelFormatStrategy strategy = format.createStrategy();
+        strategy.openForWrite(file);
+        writeTableToRange(strategy.getWorkbook(), rangeNameOrAddress, existingDataMode, skipRows, table, rowLimit, headers);
+        strategy.finaliseWrite();
      }
 
   public static void writeTableToSheet(

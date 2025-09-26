@@ -3,22 +3,22 @@ package org.enso.table.excel;
 public enum ExcelFileFormat {
   XLS {
     @Override
-    ExcelFormatStrategy createStrategy() {
+    public ExcelFormatStrategy createStrategy() {
       return new XlsFormatStrategy();
     }
   },
   XLSX {
     @Override
-    ExcelFormatStrategy createStrategy() {
+    public ExcelFormatStrategy createStrategy() {
       return new XlsxFormatStrategy();
     }
   },
   XLSX_FALLBACK {
     @Override
-    ExcelFormatStrategy createStrategy() {
+    public ExcelFormatStrategy createStrategy() {
       return new XlsxFormatStrategy();
     }
   };
 
-  abstract ExcelFormatStrategy createStrategy();
+  public abstract ExcelFormatStrategy createStrategy();
 }
