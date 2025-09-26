@@ -5,6 +5,7 @@
     - Query query:Standard.Base.Data.Text.Text
     - SQL_Statement sql_statement:Standard.Database.SQL.SQL_Statement
     - Table name:Standard.Base.Data.Text.Text
+    - Table_Schema name:Standard.Base.Data.Text.Text schema:Standard.Base.Data.Text.Text
     - add_to_data_link_description self connection_description:Standard.Base.Data.Json.JS_Object -> Standard.Base.Data.Json.JS_Object
     - from_js value:Standard.Base.Any.Any -> Standard.Database.Internal.Data_Link_Setup.DB_Data_Link_Type!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
     - interpret self connection:Standard.Base.Any.Any -> Standard.Base.Any.Any

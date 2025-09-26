@@ -280,7 +280,7 @@
       "required": ["type", "libraryName", "host", "port", "database_name"]
     },
 
-    "SQLServerCredentials" : {
+    "SQLServerCredentials": {
       "title": "Credentials",
       "anyOf": [
         { "$ref": "#/$defs/SQLServerSqlAuth" },
@@ -294,8 +294,7 @@
     "SQLServerNoAuth": {
       "title": "None",
       "type": "object",
-      "properties": {
-      },
+      "properties": {},
       "required": []
     },
     "SQLServerSqlAuth": {
