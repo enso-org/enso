@@ -1,12 +1,16 @@
+import {
+  type MethodCompletionInfo,
+  useCompletionData,
+} from '@/util/codemirror/language/tableExpression/completionData'
 import type {
   CompletionContext,
   CompletionResult,
   CompletionSource,
 } from '@codemirror/autocomplete'
 import { completionTypeAt } from 'lezer-enso-table-expr'
-import { type MethodCompletionInfo, useCompletionData } from './completionData'
 export type { MethodCompletionInfo }
 
+/** Creates a {@link CompletionSource} from the provided data. */
 export function completionSource(
   methods: (() => MethodCompletionInfo[]) | undefined,
   columns: (() => string[]) | undefined,
