@@ -29,10 +29,10 @@ const NOT_FOUND = -1
 // === Reexports ===
 // =================
 
-export const BUNDLED_PROJECT_EXTENSION = fileAssociations.BUNDLED_PROJECT_EXTENSION
 export const SOURCE_FILE_EXTENSION = fileAssociations.SOURCE_FILE_EXTENSION
-export const BUNDLED_PROJECT_SUFFIX = fileAssociations.BUNDLED_PROJECT_SUFFIX
+export const BUNDLED_PROJECT_EXTENSION = fileAssociations.BUNDLED_PROJECT_EXTENSION
 export const SOURCE_FILE_SUFFIX = fileAssociations.SOURCE_FILE_SUFFIX
+export const BUNDLED_PROJECT_SUFFIX = fileAssociations.BUNDLED_PROJECT_SUFFIX
 
 // ==========================
 // === Arguments Handling ===
@@ -98,10 +98,7 @@ function getClientArguments(args = process.argv): readonly string[] {
 /** Check if the given path looks like a file that we can open. */
 export function isFileOpenable(path: string): boolean {
   const extension = pathModule.extname(path).toLowerCase()
-  return (
-    extension === fileAssociations.BUNDLED_PROJECT_SUFFIX ||
-    extension === fileAssociations.SOURCE_FILE_SUFFIX
-  )
+  return extension === BUNDLED_PROJECT_SUFFIX || extension === SOURCE_FILE_SUFFIX
 }
 
 /** Callback called when a file is opened via the `open-file` event. */

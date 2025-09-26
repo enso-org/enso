@@ -113,6 +113,151 @@ importers:
         specifier: ^0.5.14
         version: 0.5.14(@ianvs/prettier-plugin-sort-imports@4.3.0(@vue/compiler-sfc@3.5.13)(prettier@3.4.2))(prettier-plugin-organize-imports@4.1.0(prettier@3.4.2)(typescript@5.7.2)(vue-tsc@2.2.0(typescript@5.7.2)))(prettier@3.4.2)
 
+  app/client:
+    dependencies:
+      chalk:
+        specifier: ^5.4.1
+        version: 5.4.1
+      commander:
+        specifier: ^14.0.1
+        version: 14.0.1
+      create-servers:
+        specifier: 3.2.0
+        version: 3.2.0
+      electron-dl:
+        specifier: 4.0.0
+        version: 4.0.0
+      electron-dl-manager:
+        specifier: 4.0.0
+        version: 4.0.0(electron@37.2.1)
+      electron-is-dev:
+        specifier: ^2.0.0
+        version: 2.0.0
+      enso-common:
+        specifier: workspace:*
+        version: link:../common
+      gunzip-maybe:
+        specifier: ^1.4.2
+        version: 1.4.2
+      mime-types:
+        specifier: ^2.1.35
+        version: 2.1.35
+      mkcert:
+        specifier: 3.2.0
+        version: 3.2.0
+      opener:
+        specifier: ^1.5.2
+        version: 1.5.2
+      project-manager-shim:
+        specifier: workspace:*
+        version: link:../project-manager-shim
+      semver:
+        specifier: ^7.6.3
+        version: 7.7.1
+      string-length:
+        specifier: ^5.0.1
+        version: 5.0.1
+      tar:
+        specifier: ^6.2.1
+        version: 6.2.1
+      tar-fs:
+        specifier: ^3.0.9
+        version: 3.1.0
+      tar-stream:
+        specifier: ^3.1.7
+        version: 3.1.7
+      yaml:
+        specifier: ^2.7.0
+        version: 2.7.0
+      yargs:
+        specifier: 17.6.2
+        version: 17.6.2
+      yauzl:
+        specifier: ^3.2.0
+        version: 3.2.0
+      ydoc-server:
+        specifier: workspace:*
+        version: link:../ydoc-server
+      zip-stream:
+        specifier: ^7.0.2
+        version: 7.0.2
+    devDependencies:
+      '@electron/notarize':
+        specifier: 2.1.0
+        version: 2.1.0
+      '@playwright/test':
+        specifier: ^1.50.1
+        version: 1.54.1
+      '@types/gunzip-maybe':
+        specifier: ^1.4.2
+        version: 1.4.2
+      '@types/mime-types':
+        specifier: ^2.1.4
+        version: 2.1.4
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.2.1
+      '@types/opener':
+        specifier: ^1.4.3
+        version: 1.4.3
+      '@types/semver':
+        specifier: ^7.5.8
+        version: 7.5.8
+      '@types/tar':
+        specifier: ^6.1.13
+        version: 6.1.13
+      '@types/tar-fs':
+        specifier: ^2.0.4
+        version: 2.0.4
+      '@types/tar-stream':
+        specifier: ^3.1.4
+        version: 3.1.4
+      '@types/yargs':
+        specifier: ^17.0.33
+        version: 17.0.33
+      '@types/yauzl':
+        specifier: ^2.10.3
+        version: 2.10.3
+      '@types/zip-stream':
+        specifier: ^7.0.0
+        version: 7.0.0
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
+      electron:
+        specifier: 37.2.1
+        version: 37.2.1
+      electron-builder:
+        specifier: ^24.13.3
+        version: 24.13.3(electron-builder-squirrel-windows@24.13.3)
+      enso-gui:
+        specifier: workspace:*
+        version: link:../gui
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.0
+      esbuild-plugin-wasm:
+        specifier: ^1.1.0
+        version: 1.1.0
+      fast-glob:
+        specifier: ^3.3.2
+        version: 3.3.2
+      lib0:
+        specifier: ^0.2.99
+        version: 0.2.99
+      playwright:
+        specifier: 'catalog:'
+        version: 1.50.1
+      portfinder:
+        specifier: ^1.0.32
+        version: 1.0.32
+      vite:
+        specifier: 'catalog:'
+        version: 7.1.2(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
+      vite-node:
+        specifier: 3.0.0-beta.3
+        version: 3.0.0-beta.3(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
+
   app/common:
     dependencies:
       '@internationalized/date':
@@ -625,154 +770,6 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
-  app/ide-desktop/client:
-    dependencies:
-      chalk:
-        specifier: ^5.4.1
-        version: 5.4.1
-      commander:
-        specifier: ^14.0.1
-        version: 14.0.1
-      create-servers:
-        specifier: 3.2.0
-        version: 3.2.0
-      electron-dl:
-        specifier: 4.0.0
-        version: 4.0.0
-      electron-dl-manager:
-        specifier: 4.0.0
-        version: 4.0.0(electron@37.2.1)
-      electron-is-dev:
-        specifier: ^2.0.0
-        version: 2.0.0
-      enso-common:
-        specifier: workspace:*
-        version: link:../../common
-      gunzip-maybe:
-        specifier: ^1.4.2
-        version: 1.4.2
-      mime-types:
-        specifier: ^2.1.35
-        version: 2.1.35
-      mkcert:
-        specifier: 3.2.0
-        version: 3.2.0
-      opener:
-        specifier: ^1.5.2
-        version: 1.5.2
-      project-manager-shim:
-        specifier: workspace:*
-        version: link:../../project-manager-shim
-      semver:
-        specifier: ^7.6.3
-        version: 7.7.1
-      string-length:
-        specifier: ^5.0.1
-        version: 5.0.1
-      tar:
-        specifier: ^6.2.1
-        version: 6.2.1
-      tar-fs:
-        specifier: ^3.0.9
-        version: 3.1.0
-      tar-stream:
-        specifier: ^3.1.7
-        version: 3.1.7
-      yaml:
-        specifier: ^2.7.0
-        version: 2.7.0
-      yargs:
-        specifier: 17.6.2
-        version: 17.6.2
-      yauzl:
-        specifier: ^3.2.0
-        version: 3.2.0
-      ydoc-server:
-        specifier: workspace:*
-        version: link:../../ydoc-server
-      zip-stream:
-        specifier: ^7.0.2
-        version: 7.0.2
-    devDependencies:
-      '@electron/notarize':
-        specifier: 2.1.0
-        version: 2.1.0
-      '@playwright/test':
-        specifier: ^1.50.1
-        version: 1.54.1
-      '@types/gunzip-maybe':
-        specifier: ^1.4.2
-        version: 1.4.2
-      '@types/mime-types':
-        specifier: ^2.1.4
-        version: 2.1.4
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.2.1
-      '@types/opener':
-        specifier: ^1.4.3
-        version: 1.4.3
-      '@types/semver':
-        specifier: ^7.5.8
-        version: 7.5.8
-      '@types/tar':
-        specifier: ^6.1.13
-        version: 6.1.13
-      '@types/tar-fs':
-        specifier: ^2.0.4
-        version: 2.0.4
-      '@types/tar-stream':
-        specifier: ^3.1.4
-        version: 3.1.4
-      '@types/yargs':
-        specifier: ^17.0.33
-        version: 17.0.33
-      '@types/yauzl':
-        specifier: ^2.10.3
-        version: 2.10.3
-      '@types/zip-stream':
-        specifier: ^7.0.0
-        version: 7.0.0
-      cross-env:
-        specifier: ^7.0.3
-        version: 7.0.3
-      electron:
-        specifier: 37.2.1
-        version: 37.2.1
-      electron-builder:
-        specifier: ^24.13.3
-        version: 24.13.3(electron-builder-squirrel-windows@24.13.3)
-      enso-gui:
-        specifier: workspace:*
-        version: link:../../gui
-      enso-runner:
-        specifier: workspace:*
-        version: link:../../../lib/js/runner
-      esbuild:
-        specifier: ^0.25.0
-        version: 0.25.0
-      esbuild-plugin-wasm:
-        specifier: ^1.1.0
-        version: 1.1.0
-      fast-glob:
-        specifier: ^3.3.2
-        version: 3.3.2
-      lib0:
-        specifier: ^0.2.99
-        version: 0.2.99
-      playwright:
-        specifier: 'catalog:'
-        version: 1.50.1
-      portfinder:
-        specifier: ^1.0.32
-        version: 1.0.32
-      vite:
-        specifier: 'catalog:'
-        version: 7.1.2(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
-      vite-node:
-        specifier: 3.0.0-beta.3
-        version: 3.0.0-beta.3(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
-
   app/lang-markdown:
     dependencies:
       '@codemirror/autocomplete':
@@ -1049,19 +1046,6 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.2.1)(@vitest/browser@3.2.4)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.37.0)(yaml@2.7.0)
-
-  lib/js/runner:
-    dependencies:
-      spectorjs:
-        specifier: ^0.9.30
-        version: 0.9.30
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.2.1
-      typescript:
-        specifier: 'catalog:'
-        version: 5.7.2
 
 packages:
 
@@ -2813,10 +2797,6 @@ packages:
     engines: {node: '>=8'}
     peerDependencies:
       vue: 2.x || 3.x
-
-  '@shaderfrog/glsl-parser@2.1.5':
-    resolution: {integrity: sha512-fw7U8Y7BBV9NZVLs7lyM8lpQ9YUK7XBNJjN4HhkY3nqkKpSiIQ62PVtPYtW7uZME5072QXQNQBhHJzG3t+NH0w==}
-    engines: {node: '>=16'}
 
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
@@ -6683,9 +6663,6 @@ packages:
     resolution: {integrity: sha512-1POYv7uv2gXoyGFpBCmpDVSNV74IfsWlDW216UPjbWufNf+bSU6GdbDsxdcxtfwb4xlI3yxzOTKClUosxARYrQ==}
     engines: {node: '>=0.10.0'}
 
-  spectorjs@0.9.30:
-    resolution: {integrity: sha512-I9/VI3gfO3UiBCUXj20lQjP3fbezP2y03Virnv3jcMpIiF+/NOyWDrBQ+U8vf29IXHPscxOXzzmZDCkETznsMg==}
-
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
 
@@ -10098,8 +10075,6 @@ snapshots:
       '@sentry/types': 7.120.3
       '@sentry/utils': 7.120.3
       vue: 3.5.13(typescript@5.7.2)
-
-  '@shaderfrog/glsl-parser@2.1.5': {}
 
   '@sindresorhus/is@4.6.0': {}
 
@@ -14595,10 +14570,6 @@ snapshots:
   spdx-license-ids@3.0.20: {}
 
   speakingurl@14.0.1: {}
-
-  spectorjs@0.9.30:
-    dependencies:
-      '@shaderfrog/glsl-parser': 2.1.5
 
   sprintf-js@1.0.3: {}
 

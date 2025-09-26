@@ -9,6 +9,7 @@ ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
     visibility = [":__subpackages__"],
+    deps = ["//:tsconfig"],
 )
 
 ts_project(
@@ -18,13 +19,13 @@ ts_project(
     declaration = True,
     resolve_json_module = True,
     source_map = True,
-    tsconfig = "//app/ide-desktop/lib/project-manager-shim:tsconfig",
+    tsconfig = "//app/project-manager-shim:tsconfig",
     validate = select({
         "@platforms//os:windows": False,
         "//conditions:default": True,
     }),
     visibility = ["//visibility:public"],
-    deps = ["//app/ide-desktop:tsconfig"] + npm_link_targets(),
+    deps = ["//:tsconfig"] + npm_link_targets(),
 )
 
 js_library(
