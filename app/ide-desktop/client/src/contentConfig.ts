@@ -2,13 +2,7 @@
 
 import * as semver from 'semver'
 
-import * as linkedDist from 'enso-runner/src/runner'
 import BUILD_INFO from '../buildInfo'
-
-export const Option = linkedDist.config.Option
-export const Group = linkedDist.config.Group
-/** A configuration option. */
-export type Option<T> = linkedDist.config.Option<T>
 
 // ===============
 // === Version ===
