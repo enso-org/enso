@@ -3,8 +3,8 @@ import type {
   CompletionResult,
   CompletionSource,
 } from '@codemirror/autocomplete'
-import { type MethodCompletionInfo, useCompletionData } from './completionData'
 import { completionTypeAt } from 'lezer-enso-table-expr'
+import { type MethodCompletionInfo, useCompletionData } from './completionData'
 export type { MethodCompletionInfo }
 
 export function completionSource(

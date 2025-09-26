@@ -1,12 +1,12 @@
 import TableExpressionFunctionDocs from '@/components/TableExpressionFunctionDocs.vue'
+import type { MethodCompletionInfo } from '@/util/codemirror/language/tableExpression/completionData'
+import { singleCursorTooltipExtension } from '@/util/codemirror/tooltips/showTooltip'
+import { vueTooltipView } from '@/util/codemirror/tooltips/tooltipView'
 import { getVueHost, vueHostExt } from '@/util/codemirror/vueHostExt'
 import type { EditorState, Extension } from '@codemirror/state'
 import type { Tooltip } from '@codemirror/view'
 import { completionTypeAt } from 'lezer-enso-table-expr'
 import { computed } from 'vue'
-import type { MethodCompletionInfo } from '@/util/codemirror/language/tableExpression/completionData'
-import { singleCursorTooltipExtension } from '@/util/codemirror/tooltips/showTooltip'
-import { vueTooltipView } from '@/util/codemirror/tooltips/tooltipView'
 
 function memoizeIf<Value, Args extends unknown[]>(
   getValue: (...args: Args) => Value,
