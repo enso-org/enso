@@ -65,7 +65,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       EnsoHashMap warnings,
-      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
+      @Shared("loopNode") @Cached(value = "createLoopNode()", allowUncached = true) LoopNode loopNode) {
     return dispatch(function, callerInfo, state, arguments, loopNode);
   }
 
@@ -76,7 +76,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       State state,
       Object[] arguments,
       EnsoHashMap warnings,
-      @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode,
+      @Shared("loopNode") @Cached(value = "createLoopNode()", allowUncached = true) LoopNode loopNode,
       @Shared @Cached AppendWarningNode appendWarningNode) {
     Object result = dispatch(function, callerInfo, state, arguments, loopNode);
     return appendWarningNode.executeAppend(null, result, warnings);
