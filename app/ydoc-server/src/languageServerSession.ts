@@ -284,23 +284,26 @@ function pushPathSegment(path: Path, segment: string): Path {
   return { rootId: path.rootId, segments: [...path.segments, segment] }
 }
 
-enum LsSyncState {
-  Closed,
-  Opening,
-  Synchronized,
-  WritingFile,
-  WriteError,
-  CapabilityError,
-  Reloading,
-  Closing,
-  Disposed,
-}
+type LsSyncState = (typeof LsSyncState)[keyof typeof LsSyncState]
+const LsSyncState = {
+  Closed: 0,
+  Opening: 1,
+  Synchronized: 2,
+  WritingFile: 3,
+  WriteError: 4,
+  CapabilityError: 5,
+  Reloading: 6,
+  Closing: 7,
+  Disposed: 8,
+} as const
+const LS_SYNC_STATE_NAMES = Object.keys(LsSyncState)
 
-enum LsAction {
-  Open,
-  Close,
-  Reload,
-}
+type LsAction = (typeof LsAction)[keyof typeof LsAction]
+const LsAction = {
+  Open: 0,
+  Close: 1,
+  Reload: 2,
+} as const
 
 class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   ls: LanguageServer
@@ -351,7 +354,11 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
 
   private setState(state: LsSyncState) {
     if (this.state !== LsSyncState.Disposed) {
-      debugLog('State change: %o -> %o', LsSyncState[this.state], LsSyncState[state])
+      debugLog(
+        'State change: %o -> %o',
+        LS_SYNC_STATE_NAMES[this.state],
+        LS_SYNC_STATE_NAMES[state],
+      )
       // @ts-expect-error This is SAFE. `this.state` is only `readonly` to ensure that
       // this is the only place where it is mutated.
       this.state = state

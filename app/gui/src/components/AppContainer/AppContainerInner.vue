@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
-import { BackendType, EnsoPath, type ProjectId } from '#/services/Backend'
+import { EnsoPath, type ProjectId } from '#/services/Backend'
 import {
   useContainerData,
   type LaunchedProject,
@@ -63,9 +63,7 @@ function setProjectReady(project: ProjectId, projectTab: TabId, ready: boolean) 
 }
 
 function loadingProjectSpinnerPhase(project: OpenedProject) {
-  return (
-      project.state === 'launched' && (project.hybrid != null || project.type === BackendType.local)
-    ) ?
+  return project.state === 'launched' && (project.hybrid != null || project.type === 'local') ?
       'loading-fast'
     : 'loading-slow'
 }

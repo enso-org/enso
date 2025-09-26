@@ -26,9 +26,9 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
     )
 
   switch (permission.type) {
-    case permissionsModule.Permission.owner:
-    case permissionsModule.Permission.admin:
-    case permissionsModule.Permission.edit: {
+    case 'owner':
+    case 'admin':
+    case 'edit': {
       return (
         <Button
           size="custom"
@@ -45,8 +45,8 @@ export default function PermissionDisplay(props: PermissionDisplayProps) {
         </Button>
       )
     }
-    case permissionsModule.Permission.read:
-    case permissionsModule.Permission.view: {
+    case 'read':
+    case 'view': {
       return (
         <Button
           size="custom"

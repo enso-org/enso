@@ -8,7 +8,7 @@ import { Text } from '#/components/Text'
 import type { PaywallLevel } from '#/hooks/billing'
 import type { SubscribeButtonProps } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
 import { SubscribeButton } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
-import { Plan, type PlanBillingPeriod } from '#/services/Backend'
+import type { Plan, PlanBillingPeriod } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import * as appUtils from '$/appUtils'
@@ -32,17 +32,17 @@ export interface PropsForPlan {
 }
 
 const PROPS_FOR_PLAN: { readonly [PlanVariant in Plan]: PropsForPlan } = {
-  free: {
+  ['free']: {
     submitButton: (props) => <SubscribeButton {...props} isDisabled={true} />,
   },
-  [Plan.solo]: {
+  ['solo']: {
     submitButton: SubscribeButton,
   },
-  [Plan.team]: {
+  ['team']: {
     elevated: true,
     submitButton: SubscribeButton,
   },
-  [Plan.enterprise]: {
+  ['enterprise']: {
     submitButton: () => {
       // False positive
       // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -209,7 +209,7 @@ export function Card(props: CardProps) {
         </div>
       )}
 
-      {plan !== Plan.free && (
+      {plan !== 'free' && (
         <div className="mt-4">
           <Button
             variant="link"

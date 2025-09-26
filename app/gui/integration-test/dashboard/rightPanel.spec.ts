@@ -3,8 +3,6 @@ import { expect, test, type Locator, type Page } from 'playwright/test'
 
 import { EmailAddress, UserId } from '#/services/Backend'
 
-import { PermissionAction } from '#/utilities/permissions'
-
 import { mockAllAndLogin, TEXT } from './actions'
 
 /** Find an asset panel. */
@@ -48,7 +46,7 @@ test('asset panel contents', ({ page }) =>
         description: DESCRIPTION,
         permissions: [
           {
-            permission: PermissionAction.own,
+            permission: 'Own',
             user: {
               organizationId: defaultOrganizationId,
               // Using the default ID causes the asset to have a dynamic username.

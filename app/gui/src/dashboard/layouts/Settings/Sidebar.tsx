@@ -6,7 +6,7 @@ import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
 import { memo, type Dispatch, type SetStateAction } from 'react'
 import { SETTINGS_DATA, type SettingsContext } from './data'
-import type SettingsTabType from './TabType'
+import type { SettingsTabType } from './TabType'
 
 /** Props for a {@link SettingsSidebar} */
 export interface SettingsSidebarProps {

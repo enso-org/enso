@@ -1,5 +1,5 @@
-import { AssetType, DirectoryId } from '#/services/Backend'
-import { Err, Ok, Result } from '@/util/data/result'
+import { DirectoryId } from '#/services/Backend'
+import { Err, Ok, type Result } from '@/util/data/result'
 import { uuidv4 } from 'lib0/random'
 import { describe, expect, test, vi } from 'vitest'
 import { ref, type Ref } from 'vue'
@@ -77,7 +77,7 @@ describe('useAcceptCurrentFile', () => {
   test('sets overwrite dialog when file exists in write mode without override', async () => {
     const { api } = setupAccept({
       enteredPath: ref(path(['dir'])),
-      assetExists: async () => ({ exists: true, type: AssetType.file }),
+      assetExists: async () => ({ exists: true, type: 'file' as const }),
     })
     await api.tryAcceptCurrentFile()
     expect(api.overwriteFilename.value).toBe('file.txt')
@@ -87,7 +87,7 @@ describe('useAcceptCurrentFile', () => {
     const { api } = setupAccept({
       enteredPath: ref(path(['dir'])),
       fullFilePath: ref('subdir'),
-      assetExists: async () => ({ exists: true, type: AssetType.directory }),
+      assetExists: async () => ({ exists: true, type: 'directory' as const }),
     })
     await api.tryAcceptCurrentFile()
     expect(api.warningText.value).toContain('is a directory, not a file')

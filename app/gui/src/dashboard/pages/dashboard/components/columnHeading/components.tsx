@@ -4,7 +4,6 @@ import { Icon } from '#/components/Icon'
 import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { AssetColumnHeadingProps } from '#/pages/dashboard/components/column'
-import { Column } from '#/pages/dashboard/components/column/columnUtils'
 import { iconIdFor, nextSortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
@@ -15,7 +14,7 @@ export function AccessedByProjectsColumnHeading(props: AssetColumnHeadingProps) 
   const { getText } = useText()
 
   const hideThisColumn = useEventCallback(() => {
-    hideColumn(Column.accessedByProjects)
+    hideColumn('accessedByProjects')
   })
 
   return (
@@ -40,7 +39,7 @@ export function AccessedDataColumnHeading(props: AssetColumnHeadingProps) {
   const { getText } = useText()
 
   const hideThisColumn = useEventCallback(() => {
-    hideColumn(Column.accessedData)
+    hideColumn('accessedData')
   })
 
   return (
@@ -66,7 +65,7 @@ export function LabelsColumnHeading(props: AssetColumnHeadingProps) {
   const { getText } = useText()
 
   const hideThisColumn = useEventCallback(() => {
-    hideColumn(Column.labels)
+    hideColumn('labels')
   })
 
   return (
@@ -95,7 +94,7 @@ export function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
   const isDescending = sortInfo?.direction === 'descending'
 
   const hideThisColumn = useEventCallback(() => {
-    hideColumn(Column.modified)
+    hideColumn('modified')
   })
 
   const cycleSortDirection = useEventCallback(() => {
@@ -206,7 +205,7 @@ export function PathColumnHeading(props: AssetColumnHeadingProps) {
   const { getText } = useText()
 
   const hideThisColumn = useEventCallback(() => {
-    hideColumn(Column.path)
+    hideColumn('path')
   })
 
   return (
@@ -235,7 +234,7 @@ export function SharedWithColumnHeading(props: AssetColumnHeadingProps) {
   const { getText } = useText()
 
   const hideThisColumn = useEventCallback(() => {
-    hideColumn(Column.sharedWith)
+    hideColumn('sharedWith')
   })
 
   return (

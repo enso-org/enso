@@ -11,7 +11,7 @@ import {
 } from '#/hooks/backendBatchedHooks'
 import { useUploadFileToCloud } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
+import { ASSET_TYPES, type AssetId, type DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText, useUser } from '$/providers/react'
@@ -34,7 +34,7 @@ export const TRANSFERRABLE_ASSET_SCHEMA = z.object({
   // eslint-disable-next-line no-restricted-syntax
   id: z.string().transform((id) => id as AssetId),
   title: z.string(),
-  type: z.nativeEnum(AssetType),
+  type: z.enum(ASSET_TYPES),
   // eslint-disable-next-line no-restricted-syntax
   parentId: z.string().transform((id) => id as DirectoryId),
   parentsPath: z.string(),

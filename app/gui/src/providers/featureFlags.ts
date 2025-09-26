@@ -4,7 +4,7 @@
  * Feature flags provider.
  * Feature flags are used to enable or disable certain features in the application.
  */
-import { Plan } from '#/services/Backend'
+import { PLANS } from '#/services/Backend'
 import { unsafeEntries } from '#/utilities/object'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useZustandStoreRef } from '$/utils/zustand'
@@ -29,7 +29,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableCloudExecution: z.boolean(),
   enableAdvancedProjectExecutionOptions: z.boolean(),
   showDeveloperIds: z.boolean(),
-  developerPlanOverride: z.nativeEnum(Plan).optional(),
+  developerPlanOverride: z.enum(PLANS).optional(),
   overrideProfilePicture: z.boolean(),
   multiplyUserList: z.boolean(),
   fileChunkUploadPoolSize: z.number().int().min(1),

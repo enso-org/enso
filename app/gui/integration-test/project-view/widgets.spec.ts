@@ -825,7 +825,11 @@ test.describe('Table expression', () => {
 })
 
 class AutocompleteMenu {
-  private constructor(private readonly root: Locator) {}
+  private readonly root: Locator
+
+  private constructor(root: Locator) {
+    this.root = root
+  }
 
   static async ForEditor(editor: Locator): Promise<AutocompleteMenu> {
     const root = editor.locator('.cm-tooltip-autocomplete')

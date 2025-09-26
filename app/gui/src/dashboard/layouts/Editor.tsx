@@ -7,22 +7,22 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMount } from '#/hooks/mountHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { useTimeoutCallback } from '#/hooks/timeoutHooks'
-import * as backendModule from '#/services/Backend'
+import type { BackendType, Project } from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
 import type { LaunchedProject } from '$/providers/container'
 import { useBackends, useConfig, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
-import * as analytics from '$/utils/analytics'
+import { editorOpenCloseCallback } from '$/utils/analytics'
 import ProjectViewTabVue from '@/ProjectViewTab.vue'
-import * as reactQuery from '@tanstack/react-query'
-import * as React from 'react'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useCallback, useEffect, type ComponentProps } from 'react'
 import invariant from 'tiny-invariant'
 
 // eslint-disable-next-line no-restricted-syntax
 const ProjectViewTab = vueComponent(ProjectViewTabVue).default
 
 /** Props for the GUI editor root component. */
-export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>
+export type ProjectViewTabProps = ComponentProps<typeof ProjectViewTab>
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {
@@ -44,8 +44,7 @@ export default function Editor(props: EditorProps) {
 /** The container that launches the IDE. */
 function EditorContents(props: EditorProps) {
   const { project, onReadyUpdate, onNameUpdate } = props
-  const preventAutoReopen =
-    project.type !== backendModule.BackendType.local || project.hybrid != null
+  const preventAutoReopen = project.type !== 'local' || project.hybrid != null
   const { getText } = useText()
   const openProjectMutation = projectHooks.useOpenProjectMutation()
   const renameProjectMutation = projectHooks.useRenameProjectMutation()
@@ -59,9 +58,9 @@ function EditorContents(props: EditorProps) {
     backend,
   })
 
-  const queryClient = reactQuery.useQueryClient()
+  const queryClient = useQueryClient()
 
-  const projectQuery = reactQuery.useSuspenseQuery({
+  const projectQuery = useSuspenseQuery({
     ...projectStatusQuery,
     select: (data) => {
       const isProjectOpening = projectHooks.OPENING_PROJECT_STATES.has(data.state.type)
@@ -77,7 +76,7 @@ function EditorContents(props: EditorProps) {
   // If it's a hybrid project, we need to fetch the project details from the remote backend.
   const {
     data: { name, isHybridOpened },
-  } = reactQuery.useSuspenseQuery({
+  } = useSuspenseQuery({
     ...projectHooks.createGetProjectDetailsQuery({
       assetId: isHybrid ? project.hybrid.cloudProjectId : project.id,
       backend: isHybrid ? remoteBackend : backend,
@@ -97,9 +96,8 @@ function EditorContents(props: EditorProps) {
   const stableOnNameUpdate = useEventCallback((value: string) => onNameUpdate?.(value))
 
   const onRenameProject = useEventCallback(async (newName: string) => {
-    const backendType = isHybrid ? backendModule.BackendType.remote : project.type
-    const backendForRenaming =
-      backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
+    const backendType = isHybrid ? 'remote' : project.type
+    const backendForRenaming = backendType === 'remote' ? remoteBackend : localBackend
     const id = isHybrid ? project.hybrid.cloudProjectId : project.id
     invariant(backendForRenaming != null, 'Backend is null')
 
@@ -125,11 +123,11 @@ function EditorContents(props: EditorProps) {
     }
   })
 
-  React.useEffect(() => {
+  useEffect(() => {
     stableOnNameUpdate(name)
   }, [stableOnNameUpdate, name])
 
-  React.useEffect(() => {
+  useEffect(() => {
     stableOnReadyUpdate(isProjectOpened)
   }, [stableOnReadyUpdate, isProjectOpened])
 
@@ -219,8 +217,8 @@ function EditorContents(props: EditorProps) {
 
 /** Props for an {@link EditorInternal}. */
 interface EditorInternalProps extends Omit<EditorProps, 'project'> {
-  readonly openedProject: backendModule.Project
-  readonly backendType: backendModule.BackendType
+  readonly openedProject: Project
+  readonly backendType: BackendType
   readonly renameProject: (newName: string) => Promise<void>
   readonly projectName: string
 }
@@ -231,13 +229,13 @@ function EditorInternal(props: EditorInternalProps) {
 
   const { getText } = useText()
   const config = useConfig()
-  const ydocUrl = useVueValue(React.useCallback(() => config.ydocUrl, [config]))
+  const ydocUrl = useVueValue(useCallback(() => config.ydocUrl, [config]))
 
   const { localBackend, remoteBackend } = useBackends()
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!hidden) {
-      return analytics.editorOpenCloseCallback()
+      return editorOpenCloseCallback()
     }
   }, [hidden])
 
@@ -248,8 +246,7 @@ function EditorInternal(props: EditorInternalProps) {
   const jsonAddress = openedProject.jsonAddress
   const binaryAddress = openedProject.binaryAddress
   const ydocAddress = openedProject.ydocAddress ?? ydocUrl ?? ''
-  const projectBackend =
-    backendType === backendModule.BackendType.remote ? remoteBackend : localBackend
+  const projectBackend = backendType === 'remote' ? remoteBackend : localBackend
 
   invariant(jsonAddress != null, getText('noJSONEndpointError'))
   invariant(binaryAddress != null, getText('noBinaryEndpointError'))

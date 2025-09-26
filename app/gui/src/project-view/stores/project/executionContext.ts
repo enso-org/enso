@@ -105,13 +105,14 @@ type ExecutionContextNotification = {
   'visualizationsConfigured'(configs: Set<Uuid>): void
 }
 
-enum SyncStatus {
-  NOT_SYNCED,
-  QUEUED,
-  CREATING,
-  SYNCING,
-  SYNCED,
-}
+type SyncStatus = (typeof SyncStatus)[keyof typeof SyncStatus]
+const SyncStatus = {
+  NOT_SYNCED: 0,
+  QUEUED: 1,
+  CREATING: 2,
+  SYNCING: 3,
+  SYNCED: 4,
+} as const
 
 /**
  * Execution Context
@@ -125,7 +126,7 @@ enum SyncStatus {
 export class ExecutionContext extends ObservableV2<ExecutionContextNotification> {
   readonly id: ContextId = crypto.randomUUID() as ContextId
   private queue: AsyncQueue<ExecutionContextState>
-  private syncStatus = SyncStatus.NOT_SYNCED
+  private syncStatus: SyncStatus = SyncStatus.NOT_SYNCED
   private clearScheduled = false
   private _desiredStack: StackItem[] = reactive([])
   private visualizationConfigs: Map<Uuid, NodeVisualizationConfiguration> = new Map()

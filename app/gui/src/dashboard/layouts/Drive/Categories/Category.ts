@@ -2,7 +2,7 @@
 import type { SvgUseIcon } from '#/components/types'
 import type { UserId } from '#/services/Backend'
 import {
-  BackendType,
+  BACKEND_TYPES,
   FilterBy,
   type DirectoryId,
   type Path,
@@ -30,7 +30,7 @@ const EACH_CATEGORY_SCHEMA = z.object({
    * Internal type discriminator.
    * Used to determine the type of the category without having to check for any other properties.
    */
-  backend: z.nativeEnum(BackendType),
+  backend: z.enum(BACKEND_TYPES),
 })
 
 /** A category corresponding to the root of the user or organization. */
@@ -41,7 +41,7 @@ const CLOUD_CATEGORY_SCHEMA = z
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
-  .merge(z.object({ backend: z.literal(BackendType.remote) }))
+  .merge(z.object({ backend: z.literal('remote') }))
   .readonly()
 /** A category corresponding to the root of the user or organization. */
 export type CloudCategory = z.infer<typeof CLOUD_CATEGORY_SCHEMA>
@@ -54,7 +54,7 @@ const RECENT_CATEGORY_SCHEMA = z
     homeDirectoryId: z.null(),
   })
   .merge(EACH_CATEGORY_SCHEMA)
-  .merge(z.object({ backend: z.literal(BackendType.remote) }))
+  .merge(z.object({ backend: z.literal('remote') }))
   .readonly()
 /** A category containing recently opened Cloud projects. */
 export type RecentCategory = z.infer<typeof RECENT_CATEGORY_SCHEMA>
@@ -67,7 +67,7 @@ const TRASH_CATEGORY_SCHEMA = z
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
-  .merge(z.object({ backend: z.literal(BackendType.remote) }))
+  .merge(z.object({ backend: z.literal('remote') }))
   .readonly()
 /** A category containing recently deleted Cloud items. */
 export type TrashCategory = z.infer<typeof TRASH_CATEGORY_SCHEMA>
@@ -82,7 +82,7 @@ export const USER_CATEGORY_SCHEMA = z
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
-  .merge(z.object({ backend: z.literal(BackendType.remote) }))
+  .merge(z.object({ backend: z.literal('remote') }))
   .readonly()
 /** A category corresponding to the root directory of a user. */
 export type UserCategory = z.infer<typeof USER_CATEGORY_SCHEMA>
@@ -96,7 +96,7 @@ export const TEAM_CATEGORY_SCHEMA = z
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
-  .merge(z.object({ backend: z.literal(BackendType.remote) }))
+  .merge(z.object({ backend: z.literal('remote') }))
   .readonly()
 /** A category corresponding to the root directory of a team within an organization. */
 export type TeamCategory = z.infer<typeof TEAM_CATEGORY_SCHEMA>
@@ -111,7 +111,7 @@ const LOCAL_CATEGORY_SCHEMA = z
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
-  .merge(z.object({ backend: z.literal(BackendType.local) }))
+  .merge(z.object({ backend: z.literal('local') }))
   .readonly()
 /** A category corresponding to the primary root directory for Local projects. */
 export type LocalCategory = z.infer<typeof LOCAL_CATEGORY_SCHEMA>
@@ -125,7 +125,7 @@ export const LOCAL_DIRECTORY_CATEGORY_SCHEMA = z
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
   .merge(EACH_CATEGORY_SCHEMA)
-  .merge(z.object({ backend: z.literal(BackendType.local) }))
+  .merge(z.object({ backend: z.literal('local') }))
   .readonly()
 /** A category corresponding to an alternate local root directory. */
 export type LocalDirectoryCategory = z.infer<typeof LOCAL_DIRECTORY_CATEGORY_SCHEMA>
@@ -176,12 +176,12 @@ export const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], FilterBy |
 
 /** Whether the category is only accessible from the cloud. */
 export function isCloudCategory(category: Category): category is AnyCloudCategory {
-  return category.backend === BackendType.remote
+  return category.backend === 'remote'
 }
 
 /** Whether the category is only accessible locally. */
 export function isLocalCategory(category: Category): category is AnyLocalCategory {
-  return category.backend === BackendType.local
+  return category.backend === 'local'
 }
 
 /** Whether the given categories are equal. */

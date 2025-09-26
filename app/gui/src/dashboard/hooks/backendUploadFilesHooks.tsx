@@ -28,7 +28,6 @@ import {
   type UseMutationResult,
 } from '@tanstack/react-query'
 import {
-  AssetType,
   escapeSpecialCharacters,
   extractProjectExtension,
   extractTypeAndPath,
@@ -37,6 +36,7 @@ import {
   stripProjectExtension,
   type AnyAsset,
   type AssetId,
+  type AssetType,
   type default as Backend,
   type DirectoryId,
   type FileId,
@@ -104,7 +104,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
             return
           }
           addToSelection({
-            type: AssetType.project,
+            type: 'project',
             // This is SAFE, because it is guarded behind `assetIsProject`.
             // eslint-disable-next-line no-restricted-syntax
             id: result.id as ProjectId,
@@ -120,7 +120,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
               return
             }
             addToSelection({
-              type: AssetType.file,
+              type: 'file',
               // This is SAFE, because it is guarded behind `assetIsFile`.
               // eslint-disable-next-line no-restricted-syntax
               id: result.id as FileId,
@@ -277,9 +277,7 @@ export interface UploadFileToCloudMutationOptions {
  * From the local backend's perspective, this is any asset that is not a folder.
  * Theoretically, we _could_ upload folders to the cloud, but at this point it is a bit complex to do
  */
-export type UploadableAsset =
-  | UploadToCloudAsset<AssetType.file>
-  | UploadToCloudAsset<AssetType.project>
+export type UploadableAsset = UploadToCloudAsset<'file'> | UploadToCloudAsset<'project'>
 
 /** An asset that can be uploaded to the cloud. */
 export type UploadToCloudAsset<Type extends AssetType> = Pick<
@@ -294,7 +292,7 @@ export type UploadToCloudAsset<Type extends AssetType> = Pick<
   readonly siblings?: readonly AnyAsset<AssetType>[]
 }
 
-const UPLOADABLE_ASSETS_SET = new Set([AssetType.file, AssetType.project])
+const UPLOADABLE_ASSETS_SET = new Set(['file', 'project'])
 
 /** Whether the asset is uploadable. */
 export function isUploadableAsset(asset: UploadToCloudAsset<AssetType>): asset is UploadableAsset {
@@ -460,7 +458,7 @@ export function useUploadFileToCloud() {
             const newName = asset.newName ?? asset.title
             const fileData = await (async () => {
               switch (asset.type) {
-                case AssetType.project: {
+                case 'project': {
                   // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
                   const parentDirectoryPath = extractTypeAndPath(asset.parentId).path
 
@@ -480,7 +478,7 @@ export function useUploadFileToCloud() {
                     file: new File([await projectResponse.blob()], fileName),
                   }
                 }
-                case AssetType.file: {
+                case 'file': {
                   // TODO: @MrFlashAccount  Implement file upload
                   throw new Error('File upload is not supported yet')
                 }

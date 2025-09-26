@@ -24,28 +24,28 @@ import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
 import * as paths from '@/paths'
 import { app } from 'electron'
 import {
-  type AnyAsset,
   AssetId,
-  AssetType,
-  type DirectoryAsset,
   DirectoryId,
   EnsoPath,
-  type ExportedArchive,
   extractTypeFromId,
-  type FileAsset,
-  type FileDetails,
   FileId,
   fileNameIsArchive,
   fileNameIsProject,
   ParentsPath,
   Path,
-  type ProjectAsset,
   ProjectId,
   ProjectState,
   S3FilePath,
   stripProjectExtension,
   UnzipAssetsJobId,
   VirtualParentsPath,
+  type AnyAsset,
+  type AssetType,
+  type DirectoryAsset,
+  type ExportedArchive,
+  type FileAsset,
+  type FileDetails,
+  type ProjectAsset,
 } from 'enso-common/src/services/Backend'
 import {
   DOWNLOAD_PROJECT_REGEX,
@@ -110,9 +110,9 @@ interface AssetTypeAndIdRaw<Type extends AssetType> {
 
 /** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
 type AssetTypeAndId<Id extends AssetId = AssetId> =
-  | (DirectoryId extends Id ? AssetTypeAndIdRaw<AssetType.directory> : never)
-  | (FileId extends Id ? AssetTypeAndIdRaw<AssetType.file> : never)
-  | (ProjectId extends Id ? AssetTypeAndIdRaw<AssetType.project> : never)
+  | (DirectoryId extends Id ? AssetTypeAndIdRaw<'directory'> : never)
+  | (FileId extends Id ? AssetTypeAndIdRaw<'file'> : never)
+  | (ProjectId extends Id ? AssetTypeAndIdRaw<'project'> : never)
 
 export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId<Id>
 /**
@@ -123,9 +123,9 @@ export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
   const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
 
   switch (typeRaw) {
-    case AssetType.directory:
-    case AssetType.project:
-    case AssetType.file: {
+    case 'directory':
+    case 'project':
+    case 'file': {
       return {
         type: typeRaw,
         path: Path(decodeURIComponent(idRaw)),
@@ -723,14 +723,14 @@ export class Server {
       if (isDirectory) {
         assets.push({
           ...shared,
-          type: AssetType.directory,
+          type: 'directory',
           id: DirectoryId(`directory-${destinationPath}` as const),
         })
         await entry.extract({ rootDirectory: directory, destinationPath })
       } else if (isProject) {
         assets.push({
           ...shared,
-          type: AssetType.project,
+          type: 'project',
           id: ProjectId(`project-${destinationPath.replace(BUNDLED_PROJECT_SUFFIX, '/')}`),
           projectState: { type: ProjectState.closed },
         })
@@ -751,7 +751,7 @@ export class Server {
       } else {
         assets.push({
           ...shared,
-          type: AssetType.file,
+          type: 'file',
           id: FileId(`file-${destinationPath}`),
           extension: basenameAndExtension(destinationPath).extension,
         })
@@ -805,21 +805,21 @@ export class Server {
     const addAsset = async (id: AssetId, rootPath?: string) => {
       const typeAndId = extractTypeFromId(id)
       switch (typeAndId.type) {
-        case AssetType.project: {
+        case 'project': {
           const error = await addProject(typeAndId.id, rootPath)
           if (error) {
             return error
           }
           break
         }
-        case AssetType.file: {
+        case 'file': {
           const error = await addFile(typeAndId.id, rootPath)
           if (error) {
             return error
           }
           break
         }
-        case AssetType.directory: {
+        case 'directory': {
           const error = await addFolder(typeAndId.id, rootPath)
           if (error) {
             return error
@@ -828,9 +828,9 @@ export class Server {
         }
         // These asset types are not valid, however include them to force any newly added
         // asset types to be handled (by causing a non-exhaustiveness error).
-        case AssetType.secret:
-        case AssetType.datalink:
-        case AssetType.specialUp: {
+        case 'secret':
+        case 'datalink':
+        case 'specialUp': {
           return
         }
       }
@@ -927,12 +927,12 @@ export class Server {
         if (assetStat.isDirectory()) {
           const metadata = projectManagement.getMetadata(path)
           if (metadata) {
-            return AssetType.project
+            return 'project'
           } else {
-            return AssetType.directory
+            return 'directory'
           }
         } else {
-          return AssetType.file
+          return 'file'
         }
       })()
       const shared = {
@@ -947,10 +947,10 @@ export class Server {
         ensoPath: EnsoPath(String(path)),
       } satisfies Partial<DirectoryAsset>
       switch (type) {
-        case AssetType.project: {
+        case 'project': {
           const result: ProjectAsset = {
             ...shared,
-            type: AssetType.project,
+            type: 'project',
             id: ProjectId(`project-${path}`),
             // FIXME: Get correct state.
             projectState: { type: ProjectState.closed },
@@ -958,20 +958,20 @@ export class Server {
           // This is SAFE because `type` has been narrowed in the `switch` above.
           return result as AnyAsset<Type>
         }
-        case AssetType.file: {
+        case 'file': {
           const result: FileAsset = {
             ...shared,
-            type: AssetType.file,
+            type: 'file',
             id: FileId(`file-${path}`),
             extension: basenameAndExtension(path).extension,
           }
           // This is SAFE because `type` has been narrowed in the `switch` above.
           return result as AnyAsset<Type>
         }
-        case AssetType.directory: {
+        case 'directory': {
           const result: DirectoryAsset = {
             ...shared,
-            type: AssetType.directory,
+            type: 'directory',
             id: DirectoryId(`directory-${path}` as const),
           }
           // This is SAFE because `type` has been narrowed in the `switch` above.

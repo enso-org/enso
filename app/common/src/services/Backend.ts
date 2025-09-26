@@ -57,9 +57,9 @@ interface AssetTypeAndIdRaw<Type extends AssetType> {
 
 /** The internal asset type and properly typed corresponding internal ID of an arbitrary asset. */
 type AssetTypeAndId<Id extends AssetId = AssetId> =
-  | (DirectoryId extends Id ? AssetTypeAndIdRaw<AssetType.directory> : never)
-  | (FileId extends Id ? AssetTypeAndIdRaw<AssetType.file> : never)
-  | (ProjectId extends Id ? AssetTypeAndIdRaw<AssetType.project> : never)
+  | (DirectoryId extends Id ? AssetTypeAndIdRaw<'directory'> : never)
+  | (FileId extends Id ? AssetTypeAndIdRaw<'file'> : never)
+  | (ProjectId extends Id ? AssetTypeAndIdRaw<'project'> : never)
 
 export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId<Id>
 /**
@@ -70,9 +70,9 @@ export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
   const [, typeRaw, idRaw = ''] = id.match(/(.+?)-(.+)/) ?? []
 
   switch (typeRaw) {
-    case AssetType.directory:
-    case AssetType.project:
-    case AssetType.file: {
+    case 'directory':
+    case 'project':
+    case 'file': {
       return {
         type: typeRaw,
         path: Path(decodeURIComponent(idRaw)),
@@ -101,10 +101,8 @@ export interface Logger {
 type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
-export enum BackendType {
-  local = 'local',
-  remote = 'remote',
-}
+export type BackendType = (typeof BACKEND_TYPES)[number]
+export const BACKEND_TYPES = ['local', 'remote'] as const
 
 /** Check if this path points to an asset in cloud drive. */
 export function isRemoteAssetPath(ensoPath: EnsoPath): ensoPath is EnsoPath & `enso://${string}` {
@@ -515,14 +513,8 @@ export interface CognitoCredentials {
 }
 
 /** Subscription plans. */
-export enum Plan {
-  free = 'free',
-  solo = 'solo',
-  team = 'team',
-  enterprise = 'enterprise',
-}
-
-export const PLANS = Object.values(Plan)
+export type Plan = (typeof PLANS)[number]
+export const PLANS = ['free', 'solo', 'team', 'enterprise'] as const
 
 export const isPlan = array.includesPredicate(PLANS)
 
@@ -643,12 +635,12 @@ export type AssetDetailsResponse<Id extends RealAssetId> =
 export function isUserOnPlanWithMultipleSeats(user: User) {
   switch (user.plan) {
     case undefined:
-    case Plan.free:
-    case Plan.solo: {
+    case 'free':
+    case 'solo': {
       return false
     }
-    case Plan.team:
-    case Plan.enterprise: {
+    case 'team':
+    case 'enterprise': {
       return true
     }
   }
@@ -857,60 +849,53 @@ export function findLeastUsedColor(labels: Iterable<Label>) {
 }
 
 /** All possible types of directory entries. */
-export enum AssetType {
-  project = 'project',
-  file = 'file',
-  secret = 'secret',
-  datalink = 'datalink',
-  directory = 'directory',
+export type AssetType = (typeof ASSET_TYPES)[number]
+export const ASSET_TYPES = [
+  'project',
+  'file',
+  'secret',
+  'datalink',
+  'directory',
   /** A special {@link AssetType} representing a button that navigates to the parent directory. */
-  specialUp = 'specialUp',
-}
+  'specialUp',
+] as const
 
 export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
-  [AssetType.directory]: 'directoryAssetType',
-  [AssetType.project]: 'projectAssetType',
-  [AssetType.file]: 'fileAssetType',
-  [AssetType.secret]: 'secretAssetType',
-  [AssetType.specialUp]: 'specialUpAssetType',
-  [AssetType.datalink]: 'datalinkAssetType',
+  ['directory']: 'directoryAssetType',
+  ['project']: 'projectAssetType',
+  ['file']: 'fileAssetType',
+  ['secret']: 'secretAssetType',
+  ['specialUp']: 'specialUpAssetType',
+  ['datalink']: 'datalinkAssetType',
 } satisfies { [Type in AssetType]: `${Type}AssetType` }
 
-export enum ReplaceableAssetType {
-  project = 'project',
-  file = 'file',
-  datalink = 'datalink',
-  secret = 'secret',
-}
+/** Asset types that can be replaced by a newer version. */
+export type ReplaceableAssetType = (typeof REPLACEABLE_ASSET_TYPES)[number]
+export const REPLACEABLE_ASSET_TYPES = ['project', 'file', 'datalink', 'secret'] as const
 
 /** The types of assets that can be retrieved from the backend. */
-export type RealAssetType =
-  | AssetType.project
-  | AssetType.file
-  | AssetType.datalink
-  | AssetType.secret
-  | AssetType.directory
+export type RealAssetType = 'project' | 'file' | 'datalink' | 'secret' | 'directory'
 
 /** The corresponding ID newtype for each {@link AssetType}. */
 export interface IdType extends RealAssetIdType, SpecialAssetIdType {}
 export type RealAssetId = ProjectId | FileId | DatalinkId | SecretId | DirectoryId
 export interface RealAssetIdType {
-  readonly [AssetType.project]: ProjectId
-  readonly [AssetType.file]: FileId
-  readonly [AssetType.datalink]: DatalinkId
-  readonly [AssetType.secret]: SecretId
-  readonly [AssetType.directory]: DirectoryId
+  readonly ['project']: ProjectId
+  readonly ['file']: FileId
+  readonly ['datalink']: DatalinkId
+  readonly ['secret']: SecretId
+  readonly ['directory']: DirectoryId
 }
 
 export type RealAssetTypeId<Id extends RealAssetId> =
-  Id extends ProjectId ? AssetType.project
-  : Id extends FileId ? AssetType.file
-  : Id extends DatalinkId ? AssetType.datalink
-  : Id extends SecretId ? AssetType.secret
-  : AssetType.directory
+  Id extends ProjectId ? 'project'
+  : Id extends FileId ? 'file'
+  : Id extends DatalinkId ? 'datalink'
+  : Id extends SecretId ? 'secret'
+  : 'directory'
 
 export interface SpecialAssetIdType {
-  readonly [AssetType.specialUp]: UpAssetId
+  readonly ['specialUp']: UpAssetId
 }
 
 /**
@@ -918,12 +903,12 @@ export interface SpecialAssetIdType {
  * in a directory listing.
  */
 export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
-  [AssetType.directory]: 0,
-  [AssetType.project]: -1,
-  [AssetType.file]: -2,
-  [AssetType.datalink]: -3,
-  [AssetType.secret]: -4,
-  [AssetType.specialUp]: 1,
+  ['directory']: 0,
+  ['project']: -1,
+  ['file']: -2,
+  ['datalink']: -3,
+  ['secret']: -4,
+  ['specialUp']: 1,
 }
 
 /** A state associated with a credential. */
@@ -954,36 +939,36 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly labels?: readonly LabelName[] | undefined
   readonly description?: string | undefined
   /** Asset data for a project */
-  readonly projectState: Type extends AssetType.project ? ProjectStateType : null
+  readonly projectState: Type extends 'project' ? ProjectStateType : null
   /** Asset data for a file */
-  readonly extension: Type extends AssetType.file ? string : null
+  readonly extension: Type extends 'file' ? string : null
   /** Asset data for a credential (secret) */
-  readonly credentialMetadata?: Type extends AssetType.secret ? CredentialMetadata : undefined
+  readonly credentialMetadata?: Type extends 'secret' ? CredentialMetadata : undefined
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
   // TODO[ao]: As a rule, this should be always defined, but there is one place where we are unable
   //  to retrieve directory path easily.
-  readonly ensoPath: Type extends AssetType.directory ? EnsoPath | undefined : EnsoPath
+  readonly ensoPath: Type extends 'directory' ? EnsoPath | undefined : EnsoPath
 }
 
-/** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
-export type DirectoryAsset = Asset<AssetType.directory>
+/** A convenience alias for {@link Asset}<{@link 'directory'}>. */
+export type DirectoryAsset = Asset<'directory'>
 
-/** A convenience alias for {@link Asset}<{@link AssetType.project}>. */
-export type ProjectAsset = Asset<AssetType.project>
+/** A convenience alias for {@link Asset}<{@link 'project'}>. */
+export type ProjectAsset = Asset<'project'>
 
-/** A convenience alias for {@link Asset}<{@link AssetType.file}>. */
-export type FileAsset = Asset<AssetType.file>
+/** A convenience alias for {@link Asset}<{@link 'file'}>. */
+export type FileAsset = Asset<'file'>
 
-/** A convenience alias for {@link Asset}<{@link AssetType.datalink}>. */
-export type DatalinkAsset = Asset<AssetType.datalink>
+/** A convenience alias for {@link Asset}<{@link 'datalink'}>. */
+export type DatalinkAsset = Asset<'datalink'>
 
-/** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
-export type SecretAsset = Asset<AssetType.secret>
+/** A convenience alias for {@link Asset}<{@link 'secret'}>. */
+export type SecretAsset = Asset<'secret'>
 
-/** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
-export type SpecialUpAsset = Asset<AssetType.specialUp>
+/** A convenience alias for {@link Asset}<{@link 'specialUp'}>. */
+export type SpecialUpAsset = Asset<'specialUp'>
 
 const PLACEHOLDER_SIGNATURE = Symbol('placeholder')
 
@@ -1020,13 +1005,13 @@ function fileExtension(fileNameOrPath: string) {
 
 /** Whether an asset can be downloaded. */
 export function isDownloadableAsset(type: AssetType | undefined) {
-  return type !== AssetType.secret
+  return type !== 'secret'
 }
 
 /** Creates a {@link FileAsset} using the given values. */
 export function createPlaceholderFileAsset(title: string, parentId: DirectoryId): FileAsset {
   return {
-    type: AssetType.file,
+    type: 'file',
     id: FileId(createPlaceholderId()),
     title,
     parentId,
@@ -1043,7 +1028,7 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
 /** Creates a {@link ProjectAsset} using the given values. */
 export function createPlaceholderProjectAsset(title: string, parentId: DirectoryId): ProjectAsset {
   return {
-    type: AssetType.project,
+    type: 'project',
     id: ProjectId(createPlaceholderId()),
     title,
     parentId,
@@ -1098,27 +1083,27 @@ export function createPlaceholderAssetId<Type extends AssetType>(
   id = createPlaceholderId(id)
   let result: AssetId
   switch (assetType) {
-    case AssetType.directory: {
+    case 'directory': {
       result = DirectoryId(`directory-${id}`)
       break
     }
-    case AssetType.project: {
+    case 'project': {
       result = ProjectId(id)
       break
     }
-    case AssetType.file: {
+    case 'file': {
       result = FileId(id)
       break
     }
-    case AssetType.datalink: {
+    case 'datalink': {
       result = DatalinkId(id)
       break
     }
-    case AssetType.secret: {
+    case 'secret': {
       result = SecretId(id)
       break
     }
-    case AssetType.specialUp: {
+    case 'specialUp': {
       result = UpAssetId(id)
       break
     }
@@ -1127,15 +1112,15 @@ export function createPlaceholderAssetId<Type extends AssetType>(
 }
 
 /** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
-export const assetIsProject = assetIsType(AssetType.project)
+export const assetIsProject = assetIsType('project')
 /** A type guard that returns whether an {@link Asset} is a {@link DirectoryAsset}. */
-export const assetIsDirectory = assetIsType(AssetType.directory)
+export const assetIsDirectory = assetIsType('directory')
 /** A type guard that returns whether an {@link Asset} is a {@link DatalinkAsset}. */
-export const assetIsDatalink = assetIsType(AssetType.datalink)
+export const assetIsDatalink = assetIsType('datalink')
 /** A type guard that returns whether an {@link Asset} is a {@link SecretAsset}. */
-export const assetIsSecret = assetIsType(AssetType.secret)
+export const assetIsSecret = assetIsType('secret')
 /** A type guard that returns whether an {@link Asset} is a {@link FileAsset}. */
-export const assetIsFile = assetIsType(AssetType.file)
+export const assetIsFile = assetIsType('file')
 
 /** Metadata describing a specific version of an asset. */
 export interface S3ObjectVersion {
@@ -1602,12 +1587,12 @@ export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
 export function userHasUserAndTeamSpaces(user: User | null) {
   switch (user?.plan ?? null) {
     case null:
-    case Plan.free:
-    case Plan.solo: {
+    case 'free':
+    case 'solo': {
       return false
     }
-    case Plan.team:
-    case Plan.enterprise: {
+    case 'team':
+    case 'enterprise': {
       return true
     }
   }
@@ -1754,13 +1739,16 @@ export class NotAuthorizedError extends NetworkError {}
 export default abstract class Backend {
   abstract readonly type: BackendType
   abstract readonly baseUrl: URL
+  private readonly logger: Logger
+  protected getText: GetText
+  private readonly client: HttpClient
 
   /** Create a {@link LocalBackend}. */
-  constructor(
-    private readonly logger: Logger,
-    protected getText: GetText,
-    private readonly client: HttpClient,
-  ) {}
+  constructor(logger: Logger, getText: GetText, client: HttpClient) {
+    this.logger = logger
+    this.getText = getText
+    this.client = client
+  }
 
   /**
    * Set `this.getText`. This function is exposed rather than the property itself to make it clear

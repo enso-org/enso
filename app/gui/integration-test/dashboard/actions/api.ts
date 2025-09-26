@@ -178,7 +178,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
     userGroups: null,
-    plan: backend.Plan.solo,
+    plan: 'solo',
     isOrganizationAdmin: true,
     isEnsoTeamMember: true,
     groups: [],
@@ -239,7 +239,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
 
     // this should never happen, but we need to check it for a case
-    invariant(parent.type === backend.AssetType.directory, 'Parent is not a directory')
+    invariant(parent.type === 'directory', 'Parent is not a directory')
 
     return getParentPath(parent.parentId, [parent.id, ...acc])
   }
@@ -252,7 +252,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
 
     // This should never happen, but we need to check it for type-safety purposes.
-    invariant(parent.type === backend.AssetType.directory, 'Parent is not a directory')
+    invariant(parent.type === 'directory', 'Parent is not a directory')
 
     return getVirtualParentPath(parent.parentId, [parent.title, ...parts])
   }
@@ -266,7 +266,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     }
 
     // This should never happen, but we need to check it for type-safety purposes.
-    invariant(parent.type === backend.AssetType.directory, 'Parent is not a directory')
+    invariant(parent.type === 'directory', 'Parent is not a directory')
 
     return getEnsoPath(parent.parentId, [parent.title, ...parts])
   }
@@ -352,7 +352,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       if (currentParentId == null) break
       const siblings = assets.filter((asset) => asset.parentId === currentParentId)
       for (const sibling of siblings) {
-        if (sibling.type === backend.AssetType.directory) {
+        if (sibling.type === 'directory') {
           queuedParentIds.push(sibling.id)
         }
         if (isMatch(sibling)) {
@@ -419,7 +419,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const createUserPermission = (
     user: backend.User,
-    permission: permissions.PermissionAction = permissions.PermissionAction.own,
+    permission: permissions.PermissionAction = 'Own',
     rest: Partial<backend.UserPermission> = {},
   ): backend.UserPermission =>
     object.merge(
@@ -432,7 +432,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const createUserGroupPermission = (
     userGroup: backend.UserGroupInfo,
-    permission: permissions.PermissionAction = permissions.PermissionAction.own,
+    permission: permissions.PermissionAction = 'Own',
     rest: Partial<backend.UserGroupPermission> = {},
   ): backend.UserGroupPermission => object.merge({ userGroup, permission }, rest)
 
@@ -449,7 +449,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       description: rest.description ?? '',
       labels: [],
       parentId: defaultDirectoryId,
-      permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
+      permissions: [createUserPermission(defaultUser, 'Own')],
       get parentsPath() {
         return getParentPath(this.parentId)
       },
@@ -481,7 +481,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       })()
 
     return createAsset({
-      type: backend.AssetType.directory,
+      type: 'directory',
       id: backend.DirectoryId(`directory-${uniqueString.uniqueString()}`),
       title,
       ...rest,
@@ -504,7 +504,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       })()
 
     return createAsset({
-      type: backend.AssetType.project,
+      type: 'project',
       id: backend.ProjectId('project-' + uniqueString.uniqueString()),
       title,
       projectState: {
@@ -517,7 +517,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const createFile = (rest: Partial<backend.FileAsset> = {}): backend.FileAsset => {
     return createAsset({
-      type: backend.AssetType.file,
+      type: 'file',
       id: backend.FileId('file-' + uniqueString.uniqueString()),
       extension: '',
       ...rest,
@@ -526,7 +526,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const createSecret = (rest: Partial<backend.SecretAsset>): backend.SecretAsset => {
     return createAsset({
-      type: backend.AssetType.secret,
+      type: 'secret',
       id: backend.SecretId('secret-' + uniqueString.uniqueString()),
       ...rest,
     })
@@ -534,7 +534,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const createDatalink = (rest: Partial<backend.DatalinkAsset>): backend.DatalinkAsset => {
     return createAsset({
-      type: backend.AssetType.datalink,
+      type: 'datalink',
       id: backend.DatalinkId('datalink-' + uniqueString.uniqueString()),
       ...rest,
     })
@@ -605,7 +605,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       rootDirectoryId: organizationIdToDirectoryId(organizationId),
       isEnabled: true,
       userGroups: null,
-      plan: backend.Plan.enterprise,
+      plan: 'enterprise',
       isOrganizationAdmin: true,
       isEnsoTeamMember: true,
       ...rest,
@@ -818,7 +818,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         ------------------------------------------------------------------------------------------------
         
         Existing projects: ${Array.from(assetMap.values())
-          .filter((asset) => asset.type === backend.AssetType.project)
+          .filter((asset) => asset.type === 'project')
           .map((asset) => asset.id)
           .join(', ')}`)
       }
@@ -1268,7 +1268,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         userGroups: null,
         isOrganizationAdmin: true,
         isEnsoTeamMember: true,
-        plan: backend.Plan.free,
+        plan: 'free',
       }
       return currentUser
     })
@@ -1363,7 +1363,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
               name: defaultUsername,
               email: defaultEmail,
             },
-            permission: permissions.PermissionAction.own,
+            permission: 'Own',
           },
         ],
         projectState: state,

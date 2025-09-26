@@ -12,7 +12,6 @@ import {
   TrialEndedModal as TrialEndedModalReact,
   type TrialEndedModalProps,
 } from '#/modals/TrialEndedModal'
-import * as backendModule from '#/services/Backend'
 import { DAY_MS } from '#/utilities/time'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
@@ -30,7 +29,7 @@ const TrialEndedModal = reactComponent(TrialEndedModalReact)
 const PlanDowngradedModal = reactComponent(PlanDowngradedModalReact)
 const AcceptInvitationModal = reactComponent(AcceptInvitationModalReact)
 
-const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
+const PLANS_TO_SPECIFY_ORG_NAME = ['team', 'enterprise']
 
 type Props = {
   shouldSetupOrganization: boolean
@@ -55,7 +54,7 @@ export const dataLoader: DataLoader<Props> = {
 
     const { isOrganizationAdmin, plan, invitation } = auth.session?.user ?? {
       isOrganizationAdmin: false,
-      plan: backendModule.Plan.free,
+      plan: 'free',
     }
 
     const needsOrganizationSetup = PLANS_TO_SPECIFY_ORG_NAME.includes(plan)
@@ -66,7 +65,7 @@ export const dataLoader: DataLoader<Props> = {
     const acceptInvitationModalProps = computed(() => (invitation ? { invitation } : undefined))
 
     const trialEndedModalProps = computed<TrialEndedModalProps | undefined>(() => {
-      if (plan == backendModule.Plan.free) return undefined
+      if (plan == 'free') return undefined
 
       const subscription = organizationQuery.data.value?.subscription
       if (subscription?.isPaused && subscription.id != null) {
@@ -76,7 +75,7 @@ export const dataLoader: DataLoader<Props> = {
     })
 
     const planDowngradedModalProps = computed<PlanDowngradedModalProps | undefined>(() => {
-      if (plan != backendModule.Plan.free) return undefined
+      if (plan != 'free') return undefined
       const subscription = organizationQuery.data.value?.subscription
       if (subscription?.isPaused && subscription.id != null && subscription.trialEnd != null) {
         return {

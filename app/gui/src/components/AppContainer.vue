@@ -13,7 +13,6 @@ import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import {
-  AssetType,
   extractTypeFromId,
   isRemoteAssetPath,
   ProjectId,
@@ -38,7 +37,7 @@ export const dataLoader: DataLoader<DashboardProps> = {
     if (backend == null) return Ok({})
     const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
     const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
-    if (typedAsset?.type !== AssetType.project) return Ok({})
+    if (typedAsset?.type !== 'project') return Ok({})
     const options = backendQueryOptions('getAssetDetails', [typedAsset.id, undefined], backend)
     const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
     if (!assetResponse) return Ok({})

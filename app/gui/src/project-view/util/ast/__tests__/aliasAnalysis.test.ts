@@ -33,23 +33,21 @@ import { expect, test } from 'vitest'
 import { SourceRange, sourceRangeKey } from 'ydoc-shared/util/data/text'
 
 /** The type of annotation. */
-enum AnnotationType {
-  /** An identifier binding (introducing variable). */
-  Binding = 'Binding',
-  /** An identifier usage. */
-  Usage = 'Usage',
-}
+type AnnotationType = 'Binding' | 'Usage'
 
 /** Information about an annotated identifier. */
 class Annotation {
+  kind: AnnotationType
+  id: number
+
   /**
    * @param kind Whether this is an identifier binding or usage.
    * @param id The special user-defined id to disambiguate identifiers with the same name.
    */
-  constructor(
-    public kind: AnnotationType,
-    public id: number,
-  ) {}
+  constructor(kind: AnnotationType, id: number) {
+    this.kind = kind
+    this.id = id
+  }
 }
 
 /** Parse annotations from the annotated code. See the file-top comment for the syntax. */
@@ -85,7 +83,7 @@ function parseAnnotations(annotatedCode: string): {
 
       const id = parseInt(bindingPrefix ?? usagePrefix ?? '0', 10)
       const name = bindingName ?? usageName ?? ''
-      const kind = bindingPrefix != null ? AnnotationType.Binding : AnnotationType.Usage
+      const kind = bindingPrefix != null ? 'Binding' : 'Usage'
 
       const from = offset - accumulatedOffset
       const to = from + name.length
@@ -128,7 +126,7 @@ class TestCase {
     const prefixBindings = new Map<number, SourceRange>()
 
     for (const [range, annotation] of annotations) {
-      if (annotation.kind === AnnotationType.Binding) {
+      if (annotation.kind === 'Binding') {
         expect(
           prefixBindings.has(annotation.id),
           `Duplicate binding with id ${annotation.id} at [${range}].`,
@@ -138,7 +136,7 @@ class TestCase {
       }
     }
     for (const [range, annotation] of annotations) {
-      if (annotation.kind === AnnotationType.Usage) {
+      if (annotation.kind === 'Usage') {
         const bindingRange = prefixBindings.get(annotation.id)
         if (bindingRange == null) {
           testCase.expectedUnresolvedSymbols.add(range)
@@ -234,13 +232,13 @@ test('Annotations parsing', () => {
     }
   }
 
-  validateAnnotation(SourceRange.unsafeFromBounds(11, 12), AnnotationType.Binding, 1, 'x')
-  validateAnnotation(SourceRange.unsafeFromBounds(21, 22), AnnotationType.Binding, 2, 'y')
-  validateAnnotation(SourceRange.unsafeFromBounds(35, 36), AnnotationType.Binding, 3, 'x')
-  validateAnnotation(SourceRange.unsafeFromBounds(40, 41), AnnotationType.Usage, 3, 'x')
-  validateAnnotation(SourceRange.unsafeFromBounds(44, 45), AnnotationType.Usage, 2, 'y')
-  validateAnnotation(SourceRange.unsafeFromBounds(54, 55), AnnotationType.Usage, 1, 'x')
-  validateAnnotation(SourceRange.unsafeFromBounds(58, 59), AnnotationType.Usage, 2, 'y')
+  validateAnnotation(SourceRange.unsafeFromBounds(11, 12), 'Binding', 1, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(21, 22), 'Binding', 2, 'y')
+  validateAnnotation(SourceRange.unsafeFromBounds(35, 36), 'Binding', 3, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(40, 41), 'Usage', 3, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(44, 45), 'Usage', 2, 'y')
+  validateAnnotation(SourceRange.unsafeFromBounds(54, 55), 'Usage', 1, 'x')
+  validateAnnotation(SourceRange.unsafeFromBounds(58, 59), 'Usage', 2, 'y')
 })
 
 function runTestCase(code: string) {

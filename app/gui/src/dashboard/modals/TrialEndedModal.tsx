@@ -3,7 +3,7 @@ import { Alert } from '#/components/Alert'
 import { AlertDialog } from '#/components/AlertDialog'
 import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import * as backend from '#/services/Backend'
+import type { SubscriptionId } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
@@ -11,7 +11,7 @@ import { useDowngadeModalState } from './PlanDowngradedModal'
 
 /** Props for a {@link TrialEndedModal}. */
 export interface TrialEndedModalProps {
-  readonly subscriptionId: backend.SubscriptionId
+  readonly subscriptionId: SubscriptionId
 }
 
 /** Modal for handling subscription after the trial period ended. */
@@ -40,7 +40,7 @@ export function TrialEndedModal(props: TrialEndedModalProps) {
         markAsShown()
         await onConfirm.mutateAsync([
           {
-            price: backend.Plan.solo,
+            price: 'solo',
             quantity: 1,
             interval: 1,
           },

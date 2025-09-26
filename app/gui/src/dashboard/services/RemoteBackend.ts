@@ -28,7 +28,7 @@ const IMPORT_STATUS_INTERVAL_MS = 5_000
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
-  static readonly type = backend.BackendType.remote
+  static readonly type = 'remote' satisfies backend.BackendType
   override readonly type = RemoteBackend.type
   override readonly baseUrl = new URL($config.API_URL ?? '', location.href)
   private user: objects.Mutable<backend.User> | null = null
@@ -36,12 +36,12 @@ export default class RemoteBackend extends Backend {
   /** The path to the root directory of this {@link Backend}. */
   override rootPath(user: backend.User) {
     switch (user.plan) {
-      case backend.Plan.free:
-      case backend.Plan.solo: {
+      case 'free':
+      case 'solo': {
         return `enso://Users/${user.name}`
       }
-      case backend.Plan.team:
-      case backend.Plan.enterprise: {
+      case 'team':
+      case 'enterprise': {
         return 'enso://'
       }
     }
@@ -53,12 +53,12 @@ export default class RemoteBackend extends Backend {
     organization: backend.OrganizationInfo | null,
   ): backend.DirectoryId | null {
     switch (user.plan) {
-      case backend.Plan.free:
-      case backend.Plan.solo: {
+      case 'free':
+      case 'solo': {
         return user.rootDirectoryId
       }
-      case backend.Plan.team:
-      case backend.Plan.enterprise: {
+      case 'team':
+      case 'enterprise': {
         return organization == null ? null : organizationIdToDirectoryId(organization.id)
       }
     }
@@ -319,7 +319,7 @@ export default class RemoteBackend extends Backend {
       // We assume it's read-only for external use.
       // backend may return null for the plan, but this means that the user is on the free plan.
       // so we normalize it to the free plan.
-      user.plan = backend.Plan.free
+      user.plan = 'free'
     }
 
     Object.defineProperty(user, 'isEnsoTeamMember', {
@@ -1276,7 +1276,7 @@ export default class RemoteBackend extends Backend {
     const targetPath = targetDirectoryId ? backend.extractTypeAndPath(targetDirectoryId).path : null
 
     switch (asset.type) {
-      case backend.AssetType.project: {
+      case 'project': {
         const details = await this.getProjectDetails(asset.id, true)
         invariant(details.url != null, 'The download URL of the project must be present.')
         await download.download({
@@ -1286,7 +1286,7 @@ export default class RemoteBackend extends Backend {
         })
         break
       }
-      case backend.AssetType.file: {
+      case 'file': {
         const details = await this.getFileDetails(asset.id, title, true)
         invariant(details.url != null, 'The download URL of the file must be present.')
         await download.download({
@@ -1296,7 +1296,7 @@ export default class RemoteBackend extends Backend {
         })
         break
       }
-      case backend.AssetType.datalink: {
+      case 'datalink': {
         const value = await this.getDatalink(asset.id, title)
         const fileName = `${title}.datalink`
         const fileObjectUrl = URL.createObjectURL(
@@ -1315,9 +1315,9 @@ export default class RemoteBackend extends Backend {
         }
         break
       }
-      case backend.AssetType.secret:
-      case backend.AssetType.directory:
-      case backend.AssetType.specialUp:
+      case 'secret':
+      case 'directory':
+      case 'specialUp':
       default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break

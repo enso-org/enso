@@ -16,7 +16,7 @@ import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/cate
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
-import { AssetDoesNotExistError, BackendType, isDirectoryId } from '#/services/Backend'
+import { AssetDoesNotExistError, isDirectoryId } from '#/services/Backend'
 import type { PathItem } from '#/services/utilities'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { NetworkError } from '#/utilities/error'
@@ -61,7 +61,7 @@ export function DriveBarNavigation() {
     queryFn: () =>
       associatedBackend.getAssetDetails(
         currentDirectoryId,
-        associatedBackend.type === BackendType.local ?
+        associatedBackend.type === 'local' ?
           'rootPath' in category ?
             category.rootPath
           : localRootDirectory

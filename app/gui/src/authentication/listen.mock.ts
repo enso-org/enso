@@ -1,10 +1,5 @@
 /** @file */
-export enum AuthEvent {
-  customOAuthState = 'customOAuthState',
-  cognitoHostedUi = 'cognitoHostedUI',
-  signIn = 'signIn',
-  signOut = 'signOut',
-}
+export type AuthEvent = 'customOAuthState' | 'cognitoHostedUI' | 'signIn' | 'signOut'
 
 export let authEventListener: ((event: AuthEvent, data?: unknown) => void) | null
 

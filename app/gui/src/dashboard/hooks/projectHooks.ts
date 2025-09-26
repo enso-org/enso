@@ -44,7 +44,7 @@ const DEFAULT_INTERVAL_MS = 120_000
 
 /** Options for {@link createGetProjectDetailsQuery}. */
 export interface CreateOpenedProjectQueryOptions {
-  readonly assetId: backendModule.Asset<backendModule.AssetType.project>['id']
+  readonly assetId: backendModule.Asset<'project'>['id']
   readonly backend: Backend
 }
 
@@ -69,9 +69,7 @@ function useSetProjectAsset() {
         listDirectoryQuery.setData({
           ...listDirectoryQuery.state.data,
           assets: listDirectoryQuery.state.data.assets.map((child) =>
-            child.id === assetId && child.type === backendModule.AssetType.project ?
-              transform(child)
-            : child,
+            child.id === assetId && child.type === 'project' ? transform(child) : child,
           ),
         })
       }
@@ -89,9 +87,7 @@ function useSetProjectAsset() {
           pages: listDirectoryInfiniteQuery.state.data.pages.map((page) => ({
             ...page,
             assets: page.assets.map((child) =>
-              child.id === assetId && child.type === backendModule.AssetType.project ?
-                transform(child)
-              : child,
+              child.id === assetId && child.type === 'project' ? transform(child) : child,
             ),
           })),
         })
@@ -139,10 +135,10 @@ export const CLOUD_PROJECT_OPEN_TIMEOUT_MS = 5 * 60 * 1_000
  */
 export function getTimeoutBasedOnTheBackendType(backendType: backendModule.BackendType) {
   switch (backendType) {
-    case backendModule.BackendType.local: {
+    case 'local': {
       return LOCAL_PROJECT_OPEN_TIMEOUT_MS
     }
-    case backendModule.BackendType.remote: {
+    case 'remote': {
       return CLOUD_PROJECT_OPEN_TIMEOUT_MS
     }
 
@@ -156,7 +152,7 @@ export function getTimeoutBasedOnTheBackendType(backendType: backendModule.Backe
 export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOptions) {
   const { assetId, backend } = options
 
-  const isLocal = backend.type === backendModule.BackendType.local
+  const isLocal = backend.type === 'local'
 
   return reactQuery.queryOptions({
     queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
@@ -164,7 +160,7 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    networkMode: backend.type === backendModule.BackendType.remote ? 'online' : 'always',
+    networkMode: backend.type === 'remote' ? 'online' : 'always',
     meta: { persist: false },
     refetchInterval: (query): number | false => {
       const { state } = query
@@ -251,7 +247,7 @@ export function useOpenProjectMutation() {
       ensoPath,
     }: LaunchedProject & { inBackground?: boolean; suppressHybridProjectOpen?: boolean }) => {
       addOpeningProject(hybrid?.cloudProjectId ?? id, ensoPath)
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
+      const backend = type === 'remote' ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
 
@@ -319,7 +315,7 @@ export function useCloseProjectMutation() {
       title,
       hybrid,
     }: Pick<LaunchedProject, 'hybrid' | 'id' | 'parentId' | 'title' | 'type'>) => {
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
+      const backend = type === 'remote' ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
 
@@ -556,7 +552,7 @@ function useOpenHybridProject() {
             pageSize: null,
             recentProjects: false,
           })
-          project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)
+          project = assets.filter((item) => item.type === 'project').at(0)
           if (project) {
             break
           }
@@ -568,7 +564,7 @@ function useOpenHybridProject() {
           title: asset.title,
           parentId: project.parentId,
           ensoPath: asset.ensoPath,
-          type: backendModule.BackendType.local,
+          type: 'local',
           hybrid: {
             cloudProjectId: asset.id,
             cloudProjectSessionId: projectSessionId,
@@ -581,7 +577,7 @@ function useOpenHybridProject() {
       } catch (error) {
         toastAndLog('openProjectError', error, asset.title)
         await Promise.allSettled([
-          closeProject({ ...asset, type: backendModule.BackendType.remote }),
+          closeProject({ ...asset, type: 'remote' }),
           ...(launchedProject ? [closeProject(launchedProject)] : []),
         ])
       } finally {
@@ -637,7 +633,7 @@ export function useOpenProjectLocally() {
       if (!canRunProjects.locally[backendType]) {
         return
       }
-      const isCloud = backendType === backendModule.BackendType.remote
+      const isCloud = backendType === 'remote'
       if (isCloud) {
         await openHybridProject(asset)
       } else {
@@ -703,9 +699,7 @@ export function useCloseAllProjects() {
       launchedProjects.map(async (project) => {
         if (project.state === 'launched') {
           const backend =
-            project.type === backendModule.BackendType.remote || project.hybrid != null ?
-              remoteBackend
-            : localBackend
+            project.type === 'remote' || project.hybrid != null ? remoteBackend : localBackend
           invariant(backend != null, 'Backend must not be async null')
           const projectDetails = await ensureQueryData(
             createGetProjectDetailsQuery({

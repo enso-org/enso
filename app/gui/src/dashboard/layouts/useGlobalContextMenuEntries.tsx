@@ -10,7 +10,7 @@ import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import { BackendType, type DirectoryId } from '#/services/Backend'
+import type { DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
 import { useRouter } from '$/providers/react'
@@ -29,7 +29,7 @@ export interface GlobalContextMenuEntriesOptions {
 export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOptions) {
   const { backend, category, directoryId = null, currentDirectoryId, doPaste } = options
 
-  const isCloud = backend.type === BackendType.remote
+  const isCloud = backend.type === 'remote'
 
   const { router } = useRouter()
   const driveStore = useDriveStore()

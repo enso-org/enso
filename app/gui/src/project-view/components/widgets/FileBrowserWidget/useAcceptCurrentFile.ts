@@ -2,7 +2,7 @@
 import { mapPath, type EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
 import type { Result } from '@/util/data/result'
 import type { ToValue } from '@/util/reactivity'
-import { AssetType } from 'enso-common/src/services/Backend'
+import type { AssetType } from 'enso-common/src/services/Backend'
 import { ref, toValue, type Ref } from 'vue'
 
 export type AssetExists = { exists: true; type: AssetType } | { exists: false }
@@ -60,12 +60,12 @@ export function useAcceptCurrentFile(options: AcceptCurrentFileOptions) {
     const assetInfo = await assetExists(fullFilePath.value)
     if (
       assetInfo.exists &&
-      assetInfo.type === AssetType.file &&
+      assetInfo.type === 'file' &&
       toValue(writeMode) &&
       !toValue(allowOverride)
     ) {
       overwriteFilename.value = fullFilePath.value
-    } else if (assetInfo.exists && assetInfo.type === AssetType.directory) {
+    } else if (assetInfo.exists && assetInfo.type === 'directory') {
       warningText.value = `'${fullFilePath.value}' is a directory, not a file`
     } else {
       acceptCurrentFile()

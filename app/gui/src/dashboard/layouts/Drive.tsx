@@ -12,7 +12,7 @@ import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
 import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
-import { BackendType, DirectoryDoesNotExistError } from '#/services/Backend'
+import { DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import { OfflineError } from '#/utilities/error'
@@ -132,7 +132,7 @@ function DriveAssetsView() {
   const { isOffline } = offlineHooks.useOffline()
   const { associatedBackend } = useCategoriesAPI()
   const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
-  const isCloud = associatedBackend.type === BackendType.remote
+  const isCloud = associatedBackend.type === 'remote'
   const isInaccessible = isCloud && isOffline
 
   return (

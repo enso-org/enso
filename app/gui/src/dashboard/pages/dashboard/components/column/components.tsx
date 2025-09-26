@@ -18,7 +18,6 @@ import Label from '#/pages/dashboard/components/Label'
 import PermissionDisplay from '#/pages/dashboard/components/PermissionDisplay'
 import { unsetModal } from '#/providers/ModalProvider'
 import {
-  AssetType,
   FALLBACK_COLOR,
   getAssetPermissionId,
   getAssetPermissionName,
@@ -26,7 +25,6 @@ import {
   type LChColor,
 } from '#/services/Backend'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { PermissionAction } from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
@@ -176,22 +174,22 @@ export function NameColumn(props: AssetNameColumnProps) {
   const { item } = props
 
   switch (item.type) {
-    case AssetType.directory: {
+    case 'directory': {
       return <DirectoryNameColumn {...props} item={item} />
     }
-    case AssetType.project: {
+    case 'project': {
       return <ProjectNameColumn {...props} item={item} />
     }
-    case AssetType.file: {
+    case 'file': {
       return <FileNameColumn {...props} item={item} />
     }
-    case AssetType.datalink: {
+    case 'datalink': {
       return <DatalinkNameColumn {...props} item={item} />
     }
-    case AssetType.secret: {
+    case 'secret': {
       return <SecretNameColumn {...props} item={item} />
     }
-    case AssetType.specialUp: {
+    case 'specialUp': {
       // Special rows do not display columns at all.
       return <></>
     }
@@ -221,7 +219,7 @@ export function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   return (
     <div className="group flex items-center gap-1">
       {(category.type === 'trash' ?
-        assetPermissions.filter((permission) => permission.permission === PermissionAction.own)
+        assetPermissions.filter((permission) => permission.permission === 'Own')
       : assetPermissions
       ).map((other, idx) => (
         <PermissionDisplay key={getAssetPermissionId(other) + idx} action={other.permission}>

@@ -5,6 +5,7 @@
  * application. For example, if the user signs out, we want to clear the authentication state so
  * that the login screen is rendered.
  */
+import { includesPredicate } from '#/utilities/array'
 import * as amplify from '@aws-amplify/core'
 
 /** Name of the string identifying the "hub" that AWS Amplify issues authentication events on. */
@@ -16,21 +17,11 @@ const AUTHENTICATION_HUB = 'auth'
  * These are issues by AWS Amplify when it detects a change in authentication state. For example,
  * when the user signs in or signs out by accessing a page like `enso://auth?code=...&state=...`.
  */
-export enum AuthEvent {
-  /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
-  customOAuthState = 'customOAuthState',
-  /** Issued when the user completes the sign-in process (via federated identity provider). */
-  cognitoHostedUi = 'cognitoHostedUI',
-  /** Issued when the user completes the sign-in process (via email/password). */
-  signIn = 'signIn',
-  /** Issued when the user signs out. */
-  signOut = 'signOut',
-}
+export type AuthEvent = (typeof AUTH_EVENTS)[number]
+export const AUTH_EVENTS = ['customOAuthState', 'cognitoHostedUI', 'signIn', 'signOut'] as const
 
 /** Return `true` if the given `string` is an {@link AuthEvent}. */
-function isAuthEvent(value: string): value is AuthEvent {
-  return Object.values<string>(AuthEvent).includes(value)
-}
+const isAuthEvent = includesPredicate(AUTH_EVENTS)
 
 /**
  * Callback called in response to authentication state changes.

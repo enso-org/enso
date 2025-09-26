@@ -40,11 +40,12 @@ import AssetIcon from '#/pages/dashboard/components/AssetIcon'
 import type { AssetRowInnerProps } from '#/pages/dashboard/components/AssetRow'
 import { AssetRow } from '#/pages/dashboard/components/AssetRow'
 import {
-  Column,
   COLUMN_CSS_CLASS,
   COLUMN_ICONS,
+  COLUMNS,
   DEFAULT_ENABLED_COLUMNS,
   getColumnList,
+  type Column,
 } from '#/pages/dashboard/components/column/columnUtils'
 import { COLUMN_HEADING } from '#/pages/dashboard/components/columnHeading'
 import Label from '#/pages/dashboard/components/Label'
@@ -70,12 +71,11 @@ import type {
   ProjectId,
 } from '#/services/Backend'
 import {
-  AssetType,
-  BackendType,
   IS_OPENING_OR_OPENED,
   isAssetCredential,
   LabelName,
   type AnyAsset,
+  type AssetType,
 } from '#/services/Backend'
 import { userGroupIdToDirectoryId, userIdToDirectoryId } from '#/services/RemoteBackend/ids'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -132,7 +132,7 @@ declare module '#/utilities/LocalStorage' {
 }
 
 LocalStorage.registerKey('enabledColumns', {
-  schema: z.nativeEnum(Column).array().readonly(),
+  schema: z.enum(COLUMNS).array().readonly(),
 })
 
 /**
@@ -301,7 +301,7 @@ function AssetsTable(props: AssetsTableProps) {
   const fetchNextAssetPage = assetsPages.fetchNextPage
   const isFetching = assetsPages.isLoading || assetsPages.isFetchingNextPage
 
-  const isCloud = backend.type === BackendType.remote
+  const isCloud = backend.type === 'remote'
   const rootRef = useRef<HTMLDivElement | null>(null)
   const scrollerRef = useRef<HTMLDivElement | null>(null)
   const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
@@ -394,7 +394,7 @@ function AssetsTable(props: AssetsTableProps) {
         case 'ext':
         case 'extension': {
           const extensions = assets
-            .filter((node) => node.type === AssetType.file)
+            .filter((node) => node.type === 'file')
             .map((node) => fileExtension(node.title))
           setSuggestions(
             Array.from(
@@ -498,10 +498,7 @@ function AssetsTable(props: AssetsTableProps) {
     () =>
       driveStore.subscribe(({ selectedIds }) => {
         const predicate = (type: AssetType | undefined) =>
-          type === AssetType.directory ||
-          type === AssetType.project ||
-          type === AssetType.file ||
-          type === AssetType.datalink
+          type === 'directory' || type === 'project' || type === 'file' || type === 'datalink'
         const map = new Map(assets.map((item) => [item.id, item]))
         const newCanDownload =
           selectedIds.size !== 0 &&
@@ -573,25 +570,25 @@ function AssetsTable(props: AssetsTableProps) {
             )
           } else {
             switch (item.type) {
-              case AssetType.directory: {
+              case 'directory': {
                 event.preventDefault()
                 event.stopPropagation()
                 setDriveLocation(item.id, category.id)
                 break
               }
-              case AssetType.project: {
+              case 'project': {
                 event.preventDefault()
                 event.stopPropagation()
                 void openProjectLocally(item, backend.type)
                 break
               }
-              case AssetType.datalink: {
+              case 'datalink': {
                 event.preventDefault()
                 event.stopPropagation()
                 rightPanel.setTemporaryTab('settings')
                 break
               }
-              case AssetType.secret: {
+              case 'secret': {
                 if (isAssetCredential(item)) {
                   toast.warning(getText('cannotEditCredentialError'))
                 } else {
@@ -614,8 +611,8 @@ function AssetsTable(props: AssetsTableProps) {
                 }
                 break
               }
-              case AssetType.file:
-              case AssetType.specialUp:
+              case 'file':
+              case 'specialUp':
               default: {
                 break
               }
@@ -703,7 +700,7 @@ function AssetsTable(props: AssetsTableProps) {
   const doOpenProject = useEventCallback((projectId: ProjectId) => {
     const project = assets.find((asset) => asset.id === projectId)
 
-    if (project?.type !== AssetType.project) {
+    if (project?.type !== 'project') {
       return Promise.resolve()
     }
 
@@ -968,7 +965,7 @@ function AssetsTable(props: AssetsTableProps) {
       }
       const nodes = assets.filter((node) => newSelectedKeys.has(node.id))
       const isPayloadInvalid = nodes.some(
-        (node) => node.type === AssetType.project && IS_OPENING_OR_OPENED[node.projectState.type],
+        (node) => node.type === 'project' && IS_OPENING_OR_OPENED[node.projectState.type],
       )
       if (isPayloadInvalid) {
         event.preventDefault()
@@ -1022,7 +1019,7 @@ function AssetsTable(props: AssetsTableProps) {
         return
       }
       endAutoScroll()
-      const directoryId = item?.type === AssetType.directory ? item.id : currentDirectoryId
+      const directoryId = item?.type === 'directory' ? item.id : currentDirectoryId
       const payload = ASSET_ROWS.lookup(event)
       const items = payload?.items ?? []
 

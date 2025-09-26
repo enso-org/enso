@@ -1,6 +1,6 @@
 import type { PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
-import { AssetType, type AnyAsset, type ProjectId } from '#/services/Backend'
+import { type AnyAsset, type ProjectId } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
@@ -202,7 +202,7 @@ function useRightPanel(
   const focusedProject = computed(() => {
     if (typeof context.value?.item === 'string') {
       return context.value.item
-    } else if (context.value?.item?.type === AssetType.project) {
+    } else if (context.value?.item?.type === 'project') {
       return context.value.item.id
     } else {
       return undefined
@@ -221,7 +221,7 @@ function useRightPanel(
     queryFn: async (query) => {
       const [backendType, , currentItem] = query.queryKey
       if (!backendType || !currentItem) return null
-      if (currentItem.type === AssetType.specialUp) return null
+      if (currentItem.type === 'specialUp') return null
       return await backendForType(backendType).getAssetDetails(currentItem.id, undefined)
     },
     enabled: () => backendType.value != null && focusedAsset.value != null,

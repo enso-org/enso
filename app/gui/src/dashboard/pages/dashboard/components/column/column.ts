@@ -12,7 +12,7 @@ import type {
 } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { LaunchedProject } from '$/providers/container'
-import { Column } from './columnUtils'
+import type { Column } from './columnUtils'
 import {
   LabelsColumn,
   ModifiedColumn,
@@ -63,11 +63,11 @@ export interface AssetColumn {
 export const COLUMN_RENDERER: Readonly<
   Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element | null>>
 > = {
-  [Column.name]: memo(NameColumn),
-  [Column.modified]: memo(ModifiedColumn),
-  [Column.sharedWith]: memo(SharedWithColumn),
-  [Column.labels]: memo(LabelsColumn),
-  [Column.accessedByProjects]: memo(PlaceholderColumn),
-  [Column.accessedData]: memo(PlaceholderColumn),
-  [Column.path]: memo(PathColumn),
+  ['name']: memo(NameColumn),
+  ['modified']: memo(ModifiedColumn),
+  ['sharedWith']: memo(SharedWithColumn),
+  ['labels']: memo(LabelsColumn),
+  ['accessedByProjects']: memo(PlaceholderColumn),
+  ['accessedData']: memo(PlaceholderColumn),
+  ['path']: memo(PathColumn),
 }

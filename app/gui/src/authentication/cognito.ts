@@ -150,19 +150,18 @@ function isAuthError(error: unknown): error is AuthError {
 }
 
 /** Internal IDs of Cognito errors that may occur when requesting a password reset. */
-export enum CognitoErrorType {
-  userAlreadyConfirmed = 'UserAlreadyConfirmed',
-  usernameExists = 'UsernameExists',
-  invalidParameter = 'InvalidParameter',
-  invalidPassword = 'InvalidPassword',
-  notAuthorized = 'NotAuthorized',
-  userNotConfirmed = 'UserNotConfirmed',
-  userNotFound = 'UserNotFound',
-  userBrokenState = 'UserBrokenState',
-  amplifyError = 'AmplifyError',
-  authError = 'AuthError',
-  noCurrentUser = 'NoCurrentUser',
-}
+export type CognitoErrorType =
+  | 'UserAlreadyConfirmed'
+  | 'UsernameExists'
+  | 'InvalidParameter'
+  | 'InvalidPassword'
+  | 'NotAuthorized'
+  | 'UserNotConfirmed'
+  | 'UserNotFound'
+  | 'UserBrokenState'
+  | 'AmplifyError'
+  | 'AuthError'
+  | 'NoCurrentUser'
 
 /**
  * Base interface for all errors output from this module.
@@ -712,9 +711,9 @@ function extractRefreshUrlFromSession(session: cognito.CognitoUserSession): stri
  * else re-throws the error.
  * @throws {Error} If the error is not recognized.
  */
-export function intoCurrentSessionErrorType(error: unknown): CognitoErrorType.noCurrentUser {
+export function intoCurrentSessionErrorType(error: unknown): 'NoCurrentUser' {
   if (error === 'No current user') {
-    return CognitoErrorType.noCurrentUser
+    return 'NoCurrentUser'
   } else {
     throw error
   }
@@ -751,10 +750,7 @@ function intoSignUpParams(
 
 /** An error that may occur when signing up. */
 export interface SignUpError extends CognitoError {
-  readonly type:
-    | CognitoErrorType.invalidParameter
-    | CognitoErrorType.invalidPassword
-    | CognitoErrorType.usernameExists
+  readonly type: 'InvalidParameter' | 'InvalidPassword' | 'UsernameExists'
   readonly message: string
 }
 
@@ -766,17 +762,17 @@ export interface SignUpError extends CognitoError {
 export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
   if (error.code === 'UsernameExistsException') {
     return {
-      type: CognitoErrorType.usernameExists,
+      type: 'UsernameExists',
       message: error.message,
     }
   } else if (error.code === 'InvalidParameterException') {
     return {
-      type: CognitoErrorType.invalidParameter,
+      type: 'InvalidParameter',
       message: error.message,
     }
   } else if (error.code === 'InvalidPasswordException') {
     return {
-      type: CognitoErrorType.invalidPassword,
+      type: 'InvalidPassword',
       message: error.message,
     }
   } else {
@@ -786,7 +782,7 @@ export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
 
 /** An error that may occur when confirming registration. */
 export interface ConfirmSignUpError extends CognitoError {
-  readonly type: CognitoErrorType.userAlreadyConfirmed | CognitoErrorType.userNotFound
+  readonly type: 'UserAlreadyConfirmed' | 'UserNotFound'
   readonly message: string
 }
 
@@ -806,7 +802,7 @@ export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignU
        * for multiple kinds of errors. We replace it with a custom code that has no
        * ambiguity.
        */
-      type: CognitoErrorType.userAlreadyConfirmed,
+      type: 'UserAlreadyConfirmed',
       message: error.message,
     }
   } else if (
@@ -819,7 +815,7 @@ export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignU
        * for multiple kinds of errors. We replace it with a custom code that has no
        * ambiguity.
        */
-      type: CognitoErrorType.userNotFound,
+      type: 'UserNotFound',
       message: 'Incorrect email or confirmation code.',
     }
   } else {
@@ -829,10 +825,7 @@ export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignU
 
 /** An error that may occur when signing in with a password. */
 export interface SignInWithPasswordError extends CognitoError {
-  readonly type:
-    | CognitoErrorType.notAuthorized
-    | CognitoErrorType.userNotConfirmed
-    | CognitoErrorType.userNotFound
+  readonly type: 'NotAuthorized' | 'UserNotConfirmed' | 'UserNotFound'
   readonly message: string
 }
 
@@ -845,17 +838,17 @@ export function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInW
   switch (error.code) {
     case 'UserNotFoundException':
       return {
-        type: CognitoErrorType.userNotFound,
+        type: 'UserNotFound',
         message: 'User not found. Please sign up first.',
       }
     case 'UserNotConfirmedException':
       return {
-        type: CognitoErrorType.userNotConfirmed,
+        type: 'UserNotConfirmed',
         message: 'User not confirmed. Please check your email for a confirmation link.',
       }
     case 'NotAuthorizedException':
       return {
-        type: CognitoErrorType.notAuthorized,
+        type: 'NotAuthorized',
         message: 'Incorrect username or password.',
       }
     default:
@@ -865,10 +858,7 @@ export function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInW
 
 /** An error that may occur when requesting a password reset. */
 export interface ForgotPasswordError extends CognitoError {
-  readonly type:
-    | CognitoErrorType.userBrokenState
-    | CognitoErrorType.userNotConfirmed
-    | CognitoErrorType.userNotFound
+  readonly type: 'UserBrokenState' | 'UserNotConfirmed' | 'UserNotFound'
   readonly message: string
 }
 
@@ -880,7 +870,7 @@ export interface ForgotPasswordError extends CognitoError {
 export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPasswordError {
   if (error.code === 'UserNotFoundException') {
     return {
-      type: CognitoErrorType.userNotFound,
+      type: 'UserNotFound',
       message: 'Cannot reset password as user not found.',
     }
   } else if (
@@ -890,7 +880,7 @@ export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPassw
         'phone_number'
   ) {
     return {
-      type: CognitoErrorType.userNotConfirmed,
+      type: 'UserNotConfirmed',
       message:
         'Cannot reset password for user with an unverified email. ' +
         'Please verify your email first.',
@@ -900,7 +890,7 @@ export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPassw
     error.message === 'User password cannot be reset in the current state.'
   ) {
     return {
-      type: CognitoErrorType.userBrokenState,
+      type: 'UserBrokenState',
       message: 'User account is in a broken state. Please contact support.',
     }
   } else {
@@ -910,7 +900,7 @@ export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPassw
 
 /** An error that may occur when resetting a password. */
 export interface ForgotPasswordSubmitError extends CognitoError {
-  readonly type: CognitoErrorType.amplifyError | CognitoErrorType.authError
+  readonly type: 'AmplifyError' | 'AuthError'
   readonly message: string
 }
 
@@ -922,12 +912,12 @@ export interface ForgotPasswordSubmitError extends CognitoError {
 export function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPasswordSubmitError {
   if (isAuthError(error)) {
     return {
-      type: CognitoErrorType.authError,
+      type: 'AuthError',
       message: error.log,
     }
   } else if (isAmplifyError(error)) {
     return {
-      type: CognitoErrorType.amplifyError,
+      type: 'AmplifyError',
       message: error.message,
     }
   } else {

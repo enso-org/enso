@@ -1,4 +1,10 @@
-import { BackendType, DirectoryId, EnsoPath, ProjectId, ProjectSessionId } from '#/services/Backend'
+import {
+  BACKEND_TYPES,
+  DirectoryId,
+  EnsoPath,
+  ProjectId,
+  ProjectSessionId,
+} from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
@@ -31,7 +37,7 @@ const PROJECT_SCHEMA = z
     parentId: DIRECTORY_ID_SCHEMA,
     title: z.string(),
     ensoPath: z.string(),
-    type: z.nativeEnum(BackendType),
+    type: z.enum(BACKEND_TYPES),
     hybrid: z.optional(
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,

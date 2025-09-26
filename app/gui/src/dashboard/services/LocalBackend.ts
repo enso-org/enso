@@ -38,9 +38,9 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
-export const DIRECTORY_ID_PREFIX = `${backend.AssetType.directory}-`
-export const PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
-export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
+export const DIRECTORY_ID_PREFIX = `${'directory'}-`
+export const PROJECT_ID_PREFIX = `${'project'}-`
+export const FILE_ID_PREFIX = `${'file'}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
 export function newDirectoryId(path: projectManager.Path) {
@@ -76,7 +76,7 @@ export function newFileId(path: projectManager.Path) {
  * This is used instead of the cloud backend API when managing local projects from the dashboard.
  */
 export default class LocalBackend extends Backend {
-  static readonly type = backend.BackendType.local
+  static readonly type = 'local' satisfies backend.BackendType
   override readonly type = LocalBackend.type
   override readonly baseUrl = new URL(LOCAL_API_URL, location.href)
   /** All files that have been uploaded to the Project Manager. */
@@ -169,7 +169,7 @@ export default class LocalBackend extends Backend {
               return {
                 ...shared,
                 id,
-                type: backend.AssetType.directory,
+                type: 'directory',
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
                 title: getFileName(entry.path),
@@ -178,7 +178,7 @@ export default class LocalBackend extends Backend {
             case 'ProjectEntry': {
               return {
                 ...shared,
-                type: backend.AssetType.project,
+                type: 'project',
                 id: newProjectId(entry.path),
                 title: entry.metadata.name,
                 modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
@@ -193,7 +193,7 @@ export default class LocalBackend extends Backend {
             case 'FileEntry': {
               return {
                 ...shared,
-                type: backend.AssetType.file,
+                type: 'file',
                 id: newFileId(entry.path),
                 title: getFileName(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
@@ -483,12 +483,12 @@ export default class LocalBackend extends Backend {
   ): Promise<void> {
     const { type, path } = backend.extractTypeAndPath(assetId)
     switch (type) {
-      case backend.AssetType.directory:
-      case backend.AssetType.file: {
+      case 'directory':
+      case 'file': {
         await this.projectManager.deleteFile(path)
         return
       }
-      case backend.AssetType.project: {
+      case 'project': {
         try {
           await this.projectManager.deleteProject({ projectPath: path })
           return
@@ -509,7 +509,7 @@ export default class LocalBackend extends Backend {
     parentDirectoryId: backend.DirectoryId,
   ): Promise<backend.CopyAssetResponse> {
     const { type, path } = backend.extractTypeAndPath(assetId)
-    if (type !== backend.AssetType.project) {
+    if (type !== 'project') {
       throw new Error('Only projects can be copied on the Local Backend.')
     } else {
       const project = await this.projectManager.duplicateProject({ projectPath: path })
@@ -668,7 +668,7 @@ export default class LocalBackend extends Backend {
 
     // Changing the folder name for a project is not enough,
     // we also need to change the name in the package.yaml file.
-    if (type === backend.AssetType.project && title != null) {
+    if (type === 'project' && title != null) {
       await this.projectManager.renameProject({
         projectPath: path,
         name: projectManager.ProjectName(title),
@@ -794,7 +794,7 @@ export default class LocalBackend extends Backend {
     const targetPath = targetDirectoryId ? backend.extractTypeAndPath(targetDirectoryId).path : null
 
     switch (asset.type) {
-      case backend.AssetType.project: {
+      case 'project': {
         const details = await this.getProjectDetails(asset.id, true)
         invariant(details.url != null, 'The download URL of the project must be present.')
         await download({
@@ -808,7 +808,7 @@ export default class LocalBackend extends Backend {
         })
         break
       }
-      case backend.AssetType.file: {
+      case 'file': {
         const details = await this.getFileDetails(asset.id, title, true)
         invariant(details.url != null, 'The download URL of the file must be present.')
         await download({
@@ -821,10 +821,10 @@ export default class LocalBackend extends Backend {
         })
         break
       }
-      case backend.AssetType.datalink:
-      case backend.AssetType.secret:
-      case backend.AssetType.directory:
-      case backend.AssetType.specialUp: {
+      case 'datalink':
+      case 'secret':
+      case 'directory':
+      case 'specialUp': {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
       }

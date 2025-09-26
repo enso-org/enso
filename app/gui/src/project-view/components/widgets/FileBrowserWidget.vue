@@ -34,7 +34,7 @@ import { registerHandlers } from '@/providers/action'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import type { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
-import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'
+import { assetIsDirectory, type AssetType } from 'enso-common/src/services/Backend'
 import { computed, ref, toValue, useTemplateRef, watch } from 'vue'
 
 const props = withDefaults(
@@ -166,7 +166,7 @@ const { overwriteFilename, warningText, tryAcceptCurrentFile, acceptCurrentFile,
   })
 
 function chooseEntry(asset: AnyAsset, close: boolean) {
-  const name = asset.type === AssetType.datalink ? `${asset.title}.datalink` : asset.title
+  const name = asset.type === 'datalink' ? `${asset.title}.datalink` : asset.title
   if (props.writeMode) {
     setFilename(name)
   } else {

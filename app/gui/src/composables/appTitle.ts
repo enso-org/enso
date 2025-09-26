@@ -1,4 +1,3 @@
-import { Plan } from '#/services/Backend'
 import type { UserSession } from '$/providers/auth'
 import { useText } from '$/providers/text'
 import type { ToValue } from '@/util/reactivity'
@@ -20,7 +19,7 @@ export function useAppTitle(userSession: ToValue<Opt<UserSession>>) {
 
   const shouldShowCommercialNotice = computed(() => {
     const session = toValue(userSession)
-    return session?.user?.plan === Plan.free
+    return session?.user?.plan === 'free'
   })
 
   watch(shouldShowCommercialNotice, (shouldShow) => {

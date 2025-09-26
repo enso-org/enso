@@ -4,7 +4,7 @@ import { Result } from '#/components/Result'
 import { Scroller } from '#/components/Scroller'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import type Backend from '#/services/Backend'
-import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
+import type { ProjectAsset } from '#/services/Backend'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
@@ -20,7 +20,7 @@ export function ProjectSessions() {
   const category = useRightPanelContextCategory()
   const { remoteBackend } = useBackends()
 
-  if (category?.backend !== BackendType.remote) {
+  if (category?.backend !== 'remote') {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.localBackend')} />
   }
 
@@ -28,7 +28,7 @@ export function ProjectSessions() {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notSelected')} />
   }
 
-  if (focusedAsset.type !== AssetType.project) {
+  if (focusedAsset.type !== 'project') {
     return <AssetPanelPlaceholder title={getText('assetProjectSessions.notProjectAsset')} />
   }
 

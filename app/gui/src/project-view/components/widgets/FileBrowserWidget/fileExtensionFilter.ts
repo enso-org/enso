@@ -1,4 +1,4 @@
-import { AssetType } from '#/services/Backend'
+import type { AssetType } from '#/services/Backend'
 import { splitFilename } from '@/components/widgets/FileBrowserWidget/nameBar'
 import { computed, ref, toValue, watch, type WatchSource } from 'vue'
 
@@ -57,7 +57,7 @@ export function useFileExtensionFilter(
   )
 
   function matches(asset: Asset): boolean {
-    if (asset.type !== AssetType.file) return true
+    if (asset.type !== 'file') return true
     if (filter.value.type === 'glob') return true
     const [_, extension] = splitFilename(asset.title)
     if (filter.value.type === 'userInput') {

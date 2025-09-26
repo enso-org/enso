@@ -6,12 +6,12 @@ import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
 import { createStore, resetStoreOnLogout, useStore, type StoreApi } from '#/utilities/zustand'
 import { useFullUserSession } from '$/providers/react'
-import {
-  type AnyAsset,
-  type AssetId,
-  type BackendType,
-  type DirectoryId,
-  type LabelName,
+import type {
+  AnyAsset,
+  AssetId,
+  BackendType,
+  DirectoryId,
+  LabelName,
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import * as React from 'react'

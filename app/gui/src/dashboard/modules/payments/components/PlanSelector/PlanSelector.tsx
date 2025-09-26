@@ -2,7 +2,7 @@
 import { DIALOG_BACKGROUND } from '#/components/Dialog/variants'
 import { backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
-import * as backend from '#/services/Backend'
+import type { Plan } from '#/services/Backend'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends } from '$/providers/backends'
@@ -11,10 +11,10 @@ import { Card } from './components'
 
 /** Props for {@link PlanSelector} */
 export interface PlanSelectorProps extends VariantProps<typeof PLAN_SELECTOR_STYLES> {
-  readonly userPlan: backend.Plan
+  readonly userPlan: Plan
   readonly showFreePlan: boolean
   readonly isOrganizationAdmin: boolean
-  readonly plan?: backend.Plan | null | undefined
+  readonly plan?: Plan | null | undefined
 }
 
 const PLAN_SELECTOR_STYLES = tv({
@@ -62,7 +62,7 @@ export function PlanSelector(props: PlanSelectorProps) {
               period={period}
               texts={{ title, subtitle, pricing, features }}
               modalOpen={newPlan === plan}
-              userHasSubscription={userPlan !== backend.Plan.free}
+              userHasSubscription={userPlan !== 'free'}
               isOrganizationAdmin={isOrganizationAdmin}
               isCurrent={newPlan === userPlan}
               paywallLevel={getPaywallLevel(newPlan)}

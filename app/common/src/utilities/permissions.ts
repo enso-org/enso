@@ -6,29 +6,28 @@ import type * as text from '../text.js'
 // ========================
 
 /** Backend representation of user permission types. */
-export enum PermissionAction {
-  own = 'Own',
-  admin = 'Admin',
-  edit = 'Edit',
-  read = 'Read',
-  readAndDocs = 'Read_docs',
-  readAndExec = 'Read_exec',
-  view = 'View',
-  viewAndDocs = 'View_docs',
-  viewAndExec = 'View_exec',
-}
+export type PermissionAction =
+  | 'Own'
+  | 'Admin'
+  | 'Edit'
+  | 'Read'
+  | 'Read_docs'
+  | 'Read_exec'
+  | 'View'
+  | 'View_docs'
+  | 'View_exec'
 
 /** Whether each {@link PermissionAction} can execute a project. */
 export const PERMISSION_ACTION_CAN_EXECUTE: Readonly<Record<PermissionAction, boolean>> = {
-  [PermissionAction.own]: true,
-  [PermissionAction.admin]: true,
-  [PermissionAction.edit]: true,
-  [PermissionAction.read]: false,
-  [PermissionAction.readAndDocs]: false,
-  [PermissionAction.readAndExec]: true,
-  [PermissionAction.view]: false,
-  [PermissionAction.viewAndDocs]: false,
-  [PermissionAction.viewAndExec]: true,
+  ['Own']: true,
+  ['Admin']: true,
+  ['Edit']: true,
+  ['Read']: false,
+  ['Read_docs']: false,
+  ['Read_exec']: true,
+  ['View']: false,
+  ['View_docs']: false,
+  ['View_exec']: true,
 }
 
 // ==================
@@ -36,70 +35,63 @@ export const PERMISSION_ACTION_CAN_EXECUTE: Readonly<Record<PermissionAction, bo
 // ==================
 
 /** Type of permission. This determines what kind of border is displayed. */
-export enum Permission {
-  owner = 'owner',
-  admin = 'admin',
-  edit = 'edit',
-  read = 'read',
-  view = 'view',
-  delete = 'delete',
-}
+export type Permission = 'owner' | 'admin' | 'edit' | 'read' | 'view' | 'delete'
 
 /** Precedences for each permission. A lower number means a higher priority. */
 export const PERMISSION_PRECEDENCE: Readonly<Record<Permission, number>> = {
-  [Permission.owner]: 0,
-  [Permission.admin]: 1,
-  [Permission.edit]: 2,
-  [Permission.read]: 3,
-  [Permission.view]: 4,
-  [Permission.delete]: 1000,
+  ['owner']: 0,
+  ['admin']: 1,
+  ['edit']: 2,
+  ['read']: 3,
+  ['view']: 4,
+  ['delete']: 1000,
 }
 
 /** Precedences for each permission action. A lower number means a higher priority. */
 export const PERMISSION_ACTION_PRECEDENCE: Readonly<Record<PermissionAction, number>> = {
-  [PermissionAction.own]: 0,
-  [PermissionAction.admin]: 1,
-  [PermissionAction.edit]: 2,
-  [PermissionAction.read]: 3,
-  [PermissionAction.readAndDocs]: 4,
-  [PermissionAction.readAndExec]: 5,
-  [PermissionAction.view]: 6,
-  [PermissionAction.viewAndDocs]: 7,
-  [PermissionAction.viewAndExec]: 8,
+  ['Own']: 0,
+  ['Admin']: 1,
+  ['Edit']: 2,
+  ['Read']: 3,
+  ['Read_docs']: 4,
+  ['Read_exec']: 5,
+  ['View']: 6,
+  ['View_docs']: 7,
+  ['View_exec']: 8,
 }
 
 /** The corresponding {@link Permissions} for each {@link PermissionAction}. */
 export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Permissions>> = {
-  [PermissionAction.own]: { type: Permission.owner },
-  [PermissionAction.admin]: { type: Permission.admin },
-  [PermissionAction.edit]: { type: Permission.edit },
-  [PermissionAction.read]: {
-    type: Permission.read,
+  ['Own']: { type: 'owner' },
+  ['Admin']: { type: 'admin' },
+  ['Edit']: { type: 'edit' },
+  ['Read']: {
+    type: 'read',
     execute: false,
     docs: false,
   },
-  [PermissionAction.readAndDocs]: {
-    type: Permission.read,
+  ['Read_docs']: {
+    type: 'read',
     execute: false,
     docs: true,
   },
-  [PermissionAction.readAndExec]: {
-    type: Permission.read,
+  ['Read_exec']: {
+    type: 'read',
     execute: true,
     docs: false,
   },
-  [PermissionAction.view]: {
-    type: Permission.view,
+  ['View']: {
+    type: 'view',
     execute: false,
     docs: false,
   },
-  [PermissionAction.viewAndDocs]: {
-    type: Permission.view,
+  ['View_docs']: {
+    type: 'view',
     execute: false,
     docs: true,
   },
-  [PermissionAction.viewAndExec]: {
-    type: Permission.view,
+  ['View_exec']: {
+    type: 'view',
     execute: true,
     docs: false,
   },
@@ -110,13 +102,13 @@ export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Permissio
  * Assumes no docs sub-permission and no execute sub-permission.
  */
 export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, PermissionAction>> = {
-  [Permission.owner]: PermissionAction.own,
-  [Permission.admin]: PermissionAction.admin,
-  [Permission.edit]: PermissionAction.edit,
-  [Permission.read]: PermissionAction.read,
-  [Permission.view]: PermissionAction.view,
+  ['owner']: 'Own',
+  ['admin']: 'Admin',
+  ['edit']: 'Edit',
+  ['read']: 'Read',
+  ['view']: 'View',
   // Should never happen, but provide a fallback just in case.
-  [Permission.delete]: PermissionAction.view,
+  ['delete']: 'View',
 }
 
 /**
@@ -124,46 +116,46 @@ export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, PermissionAc
  * Assumes no docs sub-permission and no execute sub-permission.
  */
 export const TYPE_TO_TEXT_ID: Readonly<Record<Permission, text.TextId>> = {
-  [Permission.owner]: 'ownerPermissionType',
-  [Permission.admin]: 'adminPermissionType',
-  [Permission.edit]: 'editPermissionType',
-  [Permission.read]: 'readPermissionType',
-  [Permission.view]: 'viewPermissionType',
-  [Permission.delete]: 'deletePermissionType',
+  ['owner']: 'ownerPermissionType',
+  ['admin']: 'adminPermissionType',
+  ['edit']: 'editPermissionType',
+  ['read']: 'readPermissionType',
+  ['view']: 'viewPermissionType',
+  ['delete']: 'deletePermissionType',
 } satisfies { [P in Permission]: `${P}PermissionType` }
 
 /** The equivalent backend `PermissionAction` for a `Permissions`. */
 export function toPermissionAction(permissions: Permissions): PermissionAction {
   switch (permissions.type) {
-    case Permission.owner: {
-      return PermissionAction.own
+    case 'owner': {
+      return 'Own'
     }
-    case Permission.admin: {
-      return PermissionAction.admin
+    case 'admin': {
+      return 'Admin'
     }
-    case Permission.edit: {
-      return PermissionAction.edit
+    case 'edit': {
+      return 'Edit'
     }
-    case Permission.read: {
+    case 'read': {
       return (
         permissions.execute ?
           permissions.docs ?
             /* should never happen, but use a fallback value */
-            PermissionAction.readAndExec
-          : PermissionAction.readAndExec
-        : permissions.docs ? PermissionAction.readAndDocs
-        : PermissionAction.read
+            'Read_exec'
+          : 'Read_exec'
+        : permissions.docs ? 'Read_docs'
+        : 'Read'
       )
     }
-    case Permission.view: {
+    case 'view': {
       return (
         permissions.execute ?
           permissions.docs ?
             /* should never happen, but use a fallback value */
-            PermissionAction.viewAndExec
-          : PermissionAction.viewAndExec
-        : permissions.docs ? PermissionAction.viewAndDocs
-        : PermissionAction.view
+            'View_exec'
+          : 'View_exec'
+        : permissions.docs ? 'View_docs'
+        : 'View'
       )
     }
   }
@@ -179,22 +171,22 @@ interface BasePermissions<T extends Permission> {
 }
 
 /** Owner permissions for an asset. */
-type OwnerPermissions = BasePermissions<Permission.owner>
+type OwnerPermissions = BasePermissions<'owner'>
 
 /** Admin permissions for an asset. */
-type AdminPermissions = BasePermissions<Permission.admin>
+type AdminPermissions = BasePermissions<'admin'>
 
 /** Editor permissions for an asset. */
-type EditPermissions = BasePermissions<Permission.edit>
+type EditPermissions = BasePermissions<'edit'>
 
 /** Reader permissions for an asset. */
-interface ReadPermissions extends BasePermissions<Permission.read> {
+interface ReadPermissions extends BasePermissions<'read'> {
   readonly docs: boolean
   readonly execute: boolean
 }
 
 /** Viewer permissions for an asset. */
-interface ViewPermissions extends BasePermissions<Permission.view> {
+interface ViewPermissions extends BasePermissions<'view'> {
   readonly docs: boolean
   readonly execute: boolean
 }
@@ -208,7 +200,7 @@ export type Permissions =
   | ViewPermissions
 
 export const DEFAULT_PERMISSIONS: Permissions = Object.freeze({
-  type: Permission.view,
+  type: 'view',
   docs: false,
   execute: false,
 })

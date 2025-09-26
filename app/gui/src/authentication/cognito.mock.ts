@@ -38,7 +38,7 @@ import * as results from 'ts-results'
 import * as original from './cognito.js'
 import * as listen from './listen.mock.js'
 
-export { CognitoErrorType } from './cognito.js'
+export type { CognitoErrorType } from './cognito.js'
 
 /** One second, in milliseconds. */
 const SEC_MS = 1_000
@@ -185,7 +185,7 @@ export class Cognito {
    */
   async signInWithApple() {
     this.isSignedIn = true
-    listen.authEventListener?.(listen.AuthEvent.signIn)
+    listen.authEventListener?.('signIn')
     await Promise.resolve()
   }
 
@@ -198,7 +198,7 @@ export class Cognito {
    */
   async signInWithMicrosoft() {
     this.isSignedIn = true
-    listen.authEventListener?.(listen.AuthEvent.signIn)
+    listen.authEventListener?.('signIn')
     await Promise.resolve()
   }
 
@@ -211,7 +211,7 @@ export class Cognito {
    */
   async signInWithGoogle() {
     this.isSignedIn = true
-    listen.authEventListener?.(listen.AuthEvent.signIn)
+    listen.authEventListener?.('signIn')
     await Promise.resolve()
   }
 
@@ -224,7 +224,7 @@ export class Cognito {
    */
   signInWithGitHub() {
     this.isSignedIn = true
-    listen.authEventListener?.(listen.AuthEvent.signIn)
+    listen.authEventListener?.('signIn')
     return Promise.resolve({
       accessKeyId: 'access key id',
       sessionToken: 'session token',
@@ -245,7 +245,7 @@ export class Cognito {
     mockEmail = username
     localStorage.setItem(MOCK_EMAIL_KEY, username)
     const result = await results.Result.wrapAsync(async () => {
-      listen.authEventListener?.(listen.AuthEvent.signIn)
+      listen.authEventListener?.('signIn')
       return Promise.resolve(await this.userSession())
     })
     return result
@@ -256,7 +256,7 @@ export class Cognito {
   /** Sign out the current user. */
   async signOut() {
     this.isSignedIn = false
-    listen.authEventListener?.(listen.AuthEvent.signOut)
+    listen.authEventListener?.('signOut')
     localStorage.removeItem(MOCK_EMAIL_KEY)
     localStorage.removeItem(MOCK_ORGANIZATION_ID_KEY)
     return Promise.resolve(null)

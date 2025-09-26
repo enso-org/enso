@@ -4,17 +4,16 @@ import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHo
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-import {
+import type {
+  AnyAsset,
+  AssetId,
   AssetType,
-  BackendType,
-  type AnyAsset,
-  type AssetId,
-  type DirectoryId,
-  type FilterBy,
-  type User,
-  type UserGroupInfo,
+  DirectoryId,
+  FilterBy,
+  User,
+  UserGroupInfo,
 } from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { flagsStore } from '$/providers/featureFlags'
 import { useBackends, useFullUserSession } from '$/providers/react'
@@ -99,7 +98,7 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
                     isOrganizationAdmin: false,
                     name: 'Test User',
                     organizationId: user.organizationId,
-                    plan: backendModule.Plan.free,
+                    plan: 'free',
                     rootDirectoryId: user.rootDirectoryId,
                     userId: user.userId,
                     userGroups: [
@@ -187,7 +186,7 @@ export function backendMutationOptions<Method extends BackendMutationMethod>(
     mutationKey: [backend?.type, method, ...(options?.mutationKey ?? [])],
     // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     mutationFn: (args) => (backend?.[method] as any)?.(...args),
-    networkMode: backend?.type === BackendType.local ? 'always' : 'online',
+    networkMode: backend?.type === 'local' ? 'always' : 'online',
     meta: {
       ...options?.meta,
       invalidates,
@@ -400,17 +399,15 @@ export function useCanRunProjects() {
     // Local projects: Open normally
     // Cloud projects: Open in Hybrid
     locally: {
-      [BackendType.local]: localBackend != null,
-      [BackendType.remote]: localBackend != null,
+      ['local']: localBackend != null,
+      ['remote']: localBackend != null,
     },
     // Local projects can be run natively; only Team plans and above have access to Cloud execution.
     // Local projects: Open normally
     // Cloud projects: Open in Cloud VM
     natively: {
-      [BackendType.local]: localBackend != null,
-      [BackendType.remote]:
-        enableCloudExecution &&
-        (user.plan === backendModule.Plan.team || user.plan === backendModule.Plan.enterprise),
+      ['local']: localBackend != null,
+      ['remote']: enableCloudExecution && (user.plan === 'team' || user.plan === 'enterprise'),
     },
   }
 }
@@ -521,7 +518,7 @@ export function useNewFolder(backend: Backend, category: Category) {
 
     return await createDirectory([{ parentId, title }]).then((result) => {
       setNewestFolderId(result.id)
-      setSelectedAssets([{ type: AssetType.directory, ...result }])
+      setSelectedAssets([{ type: 'directory', ...result }])
       return result
     })
   })

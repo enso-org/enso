@@ -19,9 +19,12 @@ class DragPayloadManager<Payload> {
   readonly regex: RegExp
   readonly map = new Map<string, Payload>()
   readonly reverseMap = new Map<Payload, string>()
+  mimetype: string
+
   /** Create a {@link DragPayloadManager}. */
-  constructor(public mimetype: string) {
+  constructor(mimetype: string) {
     this.regex = new RegExp('^' + mimetype + '; id=(.+)$')
+    this.mimetype = mimetype
   }
 
   /** Tries to get the payload associated with a {@link DragEvent}. */

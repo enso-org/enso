@@ -59,30 +59,22 @@ class Scope {
 }
 
 /** Context tells how the variables are to be treated. */
-enum Context {
-  Pattern = 'Pattern',
-  Expression = 'Expression',
-}
+type Context = 'Pattern' | 'Expression'
 
-export enum IdentifierType {
-  Operator = 'Operator',
-  Type = 'Type',
-  TypeVariable = 'TypeVariable',
-  Variable = 'Variable',
-}
+export type IdentifierType = 'Operator' | 'Type' | 'TypeVariable' | 'Variable'
 
 /** Check what kind of identifier the given token is. */
 export function identifierKind(token: RawAst.Token.Ident): IdentifierType {
   // Identifier kinds, as per draft Enso spec:
   // https://github.com/enso-org/design/blob/wip/wd/enso-spec/epics/enso-spec-1.0/03.%20Code%20format%20and%20layout.md
   if (token.isOperatorLexically) {
-    return IdentifierType.Operator
+    return 'Operator'
   } else if (token.liftLevel > 0) {
-    return IdentifierType.TypeVariable
+    return 'TypeVariable'
   } else if (token.isTypeOrConstructor) {
-    return IdentifierType.Type
+    return 'Type'
   } else {
-    return IdentifierType.Variable
+    return 'Variable'
   }
 }
 
@@ -101,7 +93,7 @@ export class AliasAnalyzer {
   private readonly scopes: NonEmptyStack<Scope>
 
   /** The stack for keeping track whether we are in a pattern or expression context. */
-  private readonly contexts: NonEmptyStack<Context> = new NonEmptyStack(Context.Expression)
+  private readonly contexts = new NonEmptyStack<Context>('Expression')
 
   public readonly aliases = new MappedKeyMap<SourceRange, MappedSet<SourceRange>>(sourceRangeKey)
 
@@ -181,8 +173,8 @@ export class AliasAnalyzer {
   /** TODO: Add docs */
   processToken(token?: RawAst.Token): void {
     if (token?.type !== RawAst.Token.Type.Ident) return
-    if (identifierKind(token) === IdentifierType.Variable) {
-      if (this.contexts.top === Context.Pattern) {
+    if (identifierKind(token) === 'Variable') {
+      if (this.contexts.top === 'Pattern') {
         this.bind(token)
       } else {
         this.use(token)
@@ -258,7 +250,7 @@ export class AliasAnalyzer {
             // Lambda expression. Left-hand side is a pattern, right-hand side is an expression. Introduces a new scope.
             // Note that this is not a RawAst.Tree.Type.Lambda, as that is for "new" lambdas syntax, like `\x -> x`.
             this.withNewScopeOver(node, () => {
-              this.withContext(Context.Pattern, () => {
+              this.withContext('Pattern', () => {
                 this.processTree(node.lhs)
               })
               this.processTree(node.rhs)
@@ -281,19 +273,19 @@ export class AliasAnalyzer {
         }
         break
       case RawAst.Tree.Type.Assignment:
-        this.withContext(Context.Pattern, () => {
+        this.withContext('Pattern', () => {
           this.processTree(node.pattern)
         })
         this.processTree(node.expr)
         break
       case RawAst.Tree.Type.Function:
         // Function name goes to the current scope, unlike its arguments.
-        this.withContext(Context.Pattern, () => {
+        this.withContext('Pattern', () => {
           this.processTree(node.name)
         })
         this.withNewScopeOver(node, () => {
           for (const argument of node.args) {
-            this.withContext(Context.Pattern, () => {
+            this.withContext('Pattern', () => {
               this.processTree(argument.pattern)
             })
             this.processTree(argument.default?.expression)
@@ -317,7 +309,7 @@ export class AliasAnalyzer {
               ).to,
             )
             this.withNewScopeOver(armRange, () => {
-              this.withContext(Context.Pattern, () => {
+              this.withContext('Pattern', () => {
                 this.processTree(caseLine.case?.pattern)
               })
               this.processTree(caseLine.case?.expression)

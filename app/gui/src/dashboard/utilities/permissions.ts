@@ -6,17 +6,17 @@ import {
   type User,
   type UserGroup,
 } from 'enso-common/src/services/Backend'
-import { Permission, PermissionAction } from 'enso-common/src/utilities/permissions'
+import type { Permission, PermissionAction } from 'enso-common/src/utilities/permissions'
 export * from 'enso-common/src/utilities/permissions'
 
 /** CSS classes for each permission. */
 export const PERMISSION_CLASS_NAME: Readonly<Record<Permission, string>> = {
-  [Permission.owner]: 'text-tag-text bg-permission-owner',
-  [Permission.admin]: 'text-tag-text bg-permission-admin',
-  [Permission.edit]: 'text-tag-text bg-permission-edit',
-  [Permission.read]: 'text-tag-text bg-permission-read',
-  [Permission.view]: 'text-tag-text-2 bg-permission-view',
-  [Permission.delete]: 'text-tag-text bg-delete',
+  ['owner']: 'text-tag-text bg-permission-owner',
+  ['admin']: 'text-tag-text bg-permission-admin',
+  ['edit']: 'text-tag-text bg-permission-edit',
+  ['read']: 'text-tag-text bg-permission-read',
+  ['view']: 'text-tag-text-2 bg-permission-view',
+  ['delete']: 'text-tag-text bg-delete',
 }
 
 /** CSS classes for the docs permission. */
@@ -51,16 +51,12 @@ export function tryFindSelfPermission(
 
 /** Whether the given permission means the user can edit the list of assets of the directory. */
 export function canPermissionModifyDirectoryContents(permission: PermissionAction) {
-  return (
-    permission === PermissionAction.own ||
-    permission === PermissionAction.admin ||
-    permission === PermissionAction.edit
-  )
+  return permission === 'Own' || permission === 'Admin' || permission === 'Edit'
 }
 
 /** Replace the first owner permission with the permission of a new user or team. */
 export function tryGetOwnerPermission(asset: AnyAsset) {
-  return asset.permissions?.find((permission) => permission.permission === PermissionAction.own)
+  return asset.permissions?.find((permission) => permission.permission === 'Own')
 }
 
 const USER_PATH_REGEX = /^enso:[/][/][/]Users[/]([^/]+)/

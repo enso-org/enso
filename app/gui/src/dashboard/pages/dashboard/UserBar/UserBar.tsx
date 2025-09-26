@@ -14,7 +14,6 @@ import { backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
 import { useOffline } from '#/hooks/offlineHooks'
 import InviteUsersModal from '#/modals/InviteUsersModal'
-import { Plan } from '#/services/Backend'
 import { rfc3339DurationProgress } from '#/utilities/time'
 import { isAbsoluteUrl } from '#/utilities/url'
 import { SUBSCRIBE_PATH } from '$/appUtils'
@@ -86,8 +85,8 @@ export function UserBar(props: UserBarProps) {
   const isCurrentlyTrialing = trialProgress != null && subscription?.trialEnd != null
 
   const shouldShowInviteButton = !isFeatureUnderPaywall('inviteUser')
-  const shouldShowUpgradeButton = user.isOrganizationAdmin && user.plan === Plan.free
-  const upgradeButtonVariant = user.plan === Plan.free ? 'primary' : 'outline'
+  const shouldShowUpgradeButton = user.isOrganizationAdmin && user.plan === 'free'
+  const upgradeButtonVariant = user.plan === 'free' ? 'primary' : 'outline'
   const topbarLinks = TOPBAR_LINKS_SCHEMA.parse(TOPBAR_LINKS)
 
   return (

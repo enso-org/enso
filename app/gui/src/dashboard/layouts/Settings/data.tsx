@@ -15,7 +15,6 @@ import {
   HttpsUrl,
   isUserOnPlanWithMultipleSeats,
   Path,
-  Plan,
   type OrganizationInfo,
   type User,
 } from '#/services/Backend'
@@ -47,7 +46,7 @@ import MembersSettingsSection from './MembersSettingsSection'
 import OrganizationProfilePictureInput from './OrganizationProfilePictureInput'
 import ProfilePictureInput from './ProfilePictureInput'
 import { SetupTwoFaForm } from './SetupTwoFaForm'
-import SettingsTabType from './TabType'
+import type { SettingsTabType } from './TabType'
 import { UserGroupsSettingsSection } from './UserGroupsSettingsSection'
 
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
@@ -64,9 +63,9 @@ export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
 }
 
 export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData>> = {
-  [SettingsTabType.account]: {
+  ['account']: {
     nameId: 'accountSettingsTab',
-    settingsTab: SettingsTabType.account,
+    settingsTab: 'account',
     icon: 'settings',
     sections: [
       {
@@ -121,8 +120,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                     return `${timezoneOffsetString} ${description}`
                   },
                 }),
-                hidden: (context) =>
-                  context.user.plan === Plan.free || context.user.plan === Plan.solo,
+                hidden: (context) => context.user.plan === 'free' || context.user.plan === 'solo',
               },
             ],
           }),
@@ -243,9 +241,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.organization]: {
+  ['organization']: {
     nameId: 'organizationSettingsTab',
-    settingsTab: SettingsTabType.organization,
+    settingsTab: 'organization',
     icon: 'people_settings',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithMultipleSeats(user),
@@ -318,9 +316,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.local]: {
+  ['local']: {
     nameId: 'localSettingsTab',
-    settingsTab: SettingsTabType.local,
+    settingsTab: 'local',
     icon: 'system',
     visible: ({ localBackend }) => localBackend != null,
     sections: [
@@ -423,9 +421,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.billingAndPlans]: {
+  ['billing-and-plans']: {
     nameId: 'billingAndPlansSettingsTab',
-    settingsTab: SettingsTabType.billingAndPlans,
+    settingsTab: 'billing-and-plans',
     icon: 'credit_card',
     organizationOnly: true,
     visible: ({ user, organization }) =>
@@ -474,9 +472,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.members]: {
+  ['members']: {
     nameId: 'membersSettingsTab',
-    settingsTab: SettingsTabType.members,
+    settingsTab: 'members',
     icon: 'people',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithMultipleSeats(user) && user.isOrganizationAdmin,
@@ -489,9 +487,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.userGroups]: {
+  ['user-groups']: {
     nameId: 'userGroupsSettingsTab',
-    settingsTab: SettingsTabType.userGroups,
+    settingsTab: 'user-groups',
     icon: 'people_settings',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithMultipleSeats(user) && user.isOrganizationAdmin,
@@ -504,9 +502,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.keyboardShortcuts]: {
+  ['keyboard-shortcuts']: {
     nameId: 'keyboardShortcutsSettingsTab',
-    settingsTab: SettingsTabType.keyboardShortcuts,
+    settingsTab: 'keyboard-shortcuts',
     icon: 'keyboard_shortcuts',
     sections: [
       {
@@ -533,9 +531,9 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.activityLog]: {
+  ['activity-log']: {
     nameId: 'activityLogSettingsTab',
-    settingsTab: SettingsTabType.activityLog,
+    settingsTab: 'activity-log',
     icon: 'log',
     organizationOnly: true,
     visible: ({ user }) => isUserOnPlanWithMultipleSeats(user),
@@ -558,26 +556,26 @@ export const SETTINGS_DATA: SettingsData = [
   {
     nameId: 'generalSettingsTabSection',
     tabs: [
-      SETTINGS_TAB_DATA[SettingsTabType.account],
-      SETTINGS_TAB_DATA[SettingsTabType.organization],
-      SETTINGS_TAB_DATA[SettingsTabType.local],
+      SETTINGS_TAB_DATA['account'],
+      SETTINGS_TAB_DATA['organization'],
+      SETTINGS_TAB_DATA['local'],
     ],
   },
   {
     nameId: 'accessSettingsTabSection',
     tabs: [
-      SETTINGS_TAB_DATA[SettingsTabType.billingAndPlans],
-      SETTINGS_TAB_DATA[SettingsTabType.members],
-      SETTINGS_TAB_DATA[SettingsTabType.userGroups],
+      SETTINGS_TAB_DATA['billing-and-plans'],
+      SETTINGS_TAB_DATA['members'],
+      SETTINGS_TAB_DATA['user-groups'],
     ],
   },
   {
     nameId: 'lookAndFeelSettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA[SettingsTabType.keyboardShortcuts]],
+    tabs: [SETTINGS_TAB_DATA['keyboard-shortcuts']],
   },
   {
     nameId: 'securitySettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA[SettingsTabType.activityLog]],
+    tabs: [SETTINGS_TAB_DATA['activity-log']],
   },
 ]
 

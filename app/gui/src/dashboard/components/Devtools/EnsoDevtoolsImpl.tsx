@@ -92,10 +92,10 @@ export function EnsoDevStatus() {
 
   const planName = (() => {
     switch (developerPlanOverride) {
-      case backend.Plan.free:
-      case backend.Plan.solo:
-      case backend.Plan.team:
-      case backend.Plan.enterprise: {
+      case 'free':
+      case 'solo':
+      case 'team':
+      case 'enterprise': {
         return getText(developerPlanOverride)
       }
       case undefined: {
@@ -280,7 +280,7 @@ export function EnsoDevtools() {
 
   const { features, setFeature } = usePaywallDevtools()
 
-  const currentlyViewedPlan = session?.user.plan ?? backend.Plan.free
+  const currentlyViewedPlan = session?.user.plan ?? 'free'
   const { isFeatureUnderPaywall } = usePaywall({ plan: currentlyViewedPlan })
 
   const enableVersionChecker = useEnableVersionChecker()
@@ -341,7 +341,7 @@ export function EnsoDevtools() {
 
             <Form
               gap="small"
-              schema={(schema) => schema.object({ plan: schema.nativeEnum(backend.Plan) })}
+              schema={(schema) => schema.object({ plan: schema.enum(backend.PLANS) })}
               defaultValues={{ plan: session.user.plan }}
             >
               <Radio.Group
@@ -351,10 +351,10 @@ export function EnsoDevtools() {
                   setFeatureFlag('developerPlanOverride', value)
                 }}
               >
-                <Radio label={getText('free')} value={backend.Plan.free} />
-                <Radio label={getText('solo')} value={backend.Plan.solo} />
-                <Radio label={getText('team')} value={backend.Plan.team} />
-                <Radio label={getText('enterprise')} value={backend.Plan.enterprise} />
+                <Radio label={getText('free')} value="free" />
+                <Radio label={getText('solo')} value="solo" />
+                <Radio label={getText('team')} value="team" />
+                <Radio label={getText('enterprise')} value="enterprise" />
               </Radio.Group>
 
               <Button

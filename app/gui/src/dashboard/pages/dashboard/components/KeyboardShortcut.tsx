@@ -41,23 +41,23 @@ const MODIFIER_JSX: Readonly<
 > = {
   // The names are intentionally not in `camelCase`, as they are case-sensitive.
   /* eslint-disable @typescript-eslint/naming-convention */
-  [detect.Platform.macOS]: {
+  ['macOS']: {
     Meta: () => <SvgMask style={ICON_STYLE} key="Meta" src={CommandKeyIcon} />,
     Shift: () => <SvgMask style={ICON_STYLE} key="Shift" src={ShiftKeyIcon} />,
     Alt: () => <SvgMask style={ICON_STYLE} key="Alt" src={OptionKeyIcon} />,
     Ctrl: () => <SvgMask style={ICON_STYLE} key="Ctrl" src={CtrlKeyIcon} />,
   },
-  [detect.Platform.windows]: {
+  ['Windows']: {
     Meta: () => <SvgMask style={ICON_STYLE} key="Meta" src={WindowsKeyIcon} />,
   },
-  [detect.Platform.linux]: {
+  ['Linux']: {
     Meta: (props) => (
       <Text key="Meta" className="text">
         {props.getText('superModifier')}
       </Text>
     ),
   },
-  [detect.Platform.unknown]: {
+  ['Unknown platform']: {
     // Assume the system is Unix-like and calls the key that triggers `event.metaKey`
     // the "Super" key.
     Meta: (props) => (
@@ -66,9 +66,9 @@ const MODIFIER_JSX: Readonly<
       </Text>
     ),
   },
-  [detect.Platform.iPhoneOS]: {},
-  [detect.Platform.android]: {},
-  [detect.Platform.windowsPhone]: {},
+  ['iPhone OS']: {},
+  ['Android']: {},
+  ['Windows Phone']: {},
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 

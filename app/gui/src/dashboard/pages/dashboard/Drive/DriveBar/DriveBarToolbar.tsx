@@ -35,7 +35,7 @@ import { useExportArchive } from '#/pages/useExportArchive'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import { BackendType, isDirectoryId, isProjectId, type CredentialConfig } from '#/services/Backend'
+import { isDirectoryId, isProjectId, type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
@@ -61,7 +61,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { getText } = useText()
   const driveStore = useDriveStore()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
-  const isCloud = backend.type === BackendType.remote
+  const isCloud = backend.type === 'remote'
   const { isOffline } = useOffline()
   const canDownload = useCanDownload()
 

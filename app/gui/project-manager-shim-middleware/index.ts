@@ -11,7 +11,6 @@ import * as path from 'node:path'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
 import {
-  AssetType,
   DirectoryId,
   EnsoPath,
   extractTypeAndPath,
@@ -28,6 +27,7 @@ import {
   VirtualParentsPath,
   type AnyAsset,
   type AssetId,
+  type AssetType,
   type DirectoryAsset,
   type ExportedArchive,
   type FileAsset,
@@ -81,9 +81,12 @@ const COOP_COEP_CORP_HEADERS = [
 /** Middleware for project manager shim. */
 export class ProjectManagerShimMiddleware {
   private projectService?: ProjectService
+  private readonly setup: () => Promise<void>
 
   /** Create the new middleware. */
-  constructor(private readonly setup: () => Promise<void>) {}
+  constructor(setup: () => Promise<void>) {
+    this.setup = setup
+  }
 
   /** Get the project service. */
   async getProjectService(): Promise<ProjectService> {
@@ -408,12 +411,12 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
       if (assetStat.isDirectory()) {
         const metadata = projectManagement.getMetadata(path)
         if (metadata) {
-          return AssetType.project
+          return 'project'
         } else {
-          return AssetType.directory
+          return 'directory'
         }
       } else {
-        return AssetType.file
+        return 'file'
       }
     })()
     const shared = {
@@ -428,10 +431,10 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
       ensoPath: EnsoPath(String(path)),
     } satisfies Partial<DirectoryAsset>
     switch (type) {
-      case AssetType.project: {
+      case 'project': {
         const result: ProjectAsset = {
           ...shared,
-          type: AssetType.project,
+          type: 'project',
           id: ProjectId(`project-${encodeURIComponent(path)}`),
           // FIXME: Get correct state.
           projectState: { type: ProjectState.closed },
@@ -439,20 +442,20 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
         // This is SAFE because `type` has been narrowed in the `switch` above.
         return result as AnyAsset<Type>
       }
-      case AssetType.file: {
+      case 'file': {
         const result: FileAsset = {
           ...shared,
-          type: AssetType.file,
+          type: 'file',
           id: FileId(`file-${encodeURIComponent(path)}`),
           extension: basenameAndExtension(path).extension,
         }
         // This is SAFE because `type` has been narrowed in the `switch` above.
         return result as AnyAsset<Type>
       }
-      case AssetType.directory: {
+      case 'directory': {
         const result: DirectoryAsset = {
           ...shared,
-          type: AssetType.directory,
+          type: 'directory',
           id: DirectoryId(`directory-${encodeURIComponent(path)}` as const),
         }
         // This is SAFE because `type` has been narrowed in the `switch` above.
@@ -524,21 +527,21 @@ function apiArchiveStream(assets: readonly AssetId[]) {
   const addAsset = async (id: AssetId, rootPath?: string) => {
     const typeAndId = extractTypeFromId(id)
     switch (typeAndId.type) {
-      case AssetType.project: {
+      case 'project': {
         const error = await addProject(typeAndId.id, rootPath)
         if (error) {
           return error
         }
         break
       }
-      case AssetType.file: {
+      case 'file': {
         const error = await addFile(typeAndId.id, rootPath)
         if (error) {
           return error
         }
         break
       }
-      case AssetType.directory: {
+      case 'directory': {
         const error = await addFolder(typeAndId.id, rootPath)
         if (error) {
           return error
@@ -547,9 +550,9 @@ function apiArchiveStream(assets: readonly AssetId[]) {
       }
       // These asset types are not valid, however include them to force any newly added
       // asset types to be handled (by causing a non-exhaustiveness error).
-      case AssetType.secret:
-      case AssetType.datalink:
-      case AssetType.specialUp: {
+      case 'secret':
+      case 'datalink':
+      case 'specialUp': {
         return
       }
     }
@@ -699,14 +702,14 @@ async function apiUploadArchive({
     if (isDirectory) {
       assets.push({
         ...shared,
-        type: AssetType.directory,
+        type: 'directory',
         id: DirectoryId(`directory-${encodeURIComponent(destinationPath)}` as const),
       })
       await entry.extract({ rootDirectory: directory, destinationPath })
     } else if (isProject) {
       assets.push({
         ...shared,
-        type: AssetType.project,
+        type: 'project',
         id: ProjectId(
           `project-${encodeURIComponent(destinationPath.replace('.enso-project', '/'))}`,
         ),
@@ -729,7 +732,7 @@ async function apiUploadArchive({
     } else {
       assets.push({
         ...shared,
-        type: AssetType.file,
+        type: 'file',
         id: FileId(`file-${encodeURIComponent(destinationPath)}`),
         extension: basenameAndExtension(destinationPath).extension,
       })

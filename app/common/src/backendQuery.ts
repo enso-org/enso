@@ -1,7 +1,6 @@
 /** @file Framework-independent helpers for constructing backend Tanstack queries. */
 import type * as queryCore from '@tanstack/query-core'
 import type Backend from './services/Backend.js'
-import * as backendModule from './services/Backend.js'
 import { omit, type ExtractKeys, type MethodOf } from './utilities/data/object.js'
 
 /** The properties of the Backend type that are methods. */
@@ -177,6 +176,6 @@ export function backendBaseOptions(backend: Backend | null): {
   networkMode: queryCore.NetworkMode
 } {
   return {
-    networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',
+    networkMode: backend?.type === 'local' ? 'always' : 'online',
   }
 }

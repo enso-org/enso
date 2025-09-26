@@ -12,38 +12,37 @@ export const IS_DEV_MODE = process.env.NODE_ENV === 'development'
 // ================
 
 /** Possible platforms that the app may run on. */
-export enum Platform {
-  unknown = 'Unknown platform',
-  windows = 'Windows',
-  macOS = 'macOS',
-  linux = 'Linux',
-  windowsPhone = 'Windows Phone',
-  iPhoneOS = 'iPhone OS',
-  android = 'Android',
-}
+export type Platform =
+  | 'Unknown platform'
+  | 'Windows'
+  | 'macOS'
+  | 'Linux'
+  | 'Windows Phone'
+  | 'iPhone OS'
+  | 'Android'
 
 /**
  * The platform the app is currently running on.
  * This is used to determine whether `metaKey` or `ctrlKey` is used in shortcuts.
  */
-export function platform() {
+export function platform(): Platform {
   if (isOnWindowsPhone()) {
     // MUST be before Android and Windows.
-    return Platform.windowsPhone
+    return 'Windows Phone'
   } else if (isOnWindows()) {
-    return Platform.windows
+    return 'Windows'
   } else if (isOnIPhoneOS()) {
     // MUST be before macOS.
-    return Platform.iPhoneOS
+    return 'iPhone OS'
   } else if (isOnMacOS()) {
-    return Platform.macOS
+    return 'macOS'
   } else if (isOnAndroid()) {
     // MUST be before Linux.
-    return Platform.android
+    return 'Android'
   } else if (isOnLinux()) {
-    return Platform.linux
+    return 'Linux'
   } else {
-    return Platform.unknown
+    return 'Unknown platform'
   }
 }
 
@@ -79,7 +78,7 @@ export function isOnAndroid() {
 
 /** Whether the device is running an unknown OS. */
 export function isOnUnknownOS() {
-  return platform() === Platform.unknown
+  return platform() === 'Unknown platform'
 }
 
 // ===============
@@ -87,15 +86,14 @@ export function isOnUnknownOS() {
 // ===============
 
 /** Possible browsers that the app may run on. */
-export enum Browser {
-  unknown = 'Unknown browser',
-  electron = 'Electron',
-  chrome = 'Chrome',
-  edge = 'Edge',
-  firefox = 'Firefox',
-  safari = 'Safari',
-  opera = 'Opera',
-}
+export type Browser =
+  | 'Unknown browser'
+  | 'Electron'
+  | 'Chrome'
+  | 'Edge'
+  | 'Firefox'
+  | 'Safari'
+  | 'Opera'
 
 /**
  * Return the platform the app is currently running on.
@@ -103,21 +101,21 @@ export enum Browser {
  */
 export function browser(): Browser {
   if (isOnElectron()) {
-    return Browser.electron
+    return 'Electron'
     // This MUST be above Chrome as it is Chromium-based.
   } else if (isOnEdge()) {
-    return Browser.opera
+    return 'Opera'
     // This MUST be above Chrome as it is Chromium-based.
   } else if (isOnOpera()) {
-    return Browser.edge
+    return 'Edge'
   } else if (isOnChrome()) {
-    return Browser.chrome
+    return 'Chrome'
   } else if (isOnFirefox()) {
-    return Browser.firefox
+    return 'Firefox'
   } else if (isOnSafari()) {
-    return Browser.safari
+    return 'Safari'
   } else {
-    return Browser.unknown
+    return 'Unknown browser'
   }
 }
 /**
@@ -157,7 +155,7 @@ export function isOnSafari() {
 
 /** Whether the current browser is not a recognized browser. */
 export function isOnUnknownBrowser() {
-  return browser() === Browser.unknown
+  return browser() === 'Unknown browser'
 }
 
 // ====================
@@ -183,47 +181,44 @@ if (typeof navigator !== 'undefined' && 'userAgentData' in navigator) {
 }
 
 /** Possible processor architectures. */
-export enum Architecture {
-  intel64 = 'x86_64',
-  arm64 = 'arm64',
-}
+export type Architecture = 'x86_64' | 'arm64'
 
 /** The processor architecture of the current system. */
 export function architecture() {
   if (detectedArchitecture != null) {
     switch (detectedArchitecture) {
       case 'arm': {
-        return Architecture.arm64
+        return 'arm64'
       }
       default: {
-        return Architecture.intel64
+        return 'x86_64'
       }
     }
   }
   switch (platform()) {
-    case Platform.windows:
-    case Platform.linux:
-    case Platform.unknown: {
-      return Architecture.intel64
+    case 'Windows':
+    case 'Linux':
+    case 'Unknown platform': {
+      return 'x86_64'
     }
-    case Platform.macOS:
-    case Platform.iPhoneOS:
-    case Platform.android:
-    case Platform.windowsPhone: {
+    case 'macOS':
+    case 'iPhone OS':
+    case 'Android':
+    case 'Windows Phone': {
       // Assume the macOS device is on a M-series CPU.
       // This is highly unreliable, but operates under the assumption that all
       // new macOS devices will be ARM64.
-      return Architecture.arm64
+      return 'arm64'
     }
   }
 }
 
 /** Whether the device has an Intel 64-bit CPU. */
 export function isIntel64() {
-  return architecture() === Architecture.intel64
+  return architecture() === 'x86_64'
 }
 
 /** Whether the device has an ARM 64-bit CPU. */
 export function isArm64() {
-  return architecture() === Architecture.arm64
+  return architecture() === 'arm64'
 }

@@ -1,5 +1,5 @@
-import { AnyAsset, AssetType, ListDirectoryResponseBody } from '#/services/Backend'
-import { Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
+import type { AnyAsset, AssetType, ListDirectoryResponseBody } from '#/services/Backend'
+import type { Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
 
 interface MockAssetSpec {
   type: AssetType
@@ -10,7 +10,7 @@ const ASSET_SPECS = new Map([
   [
     '0',
     {
-      type: AssetType.directory,
+      type: 'directory' as const,
       title: '',
       contents: ['1', '2'],
     },
@@ -18,7 +18,7 @@ const ASSET_SPECS = new Map([
   [
     '1',
     {
-      type: AssetType.directory,
+      type: 'directory' as const,
       title: 'Users',
       contents: ['3'],
     },
@@ -26,7 +26,7 @@ const ASSET_SPECS = new Map([
   [
     '2',
     {
-      type: AssetType.directory,
+      type: 'directory' as const,
       title: 'Teams',
       contents: [],
     },
@@ -34,7 +34,7 @@ const ASSET_SPECS = new Map([
   [
     '3',
     {
-      type: AssetType.directory,
+      type: 'directory' as const,
       title: 'user',
       contents: ['4', '5'],
     },
@@ -42,7 +42,7 @@ const ASSET_SPECS = new Map([
   [
     '4',
     {
-      type: AssetType.directory,
+      type: 'directory' as const,
       title: 'New Folder 1',
       contents: ['6', '7'],
     },
@@ -50,7 +50,7 @@ const ASSET_SPECS = new Map([
   [
     '5',
     {
-      type: AssetType.file,
+      type: 'file' as const,
       title: 'input.csv',
       contents: [],
     },
@@ -58,7 +58,7 @@ const ASSET_SPECS = new Map([
   [
     '6',
     {
-      type: AssetType.file,
+      type: 'file' as const,
       title: 'input.csv',
       contents: [],
     },
@@ -66,7 +66,7 @@ const ASSET_SPECS = new Map([
   [
     '7',
     {
-      type: AssetType.directory,
+      type: 'directory' as const,
       title: 'Nested',
       contents: ['8'],
     },
@@ -74,7 +74,7 @@ const ASSET_SPECS = new Map([
   [
     '8',
     {
-      type: AssetType.file,
+      type: 'file' as const,
       title: 'test.txt',
       contents: [],
     },

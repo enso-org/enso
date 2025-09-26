@@ -1,12 +1,12 @@
 import {
-  AnyRealAsset,
-  AssetType,
   EmailAddress,
   OrganizationId,
   Path,
-  Plan,
-  User,
   UserId,
+  type AnyRealAsset,
+  type AssetType,
+  type Plan,
+  type User,
 } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import * as container from '$/providers/container'
@@ -28,7 +28,7 @@ const USER: User = {
   isOrganizationAdmin: false,
   rootDirectoryId: newDirectoryId(Path(CLOUD_ROOT_PATH)),
   userGroups: null,
-  plan: Plan.solo,
+  plan: 'solo',
   isEnsoTeamMember: false,
   organizationId: OrganizationId('organization-Mock'),
   userId: UserId('Mock user'),
@@ -50,14 +50,14 @@ function mockBackends(plan: Plan, localHome: AssetEntry[] = [], cloudHome: Asset
     },
     remoteBackend: {
       rootPath: () =>
-        plan === Plan.free || plan === Plan.solo ? Path(CLOUD_ROOT_PATH) : Path('enso://'),
+        plan === 'free' || plan === 'solo' ? Path(CLOUD_ROOT_PATH) : Path('enso://'),
       listDirectory: () =>
         Promise.resolve({ assets: cloudHome as AnyRealAsset[], paginationToken: null }),
     },
   }
 }
 
-test.each([Plan.free, Plan.solo, Plan.team, Plan.enterprise])(
+test.each(['free', 'solo', 'team', 'enterprise'] as const)(
   'Initial project from configuration with %s plan',
   async (plan) => {
     const resultFromName = await initialProjectPath('Name', { ...USER, plan }, mockBackends(plan))
@@ -72,11 +72,11 @@ test.each([Plan.free, Plan.solo, Plan.team, Plan.enterprise])(
 )
 
 test.each`
-  plan               | expected
-  ${Plan.free}       | ${LOCAL_WELCOME_PROJECT}
-  ${Plan.solo}       | ${CLOUD_WELCOME_PROJECT}
-  ${Plan.team}       | ${CLOUD_WELCOME_PROJECT}
-  ${Plan.enterprise} | ${CLOUD_WELCOME_PROJECT}
+  plan            | expected
+  ${'free'}       | ${LOCAL_WELCOME_PROJECT}
+  ${'solo'}       | ${CLOUD_WELCOME_PROJECT}
+  ${'team'}       | ${CLOUD_WELCOME_PROJECT}
+  ${'enterprise'} | ${CLOUD_WELCOME_PROJECT}
 `('Initial project on fresh install with $plan plan', async ({ plan, expected }) => {
   const result = await initialProjectPath(undefined, { ...USER, plan }, mockBackends(plan))
   expect(result).toBe(expected)
@@ -84,17 +84,17 @@ test.each`
 
 test.each([
   {
-    localHome: [{ title: 'Samples', type: AssetType.directory }],
-    cloudHome: [{ title: 'Samples', type: AssetType.directory }],
+    localHome: [{ title: 'Samples', type: 'directory' as const }],
+    cloudHome: [{ title: 'Samples', type: 'directory' as const }],
     shouldOpen: true,
   },
   {
     localHome: [],
-    cloudHome: [{ title: 'Samples', type: AssetType.directory }],
+    cloudHome: [{ title: 'Samples', type: 'directory' as const }],
     shouldOpen: true,
   },
   {
-    localHome: [{ title: 'Samples', type: AssetType.directory }],
+    localHome: [{ title: 'Samples', type: 'directory' as const }],
     cloudHome: [],
     shouldOpen: true,
   },
@@ -105,28 +105,28 @@ test.each([
   },
   {
     localHome: [
-      { title: 'Samples', type: AssetType.directory },
-      { title: 'New Project 1', type: AssetType.project },
+      { title: 'Samples', type: 'directory' as const },
+      { title: 'New Project 1', type: 'project' as const },
     ],
-    cloudHome: [{ type: AssetType.directory, title: 'Samples' }],
+    cloudHome: [{ type: 'directory' as const, title: 'Samples' }],
     shouldOpen: false,
   },
   {
-    localHome: [{ title: 'Samples', type: AssetType.directory }],
+    localHome: [{ title: 'Samples', type: 'directory' as const }],
     cloudHome: [
-      { type: AssetType.directory, title: 'Samples' },
-      { title: 'New Project 1', type: AssetType.project },
+      { type: 'directory' as const, title: 'Samples' },
+      { title: 'New Project 1', type: 'project' as const },
     ],
     shouldOpen: false,
   },
   {
-    localHome: [{ title: 'Samples', type: AssetType.project }],
-    cloudHome: [{ title: 'Samples', type: AssetType.directory }],
+    localHome: [{ title: 'Samples', type: 'project' as const }],
+    cloudHome: [{ title: 'Samples', type: 'directory' as const }],
     shouldOpen: false,
   },
   {
-    localHome: [{ title: 'Samples', type: AssetType.directory }],
-    cloudHome: [{ title: 'Samples', type: AssetType.project }],
+    localHome: [{ title: 'Samples', type: 'directory' as const }],
+    cloudHome: [{ title: 'Samples', type: 'project' as const }],
     shouldOpen: false,
   },
 ])(

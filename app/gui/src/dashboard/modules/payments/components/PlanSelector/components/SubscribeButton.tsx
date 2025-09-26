@@ -5,7 +5,6 @@ import { Dialog } from '#/components/Dialog'
 import { Text } from '#/components/Text'
 import { getSalesEmail } from '$/appUtils'
 import { useText } from '$/providers/react'
-import { Plan } from 'enso-common/src/services/Backend'
 import { PLAN_TO_UPGRADE_LABEL_ID, TRIAL_DURATION_DAYS } from '../../../constants'
 import { PlanSelectorDialog, type PlanSelectorDialogProps } from './PlanSelectorDialog'
 
@@ -36,8 +35,8 @@ export function SubscribeButton(props: SubscribeButtonProps) {
     defaultOpen,
   } = props
 
-  const canTrial = !userHasSubscription && !(plan === Plan.team || plan === Plan.enterprise)
-  const isSolo = plan === Plan.solo
+  const canTrial = !userHasSubscription && !(plan === 'team' || plan === 'enterprise')
+  const isSolo = plan === 'solo'
 
   const { getText } = useText()
 

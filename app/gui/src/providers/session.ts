@@ -4,7 +4,7 @@ import { unreachable } from '#/utilities/error'
 import LocalStorage from '#/utilities/LocalStorage'
 import { ALL_PATHS_REGEX } from '$/appUtils'
 import * as cognito from '$/authentication/cognito'
-import { AuthEvent, type ListenFunction } from '$/authentication/listen'
+import { type ListenFunction } from '$/authentication/listen'
 import { useInitAuthService } from '$/authentication/service'
 import { LOGOUT_EVENT } from '$/providers/session/constants'
 import * as analytics from '$/utils/analytics'
@@ -116,8 +116,8 @@ export function createSessionStore(
 
     if (result.err) {
       switch (result.val.type) {
-        case cognito.CognitoErrorType.userAlreadyConfirmed:
-        case cognito.CognitoErrorType.userNotFound: {
+        case 'UserAlreadyConfirmed':
+        case 'UserNotFound': {
           return
         }
         default: {
@@ -238,15 +238,15 @@ export function createSessionStore(
   // means the login screen (which is a child of this provider) should render.
   const unregister = registerAuthEventListener((event) => {
     switch (event) {
-      case AuthEvent.signIn: {
+      case 'signIn': {
         analytics.signIn.after()
         break
       }
-      case AuthEvent.signOut: {
+      case 'signOut': {
         break
       }
-      case AuthEvent.customOAuthState:
-      case AuthEvent.cognitoHostedUi: {
+      case 'customOAuthState':
+      case 'cognitoHostedUI': {
         // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so
         // we have to hack it by replacing the URL in the browser's history. This is done
         // because otherwise the user will be redirected to a URL like `enso://auth`, which

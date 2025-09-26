@@ -1,4 +1,4 @@
-import { BackendType } from '#/services/Backend'
+import type { BackendType } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import {
   Path,
@@ -50,9 +50,9 @@ function initializeBackends(
 
   const backendForType = (projectType: BackendType) => {
     switch (projectType) {
-      case BackendType.remote:
+      case 'remote':
         return remoteBackend
-      case BackendType.local: {
+      case 'local': {
         invariant(
           localBackend.value,
           'Attempted to get a local backend for local project, but no local backend was provided.',

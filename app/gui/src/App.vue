@@ -28,7 +28,7 @@ import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
-import { Platform, platform } from 'enso-common/src/detect'
+import { platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { computed, onMounted, shallowRef } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
@@ -78,13 +78,13 @@ useEvent(window, 'keydown', bindingsHandlers)
 useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
 
 const platformClass = {
-  [Platform.windows]: 'onWindows',
-  [Platform.macOS]: 'onMacOs',
-  [Platform.linux]: 'onLinux',
-  [Platform.windowsPhone]: 'onWindowsPhone',
-  [Platform.iPhoneOS]: 'onIPhoneOs',
-  [Platform.android]: 'onAndroid',
-  [Platform.unknown]: undefined,
+  ['Windows']: 'onWindows',
+  ['macOS']: 'onMacOs',
+  ['Linux']: 'onLinux',
+  ['Windows Phone']: 'onWindowsPhone',
+  ['iPhone OS']: 'onIPhoneOs',
+  ['Android']: 'onAndroid',
+  ['Unknown platform']: undefined,
 }[platform()]
 
 onMounted(() => {

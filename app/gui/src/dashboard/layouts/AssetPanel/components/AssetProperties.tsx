@@ -17,12 +17,9 @@ import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
 import Label from '#/pages/dashboard/components/Label'
 import type Backend from '#/services/Backend'
 import {
-  AssetType,
-  BackendType,
   getAssetPermissionId,
   getAssetPermissionName,
   isAssetCredential,
-  Plan,
   type AnyAsset,
   type DatalinkId,
 } from '#/services/Backend'
@@ -53,7 +50,7 @@ export function AssetProperties() {
   const category = useRightPanelContextCategory()
   const { getText } = useText()
 
-  if (category?.backend !== BackendType.remote) {
+  if (category?.backend !== 'remote') {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
@@ -96,7 +93,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     })
   })
   const { user } = useFullUserSession()
-  const isEnterprise = user.plan === Plan.enterprise
+  const isEnterprise = user.plan === 'enterprise'
   const { getText } = useText()
   const featureFlags = useFeatureFlags()
   const datalinkQuery = useQuery(
@@ -106,7 +103,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
       // eslint-disable-next-line no-restricted-syntax
       [item.id as DatalinkId, item.title],
       {
-        enabled: item.type === AssetType.datalink,
+        enabled: item.type === 'datalink',
         ...(featureFlags.enableAssetsTableBackgroundRefresh ?
           { refetchInterval: featureFlags.assetsTableBackgroundRefreshInterval }
         : {}),
@@ -124,15 +121,13 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
 
   const { data: labels = [] } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const self = permissions.tryFindSelfPermission(user, item.permissions)
-  const ownsThisAsset = self?.permission === permissions.PermissionAction.own
+  const ownsThisAsset = self?.permission === 'Own'
   const canEditThisAsset =
-    ownsThisAsset ||
-    self?.permission === permissions.PermissionAction.admin ||
-    self?.permission === permissions.PermissionAction.edit
-  const isSecret = item.type === AssetType.secret
+    ownsThisAsset || self?.permission === 'Admin' || self?.permission === 'Edit'
+  const isSecret = item.type === 'secret'
   const isCredential = isAssetCredential(item)
-  const isDatalink = item.type === AssetType.datalink
-  const isCloud = backend.type === BackendType.remote
+  const isDatalink = item.type === 'datalink'
+  const isCloud = backend.type === 'remote'
   // Provide an extra `mutationKey` so that it has its own loading state.
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))

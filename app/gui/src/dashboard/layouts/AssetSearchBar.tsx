@@ -24,19 +24,7 @@ import * as detect from 'enso-common/src/detect'
 import * as React from 'react'
 
 /** The reason behind a new query. */
-enum QuerySource {
-  /**
-   * A query change initiated by tabbing. While *technically* internal, it is semantically
-   * different in that tabbing does not update the base query.
-   */
-  tabbing = 'tabbing',
-  /** A query change initiated from code in this component. */
-  internal = 'internal',
-  /** A query change initiated by typing in the search bar. */
-  typing = 'typing',
-  /** A query change initiated from code in another component. */
-  external = 'external',
-}
+type QuerySource = 'external' | 'internal' | 'tabbing' | 'typing'
 
 /** A suggested query. */
 export interface Suggestion {
@@ -93,7 +81,7 @@ function Tags(props: InternalTagsProps) {
                   size="xsmall"
                   className="min-w-12"
                   onPress={() => {
-                    unsafeWriteValue(querySource, 'current', QuerySource.internal)
+                    unsafeWriteValue(querySource, 'current', 'internal')
                     setQuery(query.add(key, ['']))
                   }}
                 >
@@ -132,7 +120,7 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
   const [areSuggestionsVisible, privateSetAreSuggestionsVisible] = React.useState(false)
   const areSuggestionsVisibleRef = React.useRef(areSuggestionsVisible)
-  const querySource = React.useRef(QuerySource.external)
+  const querySource = React.useRef<QuerySource>('external')
   const rootRef = React.useRef<HTMLLabelElement | null>(null)
   const searchRef = React.useRef<HTMLInputElement | null>(null)
 
@@ -144,27 +132,24 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
   })
 
   React.useEffect(() => {
-    if (querySource.current !== QuerySource.tabbing) {
+    if (querySource.current !== 'tabbing') {
       setSuggestions(rawSuggestions)
       unsafeWriteValue(suggestionsRef, 'current', rawSuggestions)
     }
   }, [rawSuggestions, suggestionsRef])
 
   React.useEffect(() => {
-    if (querySource.current !== QuerySource.tabbing) {
+    if (querySource.current !== 'tabbing') {
       baseQuery.current = query
     }
     // This effect MUST only run when `query` changes.
   }, [query])
 
   React.useEffect(() => {
-    if (querySource.current !== QuerySource.tabbing) {
+    if (querySource.current !== 'tabbing') {
       setSelectedIndex(null)
     }
-    if (
-      querySource.current !== QuerySource.internal &&
-      querySource.current !== QuerySource.tabbing
-    ) {
+    if (querySource.current !== 'internal' && querySource.current !== 'tabbing') {
       if (searchRef.current != null) {
         searchRef.current.value = query.query
       }
@@ -175,10 +160,7 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
 
   React.useEffect(() => {
     const deps = selectedIndexDeps.current
-    if (
-      querySource.current === QuerySource.internal ||
-      querySource.current === QuerySource.tabbing
-    ) {
+    if (querySource.current === 'internal' || querySource.current === 'tabbing') {
       let newQuery = deps.query
       const suggestion = selectedIndex == null ? null : deps.suggestions[selectedIndex]
       if (suggestion != null) {
@@ -200,7 +182,7 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
         if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
           event.preventDefault()
           event.stopImmediatePropagation()
-          querySource.current = QuerySource.tabbing
+          querySource.current = 'tabbing'
           const reverse = event.key === 'ArrowUp'
           setSelectedIndex((oldIndex) => {
             const length = Math.max(1, suggestionsRef.current.length)
@@ -215,7 +197,7 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
           event.key === 'Enter' ||
           (event.key === ' ' && document.activeElement !== searchRef.current)
         ) {
-          querySource.current = QuerySource.external
+          querySource.current = 'external'
           if (searchRef.current != null) {
             searchRef.current.focus()
             const end = searchRef.current.value.length
@@ -226,8 +208,8 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
           setAreSuggestionsVisible(false)
         }
         if (event.key === 'Escape') {
-          if (querySource.current === QuerySource.tabbing) {
-            querySource.current = QuerySource.external
+          if (querySource.current === 'tabbing') {
+            querySource.current = 'external'
             setQuery(baseQuery.current)
             setAreSuggestionsVisible(false)
           } else {
@@ -267,12 +249,12 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
 
   // Reset `querySource` after all other effects have run.
   React.useEffect(() => {
-    if (querySource.current !== QuerySource.typing && searchRef.current != null) {
+    if (querySource.current !== 'typing' && searchRef.current != null) {
       searchRef.current.value = query.toString()
     }
-    if (querySource.current !== QuerySource.tabbing) {
+    if (querySource.current !== 'tabbing') {
       baseQuery.current = query
-      querySource.current = QuerySource.external
+      querySource.current = 'external'
     }
   }, [query, setQuery])
 
@@ -281,8 +263,8 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
   })
 
   const searchFieldOnChange = useEventCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    if (querySource.current !== QuerySource.internal) {
-      querySource.current = QuerySource.typing
+    if (querySource.current !== 'internal') {
+      querySource.current = 'typing'
       setQuery(AssetQuery.fromString(event.target.value))
     }
   })
@@ -313,8 +295,8 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
         }}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) {
-            if (querySource.current === QuerySource.tabbing) {
-              querySource.current = QuerySource.external
+            if (querySource.current === 'tabbing') {
+              querySource.current = 'external'
             }
             setAreSuggestionsVisible(false)
           }
@@ -530,7 +512,7 @@ const SuggestionRenderer = React.memo(function SuggestionRenderer(props: Suggest
         index === selectedIndex && 'bg-selected-frame',
       )}
       onPress={(event) => {
-        unsafeWriteValue(querySource, 'current', QuerySource.internal)
+        unsafeWriteValue(querySource, 'current', 'internal')
         setQuery(
           selectedIndices.has(index) ?
             suggestion.deleteFromQuery(event.shiftKey ? query : baseQuery.current)
@@ -579,7 +561,7 @@ const Labels = React.memo(function Labels(props: LabelsProps) {
     if (label == null) {
       return
     }
-    unsafeWriteValue(querySource, 'current', QuerySource.internal)
+    unsafeWriteValue(querySource, 'current', 'internal')
     setQuery(query.withToggled('labels', label.value))
   })
 

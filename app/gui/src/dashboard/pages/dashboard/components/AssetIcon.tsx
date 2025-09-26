@@ -1,11 +1,11 @@
 /** @file Displays a non-interactable icon for an asset based on its type and name. */
 import { Icon } from '#/components/Icon'
-import * as backend from '#/services/Backend'
-import * as fileIcon from '#/utilities/fileIcon'
+import type { AnyAsset } from '#/services/Backend'
+import { fileIcon } from '#/utilities/fileIcon'
 
 /** Props for an {@link AssetIcon}. */
 export interface AssetIconProps {
-  readonly asset: Pick<backend.AnyAsset, 'title' | 'type'>
+  readonly asset: Pick<AnyAsset, 'title' | 'type'>
   readonly className?: string
 }
 
@@ -13,22 +13,22 @@ export interface AssetIconProps {
 export default function AssetIcon(props: AssetIconProps) {
   const { asset, className } = props
   switch (asset.type) {
-    case backend.AssetType.directory: {
+    case 'directory': {
       return <Icon icon="folder" className={className} />
     }
-    case backend.AssetType.project: {
+    case 'project': {
       return <Icon icon="graph_editor" className={className} />
     }
-    case backend.AssetType.file: {
-      return <Icon icon={fileIcon.fileIcon(asset.title)} className={className} />
+    case 'file': {
+      return <Icon icon={fileIcon(asset.title)} className={className} />
     }
-    case backend.AssetType.datalink: {
+    case 'datalink': {
       return <Icon icon="connector" className={className} />
     }
-    case backend.AssetType.secret: {
+    case 'secret': {
       return <Icon icon="key" className={className} />
     }
-    case backend.AssetType.specialUp: {
+    case 'specialUp': {
       // It should not be possible for these to be displayed, but return something anyway.
       return <Icon icon="ghost" className={className} />
     }

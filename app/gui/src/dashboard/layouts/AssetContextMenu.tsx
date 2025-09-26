@@ -90,15 +90,12 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const newProject = useNewProject(backend, category)
 
   const systemApi = window.systemApi
-  const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
+  const ownsThisAsset = !isCloud || self?.permission === 'Own'
   const canManageThisAsset = asset.id !== USERS_DIRECTORY_ID && asset.id !== TEAMS_DIRECTORY_ID
-  const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
-  const canEditThisAsset =
-    managesThisAsset || self?.permission === permissions.PermissionAction.edit
+  const managesThisAsset = ownsThisAsset || self?.permission === 'Admin'
+  const canEditThisAsset = managesThisAsset || self?.permission === 'Edit'
   const canAddToThisDirectory =
-    category.type !== 'recent' &&
-    asset.type === backendModule.AssetType.directory &&
-    canEditThisAsset
+    category.type !== 'recent' && asset.type === 'directory' && canEditThisAsset
 
   const pasteData = usePasteData()
   const hasPasteData = (pasteData?.data.assets.length ?? 0) > 0
@@ -137,8 +134,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
       })
 
   const isRunningProject =
-    asset.type === backendModule.AssetType.project &&
-    backendModule.IS_OPENING_OR_OPENED[asset.projectState.type]
+    asset.type === 'project' && backendModule.IS_OPENING_OR_OPENED[asset.projectState.type]
 
   const canExecute =
     category.type !== 'trash' &&
@@ -161,14 +157,13 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
         action: 'paste',
         doAction: () => {
           void goToDrive()
-          const directoryId =
-            asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
+          const directoryId = asset.type === 'directory' ? asset.id : asset.parentId
           doPaste(directoryId, directoryId)
         },
       },
   )
 
-  const canUploadToCloud = user.plan !== backendModule.Plan.free
+  const canUploadToCloud = user.plan !== 'free'
 
   const copyIdEntry = defineMenuEntry(
     showDeveloperIds && {
@@ -218,15 +213,14 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
         ]
     : !canManageThisAsset ? []
     : [
-        (asset.type === backendModule.AssetType.datalink ||
-          asset.type === backendModule.AssetType.file) && {
+        (asset.type === 'datalink' || asset.type === 'file') && {
           action: 'useInNewProject',
           doAction: () => {
             void goToDrive()
             void newProject({ templateName: asset.title, ensoPath: asset.ensoPath }, asset.parentId)
           },
         },
-        asset.type === backendModule.AssetType.project &&
+        asset.type === 'project' &&
           canExecute &&
           !isRunningProject &&
           !isOtherUserUsingProject && {
@@ -238,7 +232,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               void openProjectLocally(asset, backend.type)
             },
           },
-        asset.type === backendModule.AssetType.project &&
+        asset.type === 'project' &&
           isCloud &&
           localBackend != null && {
             action: 'run',
@@ -249,7 +243,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               void openProjectNatively(asset, backend.type)
             },
           },
-        asset.type === backendModule.AssetType.project &&
+        asset.type === 'project' &&
           canExecute &&
           isRunningProject &&
           !isOtherUserUsingProject && {
@@ -310,10 +304,8 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             },
           },
         pasteMenuEntry,
-        (isCloud ?
-          asset.type !== backendModule.AssetType.directory
-        : asset.type === backendModule.AssetType.project) && {
-          isDisabled: asset.type === backendModule.AssetType.secret,
+        (isCloud ? asset.type !== 'directory' : asset.type === 'project') && {
+          isDisabled: asset.type === 'secret',
           action: 'download',
           doAction: () => {
             void goToDrive()
@@ -334,8 +326,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               driveStore.setState({ assetToRename: asset.id })
             },
           },
-        (asset.type === backendModule.AssetType.secret ||
-          asset.type === backendModule.AssetType.datalink) &&
+        (asset.type === 'secret' || asset.type === 'datalink') &&
           canEditThisAsset && {
             action: 'edit',
             doAction: () => {
@@ -345,8 +336,8 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
                 ctx.category = category
                 ctx.item = asset
                 switch (asset.type) {
-                  case backendModule.AssetType.secret:
-                  case backendModule.AssetType.datalink:
+                  case 'secret':
+                  case 'datalink':
                     ctx.spotlightOn = asset.type
                     break
                 }
@@ -354,7 +345,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               })
             },
           },
-        asset.type === backendModule.AssetType.project && {
+        asset.type === 'project' && {
           action: 'duplicate',
           doAction: () => {
             void goToDrive()

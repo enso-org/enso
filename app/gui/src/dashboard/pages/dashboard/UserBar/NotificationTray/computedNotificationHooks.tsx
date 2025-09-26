@@ -3,7 +3,7 @@ import { uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '$/providers/react'
 import { useIsMutating, useQuery, type MutationKey } from '@tanstack/react-query'
-import { BackendType } from 'enso-common/src/services/Backend'
+import type { BackendType } from 'enso-common/src/services/Backend'
 import { omit } from 'enso-common/src/utilities/data/object'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
@@ -16,8 +16,8 @@ const COMPUTED_NOTIFICATION_STORAGE_TIME_MS = 60_000
 /** Return the number of ongoing mutations of the given type across both backends. */
 export function useIsMutatingForBothBackends(makeKey: (backendType: BackendType) => MutationKey) {
   return (
-    useIsMutating({ mutationKey: makeKey(BackendType.local) }) +
-      useIsMutating({ mutationKey: makeKey(BackendType.remote) }) !==
+    useIsMutating({ mutationKey: makeKey('local') }) +
+      useIsMutating({ mutationKey: makeKey('remote') }) !==
     0
   )
 }

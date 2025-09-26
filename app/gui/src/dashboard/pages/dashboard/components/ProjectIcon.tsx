@@ -10,7 +10,6 @@ import { useStore } from '#/hooks/storeHooks'
 import { projectsStore } from '#/providers/ProjectsProvider/hooks'
 import type Backend from '#/services/Backend'
 import {
-  BackendType,
   IS_OPENING,
   IS_OPENING_OR_OPENED,
   ProjectState,
@@ -141,9 +140,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
       return 'loading-slow'
     }
 
-    return backend.type === BackendType.remote ?
-        REMOTE_SPINNER_STATE[status]
-      : LOCAL_SPINNER_STATE[status]
+    return backend.type === 'remote' ? REMOTE_SPINNER_STATE[status] : LOCAL_SPINNER_STATE[status]
   })()
 
   const doOpenProject = useEventCallback(() => {

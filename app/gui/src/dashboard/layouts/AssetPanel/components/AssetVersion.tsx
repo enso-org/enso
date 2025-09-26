@@ -10,13 +10,13 @@ import { UserWithPopover } from '#/components/UserWithPopover'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { setModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import * as backendService from '#/services/Backend'
+import type { AnyAsset, ProjectAsset, S3ObjectVersion } from '#/services/Backend'
 import { useText } from '$/providers/react'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { AssetDiffView } from './AssetDiffView'
 
 /** A version of an asset. */
-export interface Version extends backendService.S3ObjectVersion {
+export interface Version extends S3ObjectVersion {
   readonly number: number
   readonly title: string
 }
@@ -29,7 +29,7 @@ export interface DuplicateOptions {
 /** Props for a {@link AssetVersion}. */
 export interface AssetVersionProps {
   readonly otherVersions: Version[]
-  readonly item: backendService.AnyAsset
+  readonly item: AnyAsset
   readonly version: Version
   readonly previousVersion: Version | undefined
   readonly backend: Backend
@@ -51,7 +51,7 @@ export function AssetVersion(props: AssetVersionProps) {
 
   const { getText } = useText()
 
-  const isProject = item.type === backendService.AssetType.project
+  const isProject = item.type === 'project'
   const comparableVersions = otherVersions
     .map((v, index) => ({ ...v, number: otherVersions.length - index }))
     .filter((v) => v.versionId !== version.versionId)
@@ -164,7 +164,7 @@ interface VersionDialogProps {
   readonly version: Version
   readonly compareVersion: Version | undefined
   readonly backend: Backend
-  readonly item: backendService.ProjectAsset
+  readonly item: ProjectAsset
   readonly doRestore?: (() => Promise<void> | void) | undefined
   readonly doDuplicate?: (() => Promise<void> | void) | undefined
 }

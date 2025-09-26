@@ -41,11 +41,7 @@ function createActivityLogSchema() {
 }
 
 /** Sortable columns in an activity log table. */
-enum ActivityLogSortableColumn {
-  type = 'type',
-  user = 'user',
-  timestamp = 'timestamp',
-}
+type ActivityLogSortableColumn = 'timestamp' | 'type' | 'user'
 
 /** Props for a {@link ActivityLogSettingsSection}. */
 export interface ActivityLogSettingsSectionProps {
@@ -128,7 +124,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
       let compare: (a: AuditLogEvent, b: AuditLogEvent) => number
       const multiplier = sortInfo.direction === 'ascending' ? 1 : -1
       switch (sortInfo.field) {
-        case ActivityLogSortableColumn.type: {
+        case 'type': {
           compare = (a, b) => {
             if (a.lambdaKind == null) {
               if (b.lambdaKind == null) {
@@ -147,7 +143,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           }
           break
         }
-        case ActivityLogSortableColumn.user: {
+        case 'user': {
           compare = (a, b) => {
             const aName = usersByEmail.get(a.userEmail)?.name ?? a.userEmail
             const bName = usersByEmail.get(b.userEmail)?.name ?? b.userEmail
@@ -155,7 +151,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
           }
           break
         }
-        case ActivityLogSortableColumn.timestamp: {
+        case 'timestamp': {
           compare = (a, b) => {
             const aTime = a.timestamp == null ? 0 : Number(new Date(a.timestamp))
             const bTime = b.timestamp == null ? 0 : Number(new Date(b.timestamp))
@@ -268,35 +264,31 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   size="custom"
                   variant="custom"
                   aria-label={
-                    sortInfo?.field !== ActivityLogSortableColumn.type ? getText('sortByName')
+                    sortInfo?.field !== 'type' ? getText('sortByName')
                     : isDescending ?
                       getText('stopSortingByName')
                     : getText('sortByNameDescending')
                   }
                   addonEnd={
                     <Icon
-                      icon={iconIdFor(
-                        sortInfo?.direction,
-                        sortInfo?.field === ActivityLogSortableColumn.type,
-                      )}
+                      icon={iconIdFor(sortInfo?.direction, sortInfo?.field === 'type')}
                       className={twMerge(
                         'ml-1 transition-all duration-arrow',
-                        sortInfo?.field !== ActivityLogSortableColumn.type &&
-                          'opacity-0 group-hover:opacity-50',
+                        sortInfo?.field !== 'type' && 'opacity-0 group-hover:opacity-50',
                       )}
                     />
                   }
                   className="group flex h-9 w-full items-center justify-start gap-2 border-0 px-name-column-x"
                   onPress={() => {
                     const nextDirection =
-                      sortInfo?.field === ActivityLogSortableColumn.type ?
+                      sortInfo?.field === 'type' ?
                         nextSortDirection(sortInfo.direction)
                       : 'ascending'
                     if (nextDirection == null) {
                       setSortInfo(null)
                     } else {
                       setSortInfo({
-                        field: ActivityLogSortableColumn.type,
+                        field: 'type',
                         direction: nextDirection,
                       })
                     }
@@ -310,35 +302,31 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   size="custom"
                   variant="custom"
                   aria-label={
-                    sortInfo?.field !== ActivityLogSortableColumn.user ? getText('sortByEmail')
+                    sortInfo?.field !== 'user' ? getText('sortByEmail')
                     : isDescending ?
                       getText('stopSortingByEmail')
                     : getText('sortByEmailDescending')
                   }
                   addonEnd={
                     <Icon
-                      icon={iconIdFor(
-                        sortInfo?.direction,
-                        sortInfo?.field === ActivityLogSortableColumn.user,
-                      )}
+                      icon={iconIdFor(sortInfo?.direction, sortInfo?.field === 'user')}
                       className={twMerge(
                         'ml-1 transition-all duration-arrow',
-                        sortInfo?.field !== ActivityLogSortableColumn.user &&
-                          'opacity-0 group-hover:opacity-50',
+                        sortInfo?.field !== 'user' && 'opacity-0 group-hover:opacity-50',
                       )}
                     />
                   }
                   className="group flex h-9 w-full items-center justify-start gap-2 border-0 px-name-column-x"
                   onPress={() => {
                     const nextDirection =
-                      sortInfo?.field === ActivityLogSortableColumn.user ?
+                      sortInfo?.field === 'user' ?
                         nextSortDirection(sortInfo.direction)
                       : 'ascending'
                     if (nextDirection == null) {
                       setSortInfo(null)
                     } else {
                       setSortInfo({
-                        field: ActivityLogSortableColumn.user,
+                        field: 'user',
                         direction: nextDirection,
                       })
                     }
@@ -352,36 +340,31 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   size="custom"
                   variant="custom"
                   aria-label={
-                    sortInfo?.field !== ActivityLogSortableColumn.timestamp ?
-                      getText('sortByTimestamp')
+                    sortInfo?.field !== 'timestamp' ? getText('sortByTimestamp')
                     : isDescending ?
                       getText('stopSortingByTimestamp')
                     : getText('sortByTimestampDescending')
                   }
                   addonEnd={
                     <Icon
-                      icon={iconIdFor(
-                        sortInfo?.direction,
-                        sortInfo?.field === ActivityLogSortableColumn.timestamp,
-                      )}
+                      icon={iconIdFor(sortInfo?.direction, sortInfo?.field === 'timestamp')}
                       className={twMerge(
                         'ml-1 transition-all duration-arrow',
-                        sortInfo?.field !== ActivityLogSortableColumn.timestamp &&
-                          'opacity-0 group-hover:opacity-50',
+                        sortInfo?.field !== 'timestamp' && 'opacity-0 group-hover:opacity-50',
                       )}
                     />
                   }
                   className="group flex h-9 w-full items-center justify-start gap-2 border-0 px-name-column-x"
                   onPress={() => {
                     const nextDirection =
-                      sortInfo?.field === ActivityLogSortableColumn.timestamp ?
+                      sortInfo?.field === 'timestamp' ?
                         nextSortDirection(sortInfo.direction)
                       : 'ascending'
                     if (nextDirection == null) {
                       setSortInfo(null)
                     } else {
                       setSortInfo({
-                        field: ActivityLogSortableColumn.timestamp,
+                        field: 'timestamp',
                         direction: nextDirection,
                       })
                     }

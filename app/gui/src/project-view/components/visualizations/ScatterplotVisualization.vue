@@ -88,11 +88,7 @@ interface PointsConfiguration {
   labels: string
 }
 
-enum ScaleType {
-  Linear = 'linear',
-  Logarithmic = 'logarithmic',
-  Time = 'time',
-}
+type ScaleType = 'linear' | 'logarithmic' | 'time'
 
 interface AxisConfiguration {
   label: string
@@ -196,8 +192,8 @@ const data = computed<Data>(() => {
     rawData.axis && 'x' in rawData.axis && 'y' in rawData.axis ?
       rawData.axis
     : {
-        x: { label: '', scale: isTimeSeries ? ScaleType.Time : ScaleType.Linear },
-        y: { label: '', scale: ScaleType.Linear },
+        x: { label: '', scale: isTimeSeries ? 'time' : 'linear' },
+        y: { label: '', scale: 'linear' },
       }
   const points = rawData.points ?? { labels: 'visible' }
   const focus: Focus | undefined = rawData.focus
@@ -252,7 +248,7 @@ const createNewFilterNodeEnabled = ref(false)
 const isBrushing = computed(() => brushExtent.value != null)
 
 function axisD3Scale(axis: AxisConfiguration | undefined) {
-  return axis?.scale === ScaleType.Logarithmic ? d3.scaleLog() : d3.scaleLinear()
+  return axis?.scale === 'logarithmic' ? d3.scaleLog() : d3.scaleLinear()
 }
 
 const xScale = computed(() =>

@@ -8,7 +8,6 @@ import { useMenuEntries } from '#/hooks/menuHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { AboutModal } from '#/modals/AboutModal'
 import { unsetModal } from '#/providers/ModalProvider'
-import { Plan } from '#/services/Backend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { SUBSCRIBE_PATH } from '$/appUtils'
@@ -61,7 +60,7 @@ export function UserMenu(props: UserMenuProps) {
           toggleEnsoDevtools()
         },
       },
-    (user.plan === Plan.free || user.plan === Plan.solo) && {
+    (user.plan === 'free' || user.plan === 'solo') && {
       action: 'upgradePlan',
       doAction: () => {
         onSignOut()

@@ -13,7 +13,7 @@ import {
 } from '#/layouts/Drive/Categories/persistentState'
 import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import type Backend from '#/services/Backend'
-import { BackendType, Path, type DirectoryId } from '#/services/Backend'
+import { Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend/ids'
 import { useBackends, useText, useUser } from '$/providers/react'
@@ -51,7 +51,7 @@ function useCloudCategoryList() {
     icon: 'cloud',
     homeDirectoryId: user.rootDirectoryId,
     canUploadHere: true,
-    backend: BackendType.remote,
+    backend: 'remote',
   }
 
   const recentCategory: RecentCategory = {
@@ -61,7 +61,7 @@ function useCloudCategoryList() {
     icon: RecentIcon,
     homeDirectoryId: null,
     canUploadHere: false,
-    backend: BackendType.remote,
+    backend: 'remote',
   }
 
   const trashCategory: TrashCategory = {
@@ -71,7 +71,7 @@ function useCloudCategoryList() {
     icon: 'trash_small',
     homeDirectoryId: organizationIdToDirectoryId(user.organizationId),
     canUploadHere: false,
-    backend: BackendType.remote,
+    backend: 'remote',
   }
 
   const predefinedCloudCategories: AnyCloudCategory[] = [
@@ -89,7 +89,7 @@ function useCloudCategoryList() {
     label: getText('teamCategory', group.name),
     icon: 'people',
     canUploadHere: true,
-    backend: BackendType.remote,
+    backend: 'remote',
   }))
 
   const categories = [...predefinedCloudCategories, ...teamCategories] satisfies AnyCloudCategory[]
@@ -136,7 +136,7 @@ function createLocalDirectoryCategory(directory: string): LocalDirectoryCategory
     label: getFileName(directory),
     icon: 'folder_small',
     canUploadHere: true,
-    backend: BackendType.local,
+    backend: 'local',
   }
 }
 
@@ -207,7 +207,7 @@ function useLocalCategoryList() {
     homeDirectoryId: newDirectoryId(rootPath),
     rootPath,
     canUploadHere: true,
-    backend: BackendType.local,
+    backend: 'local',
   }
 
   const localDirectoryCategories = localDirectories.map<LocalDirectoryCategory>(

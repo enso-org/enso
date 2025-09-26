@@ -8,7 +8,7 @@ import { usePaywall } from '#/hooks/billing'
 import { useBindGlobalActions } from '#/hooks/menuHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories'
-import SettingsTabType from '#/layouts/Settings/TabType'
+import type { SettingsTabType } from '#/layouts/Settings/TabType'
 import { setDriveLocation } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
@@ -45,7 +45,7 @@ function fileURLToPath(url: string): string | null {
     const parsed = new URL(url)
     if (parsed.protocol === 'file:') {
       return decodeURIComponent(
-        detect.platform() === detect.Platform.windows ?
+        detect.platform() === 'Windows' ?
           // On Windows, we must remove leading `/` from URL.
           parsed.pathname.slice(1)
         : parsed.pathname,
@@ -139,7 +139,7 @@ export function Dashboard(props: DashboardProps) {
               String(backendModule.extractTypeAndPath(endMetadata.id).path),
             ),
           },
-          backendModule.BackendType.local,
+          'local',
         )
       }
       return null
@@ -159,7 +159,7 @@ export function Dashboard(props: DashboardProps) {
           parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
           ensoPath: backendModule.EnsoPath(String(project.projectRoot)),
         },
-        backendModule.BackendType.local,
+        'local',
       )
     })
 
@@ -181,40 +181,40 @@ export function Dashboard(props: DashboardProps) {
           window.navigationApi.goForward()
         },
         goToAccountSettings: () => {
-          goToSettingsTab(router, SettingsTabType.account)
+          goToSettingsTab(router, 'account')
         },
         ...(hasOrganization && {
           goToOrganizationSettings: () => {
-            goToSettingsTab(router, SettingsTabType.organization)
+            goToSettingsTab(router, 'organization')
           },
         }),
         ...(localBackend && {
           goToLocalSettings: () => {
-            goToSettingsTab(router, SettingsTabType.local)
+            goToSettingsTab(router, 'local')
           },
         }),
         ...(user.isOrganizationAdmin &&
           organization?.subscription != null && {
             goToBillingAndPlansSettings: () => {
-              goToSettingsTab(router, SettingsTabType.billingAndPlans)
+              goToSettingsTab(router, 'billing-and-plans')
             },
           }),
         ...(hasOrganization && {
           goToMembersSettings: () => {
-            goToSettingsTab(router, SettingsTabType.members)
+            goToSettingsTab(router, 'members')
           },
         }),
         ...(hasOrganization && {
           goToUserGroupsSettings: () => {
-            goToSettingsTab(router, SettingsTabType.userGroups)
+            goToSettingsTab(router, 'user-groups')
           },
         }),
         goToKeyboardShortcutsSettings: () => {
-          goToSettingsTab(router, SettingsTabType.keyboardShortcuts)
+          goToSettingsTab(router, 'keyboard-shortcuts')
         },
         ...(hasOrganization && {
           goToActivityLogSettings: () => {
-            goToSettingsTab(router, SettingsTabType.activityLog)
+            goToSettingsTab(router, 'activity-log')
           },
         }),
       }),

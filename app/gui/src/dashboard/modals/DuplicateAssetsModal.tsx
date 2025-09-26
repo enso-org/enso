@@ -217,21 +217,21 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
               schema
                 .object({
                   assetId: schema.custom<backendModule.AssetId>(),
-                  type: schema.nativeEnum(backendModule.AssetType),
+                  type: schema.enum(backendModule.ASSET_TYPES),
                   newName: schema.string().trim(),
                   conclusion: schema.literal('rename', { message: getText('invalidConclusion') }),
                 })
                 .or(
                   schema.object({
                     assetId: schema.custom<backendModule.AssetId>(),
-                    type: schema.nativeEnum(backendModule.AssetType),
+                    type: schema.enum(backendModule.ASSET_TYPES),
                     conclusion: schema.literal('skip', { message: getText('invalidConclusion') }),
                   }),
                 )
                 .or(
                   schema.object({
                     assetId: schema.custom<backendModule.AssetId>(),
-                    type: schema.nativeEnum(backendModule.ReplaceableAssetType, {
+                    type: schema.enum(backendModule.REPLACEABLE_ASSET_TYPES, {
                       message: getText('invalidConclusion'),
                     }),
                     conclusion: schema.literal('replace', {

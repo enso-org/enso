@@ -24,8 +24,15 @@ import {
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
-import type { Label } from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
+import type {
+  AnyAsset,
+  AssetId,
+  AssetType,
+  DirectoryId,
+  Label,
+  ProjectId,
+  RealAssetId,
+} from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
 import {
@@ -34,7 +41,6 @@ import {
   tryFindSelfPermission,
 } from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
 import type { LaunchedProject } from '$/providers/container'
 import { useFullUserSession } from '$/providers/react'
@@ -44,66 +50,57 @@ import invariant from 'tiny-invariant'
 
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
-  readonly asset: backendModule.AnyAsset
+  readonly asset: AnyAsset
   readonly state: assetsTable.AssetsTableState
 }
 
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
-  readonly item: backendModule.AnyAsset
+  readonly item: AnyAsset
   readonly isOpened: boolean
   readonly isPlaceholder: boolean
-  readonly id: backendModule.AssetId
-  readonly parentId: backendModule.DirectoryId
+  readonly id: AssetId
+  readonly parentId: DirectoryId
   readonly contextMenuRef: React.RefObject<ContextMenuApi>
-  readonly type: backendModule.AssetType
+  readonly type: AssetType
   readonly state: assetsTable.AssetsTableState
   readonly columns: columnUtils.Column[]
   readonly isKeyboardSelected: boolean
   readonly labels: readonly Label[]
-  readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
+  readonly grabKeyboardFocus: (item: AnyAsset) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
-  readonly select: (item: backendModule.AnyAsset) => void
-  readonly onDragStart: (
-    event: React.DragEvent<HTMLTableRowElement>,
-    item: backendModule.AnyAsset,
-  ) => void
-  readonly onDragEnd: (
-    event: React.DragEvent<HTMLTableRowElement>,
-    item: backendModule.AnyAsset,
-  ) => void
-  readonly onDrop: (
-    event: React.DragEvent<HTMLTableRowElement>,
-    item: backendModule.AnyAsset,
-  ) => void
+  readonly select: (item: AnyAsset) => void
+  readonly onDragStart: (event: React.DragEvent<HTMLTableRowElement>, item: AnyAsset) => void
+  readonly onDragEnd: (event: React.DragEvent<HTMLTableRowElement>, item: AnyAsset) => void
+  readonly onDrop: (event: React.DragEvent<HTMLTableRowElement>, item: AnyAsset) => void
   readonly closeProject: (project: LaunchedProject) => Promise<void>
-  readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
+  readonly openProject: (projectId: ProjectId) => Promise<void>
 }
 
-/** A row containing an {@link backendModule.AnyAsset}. */
+/** A row containing an {@link AnyAsset}. */
 export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { type, columns, id, item } = props
 
   switch (type) {
-    case backendModule.AssetType.specialUp: {
+    case 'specialUp': {
       return <AssetSpecialRow columnsLength={columns.length} type={type} />
     }
-    case backendModule.AssetType.project:
-    case backendModule.AssetType.file:
-    case backendModule.AssetType.secret:
-    case backendModule.AssetType.datalink:
-    case backendModule.AssetType.directory:
+    case 'project':
+    case 'file':
+    case 'secret':
+    case 'datalink':
+    case 'directory':
     default: {
       // This is safe because we filter out special asset types in the switch statement above.
       // eslint-disable-next-line no-restricted-syntax
-      return <RealAssetRow {...props} id={id as backendModule.RealAssetId} item={item} />
+      return <RealAssetRow {...props} id={id as RealAssetId} item={item} />
     }
   }
 })
 
 /** Props for a {@link AssetSpecialRow}. */
 export interface AssetSpecialRowProps {
-  readonly type: backendModule.AssetType
+  readonly type: AssetType
   readonly columnsLength: number
 }
 
@@ -112,16 +109,16 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
   const { type } = props
 
   switch (type) {
-    case backendModule.AssetType.specialUp: {
+    case 'specialUp': {
       // TODO: Implement this.
       // @MrFlashAccount [Cloud v2 #1810](https://github.com/enso-org/cloud-v2/issues/1810)
       return null
     }
-    case backendModule.AssetType.project:
-    case backendModule.AssetType.file:
-    case backendModule.AssetType.secret:
-    case backendModule.AssetType.datalink:
-    case backendModule.AssetType.directory:
+    case 'project':
+    case 'file':
+    case 'secret':
+    case 'datalink':
+    case 'directory':
     default: {
       invariant(false, 'Unsupported special asset type: ' + type)
     }
@@ -222,7 +219,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
           driveState.pasteData.data.assets.some((asset) => asset.id === item.id)
       ) ?
         'opacity-50'
-      : Visibility.visible
+      : undefined
   })
   const visibility = isDeleting || isRestoring || isUpdating ? 'opacity-50' : insertionVisibility
 
@@ -249,7 +246,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   }, [grabKeyboardFocusRef, isKeyboardSelected, item])
 
   const dragDelayProps = useDragDelayAction(
-    item.type === backendModule.AssetType.directory ?
+    item.type === 'directory' ?
       () => {
         startNavigation(() => {
           setDriveLocation(item.id, category.id)
@@ -259,7 +256,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
   )
 
   const onDragOver = (event: React.DragEvent<Element>) => {
-    const directoryId = item.type === backendModule.AssetType.directory ? id : parentId
+    const directoryId = item.type === 'directory' ? id : parentId
     const payload = drag.ASSET_ROWS.lookup(event)
     const isPayloadMatch =
       payload != null && payload.items.every((innerItem) => innerItem.key !== directoryId)
@@ -288,18 +285,18 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
     if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
-      if (item.type === backendModule.AssetType.directory && state.category.type !== 'trash') {
+      if (item.type === 'directory' && state.category.type !== 'trash') {
         setIsDraggedOver(true)
       }
     }
   }
 
   switch (type) {
-    case backendModule.AssetType.directory:
-    case backendModule.AssetType.project:
-    case backendModule.AssetType.file:
-    case backendModule.AssetType.datalink:
-    case backendModule.AssetType.secret: {
+    case 'directory':
+    case 'project':
+    case 'file':
+    case 'datalink':
+    case 'secret': {
       const innerProps: AssetRowInnerProps = { asset: item, state }
 
       return (
@@ -310,7 +307,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             data-selected={isSelected}
             data-id={item.id}
             onDoubleClick={() => {
-              if (item.type === backendModule.AssetType.directory) {
+              if (item.type === 'directory') {
                 startNavigation(() => {
                   setDriveLocation(item.id, category.id)
                 })
@@ -333,11 +330,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
             onClick={(event) => {
               unsetModal()
               onClick(innerProps, event)
-              if (
-                item.type === backendModule.AssetType.directory &&
-                eventModule.isDoubleClick(event) &&
-                !isEditingName
-              ) {
+              if (item.type === 'directory' && eventModule.isDoubleClick(event) && !isEditingName) {
                 // This must be processed on the next tick, otherwise it will be overridden
                 // by the default click handler.
                 window.setTimeout(() => {
@@ -373,10 +366,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
                 event.preventDefault()
               }
 
-              if (
-                item.type === backendModule.AssetType.project &&
-                BUSY_PROJECT_STATES.has(item.projectState.type)
-              ) {
+              if (item.type === 'project' && BUSY_PROJECT_STATES.has(item.projectState.type)) {
                 event.preventDefault()
               }
 
@@ -440,7 +430,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
         </>
       )
     }
-    case backendModule.AssetType.specialUp:
+    case 'specialUp':
     default: {
       invariant(
         false,

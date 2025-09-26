@@ -1,4 +1,4 @@
-import Backend, { AssetType, Plan, type User } from '#/services/Backend'
+import Backend, { type User } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -33,10 +33,8 @@ export async function initialProjectPath(
   if (cliStartupProject) {
     path = `${localBackend?.rootPath()}/${cliStartupProject}`
   } else {
-    if (
-      await shouldOpenInitialProject(localBackend, user.plan === Plan.free ? null : remoteBackend)
-    ) {
-      if (user.plan === Plan.free) {
+    if (await shouldOpenInitialProject(localBackend, user.plan === 'free' ? null : remoteBackend)) {
+      if (user.plan === 'free') {
         path = `${localBackend?.rootPath()}/${LOCAL_INITIAL_PROJECT_RELATIVE_PATH}`
       } else {
         path = `enso://Users/${user.name}/${CLOUD_INITIAL_PROJECT_RELATIVE_PATH}`
@@ -102,6 +100,6 @@ async function shouldOpenInitialProject(
   if (homeContent == null) return false
   const [localHome, cloudHome] = homeContent
   return ![...(localHome?.assets ?? []), ...(cloudHome?.assets ?? [])].some((asset) => {
-    return asset.type != AssetType.directory || asset.title != SAMPLES_DIRECTORY
+    return asset.type !== 'directory' || asset.title !== SAMPLES_DIRECTORY
   })
 }

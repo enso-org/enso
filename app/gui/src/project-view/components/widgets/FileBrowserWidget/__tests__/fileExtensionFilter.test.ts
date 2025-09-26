@@ -1,20 +1,13 @@
-import { AssetType } from '#/services/Backend'
 import { expect, test } from 'vitest'
 import { ref } from 'vue'
 import { useFileExtensionFilter } from '../fileExtensionFilter'
 
 function mockFile(title: string) {
-  return {
-    type: AssetType.file,
-    title,
-  }
+  return { type: 'file' as const, title }
 }
 
 function mockDirectory(title: string) {
-  return {
-    type: AssetType.directory,
-    title,
-  }
+  return { type: 'directory' as const, title }
 }
 
 test('Displayed extension and filename suffix', () => {

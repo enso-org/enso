@@ -513,16 +513,6 @@ inset 0 -36px 51px -51px #00000014`,
             '--scrollbar-offset-edge': '52px',
           },
 
-          // === Visbility classes ===
-
-          '.visibility-visible': {},
-          '.visibility-hidden': {
-            '@apply hidden': '',
-          },
-          '.visibility-faded': {
-            '@apply opacity-50 pointer-events-none-recursive': '',
-          },
-
           // === Rounded rows ===
 
           '.rounded-rows': {

@@ -6,8 +6,11 @@ import { setsIntersect } from '../set'
 
 class MappedSet<T, U> {
   private readonly set: Set<U> = new Set()
+  private readonly f: (value: T) => U
 
-  constructor(private readonly f: (value: T) => U) {}
+  constructor(f: (value: T) => U) {
+    this.f = f
+  }
 
   has(value: T): boolean {
     return this.set.has(this.f(value))

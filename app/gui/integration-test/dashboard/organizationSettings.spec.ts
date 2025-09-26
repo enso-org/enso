@@ -1,7 +1,5 @@
 /** @file Test the organization settings tab. */
 import { expect, test } from 'playwright/test'
-
-import { Plan } from 'enso-common/src/services/Backend'
 import { mockAllAndLogin } from './actions'
 
 const NEW_NAME = 'another organization-name'
@@ -17,7 +15,7 @@ test('organization settings', ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: (api) => {
-      api.setPlan(Plan.team)
+      api.setPlan('team')
       api.setCurrentOrganization(api.defaultOrganization)
     },
   })
@@ -84,7 +82,7 @@ test('upload organization profile picture', ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: (theApi) => {
-      theApi.setPlan(Plan.team)
+      theApi.setPlan('team')
     },
   })
     .goToPage.settings()

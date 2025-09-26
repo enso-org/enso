@@ -31,7 +31,7 @@ import {
 } from './data'
 import SettingsSidebar from './Sidebar'
 import SettingsTab from './Tab'
-import SettingsTabType from './TabType'
+import { SETTINGS_TAB_TYPES, type SettingsTabType } from './TabType'
 
 /** Settings screen. */
 export function Settings() {
@@ -39,8 +39,8 @@ export function Settings() {
   const { remoteBackend: backend, localBackend } = useBackends()
   const [tab, setTab] = useSearchParamsState(
     'SettingsTab',
-    SettingsTabType.account,
-    includesPredicate(Object.values(SettingsTabType)),
+    'account',
+    includesPredicate(SETTINGS_TAB_TYPES),
   )
   const { user, accessToken } = useFullUserSession()
   const { changePassword } = useSession()
@@ -145,7 +145,7 @@ export function Settings() {
       )
     }
   }, [isQueryBlank, doesEntryMatchQuery, getText, isMatch])
-  const effectiveTab = tabsToShow.includes(tab) ? tab : (tabsToShow[0] ?? SettingsTabType.account)
+  const effectiveTab = tabsToShow.includes(tab) ? tab : (tabsToShow[0] ?? 'account')
 
   const data = React.useMemo<SettingsTabData>(() => {
     const tabData = SETTINGS_TAB_DATA[effectiveTab]

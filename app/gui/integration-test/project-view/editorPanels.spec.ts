@@ -218,7 +218,11 @@ test.describe('User-defined component documentation', () => {
   })
 
   class FunctionSignatureEditor {
-    private constructor(private readonly locator: Locator) {}
+    private readonly locator: Locator
+
+    private constructor(locator: Locator) {
+      this.locator = locator
+    }
 
     static async new(within: Locator): Promise<FunctionSignatureEditor> {
       const locator = within.locator('.FunctionSignatureEditor')
@@ -243,10 +247,10 @@ test.describe('User-defined component documentation', () => {
     public readonly defaultValue: Locator
     private readonly popoverRoot: Locator
     private readonly missingBehaviour: Locator
-    constructor(
-      private readonly locator: Locator,
-      { popoverRoot }: { popoverRoot: Locator },
-    ) {
+    private readonly locator: Locator
+
+    constructor(locator: Locator, { popoverRoot }: { popoverRoot: Locator }) {
+      this.locator = locator
       this.defaultValue = this.locator.getByTestId('missing-default-value')
       this.popoverRoot = popoverRoot
       this.missingBehaviour = locator.getByTestId('missing-behaviour')

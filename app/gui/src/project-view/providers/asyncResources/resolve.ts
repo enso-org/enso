@@ -1,4 +1,4 @@
-import { AssetType, EnsoPath, extractTypeFromId, NetworkError, ProjectId } from '#/services/Backend'
+import { EnsoPath, extractTypeFromId, NetworkError, ProjectId } from '#/services/Backend'
 import LocalBackend, { isLocalProjectId } from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 import type { OpenedProjectsStore } from '$/providers/openedProjects'
@@ -66,7 +66,7 @@ export function useAsyncResourceResolver(
         if (!result.ok) return result
         const asset = result.value
         const typedAsset = extractTypeFromId(asset.id)
-        if (typedAsset.type != AssetType.file) return Err('Enso path does not point to a file')
+        if (typedAsset.type !== 'file') return Err('Enso path does not point to a file')
         const details = await catchNetworkError(
           cloudBackend.getFileDetails(typedAsset.id, asset.title, true),
         )

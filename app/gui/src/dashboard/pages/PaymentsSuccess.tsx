@@ -3,7 +3,7 @@ import { Button } from '#/components/Button'
 import { Loader } from '#/components/Loader'
 import Page from '#/components/Page'
 import { useMount } from '#/hooks/mountHooks'
-import { BackendType, Plan } from '#/services/Backend'
+import type { BackendType } from '#/services/Backend'
 import { DASHBOARD_PATH } from '$/appUtils'
 import { useAuth } from '$/providers/auth'
 import { useRouter, useText, useUserSession } from '$/providers/react'
@@ -49,12 +49,11 @@ export function PaymentsSuccess() {
         if (
           session &&
           'user' in session &&
-          session.user.plan !==
-            (oldSession && 'user' in oldSession ? oldSession.user.plan : Plan.free)
+          session.user.plan !== (oldSession && 'user' in oldSession ? oldSession.user.plan : 'free')
         ) {
           // Invalidate "users me" query as the user has changed the plan.
           await queryClient.invalidateQueries({
-            queryKey: [BackendType.remote, 'usersMe'],
+            queryKey: ['remote' satisfies BackendType, 'usersMe'],
           })
 
           await router.push(DASHBOARD_PATH)

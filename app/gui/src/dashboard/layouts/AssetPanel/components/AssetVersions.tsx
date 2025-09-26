@@ -1,9 +1,4 @@
 /** @file A list of previous versions of an asset. */
-
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
-
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
@@ -11,14 +6,16 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
-import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
+import { S3ObjectVersionId } from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { includes } from 'enso-common/src/utilities/data/array'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
 
@@ -35,7 +32,7 @@ export function AssetVersions() {
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
 
-  if (category?.backend !== BackendType.remote) {
+  if (category?.backend !== 'remote') {
     return (
       <Result
         status="info"
@@ -106,7 +103,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
     const newItem = await duplicateProjectMutation.mutateAsync([[item.id], item.parentId])
     const newAsset = newItem[0]?.asset
 
-    if (options?.start === true && newAsset != null && item.type === AssetType.project) {
+    if (options?.start === true && newAsset != null && item.type === 'project') {
       // This is SAFE because we know that the the new asset is a Project,
       // because we can't create a duplicate with a different type.
       /* eslint-disable-next-line no-restricted-syntax */
@@ -154,5 +151,5 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
  * Check if the asset is allowed to have versions.
  */
 function isAllowedAssetType(asset: AnyAsset): asset is DatalinkAsset | FileAsset | ProjectAsset {
-  return includes([AssetType.project, AssetType.datalink, AssetType.file], asset.type)
+  return includes(['project', 'datalink', 'file'] as const, asset.type)
 }

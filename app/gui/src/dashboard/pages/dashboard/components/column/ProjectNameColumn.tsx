@@ -6,7 +6,7 @@ import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
 import { useDriveStore } from '#/providers/DriveProvider'
-import { BackendType, titleSchema, type ProjectAsset } from '#/services/Backend'
+import { titleSchema, type ProjectAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
 import { twMerge } from '#/utilities/tailwindMerge'
@@ -47,9 +47,9 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const projectState = item.projectState ?? CLOSED_PROJECT_STATE
   const canExecute =
     isEditable &&
-    (backend.type === BackendType.local ||
+    (backend.type === 'local' ||
       (ownPermission != null && PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
-  const isCloud = backend.type === BackendType.remote
+  const isCloud = backend.type === 'remote'
   const isOtherUserUsingProject =
     isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
 

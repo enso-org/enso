@@ -23,12 +23,7 @@ import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPane
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import type Backend from '#/services/Backend'
-import {
-  AssetType,
-  BackendType,
-  type ProjectExecution as BackendProjectExecution,
-  type ProjectAsset,
-} from '#/services/Backend'
+import type { ProjectExecution as BackendProjectExecution, ProjectAsset } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends, useText } from '$/providers/react'
 import {
@@ -70,13 +65,13 @@ export function ProjectExecutionsCalendar() {
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
 
-  if (category?.backend !== BackendType.remote) {
+  if (category?.backend !== 'remote') {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.localBackend')} />
   }
   if (focusedAsset == null) {
     return <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notSelected')} />
   }
-  if (focusedAsset.type !== AssetType.project) {
+  if (focusedAsset.type !== 'project') {
     return (
       <AssetPanelPlaceholder title={getText('assetProjectExecutionsCalendar.notProjectAsset')} />
     )

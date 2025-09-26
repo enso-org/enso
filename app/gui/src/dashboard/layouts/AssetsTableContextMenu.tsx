@@ -67,7 +67,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   const uploadFileToLocal = useUploadFileToLocal(category)
   const exportArchive = useExportArchive({ backend })
 
-  const canUploadToCloud = user.plan !== backendModule.Plan.free
+  const canUploadToCloud = user.plan !== 'free'
 
   const globalContextMenuEntries = useGlobalContextMenuEntries({
     backend,
@@ -82,18 +82,14 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
     (state) =>
       !isCloud &&
       localBackend != null &&
-      [...state.selectedIds].every(
-        (id) => backendModule.getAssetTypeFromId(id) === backendModule.AssetType.project,
-      ),
+      [...state.selectedIds].every((id) => backendModule.getAssetTypeFromId(id) === 'project'),
   )
   const canDownloadAllProjectsToLocal = useStore(
     driveStore,
     (state) =>
       isCloud &&
       localBackend != null &&
-      [...state.selectedIds].every(
-        (id) => backendModule.getAssetTypeFromId(id) === backendModule.AssetType.project,
-      ),
+      [...state.selectedIds].every((id) => backendModule.getAssetTypeFromId(id) === 'project'),
   )
 
   const uploadFilesToCloudCallback = useEventCallback(async () => {
@@ -174,7 +170,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
       doAction: () => {
         void goToDrive()
         const selected = selectedAssets[0]
-        if (selected?.type === backendModule.AssetType.directory) {
+        if (selected?.type === 'directory') {
           doPaste(selected.id, selected.id)
         } else {
           doPaste(currentDirectoryId, currentDirectoryId)
