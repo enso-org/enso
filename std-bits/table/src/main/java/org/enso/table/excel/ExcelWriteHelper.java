@@ -64,10 +64,4 @@ public class ExcelWriteHelper {
     strategy.openExisting(file, writeAccess);
     return strategy.getWorkbook();
   }
-
-  public static Workbook createEmptyWorkbook(ExcelFileFormat format) {
-    ExcelFormatStrategy strategy = format.createStrategy();
-    strategy.createNew();
-    return strategy.getWorkbook();
-  }
 }
