@@ -7,7 +7,7 @@ import * as backend from '#/services/Backend'
 import { getFileName, getFolderPath } from '#/utilities/fileInfo'
 import { omit } from '#/utilities/object'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
-import { useFeatureFlag } from '$/providers/featureFlags'
+import { getFeatureFlag } from '$/providers/featureFlags'
 import { normalizeName } from '@/util/nameValidation'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import invariant from 'tiny-invariant'
@@ -63,10 +63,7 @@ export class ProjectManager {
     private readonly connectionUrl: string,
     public readonly rootDirectory: Path,
   ) {
-    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const enableProjectService = useFeatureFlag('enableProjectService')
-    if (!enableProjectService.value) {
+    if (!getFeatureFlag('enableProjectService')) {
       this.socketPromise = this.reconnect()
     }
   }
@@ -164,11 +161,8 @@ export class ProjectManager {
     if (cached) {
       return cached.data
     } else {
-      // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const enableProjectService = useFeatureFlag('enableProjectService')
       let promise: Promise<OpenProject>
-      if (enableProjectService.value) {
+      if (getFeatureFlag('enableProjectService')) {
         promise = this.runProjectServiceCommandJson('project/open', fullParams)
       } else {
         promise = this.sendRequest<OpenProject>('project/open', fullParams)
@@ -205,10 +199,7 @@ export class ProjectManager {
     }
     const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
     this.projects.delete(fullParams.projectId)
-    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const enableProjectService = useFeatureFlag('enableProjectService')
-    if (enableProjectService.value) {
+    if (getFeatureFlag('enableProjectService')) {
       return this.runProjectServiceCommandJson('project/close', fullParams)
     } else {
       return this.sendRequest('project/close', fullParams)
@@ -217,11 +208,8 @@ export class ProjectManager {
 
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
-    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const enableProjectService = useFeatureFlag('enableProjectService')
     let result: Omit<CreateProject, 'projectPath'>
-    if (enableProjectService.value) {
+    if (getFeatureFlag('enableProjectService')) {
       result = await this.runProjectServiceCommandJson('project/create', { ...params })
     } else {
       result = await this.sendRequest('project/create', {
@@ -255,10 +243,7 @@ export class ProjectManager {
   /** Rename a project. */
   async renameProject(params: WithProjectPath<RenameProjectParams>): Promise<void> {
     const fullParams: RenameProjectParams = this.paramsWithPathToWithId(params)
-    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const enableProjectService = useFeatureFlag('enableProjectService')
-    if (enableProjectService.value) {
+    if (getFeatureFlag('enableProjectService')) {
       await this.runProjectServiceCommandJson('project/rename', fullParams)
     } else {
       await this.sendRequest('project/rename', fullParams)
@@ -285,11 +270,8 @@ export class ProjectManager {
     params: WithProjectPath<DuplicateProjectParams>,
   ): Promise<DuplicatedProject> {
     const fullParams: DuplicateProjectParams = this.paramsWithPathToWithId(params)
-    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const enableProjectService = useFeatureFlag('enableProjectService')
     let result: Omit<DuplicatedProject, 'projectPath'>
-    if (enableProjectService.value) {
+    if (getFeatureFlag('enableProjectService')) {
       result = await this.runProjectServiceCommandJson('project/duplicate', fullParams)
     } else {
       result = await this.sendRequest('project/duplicate', fullParams)
@@ -314,10 +296,7 @@ export class ProjectManager {
     if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
       await this.closeProject({ projectPath: params.projectPath })
     }
-    // This is a Vue function, not a React hook, so the React hooks rule doesn't apply
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const enableProjectService = useFeatureFlag('enableProjectService')
-    if (enableProjectService.value) {
+    if (getFeatureFlag('enableProjectService')) {
       await this.runProjectServiceCommandJson('project/delete', fullParams)
     } else {
       await this.sendRequest('project/delete', fullParams)
