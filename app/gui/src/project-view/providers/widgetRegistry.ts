@@ -467,14 +467,18 @@ function makeInputMatcher<T extends WidgetInput>(
 
 /** TODO: Add docs */
 export class WidgetRegistry {
+  private db: GraphDb
   loadedModules: WidgetModule<any>[] = shallowReactive([])
   sortedModules = computed(() => {
     return [...this.loadedModules].sort(
       (a, b) => a.widgetDefinition.priority - b.widgetDefinition.priority,
     )
   })
+
   /** TODO: Add docs */
-  constructor(private db: GraphDb) {}
+  constructor(db: GraphDb) {
+    this.db = db
+  }
 
   /** TODO: Add docs */
   loadWidgets(modules: [path: string, module: unknown][]) {

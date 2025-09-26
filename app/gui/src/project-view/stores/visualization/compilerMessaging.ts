@@ -44,9 +44,12 @@ window.__visualizationModules = moduleCache
 
 /** TODO: Add docs */
 export class InvalidVisualizationModuleError extends TypeError {
+  path: string
+
   /** TODO: Add docs */
-  constructor(public path: string) {
+  constructor(path: string) {
     super(`The module '${path}' is not a visualization.`)
+    this.path = path
   }
 }
 
@@ -183,7 +186,7 @@ export async function compile(path: string, projectRoot: Opt<Uuid>, data: DataSe
                   postMessage<FetchResultWorkerResponse>(worker_, {
                     type: 'fetch-result-worker-response',
                     path: event.data.path,
-                    contents,
+                    contents: contents.buffer,
                     contentType: undefined,
                   })
                   break

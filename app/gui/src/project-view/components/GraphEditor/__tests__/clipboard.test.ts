@@ -14,9 +14,11 @@ import type { VisualizationMetadata } from 'ydoc-shared/yjsModel'
 
 class MockClipboardItem {
   readonly types: ReadonlyArray<string>
+  private data: Record<string, Blob>
 
-  constructor(private data: Record<string, Blob>) {
+  constructor(data: Record<string, Blob>) {
     this.types = Object.keys(data)
+    this.data = data
   }
 
   getType(type: string): Promise<Blob> {

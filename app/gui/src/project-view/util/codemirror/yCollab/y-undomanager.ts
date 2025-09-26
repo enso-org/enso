@@ -8,8 +8,12 @@ import * as Y from 'yjs'
 
 /** TODO: Add docs */
 export class YUndoManagerConfig {
+  readonly undoManager: Y.UndoManager
+
   /** TODO: Add docs */
-  constructor(readonly undoManager: Y.UndoManager) {}
+  constructor(undoManager: Y.UndoManager) {
+    this.undoManager = undoManager
+  }
 
   /** TODO: Add docs */
   addTrackedOrigin(origin: unknown) {
@@ -45,6 +49,7 @@ export const yUndoManagerFacet = cmState.Facet.define<YUndoManagerConfig, YUndoM
 export const yUndoManagerAnnotation = cmState.Annotation.define<YUndoManagerConfig>()
 
 class YUndoManagerPluginValue implements cmView.PluginValue {
+  readonly view: cmView.EditorView
   private readonly conf: YUndoManagerConfig
   private readonly syncConf: YSyncConfig
   private _beforeChangeSelection: null | YRange
@@ -54,7 +59,8 @@ class YUndoManagerPluginValue implements cmView.PluginValue {
   private readonly _onStackItemAdded: (event: StackItemEvent) => void
   private readonly _onStackItemPopped: (event: StackItemEvent) => void
 
-  constructor(readonly view: cmView.EditorView) {
+  constructor(view: cmView.EditorView) {
+    this.view = view
     this.conf = view.state.facet(yUndoManagerFacet)
     this._undoManager = this.conf.undoManager
     this.syncConf = view.state.facet(ySyncFacet)

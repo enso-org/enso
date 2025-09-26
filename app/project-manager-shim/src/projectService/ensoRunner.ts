@@ -18,8 +18,12 @@ export interface Runner {
 
 /** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
+  private ensoPath: Path
+
   /** Creates a new EnsoRunner with the path to the Enso executable. */
-  constructor(private ensoPath: Path) {}
+  constructor(ensoPath: Path) {
+    this.ensoPath = ensoPath
+  }
 
   /** Creates a new Enso project at the specified path. */
   async createProject(

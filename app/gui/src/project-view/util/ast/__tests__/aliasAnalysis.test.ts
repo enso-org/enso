@@ -109,6 +109,8 @@ function parseAnnotations(annotatedCode: string): {
 
 /** Alias analysis test case, typically parsed from an annotated code. */
 class TestCase {
+  readonly code: string
+
   /** The expected aliases. */
   readonly expectedAliases = new MappedKeyMap<SourceRange, SourceRange[]>(sourceRangeKey)
 
@@ -116,7 +118,9 @@ class TestCase {
   readonly expectedUnresolvedSymbols = new MappedSet<SourceRange>(sourceRangeKey)
 
   /** @param code The code of the program to be tested, without annotations. */
-  constructor(public readonly code: string) {}
+  constructor(code: string) {
+    this.code = code
+  }
 
   /** Parse from the annotated code. */
   static parse(annotatedCode: string): TestCase {

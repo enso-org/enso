@@ -62,7 +62,11 @@ const MARK_NODE: Readonly<Record<FormatNode, string>> = {
 }
 
 abstract class TreeRangeVisitor {
-  protected constructor(protected readonly range: Range) {}
+  protected readonly range: Range
+
+  protected constructor(range: Range) {
+    this.range = range
+  }
 
   protected abstract enter(node: SyntaxNodeRef): boolean | void
   protected leave(_node: SyntaxNodeRef): boolean | void {}

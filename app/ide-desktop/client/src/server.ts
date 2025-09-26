@@ -193,11 +193,13 @@ async function findPort(port: number): Promise<number> {
  * Read this topic to learn why: https://github.com/http-party/http-server/issues/483
  */
 export class Server {
+  config: Config
   private projectsRootDirectory: string
   private devServer?: vite.ViteDevServer
 
   /** Create a simple HTTP server. */
-  constructor(public config: Config) {
+  constructor(config: Config) {
+    this.config = config
     this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
   }
 

@@ -34,7 +34,11 @@ export function treeStateDecorator(nodeDecorators: NodeDecorator[]): Extension {
 }
 
 class TreeStateDecorator {
-  constructor(private readonly nodeDecorators: NodeDecorator[]) {}
+  private readonly nodeDecorators: NodeDecorator[]
+
+  constructor(nodeDecorators: NodeDecorator[]) {
+    this.nodeDecorators = nodeDecorators
+  }
 
   decorate(tree: Tree, doc: Text, vueHost: VueHost): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>()

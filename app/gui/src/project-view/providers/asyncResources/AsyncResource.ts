@@ -38,6 +38,7 @@ export interface ResourceDefinition {
  * - Project's local file system
  */
 export class AsyncResource {
+  private fetcher: ResourceDefinition
   private scope: EffectScope
   private urlRef: Ref<string | undefined>
   private createdObjectUrl: string | undefined
@@ -52,7 +53,8 @@ export class AsyncResource {
    *
    * Note: Every constructed resource must eventually be manually `dispose`d.
    */
-  constructor(private fetcher: ResourceDefinition) {
+  constructor(fetcher: ResourceDefinition) {
+    this.fetcher = fetcher
     this.scope = effectScope(true)
     this.urlRef = ref<string>()
     this.refetchCount = ref(0)

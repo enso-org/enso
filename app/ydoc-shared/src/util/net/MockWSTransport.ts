@@ -15,10 +15,13 @@ export interface MockTransportData<Methods extends string = string> {
 /** A mock WebSocket transport, only for use in tests. */
 export class MockWebSocketTransport extends ReconnectingWebSocketTransport {
   static mocks: Map<string, MockTransportData> = new Map()
+  name: string
   private openEventListeners = new Set<(event: WebSocketEventMap['open']) => void>()
+
   /** Create an {@link MockWebSocketTransport}. */
-  constructor(public name: string) {
+  constructor(name: string) {
     super('')
+    this.name = name
   }
 
   /** Add a handler for the {@link MockWebSocketTransport} with the given name. */

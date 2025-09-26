@@ -9,6 +9,7 @@ import type {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   DebuggerOptions,
   DeepReadonly,
+  EffectScope,
   MaybeRefOrGetter,
   ReactiveEffectOptions,
   ReactiveEffectRunner,
@@ -64,11 +65,14 @@ export type StopEffect = () => void
  * until next time that data structure is queried.
  */
 export class LazySyncEffectSet {
+  private _scope: EffectScope
   _dirtyRunners = new Set<() => void>()
   _boundFlush = this.flush.bind(this)
 
   /** TODO: Add docs */
-  constructor(private _scope = effectScope()) {}
+  constructor(_scope = effectScope()) {
+    this._scope = _scope
+  }
 
   /**
    * Add an effect to the lazy set. The effect will run once immediately, and any subsequent runs

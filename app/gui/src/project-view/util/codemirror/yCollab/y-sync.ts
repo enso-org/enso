@@ -98,11 +98,13 @@ export const ySyncFacet = cmState.Facet.define<YSyncConfig, YSyncConfig>({
 export const ySyncAnnotation = cmState.Annotation.define<YSyncConfig>()
 
 class YSyncPluginValue implements cmView.PluginValue {
+  private readonly view: cmView.EditorView
   private readonly _ytext: Y.Text & { doc: Y.Doc }
   private readonly conf: YSyncConfig
   private readonly _observer: (event: Y.YTextEvent, tr: Y.Transaction) => void
 
-  constructor(private readonly view: cmView.EditorView) {
+  constructor(view: cmView.EditorView) {
+    this.view = view
     this.conf = view.state.facet(ySyncFacet)
     this._observer = (event: Y.YTextEvent, tr: Y.Transaction) => {
       if (tr.origin !== this.conf.origin) {

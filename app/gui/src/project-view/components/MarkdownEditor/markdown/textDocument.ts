@@ -7,8 +7,12 @@ import { Range } from 'ydoc-shared/util/data/range'
 
 /** Provides text-level operations for a Markdown document. */
 export class TextDocument {
+  readonly doc: Text
+
   /** Constructor. */
-  constructor(readonly doc: Text) {}
+  constructor(doc: Text) {
+    this.doc = doc
+  }
 
   /** Trim leading/trailing spaces from the input. */
   trimRangeSpaces(range: Readonly<DelimitersTrimmedRange>): TrimmedRange {

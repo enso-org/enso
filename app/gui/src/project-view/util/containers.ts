@@ -11,6 +11,7 @@ import * as iter from 'enso-common/src/utilities/data/iter'
  * @template Value The type of the values.
  */
 export class MappedKeyMap<Key, Value> {
+  private readonly keyMapper: (key: Key) => any
   /** The inner map that stores the values. */
   private readonly map = new Map<any, [Key, Value]>()
 
@@ -20,7 +21,9 @@ export class MappedKeyMap<Key, Value> {
    * sort of hash function or custom to-string converter. The function should return values that
    * are `===`-equal for keys that should be considered equal.
    */
-  constructor(private readonly keyMapper: (key: Key) => any) {}
+  constructor(keyMapper: (key: Key) => any) {
+    this.keyMapper = keyMapper
+  }
 
   /** Set the value for the given key. */
   set(key: Key, value: Value): this {

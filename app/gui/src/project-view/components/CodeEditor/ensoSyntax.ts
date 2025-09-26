@@ -126,9 +126,13 @@ const facet = defineLanguageFacet()
 class EnsoParser extends Parser {
   private cachedCode: string | undefined
   private cachedTree: Tree | undefined
-  constructor(private readonly moduleRoot: Readonly<Ref<Ast.BodyBlock | undefined>>) {
+  private readonly moduleRoot: Readonly<Ref<Ast.BodyBlock | undefined>>
+
+  constructor(moduleRoot: Readonly<Ref<Ast.BodyBlock | undefined>>) {
     super()
+    this.moduleRoot = moduleRoot
   }
+
   createParse(input: Input): PartialParse {
     return {
       parsedPos: input.length,

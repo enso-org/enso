@@ -1895,7 +1895,7 @@ export class FileContentsReply implements Table {
   }
 
   /** TODO: Add docs */
-  contentsArray(): Uint8Array | null {
+  contentsArray(): Uint8Array<ArrayBuffer> | null {
     const offset = this.bb.offset(this.bbPos, 4)
     return offset ?
         new Uint8Array(

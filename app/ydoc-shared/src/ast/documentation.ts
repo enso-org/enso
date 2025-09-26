@@ -255,9 +255,12 @@ interface TextConsumer {
 }
 
 class DocTokensBuilder implements TextConsumer {
+  private readonly indent: string
   private readonly tokens: ConcreteChild<Token>[] = [unspaced(Token.new('##', TokenType.TextStart))]
 
-  constructor(private readonly indent: string) {}
+  constructor(indent: string) {
+    this.indent = indent
+  }
 
   text(text: string): void {
     const whitespace = this.tokens.length === 1 ? ' ' : this.indent

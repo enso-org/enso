@@ -64,8 +64,12 @@ interface ProjectJson {
 
 /** File-based implementation of ProjectRepository. */
 export class ProjectFileRepository implements ProjectRepository {
+  private readonly projectsPath: Path
+
   /** Creates a new ProjectFileRepository with the specified projects directory. */
-  constructor(private readonly projectsPath: Path) {}
+  constructor(projectsPath: Path) {
+    this.projectsPath = projectsPath
+  }
 
   /** Checks if a project with the given name exists. */
   async exists(name: string): Promise<boolean> {

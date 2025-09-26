@@ -127,11 +127,12 @@ class ComputedValueDb extends ReactiveDb<ExpressionId, ExpressionInfo> {
 /** This class holds the computed values that have been received from the language server. */
 export class ComputedValueRegistry {
   public db = new ComputedValueDb()
+  private readonly projectNames: ProjectNameStore
   private _updateHandler = this.processUpdates.bind(this)
   private executionContext: ExecutionContext | undefined
 
-  private constructor(private readonly projectNames: ProjectNameStore) {
-    markRaw(this)
+  private constructor(projectNames: ProjectNameStore) {
+    this.projectNames = projectNames
   }
 
   /** TODO: Add docs */
@@ -172,6 +173,7 @@ export class ComputedValueRegistry {
     this.executionContext?.off('expressionUpdates', this._updateHandler)
   }
 }
+markRaw(ComputedValueRegistry.prototype)
 
 function updateInfo(
   info: ExpressionInfo,
