@@ -94,11 +94,6 @@ public class SheetUtil {
     };
 
     /**
-     * drawing context to measure text
-     */
-    private static FontRenderContext fontRenderContext = new FontRenderContext(null, true, true);
-
-    /**
      * A system property which can be enabled to not fail when the
      * font-system is not available on the current machine.
      * Since POI 5.4.0, this flag is enabled by default.
@@ -214,13 +209,13 @@ public class SheetUtil {
                     String txt = line + defaultChar;
 
                     AttributedString str = new AttributedString(txt);
-                    copyAttributes(font, str, 0, txt.length());
+                    WithJavaDesktop.copyAttributes(font, str, 0, txt.length());
 
                     /*if (rt.numFormattingRuns() > 0) {
                         // TODO: support rich text fragments
                     }*/
 
-                    width = getCellWidth(defaultCharWidth, colspan, style, width, str);
+                    width = WithJavaDesktop.getCellWidth(defaultCharWidth, colspan, style, width, str);
                 }
             }
         } else {
@@ -238,56 +233,87 @@ public class SheetUtil {
             if(sval != null) {
                 String txt = sval + defaultChar;
                 AttributedString str = new AttributedString(txt);
-                copyAttributes(font, str, 0, txt.length());
+                WithJavaDesktop.copyAttributes(font, str, 0, txt.length());
 
-                width = getCellWidth(defaultCharWidth, colspan, style, width, str);
+                width = WithJavaDesktop.getCellWidth(defaultCharWidth, colspan, style, width, str);
             }
         }
         return width;
     }
 
-    /**
-     * Calculate the best-fit width for a cell
-     * If a merged cell spans multiple columns, evenly distribute the column width among those columns
-     *
-     * @param defaultCharWidth the width of a character using the default font in a workbook
-     * @param colspan the number of columns that is spanned by the cell (1 if the cell is not part of a merged region)
-     * @param style the cell style, which contains text rotation and indention information needed to compute the cell width
-     * @param minWidth the minimum best-fit width. This algorithm will only return values greater than or equal to the minimum width.
-     * @param str the text contained in the cell
-     * @return the best fit cell width
-     */
-    private static double getCellWidth(float defaultCharWidth, final int colspan,
-            final CellStyle style, final double minWidth, final AttributedString str) {
-        TextLayout layout;
-        try {
-            layout = new TextLayout(str.getIterator(), fontRenderContext);
-        } catch (Throwable t) {
-            if (shouldIgnoreMissingFontSystem(t)) {
-                return FAILOVER_FUNCTION.apply(defaultCharWidth, colspan, style, minWidth, str);
+    private static final class WithJavaDesktop {
+        /**
+         * drawing context to measure text
+         */
+        private static FontRenderContext fontRenderContext = new FontRenderContext(null, true, true);
+
+        /**
+         * Calculate the best-fit width for a cell
+         * If a merged cell spans multiple columns, evenly distribute the column width among those columns
+         *
+         * @param defaultCharWidth the width of a character using the default font in a workbook
+         * @param colspan the number of columns that is spanned by the cell (1 if the cell is not part of a merged region)
+         * @param style the cell style, which contains text rotation and indention information needed to compute the cell width
+         * @param minWidth the minimum best-fit width. This algorithm will only return values greater than or equal to the minimum width.
+         * @param str the text contained in the cell
+         * @return the best fit cell width
+         */
+        private static double getCellWidth(float defaultCharWidth, final int colspan,
+                final CellStyle style, final double minWidth, final AttributedString str) {
+            TextLayout layout;
+            try {
+                layout = new TextLayout(str.getIterator(), fontRenderContext);
+            } catch (Throwable t) {
+                if (shouldIgnoreMissingFontSystem(t)) {
+                    return FAILOVER_FUNCTION.apply(defaultCharWidth, colspan, style, minWidth, str);
+                }
+                throw t;
             }
-            throw t;
+            final Rectangle2D bounds;
+            if (style.getRotation() != 0) {
+                /*
+                 * Transform the text using a scale so that its height is increased by a multiple of the leading,
+                 * and then rotate the text before computing the bounds. The scale results in some whitespace around
+                 * the unrotated top and bottom of the text that normally wouldn't be present if unscaled, but
+                 * is added by the standard Excel autosize.
+                 */
+                AffineTransform trans = new AffineTransform();
+                trans.concatenate(AffineTransform.getRotateInstance(style.getRotation()*2.0*Math.PI/360.0));
+                trans.concatenate(
+                        AffineTransform.getScaleInstance(1, fontHeightMultiple)
+                );
+                bounds = layout.getOutline(trans).getBounds();
+            } else {
+                bounds = layout.getBounds();
+            }
+            // frameWidth accounts for leading spaces which is excluded from bounds.getWidth()
+            final double frameWidth = bounds.getX() + bounds.getWidth();
+            return Math.max(minWidth, ((frameWidth / colspan) / defaultCharWidth) + style.getIndention());
         }
-        final Rectangle2D bounds;
-        if (style.getRotation() != 0) {
-            /*
-             * Transform the text using a scale so that its height is increased by a multiple of the leading,
-             * and then rotate the text before computing the bounds. The scale results in some whitespace around
-             * the unrotated top and bottom of the text that normally wouldn't be present if unscaled, but
-             * is added by the standard Excel autosize.
-             */
-            AffineTransform trans = new AffineTransform();
-            trans.concatenate(AffineTransform.getRotateInstance(style.getRotation()*2.0*Math.PI/360.0));
-            trans.concatenate(
-                    AffineTransform.getScaleInstance(1, fontHeightMultiple)
-            );
-            bounds = layout.getOutline(trans).getBounds();
-        } else {
-            bounds = layout.getBounds();
+
+        private static float getDefaultCharWidthAsFloat(AttributedString str) {
+            TextLayout layout = new TextLayout(str.getIterator(), fontRenderContext);
+            return layout.getAdvance();
         }
-        // frameWidth accounts for leading spaces which is excluded from bounds.getWidth()
-        final double frameWidth = bounds.getX() + bounds.getWidth();
-        return Math.max(minWidth, ((frameWidth / colspan) / defaultCharWidth) + style.getIndention());
+        
+        /**
+         * Copy text attributes from the supplied Font to Java2D AttributedString
+         */
+        private static void copyAttributes(Font font, AttributedString str, @SuppressWarnings("SameParameterValue") int startIdx, int endIdx) {
+            str.addAttribute(TextAttribute.FAMILY, font.getFontName(), startIdx, endIdx);
+            str.addAttribute(TextAttribute.SIZE, (float)font.getFontHeightInPoints());
+            if (font.getBold()) str.addAttribute(TextAttribute.WEIGHT, TextAttribute.WEIGHT_BOLD, startIdx, endIdx);
+            if (font.getItalic() ) str.addAttribute(TextAttribute.POSTURE, TextAttribute.POSTURE_OBLIQUE, startIdx, endIdx);
+            if (font.getUnderline() == Font.U_SINGLE ) str.addAttribute(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON, startIdx, endIdx);
+        }
+
+        private static boolean canComputeColumnWidth(Font font, AttributedString str) {
+            copyAttributes(font, str, 0, "1w".length());
+
+            TextLayout layout = new TextLayout(str.getIterator(), fontRenderContext);
+            return (layout.getBounds().getWidth() > 0);
+        }
+        
     }
 
     /**
@@ -356,10 +382,9 @@ public class SheetUtil {
         Font defaultFont = wb.getFontAt( 0);
 
         AttributedString str = new AttributedString(String.valueOf(defaultChar));
-        copyAttributes(defaultFont, str, 0, 1);
         try {
-            TextLayout layout = new TextLayout(str.getIterator(), fontRenderContext);
-            return layout.getAdvance();
+            WithJavaDesktop.copyAttributes(defaultFont, str, 0, 1);
+            return WithJavaDesktop.getDefaultCharWidthAsFloat(str);
         } catch (Throwable t) {
             if (shouldIgnoreMissingFontSystem(t)) {
                 return DEFAULT_CHAR_WIDTH;
@@ -456,22 +481,16 @@ public class SheetUtil {
     public static boolean canComputeColumnWidth(Font font) {
         // not sure what is the best value sample-here, only "1" did not work on some platforms...
         AttributedString str = new AttributedString("1w");
-        copyAttributes(font, str, 0, "1w".length());
-
-        TextLayout layout = new TextLayout(str.getIterator(), fontRenderContext);
-        return (layout.getBounds().getWidth() > 0);
+        try {
+            return WithJavaDesktop.canComputeColumnWidth(font, str);
+        } catch (Throwable t) {
+            if (shouldIgnoreMissingFontSystem(t)) {
+                return false;
+            }
+            throw t;
+        }
     }
 
-    /**
-     * Copy text attributes from the supplied Font to Java2D AttributedString
-     */
-    private static void copyAttributes(Font font, AttributedString str, @SuppressWarnings("SameParameterValue") int startIdx, int endIdx) {
-        str.addAttribute(TextAttribute.FAMILY, font.getFontName(), startIdx, endIdx);
-        str.addAttribute(TextAttribute.SIZE, (float)font.getFontHeightInPoints());
-        if (font.getBold()) str.addAttribute(TextAttribute.WEIGHT, TextAttribute.WEIGHT_BOLD, startIdx, endIdx);
-        if (font.getItalic() ) str.addAttribute(TextAttribute.POSTURE, TextAttribute.POSTURE_OBLIQUE, startIdx, endIdx);
-        if (font.getUnderline() == Font.U_SINGLE ) str.addAttribute(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON, startIdx, endIdx);
-    }
 
     /**
      * Return the cell, without taking account of merged regions.
@@ -543,11 +562,11 @@ public class SheetUtil {
     }
 
     protected static FontRenderContext getFontRenderContext() {
-        return fontRenderContext;
+        return WithJavaDesktop.fontRenderContext;
     }
 
     protected static void setFontRenderContext(FontRenderContext fontRenderContext) {
-        SheetUtil.fontRenderContext = fontRenderContext;
+        WithJavaDesktop.fontRenderContext = fontRenderContext;
     }
 
     private static boolean initIgnoreMissingFontSystemFlag() {
