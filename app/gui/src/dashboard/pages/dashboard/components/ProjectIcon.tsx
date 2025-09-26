@@ -6,9 +6,6 @@ import { Spinner } from '#/components/Spinner'
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
 import { useCanRunProjects } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { CLOSING_PROJECT_STATES } from '#/hooks/projectHooks'
-import { useStore } from '#/hooks/storeHooks'
-import { projectsStore } from '#/providers/ProjectsProvider/hooks'
 import type Backend from '#/services/Backend'
 import {
   BackendType,
@@ -21,6 +18,11 @@ import {
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import type { LaunchedProject } from '$/providers/container'
 import { useFullUserSession, useText } from '$/providers/react'
+import {
+  useAreOtherProjectsOpening,
+  useIsProjectClosing,
+  useIsProjectOpening,
+} from '$/providers/react/container'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: ProjectState.closed } as const
@@ -31,7 +33,6 @@ export const CLOSED_PROJECT_STATE = { type: ProjectState.closed } as const
  */
 const REMOTE_SPINNER_STATE: Readonly<Record<ProjectState, SpinnerState>> = {
   [ProjectState.closed]: 'loading-slow',
-  [ProjectState.closing]: 'loading-medium',
   [ProjectState.created]: 'loading-slow',
   [ProjectState.new]: 'loading-slow',
   [ProjectState.placeholder]: 'loading-slow',
@@ -48,7 +49,6 @@ const REMOTE_SPINNER_STATE: Readonly<Record<ProjectState, SpinnerState>> = {
  */
 const LOCAL_SPINNER_STATE: Readonly<Record<ProjectState, SpinnerState>> = {
   [ProjectState.closed]: 'loading-slow',
-  [ProjectState.closing]: 'loading-medium',
   [ProjectState.created]: 'loading-slow',
   [ProjectState.new]: 'loading-slow',
   [ProjectState.placeholder]: 'loading-medium',
@@ -97,11 +97,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     projectState.openedBy != null && projectState.openedBy !== user.email
 
-  const isProjectOpening = useStore(
-    projectsStore,
-    ({ openingProjects }) => openingProjects.has(item.id),
-    { unsafeEnableTransition: true },
-  )
+  const isProjectOpening = useIsProjectOpening(item.id)
+  const isProjectClosing = useIsProjectClosing(item.id)
 
   const state = (() => {
     if (isProjectOpening) {
@@ -123,26 +120,10 @@ export default function ProjectIcon(props: ProjectIconProps) {
     return status
   })()
 
-  const areOtherProjectsOpening = useStore(
-    projectsStore,
-    ({ openingProjects }) => openingProjects.size !== 0 && !openingProjects.has(item.id),
-    { unsafeEnableTransition: true },
-  )
+  const areOtherProjectsOpening = useAreOtherProjectsOpening(item.id)
   const isAnotherProjectOpening = areOtherProjectsOpening && !IS_OPENING_OR_OPENED[state]
   const isDisabled =
-    isDisabledRaw ||
-    isUnconditionallyDisabled ||
-    isAnotherProjectOpening ||
-    CLOSING_PROJECT_STATES.has(state)
-  console.debug(
-    'isDisabled',
-    isDisabled,
-    isDisabledRaw,
-    isUnconditionallyDisabled,
-    isAnotherProjectOpening,
-    state,
-    CLOSING_PROJECT_STATES.has(state),
-  )
+    isDisabledRaw || isUnconditionallyDisabled || isAnotherProjectOpening || isProjectClosing
 
   const userOpeningProjectTooltip =
     isOtherUserUsingProject ? getText('xIsUsingTheProject', projectState.openedBy) : null
@@ -154,7 +135,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
     if (!isOpened) {
       return 'loading-slow'
     }
-
     return backend.type === BackendType.remote ?
         REMOTE_SPINNER_STATE[status]
       : LOCAL_SPINNER_STATE[status]
@@ -233,7 +213,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           aria-label={getTooltip(getText('openInEditor'))}
           tooltipPlacement="left"
           extraClickZone="xsmall"
-          isDisabled={isDisabled || projectState.type === ProjectState.closing}
+          isDisabled={isDisabled}
           className="shrink-0"
           onPress={doOpenProject}
           testId="open-project"

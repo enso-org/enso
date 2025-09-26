@@ -193,11 +193,6 @@ export enum ProjectState {
    * `openInProgress`, but has not yet been added to the backend.
    */
   placeholder = 'Placeholder',
-  /**
-   * A frontend-specific state, representing a project that should be displayed as `closed`,
-   * but is still in the process of shutting down.
-   */
-  closing = 'Closing',
 }
 
 /** Wrapper around a project state value. */
@@ -225,7 +220,6 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.hybridOpened]: false,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
 }
 
 export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
@@ -239,7 +233,6 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.hybridOpened]: true,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */

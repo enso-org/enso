@@ -64,6 +64,8 @@ LocalStorage.registerKey('launchedProjects', {
  *
  * State "launched" is a state where {@link LaunchedProject} is available. The project may still
  * be initializing, though.
+ *
+ *
  */
 // TODO[ao]: this is convoluted and shall be improved in https://github.com/enso-org/enso/issues/13491
 export type OpenedProject = (
@@ -97,6 +99,8 @@ export const [provideContainerData, useContainerData] = createContextStore(
     const launchedProjects = computed(() => localStorage.get('launchedProjects') ?? [])
 
     const openingProjects = reactive(new Map<ProjectId, EnsoPath>())
+    // Projects still in the process of shutting down. They cannot be opened right away.
+    const closingProjects = reactive(new Set<ProjectId>())
 
     const openedProjects = computed<OpenedProject[]>(() => {
       const launched = launchedProjects.value.map(
@@ -150,6 +154,7 @@ export const [provideContainerData, useContainerData] = createContextStore(
     return proxyRefs({
       openedProjects,
       openingProjects,
+      closingProjects,
       tab,
       addLaunchedProject,
       removeLaunchedProject,

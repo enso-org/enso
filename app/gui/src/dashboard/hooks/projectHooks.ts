@@ -9,9 +9,11 @@ import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import type { LaunchedProject, LaunchedProjectId } from '$/providers/container'
 import * as authProvider from '$/providers/react'
 import {
+  useAddClosingProject,
   useAddLaunchedProject,
   useAddOpeningProject,
   useContainerData,
+  useRemoveClosingProject,
   useRemoveLaunchedProject,
   useRemoveOpeningProject,
   useUpdateLaunchedProjects,
@@ -105,11 +107,9 @@ export const OPENING_PROJECT_STATES = new Set([
   backendModule.ProjectState.provisioned,
   backendModule.ProjectState.scheduled,
   backendModule.ProjectState.openInProgress,
-  backendModule.ProjectState.closing,
 ])
 export const OPENED_PROJECT_STATES = new Set([backendModule.ProjectState.opened])
 export const CLOSED_PROJECT_STATES = new Set([backendModule.ProjectState.closed])
-export const CLOSING_PROJECT_STATES = new Set([backendModule.ProjectState.closing])
 export const STATIC_PROJECT_STATES = new Set([
   backendModule.ProjectState.opened,
   backendModule.ProjectState.closed,
@@ -120,7 +120,6 @@ export const CREATED_PROJECT_STATES = new Set([
 ])
 export const BUSY_PROJECT_STATES = new Set([
   ...Array.from(OPENING_PROJECT_STATES),
-  ...Array.from(CLOSING_PROJECT_STATES),
   backendModule.ProjectState.opened,
   backendModule.ProjectState.hybridOpened,
 ])
@@ -176,8 +175,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
 
       const createdStates = CREATED_PROJECT_STATES
 
-      const closingStates = CLOSING_PROJECT_STATES
-
       if (state.status === 'error') {
         return false
       }
@@ -200,10 +197,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
         if (openingStates.has(state.data.state.type)) {
           return LOCAL_OPENING_INTERVAL_MS
         }
-
-        if (closingStates.has(state.data.state.type)) {
-          return LOCAL_OPENING_INTERVAL_MS
-        }
       }
 
       if (createdStates.has(currentState)) {
@@ -215,10 +208,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
         return OPENED_INTERVAL_MS
       }
       if (openingStates.has(state.data.state.type)) {
-        return CLOUD_OPENING_INTERVAL_MS
-      }
-
-      if (closingStates.has(state.data.state.type)) {
         return CLOUD_OPENING_INTERVAL_MS
       }
 
@@ -309,9 +298,10 @@ export function useCloseProjectMutation() {
   const client = reactQuery.useQueryClient()
   const logger = useLogger()
   const { remoteBackend, localBackend } = useBackends()
-  const setProjectAsset = useSetProjectAsset()
   const uploadFile = useUploadFile(remoteBackend, { updateProgress: false })
   const toastAndLog = useToastAndLog()
+  const addClosingProject = useAddClosingProject()
+  const removeClosingProject = useRemoveClosingProject()
 
   return useMutationCallback({
     mutationKey: ['closeProject'],
@@ -331,28 +321,14 @@ export function useCloseProjectMutation() {
 
       return backend.closeProject(id, title)
     },
-    onMutate: ({ type, hybrid, id, parentId }) => {
+    onMutate: ({ hybrid, id }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
       if (hybrid) {
-        client.setQueryData(createGetProjectDetailsQuery.getQueryKey(hybrid.cloudProjectId), {
-          state: { type: backendModule.ProjectState.closing },
-        })
-        setProjectAsset(
-          backendModule.BackendType.remote,
-          hybrid.cloudProjectId,
-          hybrid.cloudParentId,
-          (asset) => ({
-            ...asset,
-            projectState: { ...asset.projectState, type: backendModule.ProjectState.closing },
-          }),
-        )
+        addClosingProject(hybrid.cloudProjectId)
+      } else {
+        addClosingProject(id)
       }
-      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closing } })
-      setProjectAsset(type, id, parentId, (asset) => ({
-        ...asset,
-        projectState: { ...asset.projectState, type: backendModule.ProjectState.closing },
-      }))
 
       void client.cancelQueries({ queryKey })
     },
@@ -376,20 +352,10 @@ export function useCloseProjectMutation() {
         await localBackend
           .deleteAsset(hybrid.parentId, { force: true }, null)
           .catch((error) => logger.error('Failed to remove local version of hybrid project', error))
-        setProjectAsset(
-          backendModule.BackendType.remote,
-          hybrid.cloudProjectId,
-          hybrid.cloudParentId,
-          (asset) => ({
-            ...asset,
-            projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
-          }),
-        )
+        removeClosingProject(hybrid.cloudProjectId)
+      } else {
+        removeClosingProject(id)
       }
-      setProjectAsset(type, id, parentId, (asset) => ({
-        ...asset,
-        projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
-      }))
 
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
@@ -413,12 +379,15 @@ export function useCloseProjectMutation() {
         await localBackend
           .deleteAsset(hybrid.parentId, { force: true }, null)
           .catch((error) => logger.error('Failed to remove local version of hybrid project', error))
+        removeClosingProject(hybrid.cloudProjectId)
         await client.invalidateQueries({
           queryKey: createGetProjectDetailsQuery.getQueryKey(hybrid.cloudProjectId),
         })
         await client.invalidateQueries({
           queryKey: [backendModule.BackendType.remote, 'listDirectory', hybrid.cloudParentId],
         })
+      } else {
+        removeClosingProject(id)
       }
 
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })

@@ -5,6 +5,7 @@ import {
   useRightPanelData as useRightPanelDataVue,
   type RightPanelData,
 } from '$/providers/rightPanel'
+import type { Opt } from '@/util/data/opt'
 import { reactComponent } from '@/util/react'
 import * as react from 'react'
 import { useInReactFunction, useVueValue } from './common'
@@ -107,4 +108,44 @@ export function useRemoveOpeningProject() {
   return useEventCallback((id: ProjectId) => {
     openingProjects.delete(id)
   })
+}
+
+export function useIsProjectOpening(id: Opt<ProjectId>) {
+  const { openingProjects } = useContainerData()
+  return useVueValue(
+    react.useCallback(() => (id != null ? openingProjects.has(id) : false), [openingProjects, id]),
+  )
+}
+
+export function useAreOtherProjectsOpening(id: ProjectId) {
+  const { openingProjects } = useContainerData()
+  return useVueValue(
+    react.useCallback(
+      () => openingProjects.size !== 0 && !openingProjects.has(id),
+      [openingProjects, id],
+    ),
+  )
+}
+
+/** A function to add project to "opening projects" list */
+export function useAddClosingProject() {
+  const { closingProjects } = useContainerData()
+  return useEventCallback((id: ProjectId) => {
+    closingProjects.add(id)
+  })
+}
+
+/** A function to remove project from "opening projects" list */
+export function useRemoveClosingProject() {
+  const { closingProjects } = useContainerData()
+  return useEventCallback((id: ProjectId) => {
+    closingProjects.delete(id)
+  })
+}
+
+export function useIsProjectClosing(id: Opt<ProjectId>) {
+  const { closingProjects } = useContainerData()
+  return useVueValue(
+    react.useCallback(() => (id != null ? closingProjects.has(id) : false), [closingProjects, id]),
+  )
 }
