@@ -306,9 +306,6 @@ importers:
       '@babel/parser':
         specifier: ^7.26.3
         version: 7.28.0
-      '@browsery/util':
-        specifier: 0.12.6-r2
-        version: 0.12.6-r2
       '@codemirror/autocomplete':
         specifier: 'catalog:'
         version: 6.18.6
@@ -417,9 +414,6 @@ importers:
       events:
         specifier: ^3.3.0
         version: 3.3.0
-      format-util:
-        specifier: ^1.0.5
-        version: 1.0.5
       fuzzysort:
         specifier: 3.1.0
         version: 3.1.0
@@ -592,9 +586,6 @@ importers:
       '@types/d3':
         specifier: ^7.4.3
         version: 7.4.3
-      '@types/format-util':
-        specifier: ^1.0.4
-        version: 1.0.4
       '@types/gunzip-maybe':
         specifier: ^1.4.2
         version: 1.4.2
@@ -1449,9 +1440,6 @@ packages:
 
   '@bazel/runfiles@6.3.1':
     resolution: {integrity: sha512-1uLNT5NZsUVIGS4syuHwTzZ8HycMPyr6POA3FCE4GbMtc4rhoJk8aZKtNIRthJYfL+iioppi+rTfH3olMPr9nA==}
-
-  '@browsery/util@0.12.6-r2':
-    resolution: {integrity: sha512-MBt/TXy+ujkG8DiJFgllJdw8RGFdgHqvgO7B5Rzoxi1Bni5rIqykNGWIOHzoawkcPKBjTwpkI573LB/yqA6XKA==}
 
   '@codemirror/autocomplete@6.18.6':
     resolution: {integrity: sha512-PHHBXFomUs5DF+9tCOM/UoW6XQ4R44lLNNhRaW9PKPTU0D7lIjRg3ElxaJnTwsl/oHiR93WSXDBrekhoUGCPtg==}
@@ -3055,9 +3043,6 @@ packages:
   '@types/extract-zip@2.0.3':
     resolution: {integrity: sha512-yrO7h+0qOIGxHCmBeL5fKFzR+PBafh9LG6sOLBFFi2JuN+Hj663TAxfnqJh5vkQn963VimrhBF1GZzea3A+4Ig==}
     deprecated: This is a stub types definition. extract-zip provides its own type definitions, so you do not need this installed.
-
-  '@types/format-util@1.0.4':
-    resolution: {integrity: sha512-xrCYOdHh5zA3LUrn6CvspYwlzSWxPso11Lx32WnAG6KvLCRecKZ/Rh21PLXUkzUFsQmrGcx/traJAFjR6dVS5Q==}
 
   '@types/fs-extra@9.0.13':
     resolution: {integrity: sha512-nEnwB++1u5lVDM2UI4c1+5R+FYaKfaAzS4OococimjVm3nQw3TuzH5UNsocrcTBbhnerblyHj4A49qXbIiZdpA==}
@@ -8256,10 +8241,6 @@ snapshots:
 
   '@bazel/runfiles@6.3.1': {}
 
-  '@browsery/util@0.12.6-r2':
-    dependencies:
-      process: 0.11.10
-
   '@codemirror/autocomplete@6.18.6':
     dependencies:
       '@codemirror/language': 6.11.2
@@ -10473,8 +10454,6 @@ snapshots:
       extract-zip: 2.0.1
     transitivePeerDependencies:
       - supports-color
-
-  '@types/format-util@1.0.4': {}
 
   '@types/fs-extra@9.0.13':
     dependencies:

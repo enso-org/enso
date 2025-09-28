@@ -88,7 +88,7 @@ export class Logger {
   message(level: LogLevel, ...args: unknown[]): void {
     const timestamp = new Date().toISOString()
     const message = util.format(...args)
-    const timestampedMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`
+    const timestampedMessage = `[${level.toUpperCase()}] [${timestamp}] ${message}`
     consoleLog(timestampedMessage)
     fsSync.writeSync(this.logFileHandle, timestampedMessage + '\n')
   }
