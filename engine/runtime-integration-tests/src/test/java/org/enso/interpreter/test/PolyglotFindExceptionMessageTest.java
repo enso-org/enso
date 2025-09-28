@@ -17,11 +17,11 @@ public class PolyglotFindExceptionMessageTest {
   public void testJavaScriptException() {
     String src =
         """
-    main = err
+        main = err
 
-    foreign js err = \"""
-        throw Error('Wrong!')
-    """;
+        foreign js err = \"""
+            throw Error('Wrong!')
+        """;
 
     try {
       Value res = ctxRule.evalModule(src);

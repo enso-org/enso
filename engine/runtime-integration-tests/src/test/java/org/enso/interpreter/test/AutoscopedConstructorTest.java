@@ -265,16 +265,16 @@ public class AutoscopedConstructorTest {
   public void simpleAnyCheck() {
     var code =
         """
-    import Standard.Base.Any.Any
+        import Standard.Base.Any.Any
 
-    type A
-        Typed x:Any
+        type A
+            Typed x:Any
 
-    t = ..Typed ..My_Other
-    materialize v:A = v
+        t = ..Typed ..My_Other
+        materialize v:A = v
 
-    create = materialize t
-    """;
+        create = materialize t
+        """;
 
     var create =
         ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
@@ -286,16 +286,16 @@ public class AutoscopedConstructorTest {
   public void simpleAnyOrACheck() {
     var code =
         """
-    import Standard.Base.Any.Any
+        import Standard.Base.Any.Any
 
-    type A
-        Typed (x:Any|A)
+        type A
+            Typed (x:Any|A)
 
-    t = ..Typed ..My_Other
-    materialize v:A = v
+        t = ..Typed ..My_Other
+        materialize v:A = v
 
-    create = materialize t
-    """;
+        create = materialize t
+        """;
 
     var create =
         ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
@@ -307,16 +307,16 @@ public class AutoscopedConstructorTest {
   public void intersectionAnyOrACheck() {
     var code =
         """
-    import Standard.Base.Any.Any
+        import Standard.Base.Any.Any
 
-    type A
-        Typed (x:Any&A)
+        type A
+            Typed (x:Any&A)
 
-    t = ..Typed ..My_Other
-    materialize v:A = v
+        t = ..Typed ..My_Other
+        materialize v:A = v
 
-    create = materialize t
-    """;
+        create = materialize t
+        """;
 
     try {
       var create =

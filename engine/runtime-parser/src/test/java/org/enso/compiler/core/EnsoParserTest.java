@@ -27,34 +27,43 @@ import scala.jdk.javaapi.CollectionConverters;
 public class EnsoParserTest {
   @Test
   public void testParseMain7Foo() {
-    parseTest("""
-    main = 7.foo
-    """);
+    parseTest(
+        """
+        main = 7.foo
+        """);
   }
 
   @Test
   public void testLocationsSimpleArithmeticExpression() {
-    parseTest("""
-    main = 2 + 45 * 20
-    """, true, true, true);
+    parseTest(
+        """
+        main = 2 + 45 * 20
+        """,
+        true,
+        true,
+        true);
   }
 
   @Test
   public void testLocationsApplicationsAndMethodCalls() {
-    parseTest("""
-    main = (2-2 == 0).if_then_else (List.Cons 5 6) 0
-    """, true, true, true);
+    parseTest(
+        """
+        main = (2-2 == 0).if_then_else (List.Cons 5 6) 0
+        """,
+        true,
+        true,
+        true);
   }
 
   @Test
   public void testLocationsCorrectAssignmentOfVariableReads() {
     parseTest(
         """
-    main =
-        x = 2 + 2 * 2
-        y = x * x
-        IO.println y
-    """,
+        main =
+            x = 2 + 2 * 2
+            y = x * x
+            IO.println y
+        """,
         true,
         true,
         true);
@@ -64,12 +73,12 @@ public class EnsoParserTest {
   public void testLocationsMethodWithComplexBody() {
     parseTest(
         """
-    foo a b =
-        x : Number
-        x = a + 1
-        y = b - 2
-        x * y
-    """,
+        foo a b =
+            x : Number
+            x = a + 1
+            y = b - 2
+            x * y
+        """,
         true,
         true,
         true);
@@ -77,37 +86,49 @@ public class EnsoParserTest {
 
   @Test
   public void testLocationsBuildFunctionSimple() {
-    parseTest("""
-    main =
-        foo a = a + 1
-        foo 42
-    """, true, true, true);
+    parseTest(
+        """
+        main =
+            foo a = a + 1
+            foo 42
+        """,
+        true,
+        true,
+        true);
   }
 
   @Test
   public void testListWithATrailingComma() {
-    parseTest("""
-    main = ["a", ]
-    """, true, true, true);
+    parseTest(
+        """
+        main = ["a", ]
+        """,
+        true,
+        true,
+        true);
   }
 
   @Test
   public void testLocationsDeeplyNestedFunctions() {
-    parseTest("""
+    parseTest(
+        """
         foo = a -> b ->
             IO.println a
-        """, true, true, true);
+        """,
+        true,
+        true,
+        true);
   }
 
   @Test
   public void testLocationsDeeplyNestedFunctionsNoBlock() {
     parseTest(
         """
-    Nothing.method =
-        add = a -> b -> a + b
+        Nothing.method =
+            add = a -> b -> a + b
 
-    main = Nothing.method
-    """,
+        main = Nothing.method
+        """,
         true,
         true,
         true);
@@ -116,326 +137,351 @@ public class EnsoParserTest {
   @Test
   public void testSpacesAtTheEndOfFile() {
     var fourSpaces = "    ";
-    parseTest("""
-    main = add_ten 5
-    """ + fourSpaces);
+    parseTest(
+        """
+        main = add_ten 5
+        """
+            + fourSpaces);
   }
 
   @Test
   public void testCase() {
     parseTest(
         """
-    type Msg
-        Ahoj
-        Ciao
+        type Msg
+            Ahoj
+            Ciao
 
-    c x = case x of
-        Ahoj -> 0
-        Ciao -> 1
-        Msg.Ciao -> 2
-    """);
+        c x = case x of
+            Ahoj -> 0
+            Ciao -> 1
+            Msg.Ciao -> 2
+        """);
   }
 
   @Test
   public void testTypeMethodWithSignature() {
     parseTest(
         """
-    @Builtin_Type
-    type Fuzzy
-        == : Correct -> Wrong
-        == self right = @Builtin_Method "Fuzzy.=="
-    """);
+        @Builtin_Type
+        type Fuzzy
+            == : Correct -> Wrong
+            == self right = @Builtin_Method "Fuzzy.=="
+        """);
   }
 
   @Test
   public void testImport() {
     parseTest(
         """
-    import Standard.Base.Any.Any
-    import project.IO
-    import Standard.Base as Enso_List
-    from Standard.Base import all hiding Number, Boolean, Float, Any
-    polyglot java import java.lang.Float
-    polyglot java import java.net.URI as Java_URI
+        import Standard.Base.Any.Any
+        import project.IO
+        import Standard.Base as Enso_List
+        from Standard.Base import all hiding Number, Boolean, Float, Any
+        polyglot java import java.lang.Float
+        polyglot java import java.net.URI as Java_URI
 
-    main = 3
-    """);
+        main = 3
+        """);
   }
 
   @Test
   public void testImportAll() {
     parseTest(
         """
-    ## TODO Dubious constructor export
-    from project.Network.Http.Version.Version import all
-    from project.Network.Http.Version.Version export all
-    """);
+        ## TODO Dubious constructor export
+        from project.Network.Http.Version.Version import all
+        from project.Network.Http.Version.Version export all
+        """);
   }
 
   @Test
   public void testImportTrue() {
-    parseTest("""
-    from Standard.Base import True
-    """);
+    parseTest(
+        """
+        from Standard.Base import True
+        """);
   }
 
   @Test
   public void testMeaningOfWorld() {
-    parseTest("""
-    import Standard.Base.IO
+    parseTest(
+        """
+        import Standard.Base.IO
 
-    main = IO.println 42
-    """);
+        main = IO.println 42
+        """);
   }
 
   @Test
   public void testMinusOne() {
-    parseTest("""
-    minus n = n-1
-    """);
+    parseTest(
+        """
+        minus n = n-1
+        """);
   }
 
   @Test
   public void testIfNothingSelf() {
-    parseTest("""
-    if_nothing self ~_ = self
-    """);
+    parseTest(
+        """
+        if_nothing self ~_ = self
+        """);
   }
 
   @Test
   public void testIfSomethingSelf() {
-    parseTest("""
-    if_nothing self ~ignore = self
-    """);
+    parseTest(
+        """
+        if_nothing self ~ignore = self
+        """);
   }
 
   @Test
   public void testMinusRec() {
-    parseTest("""
-    minus n = minus n-1
-    """);
+    parseTest(
+        """
+        minus n = minus n-1
+        """);
   }
 
   @Test
   public void testFactorial() {
-    parseTest("""
-    fac n = if n == 1 then 1 else n * fac n-1
-    """);
+    parseTest(
+        """
+        fac n = if n == 1 then 1 else n * fac n-1
+        """);
   }
 
   @Test
   public void testIsDigitWithSpaces() {
-    parseTest("""
-    compare =
-        is_digit = character -> 42
-    """);
+    parseTest(
+        """
+        compare =
+            is_digit = character -> 42
+        """);
   }
 
   @Test
   public void testComments() {
-    parseTest("""
-    # a b c
-    """);
+    parseTest(
+        """
+        # a b c
+        """);
   }
 
   @Test
   public void testCaseTypeOf() {
-    parseTest("""
-    cmp self = case self of
-        v:Vector_2d -> x
-        _ -> x
-    """);
+    parseTest(
+        """
+        cmp self = case self of
+            v:Vector_2d -> x
+            _ -> x
+        """);
   }
 
   @Test
   public void testCaseTypeOf2() {
-    parseTest("""
-    cmp self = case self of
-        v:My_Type -> x
-    """);
+    parseTest(
+        """
+        cmp self = case self of
+            v:My_Type -> x
+        """);
   }
 
   @Test
   public void testCaseTypeOfWithSpace() {
-    parseTest("""
-    filter self filter = case filter of
-        _ : Filter -> 42
-    """);
+    parseTest(
+        """
+        filter self filter = case filter of
+            _ : Filter -> 42
+        """);
   }
 
   @Test
   public void testAnnotation0() {
-    parseTest("""
-    dont_stop = @Tail_Call dont_stop
-    """);
+    parseTest(
+        """
+        dont_stop = @Tail_Call dont_stop
+        """);
   }
 
   @Test
   public void testAnnotation1() {
-    parseTest("""
-    go t = @Tail_Call go t-1
-    """);
+    parseTest(
+        """
+        go t = @Tail_Call go t-1
+        """);
   }
 
   @Test
   public void testAnnotation2() {
-    parseTest("""
-    go t x = @Tail_Call go t-1 x
-    """);
+    parseTest(
+        """
+        go t x = @Tail_Call go t-1 x
+        """);
   }
 
   @Test
   public void testAnnotationBlock() {
-    parseTest("""
-    go a b = @Tail_Call go
-        a
-        b
-    """);
+    parseTest(
+        """
+        go a b = @Tail_Call go
+            a
+            b
+        """);
   }
 
   @Test
   public void testBuiltinTypeAnnotation() {
-    parseTest("""
-    @Builtin_Type
-    type Date
-    """);
+    parseTest(
+        """
+        @Builtin_Type
+        type Date
+        """);
   }
 
   @Test
   public void testBoolean() {
     parseTest(
         """
-    @Builtin_Type
-    type Boolean
-        True
-        False
+        @Builtin_Type
+        type Boolean
+            True
+            False
 
-        == : Boolean -> Boolean
-        == self that = @Builtin_Method "Boolean.=="
+            == : Boolean -> Boolean
+            == self that = @Builtin_Method "Boolean.=="
 
-        && : Boolean -> Boolean
-        && self ~that = @Builtin_Method "Boolean.&&"
+            && : Boolean -> Boolean
+            && self ~that = @Builtin_Method "Boolean.&&"
 
-        not : Boolean
-        not self = @Builtin_Method "Boolean.not"
+            not : Boolean
+            not self = @Builtin_Method "Boolean.not"
 
-        compare_to : Boolean -> Ordering
-        compare_to self that = @Builtin_Method "Boolean.compare_to"
+            compare_to : Boolean -> Ordering
+            compare_to self that = @Builtin_Method "Boolean.compare_to"
 
-        if_then_else : Any -> Any -> Any
-        if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
+            if_then_else : Any -> Any -> Any
+            if_then_else self ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
 
-        if_then : Any -> Any | Nothing
-        if_then self ~on_true = @Builtin_Method "Boolean.if_then"
-    """);
+            if_then : Any -> Any | Nothing
+            if_then self ~on_true = @Builtin_Method "Boolean.if_then"
+        """);
   }
 
   @Test
   public void testBuiltinMethodAnnotation() {
-    parseTest("""
-    normalize x = @Builtin_Method "File.normalize"
-    """);
+    parseTest(
+        """
+        normalize x = @Builtin_Method "File.normalize"
+        """);
   }
 
   @Test
   public void testTextOrNothing() {
-    parseTest("""
-    type Locale
-        language : Text | Nothing
-    """);
+    parseTest(
+        """
+        type Locale
+            language : Text | Nothing
+        """);
   }
 
   @Test
   public void testInterval() {
-    parseTest("""
-    type Interval
-        Interval_Data (start : Bound.Bound)
-    """);
+    parseTest(
+        """
+        type Interval
+            Interval_Data (start : Bound.Bound)
+        """);
   }
 
   @Test
   public void testAtEq() {
     parseTest(
         """
-    type Array
-        == : Array -> Boolean
-        == self that =
-            if False then True that else
-                eq_at i = self.at i == that.at i
-                eq_at 0
-    """);
+        type Array
+            == : Array -> Boolean
+            == self that =
+                if False then True that else
+                    eq_at i = self.at i == that.at i
+                    eq_at 0
+        """);
   }
 
   @Test
   public void testNestedBlocks() {
     parseTest(
         """
-    type Array
-        meaning =
-            catch_primitive handler
-                42
-    """);
+        type Array
+            meaning =
+                catch_primitive handler
+                    42
+        """);
   }
 
   @Test
   public void testSelf1() {
-    parseTest("""
-    contains self elem = self.contains Nothing
-    """);
+    parseTest(
+        """
+        contains self elem = self.contains Nothing
+        """);
   }
 
   @Test
   public void testPanic_184119084() {
-    parseTest("""
-    type Foo
-        type Bar
+    parseTest(
+        """
+        type Foo
+            type Bar
 
-    main = 42
-    """);
+        main = 42
+        """);
   }
 
   @Test
   public void testMetadataRaw() {
     parseTest(
         """
-    main =
-        foo = 42
+        main =
+            foo = 42
 
 
-    #### METADATA ####
-    [[{"index": {"value": 17}, "size": {"value": 2}}, "0270bcdf-26b8-4b99-8745-85b3600c7359"]]
-    []
-    """);
+        #### METADATA ####
+        [[{"index": {"value": 17}, "size": {"value": 2}}, "0270bcdf-26b8-4b99-8745-85b3600c7359"]]
+        []
+        """);
   }
 
   @Test
   public void testDocumentationComment() {
-    parseTest("""
-    ## A type representing computations that may fail.
-    type Maybe
-    """);
+    parseTest(
+        """
+        ## A type representing computations that may fail.
+        type Maybe
+        """);
   }
 
   @Test
   public void testColumnSelector() {
     parseTest(
         """
-    ## Specifies a selection of columns from the table on which an operation is
-       going to be performed.
-    type Column_Selector
-        By_Index (indexes : Vector Integer)
-        By_Column (columns : Vector Column)
-    """);
+        ## Specifies a selection of columns from the table on which an operation is
+           going to be performed.
+        type Column_Selector
+            By_Index (indexes : Vector Integer)
+            By_Column (columns : Vector Column)
+        """);
   }
 
   @Test
   public void testAssignments() {
     parseTest(
         """
-      from_java_set java_set =
-        owner = Builder.new
-        group = Builder.new
-        others = Builder.new
+        from_java_set java_set =
+          owner = Builder.new
+          group = Builder.new
+          others = Builder.new
         """);
   }
 
@@ -443,21 +489,21 @@ public class EnsoParserTest {
   public void testNumberTimes() {
     parseTest(
         """
-    Standard.Base.Number.times : List Any
-    Standard.Base.Number.times self act =
-        act
-    """);
+        Standard.Base.Number.times : List Any
+        Standard.Base.Number.times self act =
+            act
+        """);
   }
 
   @Test
   public void testIfThenBlock() {
     parseTest(
         """
-      from_java_set java_set =
-        if java_set.contains PosixFilePermission.OWNER_READ then
-            owner.append Read
-        if java_set.contains PosixFilePermission.OWNER_WRITE then
-            owner.append Write
+        from_java_set java_set =
+          if java_set.contains PosixFilePermission.OWNER_READ then
+              owner.append Read
+          if java_set.contains PosixFilePermission.OWNER_WRITE then
+              owner.append Write
         """);
   }
 
@@ -465,8 +511,8 @@ public class EnsoParserTest {
   public void testInvokeFilePermissions() {
     parseTest(
         """
-      from_java_set java_set =
-        File_Permissions owner.to_vector group.to_vector others.to_vector
+        from_java_set java_set =
+          File_Permissions owner.to_vector group.to_vector others.to_vector
         """);
   }
 
@@ -522,79 +568,83 @@ public class EnsoParserTest {
 
   @Test
   public void testTextLiteral() {
-    parseTest("""
-    main = "I'm an inline raw text!"
-    """);
+    parseTest(
+        """
+        main = "I'm an inline raw text!"
+        """);
   }
 
   @Test
   public void testTextLiteralWithEscape() {
     parseTest(
         """
-    wrap_junit_testsuites = '<?xml version="1.0"\\tencoding="UTF-8"?>\\n'
-    """);
+        wrap_junit_testsuites = '<?xml version="1.0"\\tencoding="UTF-8"?>\\n'
+        """);
   }
 
   @Test
   public void testRawBlockLiteral() {
     // mimics TextTest
-    parseTest("""
-    x = \"\"\"
-        Foo
-        Bar
-          Baz
-    """);
+    parseTest(
+        """
+        x = \"\"\"
+            Foo
+            Bar
+              Baz
+        """);
   }
 
   @Test
   public void testVariousKindsOfUnicodeWhitespace() {
-    parseTest("""
-    t = '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}'.trim
-    """);
+    parseTest(
+        """
+        t = '\\v\\f\\u{200a}\\u{202f}\\u{205F}\\u{3000}'.trim
+        """);
   }
 
   @Test
   public void testLambda() {
-    parseTest("""
-    f = map _->alphabet
-    """);
+    parseTest(
+        """
+        f = map _->alphabet
+        """);
   }
 
   @Test
   public void testMultiParameterFunction() {
     parseTest(
         """
-    from Standard.Base import all
-    import Standard.Base.System
+        from Standard.Base import all
+        import Standard.Base.System
 
-    measure : Any -> Text -> Integer -> Integer -> Nothing
-    measure = ~act -> label -> iter_size -> num_iters ->
-        42
-    """);
+        measure : Any -> Text -> Integer -> Integer -> Nothing
+        measure = ~act -> label -> iter_size -> num_iters ->
+            42
+        """);
   }
 
   @Test
   public void testTestGroup() {
     parseTest(
         """
-    type Test
-        ## Creates a new test group, describing properties of the object
-           described by `self`.
+        type Test
+            ## Creates a new test group, describing properties of the object
+               described by `self`.
 
-           Arguments:
-           - name: The name of the test group.
-           - behaviors: An action containing a set of specs for the group.
-           - pending: A reason for why the test is pending, or `Nothing` when it is not
-             pending.
+               Arguments:
+               - name: The name of the test group.
+               - behaviors: An action containing a set of specs for the group.
+               - pending: A reason for why the test is pending, or `Nothing` when it is not
+                 pending.
 
-           > Example
-             Adding a test group.
+               > Example
+                 Adding a test group.
 
-                 from Standard.Test import Test, Test_Suite
+                     from Standard.Test import Test, Test_Suite
 
-                 example_group = Test_Suite.run <|
-                     Test.group "Number" <| Nothing
-        group : Text -> Any -> (Text | Nothing) -> Nothing
+                     example_group = Test_Suite.run <|
+                         Test.group "Number" <| Nothing
+            group : Text -> Any -> (Text | Nothing) -> Nothing
         """);
   }
 
@@ -602,131 +652,138 @@ public class EnsoParserTest {
   public void testEmptyGroup() {
     parseTest(
         """
-    main =
-        x = Panic.catch Any () .convert_to_dataflow_error
-        x.catch_primitive err->
-            case err of
-                Syntax_Error_Data msg -> "Oopsie, it's a syntax error: " + msg
-    """);
+        main =
+            x = Panic.catch Any () .convert_to_dataflow_error
+            x.catch_primitive err->
+                case err of
+                    Syntax_Error_Data msg -> "Oopsie, it's a syntax error: " + msg
+        """);
   }
 
   @Test
   public void testEmptyGroup2() {
-    parseTest("""
-    main =
-        x = ()
-        x = 5
-    """);
+    parseTest(
+        """
+        main =
+            x = ()
+            x = 5
+        """);
   }
 
   @Test
   public void testTestGroupSimple() {
     parseTest(
         """
-    group1 : Text -> Any -> (Text | Nothing) -> Nothing
+        group1 : Text -> Any -> (Text | Nothing) -> Nothing
 
-    type Test
-        group2 : Text -> Any -> (Text | Nothing) -> Nothing
-    """);
+        type Test
+            group2 : Text -> Any -> (Text | Nothing) -> Nothing
+        """);
   }
 
   @Test
   public void testWildcardLeftHandSide() {
     parseTest(
         """
-    Any.should_succeed self frames_to_skip=0 =
-        _ = frames_to_skip
+        Any.should_succeed self frames_to_skip=0 =
+            _ = frames_to_skip
         """);
   }
 
   @Test
   public void testReverseListType() {
-    parseTest("""
-    reverse_list : List Any -> List
-    reverse_list list = List.Nil
-    """);
+    parseTest(
+        """
+        reverse_list : List Any -> List
+        reverse_list list = List.Nil
+        """);
   }
 
   @Test
   public void testReverseList() {
     parseTest(
         """
-    reverse_list list =
-        go = list -> acc -> case list of
-            List.Cons h t -> go t (List.Cons h acc)
-            List.Cons h _ -> acc
-            ListNil -> acc
-            _ -> acc
-        res = go list List.Nil
-        res
-    """);
+        reverse_list list =
+            go = list -> acc -> case list of
+                List.Cons h t -> go t (List.Cons h acc)
+                List.Cons h _ -> acc
+                ListNil -> acc
+                _ -> acc
+            res = go list List.Nil
+            res
+        """);
   }
 
   @Test
   public void testProblemHandling() {
     parseTest(
         """
-    test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothing) -> Nothing
-    test_problem_handling action expected_problems result_checker =
-        result_checker result_ignoring
-    """);
+        test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothing) -> Nothing
+        test_problem_handling action expected_problems result_checker =
+            result_checker result_ignoring
+        """);
   }
 
   @Test
   public void testProblemHandling2() {
     parseTest(
         """
-    test_problem_handling action expected_problems result_checker =
-        error_result . should_fail_with first_problem_type frames_to_skip=3
-        warnings_checker warnings =
-            ## TODO [RW] we are not checking if there are no duplicate warnings, because the warnings are in fact duplicated - we should figure out how to handle that and then possibly modify the test
-            warnings . should_contain_the_same_elements_as expected_problems frames_to_skip=3
-    """);
+        test_problem_handling action expected_problems result_checker =
+            error_result . should_fail_with first_problem_type frames_to_skip=3
+            warnings_checker warnings =
+                ## TODO [RW] we are not checking if there are no duplicate warnings, because the warnings are in fact duplicated - we should figure out how to handle that and then possibly modify the test
+                warnings . should_contain_the_same_elements_as expected_problems frames_to_skip=3
+        """);
   }
 
   @Test
   public void testNamedArgument() {
-    parseTest("""
-    fn = get_all frames_to_skip=1
-    """);
+    parseTest(
+        """
+        fn = get_all frames_to_skip=1
+        """);
   }
 
   @Test
   public void testVectorLiteralEmpty() {
-    parseTest("""
-    fn = []
-    """);
+    parseTest(
+        """
+        fn = []
+        """);
   }
 
   @Test
   public void testVectorLiteralOne() {
-    parseTest("""
-    fn = [ 1 ]
-    """);
+    parseTest(
+        """
+        fn = [ 1 ]
+        """);
   }
 
   @Test
   public void testVectorLiteralMany() {
-    parseTest("""
-    fn = [ 1, 2, 3 ]
-    """);
+    parseTest(
+        """
+        fn = [ 1, 2, 3 ]
+        """);
   }
 
   @Test
   public void testInvokeMethod() {
-    parseTest("""
-    fn = result_ignoring . should_equal
-    """);
+    parseTest(
+        """
+        fn = result_ignoring . should_equal
+        """);
   }
 
   @Test
   public void testTableDataArgumentInCase() {
     parseTest(
         """
-    process_to_json_text value =
-        json = case value of
-            Table.Table_Data _ -> json_from_table value
-            _ -> value.to_json
+        process_to_json_text value =
+            json = case value of
+                Table.Table_Data _ -> json_from_table value
+                _ -> value.to_json
         """);
   }
 
@@ -734,14 +791,14 @@ public class EnsoParserTest {
   public void testVisualizationCaseOf() {
     parseTest(
         """
-    prepare_visualization : Any -> Integer -> Json
-    prepare_visualization x max_rows=1000 = case x of
-        Array ->
-            prepare_visualization (Vector.from_polyglot_array x) max_rows
+        prepare_visualization : Any -> Integer -> Json
+        prepare_visualization x max_rows=1000 = case x of
+            Array ->
+                prepare_visualization (Vector.from_polyglot_array x) max_rows
 
-        # Anything else will be visualized with the JSON or matrix visualization
-        _ ->
-            Json.from_pairs [["json", x]] . to_text
+            # Anything else will be visualized with the JSON or matrix visualization
+            _ ->
+                Json.from_pairs [["json", x]] . to_text
         """);
   }
 
@@ -749,168 +806,182 @@ public class EnsoParserTest {
   public void testAggregateColumnGroupByTrue() {
     parseTest(
         """
-    prepare_aggregate_columns : [Aggregate_Column] -> Table -> Problem_Behavior -> Resolved_Aggregate_Columns
-    prepare_aggregate_columns aggregates table =
-        # Grouping Key
-        is_a_key c = case c of
-            Aggregate_Column.Group_By _ _ -> True
-            _ -> False
-      """);
+        prepare_aggregate_columns : [Aggregate_Column] -> Table -> Problem_Behavior -> Resolved_Aggregate_Columns
+        prepare_aggregate_columns aggregates table =
+            # Grouping Key
+            is_a_key c = case c of
+                Aggregate_Column.Group_By _ _ -> True
+                _ -> False
+        """);
   }
 
   @Test
   public void testUnaryDot() {
-    parseTest("""
-    write_file = ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-      """);
+    parseTest(
+        """
+        write_file = ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
+        """);
   }
 
   @Test
   public void testUnaryMinus() {
-    parseTest("""
-    meaning = -42
-      """);
+    parseTest(
+        """
+        meaning = -42
+        """);
   }
 
   @Test
   public void testExtensionMethod() {
-    parseTest("""
-    Any.meaning = -42
-      """);
+    parseTest(
+        """
+        Any.meaning = -42
+        """);
   }
 
   @Test
   public void testExtensionOperator() {
-    parseTest("""
-    Text.* : Integer -> Text
-    Text.* self = 42
-    """);
+    parseTest(
+        """
+        Text.* : Integer -> Text
+        Text.* self = 42
+        """);
   }
 
   @Test
   public void testTypeSignature() {
     parseTest(
         """
-    resolve_aggregate table problem_builder aggregate_column =
-        table_columns = table.columns
+        resolve_aggregate table problem_builder aggregate_column =
+            table_columns = table.columns
 
-        resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
-        resolve c = 42
-    """);
+            resolve : (Integer|Text|Column) -> Column ! Internal_Missing_Column_Error
+            resolve c = 42
+        """);
   }
 
   @Test
   public void testTypeSignature2() {
-    parseTest("""
-    type Baz
-        resolve : Integer -> Column
-    """);
+    parseTest(
+        """
+        type Baz
+            resolve : Integer -> Column
+        """);
   }
 
   @Test
   public void testTypeSignatureQualified() {
-    parseTest("""
-    type Baz
-        Foo.resolve : Integer -> Column
-    """);
+    parseTest(
+        """
+        type Baz
+            Foo.resolve : Integer -> Column
+        """);
   }
 
   @Test
   public void testMethodDef() {
-    parseTest("""
-    type Foo
-        id x = x
-    """);
+    parseTest(
+        """
+        type Foo
+            id x = x
+        """);
   }
 
   @Test
   public void testSelfTypeKeyword() {
     parseTest(
         """
-    type My_Type
-        Cons_A x
-        Cons_B y=(Self.Cons_A 10)
+        type My_Type
+            Cons_A x
+            Cons_B y=(Self.Cons_A 10)
 
-        static = 123
+            static = 123
 
-        static_use = Self.static + (Self.Cons_A 5).x
-        instance_use self = Self.static + self.x + (Self.Cons_A 5).x
+            static_use = Self.static + (Self.Cons_A 5).x
+            instance_use self = Self.static + self.x + (Self.Cons_A 5).x
 
-        static_match x = case x of
-            Self -> "it matched"
-            _ -> "it didn't match"
+            static_match x = case x of
+                Self -> "it matched"
+                _ -> "it didn't match"
 
-        matching_method self = case self of
-            Self.Cons_A y -> y + 2
+            matching_method self = case self of
+                Self.Cons_A y -> y + 2
 
-        match_by_type x = case x of
-            _ : Self -> "it's a Self"
-            _ -> "it's a something else"
-    """);
+            match_by_type x = case x of
+                _ : Self -> "it's a Self"
+                _ -> "it's a something else"
+        """);
   }
 
   @Test
   public void testCaseOnTextLiteral() {
-    parseTest("""
-    choose ch = case ch of
-        "yes" -> True
-        "no" -> False
-      """);
+    parseTest(
+        """
+        choose ch = case ch of
+            "yes" -> True
+            "no" -> False
+        """);
   }
 
   @Test
   public void testCaseWithUnderscore() {
-    parseTest("""
-    choose ch = case ch of
-        0 -> _.name
-        _ -> Nothing
-    """);
+    parseTest(
+        """
+        choose ch = case ch of
+            0 -> _.name
+            _ -> Nothing
+        """);
   }
 
   @Test
   public void testCaseWithLowerCaseA() {
-    parseTest("""
-    map_nothing self = case self of
-        a -> f a
-    """);
+    parseTest(
+        """
+        map_nothing self = case self of
+            a -> f a
+        """);
   }
 
   @Test
   public void testBalanceUpperCase() {
-    parseTest("""
-    balance_left k x l r = case r of
-        Bin _ lk lx Tip -> 42
-      """);
+    parseTest(
+        """
+        balance_left k x l r = case r of
+            Bin _ lk lx Tip -> 42
+        """);
   }
 
   @Test
   public void testBalanceLowerCase() {
-    parseTest("""
-    balance_left k x l r = case r of
-        Bin _ lk lx tip -> 42
-      """);
+    parseTest(
+        """
+        balance_left k x l r = case r of
+            Bin _ lk lx tip -> 42
+        """);
   }
 
   @Test
   public void testVectorVectorSimple() {
-    parseTest("""
-    type Vector
-        build : Matrix Any Float
-    """);
+    parseTest(
+        """
+        type Vector
+            build : Matrix Any Float
+        """);
   }
 
   @Test
   public void testVectorVectorAny() {
     parseTest(
         """
-    type Vector
-        build : Standard.Base.Vector.Matrix Standard.Base.Any Standard.Base.Float
-    """);
+        type Vector
+            build : Standard.Base.Vector.Matrix Standard.Base.Any Standard.Base.Float
+        """);
   }
 
   @Test
   public void testCaseOfVector() {
-    parseTest("""
+    parseTest(
+        """
         m other = case other of
             _:Vector.Vector -> 0
         """);
@@ -920,198 +991,215 @@ public class EnsoParserTest {
   public void testOperatorSectionRight() {
     parseTest(
         """
-    type Filter_Condition
-        to_predicate self = case self of
-            Less value -> <value
-    """);
+        type Filter_Condition
+            to_predicate self = case self of
+                Less value -> <value
+        """);
   }
 
   @Test
   public void testSuspendedDefaultArguments() {
-    parseTest("""
-    fn that_meta =
-        c_2 = that_meta.constructor ...
+    parseTest(
+        """
+        fn that_meta =
+            c_2 = that_meta.constructor ...
         """);
   }
 
   @Test
   public void testSuspendedDefaultArguments2() {
-    parseTest("""
-    fn1 = fn ...
-    fn2 = fn 1 ...
-    """);
+    parseTest(
+        """
+        fn1 = fn ...
+        fn2 = fn 1 ...
+        """);
   }
 
   @Test
   public void testForcedTerms() {
-    parseTest("""
-    ifTest = c -> (~ifT) -> ~ifF -> if c == 0 then ifT else ifF
-    """);
+    parseTest(
+        """
+        ifTest = c -> (~ifT) -> ~ifF -> if c == 0 then ifT else ifF
+        """);
   }
 
   @Test
   public void testTextArrayType() {
-    parseTest("""
-    type Connection
-        table_types : [Text]
-    """);
+    parseTest(
+        """
+        type Connection
+            table_types : [Text]
+        """);
   }
 
   @Test
   public void testListBody() {
     parseTest(
         """
-          list directory name_filter=Nothing recursive=False =
-              new directory . list name_filter=name_filter recursive=recursive
-                  """);
+        list directory name_filter=Nothing recursive=False =
+            new directory . list name_filter=name_filter recursive=recursive
+        """);
   }
 
   @Test
   public void testLambdaBody() {
-    parseTest("""
-    list =
-        all_files.filter file->
-            all_files
-    """);
+    parseTest(
+        """
+        list =
+            all_files.filter file->
+                all_files
+        """);
   }
 
   @Test
   public void testCaseWithComment() {
     parseTest(
         """
-    ansi_bold : Boolean -> Text -> Text
-    ansi_bold enabled txt =
-        case Platform.os of
-            ## Output formatting for Windows is not currently supported.
-            Platform.OS.Windows -> txt
-            _ -> if enabled then Nothing
-    """);
+        ansi_bold : Boolean -> Text -> Text
+        ansi_bold enabled txt =
+            case Platform.os of
+                ## Output formatting for Windows is not currently supported.
+                Platform.OS.Windows -> txt
+                _ -> if enabled then Nothing
+        """);
   }
 
   @Test
   public void testAlternationTypes() {
-    parseTest("""
-    foo : [Integer | Text] -> (Integer | Text)
-    foo v = v.at 0
-    """);
+    parseTest(
+        """
+        foo : [Integer | Text] -> (Integer | Text)
+        foo v = v.at 0
+        """);
   }
 
   @Test
   public void testGroupOfPatterns() {
     parseTest(
         """
-    sum self = case self of
-        Group (A _) (B _ _) (C _ e _) (D _ f _ g) -> e + f + g
-    """);
+        sum self = case self of
+            Group (A _) (B _ _) (C _ e _) (D _ f _ g) -> e + f + g
+        """);
   }
 
   @Test
   public void testNameAsMethodApp() {
-    parseTest("""
-    f = foo x=A.B
-    """);
+    parseTest(
+        """
+        f = foo x=A.B
+        """);
   }
 
   @Test
   public void testIsMethodWithSpaces() {
-    parseTest("""
-    f = 0.up_to . all f
-    """);
+    parseTest(
+        """
+        f = 0.up_to . all f
+        """);
   }
 
   @Test
   public void testIsMethodWithoutSpaces() {
-    parseTest("""
-    f = 0.up_to.all f
-    """);
+    parseTest(
+        """
+        f = 0.up_to.all f
+        """);
   }
 
   @Test
   public void testHandleRequestError() {
-    parseTest("""
-    request self req =
-        handle_request_error =
-            42
-    """);
+    parseTest(
+        """
+        request self req =
+            handle_request_error =
+                42
+        """);
   }
 
   @Test
   public void testWriteFlag() {
-    parseTest("""
-    type Write_Flag
-        JPEG_Quality val:Integer=95
-    """);
+    parseTest(
+        """
+        type Write_Flag
+            JPEG_Quality val:Integer=95
+        """);
   }
 
   @Test
   public void testHasDefaultsSuspended() {
-    parseTest("""
-    Atom.constructor self = get_atom_constructor self.value ...
-    """);
+    parseTest(
+        """
+        Atom.constructor self = get_atom_constructor self.value ...
+        """);
   }
 
   @Test
   public void testVectorVector() {
-    parseTest("""
-    get_stack_trace : Vector.Vector Stack_Trace_Element
-    """);
+    parseTest(
+        """
+        get_stack_trace : Vector.Vector Stack_Trace_Element
+        """);
   }
 
   @Test
   public void testSidesPlus() {
-    parseTest("""
-    result = reduce (+)
-    """);
+    parseTest(
+        """
+        result = reduce (+)
+        """);
   }
 
   @Test
   public void testConstructorMultipleNamedArgs1() {
     parseTest(
         """
-    x = Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True
-    """);
+        x = Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True
+        """);
   }
 
   @Test
   public void testDocAtEndOfBlock() {
-    parseTest("""
-    x =
-      23
-      ## end of block
-    """);
+    parseTest(
+        """
+        x =
+          23
+          ## end of block
+        """);
   }
 
   @Test
   public void testMethodSections() {
-    parseTest("""
-    x = .from self=Foo
-    """);
+    parseTest(
+        """
+        x = .from self=Foo
+        """);
   }
 
   @Test
   public void testGroupArgument() {
-    parseTest("""
-    foo = x -> (y = bar x) -> x + y
-    """);
+    parseTest(
+        """
+        foo = x -> (y = bar x) -> x + y
+        """);
   }
 
   @Test
   public void testRuntimeServerTestCode() {
     parseTest(
         """
-    from Standard.Base.Data.Numbers import Number
+        from Standard.Base.Data.Numbers import Number
 
-    main =
-        x = 6
-        y = x.foo 5
-        z = y + 5
-        z
+        main =
+            x = 6
+            y = x.foo 5
+            z = y + 5
+            z
 
-    Number.foo self = x ->
-        y = self + 3
-        z = y * x
-        z
-    """,
+        Number.foo self = x ->
+            y = self + 3
+            z = y * x
+            z
+        """,
         true,
         true,
         true);
@@ -1119,47 +1207,49 @@ public class EnsoParserTest {
 
   @Test
   public void testResolveExecutionContext() {
-    parseTest("""
-    foo : A -> B -> C in Input
-    """);
+    parseTest(
+        """
+        foo : A -> B -> C in Input
+        """);
   }
 
   @Test
   public void testSugaredFunctionDefinition() {
-    parseTest("""
-    main =
-        f a b = a - b
-        f 10 20
-    """);
+    parseTest(
+        """
+        main =
+            f a b = a - b
+            f 10 20
+        """);
   }
 
   @Test
   public void testAtomBenchmarks1() {
     parseTest(
         """
-    import Standard.Base.Data.List.List
+        import Standard.Base.Data.List.List
 
-    main =
-        generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
-        res = generator (acc -> x -> List.Cons x acc) List.Nil 1 1000000
-        res
-    """);
+        main =
+            generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
+            res = generator (acc -> x -> List.Cons x acc) List.Nil 1 1000000
+            res
+        """);
   }
 
   @Test
   public void testAtomBenchmarks3() {
     parseTest(
         """
-    import Standard.Base.Data.List.List
+        import Standard.Base.Data.List.List
 
-    List.mapReverse self f acc = case self of
-        List.Cons h t -> @Tail_Call t.mapReverse f (List.Cons (f h) acc)
-        _ -> acc
+        List.mapReverse self f acc = case self of
+            List.Cons h t -> @Tail_Call t.mapReverse f (List.Cons (f h) acc)
+            _ -> acc
 
-    main = list ->
-        res = list.mapReverse (x -> x + 1) List.Nil
-        res
-    """,
+        main = list ->
+            res = list.mapReverse (x -> x + 1) List.Nil
+            res
+        """,
         true,
         true,
         false);
@@ -1169,19 +1259,19 @@ public class EnsoParserTest {
   public void testShouldQuoteValuesContainingTheCommentSymbol() {
     parseTest(
         """
-    suite =
-        Test.specify "should quote values containing the comment symbol if comments are enabled" <|
-            format = Delimited_Format.Delimited ',' . with_comments
-            table.write file format on_problems=..Report_Error . should_succeed
-            expected_text_2 = normalize_lines <| \"""
-                "#",B
-                b,
-                x,"#"
-                "#",abc
-            text_2 = File.read_text file
-            text_2.should_equal expected_text_2
-            file.delete
-    """,
+        suite =
+            Test.specify "should quote values containing the comment symbol if comments are enabled" <|
+                format = Delimited_Format.Delimited ',' . with_comments
+                table.write file format on_problems=..Report_Error . should_succeed
+                expected_text_2 = normalize_lines <| \"""
+                    "#",B
+                    b,
+                    x,"#"
+                    "#",abc
+                text_2 = File.read_text file
+                text_2.should_equal expected_text_2
+                file.delete
+        """,
         true,
         true,
         false);
@@ -1191,12 +1281,12 @@ public class EnsoParserTest {
   public void testEmptyValueBetweenComments() {
     parseTest(
         """
-    expected_text = normalize_lines <| \"""
-                A,B
-                1,
-                ,""
-                3,abc
-    """,
+        expected_text = normalize_lines <| \"""
+                    A,B
+                    1,
+                    ,""
+                    3,abc
+        """,
         true,
         true,
         false);
@@ -1206,9 +1296,9 @@ public class EnsoParserTest {
   public void testQuotedValues() {
     parseTest(
         """
-    expected_text = normalize_lines <| \"""
-        "one, two, three",-1.5,42,"4\"000",
-    """,
+        expected_text = normalize_lines <| \"""
+            "one, two, three",-1.5,42,"4\"000",
+        """,
         true,
         true,
         false);
@@ -1218,26 +1308,26 @@ public class EnsoParserTest {
   public void testSimpleTripleQuote() {
     parseTest(
         """
-    expected_response = Json.parse <| '''
-        {
-          "headers": {
-            "Content-Length": "13",
-            "Content-Type": "application/json",
-            "User-Agent": "Java-http-client/11.0.13"
-          },
-          "origin": "127.0.0.1",
-          "url": "",
-          "args": {},
-          "data": "{\\"key\\":\\"val\\"}",
-          "files": null,
-          "form": null,
-          "json": {
-            "key": "val"
-          }
-        }
-    json = Json.parse <| '''
-        {"key":"val"}
-    res = Http.new.post_json url_post json
+        expected_response = Json.parse <| '''
+            {
+              "headers": {
+                "Content-Length": "13",
+                "Content-Type": "application/json",
+                "User-Agent": "Java-http-client/11.0.13"
+              },
+              "origin": "127.0.0.1",
+              "url": "",
+              "args": {},
+              "data": "{\\"key\\":\\"val\\"}",
+              "files": null,
+              "form": null,
+              "json": {
+                "key": "val"
+              }
+            }
+        json = Json.parse <| '''
+            {"key":"val"}
+        res = Http.new.post_json url_post json
         """,
         true,
         true,
@@ -1248,29 +1338,31 @@ public class EnsoParserTest {
   public void testInThePresenceOfComments() {
     parseTest(
         """
-    # this is a comment
-    #this too
-    ## But this is a doc.
-    main = # define main
-        y = 1 # assign one to `y`
-        x = 2 # assign two to #x
-        # perform the addition
-        x + y # the addition is performed here
-    """);
+        # this is a comment
+        #this too
+        ## But this is a doc.
+        main = # define main
+            y = 1 # assign one to `y`
+            x = 2 # assign two to #x
+            # perform the addition
+            x + y # the addition is performed here
+        """);
   }
 
   @Test
   public void testNPE183892665() {
-    parseTest("""
-    foo : Integer ->
-    """);
+    parseTest(
+        """
+        foo : Integer ->
+        """);
   }
 
   @Test
   public void testNamedDefaultedArguments183953473() {
-    parseTest("""
-    main = @Tail_Call summator (current = 0) (acc = 1)
-    """);
+    parseTest(
+        """
+        main = @Tail_Call summator (current = 0) (acc = 1)
+        """);
   }
 
   @Test
@@ -1308,66 +1400,66 @@ public class EnsoParserTest {
   public void testBlockSyntax() throws IOException {
     equivalenceTest(
         """
-    nums v fm ff n = v . map fm . filter ff . take n
-    """,
+        nums v fm ff n = v . map fm . filter ff . take n
+        """,
         """
-    nums v fm ff n = v
-        . map fm
-        . filter ff
-        . take n
-    """);
+        nums v fm ff n = v
+            . map fm
+            . filter ff
+            . take n
+        """);
   }
 
   @Test
   public void testBlockSyntaxOperators() throws IOException {
     equivalenceTest(
         """
-    value = nums * each random + constant
-    """,
+        value = nums * each random + constant
+        """,
         """
-    value = nums
-        * each random
-        + constant
-    """);
+        value = nums
+            * each random
+            + constant
+        """);
   }
 
   @Test
   public void testBlockSyntaxOperators2() throws IOException {
     equivalenceTest(
         """
-    value = (nums + each random) * constant
-    """,
+        value = (nums + each random) * constant
+        """,
         """
-    value = nums
-        + each random
-        * constant
-    """);
+        value = nums
+            + each random
+            * constant
+        """);
   }
 
   @Test
   public void testBlockSyntaxOperators3() throws IOException {
     equivalenceTest(
         """
-    v = (rect1 . width) . center
-    """,
+        v = (rect1 . width) . center
+        """,
         """
-    v = rect1
-        . width
-        . center
-    """);
+        v = rect1
+            . width
+            . center
+        """);
   }
 
   @Test
   public void testBlockSyntaxOperators4() throws IOException {
     equivalenceTest(
         """
-    v = (rect1 . width 4) . center 3 2
-    """,
+        v = (rect1 . width 4) . center 3 2
+        """,
         """
-    v = rect1
-        . width 4
-        . center 3 2
-    """);
+        v = rect1
+            . width 4
+            . center 3 2
+        """);
   }
 
   @Test
@@ -1376,14 +1468,14 @@ public class EnsoParserTest {
         List.of(
             "private",
             """
-        # Comment
-        private
-        """,
+            # Comment
+            private
+            """,
             """
-        # Comment with empty line
+            # Comment with empty line
 
-        private
-        """);
+            private
+            """);
     for (var moduleCode : moduleCodes) {
       parseTest(moduleCode);
       var module = compile("private");
@@ -1395,7 +1487,8 @@ public class EnsoParserTest {
 
   @Test
   public void testPrivateMethodInType() {
-    String code = """
+    String code =
+        """
         type My_Type
             private method self = self
         """;
@@ -1415,7 +1508,8 @@ public class EnsoParserTest {
 
   @Test
   public void testPrivateTopLevelMethod() throws IOException {
-    String code = """
+    String code =
+        """
         private method x = x
         """;
     var ir = compile(code);
@@ -1429,7 +1523,8 @@ public class EnsoParserTest {
 
   @Test
   public void testPrivateAndPublicTopScopeMethods() {
-    var code = """
+    var code =
+        """
         private priv_method x = x
         pub_method x = x
         """;
@@ -1460,44 +1555,46 @@ public class EnsoParserTest {
   public void testPrivateConstructor() {
     parseTest(
         """
-            type My_Type
-                private Ctor_1 a b
-                private Ctor_2 c d
-            """);
+        type My_Type
+            private Ctor_1 a b
+            private Ctor_2 c d
+        """);
     // Mixing public and private constructor is a semantic error, not a syntax error.
     // So parsing should be fine.
     parseTest(
         """
-            type My_Type
-                private Ctor_1 a b
-                Ctor_2 c d
-            """);
+        type My_Type
+            private Ctor_1 a b
+            Ctor_2 c d
+        """);
   }
 
   @Test
   public void ise_184219679() {
     parseTest(
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    main =
-        x = 42
-        y = if x == 42 then 10 else
-        20
-        IO.println y
-    """);
+        main =
+            x = 42
+            y = if x == 42 then 10 else
+            20
+            IO.println y
+        """);
   }
 
   @Test
   public void testEmptyBody() {
-    parseTest("""
-    main =
-    """);
+    parseTest(
+        """
+        main =
+        """);
   }
 
   @Test
   public void testAnnotatedExpression() {
-    String code = """
+    String code =
+        """
         type A
         main = 42 : A
         """;
@@ -1517,7 +1614,8 @@ public class EnsoParserTest {
 
   @Test
   public void testSugaredTypeBodyHasLocation() {
-    var code = """
+    var code =
+        """
         type My_Type
             f self = self
         """;

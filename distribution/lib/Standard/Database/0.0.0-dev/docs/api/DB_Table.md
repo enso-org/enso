@@ -10,6 +10,7 @@
     - make_column self internal:Standard.Database.Internal.IR.Internal_Column.Internal_Column -> (Standard.Base.Any.Any|Standard.Base.Any.Any)
     - name self -> Standard.Base.Data.Text.Text
     - save_as_data_link self destination:Standard.Base.Any.Any on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
+    - table_name_schema self -> Standard.Base.Any.Any
     - to_select_query self -> Standard.Base.Any.Any
     - to_sql self -> Standard.Database.SQL.SQL_Statement
     - updated_columns self internal_columns:Standard.Base.Any.Any -> Standard.Base.Any.Any

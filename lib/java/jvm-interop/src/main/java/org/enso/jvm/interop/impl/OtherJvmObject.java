@@ -1,6 +1,5 @@
 package org.enso.jvm.interop.impl;
 
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -304,7 +303,7 @@ final class OtherJvmObject implements TruffleObject {
         var iop = InteropLibrary.getUncached();
         var mask = OtherInteropType.findType(foreign);
         if (isHostNull(mask, foreign)) {
-            yield new OtherJvmObject(null, 0, mask);
+          yield new OtherJvmObject(null, 0, mask);
         }
         var meta = OtherInteropType.isMetaObject(mask);
         var id = registerObject.apply(foreign, meta);
@@ -333,7 +332,8 @@ final class OtherJvmObject implements TruffleObject {
     var iop = InteropLibrary.getUncached();
     if (OtherInteropType.isNull(mask)) {
       try {
-        if (iop.hasLanguage(foreign) && iop.getLanguage(foreign).getSimpleName().equals("HostLanguage")) {
+        if (iop.hasLanguage(foreign)
+            && iop.getLanguage(foreign).getSimpleName().equals("HostLanguage")) {
           return true;
         }
       } catch (UnsupportedMessageException ex) {

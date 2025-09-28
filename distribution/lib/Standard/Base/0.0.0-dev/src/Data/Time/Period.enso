@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
@@ -191,6 +192,38 @@ type Period
     * self factor =
         catch_java_exceptions "Period.*" <|
             Period.Value (self.internal_period.multipliedBy factor)
+
+    ## ---
+      aliases: [greater than]
+      group: Operators
+      icon: operators
+      ---
+      Checks if `self` is greater than `that`.
+    > self that = Comparable.> self that
+
+    ## ---
+       aliases: [greater than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than or equal to `that`.
+    >= self that = Comparable.>= self that
+
+    ## ---
+       aliases: [less than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than `that`.
+    < self that = Comparable.< self that
+
+    ## ---
+       aliases: [less than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than or equal to `that`.
+    <= self that = Comparable.<= self that
 
     ## ---
        group: Operators

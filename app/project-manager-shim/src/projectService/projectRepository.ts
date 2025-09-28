@@ -4,6 +4,7 @@ import { Path } from 'enso-common/src/utilities/file'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
+import trash from 'trash'
 import * as yaml from 'yaml'
 import * as nameValidation from './nameValidation.js'
 
@@ -32,16 +33,17 @@ export interface ProjectRepository {
   exists(name: string): Promise<boolean>
   findPathForNewProject(normalizedName: string): Promise<Path>
   update(project: Project): Promise<void>
-  delete(projectId: string): Promise<void>
-  moveToTrash(projectId: string): Promise<boolean>
-  rename(projectId: string, name: string): Promise<void>
-  findById(projectId: string): Promise<Project | null>
+  delete(path: Path): Promise<void>
+  moveToTrash(path: Path): Promise<void>
+  rename(projectId: UUID, name: string): Promise<void>
+  renameProjectDirectory(oldPath: Path, newNormalizedName: string): Promise<Path>
+  findById(projectId: UUID): Promise<Project | null>
   find(predicate: (project: Project) => boolean): Promise<readonly Project[]>
   getAll(): Promise<readonly Project[]>
-  moveProject(projectId: string, newName: string): Promise<Path>
+  moveProject(projectId: UUID, newName: string): Promise<Path>
   copyProject(project: Project, newName: string, newMetadata: ProjectMetadata): Promise<Project>
-  getPackageName(projectId: string): Promise<string>
-  getPackageNamespace(projectId: string): Promise<string>
+  getPackageName(projectId: UUID): Promise<string>
+  getPackageNamespace(projectId: UUID): Promise<string>
   tryLoadProject(directory: Path): Promise<Project | null>
 }
 
@@ -50,6 +52,7 @@ const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 
 interface PackageYaml {
   name?: string
+  normalizedName?: string
   namespace?: string
   edition?: string
   jvmModeEnabled?: boolean
@@ -92,32 +95,18 @@ export class ProjectFileRepository implements ProjectRepository {
     await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
   }
 
-  /** Deletes a project by ID. */
-  async delete(projectId: string): Promise<void> {
-    const project = await this.findById(projectId)
-    if (!project) {
-      throw new Error(`Project '${projectId}' not found`)
-    }
-    await fs.rm(project.path, { recursive: true, force: true })
+  /** Deletes a path. */
+  async delete(path: Path): Promise<void> {
+    await fs.rm(path, { recursive: true, force: true })
   }
 
-  /** Moves a project to trash. */
-  async moveToTrash(projectId: string): Promise<boolean> {
-    const project = await this.findById(projectId)
-    if (!project) {
-      throw new Error(`Project '${projectId}' not found`)
-    }
-
-    // TODO: Simple implementation: move to a .trash directory
-    // This should use platform-specific trash APIs
-    const trashPath = path.join(this.projectsPath, '.trash', path.basename(project.path))
-    await fs.mkdir(path.dirname(trashPath), { recursive: true })
-    await fs.rename(project.path, trashPath)
-    return true
+  /** Moves a path to system trash. */
+  async moveToTrash(path: Path): Promise<void> {
+    await trash(path)
   }
 
   /** Renames a project. */
-  async rename(projectId: string, name: string): Promise<void> {
+  async rename(projectId: UUID, name: string): Promise<void> {
     const project = await this.findById(projectId)
     if (!project) {
       throw new Error(`Project '${projectId}' not found`)
@@ -125,8 +114,15 @@ export class ProjectFileRepository implements ProjectRepository {
     await this.renamePackage(project.path, name)
   }
 
+  /** Renames the project directory on disk. */
+  async renameProjectDirectory(oldPath: Path, newNormalizedName: string): Promise<Path> {
+    const newPath = await this.findTargetPath(newNormalizedName)
+    await fs.rename(oldPath, newPath)
+    return newPath
+  }
+
   /** Finds a project by ID. */
-  async findById(projectId: string): Promise<Project | null> {
+  async findById(projectId: UUID): Promise<Project | null> {
     const projects = await this.getAll()
     return projects.find((p) => p.id === projectId) ?? null
   }
@@ -158,7 +154,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Moves a project to a new location. */
-  async moveProject(projectId: string, newName: string): Promise<Path> {
+  async moveProject(projectId: UUID, newName: string): Promise<Path> {
     const project = await this.findById(projectId)
     if (!project) {
       throw new Error(`Project '${projectId}' not found`)
@@ -178,9 +174,8 @@ export class ProjectFileRepository implements ProjectRepository {
   ): Promise<Project> {
     const normalizedName = nameValidation.normalizedName(newName)
     const targetPath = await this.findTargetPath(normalizedName)
-
-    await this.copyDirectory(project.path, targetPath)
-
+    // Copy directory
+    await fs.cp(project.path, targetPath, { recursive: true })
     // Update metadata
     const metadataPath = path.join(targetPath, PROJECT_METADATA_RELATIVE_PATH)
     const metadata: ProjectJson = {
@@ -191,7 +186,6 @@ export class ProjectFileRepository implements ProjectRepository {
     }
     await fs.mkdir(path.dirname(metadataPath), { recursive: true })
     await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
-
     // Update package name
     await this.renamePackage(targetPath, newName)
 
@@ -203,7 +197,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Gets the package name for a project. */
-  async getPackageName(projectId: string): Promise<string> {
+  async getPackageName(projectId: UUID): Promise<string> {
     const project = await this.findById(projectId)
     if (!project) {
       throw new Error(`Project '${projectId}' not found`)
@@ -216,7 +210,7 @@ export class ProjectFileRepository implements ProjectRepository {
   }
 
   /** Gets the package namespace for a project. */
-  async getPackageNamespace(projectId: string): Promise<string> {
+  async getPackageNamespace(projectId: UUID): Promise<string> {
     const project = await this.findById(projectId)
     if (!project) {
       throw new Error(`Project '${projectId}' not found`)
@@ -286,6 +280,7 @@ export class ProjectFileRepository implements ProjectRepository {
     const content = await fs.readFile(packagePath, 'utf-8')
     const pkg = yaml.parse(content) as PackageYaml
     pkg.name = newName
+    delete pkg.normalizedName
     await fs.writeFile(packagePath, yaml.stringify(pkg))
   }
 
@@ -301,22 +296,6 @@ export class ProjectFileRepository implements ProjectRepository {
         suffix += 1
       } catch {
         return Path(candidatePath)
-      }
-    }
-  }
-
-  private async copyDirectory(source: Path, destination: Path): Promise<void> {
-    await fs.mkdir(destination, { recursive: true })
-    const entries = await fs.readdir(source, { withFileTypes: true })
-
-    for (const entry of entries) {
-      const sourcePath = path.join(source, entry.name)
-      const destPath = path.join(destination, entry.name)
-
-      if (entry.isDirectory()) {
-        await this.copyDirectory(Path(sourcePath), Path(destPath))
-      } else {
-        await fs.copyFile(sourcePath, destPath)
       }
     }
   }

@@ -65,11 +65,11 @@ public class TypeOfNodeMultiValueTest {
     var typeOf =
         ctxRule.evalModule(
             """
-    from Standard.Base import all
+            from Standard.Base import all
 
-    typ obj = Meta.type_of obj
-    main = typ
-    """);
+            typ obj = Meta.type_of obj
+            main = typ
+            """);
     var data = new ArrayList<Object[]>();
     for (var polyValue : g.allValues()) {
       registerValue(g, typeOf, polyValue, data);

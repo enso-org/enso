@@ -26,72 +26,72 @@ public class PolyglotErrorTest {
 
     var code =
         """
-    import Standard.Base.Panic.Panic
-    import Standard.Base.Data.Text.Text
-    from Standard.Base.Error import all
-    import Standard.Base.Errors.Illegal_State.Illegal_State
-    import Standard.Base.Nothing.Nothing
-    import Standard.Base.Warning.Warning
-    polyglot java import org.enso.interpreter.test.PolyglotErrorTest
+        import Standard.Base.Panic.Panic
+        import Standard.Base.Data.Text.Text
+        from Standard.Base.Error import all
+        import Standard.Base.Errors.Illegal_State.Illegal_State
+        import Standard.Base.Nothing.Nothing
+        import Standard.Base.Warning.Warning
+        polyglot java import org.enso.interpreter.test.PolyglotErrorTest
 
-    type TypeCa
-        Ca x
+        type TypeCa
+            Ca x
 
-        to_text : Text
-        to_text self = "<<Ca "+self.x.to_text+">>"
+            to_text : Text
+            to_text self = "<<Ca "+self.x.to_text+">>"
 
-    type TypeCb
-        Cb x
+        type TypeCb
+            Cb x
 
-        to_text : Text
-        to_text self = Error.throw (Illegal_State.Error "B")
+            to_text : Text
+            to_text self = Error.throw (Illegal_State.Error "B")
 
-    type TypeCc
-        Cc x
+        type TypeCc
+            Cc x
 
-        to_text : Text
-        to_text self = Panic.throw (Illegal_State.Error "C")
+            to_text : Text
+            to_text self = Panic.throw (Illegal_State.Error "C")
 
-    type TypeCd
-        Cd x
+        type TypeCd
+            Cd x
 
-        to_text self = 42
+            to_text self = 42
 
-    type TypeCe
-        Ce x
+        type TypeCe
+            Ce x
 
-        to_text self = Warning.attach "Some random warning" self.x
+            to_text self = Warning.attach "Some random warning" self.x
 
-    panic x = case x of
-        1 -> panic1
-        2 -> panic2
-        3 -> panic3
-        4 -> panic4
-        5 -> panic5
-        6 -> panic6
-        _ -> panic7
+        panic x = case x of
+            1 -> panic1
+            2 -> panic2
+            3 -> panic3
+            4 -> panic4
+            5 -> panic5
+            6 -> panic6
+            _ -> panic7
 
-    panic1 = PolyglotErrorTest.bar (TypeCa.Ca 'x')
+        panic1 = PolyglotErrorTest.bar (TypeCa.Ca 'x')
 
-    panic2 =
-        PolyglotErrorTest.bar (TypeCb.Cb 'y') . catch err->
-            "{Error: "+err.to_text+"}"
+        panic2 =
+            PolyglotErrorTest.bar (TypeCb.Cb 'y') . catch err->
+                "{Error: "+err.to_text+"}"
 
-    panic3 =
-        Panic.catch Illegal_State (PolyglotErrorTest.bar (TypeCc.Cc 'z')) caught_panic->
-            "{Panic: "+caught_panic.payload.to_text+"}"
+        panic3 =
+            Panic.catch Illegal_State (PolyglotErrorTest.bar (TypeCc.Cc 'z')) caught_panic->
+                "{Panic: "+caught_panic.payload.to_text+"}"
 
-    panic4 = PolyglotErrorTest.bar (TypeCd.Cd Nothing)
+        panic4 = PolyglotErrorTest.bar (TypeCd.Cd Nothing)
 
-    panic5 = PolyglotErrorTest.bar (TypeCe.Ce "Foo")
-    panic6 = PolyglotErrorTest.bar (TypeCe.Ce 44)
-    panic7 =
-        j = Error.throw 1
-        d = Error.throw 2
-        t = j + d
-        v = [j, d, t]
-        v
-    """;
+        panic5 = PolyglotErrorTest.bar (TypeCe.Ce "Foo")
+        panic6 = PolyglotErrorTest.bar (TypeCe.Ce 44)
+        panic7 =
+            j = Error.throw 1
+            d = Error.throw 2
+            t = j + d
+            v = [j, d, t]
+            v
+        """;
     var src = Source.newBuilder("enso", code, "test.enso").build();
     var module = ctx.eval(src);
 
