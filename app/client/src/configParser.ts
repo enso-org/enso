@@ -11,79 +11,76 @@ import {
 
 // CLI-only metadata defining flags and descriptions.
 const OPTIONS_META: Readonly<Record<string, { flag: string; description: string }>> = {
-  version: { flag: '-v, --version', description: 'Print the version' },
+  version: { flag: '-v, --version', description: 'Show version and exit' },
   displayWindow: {
     flag: '--no-window',
-    description: 'Only the server runs. An alternative client or browser can connect to it',
+    description: 'Run server only, no GUI',
   },
   useServer: {
     flag: '--no-server',
-    description:
-      'When passed, the server will not be run and the application will connect to an existing server on --server.port',
+    description: 'Do not start server; connect to external server at --server.port',
   },
-  engineEnabled: { flag: '--no-engine', description: 'Do not start the engine process' },
-  useJvm: { flag: '--jvm', description: 'Start engine in JVM mode' },
+  engineEnabled: { flag: '--no-engine', description: 'Do not start engine process' },
+  useJvm: { flag: '--jvm', description: 'Run engine in JVM mode' },
   'startup.project': {
     flag: '--startup.project <name>',
-    description:
-      'The name of the project to open at startup. If the project does not exist, it will be created',
+    description: 'Project to open or create at startup',
   },
   'startup.displayedProjectName': {
     flag: '--startup.displayedProjectName <name>',
-    description: 'The name of the project to be displayed to the user',
+    description: 'Project name shown in UI',
   },
   'authentication.enabled': {
     flag: '--authentication.enabled',
-    description:
-      'Determines whether user authentication is enabled. This option is always true when executed in the cloud',
+    description: 'Enable user authentication (always true in cloud)',
   },
   'authentication.email': {
     flag: '--authentication.email <email>',
-    description: 'The user email, if the user is logged in',
+    description: 'User email for authentication',
   },
   'server.port': {
     flag: '--server.port',
-    description: 'Port to use. If the port is unavailable, the next available port is used',
+    description: 'Port to use (fallbacks to next available if busy)',
   },
   'engine.projectManagerPath': {
     flag: '--engine.projectManagerPath <path>',
-    description: 'Set the path of a local project manager executable to use for running projects',
+    description: 'Path to local project manager executable',
   },
   'engine.projectManagerUrl': {
     flag: '--engine.projectManagerUrl <url>',
-    description: 'The address of the Project Manager service',
+    description: 'Project Manager service URL',
   },
   'engine.ydocUrl': {
     flag: '--engine.ydocUrl <url>',
-    description: 'The address of the Ydoc Server endpoint',
+    description: 'Ydoc server URL',
   },
   'debug.info': {
     flag: '--debug.info',
-    description:
-      'Print the system debug information. It is recommended to copy the output of this command when submitting a report regarding any bugs encountered',
+    description: 'Print system debug info and exit',
   },
   'debug.verbose': {
     flag: '--debug.verbose',
-    description: 'Increase logs verbosity. Affects both IDE and the backend',
+    description: 'Increase backend log verbosity',
   },
   'debug.devTools': {
     flag: '--debug.devTools',
-    description: 'Run the application in development mode',
+    description: 'Enable development mode',
   },
   'debug.profile': {
     flag: '--debug.profile',
-    description: 'Start backend profiler on startup and log data to a profiling.npss file',
+    description: 'Start backend profiler and log to profiling.npss',
   },
   'debug.profileTime': {
     flag: '--debug.profileTime <seconds>',
-    description:
-      'Time since backend startup for which profiling data will be collected, if enabled',
+    description: 'Duration (s) to collect backend profiling data',
   },
 } as const
 
 /** Parse command line arguments to validated options. */
 export function parseArgs(argv: readonly string[]): Options {
   const command = new Command()
+
+  command.usage('[flags]')
 
   const options = flattenObject(defaultOptions())
   const optionPathToAttrName = new Map<string, string>()
