@@ -127,9 +127,6 @@ importers:
       electron-dl:
         specifier: 4.0.0
         version: 4.0.0
-      electron-dl-manager:
-        specifier: 4.0.0
-        version: 4.0.0(electron@37.2.1)
       electron-is-dev:
         specifier: ^2.0.0
         version: 2.0.0
@@ -154,21 +151,12 @@ importers:
       semver:
         specifier: ^7.6.3
         version: 7.7.1
-      string-length:
-        specifier: ^5.0.1
-        version: 5.0.1
-      tar:
-        specifier: ^6.2.1
-        version: 6.2.1
       tar-fs:
         specifier: ^3.0.9
         version: 3.1.0
       tar-stream:
         specifier: ^3.1.7
         version: 3.1.7
-      yaml:
-        specifier: ^2.7.0
-        version: 2.7.0
       yargs:
         specifier: 17.6.2
         version: 17.6.2
@@ -242,9 +230,6 @@ importers:
       fast-glob:
         specifier: ^3.3.2
         version: 3.3.2
-      lib0:
-        specifier: ^0.2.99
-        version: 0.2.99
       playwright:
         specifier: 'catalog:'
         version: 1.50.1
@@ -278,9 +263,6 @@ importers:
       is-network-error:
         specifier: ^1.1.0
         version: 1.1.0
-      lib0:
-        specifier: ^0.2.99
-        version: 0.2.99
       vue:
         specifier: '*'
         version: 3.5.13(typescript@5.7.2)
@@ -3842,10 +3824,6 @@ packages:
   change-case@4.1.2:
     resolution: {integrity: sha512-bSxY2ws9OtviILG1EiY5K7NNxkqg/JnRnFxLtKQ96JaviiIxi7djMrSd0ECT9AC+lttClmYwKw53BWpOMblo7A==}
 
-  char-regex@2.0.2:
-    resolution: {integrity: sha512-cbGOjAptfM2LVmWhwRFHEKTPkLwNddVmuqYZQt895yXwAsWsXObCG+YN4DGQ/JBtT4GP1a1lPPdio2z413LmTg==}
-    engines: {node: '>=12.20'}
-
   check-error@2.1.1:
     resolution: {integrity: sha512-OAlb+T7V4Op9OwdkjmguYRqncdlx5JiofwOAUkmTF+jNdHwzTaTs4sRAGpzLF3oOz5xAyDGrPgeIDFQmDOTiJw==}
     engines: {node: '>= 16'}
@@ -4402,11 +4380,6 @@ packages:
     resolution: {integrity: sha512-yZSgVHft5dNVlo31qmJAe4BVKQfFdwpRw7sFp1iQglDRCDD6r22zfRJuZlhtB5gp9FHUxCMEoWGq10SkCnMAIg==}
     engines: {node: '>=14.0.0'}
     hasBin: true
-
-  electron-dl-manager@4.0.0:
-    resolution: {integrity: sha512-fbwT0aTee92RM3uDyqho6iYspCSrD51OUZxaBYj6jwG6ansCM3xTGgG8kN1MwbPO9wjZ0vbpLwACcbP7O6J/+Q==}
-    peerDependencies:
-      electron: '>=26'
 
   electron-dl@4.0.0:
     resolution: {integrity: sha512-USiB9816d2JzKv0LiSbreRfTg5lDk3lWh0vlx/gugCO92ZIJkHVH0UM18EHvKeadErP6Xn4yiTphWzYfbA2Ong==}
@@ -6813,10 +6786,6 @@ packages:
   strict-event-emitter-types@2.0.0:
     resolution: {integrity: sha512-Nk/brWYpD85WlOgzw5h173aci0Teyv8YdIAEtV+N88nDB0dLlazZyJMIsN6eo1/AR61l+p6CJTG1JIyFaoNEEA==}
 
-  string-length@5.0.1:
-    resolution: {integrity: sha512-9Ep08KAMUn0OadnVaBuRdE2l615CQ508kr0XMadjClfYpdCyvrbFp6Taebo8yyxokQ4viUd/xPPUA4FGgUa0ow==}
-    engines: {node: '>=12.20'}
-
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
     engines: {node: '>=8'}
@@ -7149,10 +7118,6 @@ packages:
 
   unplugin@1.0.1:
     resolution: {integrity: sha512-aqrHaVBWW1JVKBHmGo33T5TxeL0qWzfvjWokObHA9bYmN7eNDkwOxmLjhioHl9878qDFMAaT51XNroRyuz7WxA==}
-
-  unused-filename@3.0.1:
-    resolution: {integrity: sha512-UbMRaEaT+/3mGh40GBRnF2++1VqFG1w0Kjzd5q/uQjagKn5pkCS8goJTgYDpQ6e0tB2GywamMJy1BzbSrMcIWw==}
-    engines: {node: '>=12'}
 
   unused-filename@4.0.1:
     resolution: {integrity: sha512-ZX6U1J04K1FoSUeoX1OicAhw4d0aro2qo+L8RhJkiGTNtBNkd/Fi1Wxoc9HzcVu6HfOzm0si/N15JjxFmD1z6A==}
@@ -11536,8 +11501,6 @@ snapshots:
       snake-case: 3.0.4
       tslib: 2.8.1
 
-  char-regex@2.0.2: {}
-
   check-error@2.1.1: {}
 
   chokidar@3.6.0:
@@ -12144,12 +12107,6 @@ snapshots:
     transitivePeerDependencies:
       - electron-builder-squirrel-windows
       - supports-color
-
-  electron-dl-manager@4.0.0(electron@37.2.1):
-    dependencies:
-      electron: 37.2.1
-      ext-name: 5.0.0
-      unused-filename: 3.0.1
 
   electron-dl@4.0.0:
     dependencies:
@@ -14826,11 +14783,6 @@ snapshots:
 
   strict-event-emitter-types@2.0.0: {}
 
-  string-length@5.0.1:
-    dependencies:
-      char-regex: 2.0.2
-      strip-ansi: 7.1.0
-
   string-width@4.2.3:
     dependencies:
       emoji-regex: 8.0.0
@@ -15245,11 +15197,6 @@ snapshots:
       chokidar: 3.6.0
       webpack-sources: 3.2.3
       webpack-virtual-modules: 0.5.0
-
-  unused-filename@3.0.1:
-    dependencies:
-      escape-string-regexp: 4.0.0
-      path-exists: 4.0.0
 
   unused-filename@4.0.1:
     dependencies:
