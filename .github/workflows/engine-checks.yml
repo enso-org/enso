@@ -800,7 +800,9 @@ jobs:
         run: |-
           tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
-      - run: ./run backend test std-microsoft
+      - run: |-
+          ./run backend test std-microsoft
+          ./run backend test std-mock-dual-microsoft
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
