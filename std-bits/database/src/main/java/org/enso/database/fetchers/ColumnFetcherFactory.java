@@ -9,6 +9,14 @@ import org.enso.table.problems.ProblemAggregator;
 public interface ColumnFetcherFactory {
   ColumnFetcherFactory DEFAULT = new DefaultColumnFetcherFactory();
 
+  default Class<? extends ColumnFetcher> getColumnFetcherClass() {
+    return ColumnFetcher.class;
+  }
+
+  default Class<? extends ProblemAggregator> getAggregatorClass() {
+    return ProblemAggregator.class;
+  }
+
   ColumnFetcher forStorageType(
       StorageType<?> storageType,
       int index,
