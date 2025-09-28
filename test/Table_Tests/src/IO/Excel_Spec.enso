@@ -12,6 +12,7 @@ from Standard.Table.Errors import Duplicate_Output_Column_Names, Invalid_Locatio
 from Standard.Table.Extensions.Excel_Extensions import all
 import Standard.Table.Excel.Excel_Workbook.Return_As as Old_Return_As
 from Standard.Table.Extensions.Column_Vector_Extensions import all
+import Standard.Table.Internal.Excel_Test_Helper
 
 from Standard.Test import all
 
@@ -22,9 +23,7 @@ import project.Util
 from project.Common_Table_Operations.Util import within_table
 from project.IO.Read_Many_Spec import with_temp_dir
 
-polyglot java import org.enso.base.cache.ReloadDetector
 polyglot java import org.enso.table_test_helpers.RandomHelpers
-polyglot java import org.enso.table.excel.ExcelConnectionPool
 
 spec_fmt suite_builder header file =
     suite_builder.group header group_builder->
@@ -1208,27 +1207,27 @@ add_specs suite_builder =
                 r3.at "Value" . at 0 . should_be_a Table
                 r3.at "Value" . at 1 . should_be_a Excel_Workbook
 
-        group_builder.specify "should clear cache on simulated reload" pending="https://github.com/enso-org/enso/issues/12166" <|
-            ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
+        group_builder.specify "should clear cache on simulated reload" <|
+            Excel_Test_Helper.simulate_reload_test_only
             w0 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w1 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w2 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             w3 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             [w0, w1, w2, w3].each check_workbook
 
-            ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
+            Excel_Test_Helper.simulate_reload_test_only
             w4 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w5 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w6 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             w7 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             [w4, w5, w6, w7].each check_workbook
 
     suite_builder.group "Problems" group_builder->
