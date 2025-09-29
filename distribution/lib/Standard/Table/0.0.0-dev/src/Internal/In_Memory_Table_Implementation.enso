@@ -84,6 +84,7 @@ polyglot java import org.enso.table.data.table.join.conditions.Between as Java_J
 polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
+polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.Row as Java_Row
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.TableToXml as Java_TableToXml
@@ -212,7 +213,8 @@ type In_Memory_Table_Implementation
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by this_table.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
-            java_columns = columns_for_ordering.map c->(c.column:In_Memory_Column).java_column
+            java_columns = columns_for_ordering.map c->
+                (c.column:In_Memory_Column).java_column
             directions = columns_for_ordering.map c->c.associated_selector.direction.to_sign
 
             comparator = case text_ordering.sort_digits_as_numbers of
@@ -452,7 +454,8 @@ type In_Memory_Table_Implementation
 
     columns (this_table : Table & In_Memory_Table) = Vector.from_polyglot_array <|
         Array_Proxy.new this_table.java_table.getColumns.length i->
-            In_Memory_Column.from_java_column (this_table.java_table.getColumns.at i)
+            java_column = this_table.java_table.getColumns.at i
+            In_Memory_Column.from_java_column java_column
 
     column_names (this_table : Table & In_Memory_Table) = Vector.from_polyglot_array <|
         Array_Proxy.new this_table.java_table.getColumns.length i->

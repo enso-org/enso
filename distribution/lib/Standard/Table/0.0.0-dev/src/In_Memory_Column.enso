@@ -78,7 +78,16 @@ type In_Memory_Column
        private: true
        ---
        Creates a new column given a Java Column object.
-    private from_java_column java_column:Java_Column =
+    private from_java_column raw_column =
+        java_column = case raw_column of
+            j : Java_Column -> j
+            _ ->
+                name = raw_column.getName
+                storage = raw_column.getStorage
+                # ColumnStorage is an interface and will get proxied
+                # to the other JVM automatically
+                Java_Column.new name storage
+
         ## Trigger data quality metrics computation (conditionally on Output context).
         if Context.Output.is_enabled.not then DataQualityMetrics.triggerColumn java_column
 
