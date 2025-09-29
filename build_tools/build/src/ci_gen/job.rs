@@ -313,7 +313,8 @@ impl Display for StandardLibraryTestsScope {
             StandardLibraryTestsScope::StandardLibraryJvm => write!(f, "standard-library"),
             StandardLibraryTestsScope::StandardLibraryInNative =>
                 write!(f, "standard-library-in-native"),
-            StandardLibraryTestsScope::Microsoft => write!(f, "std-microsoft"),
+            StandardLibraryTestsScope::Microsoft =>
+                write!(f, "std-microsoft std-mock-dual-microsoft"),
         }
     }
 }
@@ -413,7 +414,7 @@ impl JobArchetype for StandardLibraryTests {
             "{}-{}-{}-{os}-{arch}",
             self.id_key_base(),
             self.graal_edition.to_string().to_kebab_case(),
-            self.scope,
+            self.scope.to_string().replace(' ', "-"),
         )
     }
 }
