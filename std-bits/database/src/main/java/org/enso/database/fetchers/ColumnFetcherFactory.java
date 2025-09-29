@@ -1,5 +1,6 @@
 package org.enso.database.fetchers;
 
+import java.lang.reflect.Proxy;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.enso.database.JDBCUtils;
@@ -87,7 +88,15 @@ public interface ColumnFetcherFactory {
                     return JDBCUtils.getZonedDateTime(resultSet, index());
                   }
                 };
-        default -> new InferredColumnFetcher(colIndex, columnName, problemAggregator);
+        default -> {
+          if (Proxy.isProxyClass(storageType.getClass())) {
+            var fromProxy =
+                StorageType.fromTypeCharAndSize(storageType.typeChar(), storageType.size());
+            yield forStorageType(fromProxy, index, columnName, problemAggregator);
+          } else {
+            yield new InferredColumnFetcher(colIndex, columnName, problemAggregator);
+          }
+        }
       };
     }
   }
