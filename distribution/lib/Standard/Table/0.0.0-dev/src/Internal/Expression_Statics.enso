@@ -16,7 +16,7 @@ type Expression_Statics
 
     ## Obtains the previous date from the system clock.
     yesterday -> Date =
-        Date.today + ..Day
+        Date.today - ..Day
 
     ## Obtains the next date from the system clock.
     tomorrow -> Date =
