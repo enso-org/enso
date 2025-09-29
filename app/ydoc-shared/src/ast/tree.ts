@@ -3188,13 +3188,17 @@ export class Vector extends BaseExpression {
   declare fields: FixedMapView<AstFields & VectorFields>
   /** TODO: Add docs */
   constructor(module: Module, fields: FixedMapView<AstFields & VectorFields>) {
+    assertDefined(fields.get('elements'))
     super(module, fields)
   }
 
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableVector> | undefined {
     const parsed = parseExpression(source, module)
-    if (parsed instanceof MutableVector) return parsed
+    if (parsed instanceof MutableVector) {
+      assertDefined(parsed.fields.get('elements'))
+      return parsed
+    }
   }
 
   /** TODO: Add docs */
@@ -3204,6 +3208,7 @@ export class Vector extends BaseExpression {
     elements: AbstractVectorElement<OwnedRefs>[],
     close: NodeChild<Token> | undefined,
   ) {
+    assertDefined(elements)
     const base = module.baseObject('Vector')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
@@ -3216,6 +3221,7 @@ export class Vector extends BaseExpression {
 
   /** TODO: Add docs */
   static new(module: MutableModule, elements: Owned[]) {
+    assertDefined(elements)
     return this.concrete(
       module,
       undefined,
@@ -3266,6 +3272,7 @@ export class Vector extends BaseExpression {
     const { open, elements, close } = getAll(this.fields)
     yield ensureUnspaced(open, verbatim)
     let isFirst = true
+    assertDefined(elements)
     for (const { delimiter, value } of elements) {
       if (isFirst) {
         if (value) yield preferUnspaced(value)
@@ -3280,12 +3287,14 @@ export class Vector extends BaseExpression {
 
   /** TODO: Add docs */
   *values(): IterableIterator<Expression> {
+    assertDefined(this.fields.get('elements'))
     for (const element of this.fields.get('elements'))
       if (element.value) yield this.module.get(element.value.node) as Expression
   }
 
   /** TODO: Add docs */
   *enumerate(): IterableIterator<[number, Expression | undefined]> {
+    assertDefined(this.fields.get('elements'))
     for (const [index, element] of this.fields.get('elements').entries()) {
       yield [index, this.module.get(element.value?.node) as Expression]
     }
@@ -3293,11 +3302,13 @@ export class Vector extends BaseExpression {
 
   /** Get element under given index. */
   at(index: number): Expression | undefined {
+    assertDefined(this.fields.get('elements'))
     return this.module.get(this.fields.get('elements')[index]?.value?.node) as Expression
   }
 
   /** TODO: Add docs */
   get length() {
+    assertDefined(this.fields.get('elements'))
     return this.fields.get('elements').length
   }
 }
@@ -3310,6 +3321,7 @@ export class MutableVector extends Vector implements MutableExpression {
     const elements = this.fields.get('elements')
     const element = this.valueToElement(value)
     this.fields.set('elements', [...elements, element])
+    assertDefined(this.fields.get('elements'))
   }
 
   pop(): Owned | undefined {
@@ -3319,8 +3331,10 @@ export class MutableVector extends Vector implements MutableExpression {
     const lastNode = this.module.get(last)
     if (lastNode != null) {
       lastNode.fields.set('parent', undefined)
+      assertDefined(this.fields.get('elements'))
       return lastNode as Owned
     } else {
+      assertDefined(this.fields.get('elements'))
       return undefined
     }
   }
@@ -3332,6 +3346,7 @@ export class MutableVector extends Vector implements MutableExpression {
       value: autospaced(this.claimChild(value)),
     }
     this.fields.set('elements', elements)
+    assertDefined(this.fields.get('elements'))
   }
 
   splice(start: number, deletedCount: number, ...newValues: Owned[]) {
@@ -3340,6 +3355,7 @@ export class MutableVector extends Vector implements MutableExpression {
     elements.splice(start, deletedCount, ...newElements)
     MutableVector.autospaceElement(elements[start + newValues.length])
     this.fields.set('elements', elements)
+    assertDefined(this.fields.get('elements'))
   }
 
   /**
@@ -3359,6 +3375,7 @@ export class MutableVector extends Vector implements MutableExpression {
       MutableVector.autospaceElement(elements[toIndex + 1])
       this.fields.set('elements', elements)
     }
+    assertDefined(this.fields.get('elements'))
   }
 
   keep(predicate: (ast: Expression) => boolean) {
@@ -3373,6 +3390,7 @@ export class MutableVector extends Vector implements MutableExpression {
       filtered[0] = { ...filtered[0], value: { ...filtered[0].value, whitespace: firstSpacing } }
     }
     this.fields.set('elements', filtered)
+    assertDefined(this.fields.get('elements'))
   }
 
   private valueToElement(value: Owned) {

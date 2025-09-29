@@ -29,8 +29,8 @@ import * as backendModule from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
+import { useRightPanelData } from '$/providers/react/container'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
-import { useRightPanelData } from '$/providers/rightPanel'
 import {
   TEAMS_DIRECTORY_ID,
   USERS_DIRECTORY_ID,
