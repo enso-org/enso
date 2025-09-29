@@ -1,8 +1,10 @@
 package org.enso.compiler.dump.test;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -401,6 +403,41 @@ public class DocsGenerateTest {
         "Generates thrown dataflow errors in the signature",
         "one a:local.Error.Main.A -> (local.Error.Main.A&local.Error.Main.B)!local.Error.Main.C",
         sig);
+  }
+
+  @Test
+  public void blankArgumentIsNotPrinted_ConsolidatedLambda() throws Exception {
+    // This will get consolidated into:
+    // foo _ = 42
+    // See `LambdaConsolidate` compiler pass
+    var code =
+        """
+        foo =
+            _ -> 42
+        """;
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
+    assertThat(sig, not(containsString("internal")));
+    var sigLine = lastLine(sig);
+    assertThat("No argument", sigLine.matches("foo\\s+->.*"), is(true));
+  }
+
+  @Test
+  public void blankArgumentIsNotPrinted_DefinedBlank() throws Exception {
+    var code =
+        """
+        foo _ =
+            42
+        """;
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
+    assertThat(sig, not(containsString("internal")));
+    var sigLine = lastLine(sig);
+    assertThat("No argument", sigLine.matches("foo\\s+->.*"), is(true));
+  }
+
+  private static String lastLine(String text) {
+    var lines = text.lines().toList();
+    assert !lines.isEmpty();
+    return lines.get(lines.size() - 1);
   }
 
   private static void generateDocumentation(String projectName, String code, DocsVisit v)
