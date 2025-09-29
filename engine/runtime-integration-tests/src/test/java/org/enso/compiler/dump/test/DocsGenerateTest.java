@@ -404,7 +404,7 @@ public class DocsGenerateTest {
   }
 
   @Test
-  public void blankArgumentIsNotPrinted_ConsolidatedLambda() throws Exception {
+  public void blankArgument_ConsolidatedLambda() throws Exception {
     // This will get consolidated into:
     // foo _ = 42
     // See `LambdaConsolidate` compiler pass
@@ -418,7 +418,7 @@ public class DocsGenerateTest {
   }
 
   @Test
-  public void blankArgumentIsNotPrinted_DefinedBlank() throws Exception {
+  public void blankArgument_DefinedBlank() throws Exception {
     var code =
         """
         foo _ =
@@ -426,6 +426,19 @@ public class DocsGenerateTest {
         """;
     var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
     assertSingleBlankArgument("foo", sig);
+  }
+
+  @Test
+  public void moreBlankArguments() throws Exception {
+    var code =
+        """
+        foo _ x _ y =
+            42
+        """;
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
+    var sigLine = lastLine(sig);
+    var regex = ".*foo _ x:Standard.Base.Any.Any _ y:Standard.Base.Any.Any ->.*";
+    assertThat("Two blank (underscore) arguments: " + sigLine, sigLine.matches(regex), is(true));
   }
 
   private static void assertSingleBlankArgument(String methodName, String sig) {
