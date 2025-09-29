@@ -104,6 +104,16 @@ public class Table {
   }
 
   /**
+   * Get the row in this table.
+   *
+   * @param index value from 0 to {@link #rowCount()} (exclusive)
+   * @return a row representing given index
+   */
+  public Row row(int index) {
+    return new Row(this, index);
+  }
+
+  /**
    * @return the columns of this table
    */
   public Column[] getColumns() {

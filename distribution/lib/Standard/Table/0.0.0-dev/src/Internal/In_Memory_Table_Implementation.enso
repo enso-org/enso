@@ -85,7 +85,6 @@ polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Jo
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
 polyglot java import org.enso.table.data.table.Column as Java_Column
-polyglot java import org.enso.table.data.table.Row as Java_Row
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.TableToXml as Java_TableToXml
 polyglot java import org.enso.table.error.NonUniqueLookupKey
@@ -128,7 +127,7 @@ type In_Memory_Table_Implementation
     get_row (this_table : Table & In_Memory_Table) index:Integer ~if_missing:Any =
         if index < -this_table.row_count || index >= this_table.row_count then if_missing else
             used_index = (if index < 0 then index + this_table.row_count else index)
-            Row.Value (Java_Row.new this_table.java_table used_index)
+            Row.Value (this_table.java_table.row used_index)
 
     first_value (this_table : Table & In_Memory_Table) = this_table.at 0 . at 0
 
