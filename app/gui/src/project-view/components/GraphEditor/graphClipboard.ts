@@ -143,7 +143,6 @@ export function isSpreadsheetTsv(htmlContent: string) {
   return /<table[ >]/i.test(htmlContent)
 }
 
-
 // =========================
 // === Clipboard writing ===
 // =========================
