@@ -62,9 +62,8 @@ export const test = base.extend<{
   /**
    * Setup for all tests: Create an electron-based app instance.
    */
-  app: async function ({ projectsDir, testRunId, viewport }, use) {
+  app: async function ({ projectsDir, testRunId }, use) {
     const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
-    if (viewport) args.push(`--window.size=${viewport.width}x${viewport.height}`)
     const app = await _electron.launch({
       executablePath: electronExecutablePath,
       args,
