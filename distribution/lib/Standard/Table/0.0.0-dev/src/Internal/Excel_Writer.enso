@@ -75,10 +75,9 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
     file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
 
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-    modification_strategy = prepare_file_modification_strategy table section on_existing_file match_columns
     is_dry_run = Context.Output.is_enabled.not
 
-    modification_strategy.if_not_error <| Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
+    Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
         possible_backup_file = if on_existing_file == Existing_File_Behavior.Backup then file_as_java (find_bak_file file) else Nothing
         possible_dry_run_file = if is_dry_run.not then Nothing else
             preexisting_dry_run_file = DryRunFileManager.preExistingTemporaryFile file.absolute.normalize.path
@@ -132,27 +131,6 @@ find_bak_file : File -> File
 find_bak_file base_file =
     parent = base_file.absolute.normalize.parent
     parent / (base_file.name + ".bak")
-
-## ---
-   private: true
-   ---
-prepare_file_modification_strategy : Table -> Excel_Section -> Existing_File_Behavior -> Match_Columns -> (ExcelWorkbook -> Nothing)
-prepare_file_modification_strategy table section on_existing_file match_columns =
-    existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
-    case section of
-        Excel_Section.Worksheet sheet headers skip_rows row_limit ->
-            java_headers = Excel_Reader.make_java_headers headers
-            java_limit = row_limit.rows_to_write
-            workbook_to_modify->
-                ExcelWriter.writeTableToSheet workbook_to_modify sheet existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
-        Excel_Section.Cell_Range address headers skip_rows row_limit ->
-            java_headers = Excel_Reader.make_java_headers headers
-            java_limit = row_limit.rows_to_write
-            java_range = case address of
-                _ : Excel_Range -> address.java_range
-                _ : Text -> address
-            workbook_to_modify->
-                ExcelWriter.writeTableToRange workbook_to_modify java_range existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
 
 ## ---
    private: true
