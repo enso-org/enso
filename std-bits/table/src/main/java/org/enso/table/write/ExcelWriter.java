@@ -66,10 +66,11 @@ public class ExcelWriter {
           ColumnCountMismatchException,
           InterruptedException
       {
-        ExcelFormatStrategy strategy = format.createStrategy();
-        strategy.openForWrite(file);
-        writeTableToSheet(strategy.getWorkbook(), sheetIndex, existingDataMode, firstRow, table, rowLimit, headers);
+        ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+        try (var workbook = strategy.openForWrite(file)) {
+        writeTableToSheet(workbook, sheetIndex, existingDataMode, firstRow, table, rowLimit, headers);
         strategy.finaliseWrite();
+        }
      }
   
 
@@ -90,10 +91,11 @@ public class ExcelWriter {
           ColumnCountMismatchException,
           InterruptedException
      {
-        ExcelFormatStrategy strategy = format.createStrategy();
-        strategy.openForWrite(file);
-        writeTableToSheet(strategy.getWorkbook(), sheetName, existingDataMode, firstRow, table, rowLimit, headers);
+        ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+        try (var workbook = strategy.openForWrite(file)) {
+        writeTableToSheet(workbook, sheetName, existingDataMode, firstRow, table, rowLimit, headers);
         strategy.finaliseWrite();
+        }
      }
 
   public static void writeTableToRange(
@@ -113,10 +115,11 @@ public class ExcelWriter {
           ColumnCountMismatchException,
           InterruptedException
       {
-        ExcelFormatStrategy strategy = format.createStrategy();
-        strategy.openForWrite(file);
-        writeTableToRange(strategy.getWorkbook(), rangeNameOrAddress, existingDataMode, skipRows, table, rowLimit, headers);
+        ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+        try (var workbook = strategy.openForWrite(file)) {
+        writeTableToRange(workbook, rangeNameOrAddress, existingDataMode, skipRows, table, rowLimit, headers);
         strategy.finaliseWrite();
+        }
      }
 
   public static void writeTableToSheet(

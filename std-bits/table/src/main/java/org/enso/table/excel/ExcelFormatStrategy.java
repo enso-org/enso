@@ -23,6 +23,23 @@ public abstract class ExcelFormatStrategy {
   protected boolean preExistingFile;
   protected File file;
 
+  /**
+   * Creates a concrete strategy instance for the given Excel file format.
+     * @param format The format for the excel File
+     * @return The stratgey for the given option
+   */
+  public static ExcelFormatStrategy createStrategy(ExcelFileFormat format) {
+    switch (format) {
+      case XLS -> {
+        return new XlsFormatStrategy();
+      }
+      case XLSX, XLSX_FALLBACK -> {
+        return new XlsxFormatStrategy();
+      }
+      default -> throw new AssertionError();
+    }
+  }
+
   /** Returns the managed workbook instance (after {@link #openExisting} or {@link #createNew}). */
   public Workbook getWorkbook() {
     return workbook;
@@ -46,8 +63,9 @@ public abstract class ExcelFormatStrategy {
   /**
    * Opens a workbook for write. Detects whether the file already exists and is non-empty and
    * chooses between {@link #openExisting(File, boolean)} and {@link #createNew()} accordingly.
+     * @return 
    */
-  public void openForWrite(File file) throws IOException {
+  public Workbook openForWrite(File file) throws IOException {
     verifyIsWritable(file);
     this.file = file;
     this.preExistingFile = file.exists() && Files.exists(file.toPath()) && Files.size(file.toPath()) > 0;
@@ -56,6 +74,7 @@ public abstract class ExcelFormatStrategy {
     } else {
       createNew();
     }
+    return workbook;
   }
 
   /**

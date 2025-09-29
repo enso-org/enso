@@ -132,7 +132,7 @@ public interface ExcelWorkbook {
       if (format == ExcelFileFormat.XLSX) {
         return new XSSFReaderWorkbook(file.getAbsolutePath());
       } else {
-        ExcelFormatStrategy strategy = format.createStrategy();
+        ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
         strategy.openExisting(file, false);
         return ExcelWorkbook.forPOIUserModel(strategy.getWorkbook());
       }

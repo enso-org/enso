@@ -159,12 +159,14 @@ prepare_file_modification_strategy table section on_existing_file match_columns 
    ---
 write_to_workbook java_file format table section on_existing_file match_columns =
     existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
-    java_headers = Excel_Reader.make_java_headers section.headers
-    java_limit = section.row_limit.rows_to_write
     case section of
-        Excel_Section.Worksheet sheet _ skip_rows _ ->
+        Excel_Section.Worksheet sheet headers skip_rows row_limit ->
+            java_headers = Excel_Reader.make_java_headers headers
+            java_limit = row_limit.rows_to_write
             ExcelWriter.writeTableToSheet java_file format sheet existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
-        Excel_Section.Cell_Range address _ skip_rows _ ->
+        Excel_Section.Cell_Range address headers skip_rows row_limit ->
+            java_headers = Excel_Reader.make_java_headers headers
+            java_limit = row_limit.rows_to_write
             java_range = case address of
                 _ : Excel_Range -> address.java_range
                 _ : Text -> address
