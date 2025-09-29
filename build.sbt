@@ -3861,6 +3861,7 @@ lazy val `engine-runner` = project
       val fullCp     = (runnerCp ++ runtimeCp).distinct
       val modulePath = componentModulesPaths.value
       Seq(
+        "--enable-native-access=org.graalvm.truffle",
         "--module-path",
         modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
         "-m",
