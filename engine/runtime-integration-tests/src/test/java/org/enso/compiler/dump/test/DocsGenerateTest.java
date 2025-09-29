@@ -437,13 +437,14 @@ public class DocsGenerateTest {
         """;
     var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
     var sigLine = lastLine(sig);
-    var regex = ".*foo _ x:Standard.Base.Any.Any _ y:Standard.Base.Any.Any ->.*";
+    var any = "Standard.Base.Any.Any";
+    var regex = ".*foo _:${any} x:${any} _:${any} y:${any} ->.*".replace("${any}", any);
     assertThat("Two blank (underscore) arguments: " + sigLine, sigLine.matches(regex), is(true));
   }
 
   private static void assertSingleBlankArgument(String methodName, String sig) {
     var sigLine = lastLine(sig);
-    var regex = ".*" + methodName + " _ ->.*";
+    var regex = ".*" + methodName + " _:Standard.Base.Any.Any ->.*";
     assertThat("Single blank (underscore) argument: " + sigLine, sigLine.matches(regex), is(true));
   }
 

@@ -76,23 +76,27 @@ final class DocsUtils {
   }
 
   static String toSignature(DefinitionArgument a) {
-    if (isBlankArg(a)) {
+    var sb = new StringBuilder();
+    if (a.suspended()) {
+      sb.append("~");
+    }
+    var name = argName(a);
+    sb.append(name);
+    if (!ConstantsNames.SELF_ARGUMENT.equals(name)) {
+      var type = extractTypeOrAny(a);
+      sb.append(":").append(type);
+    }
+    if (a.defaultValue().isDefined()) {
+      sb.append("=");
+    }
+    return sb.toString();
+  }
+
+  private static String argName(DefinitionArgument arg) {
+    if (isBlankArg(arg)) {
       return "_";
     } else {
-      var sb = new StringBuilder();
-      if (a.suspended()) {
-        sb.append("~");
-      }
-      var name = a.name().name();
-      sb.append(name);
-      if (!ConstantsNames.SELF_ARGUMENT.equals(name)) {
-        var type = extractTypeOrAny(a);
-        sb.append(":").append(type);
-      }
-      if (a.defaultValue().isDefined()) {
-        sb.append("=");
-      }
-      return sb.toString();
+      return arg.name().name();
     }
   }
 
