@@ -28,24 +28,24 @@ function serializeError(err: unknown) {
  * - `console.info`
  */
 export function setupLogger() {
-  const originalConsoleLog = console.log
-  const originalConsoleError = console.error
-  const originalConsoleWarn = console.warn
+  const originalConsoleLog = window.console.log
+  const originalConsoleError = window.console.error
+  const originalConsoleWarn = window.console.warn
 
-  console.log = (...args) => {
-    originalConsoleLog.apply(console, args)
-    window.logApi.log(args)
+  window.console.log = (...args) => {
+    originalConsoleLog.apply(window.console, args)
+    window.logApi?.log(args)
   }
-  console.info = (...args) => {
-    console.log(...args)
+  window.console.info = (...args) => {
+    window.console.log(...args)
   }
-  console.error = (...args) => {
-    originalConsoleError.apply(console, args)
-    window.logApi.error(args)
+  window.console.error = (...args) => {
+    originalConsoleError.apply(window.console, args)
+    window.logApi?.error(args)
   }
-  console.warn = (...args) => {
-    originalConsoleWarn.apply(console, args)
-    window.logApi.warn(args)
+  window.console.warn = (...args) => {
+    originalConsoleWarn.apply(window.console, args)
+    window.logApi?.warn(args)
   }
 
   window.addEventListener(

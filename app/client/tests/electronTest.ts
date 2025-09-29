@@ -27,10 +27,10 @@ const credentials = JSON.parse(
 
 const electronExecutablePath = await (async () => {
   const POSSIBLE_EXEC_PATHS = [
-    '../../../../dist/ide/linux-unpacked/enso',
-    '../../../../dist/ide/win-unpacked/Enso.exe',
-    '../../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
-    '../../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
+    '../../../dist/ide/linux-unpacked/enso',
+    '../../../dist/ide/win-unpacked/Enso.exe',
+    '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
+    '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
   ].map((p) => path.resolve(import.meta.dirname, p))
   try {
     const promises = POSSIBLE_EXEC_PATHS.map((p) => fs.access(p, fs.constants.X_OK).then(() => p))
