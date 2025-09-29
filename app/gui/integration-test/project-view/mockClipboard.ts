@@ -1,5 +1,6 @@
 import type { Page } from 'playwright/test'
 
+/** Adds an init script to the page that sets up a mock clipboard. */
 export async function addMockClipboardInitScript(page: Page): Promise<void> {
   await page.addInitScript(() => {
     function useMockClipboard() {
