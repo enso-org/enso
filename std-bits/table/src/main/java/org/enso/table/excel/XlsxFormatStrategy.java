@@ -3,6 +3,7 @@ package org.enso.table.excel;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
@@ -16,7 +17,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 public class XlsxFormatStrategy extends ExcelFormatStrategy {
 
   @Override
-  public void openExisting(File file, boolean writeAccess) throws IOException {
+  public Workbook openExisting(File file, boolean writeAccess) throws IOException {
     try {
       PackageAccess access = writeAccess ? PackageAccess.READ_WRITE : PackageAccess.READ;
       OPCPackage pkg = OPCPackage.open(file, access);
@@ -29,11 +30,13 @@ public class XlsxFormatStrategy extends ExcelFormatStrategy {
     } catch (InvalidFormatException | OLE2NotOfficeXmlFileException e) {
       throw new IOException("Invalid XLSX format when opening file: " + file, e);
     }
+    return workbook;
   }
 
   @Override
-  public void createNew() {
+  public Workbook createNew() {
     this.workbook = new SXSSFWorkbook();
+    return workbook;
   }
 
   @Override
@@ -51,17 +54,15 @@ public class XlsxFormatStrategy extends ExcelFormatStrategy {
 
   @Override
   public void saveToStream(OutputStream out) throws IOException {
-    Workbook wb = getWorkbook();
-    if (wb == null) {
+    if (workbook == null) {
       throw new IllegalStateException("Workbook not initialized");
     }
-    wb.write(out);
+    workbook.write(out);
   }
 
   @Override
   public void cleanup() throws IOException {
-    Workbook wb = getWorkbook();
-    if (wb instanceof SXSSFWorkbook sxssf) {
+    if (workbook instanceof SXSSFWorkbook sxssf) {
       sxssf.dispose();
     }
   }

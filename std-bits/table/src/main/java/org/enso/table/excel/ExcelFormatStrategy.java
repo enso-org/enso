@@ -40,16 +40,11 @@ public abstract class ExcelFormatStrategy {
     }
   }
 
-  /** Returns the managed workbook instance (after {@link #openExisting} or {@link #createNew}). */
-  public Workbook getWorkbook() {
-    return workbook;
-  }
-
   /** Opens an existing Excel file using the given access mode and sets {@link #workbook}. */
-  public abstract void openExisting(File file, boolean writeAccess) throws IOException;
+  public abstract Workbook openExisting(File file, boolean writeAccess) throws IOException;
 
   /** Creates a new empty workbook for this format and sets {@link #workbook}. */
-  public abstract void createNew();
+  public abstract Workbook createNew();
 
   /** Saves changes to an existing file in place, if supported by the format. */
   public abstract void saveInPlace() throws IOException;

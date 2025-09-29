@@ -133,8 +133,8 @@ public interface ExcelWorkbook {
         return new XSSFReaderWorkbook(file.getAbsolutePath());
       } else {
         ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
-        strategy.openExisting(file, false);
-        return ExcelWorkbook.forPOIUserModel(strategy.getWorkbook());
+        var workbook = strategy.openExisting(file, false);
+        return ExcelWorkbook.forPOIUserModel(workbook);
       }
     } catch (OLE2NotOfficeXmlFileException | NotOLE2FileException e) {
       throw new IOException(

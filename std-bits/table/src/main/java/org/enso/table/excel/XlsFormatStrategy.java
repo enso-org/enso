@@ -3,6 +3,7 @@ package org.enso.table.excel;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
@@ -13,7 +14,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 public class XlsFormatStrategy extends ExcelFormatStrategy {
 
   @Override
-  public void openExisting(File file, boolean writeAccess) throws IOException {
+  public Workbook openExisting(File file, boolean writeAccess) throws IOException {
     try {
       boolean readOnly = !writeAccess;
       POIFSFileSystem fs = new POIFSFileSystem(file, readOnly);
@@ -26,11 +27,13 @@ public class XlsFormatStrategy extends ExcelFormatStrategy {
     } catch (OfficeXmlFileException | OLE2NotOfficeXmlFileException e) {
       throw new IOException("Invalid XLS format when opening file: " + file, e);
     }
+    return workbook;
   }
 
   @Override
-  public void createNew() {
+  public Workbook createNew() {
     this.workbook = new HSSFWorkbook();
+    return workbook;
   }
 
   @Override
@@ -44,11 +47,10 @@ public class XlsFormatStrategy extends ExcelFormatStrategy {
 
   @Override
   public void saveToStream(OutputStream out) throws IOException {
-    Workbook wb = getWorkbook();
-    if (wb == null) {
+    if (workbook == null) {
       throw new IllegalStateException("Workbook not initialized");
     }
-    wb.write(out);
+    workbook.write(out);
   }
 }
 
