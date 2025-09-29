@@ -26,8 +26,10 @@ import { useLogger } from '#/providers/LoggerProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { assert } from '#/utilities/error'
-import { useBackends } from '$/providers/react'
+import { usePreventNavigation } from '#/utilities/preventNavigation'
+import { useBackends, useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { useState } from 'react'
 import { z } from 'zod'
 import { useEnsureQueryData, useMutationCallback } from '../utilities/tanstackQuery'
 
@@ -298,13 +300,16 @@ export function useOpenProjectMutation() {
 
 /** Mutation to close a project. */
 export function useCloseProjectMutation() {
+  const { getText } = useText()
   const client = reactQuery.useQueryClient()
   const logger = useLogger()
   const { remoteBackend, localBackend } = useBackends()
   const uploadFile = useUploadFile(remoteBackend, { updateProgress: false })
+  const [isHybridPending, setIsHybridPending] = useState(false)
   const toastAndLog = useToastAndLog()
   const addClosingProject = useAddClosingProject()
   const removeClosingProject = useRemoveClosingProject()
+  usePreventNavigation({ message: getText('anUploadIsInProgress'), isEnabled: isHybridPending })
 
   return useMutationCallback({
     mutationKey: ['closeProject'],
@@ -328,6 +333,7 @@ export function useCloseProjectMutation() {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
       if (hybrid) {
+        setIsHybridPending(true)
         addClosingProject(hybrid.cloudProjectId)
       } else {
         addClosingProject(id)
@@ -355,6 +361,7 @@ export function useCloseProjectMutation() {
         await localBackend
           .deleteAsset(hybrid.parentId, { force: true }, null)
           .catch((error) => logger.error('Failed to remove local version of hybrid project', error))
+        setIsHybridPending(false)
         removeClosingProject(hybrid.cloudProjectId)
       } else {
         removeClosingProject(id)
@@ -383,6 +390,7 @@ export function useCloseProjectMutation() {
           .deleteAsset(hybrid.parentId, { force: true }, null)
           .catch((error) => logger.error('Failed to remove local version of hybrid project', error))
         removeClosingProject(hybrid.cloudProjectId)
+        setIsHybridPending(false)
         await client.invalidateQueries({
           queryKey: createGetProjectDetailsQuery.getQueryKey(hybrid.cloudProjectId),
         })
