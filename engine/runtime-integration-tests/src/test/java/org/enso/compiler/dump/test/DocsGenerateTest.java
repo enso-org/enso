@@ -1,10 +1,8 @@
 package org.enso.compiler.dump.test;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -416,9 +414,7 @@ public class DocsGenerateTest {
             _ -> 42
         """;
     var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
-    assertThat(sig, not(containsString("internal")));
-    var sigLine = lastLine(sig);
-    assertThat("No argument", sigLine.matches("foo\\s+->.*"), is(true));
+    assertSingleBlankArgument("foo", sig);
   }
 
   @Test
@@ -429,9 +425,13 @@ public class DocsGenerateTest {
             42
         """;
     var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
-    assertThat(sig, not(containsString("internal")));
+    assertSingleBlankArgument("foo", sig);
+  }
+
+  private static void assertSingleBlankArgument(String methodName, String sig) {
     var sigLine = lastLine(sig);
-    assertThat("No argument", sigLine.matches("foo\\s+->.*"), is(true));
+    var regex = ".*" + methodName + " _ ->.*";
+    assertThat("Single blank (underscore) argument: " + sigLine, sigLine.matches(regex), is(true));
   }
 
   private static String lastLine(String text) {

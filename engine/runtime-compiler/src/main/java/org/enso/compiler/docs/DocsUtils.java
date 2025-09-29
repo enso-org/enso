@@ -76,20 +76,36 @@ final class DocsUtils {
   }
 
   static String toSignature(DefinitionArgument a) {
-    var sb = new StringBuilder();
-    if (a.suspended()) {
-      sb.append("~");
+    if (isBlankArg(a)) {
+      return "_";
+    } else {
+      var sb = new StringBuilder();
+      if (a.suspended()) {
+        sb.append("~");
+      }
+      var name = a.name().name();
+      sb.append(name);
+      if (!ConstantsNames.SELF_ARGUMENT.equals(name)) {
+        var type = extractTypeOrAny(a);
+        sb.append(":").append(type);
+      }
+      if (a.defaultValue().isDefined()) {
+        sb.append("=");
+      }
+      return sb.toString();
     }
-    var name = a.name().name();
-    sb.append(name);
-    if (!ConstantsNames.SELF_ARGUMENT.equals(name)) {
-      var type = extractTypeOrAny(a);
-      sb.append(":").append(type);
+  }
+
+  /** Returns true if the argument represents an underscore (blank) argument. */
+  private static boolean isBlankArg(DefinitionArgument arg) {
+    if (arg.name() instanceof Name.Literal lit) {
+      var loc = lit.identifiedLocation();
+      if (loc != null) {
+        // This checks if the argument used to be an underscore.
+        return loc.length() == 1 && lit.name().length() > 1;
+      }
     }
-    if (a.defaultValue().isDefined()) {
-      sb.append("=");
-    }
-    return sb.toString();
+    return false;
   }
 
   private static String extractTypeOrAny(IR ir) {
