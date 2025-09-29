@@ -1,53 +1,7 @@
-/**
- * @file This module supports determining the types of completions to be shown, based on syntactic
- * analysis and the cursor position.
- */
 import { syntaxTree } from '@codemirror/language'
 import type { EditorState } from '@codemirror/state'
 import { parseNode } from './syntax'
-
-export interface AnyCompletion {
-  type: string
-  pos?: number
-  /**
-   * True if the completion dialog should be opened automatically; otherwise, it may be triggered
-   * with a hotkey.
-   */
-  auto?: boolean
-}
-
-export interface NameCompletion extends AnyCompletion {
-  type: 'functionName' | 'columnName'
-  pos: number
-  auto: boolean
-  /**
-   * True if a delimiter should be inserted after the completion; false if it is unnecessary, e.g.,
-   * when editing a name already followed by a delimiter.
-   */
-  insertDelim: boolean
-}
-
-export interface FunctionInfoCompletion extends AnyCompletion {
-  type: 'functionInfo'
-  functionName: string
-}
-
-export interface ValueCompletion extends AnyCompletion {
-  type: 'value'
-}
-
-export interface BinOpCompletion extends AnyCompletion {
-  type: 'binop'
-  pos: number
-  auto: boolean
-  insertDelim: boolean
-}
-
-export type CompletionType =
-  | NameCompletion
-  | FunctionInfoCompletion
-  | ValueCompletion
-  | BinOpCompletion
+import type { CompletionType } from './types'
 
 const INITIAL_COMPLETION_TYPE: CompletionType = {
   type: 'value',
@@ -90,7 +44,7 @@ export function completionTypeAt(pos: number, state: EditorState): CompletionTyp
     const { name, open } = node
     return pos <= name.to ?
         { type: 'functionName', pos: name.from, auto: pos === name.to, insertDelim: open == null }
-      : { type: 'functionInfo', functionName: doc.sliceString(name.from, name.to) }
+      : { type: 'functionInfo', pos: name.from, functionName: doc.sliceString(name.from, name.to) }
   } else if (node.type === 'Column') {
     const { name, close } = node
     return {
