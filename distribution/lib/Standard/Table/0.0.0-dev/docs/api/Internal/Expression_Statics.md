@@ -21,5 +21,5 @@
     - time -> Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
     - today -> Standard.Base.Data.Time.Date.Date
     - tomorrow -> Standard.Base.Data.Time.Date.Date
-    - uuid <internal-1>:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - uuid <internal-15>:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - yesterday -> Standard.Base.Data.Time.Date.Date

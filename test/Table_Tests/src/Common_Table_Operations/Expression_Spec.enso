@@ -426,11 +426,52 @@ add_expression_specs suite_builder detailed setup =
 
         if setup.flagged ..Date_Time then specify_test "should be able to call static expression methods" group_builder expression_test->
             expression_test "today()" Date.today
+            expression_test "yesterday()" Date.today.previous
+            expression_test "tomorrow()" Date.today.next
         
         specify_test "should be able to call math constant static expression methods" group_builder expression_test->
             expression_test "pi()" Math.pi
             expression_test "e()" Math.e
-        
+
+        group_builder.specify "should be able to make random numbers" <| if setup.is_database.not then
+            t = table_builder [["X", 1.up_to 1000]]
+            c = t.evaluate_expression "rand()"
+            c.name.should_equal "rand()"
+            c.value_type.should_equal Value_Type.Float
+            c.to_vector.all (v-> v>=0.0 && v<1.0) . should_equal True
+
+        group_builder.specify "should be able to make random numbers with seed" <| if setup.is_database.not then
+            t = table_builder [["X", 1.up_to 10]]
+            c = t.evaluate_expression "rand(123456)"
+            c.name.should_equal "rand(123456)"
+            c.value_type.should_equal Value_Type.Float
+            c.to_vector.should_equal [0.4132192266296165, 0.990414373129817, 0.2522554407939305, 0.7056636259919211, 0.07343842024000635, 0.5360645079196139, 0.41019319216746963, 0.5231526988972157, 0.8967743965315602]
+
+        group_builder.specify "should be able to make uuids" <| if setup.is_database.not then
+            t = table_builder [["X", 1.up_to 1000]]
+            c = t.evaluate_expression "uuid()"
+            c.name.should_equal "uuid()"
+            c.value_type.should_equal Value_Type.Char
+            c.to_vector.all (v-> v.match "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}") . should_equal True
+
+        group_builder.specify "should be able to make random numbers in a range" <| if setup.is_database.not then
+            t = table_builder [["X", 1.up_to 1000]]
+
+            c1 = t.evaluate_expression "randbetween(1, 1000)"
+            c1.name.should_equal "randbetween(1, 1000)"
+            c1.value_type.should_equal Value_Type.Integer
+            c1.to_vector.all (v-> v>=1 && v<1000) . should_equal True
+
+            c2 = t.evaluate_expression "randbetween(0.0, 10.0)"
+            c2.name.should_equal "randbetween(0.0, 10.0)"
+            c2.value_type.should_equal Value_Type.Float
+            c2.to_vector.all (v-> v>=0.0 && v<10.0) . should_equal True
+
+            c3 = t.evaluate_expression "randbetween([X], [X]+10)"
+            c3.name.should_equal "randbetween([X], [X]+10)"
+            c3.value_type.should_equal Value_Type.Integer
+            c3.to_vector.map_with_index (i->v-> v>=i+1 && v<i+11) . all _==True . should_equal True
+
         specify_test "should be able to call numeric_column methods" group_builder expression_test->
             expression_test "abs([E])" [1.0, 1.5, 2.5, 4.0, 6.0]
 
