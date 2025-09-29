@@ -24,7 +24,6 @@ import {
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
-import { arrayEquals } from '@/util/equals'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { Tag, TagGroup, TagList, useFilter } from 'react-aria-components'
@@ -146,18 +145,64 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
       >,
       newSelectedLabels: readonly LabelInfo[],
     ) => {
+      const previousLabels = field.value
       field.onChange(newSelectedLabels)
+      const deltas = previousLabels.flatMap((previousLabel) => {
+        const newLabel = newSelectedLabels.find(
+          (otherLabel) => otherLabel.label.id === previousLabel.label.id,
+        )
+        if (!newLabel || newLabel.state === previousLabel.state) {
+          return []
+        }
+        return { previous: previousLabel, current: newLabel }
+      })
       return await Promise.allSettled(
         items.map((item) => {
-          const newLabelsSet = new Set(item.labels ?? [])
-          for (const label of newSelectedLabels) {
-            switch (label.state) {
+          let isChanged = false
+          for (const { previous, current } of deltas) {
+            const wasLabelPresent = (() => {
+              switch (previous.state) {
+                case 'all':
+                  return true
+                case 'none':
+                  return false
+                case 'some':
+                  return item.labels?.includes(previous.label.value) === true
+              }
+            })()
+            switch (current.state) {
               case 'all': {
-                newLabelsSet.add(label.label.value)
+                if (!wasLabelPresent) {
+                  isChanged = true
+                }
                 break
               }
               case 'none': {
-                newLabelsSet.delete(label.label.value)
+                if (wasLabelPresent) {
+                  isChanged = true
+                }
+                break
+              }
+              case 'some': {
+                break
+              }
+            }
+            if (isChanged) {
+              break
+            }
+          }
+          if (!isChanged) {
+            return Promise.resolve()
+          }
+          const newLabels = new Set(item.labels ?? [])
+          for (const label of newSelectedLabels) {
+            switch (label.state) {
+              case 'all': {
+                newLabels.add(label.label.value)
+                break
+              }
+              case 'none': {
+                newLabels.delete(label.label.value)
                 break
               }
               case 'some': {
@@ -165,11 +210,7 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
               }
             }
           }
-          const newLabels = [...newLabelsSet]
-          if (arrayEquals(item.labels ?? [], newLabels)) {
-            return Promise.resolve()
-          }
-          return associateTag([item.id, newLabels, item.title])
+          return associateTag([item.id, [...newLabels], item.title])
         }),
       )
     },
