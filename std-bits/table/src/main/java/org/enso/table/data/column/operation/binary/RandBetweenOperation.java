@@ -1,15 +1,14 @@
 package org.enso.table.data.column.operation.binary;
 
-import org.enso.table.data.column.operation.BinaryOperationTyped;
-import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.table.Column;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import static org.enso.table.data.column.operation.binary.BinaryOperator.createNumeric;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Random;
-
-import static org.enso.table.data.column.operation.binary.BinaryOperator.createNumeric;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.table.Column;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class RandBetweenOperation extends BinaryOperator.NumericOperation {
   public static BinaryOperationTyped<?> create(Column left, Object right, long seed) {
@@ -25,7 +24,8 @@ public class RandBetweenOperation extends BinaryOperator.NumericOperation {
   }
 
   @Override
-  BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
+  BigDecimal doBigDecimal(
+      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
     double distance = rng.nextDouble();
     var distDecimal = b.subtract(a);
     var scaled = new BigDecimal(distance).multiply(distDecimal);
@@ -43,7 +43,8 @@ public class RandBetweenOperation extends BinaryOperator.NumericOperation {
   }
 
   @Override
-  BigInteger doBigInteger(BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
+  BigInteger doBigInteger(
+      BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
     double distance = rng.nextDouble();
     var distInteger = b.subtract(a);
     var scaled = new BigDecimal(distance).multiply(new BigDecimal(distInteger));
