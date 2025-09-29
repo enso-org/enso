@@ -351,7 +351,7 @@ function AllLabels(props: AllLabelsProps) {
 
   const { getText } = useText()
   const filter = useFilter({ sensitivity: 'base' })
-  const filteredLabels = labels.filter((label) => filter.contains(label.label.id, query))
+  const filteredLabels = labels.filter((label) => filter.contains(label.label.value, query))
 
   return (
     <div
