@@ -4465,7 +4465,11 @@ lazy val `os-environment` =
             (Test / target).value / ("test-os-env" + exeSuffix)
           val binPath = exeFile.getAbsolutePath
           val res =
-            Process(Seq(binPath), None, "JAVA_TOOL_OPTIONS" -> "") ! logger
+            Process(
+              Seq(binPath),
+              None,
+              "JAVA_TOOL_OPTIONS" -> "--enable-native-access=org.enso.jvm.channel"
+            ) ! logger
           if (res != 0) {
             logger.error("Some test in os-environment failed")
             throw new TestsFailedException()
