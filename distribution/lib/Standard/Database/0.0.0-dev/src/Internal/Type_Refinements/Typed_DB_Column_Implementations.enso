@@ -1,6 +1,7 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Errors.Unimplemented.Unimplemented
 
 from Standard.Table import Value_Type
 
@@ -16,3 +17,7 @@ type DB_Numeric_Column_Implementation
         Value_Type.expect_numeric column <|
             new_name = (naming_helper column).function_name "signum" [column]
             make_unary_op column "SIGNUM" new_name
+
+    randbetween column limit seed =
+        _ = [column, limit, seed]
+        Unimplemented.throw "randbetween is not implemented for database backends."
