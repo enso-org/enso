@@ -982,10 +982,10 @@ rm dist/backend/project-manager.tar"
                 steps.push(upload_ide);
 
                 let test_prepare_step = shell("\
-                    mkdir -p app/client/playwright/.auth && \
-                    touch app/client/playwright/.auth/user.json && \
-                    chmod 600 app/client/playwright/.auth/user.json && \
-                    echo \"{\\\"user\\\": \\\"$ENSO_TEST_USER\\\",\\\"password\\\":\\\"$ENSO_TEST_USER_PASSWORD\\\"}\" > app/client/playwright/.auth/user.json\
+                    mkdir -p app/electron-client/playwright/.auth && \
+                    touch app/electron-client/playwright/.auth/user.json && \
+                    chmod 600 app/electron-client/playwright/.auth/user.json && \
+                    echo \"{\\\"user\\\": \\\"$ENSO_TEST_USER\\\",\\\"password\\\":\\\"$ENSO_TEST_USER_PASSWORD\\\"}\" > app/electron-client/playwright/.auth/user.json\
                     ").with_shell(Shell::Bash).with_secret_exposed_as(
                         secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
                         "ENSO_TEST_USER",
@@ -1018,7 +1018,7 @@ rm dist/backend/project-manager.tar"
                     uses: Some("actions/upload-artifact@v4".into()),
                     with: Some(Argument::Other(BTreeMap::from_iter([
                         ("name".into(), format!("test-traces-{}-{}", target.0, target.1).into()),
-                        ("path".into(), "app/client/test-traces".into()),
+                        ("path".into(), "app/electron-client/test-traces".into()),
                         ("compression-level".into(), 0.into()), // The traces are in zip already.
                     ]))),
                     ..Default::default()

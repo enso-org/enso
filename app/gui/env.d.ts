@@ -100,7 +100,7 @@ interface ProjectManagementApi {
  * # Safety
  *
  * We're assuming that the main process has exposed the `fileBrowserApi` context bridge (see
- * `app/client/src/preload.ts` for details), and that it contains the functions defined in this
+ * `app/electron-client/src/preload.ts` for details), and that it contains the functions defined in this
  * interface.
  */
 interface FileBrowserApi {

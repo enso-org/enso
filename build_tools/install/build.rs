@@ -23,7 +23,8 @@ fn main() {
     if let Err(err) = embed_resource_from_file(
         ENSO_ICON_ID,
         ResourceType::Icon,
-        &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../app/client/assets/icons/icon.ico"),
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../app/electron-client/assets/icons/icon.ico"),
     ) {
         // We do not use `cargo:warning` here, as we do not want to pollute the output if the icon
         // is not available. Still, to enable debugging, we print to stderr, which is captured by

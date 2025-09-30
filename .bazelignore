@@ -2,7 +2,7 @@
 node_modules
 app/gui/node_modules
 app/common/node_modules
-app/client/node_modules
+app/electron-client/node_modules
 app/lang-markdown/node_modules
 app/lezer-markdown/node_modules
 app/project-manager-shim/node_modules

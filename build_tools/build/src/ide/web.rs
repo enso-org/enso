@@ -121,7 +121,7 @@ pub fn unpacked_dir(output_path: impl AsRef<Path>, os: OS, arch: Arch) -> PathBu
 
 /// Computes the SHA-256 checksum of a file and writes it to a file.
 ///
-/// This is a Rust equivalent of the `app/client/tasks/computeHashes.ts`.
+/// This is a Rust equivalent of the `app/electron-client/tasks/computeHashes.ts`.
 pub fn store_sha256_checksum(file: impl AsRef<Path>, checksum_file: impl AsRef<Path>) -> Result {
     let mut hasher = sha2::Sha256::new();
     let mut file = ide_ci::fs::open(&file)?;
