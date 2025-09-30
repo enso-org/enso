@@ -82,7 +82,7 @@ type DB_Column_Implementation
 
     to_sql (this_column : Column & DB_Column) = this_column.to_table.to_sql
 
-    length (this_column : Column & DB_Column) = this_column.to_table.row_count
+    row_count (this_column : Column & DB_Column) = this_column.to_table.row_count
 
     count_nothing (this_column : Column & DB_Column) =
         this_column.to_table.filter 0 Filter_Condition.Is_Nothing . row_count

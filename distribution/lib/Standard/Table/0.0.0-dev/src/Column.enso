@@ -2095,7 +2095,7 @@ type Column
              example_row_count = Examples.text_column_2.row_count
        ```
     row_count self -> Integer =
-        self.implementation.length self
+        self.implementation.row_count self
 
     ## ---
        group: Standard.Base.Metadata

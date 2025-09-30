@@ -599,7 +599,7 @@ type In_Memory_Column_Implementation
 
     name (this_column : Column & In_Memory_Column) = this_column.java_column.getName
 
-    length (this_column : Column & In_Memory_Column) = this_column.java_column . getSize
+    row_count (this_column : Column & In_Memory_Column) = this_column.java_column . getSize
 
     count_nothing (this_column : Column & In_Memory_Column) = CountNothing.apply this_column.java_column
 
