@@ -1,5 +1,6 @@
 package org.enso.compiler.dump.test;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
@@ -440,6 +441,22 @@ public class DocsGenerateTest {
     var any = "Standard.Base.Any.Any";
     var regex = ".*foo _:${any} x:${any} _:${any} y:${any} ->.*".replace("${any}", any);
     assertThat("Two blank (underscore) arguments: " + sigLine, sigLine.matches(regex), is(true));
+  }
+
+  @Test
+  public void conversionBlank() throws Exception {
+    var code =
+        """
+        type Source
+        type Target
+        Target.from (_:Source) = 42
+        """;
+    var sig = DumpTestUtils.generateSignatures(ctxRule, code, "Main");
+    var sigLine = lastLine(sig);
+    assertThat(
+        "Single blank argument in conversion: " + sigLine,
+        sigLine,
+        containsString("Main.Target.from _:Main.Source -> Main.Target"));
   }
 
   private static void assertSingleBlankArgument(String methodName, String sig) {
