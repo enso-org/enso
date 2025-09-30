@@ -104,6 +104,7 @@ public final class Cache<T, M> {
    * @throws IOException if something goes wrong
    */
   public final TruffleFile save(T entry, EnsoContext context) throws IOException {
+    System.out.printf("[%s] Saving cache  %n", logName);
     TruffleLogger logger = context.getLogger(this.getClass());
     for (var root : spi.getCacheRoots(context)) {
       if (saveCacheTo(context, root, entry, logger)) {
@@ -176,6 +177,7 @@ public final class Cache<T, M> {
    * @return the cached data if possible, and [[None]] if it could not load a valid cache
    */
   public final Optional<T> load(EnsoContext context) {
+    System.out.printf("[%s] Loading cache  %n", logName);
     var logger = context.getLogger(this.getClass());
     var collected = new ArrayList<IOException>();
     synchronized (LOCK) {
