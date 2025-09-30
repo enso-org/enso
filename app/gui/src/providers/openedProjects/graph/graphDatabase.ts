@@ -82,6 +82,7 @@ export class GraphDb {
 
   private nodeIdToExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
     const exprs: AstId[] = []
+    entry.innerExpr.module.assertConsistency()
     Ast.visitRecursive(entry.innerExpr, (ast) => void exprs.push(ast.id))
     return Array.from(exprs, (expr) => [id, expr])
   })

@@ -1,4 +1,4 @@
-import { markRaw, shallowReactive } from 'vue'
+import { customRef, markRaw, shallowReactive } from 'vue'
 import { MutableModule } from 'ydoc-shared/ast'
 import * as Y from 'yjs'
 
@@ -11,6 +11,25 @@ import * as Y from 'yjs'
  */
 export function reactiveModule(doc: Y.Doc, onCleanup: (f: () => void) => void): MutableModule {
   const module = markRaw(new MutableModule(doc))
+  const changes = []
+
+  const debouncedReactive = (map: any) => {
+    let trigger: (() => void) | undefined
+    const ref = customRef((track, trigger_) => {
+      trigger = trigger_
+      return {
+        get: () => {
+          track()
+          return map
+        },
+        set: (value) => {
+          trigger()
+        },
+      }
+    })
+    ref.value
+  }
+
   const handle = module.observe((update) => {
     update.nodesAdded.forEach((astId) => {
       const fields = module.get(astId).fields

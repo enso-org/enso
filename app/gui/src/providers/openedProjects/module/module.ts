@@ -40,6 +40,8 @@ export function createModuleStore(
   const ast = synced as Ref<Ast.Module | undefined>
   const observers: ((update: Ast.ModuleUpdate) => void)[] = []
 
+  let module___: any
+  let handle___: any
   watch(
     () => proj.module,
     (projModule, _, onCleanup) => {
@@ -62,6 +64,8 @@ export function createModuleStore(
           root.value = undefined
         }
       })
+      module___ = module
+      handle___ = handle
       onCleanup(() => {
         module.unobserve(handle)
         source.clear()
@@ -107,9 +111,33 @@ export function createModuleStore(
     }
 
     const applyEdit = (result: Result<T>) => {
-      if (result.ok) synced.value?.applyEdit(edit, options.origin)
-      else if (logLevel !== 'none')
-        console[logLevel](result.error.message(options.logPreamble ?? 'Cannot commit AST edit.'))
+      assertConsistency()
+      edit.assertConsistency()
+
+      console.debug('>>> STUNT')
+      const stunt = synced.value!.edit()
+      stunt.assertConsistency()
+      stunt.observe(() => {
+        try {
+          stunt.assertConsistency()
+        } catch (err) {
+          console.error('Stunt observer failed', err)
+        }
+      })
+      stunt.applyEdit(edit)
+      stunt.assertConsistency()
+
+      console.debug('>>> BEFORE APPLY')
+      try {
+        if (result.ok) synced.value?.applyEdit(edit, options.origin)
+        else if (logLevel !== 'none')
+          console[logLevel](result.error.message(options.logPreamble ?? 'Cannot commit AST edit.'))
+      } catch (err) {
+        console.error("HERE's THE CATCH", err)
+        throw err
+      }
+      console.debug('>>> AFTER APPLY')
+      assertConsistency()
       return result
     }
 
@@ -213,6 +241,11 @@ export function createModuleStore(
     return { unregister: () => proj.module?.doc.ydoc.off('beforeTransaction', f) }
   }
 
+  function assertConsistency() {
+    assertDefined(synced.value)
+    synced.value.assertConsistency()
+  }
+
   return proxyRefs({
     source,
     ast,
@@ -226,5 +259,6 @@ export function createModuleStore(
     setWidgetMetadata,
     addMissingImports,
     addMissingImportsDisregardConflicts,
+    assertConsistency,
   })
 }

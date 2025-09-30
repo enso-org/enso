@@ -213,8 +213,13 @@ export class MutableModule implements Module {
   private attachObserver() {
     if (this.yjsObserver) return
     this.yjsObserver = (events: Y.YEvent<any>[], transaction: Y.Transaction) => {
-      const update = this.observeEvents(events, tryAsOrigin(transaction.origin))
-      for (const observer of this.updateObservers ?? []) observer(update)
+      try {
+        this.assertConsistency()
+        const update = this.observeEvents(events, tryAsOrigin(transaction.origin))
+        for (const observer of this.updateObservers ?? []) observer(update)
+      } catch (err) {
+        console.error('Observer caught an exception', err)
+      }
     }
     this.nodes.observeDeep(this.yjsObserver)
   }
@@ -437,6 +442,13 @@ export class MutableModule implements Module {
   /** @internal */
   has(id: AstId) {
     return this.nodes.has(id)
+  }
+
+  assertConsistency() {
+    for (const key of this.nodes.keys()) {
+      const node = this.get(key as AstId)
+      assert(node.module === this)
+    }
   }
 }
 
