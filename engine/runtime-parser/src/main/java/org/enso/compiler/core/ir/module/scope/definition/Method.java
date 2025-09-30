@@ -73,6 +73,15 @@ public interface Method extends Definition {
       return new Builder();
     }
 
+    /** Static equivalent for {@link #copyBuilder()}. */
+    public static Builder builder(Explicit obj) {
+      return new Builder(obj);
+    }
+
+    public Builder copyBuilder() {
+      return new Builder(this);
+    }
+
     /**
      * Create an {@link Explicit} object from {@link Method.Binding}.
      *
@@ -130,6 +139,18 @@ public interface Method extends Definition {
       super(methodReference, arguments, body, isPrivate);
     }
 
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static Builder builder(Binding obj) {
+      return new Builder(obj);
+    }
+
+    public Builder copyBuilder() {
+      return new Builder(this);
+    }
+
     @Override
     public String showCode(int indent) {
       String exprStr;
@@ -162,6 +183,14 @@ public interface Method extends Definition {
 
     public static Builder builder() {
       return new Builder();
+    }
+
+    public static Builder builder(Conversion obj) {
+      return new Builder(obj);
+    }
+
+    public Builder copyBuilder() {
+      return new Builder(this);
     }
 
     /**
