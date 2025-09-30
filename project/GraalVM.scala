@@ -246,7 +246,7 @@ object GraalVM {
     if (!allowedJavaVendors.contains(javaVendor)) {
       log.warn(
         s"Running on non-GraalVM JVM (The actual java.vendor is $javaVendor). " +
-        s"Expected Java vendors: ${allowedJavaVendors.mkString(", ")}." +
+        s"Expected Java vendors: ${allowedJavaVendors.mkString(", ")}. " +
         s"Download link: $downloadLink"
       )
     }
@@ -255,7 +255,7 @@ object GraalVM {
     if (javaSpecVersion != javaVersion) {
       log.error(
         s"Running on Java version $javaSpecVersion. " +
-        s"Expected Java version $javaVersion." +
+        s"Expected Java version $javaVersion. " +
         s"Download link: $downloadLink"
       )
       return oldState.fail
@@ -267,7 +267,7 @@ object GraalVM {
         if (!isSameVersion(version, graalVersion)) {
           log.error(
             s"Running on GraalVM version $version. " +
-            s"Expected GraalVM version $graalVersion." +
+            s"Expected GraalVM version $graalVersion. " +
             s"Download link: $downloadLink"
           )
           oldState.fail
