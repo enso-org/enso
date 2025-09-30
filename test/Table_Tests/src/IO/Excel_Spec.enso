@@ -910,9 +910,9 @@ add_specs suite_builder =
     col_e = [Date_Time.new 2022 06 12 12 34 56, Date_Time.new 2022 10 20 1 23 45, Date_Time.new 2022 07 30 2 46, Date_Time.new 2022 10 15 9]
 
     check_column col expected =
-        start = col.length - expected.length
+        start = col.row_count - expected.length
         0.up_to start . map i->(col.at i . should_equal Nothing)
-        start.up_to col.length . map i->(col.at i . should_equal (expected.at (i - start)))
+        start.up_to col.row_count . map i->(col.at i . should_equal (expected.at (i - start)))
 
     check_table table count=5 =
         table.column_count . should_equal count
