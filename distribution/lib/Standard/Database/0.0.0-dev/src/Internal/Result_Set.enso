@@ -8,6 +8,7 @@ from Standard.Table.In_Memory_Table import from_java_table
 import project.SQL.SQL_Type
 
 polyglot java import java.sql.ResultSet
+polyglot java import org.enso.database.fetchers.ColumnFetcher # necessary for reflection metadata
 polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
 polyglot java import org.enso.table.data.column.storage.type.AnyObjectType
 polyglot java import org.enso.table.data.column.storage.type.DateTimeType

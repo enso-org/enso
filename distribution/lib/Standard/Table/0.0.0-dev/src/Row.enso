@@ -6,6 +6,8 @@ import project.Errors.No_Such_Column
 import project.Internal.Widget_Helpers
 from project.Internal.Storage import java_to_enso
 
+polyglot java import org.enso.table.data.table.Row as Java_Row # necessary for reflection metadata
+
 ## Represents a single row of some in-memory Table.
 type Row
     ## ---
