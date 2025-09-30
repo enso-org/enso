@@ -25,8 +25,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
-import org.enso.interpreter.Constants.Names;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
@@ -34,6 +34,7 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -135,6 +136,10 @@ public abstract class InvokeMethodNode extends BaseNode {
     return EnsoContext.get(this).getBuiltins().any().getEigentype() == type;
   }
 
+  private boolean isAnyType(Object obj) {
+    return EnsoContext.get(this).getBuiltins().any() == obj;
+  }
+
   @Specialization(
       guards = {
         "typesLibrary.hasType(self)",
@@ -186,29 +191,19 @@ public abstract class InvokeMethodNode extends BaseNode {
   }
 
   /**
-   * Returns true if synthetic Self argument should be prepended to the arguments passed to the
-   * function.
+   * Returns true if the first argument, which is {@code Any} type should be removed.
    *
-   * <p>Static method calls on Any are resolved to `Any.type.method`. Such methods take one
-   * additional self argument (with Any.type) as opposed to static method calls resolved on any
-   * other types.
-   *
-   * @param resolvedFunctionSchema Schema of the function that was resolved to be invoked.
-   * @param argumentCount Count of the arguments passed to the function.
-   * @return True if synthetic self argument should be prepended to the arguments.
+   * @see #dispatchStaticMethodCallOnAny(VirtualFrame, State, UnresolvedSymbol, Object[], Function).
    */
-  public static boolean shouldPrependSyntheticSelfArg(
-      FunctionSchema resolvedFunctionSchema, int argumentCount) {
-    var resolvedFuncArgCount = resolvedFunctionSchema.getArgumentsCount();
+  public static boolean shouldRemoveSelfArg(FunctionSchema resolvedFuncSchema, int argumentCount) {
+    var resolvedFuncArgCount = resolvedFuncSchema.getArgumentsCount();
     long argsWithDefaultValCount = 0;
-    for (var argDef : resolvedFunctionSchema.getArgumentInfos()) {
+    for (var argDef : resolvedFuncSchema.getArgumentInfos()) {
       if (argDef.hasDefaultValue()) {
         argsWithDefaultValCount++;
       }
     }
-    boolean shouldPrependSyntheticSelfArg =
-        resolvedFuncArgCount - argsWithDefaultValCount == argumentCount + 1;
-    return shouldPrependSyntheticSelfArg;
+    return resolvedFuncArgCount - argsWithDefaultValCount == argumentCount - 1;
   }
 
   private static boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
@@ -242,6 +237,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     } else {
       function = resolveFunction(symbol, selfTpe, methodResolverNode);
     }
+
     if (function == null) {
       var ctx = EnsoContext.get(this);
       var imported =
@@ -251,42 +247,39 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
       throw methodNotFound(this, onBoundary, symbol, self);
     }
-    CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
-    var shouldPrependSyntheticSelfArg =
-        shouldPrependSyntheticSelfArg(function.getSchema(), arguments.length);
-    if (isAnyEigenType(selfTpe) && shouldPrependSyntheticSelfArg) {
-      // function is a static method on Any, so the first two arguments in `invokeFuncSchema`
-      // represent self arguments.
-      boolean selfArgSpecified = false;
-      if (invokeFuncSchema.length > 1) {
-        selfArgSpecified =
-            invokeFuncSchema[1].getName() != null
-                && invokeFuncSchema[1].getName().equals(Names.SELF_ARGUMENT);
-      }
 
-      if (selfArgSpecified) {
-        // If there is a self named argument in the method call, we fall back to the old
-        // behavior - there will be no prepended Any.type self argument
-        assert arguments.length == invokeFuncSchema.length;
-        return invokeFunctionNode.execute(function, frame, state, arguments);
-      }
+    if (isAnyEigenType(selfTpe)) {
+      return dispatchStaticMethodCallOnAny(frame, state, symbol, arguments, function);
+    } else {
+      assert arguments.length == invokeFunctionNode.getSchema().length;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    }
+  }
 
-      Object[] argsWithPrependedSelf = new Object[arguments.length + 1];
-      argsWithPrependedSelf[0] = EnsoContext.get(this).getBuiltins().any().getEigentype();
-      System.arraycopy(arguments, 0, argsWithPrependedSelf, 1, arguments.length);
-
+  /**
+   * Special case of static method invocation on {@code Any}. More specifically, when the receiver
+   * ({@code self}) is {@code Any} type. In this situation, the self argument may be removed from
+   * the function call.
+   *
+   * @see <a href="https://github.com/enso-org/enso/pull/7033">#7033</a>
+   */
+  private Object dispatchStaticMethodCallOnAny(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object[] arguments,
+      Function function) {
+    assert isFunctionDefinedOnAny(function);
+    assert arguments.length > 0;
+    assert isAnyType(arguments[0]);
+    var invokeFuncSchema = invokeFunctionNode.getSchema();
+    if (shouldRemoveSelfArg(function.getSchema(), arguments.length)) {
+      Object[] argsWithRemovedSelf = new Object[arguments.length - 1];
+      System.arraycopy(arguments, 1, argsWithRemovedSelf, 0, argsWithRemovedSelf.length);
       if (invokeAnyStaticFunctionNode == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        assert function.getSchema().getArgumentsCount() >= 2
-            : "Resolved function should be on Any.type, therefore, should have at least two self"
-                + " arguments";
-        // Prepend self=Any to the arguments and shift
-        CallArgumentInfo[] newInvokeFuncSchema = new CallArgumentInfo[arguments.length + 1];
-        newInvokeFuncSchema[0] = new CallArgumentInfo("self");
-        assert arguments.length == invokeFuncSchema.length;
-        System.arraycopy(invokeFuncSchema, 0, newInvokeFuncSchema, 1, invokeFuncSchema.length);
-
-        assert argsWithPrependedSelf.length == newInvokeFuncSchema.length;
+        CallArgumentInfo[] newInvokeFuncSchema = new CallArgumentInfo[arguments.length - 1];
+        System.arraycopy(invokeFuncSchema, 1, newInvokeFuncSchema, 0, newInvokeFuncSchema.length);
         invokeAnyStaticFunctionNode =
             insert(
                 InvokeFunctionNode.build(
@@ -294,12 +287,24 @@ public abstract class InvokeMethodNode extends BaseNode {
                     DefaultsExecutionMode.EXECUTE,
                     ArgumentsExecutionMode.EXECUTE));
       }
-      assert argsWithPrependedSelf.length == invokeAnyStaticFunctionNode.getSchema().length;
-      assert Arrays.stream(argsWithPrependedSelf).allMatch(Objects::nonNull);
-      return invokeAnyStaticFunctionNode.execute(function, frame, state, argsWithPrependedSelf);
+      assert Arrays.stream(argsWithRemovedSelf).allMatch(Objects::nonNull);
+      assert argsWithRemovedSelf.length == invokeAnyStaticFunctionNode.getSchema().length;
+      return invokeAnyStaticFunctionNode.execute(function, frame, state, argsWithRemovedSelf);
+    } else {
+      assert arguments.length == invokeFunctionNode.getSchema().length;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
     }
-    assert arguments.length == invokeFunctionNode.getSchema().length;
-    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  private static boolean isFunctionDefinedOnAny(Function func) {
+    if (func.getCallTarget().getRootNode() instanceof EnsoRootNode rootNode) {
+      var module = rootNode.getModuleScope().getModule();
+      return module.getName().item().equals("Any");
+    } else if (func.getCallTarget().getRootNode() instanceof BuiltinRootNode rootNode) {
+      var typeName = rootNode.getTypeName();
+      return typeName.item().equals("Any");
+    }
+    return false;
   }
 
   static PanicException methodNotFound(

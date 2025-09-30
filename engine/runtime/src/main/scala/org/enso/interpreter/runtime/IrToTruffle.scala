@@ -941,10 +941,9 @@ private[runtime] class IrToTruffle(
     expr
   }
 
-  /**
-   * This method iterates over every [[BindingsMap.exportedSymbols exported]] symbol, and
-   * registers it in the current [[TruffleCompilerModuleScopeBuilder module scope]].
-   */
+  /** This method iterates over every [[BindingsMap.exportedSymbols exported]] symbol, and
+    * registers it in the current [[TruffleCompilerModuleScopeBuilder module scope]].
+    */
   private def generateReExportBindings(module: Module): Unit = {
     def mkConsGetter(constructor: AtomConstructor): RuntimeFunction =
       constructor.getAccessorFunction()
