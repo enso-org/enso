@@ -73,11 +73,6 @@ public interface Method extends Definition {
       return new Builder();
     }
 
-    /** Static equivalent for {@link #copyBuilder()}. */
-    public static Builder builder(Explicit obj) {
-      return new Builder(obj);
-    }
-
     public Builder copyBuilder() {
       return new Builder(this);
     }
@@ -143,10 +138,6 @@ public interface Method extends Definition {
       return new Builder();
     }
 
-    public static Builder builder(Binding obj) {
-      return new Builder(obj);
-    }
-
     public Builder copyBuilder() {
       return new Builder(this);
     }
@@ -183,10 +174,6 @@ public interface Method extends Definition {
 
     public static Builder builder() {
       return new Builder();
-    }
-
-    public static Builder builder(Conversion obj) {
-      return new Builder(obj);
     }
 
     public Builder copyBuilder() {
