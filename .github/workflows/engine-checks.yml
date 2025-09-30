@@ -747,7 +747,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-std-microsoft-std-mock-dual-microsoft-linux-amd64:
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-std-microsoft-linux-amd64:
     name: Standard Library Microsoft Tests (GraalVM CE) (linux, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-linux-amd64
@@ -832,7 +832,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-std-microsoft-std-mock-dual-microsoft-windows-amd64:
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-std-microsoft-windows-amd64:
     name: Standard Library Microsoft Tests (GraalVM CE) (windows, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-windows-amd64

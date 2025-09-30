@@ -314,7 +314,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-std-microsoft-std-mock-dual-microsoft-macos-amd64:
+  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-std-microsoft-macos-amd64:
     name: Standard Library Microsoft Tests (GraalVM CE) (macos, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
