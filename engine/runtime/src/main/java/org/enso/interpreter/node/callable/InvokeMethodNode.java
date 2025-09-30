@@ -272,7 +272,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object[] arguments,
       Function function) {
-    assert isFunctionDefinedOnAny(function);
     assert arguments.length > 0;
     assert isAnyType(arguments[0]);
     var invokeFuncSchema = invokeFunctionNode.getSchema();
@@ -297,17 +296,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       assert arguments.length == invokeFunctionNode.getSchema().length;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     }
-  }
-
-  private static boolean isFunctionDefinedOnAny(Function func) {
-    if (func.getCallTarget().getRootNode() instanceof EnsoRootNode rootNode) {
-      var module = rootNode.getModuleScope().getModule();
-      return module.getName().item().equals("Any");
-    } else if (func.getCallTarget().getRootNode() instanceof BuiltinRootNode rootNode) {
-      var typeName = rootNode.getTypeName();
-      return typeName.item().equals("Any");
-    }
-    return false;
   }
 
   static PanicException methodNotFound(
