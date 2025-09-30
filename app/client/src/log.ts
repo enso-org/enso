@@ -22,10 +22,17 @@ import * as paths from '@/paths'
 const consoleLog = console.log
 const consoleError = console.error
 
-type LogLevel = 'log' | 'error' | 'warn'
+type LogLevel = 'log' | 'info' | 'error' | 'warn' | 'debug'
 
 /**
  * Setup logging, overriding standard console methods with our own.
+ *
+ * Only the following methods are overridden:
+ * - `console.log`
+ * - `console.info`
+ * - `console.error`
+ * - `console.warn`
+ * - `console.debug`
  *
  * The path of the log file is {@link generateUniqueLogFileName automatically generated}.
  *
@@ -47,13 +54,17 @@ export function setupLogger() {
     handleException(() => consumer.message('log', ...args))
   }
   console.info = (...args) => {
-    console.log(...args)
+    handleException(() => consumer.message('info', ...args))
   }
   console.error = (...args) => {
     handleException(() => consumer.message('error', ...args))
   }
   console.warn = (...args) => {
     handleException(() => consumer.message('warn', ...args))
+  }
+  // eslint-disable-next-line no-restricted-properties
+  console.debug = (...args) => {
+    handleException(() => consumer.message('debug', ...args))
   }
 }
 

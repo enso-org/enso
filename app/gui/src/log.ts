@@ -23,12 +23,13 @@ function serializeError(err: unknown) {
  *
  * Only the following methods are overridden:
  * - `console.log`
+ * - `console.info`
  * - `console.error`
  * - `console.warn`
- * - `console.info`
  */
 export function setupLogger() {
   const originalConsoleLog = window.console.log
+  const originalConsoleInfo = window.console.info
   const originalConsoleError = window.console.error
   const originalConsoleWarn = window.console.warn
 
@@ -37,7 +38,8 @@ export function setupLogger() {
     window.logApi?.log(args)
   }
   window.console.info = (...args) => {
-    window.console.log(...args)
+    originalConsoleInfo.apply(window.console, args)
+    window.logApi?.info(args)
   }
   window.console.error = (...args) => {
     originalConsoleError.apply(window.console, args)

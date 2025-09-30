@@ -194,6 +194,9 @@ exposeInMainWorld(LOG_API_KEY, {
   log: (msg: any[]) => {
     electron.ipcRenderer.send(ipc.Channel.log, msg)
   },
+  info: (msg: any[]) => {
+    electron.ipcRenderer.send(ipc.Channel.info, msg)
+  },
   warn: (msg: any[]) => {
     electron.ipcRenderer.send(ipc.Channel.warn, msg)
   },

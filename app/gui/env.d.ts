@@ -126,6 +126,7 @@ interface VersionInfo {
 /** Custom logging API available from renderer process. */
 interface LogApi {
   readonly log: (msg: any[]) => void
+  readonly info: (msg: any[]) => void
   readonly warn: (msg: any[]) => void
   readonly error: (msg: any[]) => void
 }

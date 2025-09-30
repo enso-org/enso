@@ -440,6 +440,9 @@ class App {
     electron.ipcMain.on(ipc.Channel.log, (_event, data) => {
       console.log(...data)
     })
+    electron.ipcMain.on(ipc.Channel.info, (_event, data) => {
+      console.info(...data)
+    })
     electron.ipcMain.on(
       ipc.Channel.importProjectFromPath,
       (event, path: string, directory: string | null, title: string) => {

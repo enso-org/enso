@@ -11,6 +11,7 @@
 export enum Channel {
   /** Channels for passing log messages from renderer to main process. */
   log = 'log',
+  info = 'info',
   warn = 'warn',
   error = 'error',
   /** Channel for requesting that a URL be opened by the system browser. */

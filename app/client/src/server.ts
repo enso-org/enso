@@ -73,7 +73,8 @@ import { ProjectService } from 'project-manager-shim/projectService'
 
 ydocServer.configureAllDebugLogs(
   process.env.ENSO_IDE_YDOC_LS_DEBUG === 'true',
-  console.log.bind(console),
+  // eslint-disable-next-line no-restricted-properties
+  console.debug.bind(console),
 )
 
 // =================
