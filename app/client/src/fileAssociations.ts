@@ -16,7 +16,9 @@ import electronIsDev from 'electron-is-dev'
 import * as common from 'enso-common'
 
 import * as project from 'project-manager-shim'
+
 import * as fileAssociations from '../fileAssociations'
+export * from '../fileAssociations'
 
 // =================
 // === Constants ===
@@ -24,15 +26,6 @@ import * as fileAssociations from '../fileAssociations'
 
 /** Returned by {@link String.indexOf} when the substring was not found. */
 const NOT_FOUND = -1
-
-// =================
-// === Reexports ===
-// =================
-
-export const SOURCE_FILE_EXTENSION = fileAssociations.SOURCE_FILE_EXTENSION
-export const BUNDLED_PROJECT_EXTENSION = fileAssociations.BUNDLED_PROJECT_EXTENSION
-export const SOURCE_FILE_SUFFIX = fileAssociations.SOURCE_FILE_SUFFIX
-export const BUNDLED_PROJECT_SUFFIX = fileAssociations.BUNDLED_PROJECT_SUFFIX
 
 // ==========================
 // === Arguments Handling ===
@@ -98,7 +91,10 @@ function getClientArguments(args = process.argv): readonly string[] {
 /** Check if the given path looks like a file that we can open. */
 export function isFileOpenable(path: string): boolean {
   const extension = pathModule.extname(path).toLowerCase()
-  return extension === BUNDLED_PROJECT_SUFFIX || extension === SOURCE_FILE_SUFFIX
+  return (
+    extension === fileAssociations.BUNDLED_PROJECT_SUFFIX ||
+    extension === fileAssociations.SOURCE_FILE_SUFFIX
+  )
 }
 
 /** Callback called when a file is opened via the `open-file` event. */
@@ -163,7 +159,7 @@ export function handleOpenFile(openedFile: string): project.ProjectInfo {
     const title = openedFile
       .split(pathModule.sep)
       .pop()
-      ?.replace(`.${BUNDLED_PROJECT_EXTENSION}`, '')
+      ?.replace(`.${fileAssociations.BUNDLED_PROJECT_EXTENSION}`, '')
     return project.importProjectFromPath(openedFile, null, title)
   } catch (error) {
     // Since the user has explicitly asked us to open a file, in case of an error, we should
