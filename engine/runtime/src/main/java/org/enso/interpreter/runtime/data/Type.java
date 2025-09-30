@@ -431,7 +431,8 @@ public final class Type extends EnsoObject {
         @Cached("member") String cachedMember,
         @Cached MethodResolverNode methodResolverNode,
         @Cached("buildSymbol(receiver, member)") UnresolvedSymbol symbol,
-        @Cached("findMethod(eigenType(receiver), symbol, methodResolverNode)") Function func,
+        @Cached("findMethod(receiver, eigenType(receiver), symbol, methodResolverNode)")
+            Function func,
         @Cached("buildInvokeCallableNode(func)") InvokeCallableNode invokeCallableNode)
         throws UnsupportedMessageException, UnsupportedTypeException, ArityException {
       Object[] finalArgs = args;
@@ -457,7 +458,7 @@ public final class Type extends EnsoObject {
             UnknownIdentifierException {
       var symbol = buildSymbol(receiver, member);
       var methodResolverNode = MethodResolverNode.getUncached();
-      var method = findMethod(receiver.getEigentype(), symbol, methodResolverNode);
+      var method = findMethod(receiver, receiver.getEigentype(), symbol, methodResolverNode);
       if (method == null) {
         throw UnknownIdentifierException.create(member);
       }
@@ -475,8 +476,11 @@ public final class Type extends EnsoObject {
     }
 
     static Function findMethod(
-        Type receiver, UnresolvedSymbol symbol, MethodResolverNode methodResolverNode) {
-      return InvokeMethodNode.resolveFunction(symbol, receiver, methodResolverNode);
+        Object self,
+        Type receiverType,
+        UnresolvedSymbol symbol,
+        MethodResolverNode methodResolverNode) {
+      return InvokeMethodNode.resolveFunction(symbol, self, receiverType, methodResolverNode);
     }
 
     static InvokeCallableNode buildInvokeCallableNode(Function func) {

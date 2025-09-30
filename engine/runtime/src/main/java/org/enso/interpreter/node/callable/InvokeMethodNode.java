@@ -26,7 +26,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
@@ -34,7 +33,6 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -160,15 +158,20 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("typesLibrary.getType(self)") Type cachedSelfTpe,
-      @Cached("resolveFunction(cachedSymbol, cachedSelfTpe, methodResolverNode)")
+      @Cached("resolveFunction(cachedSymbol, self, cachedSelfTpe, methodResolverNode)")
           Function function) {
     assert arguments.length == invokeFunctionNode.getSchema().length;
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   public static Function resolveFunction(
-      UnresolvedSymbol symbol, Type selfTpe, MethodResolverNode methodResolverNode) {
+      UnresolvedSymbol symbol, Object self, Type selfTpe, MethodResolverNode methodResolverNode) {
     Function function = methodResolverNode.executeResolution(selfTpe, symbol);
+    if (function == null && selfTpe.isEigenType()) {
+      // Try to resolve one more type, this time, not on eigen type, but on normal type.
+      assert self instanceof Type;
+      function = methodResolverNode.executeResolution((Type) self, symbol);
+    }
     if (function == null) {
       return null;
     }
@@ -233,9 +236,9 @@ public abstract class InvokeMethodNode extends BaseNode {
     Type selfTpe = typesLibrary.getType(self);
     Function function;
     if (isAnyEigenType(selfTpe) && self instanceof Type anyType) {
-      function = resolveFunction(symbol, anyType, methodResolverNode);
+      function = resolveFunction(symbol, self, anyType, methodResolverNode);
     } else {
-      function = resolveFunction(symbol, selfTpe, methodResolverNode);
+      function = resolveFunction(symbol, self, selfTpe, methodResolverNode);
     }
 
     if (function == null) {
