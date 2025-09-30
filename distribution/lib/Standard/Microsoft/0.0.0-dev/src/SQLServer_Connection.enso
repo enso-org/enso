@@ -48,7 +48,7 @@ type SQLServer_Connection
         java_connection = JDBC_Connection.handle_sql_errors <|
             props = properties_as_java_props properties
             JDBCProxy.getConnection url props
-        jdbc_connection = JDBC_Connection.from_java sql_ex=SQLException java_connection
+        jdbc_connection = JDBC_Connection.from_java sql_exception=SQLException java_connection
         jdbc_entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
         ## jdbc reports table name length limit as 128, but it actually seems to be 116 for temp tables so we override it
         limited = Encoding_Limited_Naming_Properties.Instance Encoding.utf_8 limit=116 is_case_sensitive=True

@@ -34,7 +34,7 @@ type JDBC_Connection
           Connection instance.
         - `operation_synchronizer`: a helper for synchronizing access to the
           underlying Connection.
-    Value sql_ex=SQLException connection_resource operation_synchronizer
+    Value connection_resource operation_synchronizer sql_ex=SQLException
 
     ## ---
        private: true
@@ -310,10 +310,10 @@ properties_as_java_props properties =
    ---
    A special method used by dialects that construct a Java JDBC connection using
    some custom logic.
-from_java sql_ex=SQLException java_jdbc_connection =
+from_java java_jdbc_connection sql_exception=SQLException =
     resource = Managed_Resource.register java_jdbc_connection close_connection
     synchronizer = OperationSynchronizer.new
-    JDBC_Connection.Value sql_ex=sql_ex resource synchronizer
+    JDBC_Connection.Value sql_ex=sql_exception resource synchronizer
 
 ## ---
    private: true
