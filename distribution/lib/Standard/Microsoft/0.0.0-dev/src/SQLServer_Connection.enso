@@ -45,6 +45,14 @@ type SQLServer_Connection
         - `data_link_setup`: the setup for saving the connection as a data link.
     create : Text -> Vector -> (Text -> SQLServer_Connection) -> Data_Link_Setup -> SQLServer_Connection
     create url properties make_new data_link_setup =
+        properties_as_java_props properties =
+            properties.map pair->
+                # Some parameters may be passed by the dialect as a `HideableValue` directly, so they do not need to be converted.
+                value = pair.second
+                java_value = if value.is_a HideableValue then value else
+                    as_hideable_value value factory=HideableValue
+                Java_Pair.create pair.first java_value
+
         java_connection = JDBC_Connection.handle_sql_errors <|
             props = properties_as_java_props properties
             JDBCProxy.getConnection url props
@@ -404,16 +412,6 @@ Table_Viz_Data.from (that:SQLServer_Connection) =
     tables = that.connection.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}} {{@Schema}})", Table_Viz_Header.Label "Schema"] [tables.at "Name" . to_vector, tables.at "Schema" . to_vector]
 
-## ---
-   private: true
-   ---
-properties_as_java_props properties =
-    properties.map pair->
-        # Some parameters may be passed by the dialect as a `HideableValue` directly, so they do not need to be converted.
-        value = pair.second
-        java_value = if value.is_a HideableValue then value else
-            as_hideable_value value factory=HideableValue
-        Java_Pair.create pair.first java_value
 
 schema_black_list =
     ["INFORMATION_SCHEMA", "sys", "db_accessadmin", "db_backupoperator", "db_datareader", "db_datawriter", "db_ddladmin", "db_denydatareader", "db_denydatawriter", "db_owner", "db_securityadmin"]
@@ -431,4 +429,3 @@ make_table_name_selector connection =
         Option ((schema_text sch) + name) "(..Table_Name "+name.pretty+(if sch == schema then "" else " "+sch.pretty)+")"
     values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
     Single_Choice display=Display.Always values=values
-    
