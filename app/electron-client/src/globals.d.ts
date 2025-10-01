@@ -4,186 +4,14 @@
  * monkeypatching on `window` and generated code.
  */
 
-import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
-import type { FileFilter } from './fileBrowser'
-
-// =============
-// === Types ===
-// =============
-
-/** Nested configuration options with `string` values. */
-interface StringConfig {
-  [key: string]: StringConfig | string
-}
-
-/** The public interface exposed to `window` by the IDE. */
-interface Enso {
-  readonly main: (inputConfig?: StringConfig) => Promise<void>
-}
-
-// ===================
-// === Backend API ===
-// ===================
-
-/**
- * `window.backendApi` is a context bridge to the main process, when we're running in an
- * Electron context. It contains non-authentication-related functionality.
- */
-interface BackendApi {
-  /** Return the ID of the new project. */
-  readonly importProjectFromPath: (
-    openedPath: string,
-    directory: string | null,
-    name: string,
-  ) => Promise<ProjectInfo>
-}
-
-// ==========================
-// === Authentication API ===
-// ==========================
-
-/**
- * `window.authenticationApi` is a context bridge to the main process, when we're running in an
- * Electron context.
- *
- * # Safety
- *
- * We're assuming that the main process has exposed the `authenticationApi` context bridge (see
- * `lib/client/src/preload.ts` for details), and that it contains the functions defined in this
- * interface. Our app can't function if these assumptions are not met, so we're disabling the
- * TypeScript checks for this interface when we use it.
- */
-interface AuthenticationApi {
-  /** Open a URL in the system browser. */
-  readonly openUrlInSystemBrowser: (url: string) => void
-  /**
-   * Set the callback to be called when the system browser redirects back to a URL in the app,
-   * via a deep link. See `setDeepLinkHandler` for details.
-   */
-  readonly setDeepLinkHandler: (callback: (url: string) => void) => void
-  /** Saves the access token to a file. */
-  readonly saveAccessToken: (accessToken: dashboard.AccessToken | null) => void
-}
-
-// ======================
-// === Navigation API ===
-// ======================
-
-/**
- * `window.navigationApi` is a context bridge to the main process, when we're running in an
- * Electron context. It contains navigation-related functionality.
- */
-interface NavigationApi {
-  /** Go back in the navigation history. */
-  readonly goBack: () => void
-  /** Go forward in the navigation history. */
-  readonly goForward: () => void
-}
-
-// ================
-// === Menu API ===
-// ================
-
-/** `window.menuApi` exposes functionality related to the system menu. */
-interface MenuApi {
-  /** Set the callback to be called when the "about" entry is clicked in the "help" menu. */
-  readonly setMenuItemHandler: (name: MenuItem, callback: MenuItemHandler) => void
-}
-
-// ==================
-// === System API ===
-// ==================
-
-/** Options for downloading a URL. */
-export type DownloadUrlOptions = {
-  url: string
-  path?: string | null
-  name?: string | null
-  shouldUnpackProject?: boolean
-  showFileDialog?: boolean
-}
-
-/** `window.systemApi` exposes functionality related to the operating system. */
-interface SystemApi {
-  readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
-  readonly showItemInFolder: (fullPath: string) => void
-  readonly getFilePath: (item: File) => string
-}
-
-// ========================
-// === File Browser API ===
-// ========================
-
-/** `window.fileBrowserApi` exposes functionality related to the system's default file picker. */
-interface FileBrowserApi {
-  readonly openFileBrowser: (
-    kind: 'any' | 'directory' | 'file' | 'filePath',
-    defaultPath?: string,
-    filters?: FileFilter[],
-  ) => Promise<unknown>
-}
-
-// ==============================
-// === Project Management API ===
-// ==============================
-
-/** Metadata for a newly imported project. */
-export interface ProjectInfo {
-  readonly id: string
-  readonly name: string
-  readonly projectRoot: string
-  readonly parentDirectory: string
-}
-
-/**
- * `window.projectManagementApi` exposes functionality related to system events related to
- * project management.
- */
-interface ProjectManagementApi {
-  readonly setOpenProjectHandler: (handler: (projectInfo: ProjectInfo) => void) => void
-}
-
-// ====================
-// === Version Info ===
-// ====================
-
-/** Versions of the app, and selected software bundled with Electron. */
-interface VersionInfo {
-  readonly version: string
-  readonly build: string
-  readonly electron: string
-  readonly chrome: string
-}
-
-// === Logging API ===
-
-/** Custom logging API available from renderer process. */
-interface LogApi {
-  readonly log: (msg: any[]) => void
-  readonly info: (msg: any[]) => void
-  readonly warn: (msg: any[]) => void
-  readonly error: (msg: any[]) => void
-}
-
-// =====================================
-// === Global namespace augmentation ===
-// =====================================
+import type { ElectronApi } from 'enso-gui/src/electronApi'
 
 // JSDocs here are intentionally empty as these interfaces originate from elsewhere.
 declare global {
   // Documentation is already inherited.
   /** */
   interface Window {
-    readonly backendApi?: BackendApi
-    readonly authenticationApi: AuthenticationApi
-    readonly navigationApi: NavigationApi
-    readonly menuApi: MenuApi
-    readonly systemApi?: SystemApi
-    readonly fileBrowserApi?: FileBrowserApi
-    readonly projectManagementApi?: ProjectManagementApi
-    readonly versionInfo?: VersionInfo
-    readonly mapBoxApiToken: () => string
-    readonly logApi: LogApi
+    readonly api: ElectronApi
   }
 
   namespace NodeJS {
@@ -214,8 +42,6 @@ declare global {
       readonly npm_package_name?: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly PROJECT_MANAGER_IN_BUNDLE_PATH: string
-      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly ENSO_SUPPORTS_VIBRANCY?: string
 
       // === Integration test variables ===
 

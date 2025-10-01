@@ -1,6 +1,6 @@
 /** @file Functions to initiate a download. */
 
-import type { DownloadUrlOptions, SystemApi } from '../../../env'
+import type { DownloadUrlOptions, SystemApi } from '$/electronApi'
 
 /** Options for `download` function. */
 export interface DownloadOptions {
@@ -15,7 +15,7 @@ export async function download(options: DownloadOptions) {
   const { name, electronOptions } = options
 
   url = new URL(url, location.toString()).toString()
-  const systemApi = window.systemApi
+  const systemApi = window.api?.system
 
   if (systemApi != null) {
     await downloadUsingElectron({

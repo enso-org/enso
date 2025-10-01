@@ -43,7 +43,7 @@ import * as projectManagement from 'project-manager-shim'
 import { toElectronFileFilter, type FileFilter } from './fileBrowser'
 
 import * as download from 'electron-dl'
-import type { DownloadUrlOptions } from './globals'
+import type { DownloadUrlOptions } from 'enso-gui/src/electronApi'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 
 const DEFAULT_WINDOW_WIDTH = 1380

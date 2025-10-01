@@ -7,6 +7,7 @@
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
 import type * as accessToken from 'enso-common/src/accessToken'
+import type { ElectronApi } from 'enso-gui/src/electronApi'
 import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
 import type * as projectManagement from 'project-manager-shim'
 import type { FileFilter } from './fileBrowser'
@@ -19,16 +20,7 @@ import type { FileFilter } from './fileBrowser'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const electron = require('electron')
 
-const BACKEND_API_KEY = 'backendApi'
-const AUTHENTICATION_API_KEY = 'authenticationApi'
-const FILE_BROWSER_API_KEY = 'fileBrowserApi'
-const PROJECT_MANAGEMENT_API_KEY = 'projectManagementApi'
-const NAVIGATION_API_KEY = 'navigationApi'
-const MENU_API_KEY = 'menuApi'
-const SYSTEM_API_KEY = 'systemApi'
-const VERSION_INFO_KEY = 'versionInfo'
-const MAPBOX_API_TOKEN_KEY = 'mapBoxApiToken'
-const LOG_API_KEY = 'logApi'
+const API_KEY = 'api'
 
 /** A type-safe wrapper around {@link electron.contextBridge.exposeInMainWorld}. */
 function exposeInMainWorld<Key extends string & keyof Window>(
@@ -43,23 +35,14 @@ const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<
   (projectId: projectManagement.ProjectInfo) => void
 >()
 
-exposeInMainWorld(BACKEND_API_KEY, {
-  importProjectFromPath: (projectPath: string, directory: string | null = null, title: string) => {
-    electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory, title)
-    return new Promise<projectManagement.ProjectInfo>((resolve) => {
-      IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
-    })
-  },
-})
-
-exposeInMainWorld(NAVIGATION_API_KEY, {
+const navigation: ElectronApi['navigation'] = {
   goBack: () => {
     electron.ipcRenderer.send(ipc.Channel.goBack)
   },
   goForward: () => {
     electron.ipcRenderer.send(ipc.Channel.goForward)
   },
-})
+}
 
 electron.ipcRenderer.on(
   ipc.Channel.importProjectFromPath,
@@ -99,7 +82,7 @@ electron.ipcRenderer.on(
  * For more details, see:
  * https://www.electronjs.org/docs/latest/api/context-bridge#api-functions.
  */
-exposeInMainWorld(AUTHENTICATION_API_KEY, {
+const authentication: ElectronApi['authentication'] = {
   /**
    * Open a URL in the system browser (rather than in the app).
    *
@@ -129,15 +112,15 @@ exposeInMainWorld(AUTHENTICATION_API_KEY, {
   saveAccessToken: (accessTokenPayload: accessToken.AccessToken | null) => {
     electron.ipcRenderer.send(ipc.Channel.saveAccessToken, accessTokenPayload)
   },
-})
+}
 
-exposeInMainWorld(FILE_BROWSER_API_KEY, {
+const fileBrowser: NonNullable<ElectronApi['fileBrowser']> = {
   openFileBrowser: (
-    kind: 'any' | 'directory' | 'file' | 'filePath',
+    kind: 'default' | 'directory' | 'file' | 'filePath',
     defaultPath?: string,
     filters?: FileFilter[],
   ) => electron.ipcRenderer.invoke(ipc.Channel.openFileBrowser, kind, defaultPath, filters),
-})
+}
 
 /** A callback when a project is opened by opening a fileusing the system's default method. */
 type OpenProjectHandler = (projectInfo: projectManagement.ProjectInfo) => void
@@ -150,11 +133,11 @@ electron.ipcRenderer.on(
   },
 )
 
-exposeInMainWorld(PROJECT_MANAGEMENT_API_KEY, {
+const projectManagementApi: NonNullable<ElectronApi['projectManagement']> = {
   setOpenProjectHandler: (handler: (projectInfo: projectManagement.ProjectInfo) => void) => {
     openProjectHandler = handler
   },
-})
+}
 
 const menuApiHandlers: Record<MenuItem, MenuItemHandler | undefined> = {
   about: undefined,
@@ -168,13 +151,13 @@ electron.ipcRenderer.on(
   },
 )
 
-exposeInMainWorld(MENU_API_KEY, {
+const menu: ElectronApi['menu'] = {
   setMenuItemHandler: (name: MenuItem, handler: MenuItemHandler) => {
     menuApiHandlers[name] = handler
   },
-})
+}
 
-exposeInMainWorld(SYSTEM_API_KEY, {
+const system: ElectronApi['system'] = {
   downloadURL: (options) => {
     return electron.ipcRenderer.invoke(ipc.Channel.downloadURL, options)
   },
@@ -184,23 +167,31 @@ exposeInMainWorld(SYSTEM_API_KEY, {
   getFilePath: (item: File) => {
     return electron.webUtils.getPathForFile(item)
   },
-})
+}
 
-exposeInMainWorld(VERSION_INFO_KEY, debug.VERSION_INFO)
+const api: ElectronApi = {
+  authentication,
+  navigation,
+  menu,
+  system,
+  projectManagement: projectManagementApi,
+  fileBrowser,
+  versionInfo: debug.VERSION_INFO,
+  mapBoxApiToken: () => process.env.ENSO_IDE_MAPBOX_API_TOKEN || '',
+  log: {
+    log: (msg: any[]) => {
+      electron.ipcRenderer.send(ipc.Channel.log, msg)
+    },
+    info: (msg: any[]) => {
+      electron.ipcRenderer.send(ipc.Channel.info, msg)
+    },
+    warn: (msg: any[]) => {
+      electron.ipcRenderer.send(ipc.Channel.warn, msg)
+    },
+    error: (msg: any[]) => {
+      electron.ipcRenderer.send(ipc.Channel.error, msg)
+    },
+  },
+}
 
-exposeInMainWorld(MAPBOX_API_TOKEN_KEY, () => process.env.ENSO_IDE_MAPBOX_API_TOKEN || '')
-
-exposeInMainWorld(LOG_API_KEY, {
-  log: (msg: any[]) => {
-    electron.ipcRenderer.send(ipc.Channel.log, msg)
-  },
-  info: (msg: any[]) => {
-    electron.ipcRenderer.send(ipc.Channel.info, msg)
-  },
-  warn: (msg: any[]) => {
-    electron.ipcRenderer.send(ipc.Channel.warn, msg)
-  },
-  error: (msg: any[]) => {
-    electron.ipcRenderer.send(ipc.Channel.error, msg)
-  },
-})
+exposeInMainWorld(API_KEY, api)

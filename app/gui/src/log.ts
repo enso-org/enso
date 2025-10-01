@@ -35,19 +35,19 @@ export function setupLogger() {
 
   window.console.log = (...args) => {
     originalConsoleLog.apply(window.console, args)
-    window.logApi?.log(args)
+    window.api?.log.log(args)
   }
   window.console.info = (...args) => {
     originalConsoleInfo.apply(window.console, args)
-    window.logApi?.info(args)
+    window.api?.log.info(args)
   }
   window.console.error = (...args) => {
     originalConsoleError.apply(window.console, args)
-    window.logApi?.error(args)
+    window.api?.log.error(args)
   }
   window.console.warn = (...args) => {
     originalConsoleWarn.apply(window.console, args)
-    window.logApi?.warn(args)
+    window.api?.log.warn(args)
   }
 
   window.addEventListener(

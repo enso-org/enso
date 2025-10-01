@@ -89,7 +89,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
 
   const newProject = useNewProject(backend, category)
 
-  const systemApi = window.systemApi
+  const systemApi = window.api?.system
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const canManageThisAsset = asset.id !== USERS_DIRECTORY_ID && asset.id !== TEAMS_DIRECTORY_ID
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
