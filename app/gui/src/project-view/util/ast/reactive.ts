@@ -1,4 +1,4 @@
-import { customRef, markRaw, shallowReactive } from 'vue'
+import { markRaw, shallowReactive } from 'vue'
 import { MutableModule } from 'ydoc-shared/ast'
 import * as Y from 'yjs'
 
@@ -8,27 +8,13 @@ import * as Y from 'yjs'
  * Note that non-Ast structured fields (e.g. ArgumentDefinition) are not themselves reactive --
  * an access is tracked when obtaining the object from the Ast, not when accessing the inner
  * object's fields.
+ *
+ * **Important**: avoid watching AST structures synchronously (with `flush: 'sync'` option),
+ * because you may be notified with partially updated AST data. There are no consistency
+ * guarantees in this case and exceptions are likely to follow.
  */
 export function reactiveModule(doc: Y.Doc, onCleanup: (f: () => void) => void): MutableModule {
   const module = markRaw(new MutableModule(doc))
-  const changes = []
-
-  const debouncedReactive = (map: any) => {
-    let trigger: (() => void) | undefined
-    const ref = customRef((track, trigger_) => {
-      trigger = trigger_
-      return {
-        get: () => {
-          track()
-          return map
-        },
-        set: (value) => {
-          trigger()
-        },
-      }
-    })
-    ref.value
-  }
 
   const handle = module.observe((update) => {
     update.nodesAdded.forEach((astId) => {
