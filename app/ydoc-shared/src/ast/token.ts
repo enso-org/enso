@@ -6,8 +6,10 @@ import * as RawAst from './generated/ast'
 import { newExternalId } from './idMap'
 import type { AstId, DeepReadonly, NodeChild, Owned } from './tree'
 import { Ast } from './tree'
-export import TokenType = RawAst.Token.Type
-export import tokenTypes = RawAst.Token.typeNames
+
+export const TokenType = RawAst.Token.Type
+export type TokenType = RawAst.Token.Type
+export const tokenTypes = RawAst.Token.typeNames
 
 /** Whether the given value is a {@link Token}. */
 export function isToken(maybeToken: Token | Ast): maybeToken is Token {

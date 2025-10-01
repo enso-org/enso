@@ -21,100 +21,6 @@ declare const brandWidgetId: unique symbol
 /** Uniquely identifies a widget type. */
 export type WidgetTypeId = string & { [brandWidgetId]: never }
 
-export namespace WidgetInput {
-  /** Returns widget-input data for the given AST tree or token. */
-  export function FromAst<A extends Ast.Ast | Ast.Token>(ast: A) {
-    return FromAstWithPortId(ast, ast.id)
-  }
-
-  /** Returns widget-input data for the given AST tree or token with a specific port ID. */
-  export function FromAstWithPortId<A extends Ast.Ast | Ast.Token>(
-    ast: A,
-    portId: PortId,
-  ): WidgetInput & { value: A } {
-    return {
-      portId,
-      value: ast,
-    }
-  }
-
-  /** Returns widget-input data for the given AST tree or a placeholder in case a value is missing. */
-  export function FromAstOrPlaceholder<A extends Ast.Ast | Ast.Token | string | undefined>(
-    ast: A,
-    portIdFallback: () => PortId,
-  ): WidgetInput & { value: A } {
-    return ast instanceof Ast.Ast || ast instanceof Ast.Token ?
-        WidgetInput.FromAst(ast)
-      : {
-          portId: portIdFallback(),
-          value: ast,
-        }
-  }
-
-  /** Returns the input marked to be a port. */
-  export function WithPort<T extends WidgetInput>(input: T): T {
-    return {
-      ...input,
-      forcePort: true,
-    }
-  }
-
-  /** A string representation of widget's value - the code in case of AST value. */
-  export function valueRepr(input: WidgetInput): string | undefined {
-    if (typeof input.value === 'string') return input.value
-    else return input.value?.code()
-  }
-
-  /** Check if input is placeholder, i.e. it does not represent any Ast node. */
-  export function isPlaceholder(
-    input: WidgetInput,
-  ): input is WidgetInput & { value: string | undefined } {
-    return input.value == null || typeof input.value === 'string'
-  }
-
-  /** Match input against a specific AST node type. */
-  export function astMatcher<T extends Ast.Ast>(nodeType: Class<T>) {
-    return (input: WidgetInput): input is WidgetInput & { value: T } =>
-      input.value instanceof nodeType
-  }
-
-  /** Match input against a placeholder or specific AST node type. */
-  export function placeholderOrAstMatcher<T extends Ast.Ast>(nodeType: Class<T>) {
-    return (input: WidgetInput): input is WidgetInput & { value: T | string | undefined } =>
-      isPlaceholder(input) || input.value instanceof nodeType
-  }
-
-  /** Check if input's value is existing AST node (not placeholder or token). */
-  export function isAst(input: WidgetInput): input is WidgetInput & { value: Ast.Expression } {
-    return input.value instanceof Ast.Ast && input.value.isExpression()
-  }
-
-  /** Check if input's value is existing AST node or placeholder. Rule out token inputs. */
-  export function isAstOrPlaceholder(
-    input: WidgetInput,
-  ): input is WidgetInput & { value: Ast.Expression | string | undefined } {
-    return isPlaceholder(input) || isAst(input)
-  }
-
-  /** Check if input's value is an AST token. */
-  export function isToken(input: WidgetInput): input is WidgetInput & { value: Ast.Token } {
-    return input.value instanceof Ast.Token
-  }
-
-  /** Check if input's value is an AST which potentially may be a function call. */
-  export function isFunctionCall(input: WidgetInput): input is WidgetInput & {
-    value: Ast.App | Ast.Ident | Ast.PropertyAccess | Ast.OprApp | Ast.AutoscopedIdentifier
-  } {
-    return (
-      input.value instanceof Ast.App ||
-      input.value instanceof Ast.Ident ||
-      input.value instanceof Ast.PropertyAccess ||
-      input.value instanceof Ast.OprApp ||
-      input.value instanceof Ast.AutoscopedIdentifier
-    )
-  }
-}
-
 /**
  * Widget instance input.
  *
@@ -139,13 +45,13 @@ export namespace WidgetInput {
  * }
  * ```
  */
-export interface WidgetInput {
+export class WidgetInput {
   /**
    * Port identification. See {@link PortId}
    *
    * Also, used as usage key (see {@link usageKeyForInput})
    */
-  portId: PortId
+  portId!: PortId
   /**
    * An expected widget value. If Ast.Ast or Ast.Token, the widget represents an existing part of
    * code. If string, it may be e.g. a default value of an argument.
@@ -158,6 +64,96 @@ export interface WidgetInput {
   /** Force the widget to be a connectible port. */
   forcePort?: boolean
   editHandler?: WidgetEditHandlerParent | undefined
+
+  /** Returns widget-input data for the given AST tree or token. */
+  static FromAst<A extends Ast.Ast | Ast.Token>(ast: A) {
+    return WidgetInput.FromAstWithPortId(ast, ast.id)
+  }
+
+  /** Returns widget-input data for the given AST tree or token with a specific port ID. */
+  static FromAstWithPortId<A extends Ast.Ast | Ast.Token>(
+    ast: A,
+    portId: PortId,
+  ): WidgetInput & { value: A } {
+    return {
+      portId,
+      value: ast,
+    }
+  }
+
+  /** Returns widget-input data for the given AST tree or a placeholder in case a value is missing. */
+  static FromAstOrPlaceholder<A extends Ast.Ast | Ast.Token | string | undefined>(
+    ast: A,
+    portIdFallback: () => PortId,
+  ): WidgetInput & { value: A } {
+    return ast instanceof Ast.Ast || ast instanceof Ast.Token ?
+        WidgetInput.FromAst(ast)
+      : {
+          portId: portIdFallback(),
+          value: ast,
+        }
+  }
+
+  /** Returns the input marked to be a port. */
+  static WithPort<T extends WidgetInput>(input: T): T {
+    return {
+      ...input,
+      forcePort: true,
+    }
+  }
+
+  /** A string representation of widget's value - the code in case of AST value. */
+  static valueRepr(input: WidgetInput): string | undefined {
+    if (typeof input.value === 'string') return input.value
+    else return input.value?.code()
+  }
+
+  /** Check if input is placeholder, i.e. it does not represent any Ast node. */
+  static isPlaceholder(input: WidgetInput): input is WidgetInput & { value: string | undefined } {
+    return input.value == null || typeof input.value === 'string'
+  }
+
+  /** Match input against a specific AST node type. */
+  static astMatcher<T extends Ast.Ast>(nodeType: Class<T>) {
+    return (input: WidgetInput): input is WidgetInput & { value: T } =>
+      input.value instanceof nodeType
+  }
+
+  /** Match input against a placeholder or specific AST node type. */
+  static placeholderOrAstMatcher<T extends Ast.Ast>(nodeType: Class<T>) {
+    return (input: WidgetInput): input is WidgetInput & { value: T | string | undefined } =>
+      WidgetInput.isPlaceholder(input) || input.value instanceof nodeType
+  }
+
+  /** Check if input's value is existing AST node (not placeholder or token). */
+  static isAst(input: WidgetInput): input is WidgetInput & { value: Ast.Expression } {
+    return input.value instanceof Ast.Ast && input.value.isExpression()
+  }
+
+  /** Check if input's value is existing AST node or placeholder. Rule out token inputs. */
+  static isAstOrPlaceholder(
+    input: WidgetInput,
+  ): input is WidgetInput & { value: Ast.Expression | string | undefined } {
+    return WidgetInput.isPlaceholder(input) || WidgetInput.isAst(input)
+  }
+
+  /** Check if input's value is an AST token. */
+  static isToken(input: WidgetInput): input is WidgetInput & { value: Ast.Token } {
+    return input.value instanceof Ast.Token
+  }
+
+  /** Check if input's value is an AST which potentially may be a function call. */
+  static isFunctionCall(input: WidgetInput): input is WidgetInput & {
+    value: Ast.App | Ast.Ident | Ast.PropertyAccess | Ast.OprApp | Ast.AutoscopedIdentifier
+  } {
+    return (
+      input.value instanceof Ast.App ||
+      input.value instanceof Ast.Ident ||
+      input.value instanceof Ast.PropertyAccess ||
+      input.value instanceof Ast.OprApp ||
+      input.value instanceof Ast.AutoscopedIdentifier
+    )
+  }
 }
 
 /**
