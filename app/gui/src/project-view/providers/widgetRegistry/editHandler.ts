@@ -228,14 +228,17 @@ export class WidgetEditHandlerRoot extends WidgetEditHandlerParent implements In
  * the top-most widget, and a widget may choose to delegate to its child (if any) by returning false.
  */
 export class WidgetEditHandler extends WidgetEditHandlerParent {
+  readonly portId: PortId
+
   protected constructor(
-    readonly portId: PortId,
+    portId: PortId,
     parent: WidgetEditHandlerParent | undefined,
     hooks: WidgetEditHooks,
     currentEditCtx: CurrentEdit | undefined,
     interactionHandler: InteractionHandler,
   ) {
     super(parent ?? new WidgetEditHandlerRoot(currentEditCtx, interactionHandler), hooks)
+    this.portId = portId
   }
 
   /** Create {@link WidgetEditHandler} from widget props. Convenience version of {@link NewFromPort}. */

@@ -12,16 +12,18 @@ export class YSyncConfig {
   readonly undoManager: Y.UndoManager
   readonly ytext: Y.Text & { doc: Y.Doc }
   readonly origin: unknown
+  readonly awareness: Awareness | null
 
   /** TODO: Add docs */
   constructor(
     ytext: Y.Text & { doc: Y.Doc },
-    readonly awareness: Awareness | null,
+    awareness: Awareness | null,
     origin: LocalUserActionOrigin | undefined,
   ) {
     this.ytext = ytext as Y.Text & { doc: Y.Doc }
     this.undoManager = new Y.UndoManager(ytext)
     markRaw(this)
+    this.awareness = awareness
     this.origin = origin ?? this
   }
 

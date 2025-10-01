@@ -1699,16 +1699,16 @@ export function isNewTitleUnique(
 
 /** Network error class. */
 export class NetworkError extends Error {
+  readonly status?: number | null | undefined
+
   /**
    * Create a new instance of the {@link NetworkError} class.
    * @param message - The error message.
    * @param status - The HTTP status code.
    */
-  constructor(
-    message: string,
-    readonly status?: number | null,
-  ) {
+  constructor(message: string, status?: number | null) {
     super(message)
+    this.status = status
   }
 }
 

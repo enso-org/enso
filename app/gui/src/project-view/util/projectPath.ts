@@ -36,16 +36,17 @@ export function printAbsoluteProjectPath(path: AbsoluteProjectPath): QualifiedNa
   return path.path ? qnJoin(path.project, path.path) : path.project
 }
 
-/**
- * Represents a qualified name (e.g. an import path or a definition path) as a project identity, and a path within it.
- */
+/** Represents a qualified name (e.g. an import path or a definition path) as a project identity, and a path within it. */
 export class ProjectPath {
-  private constructor(
-    /** `undefined` identifies the current project; otherwise, this will be a two-segment path. */
-    readonly project: QualifiedName | undefined,
-    /** `undefined` indicates that the project's path is the entire path. */
-    readonly path: QualifiedName | undefined,
-  ) {}
+  /** `undefined` represents the current project; otherwise, this will be a two-segment path. */
+  readonly project: QualifiedName | undefined
+  /** `undefined` indicates that the project's path is the entire path. */
+  readonly path: QualifiedName | undefined
+
+  private constructor(project: QualifiedName | undefined, path: QualifiedName | undefined) {
+    this.project = project
+    this.path = path
+  }
 
   /** Construct a literal project path from the given project name and path within it. */
   static create(project: QualifiedName, path: QualifiedName | undefined): AbsoluteProjectPath
@@ -56,17 +57,17 @@ export class ProjectPath {
     return new ProjectPath(project, path)
   }
 
-  /** @returns a new path within the same project. */
+  /** Return a new path within the same project. */
   withPath(path: QualifiedName | undefined): ProjectPath {
     return new ProjectPath(this.project, path)
   }
 
-  /** Checks for equality */
+  /** Check for equality. */
   equals(b: Opt<ProjectPath>): boolean {
     return b != null && this.path === b.path && this.project === b.project
   }
 
-  /** Returns the path with the given qualified name appended */
+  /** Return the path with the given qualified name appended */
   append(append: QualifiedName): ProjectPath {
     return this.withPath(this.path ? qnJoin(this.path, append) : append)
   }
@@ -78,7 +79,7 @@ export class ProjectPath {
     return [this.withPath(parent || undefined), ident]
   }
 
-  /** Removes the `Main` segment representing the top level module of the project, if present, and returns the result. */
+  /** Remove the `Main` segment representing the top level module of the project, if present, and return the result. */
   normalized(): ProjectPath {
     if (!this.path) return this
     const normalized = this.path.match(/^Main(?:\.(.+))?$/)

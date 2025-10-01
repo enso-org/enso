@@ -7,10 +7,13 @@ import { SourceRange } from './text'
  * zero-length range at a specific offset. `from` and `to` are allowed to be negative.
  */
 export class Range {
-  protected constructor(
-    readonly from: number,
-    readonly to: number,
-  ) {}
+  readonly from: number
+  readonly to: number
+
+  protected constructor(from: number, to: number) {
+    this.from = from
+    this.to = to
+  }
 
   /** @returns A new `Range`, if `from <= to`. */
   static tryFromBounds(from: number, to: number): Range | undefined {

@@ -10,11 +10,14 @@ import { markRaw } from 'vue'
  * depends on the context where it is used.
  */
 export class Vec2 {
-  /** TODO: Add docs */
-  constructor(
-    readonly x: number,
-    readonly y: number,
-  ) {}
+  readonly x: number
+  readonly y: number
+
+  /** Create a new Vec2. */
+  constructor(x: number, y: number) {
+    this.x = x
+    this.y = y
+  }
 
   static Zero: Vec2
   static Infinity: Vec2

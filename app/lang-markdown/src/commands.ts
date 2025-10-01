@@ -4,15 +4,31 @@ import {SyntaxNode, Tree} from "@lezer/common"
 import {markdownLanguage} from "./markdown"
 
 class Context {
+  readonly node: SyntaxNode
+  readonly from: number
+  readonly to: number
+  readonly spaceBefore: string
+  readonly spaceAfter: string
+  readonly type: string
+  readonly item: SyntaxNode | null
+
   constructor(
-    readonly node: SyntaxNode,
-    readonly from: number,
-    readonly to: number,
-    readonly spaceBefore: string,
-    readonly spaceAfter: string,
-    readonly type: string,
-    readonly item: SyntaxNode | null
-  ) {}
+    node: SyntaxNode,
+    from: number,
+    to: number,
+    spaceBefore: string,
+    spaceAfter: string,
+    type: string,
+    item: SyntaxNode | null
+  ) {
+    this.node = node
+    this.from = from
+    this.to = to
+    this.spaceBefore = spaceBefore
+    this.spaceAfter = spaceAfter
+    this.type = type
+    this.item = item
+  }
 
   blank(maxWidth: number | null, trailing = true) {
     let result = this.spaceBefore + (this.node.name == "Blockquote" ? ">" : "")

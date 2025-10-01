@@ -1,15 +1,17 @@
 /** @file Axis-aligned rectangle. Defined in terms of a top-left point and a size. */
-
 import { Vec2 } from '@/util/data/vec2'
 import { markRaw } from 'vue'
 
 /** Axis-aligned rectangle. Defined in terms of a top-left point and a size. */
 export class Rect {
-  /** TODO: Add docs */
-  constructor(
-    readonly pos: Vec2,
-    readonly size: Vec2,
-  ) {}
+  readonly pos: Vec2
+  readonly size: Vec2
+
+  /** Create an axis-aligned rectangle. */
+  constructor(pos: Vec2, size: Vec2) {
+    this.pos = pos
+    this.size = size
+  }
 
   static Zero: Rect
 

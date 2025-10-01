@@ -35,11 +35,15 @@ export interface SyncTokenId {
 
 /** A structure representing a lexical source code unit in the AST. */
 export class Token implements SyncTokenId {
-  private constructor(
-    readonly code_: string,
-    readonly tokenType_: TokenType | undefined,
-    readonly id: TokenId,
-  ) {}
+  readonly code_: string
+  readonly tokenType_: TokenType | undefined
+  readonly id: TokenId
+
+  private constructor(code_: string, tokenType_: TokenType | undefined, id: TokenId) {
+    this.code_ = code_
+    this.tokenType_ = tokenType_
+    this.id = id
+  }
 
   /** Construct a {@link Token} without a {@link TokenId}. */
   static new(code: string, type?: TokenType) {

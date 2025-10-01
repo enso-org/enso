@@ -4,12 +4,11 @@ import { Range } from 'ydoc-shared/util/data/range'
 
 /** A {@link Range} with an associated `isMatch` flag. */
 export class RangeWithMatch extends Range {
-  protected constructor(
-    from: number,
-    to: number,
-    readonly isMatch: boolean,
-  ) {
+  readonly isMatch: boolean
+
+  protected constructor(from: number, to: number, isMatch: boolean) {
     super(from, to)
+    this.isMatch = isMatch
   }
 
   /** @returns A value associating the given `isMatch` value with the specified {@link Range}. */

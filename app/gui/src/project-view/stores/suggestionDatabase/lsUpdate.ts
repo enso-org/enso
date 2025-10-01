@@ -213,12 +213,13 @@ class ModuleSuggestionEntryImpl extends BaseSuggestionEntry implements ModuleSug
 
 class TypeSuggestionEntryImpl extends BaseSuggestionEntry implements TypeSuggestionEntry {
   readonly kind = 'Type'
-  parentType: ProjectPath | undefined
+  readonly name: IdentifierOrOperatorIdentifier
+  readonly parentType: ProjectPath | undefined
   reexportedIn: ProjectPath | undefined
-  arguments: lsTypes.SuggestionEntryArgument[]
+  readonly arguments: lsTypes.SuggestionEntryArgument[]
 
   private constructor(
-    readonly name: IdentifierOrOperatorIdentifier,
+    name: IdentifierOrOperatorIdentifier,
     args: lsTypes.SuggestionEntryArgument[],
     parentType: ProjectPath | undefined,
     definedIn: ProjectPath,
@@ -227,6 +228,7 @@ class TypeSuggestionEntryImpl extends BaseSuggestionEntry implements TypeSuggest
     context: UpdateContext,
   ) {
     super(documentation, definedIn, context)
+    this.name = name
     this.arguments = args
     this.parentType = parentType
     this.reexportedIn = reexportedIn

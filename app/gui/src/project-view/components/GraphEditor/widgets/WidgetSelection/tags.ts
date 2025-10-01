@@ -199,14 +199,18 @@ export class NestedChoiceTag {
  * A dropdown item that performs an action when clicked.
  */
 export class ActionTag {
+  readonly label: string
+  readonly icon: Icon | undefined
+  readonly onClick: (dropdownActions: Actions) => void
+
   /**
    * Create a new {@link ActionTag}.
    */
-  constructor(
-    readonly label: string,
-    readonly icon: Icon | undefined,
-    readonly onClick: (dropdownActions: Actions) => void,
-  ) {}
+  constructor(label: string, icon: Icon | undefined, onClick: (dropdownActions: Actions) => void) {
+    this.label = label
+    this.icon = icon
+    this.onClick = onClick
+  }
 
   /**
    * Create a new {@link ActionTag} from a {@link CustomDropdownItem}.

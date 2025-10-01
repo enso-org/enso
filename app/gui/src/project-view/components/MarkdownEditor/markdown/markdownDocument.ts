@@ -30,12 +30,12 @@ function sides<T>(f: (fromOrTo: 'from' | 'to') => T): { from: T; to: T } {
 
 /** A document with {@link Text} and an associated Markdown syntax {@link Tree}. */
 export class MarkdownDocument extends TextDocument {
+  readonly tree: Tree
+
   /** Constructor. */
-  constructor(
-    doc: Text,
-    readonly tree: Tree,
-  ) {
+  constructor(doc: Text, tree: Tree) {
     super(doc)
+    this.tree = tree
   }
 
   /**

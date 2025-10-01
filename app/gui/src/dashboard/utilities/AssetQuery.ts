@@ -57,21 +57,37 @@ export default class AssetQuery {
     // ['modifieds', 'modified'],
   ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
 
-  readonly query
+  readonly query: string
+  readonly keywords: readonly string[]
+  readonly names: readonly string[]
+  readonly labels: readonly string[]
+  readonly types: readonly string[]
+  readonly extensions: readonly string[]
+  readonly descriptions: readonly string[]
+  readonly modifieds: readonly string[]
+  readonly owners: readonly string[]
 
   /** Create an {@link AssetQuery}. */
   constructor(
     query: string | null,
-    readonly keywords: readonly string[],
-    readonly names: readonly string[],
-    readonly labels: readonly string[],
-    readonly types: readonly string[],
-    readonly extensions: readonly string[],
-    readonly descriptions: readonly string[],
-    readonly modifieds: readonly string[],
-    readonly owners: readonly string[],
+    keywords: readonly string[],
+    names: readonly string[],
+    labels: readonly string[],
+    types: readonly string[],
+    extensions: readonly string[],
+    descriptions: readonly string[],
+    modifieds: readonly string[],
+    owners: readonly string[],
   ) {
     this.query = query ?? ''
+    this.keywords = keywords
+    this.names = names
+    this.labels = labels
+    this.types = types
+    this.extensions = extensions
+    this.descriptions = descriptions
+    this.modifieds = modifieds
+    this.owners = owners
     if (query == null) {
       this.query = this.toString()
     }

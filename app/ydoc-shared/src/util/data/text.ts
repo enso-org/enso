@@ -19,11 +19,15 @@ export function sourceRangeFromKey(key: SourceRangeKey): SourceRange {
 
 /** Describes how a change to text will affect document locations. */
 export class SourceRangeEditDesc {
-  protected constructor(
-    readonly from: number,
-    readonly to: number,
-    readonly insert: { length: number },
-  ) {}
+  readonly from: number
+  readonly to: number
+  readonly insert: { length: number }
+
+  protected constructor(from: number, to: number, insert: { length: number }) {
+    this.from = from
+    this.to = to
+    this.insert = insert
+  }
 
   static replace(range: SourceRange, insert: { length: number }) {
     assert(length >= 0)

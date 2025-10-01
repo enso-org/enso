@@ -71,11 +71,13 @@ export const yRemoteSelectionsTheme = cmView.EditorView.baseTheme({
 const yRemoteSelectionsAnnotation = cmState.Annotation.define<number[]>()
 
 class YRemoteCaretWidget extends cmView.WidgetType {
-  constructor(
-    readonly color: string,
-    readonly name: string,
-  ) {
+  readonly color: string
+  readonly name: string
+
+  constructor(color: string, name: string) {
     super()
+    this.color = color
+    this.name = name
   }
 
   toDOM() {
