@@ -391,7 +391,7 @@ type SQLServer_Connection
    private: true
    ---
 Table_Viz_Data.from (that:SQLServer_Connection) =
-    tables = that.connection.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
+    tables = that.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}} {{@Schema}})", Table_Viz_Header.Label "Schema"] [tables.at "Name" . to_vector, tables.at "Schema" . to_vector]
 
 ## ---
@@ -413,4 +413,4 @@ make_table_name_selector connection =
         Option ((schema_text sch) + name) "(..Table_Name "+name.pretty+(if sch == schema then "" else " "+sch.pretty)+")"
     values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
     Single_Choice display=Display.Always values=values
-    
+
