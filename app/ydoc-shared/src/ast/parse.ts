@@ -53,15 +53,15 @@ import {
 
 /** Return the raw parser output for the given code, parsed as a module. */
 export function rawParseModule(code: string): RawAst.Tree.BodyBlock {
-  return deserializeBlock(parse_module(code))
+  return deserializeBlock(parse_module(code) as Uint8Array<ArrayBuffer>)
 }
 
 /** Return the raw parser output for the given code, parsed as a body block. */
 export function rawParseBlock(code: string): RawAst.Tree.BodyBlock {
-  return deserializeBlock(parse_block(code))
+  return deserializeBlock(parse_block(code) as Uint8Array<ArrayBuffer>)
 }
 
-function deserializeBlock(blob: Uint8Array): RawAst.Tree.BodyBlock {
+function deserializeBlock(blob: Uint8Array<ArrayBuffer>): RawAst.Tree.BodyBlock {
   const tree = RawAst.Tree.read(new DataView(blob.buffer), blob.byteLength - 4)
   // The root of the parser output is always a body block.
   assert(tree.type === RawAst.Tree.Type.BodyBlock)

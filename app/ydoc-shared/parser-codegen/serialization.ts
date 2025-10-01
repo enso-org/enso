@@ -38,7 +38,9 @@ export const support = {
   LazyObject: tsf.createIdentifier('LazyObject'),
   ObjectVisitor: tsf.createTypeReferenceNode(tsf.createIdentifier('ObjectVisitor')),
   ObjectAddressVisitor: tsf.createTypeReferenceNode(tsf.createIdentifier('ObjectAddressVisitor')),
-  DataView: tsf.createTypeReferenceNode(tsf.createIdentifier('DataView')),
+  DataView: tsf.createTypeReferenceNode(tsf.createIdentifier('DataView'), [
+    tsf.createTypeReferenceNode(tsf.createIdentifier('ArrayBuffer')),
+  ]),
   Result: (t0: ts.TypeNode, t1: ts.TypeNode) =>
     tsf.createTypeReferenceNode(tsf.createIdentifier('Result'), [t0, t1]),
   readU8: tsf.createIdentifier('readU8'),

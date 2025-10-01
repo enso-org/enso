@@ -286,13 +286,6 @@ function makeVisitFunction(fields: Field[]): ts.MethodDeclaration | undefined {
   )
 }
 
-function castToBool(value: ts.Expression) {
-  return tsf.createPrefixUnaryExpression(
-    ts.SyntaxKind.ExclamationToken,
-    tsf.createPrefixUnaryExpression(ts.SyntaxKind.ExclamationToken, value),
-  )
-}
-
 function makeGetters(id: string, schema: Schema.Schema): ts.ClassElement[] {
   const serialization = schema.serialization[id]
   const type = schema.types[id]
