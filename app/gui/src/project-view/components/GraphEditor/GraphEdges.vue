@@ -141,7 +141,7 @@ function createEdge(source: AstId, target: PortId) {
     const connectionType = project.computedValueRegistry.getExpressionInfo(sourceNode)?.typeInfo
     // Check if type cast to the target type is both possible and necessary.
     const findCompatibleType = (
-      list: ProjectPath[] | undefined,
+      list: readonly ProjectPath[] | undefined,
       withType: ProjectPath | undefined,
     ) => {
       return list

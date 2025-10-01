@@ -341,6 +341,7 @@ export class Console extends Consumer {
  * evaluation time.
  */
 export class Task {
+  message: string
   startTime = 0
   endTime = 0
 
@@ -348,7 +349,9 @@ export class Task {
    * Create a new task.
    * @param message - The message to display when the task is started.
    */
-  constructor(public message: string) {}
+  constructor(message: string) {
+    this.message = message
+  }
 
   /** Start the task. */
   private startBody() {

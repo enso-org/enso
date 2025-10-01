@@ -1142,7 +1142,7 @@ export class Error implements Table {
   }
 
   /** TODO: Add docs */
-  static addMessage(builder: Builder, messageOffset: Offset<string | ArrayBuffer>) {
+  static addMessage(builder: Builder, messageOffset: Offset<string | ArrayBuffer | Uint8Array>) {
     builder.addFieldOffset(1, messageOffset, Null)
   }
 
@@ -1167,7 +1167,7 @@ export class Error implements Table {
   static createError(
     builder: Builder,
     code: number,
-    messageOffset: Offset<string | ArrayBuffer>,
+    messageOffset: Offset<string | ArrayBuffer | Uint8Array>,
     dataType: ErrorPayload,
     dataOffset: Offset<AnyErrorPayload>,
   ): Offset<Error> {

@@ -50,31 +50,29 @@ export interface ColumnDef extends ColDef<RowData> {
   headerComponentParams: ColumnSpecificParams
 }
 
-namespace cellValueConversion {
-  /** Convert AST node to a value for Grid (to be returned from valueGetter, for example). */
-  export function astToAgGrid(ast: Ast.Expression) {
-    if (ast instanceof Ast.TextLiteral) return Ok(ast.rawTextContent)
-    else if (ast instanceof Ast.Ident && ast.code() === NOTHING_NAME) return Ok(null)
-    else if (ast instanceof Ast.PropertyAccess && ast.rhs.code() === NOTHING_NAME) return Ok(null)
-    else return Err('Ast is not convertible to AGGrid value')
-  }
+/** Convert AST node to a value for Grid (to be returned from valueGetter, for example). */
+function astToAgGrid(ast: Ast.Expression) {
+  if (ast instanceof Ast.TextLiteral) return Ok(ast.rawTextContent)
+  else if (ast instanceof Ast.Ident && ast.code() === NOTHING_NAME) return Ok(null)
+  else if (ast instanceof Ast.PropertyAccess && ast.rhs.code() === NOTHING_NAME) return Ok(null)
+  else return Err('Ast is not convertible to AGGrid value')
+}
 
-  /**
-   * Convert value of Grid cell (received, for example, from valueSetter) to AST module.
-   *
-   * Empty values are converted to `Nothing`, which may require appropriate import to work properly.
-   */
-  export function agGridToAst(
-    value: unknown,
-    module: Ast.MutableModule,
-  ): { ast: Ast.Owned<Ast.MutableExpression>; requireNothingImport: boolean } {
-    if (value == null || value === '') {
-      return { ast: Ast.Ident.new(module, 'Nothing' as Ast.Identifier), requireNothingImport: true }
-    } else {
-      return {
-        ast: Ast.TextLiteral.new(`${value}`, module),
-        requireNothingImport: false,
-      }
+/**
+ * Convert value of Grid cell (received, for example, from valueSetter) to AST module.
+ *
+ * Empty values are converted to `Nothing`, which may require appropriate import to work properly.
+ */
+function agGridToAst(
+  value: unknown,
+  module: Ast.MutableModule,
+): { ast: Ast.Owned<Ast.MutableExpression>; requireNothingImport: boolean } {
+  if (value == null || value === '') {
+    return { ast: Ast.Ident.new(module, 'Nothing' as Ast.Identifier), requireNothingImport: true }
+  } else {
+    return {
+      ast: Ast.TextLiteral.new(`${value}`, module),
+      requireNothingImport: false,
     }
   }
 }
@@ -124,7 +122,7 @@ export function tableInputCallMayBeHandled(call: Ast.Expression) {
   if (!columns.ok) return false
   for (const col of columns.value) {
     for (const val of col.data.values()) {
-      if (!cellValueConversion.astToAgGrid(val).ok) return false
+      if (!astToAgGrid(val).ok) return false
     }
   }
   return true
@@ -348,7 +346,7 @@ export function useTableInputArgument(
             if (data == null) return undefined
             const ast = columns.value[i]?.data.at(data.index)
             if (ast == null) return null
-            const value = cellValueConversion.astToAgGrid(ast as Ast.Expression)
+            const value = astToAgGrid(ast as Ast.Expression)
             if (!value.ok) {
               console.error(
                 `Cannot read \`${ast.code}\` as value in Table Widget; the Table widget should not be matched here!`,
@@ -425,7 +423,7 @@ export function useTableInputArgument(
   )
 
   function convertWithImport(value: unknown, edit: Ast.MutableModule) {
-    const { ast, requireNothingImport } = cellValueConversion.agGridToAst(value, edit)
+    const { ast, requireNothingImport } = agGridToAst(value, edit)
     if (requireNothingImport) {
       graph.addMissingImports(edit, nothingImport.value)
     }

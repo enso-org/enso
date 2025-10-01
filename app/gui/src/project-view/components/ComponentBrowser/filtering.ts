@@ -192,7 +192,7 @@ class FilteringWithPattern {
     }
   }
 
-  private firstMatchingAlias(aliases: string[]) {
+  private firstMatchingAlias(aliases: readonly string[]) {
     for (const alias of aliases) {
       const match = this.nameFilter?.tryMatch(alias)
       if (match != null) return { alias, ...match }
@@ -202,9 +202,9 @@ class FilteringWithPattern {
 
   tryMatch(
     name: string,
-    aliases: string[],
+    aliases: readonly string[],
     memberOf: ProjectPath,
-    additionalSelfTypes: ProjectPath[],
+    additionalSelfTypes: readonly ProjectPath[],
   ): MatchResult | null {
     const nameMatch: (NameMatchResult & { alias?: string }) | null =
       this.nameFilter?.tryMatch(name) ?? this.firstMatchingAlias(aliases)

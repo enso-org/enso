@@ -144,15 +144,14 @@ export function visitLeafBlocks(
 }
 class LeafBlockVisitor extends ExclusiveTreeVisitor {
   private parentList: 'BulletList' | 'OrderedList' | undefined = undefined
+  private emit: (node: SyntaxNodeRef, parentList: 'BulletList' | 'OrderedList' | undefined) => void
 
   constructor(
     range: Range,
-    private emit: (
-      node: SyntaxNodeRef,
-      parentList: 'BulletList' | 'OrderedList' | undefined,
-    ) => void,
+    emit: (node: SyntaxNodeRef, parentList: 'BulletList' | 'OrderedList' | undefined) => void,
   ) {
     super(range)
+    this.emit = emit
   }
 
   enter(node: SyntaxNodeRef): boolean {
