@@ -171,6 +171,10 @@ primarily as a _container for module (static) methods_.
   `My_Type.type`.
   - Every type has an eigen type.
   - Eigen type of an eigen type is itself.
+  - There is always exactly one instance of each eigen type, that is, eigen type
+    is singleton itself.
+  - The name is motivated by an
+    [eigen value of a matrix](https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors).
 - **associated type** of a module `My_Module` is a type for the module
   - It is basically an eigen type for a module.
 - **symbol table**.
