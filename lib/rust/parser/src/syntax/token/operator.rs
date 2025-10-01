@@ -198,7 +198,6 @@ impl HasOperatorProperties for variant::TypeAnnotationOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
             binary_infix_precedence: Some(Precedence::TypeAnnotation),
-            lhs_section_termination: Some(SectionTermination::Reify),
             is_compile_time: true,
             rhs_is_non_expression: true,
             ..default()
@@ -295,9 +294,12 @@ impl HasOperatorProperties for variant::CommaOperator {
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum Precedence {
+    // syntactic / contextualizing operators
     Assignment = 1,
     TypeAnnotation,
     Arrow,
+
+    // runtime operators
     Not,
     Logical,
     Equality,

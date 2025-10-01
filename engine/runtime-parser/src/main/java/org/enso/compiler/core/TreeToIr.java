@@ -1140,7 +1140,6 @@ final class TreeToIr {
             .build();
       }
       case Tree.Function fun -> translateFunction(fun);
-      case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);
       case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->
           switch (translateExpression(un.getRhs(), false)) {
             case Literal.Number n ->
@@ -1167,8 +1166,6 @@ final class TreeToIr {
                   .location(getIdentifiedLocation(un))
                   .build();
             }
-            case null ->
-                translateSyntaxError(tree, new Syntax.UnsupportedSyntax("Strange unary -"));
           };
       case Tree.TemplateFunction templ -> translateExpression(templ.getAst(), false);
       case Tree.Wildcard wild -> new Name.Blank(getIdentifiedLocation(wild), meta());
@@ -1387,7 +1384,6 @@ final class TreeToIr {
               yield tree;
             }
             case Tree.UnaryOprApp app -> app.getRhs();
-            case Tree.OprSectionBoundary section -> section.getAst();
             case Tree.TemplateFunction function -> function.getAst();
             case Tree.AnnotatedBuiltin annotated -> annotated.getExpression();
             case Tree.ExpressionStatement statement -> statement.getExpression();
