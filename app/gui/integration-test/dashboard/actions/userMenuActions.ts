@@ -22,8 +22,9 @@ export function userMenuActions<
   T extends BaseActions<Context, ParentClass>,
   Context,
   ParentClass extends BaseActionsClass<Context>,
+  Self,
 >(
-  step: (name: string, callback: PageCallback<Context>) => T,
+  step: (name: string, callback: PageCallback<Context, Self>) => T,
 ): UserMenuActions<T, Context, ParentClass> {
   return {
     downloadApp: (callback: (download: Download) => Promise<void> | void) =>
