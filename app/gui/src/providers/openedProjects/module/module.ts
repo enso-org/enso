@@ -40,8 +40,6 @@ export function createModuleStore(
   const ast = synced as Ref<Ast.Module | undefined>
   const observers: ((update: Ast.ModuleUpdate) => void)[] = []
 
-  let module___: any
-  let handle___: any
   watch(
     () => proj.module,
     (projModule, _, onCleanup) => {
@@ -64,8 +62,6 @@ export function createModuleStore(
           root.value = undefined
         }
       })
-      module___ = module
-      handle___ = handle
       onCleanup(() => {
         module.unobserve(handle)
         source.clear()
@@ -85,8 +81,8 @@ export function createModuleStore(
    * Edit the AST module.
    *
    * Optimization options: These are safe to use for metadata-only edits; otherwise, they require extreme caution.
-   *  @param skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
-   *  to `true` for better performance.
+   * @param options.skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
+   * to `true` for better performance.
    */
   function edit<T, R extends Result<T> | Promise<Result<T>>>(
     f: (edit: MutableModule) => R,
