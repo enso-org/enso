@@ -44,15 +44,17 @@ interface UpdateContext {
 
 abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
   abstract readonly kind: SuggestionKind
+  definedIn: ProjectPath
   private documentationData: DocumentationData
   abstract name: IdentifierOrOperatorIdentifier
   abstract returnType(projectNames: ProjectNameStore): Typename
 
   protected constructor(
     documentation: string | undefined,
-    public definedIn: ProjectPath,
+    definedIn: ProjectPath,
     context: UpdateContext,
   ) {
+    this.definedIn = definedIn
     this.documentationData = documentationData(documentation, definedIn.project, context.groups)
   }
 
@@ -164,14 +166,16 @@ class FunctionSuggestionEntryImpl extends BaseSuggestionEntry implements Functio
 
 class ModuleSuggestionEntryImpl extends BaseSuggestionEntry implements ModuleSuggestionEntry {
   readonly kind = 'Module'
+  reexportedIn: ProjectPath | undefined
 
   private constructor(
     definedIn: ProjectPath,
-    public reexportedIn: ProjectPath | undefined,
+    reexportedIn: ProjectPath | undefined,
     documentation: string | undefined,
     context: UpdateContext,
   ) {
     super(documentation, definedIn, context)
+    this.reexportedIn = reexportedIn
   }
 
   get name() {
@@ -209,19 +213,23 @@ class ModuleSuggestionEntryImpl extends BaseSuggestionEntry implements ModuleSug
 
 class TypeSuggestionEntryImpl extends BaseSuggestionEntry implements TypeSuggestionEntry {
   readonly kind = 'Type'
+  parentType: ProjectPath | undefined
+  reexportedIn: ProjectPath | undefined
   arguments: lsTypes.SuggestionEntryArgument[]
 
   private constructor(
     readonly name: IdentifierOrOperatorIdentifier,
     args: lsTypes.SuggestionEntryArgument[],
-    public parentType: ProjectPath | undefined,
+    parentType: ProjectPath | undefined,
     definedIn: ProjectPath,
-    public reexportedIn: ProjectPath | undefined,
+    reexportedIn: ProjectPath | undefined,
     documentation: string | undefined,
     context: UpdateContext,
   ) {
     super(documentation, definedIn, context)
     this.arguments = args
+    this.parentType = parentType
+    this.reexportedIn = reexportedIn
   }
 
   returnType(projectNames: ProjectNameStore) {
@@ -263,19 +271,27 @@ class ConstructorSuggestionEntryImpl
   implements ConstructorSuggestionEntry
 {
   readonly kind = 'Constructor'
-  arguments: lsTypes.SuggestionEntryArgument[]
+  readonly name: IdentifierOrOperatorIdentifier
+  reexportedIn: ProjectPath | undefined
+  readonly annotations: readonly string[]
+  memberOf: ProjectPath
+  readonly arguments: lsTypes.SuggestionEntryArgument[]
 
   private constructor(
-    readonly name: IdentifierOrOperatorIdentifier,
+    name: IdentifierOrOperatorIdentifier,
     args: lsTypes.SuggestionEntryArgument[],
-    public reexportedIn: ProjectPath | undefined,
-    public annotations: string[],
+    reexportedIn: ProjectPath | undefined,
+    annotations: readonly string[],
     definedIn: ProjectPath,
-    public memberOf: ProjectPath,
+    memberOf: ProjectPath,
     documentation: string | undefined,
     context: UpdateContext,
   ) {
     super(documentation, definedIn, context)
+    this.name = name
+    this.reexportedIn = reexportedIn
+    this.annotations = annotations
+    this.memberOf = memberOf
     this.arguments = args
   }
 

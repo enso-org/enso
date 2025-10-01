@@ -54,7 +54,7 @@ interface Scoped {
 
 interface Annotatable {
   /** A list of annotations. They are present for methods and constructors only. */
-  annotations: string[]
+  annotations: readonly string[]
 }
 
 interface TakesArguments {

@@ -67,13 +67,25 @@ class ArgumentFactory {
 export type DynamicConfig = WidgetConfiguration & { display?: DisplayMode }
 type WidgetInputValue = Ast.Expression | Ast.Token | string | undefined
 abstract class Argument {
+  readonly callId: AstId
+  readonly kind: ApplicationKind
+  readonly dynamicConfig: DynamicConfig | undefined
+  readonly index: number | undefined
+  readonly argInfo: SuggestionEntryArgument | undefined
+
   protected constructor(
-    public callId: AstId,
-    public kind: ApplicationKind,
-    public dynamicConfig: DynamicConfig | undefined,
-    public index: number | undefined,
-    public argInfo: SuggestionEntryArgument | undefined,
-  ) {}
+    callId: AstId,
+    kind: ApplicationKind,
+    dynamicConfig: DynamicConfig | undefined,
+    index: number | undefined,
+    argInfo: SuggestionEntryArgument | undefined,
+  ) {
+    this.callId = callId
+    this.kind = kind
+    this.dynamicConfig = dynamicConfig
+    this.index = index
+    this.argInfo = argInfo
+  }
 
   abstract get portId(): PortId
   abstract get value(): WidgetInputValue
@@ -104,6 +116,8 @@ abstract class Argument {
 export class ArgumentPlaceholder extends Argument {
   declare public index: number
   declare public argInfo: SuggestionEntryArgument
+  readonly insertAsNamed: boolean
+
   /** TODO: Add docs */
   constructor(
     callId: AstId,
@@ -111,9 +125,10 @@ export class ArgumentPlaceholder extends Argument {
     dynamicConfig: DynamicConfig | undefined,
     index: number,
     argInfo: SuggestionEntryArgument,
-    public insertAsNamed: boolean,
+    insertAsNamed: boolean,
   ) {
     super(callId, kind, dynamicConfig, index, argInfo)
+    this.insertAsNamed = insertAsNamed
   }
 
   /** TODO: Add docs */
@@ -139,6 +154,8 @@ export class ArgumentPlaceholder extends Argument {
 
 /** TODO: Add docs */
 export class ArgumentAst extends Argument {
+  readonly ast: Ast.Expression
+
   /** TODO: Add docs */
   constructor(
     callId: AstId,
@@ -146,9 +163,10 @@ export class ArgumentAst extends Argument {
     dynamicConfig: DynamicConfig | undefined,
     index: number | undefined,
     argInfo: SuggestionEntryArgument | undefined,
-    public ast: Ast.Expression,
+    ast: Ast.Expression,
   ) {
     super(callId, kind, dynamicConfig, index, argInfo)
+    this.ast = ast
   }
 
   /** TODO: Add docs */
@@ -228,14 +246,28 @@ interface CallInfo {
 
 /** TODO: Add docs */
 export class ArgumentApplication {
+  readonly appTree: Ast.Expression
+  readonly target: ArgumentApplication | Ast.Expression | ArgumentPlaceholder | ArgumentAst
+  readonly infixOperator: Ast.Token | undefined
+  readonly argument: ArgumentAst | ArgumentPlaceholder
+  readonly calledFunction: CallableSuggestionEntry | undefined
+  readonly isInnermost: boolean
+
   private constructor(
-    public appTree: Ast.Expression,
-    public target: ArgumentApplication | Ast.Expression | ArgumentPlaceholder | ArgumentAst,
-    public infixOperator: Ast.Token | undefined,
-    public argument: ArgumentAst | ArgumentPlaceholder,
-    public calledFunction: CallableSuggestionEntry | undefined,
-    public isInnermost: boolean,
-  ) {}
+    appTree: Ast.Expression,
+    target: ArgumentApplication | Ast.Expression | ArgumentPlaceholder | ArgumentAst,
+    infixOperator: Ast.Token | undefined,
+    argument: ArgumentAst | ArgumentPlaceholder,
+    calledFunction: CallableSuggestionEntry | undefined,
+    isInnermost: boolean,
+  ) {
+    this.appTree = appTree
+    this.target = target
+    this.infixOperator = infixOperator
+    this.argument = argument
+    this.calledFunction = calledFunction
+    this.isInnermost = isInnermost
+  }
 
   private static FromInterpretedInfix(interpreted: InterpretedInfix, callInfo: CallInfo) {
     const { suggestion, widgetCfg } = callInfo
