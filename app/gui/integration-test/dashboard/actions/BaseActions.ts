@@ -39,7 +39,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
   protected readonly page: Page
   protected readonly context: Context
   private readonly promise: Promise<void>
-  private readonly parentClass: ParentClass = null!
+  private readonly parentClass: ParentClass
 
   /** Create a {@link BaseActions}. */
   constructor(

@@ -6,16 +6,26 @@ import { h, markRaw, type Component } from 'vue'
 export class VueDecorationWidget<Props> extends WidgetType {
   private container: HTMLElement | undefined
   private vueHostRegistration: { unregister: () => void } | undefined
+  protected readonly widget: Component
+  protected readonly props: Props
+  protected readonly vueHost: VueHost
+  protected readonly className: string
+  protected readonly elementType: string = 'div'
 
   /** Constructor. */
   constructor(
-    protected readonly widget: Component,
-    protected readonly props: Props,
-    protected readonly vueHost: VueHost,
-    protected readonly className: string,
-    protected readonly elementType: string = 'div',
+    widget: Component,
+    props: Props,
+    vueHost: VueHost,
+    className: string,
+    elementType: string = 'div',
   ) {
     super()
+    this.widget = widget
+    this.props = props
+    this.vueHost = vueHost
+    this.className = className
+    this.elementType = elementType
   }
 
   /** See {@link WidgetType.estimatedHeight}. */

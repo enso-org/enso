@@ -9,12 +9,15 @@ export default class SettingsFormActions<
   Context,
   ParentClass extends BaseActionsClass<Context>,
 > extends PageActions<Context, ParentClass> {
+  protected locate: (page: Page) => Locator
+
   /** Construct a {@link SettingsFormActions}. */
   constructor(
-    protected locate: (page: Page) => Locator,
+    locate: (page: Page) => Locator,
     ...args: ConstructorParameters<typeof PageActions<Context, ParentClass>>
   ) {
     super(...args)
+    this.locate = locate
   }
 
   /** Save and submit this settings section. */
