@@ -177,6 +177,18 @@ primarily as a _container for module (static) methods_.
     [eigen value of a matrix](https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors).
 - **associated type** of a module `My_Module` is a type for the module
   - It is basically an eigen type for a module.
+- **builtin type** is a type annotated with `@Builtin_Type`.
+  - Builtin type cannot be defined outside standard libraries.
+  - Builtin types are usually implemented in the engine, and not with pure Enso
+    code.
+- **parent type** of a type `My_Type` is a type that `My_Type` "extends", i.e.
+  `My_Type` inherits all the methods defined on its parent type.
+  - Every type has exactly one parent type, except for `Any` type.
+  - `Any` has no parent type.
+  - All types have implicit parent type `Any`.
+  - There are some exceptions for some _builtin types_
+    - For example `Float` and `Integer` builtin types have `Number` parent.
+    - `Number` has `Any` parent.
 - **symbol table**.
   - Every type has an associated symbol table.
   - Symbol table maps symbols to their definitions.
@@ -217,11 +229,11 @@ the `Receiver`, and then finds the method definition in its _symbol table_:
 2. **Look up symbol in the symbol table of the determined type:**
 
 - 2.1. If `symbol` is defined in the table, select it and stop.
-- 2.2. If parent type is present, repeat the process with the parent type.
+- 2.2. If _parent type_ is present, repeat the process with the parent type.
   - Every type has an implicit parent type `Any`.
-  - Except for builtin types `Float` and `Integer` 
-     - their parent type is `Number` builtin type
-     - e.g. numbers are forming a special case with a deeper hierarchy.
+  - Except for builtin types `Float` and `Integer`
+    - their parent type is `Number` builtin type
+    - e.g. numbers are forming a special case with a deeper hierarchy.
   - `Any` has no parent type.
 - 2.2. No parent type is present. Raise `No_Such_Method` panic and stop.
 
