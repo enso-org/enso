@@ -214,11 +214,12 @@ export class MutableModule implements Module {
     if (this.yjsObserver) return
     this.yjsObserver = (events: Y.YEvent<any>[], transaction: Y.Transaction) => {
       try {
-        this.assertConsistency()
         const update = this.observeEvents(events, tryAsOrigin(transaction.origin))
         for (const observer of this.updateObservers ?? []) observer(update)
       } catch (err) {
-        console.error('Observer caught an exception', err)
+        console.error('AST observer caught an exception', err)
+        // We drop the exception here, because otherwise we may land with partially updated YDoc
+        // what may produce more confusing bugs.
       }
     }
     this.nodes.observeDeep(this.yjsObserver)
@@ -442,13 +443,6 @@ export class MutableModule implements Module {
   /** @internal */
   has(id: AstId) {
     return this.nodes.has(id)
-  }
-
-  assertConsistency() {
-    for (const key of this.nodes.keys()) {
-      const node = this.get(key as AstId)
-      assert(node.module === this)
-    }
   }
 }
 

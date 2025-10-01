@@ -4,11 +4,11 @@ import type { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase
 import type { UpdateHandler, WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import { commonContextMenuActions, type MenuItem } from '@/components/shared/AgGridTableView.vue'
 import { Ast } from '@/util/ast'
-import { findIndexOpt } from '@/util/data/array'
+import { arrayEquals, findIndexOpt } from '@/util/data/array'
 import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
-import { type ToValue } from '@/util/reactivity'
+import { cachedGetter, type ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, toValue } from 'vue'
@@ -153,20 +153,14 @@ export function useTableInputArgument(
     return unwrapOrWithLog(cols, [], errorMessagePreamble)
   })
 
-  // // Why cachedGetter - see comment on columnDefs.
-  // const columnHeaders = cachedGetter(
-  //   () => Array.from(columns.value, (col) => ({ id: col.id, name: col.name.rawTextContent })),
-  //   (a, b) => arrayEquals(a, b, (a, b) => a.id === b.id && a.name === b.name),
-  // )
-
-  // // Why cachedGetter - see comment on rowData.
-  // const rowCount = cachedGetter(() =>
-  //   columns.value.reduce((soFar, col) => Math.max(soFar, col.data.length), 0),
-  // )
-  const columnHeaders = computed(() =>
-    Array.from(columns.value, (col) => ({ id: col.id, name: col.name.rawTextContent })),
+  // Why cachedGetter - see comment on columnDefs.
+  const columnHeaders = cachedGetter(
+    () => Array.from(columns.value, (col) => ({ id: col.id, name: col.name.rawTextContent })),
+    { equalFn: (a, b) => arrayEquals(a, b, (a, b) => a.id === b.id && a.name === b.name) },
   )
-  const rowCount = computed(() =>
+
+  // Why cachedGetter - see comment on rowData.
+  const rowCount = cachedGetter(() =>
     columns.value.reduce((soFar, col) => Math.max(soFar, col.data.length), 0),
   )
 
@@ -200,11 +194,8 @@ export function useTableInputArgument(
     return rowCount_ * (colCount + 1) <= CELLS_LIMIT
   }
 
-  // const mayAddNewColumnCurrently = cachedGetter(() => mayAddNewColumn())
-  // const mayAddNewRowCurrently = cachedGetter(() => mayAddNewRow())
-
-  const mayAddNewColumnCurrently = computed(() => mayAddNewColumn())
-  const mayAddNewRowCurrently = computed(() => mayAddNewRow())
+  const mayAddNewColumnCurrently = cachedGetter(() => mayAddNewColumn())
+  const mayAddNewRowCurrently = cachedGetter(() => mayAddNewRow())
 
   function addRow(
     edit: Ast.MutableModule,
@@ -534,7 +525,6 @@ export function useTableInputArgument(
           const column = columns.value[colIndex]!
           const newValueAst = convertWithImport(newValueGetter(rowIndex, colIndex), edit)
           edit.getVersion(column.data).set(rowIndex, newValueAst)
-          toValue(module).assertConsistency()
         }
       }
 
@@ -547,7 +537,6 @@ export function useTableInputArgument(
         }
 
         addRow(edit, (_colId, index) => newValueGetter(i, index))
-        toValue(module).assertConsistency()
       }
       const newColCount = Math.max(pastedColsEnd, columns.value.length)
       let modifiedColumnsAst: Ast.Vector | undefined = undefined
@@ -563,10 +552,8 @@ export function useTableInputArgument(
           newRowCount,
           modifiedColumnsAst,
         )
-        toValue(module).assertConsistency()
       }
       const updateResult = await onUpdate({ edit, directInteraction: true })
-      toValue(module).assertConsistency()
       if (!updateResult.ok) return updateResult
       return Ok({
         rows: actuallyPastedRowsEnd - focusedCell.rowIndex,
