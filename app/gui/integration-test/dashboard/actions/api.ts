@@ -788,7 +788,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     })
     await get(paths.LIST_TAGS_PATH, () => {
       called('listTags', {})
-      return { tags: labels } satisfies backend.ListTagsResponseBody
+      return labels satisfies readonly backend.Label[]
     })
     await get(paths.LIST_USERS_PATH, async (route) => {
       called('listUsers', {})
