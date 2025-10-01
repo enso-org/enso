@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import project.Column.Column
+import project.Refined_Types.Numeric_Column.Numeric_Column
 
 ## A column that contains text values.
 type Text_Column
@@ -22,3 +23,37 @@ type Text_Column
        ```
     to_case self case_option:Case=..Lower locale:Locale=Locale.default -> Column & Text_Column =
         self.operations_implementation.to_case self.column case_option locale
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each character of each element to the specified case.
+
+       ## Examples
+       ### Convert the values in a column to uppercase.
+
+       ```
+             import Standard.Examples
+
+             example_length = Examples.text_column_1.length
+       ```
+    length self -> Column & Numeric_Column =
+        self.operations_implementation.length self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each character of each element to the specified case.
+
+       ## Examples
+       ### Convert the values in a column to uppercase.
+
+       ```
+             import Standard.Examples
+
+             example_length = Examples.text_column_1.length
+       ```
+    char_length self -> Column & Numeric_Column =
+        self.operations_implementation.char_length self.column
