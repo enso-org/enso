@@ -16,7 +16,7 @@ public final class GenericJDBCConnectionDetailsImpl extends DatabaseConnectionDe
 
   @Override
   protected String getCodeForDefaultConstructor() {
-    return "(Generic_JDBC_Details.Value)";
+    return "..JDBC";
   }
 
   @Override
