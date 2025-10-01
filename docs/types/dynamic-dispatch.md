@@ -163,7 +163,7 @@ When invoking a method on _module object_ its _module static methods_ take
 precedence over _instance methods_ defined on `Any`. Thus a module serves
 primarily as a _container for module (static) methods_.
 
-## Method Resolution
+## Method invocation
 
 **Terminology**:
 
@@ -197,10 +197,10 @@ primarily as a _container for module (static) methods_.
     - Atom fields are methods. More specifically, every atom field has an
       associated getter method.
 
-This section describes the _method resolution_ process, which resolves a
-concrete method definition for a concrete call site. For a method call
-expression `Receiver.symbol`, this section focuses only on a single dispatch
-based on `Receiver` argument. For multiple dispatch, see the
+This section describes the \_method invocation process, which resolves a
+concrete method definition for a concrete call site and evaluates it. For a
+method call expression `Receiver.symbol`, this section focuses only on a single
+dispatch based on `Receiver` argument. For multiple dispatch, see the
 [Multiple Dispatch](#multiple-dispatch) section.
 
 Method resolution algorithm for `Receiver.symbol` first determines the _type_ of
@@ -228,14 +228,25 @@ the `Receiver`, and then finds the method definition in its _symbol table_:
 
 2. **Look up symbol in the symbol table of the determined type:**
 
-- 2.1. If `symbol` is defined in the table, select it and stop.
-- 2.2. If _parent type_ is present, repeat the process with the parent type.
-  - Every type has an implicit parent type `Any`.
-  - Except for builtin types `Float` and `Integer`
-    - their parent type is `Number` builtin type
-    - e.g. numbers are forming a special case with a deeper hierarchy.
-  - `Any` has no parent type.
-- 2.2. No parent type is present. Raise `No_Such_Method` panic and stop.
+- 2.1. Lookup the `symbol` in the Receiver's type and all its parent types.
+- 2.2. If it is found, continue to 3.
+- 2.3. If it is not found, continue to 4.
+
+3. **Invoke the method with defaulted self**:
+
+- 3.1. `symbol` is a method in Receiver's type (or its parent type) symbol
+  table.
+- 3.2. Such method is treated as if it's first parameter is named `self` and has
+  the default value of `Receiver`.
+- 3.3. The call site can specify named `self` argument
+
+4. **Static invocation without bound self**:
+
+- 4.1. Method was not found on Receiver's type, or its parent type.
+- 4.2. Try to lookup the method on the `Receiver` itself
+- 4.3. If no method is found, raise `No_Such_Method` panic and stop.
+- 4.4. If a method is found, treat it as if it's first parameter is named `self`
+  and has no default value.
 
 ### Lexical scope lookup
 
@@ -246,67 +257,67 @@ the `Receiver`, and then finds the method definition in its _symbol table_:
   `symbol` is defined in any of the modules, select it and stop.
 - Raise `Name_Not_Found` panic and stop.
 
-## Method evaluation
+## Examples
 
-This section describes the _method evaluation_ process. We assume that a
-particular method definition was already selected by the
-[method resolution](#method-resolution) process.
+```
+@Builtin_Type
+type Any
+    to_text self = "???"
 
-Let's have `method` be a method definition resolved from
-[Method Resolution](#method-resolution) process, that is defined as
-`method [self] [parName=[defaultValue]]* = <body expression>`.
+type My_Type
+    Cons
+    method self x = x + 1
 
-If `self` parameter is specified, we call it an _instance method_, otherwise, we
-call it a _static method_.
+obj = My_Type.Cons
+```
 
-### Instance method call evaluation
+### Example (a)
 
-The method call expression in the format of `obj.method [[argName=]argValue]*`,
-where `obj` is an instance (value / atom) of type `T`, and `method` is an
-_instance method_ with `self` argument defined either on `T` or outside `T` as
-an _extension method_, the method evaluation process is as follows:
+Evaluation of `obj.method 41`:
 
-- `self` argument cannot be specified explicitly
-- Go to [Arguments evaluation](#argument-evaluation) to evaluate `argValue`s and
-  bind them to `argName`s.
+- Receiver type is determined as `My_Type` (1.2)
+- `method` is looked up in `My_Type` symbol table, and found (2.2)
+- `method` is executed as `My_Type.method self=obj x=41` (3.2)
+- expression is evaluated to 42.
 
-### Static Method Invocation
+### Example (b)
 
-The method call expression in the format of
-`TypeOrModule.method [[argName=]argValue]*`, where `TypeOrModule` is either a
-type or a module, and `method` is a _static method_ defined on `TypeOrModule`.
-Note that `TypeOrModule` does not have to be specified, if `method` is directly
-imported.
+Evaluation of `My_Type.method obj 41`:
 
-The method evaluation process is as follows:
+- Receiver type is determined as `My_Type.type` (1.1)
+- There is no `method` in `My_Type.type` symbol table (2.3)
+- `method` is looked up in `My_Type` and found (4.4)
+- `method` is executed as `My_Type.method self=obj x=41` (4.4)
+- expression is evaluated to 42.
 
-1. **Determine whether `TypeOrModule` is a type or a module:**
+### Example (c)
 
-   - 1.1. If `TypeOrModule` is not `Any`, go to 2
-   - 1.2. If `TypeOrModule` is `Any`, go to 4
+Evaluation of `Any.to_text obj`:
 
-2. **`TypeOrModule` is not `Any`:**
+- Receiver type is determined as `Any` (1.2)
+- `to_text` is looked up in `Any` symbol table, and found (2.2)
+- `to_text` is executed as `Any.to_text self=Any obj` (3.2)
+- expression is evaluated to `"???" obj`, which results in
+  `Not_Invokable_Error`.
 
-   - 2.1. If `self` argument is specified explicitly, go to 3. `self` argument
-     value is either:
-     - Passed via `self` named argument.
-     - First positional argument.
-   - 2.2. If `self` argument is not specified explicitly, go to 4.
+### Example (d)
 
-3. **`self` is specified explicitly:**
+Evaluation of `Any.to_text self=obj`:
 
-   - 3.1. `self` argument is specified explicitly.
-   - 3.2. Bind `self` argument to the provided value.
-   - 3.3. Go to [Arguments evaluation](#argument-evaluation) to evaluate rest of
-     the arguments.
+- Receiver type is determined as `Any` (1.2)
+- `to_text` is looked up in `Any` symbol table, and found (2.2)
+- `to_text` is executed as `Any.to_text self=obj` (3.2, 3.3).
+- expression is evaluated to `"???"`.
 
-4. **`self` is not specified explicitly:**
+### Example (e)
 
-   - 4.1. `self` argument is not specified explicitly. This can happen only if
-     there are no arguments. Which results in a method reference.
+Evaluation of `My_Type.to_text`:
 
-5. **`TypeOrModule` is `Any`:**
-   - 5.1. TODO ...
+- Receiver type is determined as `My_Type.type` (1.1)
+- `to_text` is found in `Any` symbol table (2.2)
+  - `Any` is parent of `My_Type.type`.
+- method is executed as `Any.to_text self=My_Type` (3.2)
+- expression is evaluated to `"???"`.
 
 ### Argument evaluation
 
