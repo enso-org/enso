@@ -114,6 +114,10 @@ const { id } = defineProps<{ id: Opt<ProjectId> }>()
 
 const project = useOpenedProject(() => id)
 const providedProject = shallowRef<OpenedProject | undefined>(project.value)
+
+// When project appears, the setup and mount handlers should already see it in context. But when project disappears,
+// we want to keep stores while unmounting (because unmount handlers may still read some computed values).
+// That's why we use two separate watches.
 watch(
   project,
   (project) => {
