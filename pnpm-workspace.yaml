@@ -14,7 +14,7 @@ packages:
   - app/ydoc-shared
   - lib/js/runner
 catalog:
-  typescript: ^5.7.2
+  typescript: ^5.9.3
   "@types/node": ^24.2.1
   vite: ^7.1.2
   vitest: ^3.2.4

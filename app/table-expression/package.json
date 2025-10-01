@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@lezer/generator": "^1.8.0",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "dependencies": {

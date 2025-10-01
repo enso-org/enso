@@ -5,13 +5,13 @@ import { bail } from '../util/assert'
 import { Err, Ok, type Result } from '../util/data/result'
 
 export type ObjectVisitor = (object: LazyObject) => boolean
-export type ObjectAddressVisitor = (view: DataView, address: number) => boolean
+export type ObjectAddressVisitor = (view: DataView<ArrayBuffer>, address: number) => boolean
 
 /** Base class for objects that lazily deserialize fields when accessed. */
 export abstract class LazyObject {
-  protected readonly _v: DataView
+  protected readonly _v: DataView<ArrayBuffer>
 
-  protected constructor(view: DataView, address = 0) {
+  protected constructor(view: DataView<ArrayBuffer>, address = 0) {
     this._v = address === 0 ? view : makeDataView(view.buffer, view.byteOffset + address)
   }
 
@@ -21,49 +21,49 @@ export abstract class LazyObject {
   }
 }
 
-type Reader<T> = (view: DataView, address: number) => T
+type Reader<T> = (view: DataView<ArrayBuffer>, address: number) => T
 
 function makeDataView(buffer: ArrayBuffer, address: number) {
   return new DataView(buffer, address)
 }
 
 /** TODO: Add docs */
-export function readU8(view: DataView, address: number) {
+export function readU8(view: DataView<ArrayBuffer>, address: number) {
   return view.getUint8(address)
 }
 
 /** TODO: Add docs */
-export function readU32(view: DataView, address: number) {
+export function readU32(view: DataView<ArrayBuffer>, address: number) {
   return view.getUint32(address, true)
 }
 
 /** TODO: Add docs */
-export function readI32(view: DataView, address: number) {
+export function readI32(view: DataView<ArrayBuffer>, address: number) {
   return view.getInt32(address, true)
 }
 
 /** TODO: Add docs */
-export function readU64(view: DataView, address: number) {
+export function readU64(view: DataView<ArrayBuffer>, address: number) {
   return view.getBigUint64(address, true)
 }
 
 /** TODO: Add docs */
-export function readI64(view: DataView, address: number) {
+export function readI64(view: DataView<ArrayBuffer>, address: number) {
   return view.getBigInt64(address, true)
 }
 
 /** TODO: Add docs */
-export function readBool(view: DataView, address: number) {
+export function readBool(view: DataView<ArrayBuffer>, address: number) {
   return readU8(view, address) !== 0
 }
 
 /** TODO: Add docs */
-export function readOffset(view: DataView, offset: number) {
+export function readOffset(view: DataView<ArrayBuffer>, offset: number) {
   return makeDataView(view.buffer, view.byteOffset + offset)
 }
 
 /** TODO: Add docs */
-export function readPointer(view: DataView, address: number): DataView {
+export function readPointer(view: DataView<ArrayBuffer>, address: number): DataView<ArrayBuffer> {
   return makeDataView(view.buffer, readU32(view, address))
 }
 
@@ -71,7 +71,7 @@ const textDecoder = new TextDecoder()
 
 /** TODO: Add docs */
 export function readOption<T>(
-  view: DataView,
+  view: DataView<ArrayBuffer>,
   address: number,
   readElement: Reader<T>,
 ): T | undefined {
@@ -85,7 +85,7 @@ export function readOption<T>(
 
 /** TODO: Add docs */
 export function visitOption(
-  view: DataView,
+  view: DataView<ArrayBuffer>,
   address: number,
   visitor: ObjectAddressVisitor,
 ): boolean {
@@ -102,7 +102,7 @@ export function visitOption(
 
 /** TODO: Add docs */
 export function readResult<Ok, Err>(
-  view: DataView,
+  view: DataView<ArrayBuffer>,
   address: number,
   readOk: Reader<Ok>,
   readErr: Reader<Err>,
@@ -121,7 +121,7 @@ export function readResult<Ok, Err>(
 
 /** TODO: Add docs */
 export function visitResult(
-  view: DataView,
+  view: DataView<ArrayBuffer>,
   address: number,
   visitOk: ObjectAddressVisitor | null,
   visitErr: ObjectAddressVisitor | null,
@@ -142,7 +142,7 @@ export function visitResult(
 
 /** TODO: Add docs */
 export function visitSequence(
-  view: DataView,
+  view: DataView<ArrayBuffer>,
   address: number,
   size: number,
   visitor: ObjectAddressVisitor,
@@ -159,7 +159,7 @@ export function visitSequence(
 
 /** TODO: Add docs */
 export function readSequence<T>(
-  view: DataView,
+  view: DataView<ArrayBuffer>,
   address: number,
   size: number,
   reader: Reader<T>,
@@ -202,7 +202,7 @@ export class LazySequence<T> implements IterableIterator<T> {
 }
 
 /** TODO: Add docs */
-export function readString(view: DataView, address: number): string {
+export function readString(view: DataView<ArrayBuffer>, address: number): string {
   const data = readPointer(view, address)
   const len = readU32(data, 0)
   const bytes = new Uint8Array(data.buffer, data.byteOffset + 4, len)
@@ -210,7 +210,7 @@ export function readString(view: DataView, address: number): string {
 }
 
 /** TODO: Add docs */
-export function readEnum<T>(readers: Reader<T>[], view: DataView, address: number): T {
+export function readEnum<T>(readers: Reader<T>[], view: DataView<ArrayBuffer>, address: number): T {
   const data = readPointer(view, address)
   const discriminant = readU32(data, 0)
   const reader = readers[discriminant] ?? bail(`Invalid enum discriminant: ${discriminant}`)
