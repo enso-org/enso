@@ -318,7 +318,3 @@ Evaluation of `My_Type.to_text`:
   - `Any` is parent of `My_Type.type`.
 - method is executed as `Any.to_text self=My_Type` (3.2)
 - expression is evaluated to `"???"`.
-
-### Argument evaluation
-
-TODO
