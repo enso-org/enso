@@ -214,7 +214,9 @@ the `Receiver`, and then finds the method definition in its _symbol table_:
 - 2.1. If `symbol` is defined in the table, select it and stop.
 - 2.2. If parent type is present, repeat the process with the parent type.
   - Every type has an implicit parent type `Any`.
-  - Except for `Number` which is a special builtin case with a deeper hierarchy.
+  - Except for builtin types `Float` and `Integer` 
+     - their parent type is `Number` builtin type
+     - e.g. numbers are forming a special case with a deeper hierarchy.
   - `Any` has no parent type.
 - 2.2. No parent type is present. Raise `No_Such_Method` panic and stop.
 
