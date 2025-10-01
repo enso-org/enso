@@ -247,11 +247,7 @@ print_progress current_progress total_count status_text =
     truncated_line = if line.length <= progress_width then line else
         line.take (progress_width - 3) + '...'
 
-    IO.print '\r'
-    IO.print (' ' * progress_width)
-    IO.print '\r'
-    IO.print truncated_line
-    IO.print '\r'
+    IO.println truncated_line
 
 ## ---
    private: true
@@ -302,7 +298,7 @@ type Command_Line_Progress_Reporter
     ## ---
        private: true
        ---
-    clear self = clear_progress
+    clear self = Nothing
 
 ## ---
    private: true
