@@ -816,11 +816,12 @@ test.describe('Table expression', () => {
   })
 
   async function getTableNodeExprAutocomplete(page: Page) {
-    const exprText = locate.graphNodeByBinding(page, 'table').locator('.WidgetText')
+    const node = locate.graphNodeByBinding(page, 'table')
+    const exprText = node.locator('.WidgetText')
     await expect(exprText).toHaveAttribute('data-text-syntax', 'enso-table-expression')
     await exprText.click()
     await expect(exprText.getByTestId('widget-text-content')).toBeFocused()
-    return await AutocompleteMenu.ForEditor(exprText)
+    return await AutocompleteMenu.ForEditorInNode(node)
   }
 })
 
@@ -831,8 +832,8 @@ class AutocompleteMenu {
     this.root = root
   }
 
-  static async ForEditor(editor: Locator): Promise<AutocompleteMenu> {
-    const root = editor.locator('.cm-tooltip-autocomplete')
+  static async ForEditorInNode(node: Locator): Promise<AutocompleteMenu> {
+    const root = node.locator('.cm-tooltip-autocomplete')
     await expect(root).toBeVisible()
     return new AutocompleteMenu(root)
   }

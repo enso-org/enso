@@ -18,7 +18,7 @@ import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL_Query.SQL_Query
-from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
+from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_types_selector
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
@@ -391,7 +391,7 @@ type SQLServer_Connection
    private: true
    ---
 Table_Viz_Data.from (that:SQLServer_Connection) =
-    tables = that.connection.tables.filter "Schema" (..Is_In schema_black_list ..Remove)
+    tables = that.connection.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}} {{@Schema}})", Table_Viz_Header.Label "Schema"] [tables.at "Name" . to_vector, tables.at "Schema" . to_vector]
 
 ## ---
@@ -399,3 +399,18 @@ Table_Viz_Data.from (that:SQLServer_Connection) =
    ---
 schema_black_list =
     ["INFORMATION_SCHEMA", "sys", "db_accessadmin", "db_backupoperator", "db_datareader", "db_datawriter", "db_ddladmin", "db_denydatareader", "db_denydatawriter", "db_owner", "db_securityadmin"]
+
+## ---
+   private: true
+   ---
+make_table_name_selector connection =
+    schema = connection.schema
+    schema_text sch = if sch == schema then "" else sch+"."
+    tables = connection.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
+    table_name_values = tables.rows.map r->
+        name = r.at "Name"
+        sch = r.at "Schema"
+        Option ((schema_text sch) + name) "(..Table_Name "+name.pretty+(if sch == schema then "" else " "+sch.pretty)+")"
+    values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
+    Single_Choice display=Display.Always values=values
+    

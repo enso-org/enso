@@ -15,7 +15,12 @@ import type * as vite from 'vite'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as projectManagement from 'project-manager-shim'
-import { handleFilesystemCommand } from 'project-manager-shim'
+import {
+  handleFilesystemCommand,
+  handleProjectServiceRequest,
+  isProjectServiceRequest,
+} from 'project-manager-shim/handler'
+import { ProjectService } from 'project-manager-shim/projectService'
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
@@ -196,11 +201,20 @@ export class Server {
   config: Config
   private projectsRootDirectory: string
   private devServer?: vite.ViteDevServer
+  private projectService?: ProjectService
 
   /** Create a simple HTTP server. */
   constructor(config: Config) {
     this.config = config
     this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
+  }
+
+  /** Get the project service. */
+  getProjectService(): ProjectService {
+    if (!this.projectService) {
+      this.projectService = ProjectService.default()
+    }
+    return this.projectService
   }
 
   /** Server constructor. */
@@ -316,6 +330,15 @@ export class Server {
           },
         ),
         { end: true },
+      )
+    } else if (isProjectServiceRequest(requestUrl)) {
+      const headers = Object.fromEntries(COOP_COEP_CORP_HEADERS)
+      handleProjectServiceRequest(
+        request,
+        response,
+        requestUrl,
+        async () => this.getProjectService(),
+        headers,
       )
     } else if (request.url?.startsWith('/api/')) {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)

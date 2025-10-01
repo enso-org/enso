@@ -132,6 +132,11 @@ export function useFeatureFlag<Key extends keyof FeatureFlags>(key: Key) {
   return useZustandStoreRef(flagsStore, (store) => store.featureFlags[key])
 }
 
+/** Get a single feature flag. Similar to `useFeatureFlag` but without using Vue reactivity. */
+export function getFeatureFlag<Key extends keyof FeatureFlags>(key: Key) {
+  return flagsStore.getState().featureFlags[key]
+}
+
 /** Set a subset of feature flags. */
 export function setFeatureFlags(flags: Partial<FeatureFlags>) {
   return flagsStore.getState().setFeatureFlags(flags)

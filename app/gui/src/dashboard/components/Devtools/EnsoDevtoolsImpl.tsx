@@ -1,8 +1,16 @@
 /** @file A list of toggles for paywall features. */
 import CrossIcon from '#/assets/cross.svg'
 import { Button, CopyButton, type ButtonProps } from '#/components/Button'
+import {
+  useEnableVersionChecker,
+  usePaywallDevtools,
+  useSetEnableVersionChecker,
+  useShowEnsoDevtools,
+  useToggleEnsoDevtools,
+} from '#/components/Devtools/EnsoDevtoolsProvider'
 import { Dialog, Popover, POPOVER_STYLES } from '#/components/Dialog'
 import { Form } from '#/components/Form'
+import { Icon } from '#/components/Icon'
 import { Input } from '#/components/Inputs/Input'
 import { Radio } from '#/components/Radio'
 import { Separator } from '#/components/Separator'
@@ -31,14 +39,6 @@ import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { toast } from 'react-toastify'
 import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
-import { Icon } from '../Icon'
-import {
-  useEnableVersionChecker,
-  usePaywallDevtools,
-  useSetEnableVersionChecker,
-  useShowEnsoDevtools,
-  useToggleEnsoDevtools,
-} from './EnsoDevtoolsProvider'
 
 /** Props for a {@link DeveloperOverrideEntry}. */
 interface DeveloperOverrideEntryProps {
@@ -599,7 +599,7 @@ export function EnsoDevtools() {
               size="small"
               icon="paste"
               onPress={async () => {
-                const text = await navigator.clipboard.readText()
+                const text = await window.navigator.clipboard.readText()
                 localStorage.setManyFromUntrustedSource(safeJsonParse(text, null))
                 toast.success('State pasted')
               }}

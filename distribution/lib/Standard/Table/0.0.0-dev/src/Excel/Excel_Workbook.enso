@@ -38,7 +38,6 @@ from project.Internal.Table_Helpers import duplicate_rows
 polyglot java import java.io.File as Java_File
 polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ExcelWorkbook
-polyglot java import org.enso.table.excel.ReadOnlyExcelConnection
 polyglot java import org.enso.table.read.ExcelReader
 
 type Excel_Workbook

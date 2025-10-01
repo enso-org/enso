@@ -7,7 +7,7 @@ import * as backend from '#/services/Backend'
 import { getFileName, getFolderPath } from '#/utilities/fileInfo'
 import { omit } from '#/utilities/object'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
-import { useFeatureFlag } from '$/providers/featureFlags'
+import { getFeatureFlag } from '$/providers/featureFlags'
 import { normalizeName } from '@/util/nameValidation'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import invariant from 'tiny-invariant'
@@ -57,18 +57,20 @@ export class ProjectManager {
   private reconnecting = false
   private resolvers = new Map<number, (value: never) => void>()
   private rejecters = new Map<number, (reason?: JSONRPCError) => void>()
-  private socketPromise: Promise<WebSocket>
+  private socketPromise: Promise<WebSocket> | null = null
 
   /** Create a {@link ProjectManager} */
   constructor(connectionUrl: string, rootDirectory: Path) {
-    this.socketPromise = this.reconnect()
+    if (!getFeatureFlag('enableProjectService')) {
+      this.socketPromise = this.reconnect()
+    }
     this.connectionUrl = connectionUrl
     this.rootDirectory = rootDirectory
   }
 
   /** Begin reconnecting the {@link WebSocket}. */
   reconnect() {
-    if (this.reconnecting) {
+    if (this.reconnecting && this.socketPromise) {
       return this.socketPromise
     }
     this.reconnecting = true
@@ -129,8 +131,10 @@ export class ProjectManager {
 
   /** Dispose of the {@link ProjectManager}. */
   async dispose() {
-    const socket = await this.socketPromise
-    socket.close()
+    if (this.socketPromise) {
+      const socket = await this.socketPromise
+      socket.close()
+    }
   }
 
   /** Get the state of a project given its path. */
@@ -157,7 +161,12 @@ export class ProjectManager {
     if (cached) {
       return cached.data
     } else {
-      const promise = this.sendRequest<OpenProject>('project/open', fullParams)
+      let promise: Promise<OpenProject>
+      if (getFeatureFlag('enableProjectService')) {
+        promise = this.runProjectServiceCommandJson('project/open', fullParams)
+      } else {
+        promise = this.sendRequest<OpenProject>('project/open', fullParams)
+      }
       this.projects.set(fullParams.projectId, {
         state: 'OpenInProgress',
         data: promise,
@@ -190,15 +199,17 @@ export class ProjectManager {
     }
     const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
     this.projects.delete(fullParams.projectId)
-    return this.sendRequest('project/close', fullParams)
+    if (getFeatureFlag('enableProjectService')) {
+      return this.runProjectServiceCommandJson('project/close', fullParams)
+    } else {
+      return this.sendRequest('project/close', fullParams)
+    }
   }
 
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const enableProjectService = useFeatureFlag('enableProjectService')
     let result: Omit<CreateProject, 'projectPath'>
-    if (enableProjectService.value) {
+    if (getFeatureFlag('enableProjectService')) {
       result = await this.runProjectServiceCommandJson('project/create', { ...params })
     } else {
       result = await this.sendRequest('project/create', {
@@ -232,7 +243,11 @@ export class ProjectManager {
   /** Rename a project. */
   async renameProject(params: WithProjectPath<RenameProjectParams>): Promise<void> {
     const fullParams: RenameProjectParams = this.paramsWithPathToWithId(params)
-    await this.sendRequest('project/rename', fullParams)
+    if (getFeatureFlag('enableProjectService')) {
+      await this.runProjectServiceCommandJson('project/rename', fullParams)
+    } else {
+      await this.sendRequest('project/rename', fullParams)
+    }
     const state = this.projects.get(fullParams.projectId)
     if (state?.state === 'Opened') {
       this.projects.set(fullParams.projectId, {
@@ -255,10 +270,12 @@ export class ProjectManager {
     params: WithProjectPath<DuplicateProjectParams>,
   ): Promise<DuplicatedProject> {
     const fullParams: DuplicateProjectParams = this.paramsWithPathToWithId(params)
-    const result = await this.sendRequest<Omit<DuplicatedProject, 'projectPath'>>(
-      'project/duplicate',
-      fullParams,
-    )
+    let result: Omit<DuplicatedProject, 'projectPath'>
+    if (getFeatureFlag('enableProjectService')) {
+      result = await this.runProjectServiceCommandJson('project/duplicate', fullParams)
+    } else {
+      result = await this.sendRequest('project/duplicate', fullParams)
+    }
     // Update `internalDirectories` by listing the project's parent directory, because the
     // directory name of the project is unknown. Deleting the directory is not an option because
     // that will prevent ALL descendants of the parent directory from being updated.
@@ -279,7 +296,11 @@ export class ProjectManager {
     if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
       await this.closeProject({ projectPath: params.projectPath })
     }
-    await this.sendRequest('project/delete', fullParams)
+    if (getFeatureFlag('enableProjectService')) {
+      await this.runProjectServiceCommandJson('project/delete', fullParams)
+    } else {
+      await this.sendRequest('project/delete', fullParams)
+    }
     this.projectIds.delete(params.projectPath)
     this.projects.delete(fullParams.projectId)
     const siblings = this.directories.get(fullParams.projectsDirectory)
@@ -466,6 +487,8 @@ export class ProjectManager {
 
   /** Send a JSON-RPC request to the project manager. */
   private async sendRequest<T = void>(method: string, params: unknown): Promise<T> {
+    // Initialize socket lazily if not already initialized
+    this.socketPromise ??= this.reconnect()
     const socket = await this.socketPromise
     const id = this.id++
     socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))

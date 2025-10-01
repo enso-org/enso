@@ -82,7 +82,7 @@ build_sorted_table setup table_structure =
     if setup.is_database . not then setup.table_builder table_structure else
         row_count = case table_structure.first of
             def : Vector -> def.second.length
-            col : Column -> col.length
+            col : Column -> col.row_count
         if row_count == 0 then setup.table_builder table_structure else
             new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
             setup.table_builder new_structure . sort "row_id" . remove_columns ["row_id"]

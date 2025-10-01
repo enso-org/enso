@@ -3,7 +3,7 @@ import {
   isSpreadsheetTsv,
   nodesFromClipboardContent,
   nodesToClipboardData,
-} from '@/components/GraphEditor/clipboard'
+} from '@/components/GraphEditor/graphClipboard'
 import type { Node } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { nodeDocumentationText, nodeFromAst } from '@/util/ast/node'
