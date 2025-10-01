@@ -270,7 +270,7 @@ an _extension method_, the method evaluation process is as follows:
 - Go to [Arguments evaluation](#argument-evaluation) to evaluate `argValue`s and
   bind them to `argName`s.
 
-### Static method call evaluation
+### Static Method Invocation
 
 The method call expression in the format of
 `TypeOrModule.method [[argName=]argValue]*`, where `TypeOrModule` is either a
