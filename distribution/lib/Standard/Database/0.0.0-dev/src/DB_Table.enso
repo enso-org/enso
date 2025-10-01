@@ -272,8 +272,19 @@ type DB_Table
        ---
     table_name_schema self =
         case self.context.from_spec of
-            SQL_IR_From_Part.Table table_name schema_name _ _ ->
-                if schema_name.is_nothing || schema_name == "" then [table_name] else [schema_name, table_name]
+            SQL_IR_From_Part.Table table_name schema_name _ _ -> if self.name != table_name then Nothing else
+                trivial_counterpart = make_table_for_name self.connection table_name schema_name ""
+
+                # If the table spec seems trivial, but the underlying table does not exist, we propagate the Table_Not_Found error.
+                check_context_and_columns =
+                    if self.context != trivial_counterpart.context then False else
+                       column_descriptor internal_column = [internal_column.name, internal_column.expression]
+                       my_columns = self.internal_columns.map column_descriptor
+                       trivial_columns = trivial_counterpart.internal_columns.map column_descriptor
+                       my_columns == trivial_columns
+
+                if trivial_counterpart.is_error || check_context_and_columns.not then Nothing else
+                    if schema_name.is_nothing || schema_name == "" then [table_name] else [schema_name, table_name]
             _ -> Nothing
 
 
