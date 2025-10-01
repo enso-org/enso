@@ -204,11 +204,12 @@ the `Receiver`, and then finds the method definition in its _symbol table_:
 - 1.4. If `Receiver` is a polyglot object, method resolution and invocation will
   be handled according to the [polyglot interoperability](../polyglot/README.md)
   rules.
-  - Polyglot object can be:
+  - Polyglot object can be, for example:
     - A Java class, imported by `polyglot java import ...` statement.
     - Java object instance, created by `Java_Class.new ...` expression.
     - Javascript, Python, or any other allowed foreign language object returned
       by a foreign method call.
+    - Refer to [polyglot readme](../polyglot/README.md) for more details.
 - 1.5. If there is no `Receiver`, we are just looking for a variable in the
   current lexical scope or any parent scopes. See
   [Lexical scope lookup](#lexical-scope-lookup).
