@@ -2,7 +2,7 @@ from Standard.Base import all
 
 ## Set of static functions for expression support allowing callback to Enso code.
 type Expression_Statics
-    ## Obtains the current date from the system clock in the system timezone.
+    ## Obtains the current date from the system clock.
     today -> Date =
         Date.today
 
@@ -10,9 +10,17 @@ type Expression_Statics
     now -> Date_Time =
         Date_Time.now
 
-    ## Obtains the current time from the system clock in the default time-zone.
+    ## Obtains the current time from the system clock.
     time -> Time_Of_Day =
         Time_Of_Day.now
+
+    ## Obtains the previous date from the system clock.
+    yesterday -> Date =
+        Date.today - ..Day
+
+    ## Obtains the next date from the system clock.
+    tomorrow -> Date =
+        Date.today + ..Day
 
     ## Creates a regular expression (alternatively use r/expression/)
     regex expression = Regex.compile expression
@@ -59,3 +67,12 @@ type Expression_Statics
 
     ## The mathematical constant e, the base of the natural logarithm.
     e -> Float = Math.e
+
+    ## Creates a Random number column with values between 0.0 and 1.0.
+    rand seed:Integer=0 =
+        generator = Random.new_generator seed
+        _ -> generator.float
+
+    ## Creates a UUID column with random UUID values (version 4).
+    uuid =
+        _ -> Random.uuid

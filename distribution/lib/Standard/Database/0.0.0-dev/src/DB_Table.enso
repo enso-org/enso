@@ -268,6 +268,16 @@ type DB_Table
             _ -> False
 
     ## ---
+       private: true
+       ---
+    table_name_schema self =
+        case self.context.from_spec of
+            SQL_IR_From_Part.Table table_name schema_name _ _ ->
+                if schema_name.is_nothing || schema_name == "" then [table_name] else [schema_name, table_name]
+            _ -> Nothing
+
+
+    ## ---
        group: Standard.Base.Output
        icon: data_output
        ---

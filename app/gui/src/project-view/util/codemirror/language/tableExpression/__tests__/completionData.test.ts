@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { escapeColumn } from '../completions'
+import { escapeColumn } from '../completionData'
 
 test.each([
   { name: 'A Column' },
