@@ -481,7 +481,6 @@ const config = [
         { allowConstantLoopConditions: true },
       ],
       '@typescript-eslint/no-useless-empty-export': 'error',
-      '@typescript-eslint/parameter-properties': ['error', { prefer: 'parameter-property' }],
       '@typescript-eslint/prefer-enum-initializers': 'error',
       '@typescript-eslint/prefer-readonly': 'error',
       '@typescript-eslint/require-array-sort-compare': ['error', { ignoreStringArrays: true }],

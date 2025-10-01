@@ -61,11 +61,11 @@ export class ProjectManager {
 
   /** Create a {@link ProjectManager} */
   constructor(connectionUrl: string, rootDirectory: Path) {
+    this.connectionUrl = connectionUrl
+    this.rootDirectory = rootDirectory
     if (!getFeatureFlag('enableProjectService')) {
       this.socketPromise = this.reconnect()
     }
-    this.connectionUrl = connectionUrl
-    this.rootDirectory = rootDirectory
   }
 
   /** Begin reconnecting the {@link WebSocket}. */
