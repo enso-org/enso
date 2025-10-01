@@ -15,12 +15,10 @@
   },
   "exports": {
     "./ast": {
-      "source": "./src/ast/index.ts",
       "types": "./dist/ast/index.d.ts",
       "import": "./dist/ast/index.js"
     },
     "./*": {
-      "source": "./src/*.ts",
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js"
     }
