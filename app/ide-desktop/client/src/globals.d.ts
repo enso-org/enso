@@ -7,20 +7,6 @@
 import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
 import type { FileFilter } from './fileBrowser'
 
-// =============
-// === Types ===
-// =============
-
-/** Nested configuration options with `string` values. */
-interface StringConfig {
-  [key: string]: StringConfig | string
-}
-
-/** The public interface exposed to `window` by the IDE. */
-interface Enso {
-  readonly main: (inputConfig?: StringConfig) => Promise<void>
-}
-
 // ===================
 // === Backend API ===
 // ===================
