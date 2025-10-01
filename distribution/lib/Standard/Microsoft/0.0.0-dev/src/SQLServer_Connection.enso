@@ -413,3 +413,4 @@ make_table_name_selector connection =
         Option ((schema_text sch) + name) "(..Table_Name "+name.pretty+(if sch == schema then "" else " "+sch.pretty)+")"
     values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
     Single_Choice display=Display.Always values=values
+
