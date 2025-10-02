@@ -28,10 +28,16 @@ type Text_Column
        group: Standard.Base.Text
        icon: text
        ---
-       Converts each character of each element to the specified case.
+       Calculates the text length for each element of the column.
+
+       In the Database backends, the default text length method of the particular
+       database is used.
+
+       In the in-memory backend, this will give you the grapheme length of the
+       string.
 
        ## Examples
-       ### Convert the values in a column to uppercase.
+       ### Gets the text length of each element in a column 
 
        ```
              import Standard.Examples
@@ -45,15 +51,21 @@ type Text_Column
        group: Standard.Base.Text
        icon: text
        ---
-       Converts each character of each element to the specified case.
+       Calculates the text character length for each element of the column.
+
+       In the Database backends, the default text length method of the particular
+       database is used.
+
+       In the in-memory backend, this will give you the UTF-16 code unit length of the
+       string.
 
        ## Examples
-       ### Convert the values in a column to uppercase.
+       ### Gets the text character length of each element in a column 
 
        ```
              import Standard.Examples
 
-             example_length = Examples.text_column_1.length
+             example_char_length = Examples.text_column_1.char_length
        ```
     char_length self -> Column & Numeric_Column =
         self.operations_implementation.char_length self.column
