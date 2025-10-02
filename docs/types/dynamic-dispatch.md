@@ -167,6 +167,18 @@ primarily as a _container for module (static) methods_.
 
 **Terminology**:
 
+- **parameter** is an identifier in a method definition.
+  - Every parameter has a position and a name.
+  - Parameters can have default values.
+- **argument** is an expression in a method invocation.
+  - Arguments can be positional or named.
+  - Named arguments are written as `name=expression`.
+- **static method invocation** is a method invocation with `self` named argument provided.
+  - Note that `self=expression` does not have to be specified as the first argument.
+  - But it is a good convention to do so.
+  - Note that with this requirement, we essentially define a special syntax for _static method invocation_.
+- **instance method invocation** is every method invocation that is not _static_.
+  - That is, it is a method call without `self` named argument provided.
 - **eigen type** of a type `My_Type` is a type of type, usually written as
   `My_Type.type`.
   - Every type has an eigen type.
