@@ -29,7 +29,7 @@
     "src/dashboard/utilities/zustand.ts",
     "src/project-view/util/equals.ts",
     "src/providers/session/constants.ts",
-    "src/utils/zustand.ts",
+    "src/utils/zustand.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",
