@@ -11,7 +11,7 @@ const { toolbar = true, ...props } = defineProps<{
   extensions?: Extension
   contentTestId?: string
   scrollerTestId?: string | undefined
-  editorReadyCallback: (view: EditorView) => void
+  editorReadyCallback?: ((view: EditorView) => void) | undefined
 }>()
 
 defineOptions({

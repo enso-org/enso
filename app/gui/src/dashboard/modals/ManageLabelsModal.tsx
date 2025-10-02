@@ -103,6 +103,7 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
   const createLabel = useEventCallback(async (name: string, color?: LChColor) => {
     const labelName = LabelName(name)
     const newLabel = await createTag([{ value: labelName, color: color ?? leastUsedColor }])
+    await associateTag([item.id, [...(item.labels ?? []), labelName], item.title])
 
     form.setValue('labels', [...selectedLabels, newLabel.id])
   })
@@ -471,7 +472,7 @@ function NotFoundLabel(props: NotFoundLabelProps) {
         )}
       </Form.FieldValue>
 
-      <Form.Submit form={form} variant="icon" size="small">
+      <Form.Submit form={form} variant="icon" size="small" onPress={() => form.submit()}>
         {getText('manageLabelsModal.createLabelWithTitle', query)}
       </Form.Submit>
     </Button.Group>

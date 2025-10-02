@@ -62,8 +62,8 @@ type In_Memory_Column
        private: true
        ---
        Specialised implementation of to_json for a Column.
-    to_json_data self start:Integer=0 (length:Integer=(self:Column).length) fallback=(v->v.to_json) -> Text =
-        JsonOperation.apply self.java_column start length fallback
+    to_json_data self start:Integer=0 (row_count:Integer=(self:Column).row_count) fallback=(v->v.to_json) -> Text =
+        JsonOperation.apply self.java_column start row_count fallback
 
     ## ---
        private: true
