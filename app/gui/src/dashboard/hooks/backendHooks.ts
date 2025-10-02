@@ -36,6 +36,7 @@ import {
   backendQueryOptions as backendQueryOptionsBase,
   INVALIDATE_ALL_QUERIES,
   INVALIDATION_MAP,
+  PERSISTENCE_MAP,
   type BackendMutationMethod,
   type BackendQueryMethod,
 } from 'enso-common/src/backendQuery'
@@ -78,6 +79,7 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
   return queryOptions<Awaited<ReturnType<Backend[Method]>>>({
     ...options,
     ...backendQueryOptionsBase(backend, method, args, options?.queryKey),
+    meta: { ...options?.meta, persist: PERSISTENCE_MAP[method] ?? options?.meta?.persist ?? true },
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
       let result = await (backend?.[method] as any)?.(...args)
