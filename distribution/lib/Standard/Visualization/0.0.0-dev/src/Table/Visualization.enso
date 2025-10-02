@@ -404,9 +404,9 @@ _make_json_for_value val level=0 = case val of
             prepared = if dict.length > 5 then truncated + ["… " + (dict.length - 5).to_text+ " items"] else truncated
             "{" + (prepared.join ", ") + "}"
     row : Row ->
-        if level != 0 then "Row{" + row.table.column_count + " columns}" else
-            truncated = row.table.column_names.take 5 . map _.to_text
-            prepared = if row.table.column_count > 5 then truncated + ["… " + (row.table.column_count - 5).to_text+ " more"] else truncated
+        if level != 0 then "Row{" + row.length + " columns}" else
+            truncated = row.column_names.take 5 . map _.to_text
+            prepared = if row.length > 5 then truncated + ["… " + (row.length - 5).to_text+ " more"] else truncated
             "Row{" + (prepared.join ", ") + "}"
     table : Table ->
         if level != 0 then "Table{" + table.row_count.to_text + " rows x " + table.column_count.to_text + " columns}" else
