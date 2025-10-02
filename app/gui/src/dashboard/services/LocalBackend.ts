@@ -710,7 +710,7 @@ export default class LocalBackend extends Backend {
   /** Upload a chunk of a large file. */
   override uploadFileChunk(): Promise<backend.S3MultipartPart> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
-    return Promise.resolve({ eTag: '', partNumber: 0 })
+    return Promise.resolve({ eTag: '', partNumber: 0, size: 0 })
   }
 
   /** Finish uploading a large file. */

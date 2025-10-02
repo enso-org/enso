@@ -18,12 +18,14 @@ import { QueryParamsContext } from '$/providers/react/queryParams'
 import { RouterContext, type RouterForReact } from '$/providers/react/router'
 import { useSession, type SessionStore } from '$/providers/session'
 import { useText, type TextStore } from '$/providers/text'
+import type { UploadsToCloudStore } from '$/providers/upload'
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { reactComponent } from '@/util/react'
 import { proxyRefs } from '@/util/reactivity'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as react from 'react'
 import { useRoute, useRouter } from 'vue-router'
+import { UploadsToCloudStoreContext } from './upload'
 
 interface ContextsForReactProviderProps {
   router: RouterForReact
@@ -36,6 +38,7 @@ interface ContextsForReactProviderProps {
   auth: AuthStore
   queryParams: QueryParams
   actionsStore: ActionsStore
+  uploadsToCloudStore: UploadsToCloudStore
 }
 
 /**
@@ -58,6 +61,7 @@ export const ContextsForReactProvider = reactComponent(
       auth,
       queryParams,
       actionsStore,
+      uploadsToCloudStore,
     } = props
     return (
       <RouterContext.Provider value={router}>
@@ -70,7 +74,9 @@ export const ContextsForReactProvider = reactComponent(
                     <QueryParamsContext.Provider value={queryParams}>
                       <BackendsContext.Provider value={backends}>
                         <ActionsContext.Provider value={actionsStore}>
-                          {children}
+                          <UploadsToCloudStoreContext.Provider value={uploadsToCloudStore}>
+                            {children}
+                          </UploadsToCloudStoreContext.Provider>
                         </ActionsContext.Provider>
                       </BackendsContext.Provider>
                     </QueryParamsContext.Provider>
