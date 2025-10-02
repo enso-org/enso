@@ -97,7 +97,7 @@ case object GenerateMethodBodies extends IRPass {
           case expression    => processBodyExpression(expression, ir.methodName)
         }
         ir.copyBuilder()
-          .bodyReference(Persistance.Reference.of(newBody, true))
+          .bodyReference(Persistance.Reference.of(newBody))
           .build()
       case ir: definition.Method.Conversion =>
         val newBody = ir.body match {
