@@ -197,7 +197,7 @@ primarily as a _container for module (static) methods_.
     - Atom fields are methods. More specifically, every atom field has an
       associated getter method.
 
-This section describes the \_method invocation process, which resolves a
+This section describes the _method invocation_ process, which resolves a
 concrete method definition for a concrete call site and evaluates it. For a
 method call expression `Receiver.symbol`, this section focuses only on a single
 dispatch based on `Receiver` argument. For multiple dispatch, see the
