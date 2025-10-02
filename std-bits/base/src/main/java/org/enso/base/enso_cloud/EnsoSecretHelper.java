@@ -229,6 +229,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       List<Pair<String, String>> headers) {
     boolean hasAccept = false;
     boolean hasAcceptEncoding = false;
+    boolean hasUserAgent = false;
 
     for (Pair<String, String> h : headers) {
       String name = h.getLeft();
@@ -236,8 +237,10 @@ public final class EnsoSecretHelper extends SecretValueResolver {
         hasAccept = true;
       } else if ("accept-encoding".equalsIgnoreCase(name)) {
         hasAcceptEncoding = true;
+      } else if ("user-agent".equalsIgnoreCase(name)) {
+        hasUserAgent = true;
       }
-      if (hasAccept && hasAcceptEncoding) {
+      if (hasAccept && hasAcceptEncoding && hasUserAgent) {
         return headers;
       }
     }
@@ -248,6 +251,9 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     }
     if (!hasAcceptEncoding) {
       augmented.add(Pair.create("Accept-Encoding", "gzip"));
+    }
+    if (!hasUserAgent) {
+      augmented.add(Pair.create("User-Agent", "Enso-Client"));
     }
     return augmented;
   }

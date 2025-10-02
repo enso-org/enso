@@ -22,7 +22,7 @@
     - read self query:Standard.Base.Any.Any limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
     - read_statement self statement:Standard.Base.Any.Any column_types:Standard.Base.Any.Any= last_row_only:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - read_text_column self query:Standard.Base.Any.Any column_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - save_as_data_link self destination:Standard.Base.Any.Any on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
+    - save_as_data_link self path:Standard.Base.Enso_Cloud.Enso_File.Enso_File on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
     - schema self -> Standard.Base.Any.Any
     - schemas self -> Standard.Base.Any.Any
     - set_database self database:Standard.Base.Any.Any -> Standard.Base.Any.Any
