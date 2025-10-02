@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 import org.enso.interpreter.runtime.control.ThreadInterruptedException;
@@ -78,7 +79,11 @@ public final class ThreadManager extends GuestCodeExecutor {
               interruptFlags.remove(Thread.currentThread());
             }
           };
-      return CompletableFuture.supplyAsync(wrap, guestCode);
+      try {
+        return CompletableFuture.supplyAsync(wrap, guestCode);
+      } catch (RejectedExecutionException ex) {
+        return CompletableFuture.failedFuture(ex);
+      }
     } else {
       try {
         return CompletableFuture.completedFuture(action.get());
