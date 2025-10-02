@@ -116,7 +116,7 @@ type JDBC_Connection
                 Panic.throw caught_panic
             result = Panic.catch Illegal_State handler=handle_illegal_state <|
                 Panic.catch Any handler=handle_any <|
-                        set_statement_values stmt statement_setter values
+                    set_statement_values stmt statement_setter values
             result.if_not_error <|
                 stmt
 
@@ -313,7 +313,7 @@ properties_as_java_props properties =
 from_java java_jdbc_connection sql_exception=SQLException =
     resource = Managed_Resource.register java_jdbc_connection close_connection
     synchronizer = OperationSynchronizer.new
-    JDBC_Connection.Value sql_ex=sql_exception resource synchronizer
+    JDBC_Connection.Value resource synchronizer sql_exception
 
 ## ---
    private: true
