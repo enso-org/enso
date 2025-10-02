@@ -68,7 +68,6 @@ export type BackendQueryMethod = Exclude<BackendMethods, BackendMutationMethod>
 
 export const PERSISTENCE_MAP: Partial<Record<BackendQueryMethod, false>> = {
   listDirectory: false,
-  searchDirectory: false,
   listTags: false,
   getAssetDetails: false,
 }
