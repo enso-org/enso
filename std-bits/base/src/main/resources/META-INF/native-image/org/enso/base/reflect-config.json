@@ -128,33 +128,6 @@
         ]
     },
     {
-        "name": "org.enso.base.enso_cloud.HideableValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue$Base64EncodeValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue$ConcatValues"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue$PlainValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue$SecretValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue.Base64EncodeValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue.ConcatValues"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue.PlainValue"
-    },
-    {
-        "name": "org.enso.base.enso_cloud.HideableValue.SecretValue"
-    },
-    {
         "name": "org.enso.base.enso_cloud.audit.AuditLog"
     },
     {

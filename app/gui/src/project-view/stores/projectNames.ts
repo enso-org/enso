@@ -1,10 +1,10 @@
-import { Ok, Result } from '@/util/data/result'
+import { Ok, type Result } from '@/util/data/result'
 import { normalizeName } from '@/util/nameValidation'
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
 import { normalizeQualifiedName, qnJoin, tryQualifiedName } from '@/util/qualifiedName'
-import { type ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import { computed, ref, toValue } from 'vue'
-import { type Identifier, type QualifiedName } from 'ydoc-shared/ast'
+import type { Identifier, QualifiedName } from 'ydoc-shared/ast'
 
 export type ProjectNameStore = ReturnType<typeof createProjectNameStore>
 

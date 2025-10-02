@@ -36,7 +36,7 @@ import {
   setExternalIds,
 } from 'ydoc-shared/ast'
 import { spanMapToIdMap, spanMapToSpanGetter } from 'ydoc-shared/ast/idMap'
-import { Opt } from 'ydoc-shared/util/data/opt'
+import type { Opt } from 'ydoc-shared/util/data/opt'
 import { IdMap } from 'ydoc-shared/yjsModel'
 
 export * from 'ydoc-shared/ast'

@@ -226,9 +226,9 @@ final class IRNodeClassGenerator {
             .map(
                 field ->
                     """
-                ${comment}
-                private final ${type} ${name};
-                """
+                    ${comment}
+                    private final ${type} ${name};
+                    """
                         .replace("${comment}", commentForField(field))
                         .replace("${type}", field.getSimpleTypeName())
                         .replace("${name}", field.getName()))
@@ -275,12 +275,12 @@ final class IRNodeClassGenerator {
     var isChild = "" + field.isChild();
     var isNullable = "" + field.isNullable();
     return """
-        /**
-         * Created from ${matchingCtorInfo}.
-         * <p> - isNullable: ${isNullable}.
-         * <p> - isChild: ${isChild}.
-         */
-        """
+    /**
+     * Created from ${matchingCtorInfo}.
+     * <p> - isNullable: ${isNullable}.
+     * <p> - isChild: ${isChild}.
+     */
+    """
         .replace("${isChild}", isChild)
         .replace("${isNullable}", isNullable)
         .replace("${matchingCtorInfo}", matchingCtorInfo)
@@ -382,10 +382,10 @@ final class IRNodeClassGenerator {
             .map(
                 notNullField ->
                     """
-            if ($fieldName == null) {
-              throw new IllegalArgumentException("$fieldName is required");
-            }
-            """
+                    if ($fieldName == null) {
+                      throw new IllegalArgumentException("$fieldName is required");
+                    }
+                    """
                         .replace("$fieldName", notNullField.name()))
             .collect(Collectors.joining(System.lineSeparator()));
     sb.append(Utils.indent(checkCode, 2));

@@ -1,6 +1,7 @@
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
 import project.Data.Text.Normalization.Normalization
 import project.Errors.Common.Type_Error
 import project.Panic.Panic
@@ -212,3 +213,35 @@ type Text
         mode = normalization.get_java_mode
         name = normalization.get_mode_name
         Text_Utils.normalizeWithMode self name mode
+
+    ## ---
+      aliases: [greater than]
+      group: Operators
+      icon: operators
+      ---
+      Checks if `self` is greater than `that`.
+    > self that = Comparable.> self that
+
+    ## ---
+       aliases: [greater than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than or equal to `that`.
+    >= self that = Comparable.>= self that
+
+    ## ---
+       aliases: [less than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than `that`.
+    < self that = Comparable.< self that
+
+    ## ---
+       aliases: [less than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than or equal to `that`.
+    <= self that = Comparable.<= self that

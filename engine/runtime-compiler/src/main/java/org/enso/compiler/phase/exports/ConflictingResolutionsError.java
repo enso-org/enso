@@ -50,12 +50,10 @@ public final class ConflictingResolutionsError extends CompilerError {
       }
       case ResolvedMethod resolvedMethod -> "Method '" + resolvedMethod.qualifiedName() + "'";
       case ResolvedModule resolvedModule -> "Module '" + resolvedModule.qualifiedName() + "'";
-      case ResolvedPolyglotField resolvedPolyglotField -> "Polyglot field '"
-          + resolvedPolyglotField.qualifiedName()
-          + "'";
-      case ResolvedPolyglotSymbol resolvedPolyglotSymbol -> "Polyglot symbol '"
-          + resolvedPolyglotSymbol.qualifiedName()
-          + "'";
+      case ResolvedPolyglotField resolvedPolyglotField ->
+          "Polyglot field '" + resolvedPolyglotField.qualifiedName() + "'";
+      case ResolvedPolyglotSymbol resolvedPolyglotSymbol ->
+          "Polyglot symbol '" + resolvedPolyglotSymbol.qualifiedName() + "'";
       default -> throw new UnsupportedOperationException("unimplemented: " + resolvedName);
     };
   }

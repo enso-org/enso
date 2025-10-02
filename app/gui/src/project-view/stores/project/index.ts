@@ -7,13 +7,13 @@ import {
   type NodeVisualizationConfiguration,
 } from '@/stores/project/executionContext'
 import { VisualizationDataRegistry } from '@/stores/project/visualizationDataRegistry'
-import { type ProjectNameStore } from '@/stores/projectNames'
+import type { ProjectNameStore } from '@/stores/projectNames'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
-import { type Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
-import { type MethodPointer } from '@/util/methodPointer'
+import type { MethodPointer } from '@/util/methodPointer'
 import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
 import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
@@ -32,11 +32,11 @@ import {
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'
-import { type Identifier } from 'ydoc-shared/ast'
+import type { Identifier } from 'ydoc-shared/ast'
 import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { Diagnostic, ExpressionId } from 'ydoc-shared/languageServerTypes'
-import { type AbortScope } from 'ydoc-shared/util/net'
+import type { AbortScope } from 'ydoc-shared/util/net'
 import {
   DistributedProject,
   localUserActionOrigins,

@@ -42,18 +42,18 @@ public class InsightForEnsoTest {
           Source.newBuilder(
                   "js",
                   """
-      insight.on('enter', (ctx, frame) => {
-          print(`${ctx.name} at ${ctx.source.name}:${ctx.line}:`);
-          let dump = "";
-          for (let p in frame) {
-              frame.unknown // used to yield NullPointerException
-              dump += ` ${p}=${frame[p]}`;
-          }
-          print(dump);
-      }, {
-          roots : true
-      });
-      """,
+                  insight.on('enter', (ctx, frame) => {
+                      print(`${ctx.name} at ${ctx.source.name}:${ctx.line}:`);
+                      let dump = "";
+                      for (let p in frame) {
+                          frame.unknown // used to yield NullPointerException
+                          dump += ` ${p}=${frame[p]}`;
+                      }
+                      print(dump);
+                  }, {
+                      roots : true
+                  });
+                  """,
                   "trace.js")
               .build();
     } catch (IOException e) {

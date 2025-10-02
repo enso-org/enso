@@ -4,7 +4,7 @@ import type { WidgetConfiguration } from '@/providers/widgetRegistry/configurati
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { DisplayMode } from '@/providers/widgetRegistry/configuration'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { type GraphDb, type MethodCallInfo } from '@/stores/graph/graphDatabase'
+import type { GraphDb, MethodCallInfo } from '@/stores/graph/graphDatabase'
 import {
   isRequiredArgument,
   type CallableSuggestionEntry,

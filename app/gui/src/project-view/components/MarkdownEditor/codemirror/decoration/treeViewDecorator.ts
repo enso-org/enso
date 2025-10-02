@@ -1,7 +1,7 @@
-import { type VueHost } from '@/components/VueHostRender.vue'
+import type { VueHost } from '@/components/VueHostRender.vue'
 import { getVueHost } from '@/util/codemirror/vueHostExt'
 import { syntaxTree } from '@codemirror/language'
-import { type EditorState, RangeSetBuilder, type Text } from '@codemirror/state'
+import { RangeSetBuilder, type EditorState, type Text } from '@codemirror/state'
 import {
   Decoration,
   type DecorationSet,
@@ -9,8 +9,8 @@ import {
   type PluginValue,
   type ViewUpdate,
 } from '@codemirror/view'
-import { type SyntaxNodeRef, type Tree } from '@lezer/common'
-import { type Range } from 'ydoc-shared/util/data/range'
+import type { SyntaxNodeRef, Tree } from '@lezer/common'
+import type { Range } from 'ydoc-shared/util/data/range'
 
 /** Maintains a set of decorations based on the tree, lazily-constructed for the visible range of the document. */
 export class TreeViewDecorator implements PluginValue {

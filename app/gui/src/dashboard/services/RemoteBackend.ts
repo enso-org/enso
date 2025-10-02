@@ -342,6 +342,9 @@ export default class RemoteBackend extends Backend {
     query: backend.ListDirectoryRequestParams,
     title: string,
   ): Promise<backend.ListDirectoryResponseBody> {
+    if (query.recentProjects && query.from) {
+      return { assets: [], paginationToken: null }
+    }
     const paramsString = new URLSearchParams(
       query.recentProjects ?
         [['recent_projects', String(true)]]
@@ -782,8 +785,7 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'getAssetDetailsBackendError')
     }
 
-    // eslint-disable-next-line no-restricted-syntax
-    return (await response.json()) as never
+    return await response.json()
   }
   /**
    * Return Language Server logs for a project session.
@@ -1078,11 +1080,11 @@ export default class RemoteBackend extends Backend {
    */
   override async listTags(): Promise<readonly backend.Label[]> {
     const path = remoteBackendPaths.LIST_TAGS_PATH
-    const response = await this.get<backend.ListTagsResponseBody>(path)
+    const response = await this.get<readonly backend.Label[]>(path)
     if (!response.ok) {
       return await this.throw(response, 'listLabelsBackendError')
     } else {
-      return (await response.json()).tags
+      return await response.json()
     }
   }
 

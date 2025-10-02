@@ -83,11 +83,11 @@ final class PyForeignNode extends GenericForeignNode {
           Source.newBuilder(
                   "python",
                   """
-      import site
-      def nothing():
-        return None
-      nothing
-      """,
+                  import site
+                  def nothing():
+                    return None
+                  nothing
+                  """,
                   "nothing.py")
               .build();
       var nothingFn = ctx.getEnv().parsePublic(src).call();
@@ -107,9 +107,9 @@ final class PyForeignNode extends GenericForeignNode {
           Source.newBuilder(
                   "python",
                   """
-      from datetime import date
-      date
-      """,
+                  from datetime import date
+                  date
+                  """,
                   "convert_date.py")
               .build();
 
@@ -129,9 +129,9 @@ final class PyForeignNode extends GenericForeignNode {
           Source.newBuilder(
                   "python",
                   """
-      from datetime import time
-      time
-      """,
+                  from datetime import time
+                  time
+                  """,
                   "convert_time.py")
               .build();
       fnPythonTime = ctx.getEnv().parsePublic(src).call();
@@ -150,28 +150,28 @@ final class PyForeignNode extends GenericForeignNode {
           Source.newBuilder(
                   "python",
                   """
-      from datetime import timezone, timedelta, tzinfo
+                  from datetime import timezone, timedelta, tzinfo
 
-      class EnsoTzInfo(tzinfo):
-        def __init__(self, rules):
-          self._rules = rules
+                  class EnsoTzInfo(tzinfo):
+                    def __init__(self, rules):
+                      self._rules = rules
 
-        def utcoffset(self, when):
-          when = when.replace(tzinfo=None)
-          d = timedelta(seconds=self._rules.offset(when))
-          return d
+                    def utcoffset(self, when):
+                      when = when.replace(tzinfo=None)
+                      d = timedelta(seconds=self._rules.offset(when))
+                      return d
 
-        def tzname(self, dt):
-          return self._rules.name(dt)
+                    def tzname(self, dt):
+                      return self._rules.name(dt)
 
-        def dst(self, dt):
-          return self._rules.dst(dt);
+                    def dst(self, dt):
+                      return self._rules.dst(dt);
 
-      def conv(rules):
-          return EnsoTzInfo(rules)
+                  def conv(rules):
+                      return EnsoTzInfo(rules)
 
-      conv
-      """,
+                  conv
+                  """,
                   "convert_time_zone.py")
               .build();
 
@@ -190,9 +190,9 @@ final class PyForeignNode extends GenericForeignNode {
           Source.newBuilder(
                   "python",
                   """
-      from datetime import datetime
-      datetime.combine
-      """,
+                  from datetime import datetime
+                  datetime.combine
+                  """,
                   "convert_combine.py")
               .build();
 

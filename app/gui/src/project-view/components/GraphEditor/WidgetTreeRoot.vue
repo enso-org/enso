@@ -2,15 +2,15 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
 import { useLayoutAnimationsState } from '@/providers/animationCounter'
-import { UpdateHandler, WidgetInput } from '@/providers/widgetRegistry'
+import { WidgetInput, type UpdateHandler } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { emptyPrimaryApplication, type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
-import { Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 import { templateRef } from '@vueuse/core'
 import { computed, toRef, watch } from 'vue'
-import { ExternalId } from 'ydoc-shared/yjsModel'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 const props = defineProps<{
   externalId?: (string & ExternalId) | undefined

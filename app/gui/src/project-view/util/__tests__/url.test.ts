@@ -1,6 +1,6 @@
-import { Err, Ok, Result } from '@/util/data/result'
+import { Err, Ok, type Result } from '@/util/data/result'
 import { describe, expect, test } from 'vitest'
-import { DeeplinkUrl, parseEnsoDeeplink } from '../url'
+import { parseEnsoDeeplink, type DeeplinkUrl } from '../url'
 
 describe('parseEnsoDeeplink', () => {
   const errInvalid = Err('Invalid deeplink URL')

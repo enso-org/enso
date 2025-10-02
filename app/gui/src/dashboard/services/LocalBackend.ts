@@ -12,7 +12,6 @@ import * as projectManager from '#/services/ProjectManager'
 import type { ProjectManager } from '#/services/ProjectManager/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { unsafeEntries } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
 import { PRODUCT_NAME } from 'enso-common'
@@ -31,7 +30,6 @@ import {
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
-import { isUuid } from 'ydoc-shared/yjsModel'
 
 const LOCAL_API_URL = '/api/'
 
@@ -54,14 +52,17 @@ export function newProjectId(path: projectManager.Path) {
   return backend.ProjectId(`${PROJECT_ID_PREFIX}${encodeURIComponent(path)}`)
 }
 
+/** Check if given string resembles KSUID. */
+function isKsuid(candidate: string) {
+  return /^[a-zA-Z0-9]{27}$/.test(candidate)
+}
+
 /** Check if given {@link backend.ProjectId} represents a local project. */
 export function isLocalProjectId(projectId: backend.ProjectId): boolean {
-  // Local projects use UUIDs after the prefix, cloud projects have a different ID format.
-  const uuidLength = 36
+  // Local projects use path after the prefix, cloud projects have a KSUID right after prefix.
   return (
     projectId.startsWith(PROJECT_ID_PREFIX) &&
-    projectId[PROJECT_ID_PREFIX.length + uuidLength] === '-' &&
-    isUuid(projectId.substring(PROJECT_ID_PREFIX.length, PROJECT_ID_PREFIX.length + uuidLength))
+    !isKsuid(projectId.substring(PROJECT_ID_PREFIX.length))
   )
 }
 
@@ -332,7 +333,7 @@ export default class LocalBackend extends Backend {
       throw new backend.AssetDoesNotExistError()
     }
     // eslint-disable-next-line no-restricted-syntax
-    return entry as never
+    return entry as unknown as backend.AssetDetailsResponse<Id>
   }
 
   /** Get the UUID of a project. */
@@ -834,16 +835,12 @@ export default class LocalBackend extends Backend {
   override async exportArchive(
     params: backend.ExportArchiveParams,
   ): Promise<backend.ExportedArchive> {
-    const entries = unsafeEntries(params).flatMap<[string, string]>(([paramName, v]) =>
-      paramName === 'assetIds' ? v.map<[string, string]>((id) => ['asset', id])
-      : v != null ? [[paramName, v]]
-      : [],
-    )
-    const searchParams = new URLSearchParams(entries).toString()
+    const { filePath, ...body } = params
+    const searchParams = new URLSearchParams(filePath != null ? { filePath } : {}).toString()
     const path = `${EXPORT_ARCHIVE_PATH}?${searchParams}`
     if (params.filePath != null) {
       // Assume it is Electron, copy files through Electron server directly
-      const response = await this.post<backend.ExportedArchive>(path, {})
+      const response = await this.post<backend.ExportedArchive>(path, body)
       if (!response.ok) {
         return this.throw(response, 'exportArchiveBackendError')
       }

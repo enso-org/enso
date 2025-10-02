@@ -1236,7 +1236,7 @@ private[runtime] class IrToTruffle(
             "Comments should not be present during codegen."
           )
         case err: Error => processError(err)
-        case Foreign.Definition(_, _, _, _) =>
+        case _: Foreign.Definition =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
           )
@@ -2139,11 +2139,11 @@ private[runtime] class IrToTruffle(
         val (argSlotIdxs, _, argExpressions) = slots
 
         val bodyExpr = body match {
-          case Foreign.Definition(lang, code, _, _) =>
+          case foreignDef: Foreign.Definition =>
             buildForeignBody(
-              lang,
+              foreignDef.lang,
               body.location,
-              code,
+              foreignDef.code,
               arguments.map(_.name.name),
               argSlotIdxs
             )

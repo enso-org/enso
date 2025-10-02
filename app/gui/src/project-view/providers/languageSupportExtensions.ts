@@ -5,7 +5,7 @@ import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import { useTableExpressionExtension } from '@/util/codemirror/language/tableExpression'
 import type { ToValue } from '@/util/reactivity'
 import type { Extension } from '@codemirror/state'
-import type { Ref } from 'vue'
+import { record } from 'enso-common/src/utilities/data/object'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 
 export interface LanguageSupportOptions {
@@ -28,21 +28,19 @@ export const [provideLanguageSupportExtensions, useLanguageSupportExtensions] = 
     suggestionDb,
   }: LanguageSupportOptions): ((languageName: string) => Extension | undefined) => {
     // For each extension, a function is run to perform any necessary setup; the function returns
-    // a ref that allows the extension itself to be initialized lazily.
-    const extensions: Record<string, Readonly<Ref<Extension>>> = Object.assign(
-      Object.create(null),
-      {
-        'enso-table-expression': useTableExpressionExtension({
-          project,
-          projectNames,
-          suggestionDb,
-        }),
-      },
-    )
+    // an extension factory, allowing the extension to make use of both globally shared computation
+    // and contextual data.
+    const extensions = record<string, () => Extension>({
+      'enso-table-expression': useTableExpressionExtension({
+        project,
+        projectNames,
+        suggestionDb,
+      }),
+    })
     function getLanguageExtension(languageName: string): Extension | undefined {
       const extension = extensions[languageName]
       DEV: if (!extension) console.warn(`Unknown WidgetText syntax: ${languageName}`)
-      return extension?.value
+      return extension?.()
     }
     return getLanguageExtension
   },

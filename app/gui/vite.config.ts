@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
+import { downloadEnsoEngine, findEnsoExecutable } from 'project-manager-shim'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defaultClientConditions, defineConfig, type Plugin } from 'vite'
@@ -139,13 +140,36 @@ export default defineConfig({
 
 async function projectManagerShim(): Promise<Plugin> {
   const module = await import('./project-manager-shim-middleware')
+  const projectManagerShimMiddleware = new module.ProjectManagerShimMiddleware(setupEnsoRunnerPath)
+
+  if (isDevMode) {
+    await setupEnsoRunnerPath()
+  }
+
   return {
     name: 'project-manager-shim',
     configureServer(server) {
-      server.middlewares.use(module.default)
+      server.middlewares.use(
+        projectManagerShimMiddleware.handler.bind(projectManagerShimMiddleware),
+      )
     },
     configurePreviewServer(server) {
-      server.middlewares.use(module.default)
+      server.middlewares.use(
+        projectManagerShimMiddleware.handler.bind(projectManagerShimMiddleware),
+      )
     },
+  }
+}
+
+async function setupEnsoRunnerPath(): Promise<void> {
+  const projectRoot = fileURLToPath(new URL('../..', import.meta.url))
+  let ensoExecutable = findEnsoExecutable(projectRoot)
+  if (!ensoExecutable) {
+    await downloadEnsoEngine(projectRoot)
+    ensoExecutable = findEnsoExecutable(projectRoot)
+  }
+  if (ensoExecutable) {
+    console.log('Found enso executable:', ensoExecutable)
+    process.env.ENSO_RUNNER_PATH = ensoExecutable
   }
 }

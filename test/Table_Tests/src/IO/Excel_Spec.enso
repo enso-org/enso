@@ -3,7 +3,6 @@ import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
@@ -12,6 +11,8 @@ from Standard.Table import Table, Match_Columns, Excel_Range, Excel_Workbook, Va
 from Standard.Table.Errors import Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet, No_Rows, No_Common_Type
 from Standard.Table.Extensions.Excel_Extensions import all
 import Standard.Table.Excel.Excel_Workbook.Return_As as Old_Return_As
+from Standard.Table.Extensions.Column_Vector_Extensions import all
+import Standard.Table.Internal.Excel_Test_Helper
 
 from Standard.Test import all
 
@@ -22,9 +23,7 @@ import project.Util
 from project.Common_Table_Operations.Util import within_table
 from project.IO.Read_Many_Spec import with_temp_dir
 
-polyglot java import org.enso.base.cache.ReloadDetector
 polyglot java import org.enso.table_test_helpers.RandomHelpers
-polyglot java import org.enso.table.excel.ExcelConnectionPool
 
 spec_fmt suite_builder header file =
     suite_builder.group header group_builder->
@@ -243,7 +242,6 @@ spec_write suite_builder suffix test_sheet_name =
             t1.write alltypes (..Sheet "AllTypes") . should_succeed
             t2 = alltypes.read (..Sheet "AllTypes")
             t2.should_equal t1
-
 
         group_builder.specify 'should write a table to non-existent file in append mode as a new sheet with headers' <|
             out = data.create_out
@@ -517,7 +515,8 @@ spec_write suite_builder suffix test_sheet_name =
                (which was empty in this example), so we still only get one sheet.
                Different example is tested in the test below, if the subsequent file happens to the returned
                dry-run object - then both updates are visible - see below.
-            opened_temp.sheet_names . should_equal ['Another']
+            opened_temp2 = temp.read
+            opened_temp2.sheet_names . should_equal ['Another']
 
             opened_temp.close
             temp.delete_if_exists
@@ -544,7 +543,8 @@ spec_write suite_builder suffix test_sheet_name =
             temp2.absolute.normalize.path . should_equal temp1.absolute.normalize.path
 
             # The write operation replaces the dry run file, basing off of the dry-run file itself - so both changes are visible.
-            opened_temp.sheet_names . should_equal ['EnsoSheet', 'Another']
+            opened_temp2 = temp1.read
+            opened_temp2.sheet_names . should_equal ['EnsoSheet', 'Another']
 
             opened_temp.close
             temp1.delete_if_exists
@@ -910,9 +910,9 @@ add_specs suite_builder =
     col_e = [Date_Time.new 2022 06 12 12 34 56, Date_Time.new 2022 10 20 1 23 45, Date_Time.new 2022 07 30 2 46, Date_Time.new 2022 10 15 9]
 
     check_column col expected =
-        start = col.length - expected.length
+        start = col.row_count - expected.length
         0.up_to start . map i->(col.at i . should_equal Nothing)
-        start.up_to col.length . map i->(col.at i . should_equal (expected.at (i - start)))
+        start.up_to col.row_count . map i->(col.at i . should_equal (expected.at (i - start)))
 
     check_table table count=5 =
         table.column_count . should_equal count
@@ -1207,27 +1207,27 @@ add_specs suite_builder =
                 r3.at "Value" . at 0 . should_be_a Table
                 r3.at "Value" . at 1 . should_be_a Excel_Workbook
 
-        group_builder.specify "should clear cache on simulated reload" pending="https://github.com/enso-org/enso/issues/12166" <|
-            ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
+        group_builder.specify "should clear cache on simulated reload" <|
+            Excel_Test_Helper.simulate_reload_test_only
             w0 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w1 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w2 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             w3 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             [w0, w1, w2, w3].each check_workbook
 
-            ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
+            Excel_Test_Helper.simulate_reload_test_only
             w4 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w5 = xlsx_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 1
             w6 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             w7 = xls_sheet.read
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            Excel_Test_Helper.get_workbooks_cache_size . should_equal 2
             [w4, w5, w6, w7].each check_workbook
 
     suite_builder.group "Problems" group_builder->
@@ -1287,15 +1287,13 @@ add_specs suite_builder =
 
             bad_file.delete
 
-        group_builder.specify "will fail if an operation is performed on a closed workbook" <|
+        group_builder.specify "can still use a file after closing it" <|
             workbook = xlsx_sheet.read
+            workbook.close . should_equal Nothing
             workbook.sheet_count . should_equal 4
-
             workbook.close . should_equal Nothing
-
-            workbook.sheet_count . should_fail_with Illegal_State
-            workbook.close . should_equal Nothing
-            workbook.read "Sheet1" . should_fail_with Illegal_State
+            table = workbook.read "Sheet1"
+            check_table table
 
         group_builder.specify "should be able to read a XLSX with inline strings" <|
             workbook = (enso_project.data / "Sales_Sample_Data.xlsx") . read
@@ -1469,6 +1467,23 @@ add_specs suite_builder =
 
             workbook.close
             big_file.delete_if_exists . should_succeed
+
+        group_builder.specify 'write integers 1 to 1M to xlsx' pending=ci_pending <|
+            oneMInts = enso_project.data / "transient" / ("oneMInts.xlsx")
+            oneMInts.delete_if_exists . should_succeed
+            range1 = 0.up_to 1000000
+            column1 = range1.to_column "C1"
+            column2 = range1.to_column "C2"
+            column3 = range1.to_column "C3"
+            column4 = range1.to_column "C4"
+            column5 = range1.to_column "C5"
+            column6 = range1.to_column "C7"
+            column7 = range1.to_column "C10"
+            column8 = range1.to_column "C9"
+            column9 = range1.to_column "C8"
+            column10 = range1.to_column "C6"
+            t1 = Table.new [column1,column2,column3,column4,column5,column10,column6,column9,column8,column7]
+            t1.write oneMInts (..Sheet "AllTypes") . should_succeed
 
     spec_fmt suite_builder 'XLSX reading' Examples.xlsx
 

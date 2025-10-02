@@ -12,7 +12,6 @@ import {
   areCategoriesEqual,
   ASSETS_DATA_TRANSFER_PAYLOAD,
   canTransferBetweenCategories,
-  dropOperationBetweenCategories,
   useTransferBetweenCategories,
   type Category,
 } from '#/layouts/Drive/Categories'
@@ -150,10 +149,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     <aria.DropZone
       aria-label={dropZoneLabel}
       getDropOperation={(types) => {
-        if (acceptedDragTypes.some((type) => types.has(type))) {
-          return dropOperationBetweenCategories(currentCategory, category)
-        }
-
+        if (acceptedDragTypes.some((type) => types.has(type))) return 'move'
         return 'cancel'
       }}
       className="group relative flex w-full min-w-0 flex-auto items-start rounded-full drop-target-after"

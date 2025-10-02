@@ -36,20 +36,20 @@ final class RuntimeServerTesting {
 
     var code =
         """
-      from Standard.Base.Runtime import value_for_uuid
-      from Standard.Base.Data.Numbers import all
-      import Standard.Base.IO
+        from Standard.Base.Runtime import value_for_uuid
+        from Standard.Base.Data.Numbers import all
+        import Standard.Base.IO
 
-      private v n = value_for_uuid n
+        private v n = value_for_uuid n
 
-      main =
-          x_0 = 6
-          x_1 = 7
-          x_2 = (v "${aa}")*(v "${bb}")
-          IO.println x_2
-          IO.println x_0*x_1
-          IO.println x_2==x_0*x_1
-      """
+        main =
+            x_0 = 6
+            x_1 = 7
+            x_2 = (v "${aa}")*(v "${bb}")
+            IO.println x_2
+            IO.println x_0*x_1
+            IO.println x_2==x_0*x_1
+        """
             .replace("${aa}", id_x_0.toString())
             .replace("${bb}", id_x_1.toString());
     var contents = metadata.appendToCode(code);

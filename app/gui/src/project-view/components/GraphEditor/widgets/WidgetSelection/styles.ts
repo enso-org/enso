@@ -1,4 +1,4 @@
-import { type Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 import {
   autoUpdate,
   offset,

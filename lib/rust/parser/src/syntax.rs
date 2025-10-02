@@ -18,5 +18,6 @@ pub use item::Item;
 pub use statement::parse_args;
 pub use token::Token;
 pub use tree::maybe_with_error;
+pub use tree::SyntaxError;
 pub use tree::Tree;
 pub use tree::WARNINGS;

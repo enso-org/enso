@@ -6,7 +6,7 @@ import { isRequiredArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
-import { type SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
+import type { SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
 
 const props = defineProps(widgetProps(widgetDefinition))
 

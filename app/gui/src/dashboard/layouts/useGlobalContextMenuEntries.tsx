@@ -62,7 +62,9 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
       action: 'uploadFiles',
       doAction: () => {
         void goToDrive()
-        void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
+        void readUserSelectedFile({ multiple: true }).then((files) =>
+          uploadFiles(Array.from(files)),
+        )
       },
     },
     {

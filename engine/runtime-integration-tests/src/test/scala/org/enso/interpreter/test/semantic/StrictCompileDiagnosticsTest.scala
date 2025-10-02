@@ -38,7 +38,7 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
         .toSet shouldEqual Set(
         "Test:2:9: error: Parentheses can't be empty.",
         "Test:3:5: error: Variable x is being redefined.",
-        "Test:4:9: error: Unexpected expression.",
+        "Test:4:9: error: Unexpected token.",
         "Test:4:5: warning: Unused variable y.",
         "Test:2:5: warning: Unused variable x."
       )

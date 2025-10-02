@@ -29,10 +29,10 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-        type My_Type
-            Value x
-        My_Type.extension_method self = self.x
-        """,
+                type My_Type
+                    Value x
+                My_Type.extension_method self = self.x
+                """,
                 "test.enso")
             .build();
     var mainMod = ctxRule.eval(mainSrc);
@@ -49,17 +49,17 @@ public class ModuleScopeTest {
         new SourceModule(
             QualifiedName.fromString("A_module"),
             """
-        type My_Type
-        My_Type.extension_method self = 42
-        """);
+            type My_Type
+            My_Type.extension_method self = 42
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.A_Module.My_Type
-        export project.A_Module.extension_method
-        main = 42
-        """);
+            export project.A_Module.My_Type
+            export project.A_Module.extension_method
+            main = 42
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
   }
@@ -70,9 +70,9 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-        type My_Type
-            static_method _ = 42
-        """,
+                type My_Type
+                    static_method _ = 42
+                """,
                 "test.enso")
             .build();
     var mainMod = ctxRule.eval(mainSrc);
@@ -87,9 +87,11 @@ public class ModuleScopeTest {
   public void moduleMethodIsRegisteredInModuleScope() throws IOException {
     var mainSrc =
         Source.newBuilder(
-                LanguageInfo.ID, """
-        module_method _ = 42
-        """, "test.enso")
+                LanguageInfo.ID,
+                """
+                module_method _ = 42
+                """,
+                "test.enso")
             .build();
     // ModuleScope is populated in IrToTruffle - at runtime. So we have to evaluate
     // the main module before we inspect the ModuleScope.
@@ -107,16 +109,16 @@ public class ModuleScopeTest {
         new SourceModule(
             QualifiedName.fromString("Mod"),
             """
-        type My_Type
-            static_method _ = 1
-        """);
+            type My_Type
+                static_method _ = 1
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.Mod import My_Type
-        main = 2
-        """);
+            from project.Mod import My_Type
+            main = 2
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mod, mainMod), projDir);
     var mainSrcPath = projDir.resolve("src").resolve("Main.enso");

@@ -27,26 +27,26 @@ public class ExportExtensionMethodTest {
         new SourceModule(
             QualifiedName.fromString("T_Module"),
             """
-        type My_Type
-            Value x
-        My_Type.extension_method self = self.x
-        """);
+            type My_Type
+                Value x
+            My_Type.extension_method self = self.x
+            """);
     var aMod =
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        export project.T_Module.My_Type
-        export project.T_Module.extension_method
-        """);
+            export project.T_Module.My_Type
+            export project.T_Module.extension_method
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.A_Module import all
-        main =
-            obj = My_Type.Value 42
-            obj.extension_method
-        """);
+            from project.A_Module import all
+            main =
+                obj = My_Type.Value 42
+                obj.extension_method
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, aMod, mainMod), projDir);
     ProjectUtils.testProjectRun(
@@ -63,31 +63,31 @@ public class ExportExtensionMethodTest {
         new SourceModule(
             QualifiedName.fromString("T_Module"),
             """
-        type My_Type
-            Value x
-        type My_Other_Type
-            Value y
-        My_Type.extension_method self = self.x
-        My_Other_Type.extension_method self = self.y
-        """);
+            type My_Type
+                Value x
+            type My_Other_Type
+                Value y
+            My_Type.extension_method self = self.x
+            My_Other_Type.extension_method self = self.y
+            """);
     var aMod =
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        export project.T_Module.My_Type
-        export project.T_Module.My_Other_Type
-        export project.T_Module.extension_method
-        """);
+            export project.T_Module.My_Type
+            export project.T_Module.My_Other_Type
+            export project.T_Module.extension_method
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.A_Module import all
-        main =
-            t = My_Type.Value 42
-            ot = My_Other_Type.Value 42
-            t.extension_method == ot.extension_method
-        """);
+            from project.A_Module import all
+            main =
+                t = My_Type.Value 42
+                ot = My_Other_Type.Value 42
+                t.extension_method == ot.extension_method
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, aMod, mainMod), projDir);
     ProjectUtils.testProjectRun(
@@ -104,17 +104,17 @@ public class ExportExtensionMethodTest {
         new SourceModule(
             QualifiedName.fromString("T_Module"),
             """
-        type My_Type
-            Value x
-        My_Type.extension_method self = self.x
-        """);
+            type My_Type
+                Value x
+            My_Type.extension_method self = self.x
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.T_Module.My_Type
-        export project.T_Module.extension_method
-        """);
+            export project.T_Module.My_Type
+            export project.T_Module.extension_method
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(tMod, mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
@@ -133,10 +133,10 @@ public class ExportExtensionMethodTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        type My_Type
-            Value x
-        My_Type.extension_method self = self.x
-        """);
+            type My_Type
+                Value x
+            My_Type.extension_method self = self.x
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
 

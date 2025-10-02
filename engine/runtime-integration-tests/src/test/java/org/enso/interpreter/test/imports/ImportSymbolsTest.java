@@ -28,17 +28,18 @@ public class ImportSymbolsTest {
   public void importAllFromModuleDoesNotImportModuleItself() throws IOException {
     var aMod =
         new SourceModule(
-            QualifiedName.fromString("A_module"), """
-        a_mod_method x = x
-        """);
+            QualifiedName.fromString("A_module"),
+            """
+            a_mod_method x = x
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.A_module import all
-        main =
-            A_Module.a_mod_method 42
-        """);
+            from project.A_module import all
+            main =
+                A_Module.a_mod_method 42
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
@@ -58,17 +59,17 @@ public class ImportSymbolsTest {
         new SourceModule(
             QualifiedName.fromString("A_module"),
             """
-        type A_Type
-            Cons
-        """);
+            type A_Type
+                Cons
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        from project.A_module.A_Type import all
-        main =
-            A_Type.Cons
-        """);
+            from project.A_module.A_Type import all
+            main =
+                A_Type.Cons
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
@@ -87,21 +88,23 @@ public class ImportSymbolsTest {
   @Test
   public void importEntityFromModuleThatExportsItFromOtherModule() throws IOException {
     var aMod =
-        new SourceModule(QualifiedName.fromString("A_Module"), """
-        type A_Type
-        """);
+        new SourceModule(
+            QualifiedName.fromString("A_Module"),
+            """
+            type A_Type
+            """);
     var bMod =
         new SourceModule(
             QualifiedName.fromString("B_Module"),
             """
-        export project.A_Module.A_Type
-        """);
+            export project.A_Module.A_Type
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        import project.B_Module.A_Type
-        """);
+            import project.B_Module.A_Type
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {

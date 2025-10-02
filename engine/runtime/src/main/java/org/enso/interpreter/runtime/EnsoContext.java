@@ -304,10 +304,10 @@ public final class EnsoContext {
       var ex =
           new AssertionError(
               """
-        no root node for {n}
-        with section: {s}
-        with root nodes: {r}
-        """
+              no root node for {n}
+              with section: {s}
+              with root nodes: {r}
+              """
                   .replace("{n}", "" + n)
                   .replace("{s}", "" + (n != null ? n.getEncapsulatingSourceSection() : null))
                   .replace("{r}", "" + (n != null ? n.getRootNode() : null)));

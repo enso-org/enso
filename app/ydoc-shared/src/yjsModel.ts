@@ -1,6 +1,6 @@
 import * as object from 'lib0/object'
 import * as Y from 'yjs'
-import { type SourceRange, type SourceRangeKey, sourceRangeKey } from './util/data/text'
+import { sourceRangeKey, type SourceRange, type SourceRangeKey } from './util/data/text'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
 
@@ -149,7 +149,12 @@ export class DistributedModule {
   }
 }
 
-export const localUserActionOrigins = ['local:userAction', 'local:userAction:CodeEditor'] as const
+export const localUserActionOrigins = [
+  'local:userAction',
+  'local:userAction:CodeEditor',
+  'local:userAction:DocEditor',
+  'local:userAction:CommentEditor',
+] as const
 export type LocalUserActionOrigin = (typeof localUserActionOrigins)[number]
 export type Origin = LocalUserActionOrigin | 'remote' | 'local:autoLayout'
 /** Locally-originated changes not otherwise specified. */

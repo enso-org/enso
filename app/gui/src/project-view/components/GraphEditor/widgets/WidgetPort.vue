@@ -3,7 +3,7 @@ import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
-import { NavigatorComposable } from '@/composables/navigator'
+import type { NavigatorComposable } from '@/composables/navigator'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
@@ -86,7 +86,8 @@ watchEffect(
     const externalId = tree.externalId
     if (externalId == null || !graph.db.isNodeId(externalId)) return
     const id = portId.value
-    const instance = new PortViewInstance(portRect, externalId, props.updateCallback)
+    const expectedType = toRef(() => props.input.expectedType)
+    const instance = new PortViewInstance(portRect, expectedType, externalId, props.updateCallback)
     graph.addPortInstance(id, instance)
     onCleanup(() => graph.removePortInstance(id, instance))
   },

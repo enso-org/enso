@@ -1,6 +1,6 @@
 import { createContextStore } from '@/providers'
 import { identity } from '@vueuse/core'
-import { Ref } from 'vue'
+import type { Ref } from 'vue'
 
 /** The global state of the graph editor. */
 export interface GraphEditorState {

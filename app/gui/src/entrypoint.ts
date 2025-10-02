@@ -6,6 +6,7 @@ import App from '$/App.vue'
 import router from '$/router'
 import { widgetDevtools } from '@/providers/widgetRegistry/devtools'
 import * as sentry from '@sentry/vue'
+import type { Vue } from '@sentry/vue/types/types'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import * as detect from 'enso-common/src/detect'
 import { createQueryClient } from 'enso-common/src/queryClient'
@@ -17,19 +18,17 @@ const HTTP_STATUS_BAD_REQUEST = 400
 const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
 /** The fraction of non-erroring interactions that should be sampled by Sentry. */
 const SENTRY_SAMPLE_RATE = 0.005
-const SCAM_WARNING_TIMEOUT = 1000
 const INITIAL_URL_KEY = `Enso-initial-url`
 
 markRaw(HttpClient.prototype)
 
 async function main() {
-  setupScamWarning()
-  setupSentry()
   const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = createQueryClientOfPersistCache()
   const rootDirPath = await getRootDirPath()
 
   const app = createApp(App)
+  setupSentry(app)
   app.use(VueQueryPlugin, { queryClient, enableDevtoolsV6Plugin: true })
   app.use(router)
   app.use(widgetDevtools)
@@ -38,44 +37,7 @@ async function main() {
   app.mount('#enso-app')
 }
 
-function setupScamWarning() {
-  function printScamWarning() {
-    if (process.env.NODE_ENV === 'development') return
-    const headerCss = `
-      color: white;
-      background: crimson;
-      display: block;
-      border-radius: 8px;
-      font-weight: bold;
-      padding: 10px 20px 10px 20px;
-    `
-      .trim()
-      .replace(/\n\s+/, ' ')
-    const headerCss1 = headerCss + ' font-size: 46px;'
-    const headerCss2 = headerCss + ' font-size: 20px;'
-    const msgCSS = 'font-size: 16px;'
-
-    const msg1 =
-      'This is a browser feature intended for developers. If someone told you to ' +
-      'copy-paste something here, it is a scam and will give them access to your ' +
-      'account and data.'
-    const msg2 = 'See https://enso.org/selfxss for more information.'
-    console.log('%cStop!', headerCss1)
-    console.log('%cYou may be the victim of a scam!', headerCss2)
-    console.log('%c' + msg1, msgCSS)
-    console.log('%c' + msg2, msgCSS)
-  }
-
-  printScamWarning()
-  let scamWarningHandle = 0
-
-  window.addEventListener('resize', () => {
-    window.clearTimeout(scamWarningHandle)
-    scamWarningHandle = window.setTimeout(printScamWarning, SCAM_WARNING_TIMEOUT)
-  })
-}
-
-function setupSentry() {
+function setupSentry(app: Vue) {
   if (!detect.IS_DEV_MODE && $config.SENTRY_DSN && $config.API_URL != null) {
     sentry.init({
       dsn: $config.SENTRY_DSN,
@@ -87,6 +49,7 @@ function setupSentry() {
         sentry.replayIntegration(),
         new sentry.BrowserProfilingIntegration(),
       ],
+      app,
       profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,
       tracePropagationTargets: [$config.API_URL.split('//')[1] ?? ''],

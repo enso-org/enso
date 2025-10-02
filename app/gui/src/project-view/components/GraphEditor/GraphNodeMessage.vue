@@ -2,7 +2,7 @@
 import { useGraphStore, useProjectNames } from '$/components/WithCurrentProject.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { QualifiedImport } from '@/stores/graph/imports'
+import type { QualifiedImport } from '@/stores/graph/imports'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 

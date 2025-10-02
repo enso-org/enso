@@ -31,8 +31,8 @@ public final class ChildrenMethodGenerator {
                     case ListField listField -> addListCode(listField);
                     case OptionField optionField -> addOptionCode(optionField);
                     case OptionListField optionListField -> addOptionListCode(optionListField);
-                    case PersistanceReferenceField
-                    persistanceReferenceField -> addPersistanceRefCode(persistanceReferenceField);
+                    case PersistanceReferenceField persistanceReferenceField ->
+                        addPersistanceRefCode(persistanceReferenceField);
                     default -> addFieldCode(userField);
                   };
               sb.append(Utils.indent(addToListCode));
@@ -99,10 +99,10 @@ public final class ChildrenMethodGenerator {
     Utils.hardAssert(!(field instanceof PersistanceReferenceField));
     if (field.isNullable()) {
       return """
-          if (${fieldName} != null) {
-            list.add(${fieldName});
-          }
-          """
+      if (${fieldName} != null) {
+        list.add(${fieldName});
+      }
+      """
           .replace("${fieldName}", field.getName());
     } else {
       return "list.add(" + field.getName() + ");";

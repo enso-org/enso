@@ -54,10 +54,10 @@ public abstract class UnaryOperationNumeric<T, R> implements UnaryOperation {
     }
 
     return switch (storage) {
-      case ColumnLongStorage longStorage -> innerApplySpecializedLongStorage(
-          longStorage, problemAggregator);
-      case ColumnDoubleStorage doubleStorage -> innerApplySpecializedDoubleStorage(
-          doubleStorage, problemAggregator);
+      case ColumnLongStorage longStorage ->
+          innerApplySpecializedLongStorage(longStorage, problemAggregator);
+      case ColumnDoubleStorage doubleStorage ->
+          innerApplySpecializedDoubleStorage(doubleStorage, problemAggregator);
       default -> innerApply(adapter.asTypedStorage(storage), problemAggregator);
     };
   }

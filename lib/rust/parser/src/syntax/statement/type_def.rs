@@ -10,6 +10,7 @@ use crate::syntax::statement::function_def::parse_args;
 use crate::syntax::statement::function_def::parse_constructor_definition;
 use crate::syntax::statement::parse_statement;
 use crate::syntax::statement::scan_private_keywords;
+use crate::syntax::statement::BlockContext;
 use crate::syntax::statement::EvaluationContext;
 use crate::syntax::statement::Line;
 use crate::syntax::statement::StatementContext;
@@ -113,7 +114,7 @@ fn parse_type_body_statement<'s>(
         _ => parse_statement(prefixes, line, expression_parser, args_buffer, StatementContext {
             evaluation_context: EvaluationContext::Lazy,
             visibility_context: VisibilityContext::Public,
-            tail_expression:    false,
+            block_context:      BlockContext::BlockBody,
         })
         .map_content(|statement_or_prefix| {
             statement_or_prefix.map_statement(|tree| {
