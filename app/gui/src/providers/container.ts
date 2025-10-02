@@ -131,6 +131,7 @@ export const [provideContainerData, useContainerData] = createContextStore(
       },
     })
 
+    // When the current tab is no longer valid (e.g. the project was closed), switch to the fallback tab.
     watchEffect(() => {
       const name = normalizeRouteParamToString(route.params.path)
       if (!isValidTab(name)) {
