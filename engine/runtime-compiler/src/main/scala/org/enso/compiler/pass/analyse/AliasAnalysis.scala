@@ -237,7 +237,8 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Conversion =>
         m.body match {
           case _: Function =>
-            val c = m.copyBuilder()
+            val c = m
+              .copyBuilder()
               .body(
                 analyseExpression(
                   m.body,
@@ -258,7 +259,8 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Explicit =>
         m.body match {
           case _: Function =>
-            val c = m.copyBuilder()
+            val c = m
+              .copyBuilder()
               .bodyReference(
                 Persistance.Reference.of(
                   analyseExpression(
