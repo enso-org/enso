@@ -1080,11 +1080,12 @@ export default class RemoteBackend extends Backend {
    */
   override async listTags(): Promise<readonly backend.Label[]> {
     const path = remoteBackendPaths.LIST_TAGS_PATH
-    const response = await this.get<backend.ListTagsResponseBody>(path)
+    const response = await this.get<backend.Label[] | backend.ListTagsResponseBody>(path)
     if (!response.ok) {
       return await this.throw(response, 'listLabelsBackendError')
     } else {
-      return (await response.json()).tags
+      const result = await response.json()
+      return Array.isArray(result) ? result : result.tags
     }
   }
 
