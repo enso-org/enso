@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.function;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -11,6 +12,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * This node is responsible for representing the definition of a function. It contains information
@@ -22,6 +24,7 @@ import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 public class CreateFunctionNode extends ExpressionNode {
   private final RootCallTarget callTarget;
   private final FunctionSchema schema;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   private CreateFunctionNode(RootCallTarget callTarget, ArgumentDefinition[] args) {
     this.callTarget = callTarget;
@@ -79,5 +82,16 @@ public class CreateFunctionNode extends ExpressionNode {
       return false;
     }
     return super.hasTag(tag);
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

@@ -1,11 +1,13 @@
 package org.enso.interpreter.node.callable.function;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * Node tagged with {@link StandardTags.StatementTag}. Inserted by {@link BlockNode} into the AST
@@ -13,6 +15,7 @@ import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
  */
 final class StatementNode extends ExpressionNode {
   @Child ExpressionNode node;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   private StatementNode(ExpressionNode node) {
     this.node = node;
@@ -47,5 +50,16 @@ final class StatementNode extends ExpressionNode {
       return getRootNode() instanceof ClosureRootNode c && !c.isSubjectToInstrumentation();
     }
     return StandardTags.StatementTag.class == tag;
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.atom;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -17,6 +18,7 @@ import org.enso.interpreter.runtime.data.hash.HashMapSizeNode;
 import org.enso.interpreter.runtime.type.TypesGen;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * A node instantiating a constant {@link AtomConstructor} with values computed based on the
@@ -31,6 +33,7 @@ abstract class InstantiateNode extends ExpressionNode {
   private @CompilationFinal(dimensions = 1) CountingConditionProfile[] profiles;
   private @CompilationFinal(dimensions = 1) CountingConditionProfile[] warningProfiles;
   private @CompilationFinal(dimensions = 1) BranchProfile[] sentinelProfiles;
+  private @CompilationFinal RuntimeID id = null;
   private final CountingConditionProfile anyWarningsProfile = CountingConditionProfile.create();
 
   InstantiateNode(AtomConstructor constructor, ExpressionNode[] arguments) {
@@ -108,5 +111,16 @@ abstract class InstantiateNode extends ExpressionNode {
     } else {
       return createInstanceNode.execute(argumentValues);
     }
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

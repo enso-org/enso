@@ -24,7 +24,7 @@ import org.enso.interpreter.instrument.{
   Changeset,
   ChangesetBuilder,
   InstrumentFrame,
-  Observable,
+  ObservableInvalidation,
   Visualization
 }
 import org.enso.interpreter.runtime.Module
@@ -40,8 +40,8 @@ import java.io.File
 import java.util
 import java.util.UUID
 import java.util.function.Consumer
-import scala.annotation.{tailrec, unused}
-import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsJava}
+import scala.annotation.unused
+import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -464,21 +464,18 @@ class EnsureCompiledJob(
     ctx.state.executionHooks.add(new Runnable {
       override def run(): Unit = {
         ctx.contextManager.getAllContexts.values.foreach { stack =>
-          val runtimeCaches =
-            stack.flatMap(frame => Option(frame.cache)).toSeq
-          val uuids = changeset.invalidated ++ resolutionErrors
-          val allCachedUpdates = runtimeCaches.flatMap { cache =>
-            val directlyInvalidated =
-              uuids.flatMap(uuid => Option(cache.get(uuid))).toSeq
-            val transitivelyInvalidated =
-              invalidateTransitiveDependenceis(directlyInvalidated)
-            cache.invalidate(transitivelyInvalidated.map(_.id()).asJava)
-            transitivelyInvalidated.filter(_.isUpdatable)
-          }
+          val uuids  = changeset.invalidated ++ resolutionErrors
+          val stackJ = new java.util.Stack[InstrumentFrame]();
+          stack.reverseIterator.foreach(f => stackJ.add(f));
+          val uuidsJ = new java.util.HashSet[UUID]();
+          uuids.foreach(uuid => uuidsJ.add(uuid));
+          val affected =
+            ObservableInvalidation.invalidateAffectedIDs(uuidsJ, stackJ).asScala
+          val cachedIDs = affected.filter(_.isExternal)
 
           // pending updates
           val expressionUpdates =
-            allCachedUpdates.map(_.id().uuid()).toSet.map { key =>
+            cachedIDs.map(_.uuid()).map { key =>
               Api.ExpressionUpdate(
                 key,
                 None,
@@ -493,7 +490,7 @@ class EnsureCompiledJob(
           if (expressionUpdates.nonEmpty) {
             ctx.contextManager.getAllContexts.keys.foreach { contextId =>
               val response = Api.Response(
-                Api.ExpressionUpdates(contextId, expressionUpdates)
+                Api.ExpressionUpdates(contextId, expressionUpdates.toSet)
               )
               ctx.endpoint.sendToClient(response)
             }
@@ -501,72 +498,6 @@ class EnsureCompiledJob(
         }
       }
     })
-    /*val invalidationCommands =
-      buildCacheInvalidationCommands(changeset, module.getIr, "changeset")
-    ctx.contextManager.getAllContexts.values
-      .foreach { stack =>
-        if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
-          CacheInvalidation.runAll(stack, invalidationCommands)
-        }
-      }
-    CacheInvalidation.runAllVisualizations(
-      ctx.contextManager.getVisualizations(module.getName),
-      invalidationCommands
-    )
-
-    val invalidatedVisualizations =
-      ctx.contextManager.getInvalidatedVisualizations(
-        module.getName,
-        changeset.invalidated
-      )
-    invalidatedVisualizations.foreach { visualization =>
-      UpsertVisualizationJob.upsertVisualization(visualization)
-    }
-    if (invalidatedVisualizations.nonEmpty) {
-      logger.trace(
-        "Invalidated visualizations [{}]",
-        invalidatedVisualizations.map(_.id)
-      )
-    }
-
-    // pending updates
-    val updates = changeset.invalidated.map { key =>
-      Api.ExpressionUpdate(
-        key,
-        None,
-        None,
-        Vector.empty,
-        true,
-        false,
-        Api.ExpressionUpdate.Payload.Pending(None, None)
-      )
-    }
-    if (updates.nonEmpty) {
-      ctx.contextManager.getAllContexts.keys.foreach { contextId =>
-        val response = Api.Response(Api.ExpressionUpdates(contextId, updates))
-        ctx.endpoint.sendToClient(response)
-      }
-    }*/
-  }
-
-  private def invalidateTransitiveDependenceis(
-    toInvalidate: Seq[Observable]
-  ): Set[Observable] = {
-    @tailrec
-    def invalidateTransitiveDependenceis0(
-      toInvalidate: Seq[Observable],
-      acc: Set[Observable]
-    ): Set[Observable] = {
-      toInvalidate match {
-        case head :: tail =>
-          val toProcess =
-            head.invalidate().filter(o => !acc.contains(o)).toList.asScala
-          invalidateTransitiveDependenceis0(tail ++ toProcess, Set(head) ++ acc)
-        case _ =>
-          acc
-      }
-    }
-    invalidateTransitiveDependenceis0(toInvalidate, Set.empty)
   }
 
   /** Send notification about the compilation status.

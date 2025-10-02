@@ -1802,8 +1802,15 @@ private[runtime] class IrToTruffle(
 
       currentVarName = binding.name.name
       val slotIdx = fp.frameSlotIdx()
+      var rhs     = this.run(binding.expression, true, true)
+      // Ensures RHS of AssignmentNode has ID
+      rhs = setLocation(
+        rhs,
+        binding.expression.location(),
+        binding.expression.getId
+      )
       setLocation(
-        AssignmentNode.build(this.run(binding.expression, true, true), slotIdx),
+        AssignmentNode.build(rhs, slotIdx),
         binding.location,
         binding.getId()
       )

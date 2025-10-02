@@ -38,7 +38,6 @@ import org.enso.polyglot.RuntimeID;
 public abstract class ExpressionNode extends BaseNode implements InstrumentableNode {
   private @CompilationFinal int sourceStartIndex;
   private @CompilationFinal int sourceLength;
-  private @CompilationFinal RuntimeID id = null;
 
   public static boolean isWrapper(ExpressionNode node) {
     return node instanceof ExpressionNodeWrapper;
@@ -92,19 +91,14 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    *
    * @return this node's ID.
    */
-  public RuntimeID getId() {
-    return id;
-  }
+  public abstract RuntimeID getId();
 
   /**
    * Sets the value for this node's ID.
    *
    * @param id the ID for this node.
    */
-  public void setId(RuntimeID id) {
-    CompilerDirectives.transferToInterpreterAndInvalidate();
-    this.id = id;
-  }
+  public abstract void setId(RuntimeID id);
 
   /**
    * Executes the current node and returns a result.
@@ -141,7 +135,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
     if (tag == StandardTags.ExpressionTag.class) {
       return getSourceSection() != null;
     }
-    return tag == IdentifiedTag.class && id != null;
+    return tag == IdentifiedTag.class && getId() != null;
   }
 
   /**

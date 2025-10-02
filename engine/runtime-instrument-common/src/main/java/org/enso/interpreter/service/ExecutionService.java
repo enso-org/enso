@@ -214,13 +214,17 @@ public final class ExecutionService implements GuestExecutionService {
           } finally {
             eventNodeFactory.ifPresent(EventBinding::dispose);
             var runtimeAnalysis = context.currentRuntimeAnalysis();
+            var entryNode = runtimeAnalysis.entryNode();
+            if (entryNode != null) {
+              cache.setEntryNode(entryNode);
+            }
             runtimeAnalysis
                 .currentSnapshot()
                 .forEach(
                     (uuid, deps) -> {
                       var upstream = cache.get(uuid);
                       if (upstream == null) {
-                        LOGGER.debug("Unable to register dependencies ({}) to {}", deps, uuid);
+                        LOGGER.debug("Unable to assign dependencies ({}) to {}", deps, uuid);
                       } else {
                         deps.forEach(
                             d -> {
@@ -229,6 +233,7 @@ public final class ExecutionService implements GuestExecutionService {
                             });
                       }
                     });
+            runtimeAnalysis.reset();
           }
         });
   }

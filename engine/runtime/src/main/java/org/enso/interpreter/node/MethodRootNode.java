@@ -21,7 +21,6 @@ import org.enso.polyglot.RuntimeID;
 @ReportPolymorphism
 @NodeInfo(shortName = "Method", description = "A root node for Enso methods.")
 public class MethodRootNode extends ClosureRootNode {
-  private static final ExpressionNode[] NO_STATEMENTS = new ExpressionNode[0];
 
   private final Type type;
   private final String methodName;
@@ -198,6 +197,8 @@ public class MethodRootNode extends ClosureRootNode {
   private static class LazyBodyNode extends ExpressionNode {
     private final Supplier<ExpressionNode> provider;
 
+    private @CompilerDirectives.CompilationFinal RuntimeID id = null;
+
     LazyBodyNode(Supplier<ExpressionNode> body) {
       this.provider = body;
     }
@@ -226,6 +227,17 @@ public class MethodRootNode extends ClosureRootNode {
         var load = ctx.getBuiltins().error().makeCompileError(msg);
         throw new PanicException(load, this);
       }
+    }
+
+    @Override
+    public RuntimeID getId() {
+      return this.id;
+    }
+
+    @Override
+    public void setId(RuntimeID id) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      this.id = id;
     }
   }
 

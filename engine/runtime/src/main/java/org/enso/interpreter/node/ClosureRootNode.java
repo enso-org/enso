@@ -92,6 +92,8 @@ public class ClosureRootNode extends EnsoRootNode {
     }
     RuntimeAnalysis runtimeAnalysis = EnsoContext.get(this).currentRuntimeAnalysis();
     if (id != null) {
+
+      // Merge caller/enterNode registration
       runtimeAnalysis.registerCallerCalleeDependency(id);
       runtimeAnalysis.enterNode(id);
     }

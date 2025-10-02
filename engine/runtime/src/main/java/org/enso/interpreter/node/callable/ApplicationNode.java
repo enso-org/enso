@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -22,6 +23,7 @@ public class ApplicationNode extends ExpressionNode {
 
   @Child private InvokeCallableNode invokeCallableNode;
   @Child private ExpressionNode callable;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   private ApplicationNode(
       ExpressionNode callable,
@@ -36,9 +38,13 @@ public class ApplicationNode extends ExpressionNode {
         Arrays.stream(callArguments).map(CallArgumentInfo::new).toArray(CallArgumentInfo[]::new);
 
     this.callable = callable;
+    var argIds = Arrays.stream(argExpressions).map(ExpressionNode::getId).toArray(RuntimeID[]::new);
     this.invokeCallableNode =
         InvokeCallableNode.build(
-            argSchema, defaultsExecutionMode, InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
+            argSchema,
+            defaultsExecutionMode,
+            InvokeCallableNode.ArgumentsExecutionMode.EXECUTE,
+            argIds);
   }
 
   /**
@@ -97,18 +103,19 @@ public class ApplicationNode extends ExpressionNode {
     return this.invokeCallableNode.execute(self, frame, state, evaluatedArguments);
   }
 
-  /**
-   * Sets the expression ID for this node.
-   *
-   * @param id the ID for this node.
-   */
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
   @Override
   public void setId(RuntimeID id) {
-    super.setId(id);
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
     invokeCallableNode.setId(id);
   }
 
   public void setCallableDirectId(RuntimeID id) {
-    invokeCallableNode.setDirectId(id);
+    invokeCallableNode.setCallableID(id);
   }
 }

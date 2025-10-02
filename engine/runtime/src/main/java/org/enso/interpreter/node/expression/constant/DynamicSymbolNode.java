@@ -1,16 +1,19 @@
 package org.enso.interpreter.node.expression.constant;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.polyglot.RuntimeID;
 
 /** Simple constant node that always results in the same {@link UnresolvedSymbol}. */
 @NodeInfo(shortName = "DynamicSym")
 public class DynamicSymbolNode extends ExpressionNode {
   private final EnsoObject unresolvedSymbol;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   private DynamicSymbolNode(EnsoObject unresolvedSymbol) {
     this.unresolvedSymbol = unresolvedSymbol;
@@ -43,5 +46,16 @@ public class DynamicSymbolNode extends ExpressionNode {
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     return unresolvedSymbol;
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

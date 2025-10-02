@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.function;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
@@ -12,6 +13,7 @@ import java.util.Set;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * This node defines the body of a function for execution, as well as the protocol for executing the
@@ -22,6 +24,7 @@ public class BlockNode extends ExpressionNode {
   private final BranchProfile unexpectedReturnValue;
   @Children private final ExpressionNode[] statements;
   @Child private ExpressionNode returnExpr;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   private BlockNode(ExpressionNode[] expressions, ExpressionNode returnExpr) {
     this.statements = expressions;
@@ -122,5 +125,16 @@ public class BlockNode extends ExpressionNode {
       }
       return tag == StandardTags.RootBodyTag.class || tag == StandardTags.RootTag.class;
     }
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

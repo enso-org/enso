@@ -1,15 +1,18 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.polyglot.RuntimeID;
 
 @NodeInfo(shortName = "[]", description = "Creates a vector from given expressions.")
 public class SequenceLiteralNode extends ExpressionNode {
   private @Children ExpressionNode[] items;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   private SequenceLiteralNode(ExpressionNode[] items) {
     this.items = items;
@@ -42,5 +45,16 @@ public class SequenceLiteralNode extends ExpressionNode {
       }
     }
     return ArrayLikeHelpers.asVectorWithCheckAt(itemValues);
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

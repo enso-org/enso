@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.polyglot.RuntimeID;
 import org.graalvm.collections.Pair;
 
 final class BinaryOperatorNode extends ExpressionNode {
@@ -32,6 +33,7 @@ final class BinaryOperatorNode extends ExpressionNode {
   private @Child ExpressionNode right;
   private @Child ExpressionNode body;
   private @Child DoThatConversionNode thatConversion;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   BinaryOperatorNode(ExpressionNode left, ExpressionNode right, ExpressionNode body) {
     this.body = body;
@@ -257,5 +259,21 @@ final class BinaryOperatorNode extends ExpressionNode {
         throw ex;
       }
     }
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  /**
+   * Sets the expression ID for this node.
+   *
+   * @param id the ID for this node.
+   */
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

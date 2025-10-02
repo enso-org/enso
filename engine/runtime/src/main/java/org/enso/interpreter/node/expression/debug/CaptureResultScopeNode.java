@@ -1,14 +1,17 @@
 package org.enso.interpreter.node.expression.debug;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
+import org.enso.polyglot.RuntimeID;
 
 /** Node capturing the runtime execution scope of its child. */
 @NodeInfo(shortName = "ScopeCapture", description = "Captures the child's execution scope.")
 public class CaptureResultScopeNode extends ExpressionNode {
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   /** Value object wrapping the expression return value and the execution scope. */
   public static class WithCallerInfo {
@@ -67,5 +70,16 @@ public class CaptureResultScopeNode extends ExpressionNode {
   public WithCallerInfo executeGeneric(VirtualFrame frame) {
     return new WithCallerInfo(
         captureCallerInfoNode.execute(frame.materialize()), expression.executeGeneric(frame));
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

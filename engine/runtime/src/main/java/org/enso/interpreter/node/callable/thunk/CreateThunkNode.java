@@ -1,15 +1,18 @@
 package org.enso.interpreter.node.callable.thunk;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.polyglot.RuntimeID;
 
 /** This node is responsible for wrapping a call target in a {@link Thunk} at execution time. */
 @NodeInfo(shortName = "CreateThunk", description = "Wraps a call target in a thunk at runtime")
 public class CreateThunkNode extends ExpressionNode {
   private final RootCallTarget callTarget;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   private CreateThunkNode(RootCallTarget callTarget) {
     this.callTarget = callTarget;
@@ -35,5 +38,16 @@ public class CreateThunkNode extends ExpressionNode {
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     return Function.thunk(this.callTarget, frame.materialize());
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

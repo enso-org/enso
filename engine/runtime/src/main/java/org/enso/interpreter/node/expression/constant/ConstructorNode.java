@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.constant;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -7,12 +8,14 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
+import org.enso.polyglot.RuntimeID;
 
 /** Represents a type constructor definition. */
 @NodeInfo(shortName = "Cons", description = "Represents a constructor definition")
 @SuppressWarnings("truffle-splitting")
 public abstract class ConstructorNode extends ExpressionNode {
   private final AtomConstructor constructor;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   ConstructorNode(AtomConstructor constructor) {
     if (constructor == null) {
@@ -50,5 +53,16 @@ public abstract class ConstructorNode extends ExpressionNode {
       return AtomNewInstanceNode.getUncached().newInstance(constructor);
     }
     return constructor;
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

@@ -99,7 +99,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Child private ThunkExecutorNode thisExecutor;
   @Child private ThunkExecutorNode thatExecutor;
   @Child private InvokeCallableNode childDispatch;
-  private @CompilerDirectives.CompilationFinal RuntimeID funId = null;
+  private @CompilerDirectives.CompilationFinal RuntimeID callableID = null;
 
   private final boolean canApplyThis;
   private final boolean canApplyThat;
@@ -111,14 +111,19 @@ public abstract class InvokeCallableNode extends BaseNode {
   @CompilerDirectives.CompilationFinal(dimensions = 1)
   private final CallArgumentInfo[] schema;
 
+  @CompilerDirectives.CompilationFinal(dimensions = 1)
+  private final RuntimeID[] argIds;
+
   private final boolean isForOversaturatedArguments;
 
   InvokeCallableNode(
       CallArgumentInfo[] schema,
       DefaultsExecutionMode defaultsExecutionMode,
       ArgumentsExecutionMode argumentsExecutionMode,
-      boolean isForOversaturatedArguments) {
+      boolean isForOversaturatedArguments,
+      RuntimeID[] argIds) {
     this.schema = schema;
+    this.argIds = argIds;
     this.isForOversaturatedArguments = isForOversaturatedArguments;
     Integer thisArg = thisArgumentPosition(schema);
     this.canApplyThis = thisArg != null;
@@ -178,7 +183,16 @@ public abstract class InvokeCallableNode extends BaseNode {
       DefaultsExecutionMode defaultsExecutionMode,
       ArgumentsExecutionMode argumentsExecutionMode) {
     return InvokeCallableNodeGen.create(
-        schema, defaultsExecutionMode, argumentsExecutionMode, false);
+        schema, defaultsExecutionMode, argumentsExecutionMode, false, null);
+  }
+
+  public static InvokeCallableNode build(
+      CallArgumentInfo[] schema,
+      DefaultsExecutionMode defaultsExecutionMode,
+      ArgumentsExecutionMode argumentsExecutionMode,
+      RuntimeID[] argIds) {
+    return InvokeCallableNodeGen.create(
+        schema, defaultsExecutionMode, argumentsExecutionMode, false, argIds);
   }
 
   @Specialization
@@ -244,8 +258,19 @@ public abstract class InvokeCallableNode extends BaseNode {
         arguments[thisArgumentPosition] = selfArgument;
         arguments[thatArgumentPosition] = thatArgument;
       }
-      return invokeConversionNode.execute(
-          callerFrame, state, conversion, selfArgument, thatArgument, arguments);
+      RuntimeAnalysis runtimeAnalysis = EnsoContext.get(this).currentRuntimeAnalysis();
+      if (argIds != null) {
+        runtimeAnalysis.registerCallableArg(this.argIds[thisArgumentPosition], getCallableID());
+        runtimeAnalysis.registerCallableArg(this.argIds[thatArgumentPosition], getCallableID());
+      }
+      try {
+        runtimeAnalysis.enterNode(callableID);
+        return invokeConversionNode.execute(
+            callerFrame, state, conversion, selfArgument, thatArgument, arguments);
+      } finally {
+        runtimeAnalysis.exitNode(callableID);
+      }
+
     } else {
       CompilerDirectives.transferToInterpreter();
       var ctx = EnsoContext.get(this);
@@ -286,11 +311,19 @@ public abstract class InvokeCallableNode extends BaseNode {
         arguments[thisArgumentPosition] = selfArgument;
       }
       RuntimeAnalysis runtimeAnalysis = EnsoContext.get(this).currentRuntimeAnalysis();
+      if (argIds != null) {
+        // Ensures that changes to the underlying function invalidate the self argument,
+        // meaning that a new Truffle node will be generated from IR.
+        // If self argument was not invalidated on function body change, an outdated representation
+        // would continue to be used.
+        // TODO: move the registration to instrumentation
+        runtimeAnalysis.registerCallableArg(this.argIds[thisArgumentPosition], getCallableID());
+      }
       try {
-        runtimeAnalysis.enterNode(funId);
+        runtimeAnalysis.enterNode(callableID);
         return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
       } finally {
-        runtimeAnalysis.exitNode(funId);
+        runtimeAnalysis.exitNode(callableID);
       }
     } else {
       CompilerDirectives.transferToInterpreter();
@@ -327,9 +360,11 @@ public abstract class InvokeCallableNode extends BaseNode {
                     build(
                         invokeFunctionNode.getSchema(),
                         invokeFunctionNode.getDefaultsExecutionMode(),
-                        invokeFunctionNode.getArgumentsExecutionMode()));
+                        invokeFunctionNode.getArgumentsExecutionMode(),
+                        argIds));
             childDispatch.setTailStatus(getTailStatus());
             childDispatch.setId(invokeFunctionNode.getId());
+            childDispatch.setCallableID(callableID);
             notifyInserted(childDispatch);
           }
         } finally {
@@ -463,8 +498,15 @@ public abstract class InvokeCallableNode extends BaseNode {
     }
   }
 
-  public void setDirectId(RuntimeID id) {
-    this.funId = id;
+  public void setCallableID(RuntimeID id) {
+    this.callableID = id;
+    if (childDispatch != null) {
+      childDispatch.setCallableID(id);
+    }
+  }
+
+  public RuntimeID getCallableID() {
+    return this.callableID;
   }
 
   /** Returns expression ID of this node. */

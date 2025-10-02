@@ -79,7 +79,8 @@ final class CurryNode extends BaseNode {
               postApplicationSchema.getOversaturatedArguments(),
               defaultsExecutionMode,
               argumentsExecutionMode,
-              true);
+              true,
+              null); // FIXME
       oversaturatedCallableNode.setTailStatus(getTailStatus());
     }
   }

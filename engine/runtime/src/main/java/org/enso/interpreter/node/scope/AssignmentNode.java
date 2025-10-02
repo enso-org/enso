@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.scope;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -8,12 +9,14 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.polyglot.RuntimeID;
 
 /** This node represents an assignment to a variable in a given scope. */
 @NodeInfo(shortName = "=", description = "Assigns expression result to a variable.")
 @NodeChild(value = "rhsNode", type = ExpressionNode.class)
 public abstract class AssignmentNode extends ExpressionNode {
 
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
   private final int frameSlotIdx;
 
   AssignmentNode(int frameSlotIdx) {
@@ -64,5 +67,16 @@ public abstract class AssignmentNode extends ExpressionNode {
   boolean isLongOrIllegal(VirtualFrame frame) {
     FrameSlotKind kind = frame.getFrameDescriptor().getSlotKind(frameSlotIdx);
     return kind == FrameSlotKind.Long || kind == FrameSlotKind.Illegal;
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

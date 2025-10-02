@@ -92,7 +92,7 @@ public class CachingObservable implements Observable {
   }
 
   @Override
-  public boolean isUpdatable() {
+  public boolean isExternal() {
     return true;
   }
 

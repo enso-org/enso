@@ -33,7 +33,7 @@ case class Changeset[A](
   source: A,
   ir: IR,
   simpleUpdate: Option[SimpleUpdate],
-  invalidated: Set[UUID @ExternalID],
+  invalidated: Set[UUID],
   idMap: Option[IdMap]
 )
 
@@ -129,17 +129,9 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     * @return the set of all IR nodes affected by the edit
     */
   @throws[CompilerError]
-  def compute(edits: Seq[TextEdit]): Set[UUID @ExternalID] = {
-
+  def compute(edits: Seq[TextEdit]): Set[UUID] = {
     val nodeIds = invalidateExact(edits)
-    /*val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
-    val transitive =
-      go(
-        mutable.Queue().addAll(direct),
-        mutable.Set()
-      )
-    direct.flatMap(_.externalId) ++ transitive*/
-    nodeIds.flatMap(_.externalId)
+    nodeIds.map(_.id)
   }
 
   private def invalidateExact(
@@ -306,7 +298,9 @@ object ChangesetBuilder {
     externalId: Option[UUID @ExternalID],
     name: Option[Symbol],
     needsRhsInvalidation: Boolean
-  )
+  ) {
+    def id: UUID = externalId.getOrElse(internalId)
+  }
 
   object NodeId {
 
@@ -504,6 +498,9 @@ object ChangesetBuilder {
 
       currentIr match {
         case binding: Expression.Binding =>
+          if (!hasImportantId) {
+            Node.fromIr(binding.expression, false).foreach(acc.add)
+          }
           depthFirstSearch(binding.name, acc, true)
           depthFirstSearch(binding.expression, acc, false)
         case _ =>

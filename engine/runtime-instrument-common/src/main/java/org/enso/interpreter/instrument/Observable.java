@@ -46,7 +46,7 @@ public interface Observable {
    *
    * @return {@code true}, if values can being cached, {@code false} otherwise
    */
-  default boolean isUpdatable() {
+  default boolean isExternal() {
     return false;
   }
 

@@ -18,6 +18,7 @@ import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * A node representing a pattern match on an arbitrary runtime value.
@@ -31,6 +32,7 @@ import org.enso.interpreter.runtime.warning.WarningsLibrary;
 public abstract class CaseNode extends ExpressionNode {
 
   @Children private final BranchNode[] cases;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
   private final boolean isNested;
 
   private final CountingConditionProfile fallthroughProfile = CountingConditionProfile.create();
@@ -129,6 +131,17 @@ public abstract class CaseNode extends ExpressionNode {
       // Note [Branch Selection Control Flow]
       return isNested ? e.getBranchResult() : e.getBranchResult().result();
     }
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 
   boolean isDataflowError(Object error) {

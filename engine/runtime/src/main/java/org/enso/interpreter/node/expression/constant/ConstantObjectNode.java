@@ -1,14 +1,17 @@
 package org.enso.interpreter.node.expression.constant;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Objects;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.polyglot.RuntimeID;
 
 /** Represents a compile-time constant. */
 @NodeInfo(shortName = "const", description = "Represents an arbitrary compile-time constant.")
 public final class ConstantObjectNode extends ExpressionNode {
   private final Object object;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   private ConstantObjectNode(Object object) {
     assert object != null;
@@ -34,5 +37,16 @@ public final class ConstantObjectNode extends ExpressionNode {
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     return object;
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

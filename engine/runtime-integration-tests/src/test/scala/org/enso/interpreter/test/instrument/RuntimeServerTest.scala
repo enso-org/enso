@@ -7532,7 +7532,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnorePendingExpressionUpdates(2, 10) shouldEqual Seq(
+    context.receiveNIgnoreStdLib(3, 10) shouldEqual Seq(
+      TestMessages.pending(contextId, idX, idSelfMain),
       TestMessages.update(
         contextId,
         idIncZ,
@@ -7663,14 +7664,14 @@ class RuntimeServerTest
     // pop the inc call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
 
-    context.receiveNIgnoreStdLib(6) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
         idX,
         ConstantsGen.INTEGER,
-        fromCache   = false,
-        typeChanged = false,
+        fromCache   = true,
+        typeChanged = true,
         methodCall =
           Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc")))
       ),
@@ -7678,24 +7679,10 @@ class RuntimeServerTest
         contextId,
         idY,
         ConstantsGen.INTEGER,
-        fromCache   = false,
-        typeChanged = false,
+        fromCache   = true,
+        typeChanged = true,
         methodCall =
           Some(Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc")))
-      ),
-      TestMessages.update(
-        contextId,
-        idXSelfMain,
-        moduleName,
-        fromCache   = true,
-        typeChanged = false
-      ),
-      TestMessages.update(
-        contextId,
-        idYSelfMain,
-        moduleName,
-        fromCache   = true,
-        typeChanged = false
       ),
       context.executionComplete(contextId)
     )

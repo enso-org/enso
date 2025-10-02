@@ -18,15 +18,24 @@ import org.enso.interpreter.service.GuestExecutionService;
 
 /** A storage for computed values. */
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
+  private static int COUNTER = 0;
+  public final int id;
   private final Map<UUID, Observable> cache = new ConcurrentHashMap<>();
   private final Map<UUID, TypeInfo> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Consumer<UUID> observer;
   private final GuestExecutionService executionService;
   private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> enterables = new HashMap<>();
+  private RuntimeID localCallUUID;
 
   public RuntimeCache(GuestExecutionService executionService) {
+    id = COUNTER;
+    COUNTER = COUNTER + 1;
     this.executionService = executionService;
+  }
+
+  public RuntimeID getLocalCallUUID() {
+    return localCallUUID;
   }
 
   public void invalidate(Set<RuntimeID> keys) {
@@ -53,7 +62,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   public boolean offer(RuntimeID key, Object value) {
     var observable = cache.get(key.uuid());
     assert observable != null;
-    if (observable.isUpdatable()) {
+    if (observable.isExternal()) {
       return observable.update(value, executionService);
     } else {
       return false;
@@ -123,6 +132,10 @@ public final class RuntimeCache implements java.util.function.Function<String, O
 
   public Set<Observable> allCached() {
     return cache.values().stream().filter(v -> v instanceof CachingObservable).collect(Collectors.toSet());
+  }
+
+  public void setEntryNode(RuntimeID id) {
+    localCallUUID = id;
   }
 
   /** Clear the cached values. */
@@ -233,5 +246,10 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     } finally {
       this.observer = previousCallback;
     }
+  }
+
+  @Override
+  public String toString() {
+    return "RuntimeCache[id=" + id + "]";
   }
 }

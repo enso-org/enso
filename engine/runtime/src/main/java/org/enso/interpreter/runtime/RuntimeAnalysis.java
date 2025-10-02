@@ -14,11 +14,13 @@ import java.util.Stack;
 public class RuntimeAnalysis {
   private final Stack<RuntimeID> idStack;
   private final Map<RuntimeID, Set<RuntimeID>> deps;
+  private RuntimeID closureEntry;
   private final static Logger LOGGER = LoggerFactory.getLogger(RuntimeAnalysis.class);
 
   public RuntimeAnalysis(EnsoContext ctx) {
     idStack = new Stack<>();
     deps = new HashMap<>();
+    closureEntry = null;
   }
 
   public static RuntimeAnalysis create(EnsoContext ctx) {
@@ -71,10 +73,31 @@ public class RuntimeAnalysis {
     var top = idStack.isEmpty() ? null : idStack.peek();
     if (top != null) {
       deps.computeIfAbsent(top, _ -> new HashSet<>()).add(dependency);
+    } else {
+      //assert closureEntry == null;
+      closureEntry = dependency;
+    }
+  }
+
+  public void registerCallableArg(RuntimeID argId, RuntimeID callableId) {
+    if (argId != null && callableId != null) {
+      deps.computeIfAbsent(argId, _ -> new HashSet<>()).add(callableId);
     }
   }
 
   public Map<RuntimeID, Set<RuntimeID>> currentSnapshot() {
     return new HashMap<>(deps);
+  }
+
+  public RuntimeID entryNode() {
+    var v = closureEntry;
+    closureEntry = null;
+    return v;
+  }
+
+  public void reset() {
+    deps.clear();
+    idStack.clear();
+    closureEntry = null;
   }
 }

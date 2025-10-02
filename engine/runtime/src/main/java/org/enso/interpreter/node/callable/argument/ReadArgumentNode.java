@@ -1,10 +1,12 @@
 package org.enso.interpreter.node.callable.argument;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * Reads and evaluates the expression provided as a function argument. It handles the case where
@@ -14,6 +16,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public final class ReadArgumentNode extends ExpressionNode {
   private final int index;
   @Child ExpressionNode defaultValue;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
   private final CountingConditionProfile defaultingProfile = CountingConditionProfile.create();
 
   private ReadArgumentNode(int position, ExpressionNode defaultValue) {
@@ -74,5 +77,16 @@ public final class ReadArgumentNode extends ExpressionNode {
   @Override
   public boolean isInstrumentable() {
     return true;
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }
