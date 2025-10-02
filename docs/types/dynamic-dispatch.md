@@ -163,7 +163,7 @@ When invoking a method on _module object_ its _module static methods_ take
 precedence over _instance methods_ defined on `Any`. Thus a module serves
 primarily as a _container for module (static) methods_.
 
-## Method invocation
+## Method Invocation
 
 **Terminology**:
 
