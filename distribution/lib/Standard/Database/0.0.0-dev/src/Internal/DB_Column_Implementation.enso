@@ -61,7 +61,7 @@ type DB_Column_Implementation
             this_column.read DB_Column_Implementation.default_row_limit_for_read . to_vector
 
     at (this_column : Column & DB_Column) index:Integer =
-        this_column.get index (Error.throw (Index_Out_Of_Bounds.Error index this_column.length))
+        this_column.get index (Error.throw (Index_Out_Of_Bounds.Error index this_column.row_count))
 
     get (this_column : Column & DB_Column) index:Integer ~default:Any =
         if index < 0 then Error.throw (Unsupported_Database_Operation.Error "Reading backwards from end") else
@@ -82,7 +82,7 @@ type DB_Column_Implementation
 
     to_sql (this_column : Column & DB_Column) = this_column.to_table.to_sql
 
-    length (this_column : Column & DB_Column) = this_column.to_table.row_count
+    row_count (this_column : Column & DB_Column) = this_column.to_table.row_count
 
     count_nothing (this_column : Column & DB_Column) =
         this_column.to_table.filter 0 Filter_Condition.Is_Nothing . row_count

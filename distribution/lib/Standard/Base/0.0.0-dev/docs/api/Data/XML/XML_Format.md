@@ -8,4 +8,4 @@
     - read self file:Standard.Base.System.File.File on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
     - read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata= -> Standard.Base.Any.Any
     - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- Standard.Base.System.File_Format.File_Format_SPI.from that:Standard.Base.Data.XML.XML_Format.XML_Format -> Standard.Base.System.File_Format.File_Format_SPI
+- Standard.Base.System.File_Format.File_Format_SPI.from _:Standard.Base.Data.XML.XML_Format.XML_Format -> Standard.Base.System.File_Format.File_Format_SPI

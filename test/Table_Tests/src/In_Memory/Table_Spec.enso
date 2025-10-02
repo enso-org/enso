@@ -377,7 +377,7 @@ add_specs suite_builder =
     suite_builder.group "Counting Values" group_builder->
         group_builder.specify "should count missing and non-missing values" <|
             col = Column.from_vector 'x' [1, Nothing, 2]
-            col.length . should_equal 3
+            col.row_count . should_equal 3
             col.count . should_equal 2
             col.count_nothing . should_equal 1
 

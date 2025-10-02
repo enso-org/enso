@@ -424,7 +424,7 @@ type In_Memory_Table_Implementation
                     Error.throw (Missing_Column.Error renamed.name)
 
             new_table = check_add_mode.if_not_error <|
-                if resolved.length != this_table.row_count then Error.throw (Row_Count_Mismatch.Error this_table.row_count resolved.length) else
+                if resolved.row_count != this_table.row_count then Error.throw (Row_Count_Mismatch.Error this_table.row_count resolved.row_count) else
                     from_java_table (this_table.java_table.addOrReplaceColumn (renamed:In_Memory_Column).java_column)
 
             problem_builder.report_unique_name_strategy unique

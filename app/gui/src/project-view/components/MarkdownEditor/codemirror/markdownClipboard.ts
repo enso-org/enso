@@ -32,7 +32,7 @@ export function markdownClipboard({
 }: MarkdownClipboardOptions): Extension {
   function handlePaste(event: CmEvent, raw: boolean) {
     const view = event.codemirrorView
-    navigator.clipboard.read().then((items) => handleClipboardItems(view, items, raw))
+    window.navigator.clipboard.read().then((items) => handleClipboardItems(view, items, raw))
   }
   async function handleClipboardItems(view: EditorView, items: ClipboardItem[], raw: boolean) {
     for (const item of items) {

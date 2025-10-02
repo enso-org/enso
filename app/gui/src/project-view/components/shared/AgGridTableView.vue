@@ -64,6 +64,12 @@ export const commonContextMenuActions = {
  * and using common style for tables in our application.
  */
 import { gridBindings } from '@/bindings'
+import { clipboardNodeData, writeClipboard } from '@/components/GraphEditor/graphClipboard'
+import {
+  parseTsvData,
+  rowsToTsv,
+  tableToEnsoExpression,
+} from '@/components/GraphEditor/widgets/WidgetTableEditor/tableParsing'
 import type { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
 import {
   default as VueComponentHost,
@@ -111,12 +117,6 @@ import {
   type Component,
   type ComponentInstance,
 } from 'vue'
-import { clipboardNodeData, writeClipboard } from '../GraphEditor/clipboard'
-import {
-  parseTsvData,
-  rowsToTsv,
-  tableToEnsoExpression,
-} from '../GraphEditor/widgets/WidgetTableEditor/tableParsing'
 
 const props = defineProps<{
   rowData: TData[]

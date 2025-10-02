@@ -1,10 +1,13 @@
+import {
+  parseTsvData,
+  tableToEnsoExpression,
+} from '@/components/GraphEditor/widgets/WidgetTableEditor/tableParsing'
 import type { NodeCreationOptions } from '@/composables/nodeCreation'
 import type { Node } from '@/stores/graph'
 import { nodeDocumentationText } from '@/util/ast/node'
 import { Vec2 } from '@/util/data/vec2'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import type { NodeMetadataFields } from 'ydoc-shared/ast'
-import { parseTsvData, tableToEnsoExpression } from './widgets/WidgetTableEditor/tableParsing'
 
 // MIME type in *vendor tree*; see https://www.rfc-editor.org/rfc/rfc6838#section-3.2
 // The `web ` prefix is required by Chromium:
@@ -42,16 +45,6 @@ const plainTextDecoder: ClipboardDecoder<CopiedNode[]> = {
   decode: async (blob) => [{ expression: await blob.text() }],
 }
 
-interface ExtendedClipboard extends Clipboard {
-  // Recent addition to the spec: https://github.com/w3c/clipboard-apis/pull/197
-  // Currently supported by Chromium: https://developer.chrome.com/docs/web-platform/unsanitized-html-async-clipboard
-  read(options?: { unsanitized?: ['text/html'] }): Promise<ClipboardItems>
-}
-
-function getClipboard(): ExtendedClipboard {
-  return (window.navigator as any).mockClipboard ?? window.navigator.clipboard
-}
-
 /** A composable for handling copying and pasting nodes in the GraphEditor. */
 export function useGraphEditorClipboard(
   createNodes: (nodesOptions: Iterable<NodeCreationOptions>) => void,
@@ -63,7 +56,7 @@ export function useGraphEditorClipboard(
 
   /** Read the clipboard and if it contains valid data, create nodes from the content. */
   async function createNodesFromClipboard() {
-    const clipboardItems = await getClipboard().read({
+    const clipboardItems = await window.navigator.clipboard.read({
       // Chromium-based browsers support reading unsanitized HTML data, so we can obtain predictable data for
       // spreadsheet recognition in that case; other browsers, including Firefox (as of v127), do not, and should have
       // their sanitized data included in test cases in `clipboardTestCases.json`.
@@ -158,11 +151,11 @@ export type MimeType = 'text/plain' | 'text/html' | typeof ENSO_MIME_TYPE
 export type MimeData = Partial<Record<MimeType, string>>
 
 /** Write data to clipboard */
-export function writeClipboard(data: MimeData) {
+export function writeClipboard(data: MimeData): Promise<void> {
   const dataBlobs = Object.fromEntries(
     Object.entries(data).map(([type, typeData]) => [type, new Blob([typeData], { type })]),
   )
-  return getClipboard()
+  return window.navigator.clipboard
     .write([new ClipboardItem(dataBlobs)])
     .catch((error: any) => console.error(`Failed to write to clipboard: ${error}`))
 }

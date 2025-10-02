@@ -55,6 +55,7 @@ import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
 import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
@@ -1481,7 +1482,8 @@ public class Main {
       File component,
       File javaExecutable)
       throws IOException, InterruptedException {
-    var useJNI = true;
+    /* Cannot use JNI when not in Native Image code. Fallback to launching a process. */
+    var useJNI = ImageInfo.inImageCode();
     var commandAndArgs = new ArrayList<String>();
     if (originalCwdOrNull != null) {
       commandAndArgs.add("-Denso.user.dir=" + originalCwdOrNull);

@@ -435,13 +435,13 @@ type In_Memory_Column_Implementation
                             if r.is_nothing.not then t.replace s r case_sensitivity only_first else
                                 if t.contains s then Nothing else t
 
-                    length = this_column.length
+                    row_count = this_column.row_count
                     java_this = this_column.java_column
                     java_term = (parsed_term:In_Memory_Column).java_column
                     java_new = (parsed_new:In_Memory_Column).java_column
 
-                    builder = make_string_builder length
-                    0.up_to length . each i->
+                    builder = make_string_builder row_count
+                    0.up_to row_count . each i->
                         replaced = fn (java_this.getItem i) (java_term.getItem i) (java_new.getItem i)
                         builder.append replaced
 
@@ -557,7 +557,7 @@ type In_Memory_Column_Implementation
 
     format (this_column : Column & In_Memory_Column) (format : Text | Date_Time_Formatter | Column) locale:Locale = case format of
         format_column : Column -> Value_Type.expect_text format_column <|
-            if format_column.length != this_column.length then Error.throw (Illegal_Argument.Error ("Column lengths differ: " + this_column.length.to_text + " != " + format_column.length.to_text)) else
+            if format_column.row_count != this_column.row_count then Error.throw (Illegal_Argument.Error ("Column lengths differ: " + this_column.row_count.to_text + " != " + format_column.row_count.to_text)) else
                 formatter = make_value_formatter_for_value_type this_column.value_type locale
                 formatter.if_not_error <|
                     formatter_function value format = if value.is_nothing then Nothing else
@@ -599,19 +599,19 @@ type In_Memory_Column_Implementation
 
     name (this_column : Column & In_Memory_Column) = this_column.java_column.getName
 
-    length (this_column : Column & In_Memory_Column) = this_column.java_column . getSize
+    row_count (this_column : Column & In_Memory_Column) = this_column.java_column . getSize
 
     count_nothing (this_column : Column & In_Memory_Column) = CountNothing.apply this_column.java_column
 
-    count (this_column : Column & In_Memory_Column) = this_column.length - this_column.count_nothing
+    count (this_column : Column & In_Memory_Column) = this_column.row_count - this_column.count_nothing
 
     at (this_column : Column & In_Memory_Column) index:Integer =
-        this_column.get index (Error.throw (Index_Out_Of_Bounds.Error index this_column.length))
+        this_column.get index (Error.throw (Index_Out_Of_Bounds.Error index this_column.row_count))
 
     get (this_column : Column & In_Memory_Column) index:Integer ~default =
-        length = this_column.length
-        if index < 0 && index >= -length then this_column.get (length + index) default else
-            valid_index = (index >= 0) && (index < length)
+        row_count = this_column.row_count
+        if index < 0 && index >= -row_count then this_column.get (row_count + index) default else
+            valid_index = (index >= 0) && (index < row_count)
             if valid_index.not then default else
                 java_column = this_column.java_column
                 java_to_enso <| java_column.getItem index
@@ -666,20 +666,20 @@ type In_Memory_Column_Implementation
             In_Memory_Column.from_vector this_column.name sorted
 
     take (this_column : Column & In_Memory_Column) (range : Index_Sub_Range | Range | Integer) =
-        take_helper this_column.length (this_column.at _) this_column.slice (slice_ranges this_column) range
+        take_helper this_column.row_count (this_column.at _) this_column.slice (slice_ranges this_column) range
 
     drop (this_column : Column & In_Memory_Column) (range : Index_Sub_Range | Range | Integer) =
-        drop_helper this_column.length (this_column.at _) this_column.slice (slice_ranges this_column) range
+        drop_helper this_column.row_count (this_column.at _) this_column.slice (slice_ranges this_column) range
 
     slice (this_column : Column & In_Memory_Column) start end =
-        length = this_column.length
-        offset = (start.min length).max 0
-        limit = ((end - offset).min (length - offset)).max 0
+        row_count = this_column.row_count
+        offset = (start.min row_count).max 0
+        limit = ((end - offset).min (row_count - offset)).max 0
         In_Memory_Column.from_java_column (this_column.java_column.slice offset limit)
 
     first (this_column : Column & In_Memory_Column) = this_column.at 0
 
-    last (this_column : Column & In_Memory_Column) = this_column.at (this_column.length - 1)
+    last (this_column : Column & In_Memory_Column) = this_column.at (this_column.row_count - 1)
 
     reverse (this_column : Column & In_Memory_Column) =
         In_Memory_Column.from_java_column this_column.java_column.reverse
