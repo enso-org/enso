@@ -1,7 +1,10 @@
 import { ProjectId } from '#/services/Backend'
 import { createGraphStore, type GraphStore } from '$/providers/openedProjects/graph'
 import { createProjectStore, type ProjectStore } from '$/providers/openedProjects/project'
-import { createProjectNameStore, type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import {
+  createProjectNameStore,
+  type ProjectNameStore,
+} from '$/providers/openedProjects/projectNames'
 import {
   createSuggestionDbStore,
   type SuggestionDbStore,
