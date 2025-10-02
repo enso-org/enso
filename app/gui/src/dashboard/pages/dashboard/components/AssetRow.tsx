@@ -40,6 +40,7 @@ import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
 import type { LaunchedProject } from '$/providers/container'
 import { useFullUserSession, useRightPanelData } from '$/providers/react'
+import { useIsProjectClosing } from '$/providers/react/container'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -244,6 +245,9 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }).length !== 0
 
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
+  const isClosing = useIsProjectClosing(
+    item.type === backendModule.AssetType.project ? item.id : null,
+  )
 
   const insertionVisibility = useStore(driveStore, (driveState) => {
     return (
@@ -404,7 +408,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
               if (
                 item.type === backendModule.AssetType.project &&
-                BUSY_PROJECT_STATES.has(item.projectState.type)
+                (BUSY_PROJECT_STATES.has(item.projectState.type) || isClosing)
               ) {
                 event.preventDefault()
               }
