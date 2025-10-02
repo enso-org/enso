@@ -70,6 +70,10 @@ add_specs suite_builder =
             (Any.== self=Any Boolean) . should_be_false
             (Any.== self=Any Any) . should_be_true
 
+        group_builder.specify "Instance method invocation (==)" <|
+            (Any == Any) . should_be_true
+            (Any == Boolean) . should_be_false
+
         group_builder.specify "Static method invocation (to_text)" <|
             # Any.to_text is a method that takes one argument (self)
             Test.expect_panic_with (Any.to_text) No_Such_Method
