@@ -116,7 +116,7 @@ type JDBC_Connection
                 Panic.throw caught_panic
             result = Panic.catch Illegal_State handler=handle_illegal_state <|
                 Panic.catch Any handler=handle_any <|
-                        set_statement_values stmt statement_setter values
+                    set_statement_values stmt statement_setter values
             result.if_not_error <|
                 stmt
 
