@@ -65,6 +65,13 @@ export type BackendMutationMethod = DefineBackendMethods<
 /** Names of methods corresponding to queries. */
 export type BackendQueryMethod = Exclude<BackendMethods, BackendMutationMethod>
 
+export const PERSISTENCE_MAP: Partial<Record<BackendQueryMethod, false>> = {
+  listDirectory: false,
+  searchDirectory: false,
+  listTags: false,
+  getAssetDetails: false,
+}
+
 /** A value for {@link INVALIDATION_MAP} representing all queries. */
 export const INVALIDATE_ALL_QUERIES = Symbol('invalidate all queries')
 /** A mapping between mutation methods and queries invalidated by them. */

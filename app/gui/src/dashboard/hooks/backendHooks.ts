@@ -114,15 +114,6 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
           }
           break
         }
-        case 'listTags': {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const castedResult: backendModule.ListTagsResponseBody | readonly backendModule.Label[] =
-            result
-          if (Array.isArray(castedResult)) {
-            result = { tags: castedResult }
-          }
-          break
-        }
         default: {
           // No action needed.
           break
