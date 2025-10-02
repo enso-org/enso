@@ -111,6 +111,8 @@ Multiple dispatch is also used on `from` conversions, because in expression
 > Here, because `Person` conforms to the `HasName` interface, the second `greet`
 > implementation is chosen because the constraints make it more specific.
 
+TODO: Remove this section?
+
 ## Resolving Clashes on `Any`
 
 Special attention must be paid to `Any` and its methods and extension methods.
@@ -173,11 +175,14 @@ primarily as a _container for module (static) methods_.
 - **argument** is an expression in a method invocation.
   - Arguments can be positional or named.
   - Named arguments are written as `name=expression`.
-- **static method invocation** is a method invocation with `self` named argument provided.
-  - Note that `self=expression` does not have to be specified as the first argument.
-  - But it is a good convention to do so.
-  - Note that with this requirement, we essentially define a special syntax for _static method invocation_.
-- **instance method invocation** is every method invocation that is not _static_.
+- **static method invocation** is a method invocation with `self` named argument
+  provided.
+  - Note that `self=expression` does not have to be specified as the first
+    argument, but is is a good convention to do so.
+  - Note that with this requirement, we essentially define a special syntax for
+    _static method invocation_.
+- **instance method invocation** is every method invocation that is not
+  _static_.
   - That is, it is a method call without `self` named argument provided.
 - **eigen type** of a type `My_Type` is a type of type, usually written as
   `My_Type.type`.
@@ -212,11 +217,24 @@ primarily as a _container for module (static) methods_.
 This section describes the _method invocation_ process, which resolves a
 concrete method definition for a concrete call site and evaluates it. For a
 method call expression `Receiver.symbol`, this section focuses only on a single
-dispatch based on `Receiver` argument. For multiple dispatch, see the
+dispatch based on the `Receiver` argument. For multiple dispatch, see the
 [Multiple Dispatch](#multiple-dispatch) section.
 
-Method resolution algorithm for `Receiver.symbol` first determines the _type_ of
-the `Receiver`, and then finds the method definition in its _symbol table_:
+This section is further divided into
+[Instance method invocation](#instance-method-invocation) and
+[Static method invocation](#static-method-invocation). Note the differences
+between these types of invocations:
+
+- Static method invocation has `self` named argument provided.
+- Instance method invocation provides `self` argument implicitly.
+
+### Instance method invocation
+
+Instance method invocation is any method invocation without `self` named
+argument specified (see terminology). Before a method is invoked, it needs to be
+_resolved_. Method resolution algorithm for the `Receiver.symbol` expression
+first determines the _type_ of the `Receiver`, and then finds the method
+definition in its _symbol table_:
 
 1. **Determine the type of `Receiver`:**
 
@@ -242,23 +260,37 @@ the `Receiver`, and then finds the method definition in its _symbol table_:
 
 - 2.1. Lookup the `symbol` in the Receiver's type and all its parent types.
 - 2.2. If it is found, continue to 3.
-- 2.3. If it is not found, continue to 4.
+- 2.3. If it is not found, raise `No_Such_Method` panic and stop.
 
-3. **Invoke the method with defaulted self**:
+3. **Invoke the method with defaulted self argument**:
 
 - 3.1. `symbol` is a method in Receiver's type (or its parent type) symbol
   table.
 - 3.2. Such method is treated as if it's first parameter is named `self` and has
-  the default value of `Receiver`.
-- 3.3. The call site can specify named `self` argument
+  the default value of `Receiver`. In other words, the method invocation is
+  equivalent to the `method self=Receiver` expression.
 
-4. **Static invocation without bound self**:
+### Static method invocation
 
-- 4.1. Method was not found on Receiver's type, or its parent type.
-- 4.2. Try to lookup the method on the `Receiver` itself
-- 4.3. If no method is found, raise `No_Such_Method` panic and stop.
-- 4.4. If a method is found, treat it as if it's first parameter is named `self`
-  and has no default value.
+Static method invocation is any method invocation with `self` named argument
+provided (see terminology). Let's consider the following static method
+invocation expression: `Receiver.symbol self=receiver`.
+
+4. **Resolve method on Receiver**:
+
+- 4.1. Lookup the `symbol` in `Receiver` (not its type!) and all its parent
+  types.
+  - Note that if `Receiver` is not a type itself, it has no symbol table, so no
+    method is found.
+- 4.2. If it is found, continue to 5.
+- 4.3. If it is not found, raise `No_Such_Method` panic and stop.
+
+5. **Invoke the method with the provided self argument**:
+
+- 5.1. Method was found on `Receiver` or its parent type.
+- 5.2. Treat the method as if it's first parameter is named `self` and has no
+  default value.
+- 5.3. Bind the `receiver` expression to `self` parameter.
 
 ### Lexical scope lookup
 
@@ -298,30 +330,35 @@ Evaluation of `My_Type.method obj 41`:
 
 - Receiver type is determined as `My_Type.type` (1.1)
 - There is no `method` in `My_Type.type` symbol table (2.3)
-- `method` is looked up in `My_Type` and found (4.4)
-- `method` is executed as `My_Type.method self=obj x=41` (4.4)
-- expression is evaluated to 42.
+- Raise `No_Such_Method` panic.
 
 ### Example (c)
 
-Evaluation of `Any.to_text obj`:
+Evaluation of `My_Type.method self=obj 41`:
 
-- Receiver type is determined as `Any` (1.2)
-- `to_text` is looked up in `Any` symbol table, and found (2.2)
-- `to_text` is executed as `Any.to_text self=Any obj` (3.2)
-- expression is evaluated to `"???" obj`, which results in
-  `Not_Invokable_Error`.
+- Lookup `method` on `My_Type` (4.1).
+- `My_Type.method` is found (4.2).
+- Execute method as `My_Type.method self=obj x=41` (5.2).
+- expression is evaluated to 42.
 
 ### Example (d)
 
-Evaluation of `Any.to_text self=obj`:
+Evaluation of `Any.to_text obj`:
 
-- Receiver type is determined as `Any` (1.2)
-- `to_text` is looked up in `Any` symbol table, and found (2.2)
-- `to_text` is executed as `Any.to_text self=obj` (3.2, 3.3).
-- expression is evaluated to `"???"`.
+- Receiver type is determined as `Any.type` (1.1)
+- There is no `Any.type.to_text` method (2.3)
+- Raise `No_Such_Method` panic.
 
 ### Example (e)
+
+Evaluation of `Any.to_text self=obj`:
+
+- Lookup `to_text` on `Any` (4.1).
+- `Any.to_text` is found (4.2).
+- Execute method as `Any.to_text self=obj` (5.2).
+- expression is evaluated to `"???"`.
+
+### Example (f)
 
 Evaluation of `My_Type.to_text`:
 

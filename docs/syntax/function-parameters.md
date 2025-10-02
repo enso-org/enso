@@ -34,8 +34,8 @@ familiar with.
 ## Named Parameters
 
 All parameters in Enso are defined with a name. Like all programming languages,
-this is necessary for that parameter to be used. However, what Enso allows is for
-users to then _call_ those parameters by name.
+this is necessary for that parameter to be used. However, what Enso allows is
+for users to then _call_ those parameters by name.
 
 - A parameter is called by name using the syntax `(name = value)` (or one may
   also take advantage of the operator precedence to write `name=value`).
@@ -53,14 +53,14 @@ remember the order or parameters.
 ## Defaulted Parameters
 
 Enso also allows users to define their functions with _defaults_ for the
-function's parameters. This is very useful for complex APIs as it allows users to
-experiment and iterate quickly by only providing the parameters that they want to
-customise.
+function's parameters. This is very useful for complex APIs as it allows users
+to experiment and iterate quickly by only providing the parameters that they
+want to customise.
 
 - A parameter is defined with a default using the syntax `(name = default_val)`,
   which, as above, accounts for precedence rules.
-- Parameter defaults are applied to the function if no argument value is provided
-  by position or name for that parameter.
+- Parameter defaults are applied to the function if no argument value is
+  provided by position or name for that parameter.
 - Parameter defaults are evaluated lazily if the function is lazy in that
   parameter.
 - We provide a `...` operator which suspends application of the default
@@ -141,13 +141,13 @@ above, Enso also provides a syntax for refining types at the application site.
 
 ## Underscore parameters
 
-Enso provides the `_` parameter as a quick way to create a lambda from a function
-call. It obeys the following rules.
+Enso provides the `_` parameter as a quick way to create a lambda from a
+function call. It obeys the following rules.
 
 - Replacing any function parameter with `_` will create a lambda that accepts an
   parameter and passes it in the place of the underscore. All other function
   parameters are applied as normal.
 - This works both by name and positionally.
-- When a function is provided multiple `_` parameters, they are desugared left to
-  right as the parameters would be applied to the function definition, creating
-  nested lambdas.
+- When a function is provided multiple `_` parameters, they are desugared left
+  to right as the parameters would be applied to the function definition,
+  creating nested lambdas.
