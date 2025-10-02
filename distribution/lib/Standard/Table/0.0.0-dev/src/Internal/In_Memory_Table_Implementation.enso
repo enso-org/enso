@@ -84,7 +84,6 @@ polyglot java import org.enso.table.data.table.join.conditions.Between as Java_J
 polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
-polyglot java import org.enso.table.data.table.Row as Java_Row
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.TableToXml as Java_TableToXml
 polyglot java import org.enso.table.error.NonUniqueLookupKey
@@ -127,7 +126,7 @@ type In_Memory_Table_Implementation
     get_row (this_table : Table & In_Memory_Table) index:Integer ~if_missing:Any =
         if index < -this_table.row_count || index >= this_table.row_count then if_missing else
             used_index = (if index < 0 then index + this_table.row_count else index)
-            Row.Value (Java_Row.new this_table.java_table used_index)
+            Row.Value (this_table.java_table.row used_index)
 
     first_value (this_table : Table & In_Memory_Table) = this_table.at 0 . at 0
 
@@ -212,7 +211,10 @@ type In_Memory_Table_Implementation
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by this_table.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
-            java_columns = columns_for_ordering.map c->(c.column:In_Memory_Column).java_column
+            java_storages = columns_for_ordering.map c->
+                raw_column = (c.column:In_Memory_Column).java_column
+                raw_column.getStorage
+
             directions = columns_for_ordering.map c->c.associated_selector.direction.to_sign
 
             comparator = case text_ordering.sort_digits_as_numbers of
@@ -225,7 +227,7 @@ type In_Memory_Table_Implementation
                     Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
 
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
-                this_table.java_table.orderBy java_columns directions comparator
+                this_table.java_table.orderBy this_table java_storages directions comparator
             from_java_table java_table
 
     order_by (this_table : Table & In_Memory_Table) (columns : Vector (Text | Sort_Column) | Text) text_ordering:Text_Ordering error_on_missing_columns:Boolean on_problems:Problem_Behavior =
@@ -452,7 +454,8 @@ type In_Memory_Table_Implementation
 
     columns (this_table : Table & In_Memory_Table) = Vector.from_polyglot_array <|
         Array_Proxy.new this_table.java_table.getColumns.length i->
-            In_Memory_Column.from_java_column (this_table.java_table.getColumns.at i)
+            java_column = this_table.java_table.getColumns.at i
+            In_Memory_Column.from_java_column java_column
 
     column_names (this_table : Table & In_Memory_Table) = Vector.from_polyglot_array <|
         Array_Proxy.new this_table.java_table.getColumns.length i->

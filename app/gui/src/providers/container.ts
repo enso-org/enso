@@ -103,6 +103,8 @@ export const [provideContainerData, useContainerData] = createContextStore(
     const launchedProjects = computed(() => localStorage.get('launchedProjects') ?? [])
 
     const openingProjects = reactive(new Map<ProjectId, EnsoPath>())
+    // Projects still in the process of shutting down. They cannot be opened right away.
+    const closingProjects = reactive(new Set<ProjectId>())
 
     const openedProjects = computed<OpenedProject[]>(() => {
       const launched = launchedProjects.value.map(
@@ -156,6 +158,7 @@ export const [provideContainerData, useContainerData] = createContextStore(
     return proxyRefs({
       openedProjects,
       openingProjects,
+      closingProjects,
       tab,
       addLaunchedProject,
       removeLaunchedProject,

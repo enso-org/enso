@@ -627,7 +627,7 @@
     },
     "@@rules_rust+//crate_universe:extension.bzl%crate": {
       "general": {
-        "bzlTransitiveDigest": "iScX6ov4kCOgOdkW30+XXu+rIIjeRLsm7WQCCYAQUUY=",
+        "bzlTransitiveDigest": "9mbSOxiaCwHkjwlQ5Vdc2iRKk/DupjAD/rzmTlhpqwQ=",
         "usagesDigest": "IQLYw1Zg2nmVhPZ5hVom2Hr1U7+l9X9ew1gzWiGuU6M=",
         "recordedFileInputs": {
           "@@//.cargo/config.toml": "df9e4a90d5b9270ab47b5153d8fb8a6a49f2adfc98672bf649f6be02f008b623",
@@ -8459,7 +8459,7 @@
     },
     "@@rules_scala+//scala/extensions:deps.bzl%scala_deps": {
       "general": {
-        "bzlTransitiveDigest": "qF/fCsRebDGfwyFnPkBMDW958VH8x4kbziaoy4H/zv8=",
+        "bzlTransitiveDigest": "Sc5E4RlGAL6RVASm5bFr/x5PCIhb9vV3f0lyBwWW1Mo=",
         "usagesDigest": "E7lroe2isETSB+l0XjaGFno4zpkMnJd36Lk8WOz1gEo=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},

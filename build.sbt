@@ -3927,9 +3927,6 @@ lazy val `engine-runner` = project
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
           `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-          `std-microsoft-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
           `std-snowflake-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
@@ -3938,7 +3935,15 @@ lazy val `engine-runner` = project
             .map(_.getAbsolutePath()) ++
           `std-saas-polyglot-root`
             .listFiles("*.jar")
-            .map(_.getAbsolutePath())
+            .map(_.getAbsolutePath()) ++ (if (
+                                            GraalVM.EnsoLauncher.disableMicrosoft
+                                          ) {
+                                            Seq()
+                                          } else {
+                                            `std-microsoft-polyglot-root`
+                                              .listFiles("*.jar")
+                                              .map(_.getAbsolutePath())
+                                          })
         }
       }
       core ++ stdLibsJars ++ extraNITestLibs.value
@@ -3964,10 +3969,15 @@ lazy val `engine-runner` = project
           "org.enso.microsoft.nativeimage.AzureNativeImageFeature"
         val databaseFeature =
           "org.enso.database.nativeimage.SqliteJdbcPatchedFeature"
-        val features = Seq(
+        var features = Seq(
           "org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature"
-        ) ++ (if (areStdlibsIncluded) Seq(databaseFeature, azureFeature)
-              else Seq())
+        )
+        if (areStdlibsIncluded) {
+          features = features ++ Seq(databaseFeature)
+          if (!GraalVM.EnsoLauncher.disableMicrosoft) {
+            features = features ++ Seq(azureFeature)
+          }
+        }
         // heapdump monitoring is not supported on Windows
         val enableHeapDumpOpts =
           if (!GraalVM.EnsoLauncher.release && !Platform.isWindows)
@@ -6227,7 +6237,7 @@ ThisBuild / shouldBuildNativeImage := {
 }
 
 ThisBuild / NativeImage.additionalOpts := {
-  if (GraalVM.EnsoLauncher.shell) {
+  if (!GraalVM.EnsoLauncher.native) {
     Seq()
   } else {
     var opts = if (GraalVM.EnsoLauncher.release) {

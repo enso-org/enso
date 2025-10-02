@@ -10,6 +10,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -49,6 +50,7 @@ public class OtherJvmObjectTest {
     CHANNEL
         .getConfig()
         .onEnterLeave(
+            FakeLanguage.class,
             (__) -> {
               ctx.context().enter();
               return null;
@@ -304,7 +306,7 @@ public class OtherJvmObjectTest {
     var otherClass = loadOtherJvmClass(OtherJvmObjectTest.class.getName());
     var other1 = ctx.unwrapValue(otherClass.invokeMember("otherJvmInstances", 1));
     assertTrue("it has language", iop.hasLanguage(other1));
-    assertEquals("OtherLanguage", iop.getLanguage(other1).getSimpleName());
+    assertEquals("FakeLanguage", iop.getLanguage(other1).getSimpleName());
   }
 
   @Test
@@ -575,4 +577,6 @@ public class OtherJvmObjectTest {
       return txt;
     }
   }
+
+  private abstract static class FakeLanguage extends TruffleLanguage<Object> {}
 }

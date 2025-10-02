@@ -224,6 +224,9 @@ following:
     image debugger_
   - using `native,-ls` disables support for _language server_ in the generated
     binary
+  - using `native,-ms` **opts-out** for `Standard.Microsoft` library being
+    compiled in the `enso` binary effectively executing it in
+    [dual JVM mode](https://github.com/enso-org/enso/pull/14037)
   - it is possible to combine all features - e.g. use `debug,fast,test,native`
 
 To test _native image_ launcher choose one of the `native` configurations and

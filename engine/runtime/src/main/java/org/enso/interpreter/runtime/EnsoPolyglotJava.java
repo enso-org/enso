@@ -79,7 +79,7 @@ final class EnsoPolyglotJava {
       var iop = InteropLibrary.getUncached();
       return obj != null
           && iop.hasLanguage(obj)
-          && iop.getLanguage(obj).getSimpleName().equals("OtherLanguage");
+          && iop.getLanguage(obj).getSimpleName().equals("EpbLanguage");
     } catch (UnsupportedMessageException ex) {
       return false;
     }

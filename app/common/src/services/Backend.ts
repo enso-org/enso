@@ -187,7 +187,6 @@ export type ProjectState =
   | 'HybridOpened'
   | 'Closed'
   | 'Placeholder'
-  | 'Closing'
 
 /** Wrapper around a project state value. */
 export interface ProjectStateType {
@@ -214,7 +213,6 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   HybridOpened: false,
   Closed: false,
   Placeholder: true,
-  Closing: false,
 }
 
 export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
@@ -228,7 +226,6 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   HybridOpened: true,
   Closed: false,
   Placeholder: true,
-  Closing: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */

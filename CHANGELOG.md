@@ -102,6 +102,7 @@
   on macOS: <kbd>⌘</kbd> + <kbd>W</kbd>.
 - [Improved Graph Editor's Top Bar responsiveness to width change.][13726]
 - [Changed animation of tabs highlight.][13726]
+- [Fixed hybrid project progress being lost in some circumstances][14066]
 - [Add rand, uuid, tomorrow, yesterday and randbetween][14071]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
@@ -133,6 +134,7 @@
 [13479]: https://github.com/enso-org/enso/pull/13479
 [13604]: https://github.com/enso-org/enso/pull/13604
 [13726]: https://github.com/enso-org/enso/pull/13726
+[14066]: https://github.com/enso-org/enso/pull/14066
 [14071]: https://github.com/enso-org/enso/pull/14071
 
 #### Enso Standard Library
