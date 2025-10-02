@@ -2,9 +2,11 @@ package org.enso.compiler.core.ir.module.scope.definition;
 
 import java.util.function.Function;
 import org.enso.compiler.core.ir.DefinitionArgument;
+import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IRKind;
 import org.enso.compiler.core.ir.IdentifiedLocation;
+import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.persist.Persistance;
@@ -65,8 +67,19 @@ public interface Method extends Definition {
         @IRChild Persistance.Reference<Expression> bodyReference,
         @IRField boolean isPrivate,
         @IRField boolean isStatic,
-        @IRField boolean isStaticWrapperForInstanceMethod) {
-      super(methodReference, bodyReference, isPrivate, isStatic, isStaticWrapperForInstanceMethod);
+        @IRField boolean isStaticWrapperForInstanceMethod,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData,
+        DiagnosticStorage diagnostics) {
+      super(
+          methodReference,
+          bodyReference,
+          isPrivate,
+          isStatic,
+          isStaticWrapperForInstanceMethod,
+          identifiedLocation,
+          passData,
+          diagnostics);
     }
 
     public static Builder builder() {
@@ -74,6 +87,10 @@ public interface Method extends Definition {
     }
 
     public Builder copyBuilder() {
+      if (methodReference().name().contains("Any.should_fail_with")) {
+        // TODO: FreamePointerAnalysis meta expected
+        var x = 1;
+      }
       return new Builder(this);
     }
 
@@ -130,8 +147,11 @@ public interface Method extends Definition {
         @IRChild Name.MethodReference methodReference,
         @IRChild List<DefinitionArgument> arguments,
         @IRChild Expression body,
-        @IRField boolean isPrivate) {
-      super(methodReference, arguments, body, isPrivate);
+        @IRField boolean isPrivate,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData,
+        DiagnosticStorage diagnostics) {
+      super(methodReference, arguments, body, isPrivate, identifiedLocation, passData, diagnostics);
     }
 
     public static Builder builder() {
@@ -168,8 +188,11 @@ public interface Method extends Definition {
     public Conversion(
         @IRChild Name.MethodReference methodReference,
         @IRChild Expression sourceTypeName,
-        @IRChild Expression body) {
-      super(methodReference, sourceTypeName, body);
+        @IRChild Expression body,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData,
+        DiagnosticStorage diagnostics) {
+      super(methodReference, sourceTypeName, body, identifiedLocation, passData, diagnostics);
     }
 
     public static Builder builder() {
