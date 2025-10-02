@@ -1,8 +1,8 @@
 import type Backend from '#/services/Backend'
 import type { HttpsUrl, UploadFileRequestParams } from '#/services/Backend'
-import { createContextStore } from '@/providers'
+import { createGlobalState } from '@vueuse/core'
 import { ConditionVariable } from 'enso-common/src/utilities/ConditionVariable'
-import { reactive } from 'vue'
+import { reactive, watchEffect } from 'vue'
 import { useBackends } from './backends'
 import { useFeatureFlag } from './featureFlags'
 
@@ -27,19 +27,25 @@ export function createUploadsToCloudStore(backend: Backend) {
   let chunksBeingUploaded = 0
   const chunkUploadCondVar = new ConditionVariable()
 
+  watchEffect(() => console.debug(uploads))
+
   async function uploadChunk(url: HttpsUrl, file: File, index: number, abort: AbortSignal) {
+    console.debug('CHUNK', index, 'waiting for pool')
     while (chunkUploadPoolSize.value > 0 && chunksBeingUploaded >= chunkUploadPoolSize.value) {
       await chunkUploadCondVar.wait()
       abort.throwIfAborted()
     }
+    console.debug('CHUNK', index, 'uploading')
     chunksBeingUploaded += 1
     return backend.uploadFileChunk(url, file, index, abort).finally(() => {
       chunksBeingUploaded -= 1
       chunkUploadCondVar.notifyOne()
+      console.debug('CHUNK', index, 'finished')
     })
   }
 
   async function uploadFile(file: File, params: UploadFileRequestParams, kind?: UploadKind) {
+    console.debug('Start upload')
     const abortController = new AbortController()
     const { sourcePath, uploadId, presignedUrls } = await backend.uploadFileStart(
       params,
@@ -47,6 +53,7 @@ export function createUploadsToCloudStore(backend: Backend) {
       abortController.signal,
     )
 
+    console.debug('Upload started', presignedUrls)
     const data: OngoingUpload = reactive({
       kind,
       sentBytes: 0,
@@ -64,6 +71,7 @@ export function createUploadsToCloudStore(backend: Backend) {
         }),
       ),
     )
+    console.debug('Parts uploaded')
     const result = await backend.uploadFileEnd(
       {
         parentDirectoryId: params.parentDirectoryId,
@@ -75,8 +83,10 @@ export function createUploadsToCloudStore(backend: Backend) {
       },
       abortController.signal,
     )
+    console.debug('Finished')
     data.finished = true
     setTimeout(() => {
+      console.debug('cleared')
       uploads.delete(uploadId)
     }, CLEAR_PROGRESS_DELAY_MS)
     return result
@@ -85,10 +95,7 @@ export function createUploadsToCloudStore(backend: Backend) {
   return { uploads, uploadFile }
 }
 
-export const [provideUploadsToCloudStore, useUploadsToCloudStore] = createContextStore(
-  'uploadFiles',
-  () => {
-    const { remoteBackend } = useBackends()
-    return createUploadsToCloudStore(remoteBackend)
-  },
-)
+export const useUploadsToCloudStore = createGlobalState(() => {
+  const { remoteBackend } = useBackends()
+  return createUploadsToCloudStore(remoteBackend)
+})

@@ -896,7 +896,7 @@ export default class RemoteBackend extends Backend {
     const start = index * backend.S3_CHUNK_SIZE_BYTES
     const end = Math.min(start + backend.S3_CHUNK_SIZE_BYTES, file.size)
     const body = file.slice(start, end)
-    const response = await this.postBinary(url, body, { abort })
+    const response = await fetch(url, { method: 'PUT', body, ...(abort ? { signal: abort } : {}) })
     const eTag = response.headers.get('ETag')
     if (!response.ok || eTag == null) {
       return await this.throw(response, 'uploadFileChunkBackendError')

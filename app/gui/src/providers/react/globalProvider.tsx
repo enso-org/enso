@@ -16,16 +16,16 @@ import { AuthContext } from '$/providers/react/auth'
 import { BackendsContext } from '$/providers/react/backends'
 import { QueryParamsContext } from '$/providers/react/queryParams'
 import { RouterContext, type RouterForReact } from '$/providers/react/router'
+import { UploadsToCloudStoreContext } from '$/providers/react/upload'
 import { useSession, type SessionStore } from '$/providers/session'
 import { useText, type TextStore } from '$/providers/text'
-import type { UploadsToCloudStore } from '$/providers/upload'
+import { useUploadsToCloudStore, type UploadsToCloudStore } from '$/providers/upload'
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { reactComponent } from '@/util/react'
 import { proxyRefs } from '@/util/reactivity'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as react from 'react'
 import { useRoute, useRouter } from 'vue-router'
-import { UploadsToCloudStoreContext } from './upload'
 
 interface ContextsForReactProviderProps {
   router: RouterForReact
@@ -107,6 +107,7 @@ export const ContextsForReactProvider = reactComponent(
         auth: useAuth(),
         queryParams: useQueryParams(),
         actionsStore: useActionsStore(),
+        uploadsToCloudStore: useUploadsToCloudStore(),
       })
       // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
       // avoids the code path that assigns that property to overwrite a computed value with constant.

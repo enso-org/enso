@@ -54,7 +54,8 @@ export class HttpClient {
       url,
       payload: JSON.stringify(payload),
       mimetype: 'application/json',
-      ...options,
+      keepalive: options?.keepalive ?? false,
+      abort: options?.abort,
     })
   }
 
@@ -65,7 +66,8 @@ export class HttpClient {
       url,
       payload,
       mimetype: 'application/octet-stream',
-      ...options,
+      keepalive: options?.keepalive ?? false,
+      abort: options?.abort,
     })
   }
 
