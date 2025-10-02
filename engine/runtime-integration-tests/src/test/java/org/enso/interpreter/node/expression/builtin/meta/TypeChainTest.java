@@ -17,11 +17,13 @@ public class TypeChainTest {
 
   @BeforeClass
   public static void initTypeOf() {
-    typeOf = ctx.evalModule("""
-  import Standard.Base.Meta
+    typeOf =
+        ctx.evalModule(
+            """
+            import Standard.Base.Meta
 
-  main = Meta.type_of
-  """);
+            main = Meta.type_of
+            """);
   }
 
   @Test
@@ -57,7 +59,8 @@ public class TypeChainTest {
 
   @Test
   public void textModuleChain() {
-    var code = """
+    var code =
+        """
         import Standard.Base.Data.Text
         main = Text
         """;
