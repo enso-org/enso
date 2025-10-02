@@ -132,6 +132,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const disabledTooltip = isUnconditionallyDisabled ? getText('downloadToOpenWorkflow') : null
   const anotherProjectOpeningTooltip =
     isAnotherProjectOpening ? getText('anotherProjectIsBeingOpenedError') : null
+  const closingProjectTooltip = isProjectClosing ? getText('syncingProjectFiles') : null
 
   const spinnerState = ((): SpinnerState => {
     if (!isOpened) {
@@ -157,7 +158,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
   })
 
   const getTooltip = (defaultTooltip: string) =>
-    disabledTooltip ?? userOpeningProjectTooltip ?? anotherProjectOpeningTooltip ?? defaultTooltip
+    disabledTooltip ??
+    userOpeningProjectTooltip ??
+    anotherProjectOpeningTooltip ??
+    closingProjectTooltip ??
+    defaultTooltip
 
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (true) {
