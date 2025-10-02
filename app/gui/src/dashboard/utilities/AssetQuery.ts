@@ -79,7 +79,7 @@ export default class AssetQuery {
     modifieds: readonly string[],
     owners: readonly string[],
   ) {
-    this.query = query ?? ''
+    this.query = query ?? this.toString()
     this.keywords = keywords
     this.names = names
     this.labels = labels
@@ -88,9 +88,6 @@ export default class AssetQuery {
     this.descriptions = descriptions
     this.modifieds = modifieds
     this.owners = owners
-    if (query == null) {
-      this.query = this.toString()
-    }
   }
 
   /** Return a list of {@link AssetQueryTerm}s found in the raw user input string. */

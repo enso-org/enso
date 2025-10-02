@@ -7,8 +7,8 @@ import { Range } from 'ydoc-shared/util/data/range'
 /** Supports building a transaction editing a particular Markdown document state. */
 export class MarkdownEdit extends MarkdownDocument {
   readonly changes: ChangeSpec[] = []
-  adjustedSelection: Range = Range.empty
-  selection: Range = Range.empty
+  selection: Range
+  adjustedSelection: Range
 
   /** Constructor. */
   constructor(text: Text, tree: Tree, selection: Range = Range.empty) {

@@ -204,31 +204,31 @@ export interface ProjectStateType {
 }
 
 export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
-  ['Created']: false,
-  ['New']: false,
-  ['Scheduled']: true,
-  ['OpenInProgress']: true,
-  ['Provisioned']: true,
-  ['Opened']: false,
-  ['HybridOpenInProgress']: true,
-  ['HybridOpened']: false,
-  ['Closed']: false,
-  ['Placeholder']: true,
-  ['Closing']: false,
+  Created: false,
+  New: false,
+  Scheduled: true,
+  OpenInProgress: true,
+  Provisioned: true,
+  Opened: false,
+  HybridOpenInProgress: true,
+  HybridOpened: false,
+  Closed: false,
+  Placeholder: true,
+  Closing: false,
 }
 
 export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
-  ['Created']: false,
-  ['New']: false,
-  ['Scheduled']: true,
-  ['OpenInProgress']: true,
-  ['Provisioned']: true,
-  ['HybridOpenInProgress']: true,
-  ['Opened']: true,
-  ['HybridOpened']: true,
-  ['Closed']: false,
-  ['Placeholder']: true,
-  ['Closing']: false,
+  Created: false,
+  New: false,
+  Scheduled: true,
+  OpenInProgress: true,
+  Provisioned: true,
+  HybridOpenInProgress: true,
+  Opened: true,
+  HybridOpened: true,
+  Closed: false,
+  Placeholder: true,
+  Closing: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
@@ -1486,10 +1486,12 @@ export function getAssetTypeFromId(id: AssetId) {
   return id.match(/^(.+?)-/)?.[1] as AssetType
 }
 
+export type AnyComparableAsset = Pick<AnyRealAsset, 'type' | 'modifiedAt' | 'title'>
+
 /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
 export function compareAssets(
-  a: AnyAsset,
-  b: AnyAsset,
+  a: AnyComparableAsset,
+  b: AnyComparableAsset,
   sortExpression?: AssetSortExpression | null,
   sortDirection?: AssetSortDirection | null,
 ) {

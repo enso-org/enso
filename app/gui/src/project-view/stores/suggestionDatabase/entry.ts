@@ -143,7 +143,7 @@ export type SuggestionEntry =
 
 /**
  * A type that can be called. This includes every suggestion kind that takes arguments, except
- * {@link 'Type'}.
+ * `Type`.
  */
 export type CallableSuggestionEntry =
   | MethodSuggestionEntry

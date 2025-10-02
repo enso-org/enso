@@ -38,9 +38,9 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
-export const DIRECTORY_ID_PREFIX = `${'directory'}-`
-export const PROJECT_ID_PREFIX = `${'project'}-`
-export const FILE_ID_PREFIX = `${'file'}-`
+export const DIRECTORY_ID_PREFIX = 'directory-'
+export const PROJECT_ID_PREFIX = 'project-'
+export const FILE_ID_PREFIX = 'file-'
 
 /** Create a {@link backend.DirectoryId} from a path. */
 export function newDirectoryId(path: projectManager.Path) {

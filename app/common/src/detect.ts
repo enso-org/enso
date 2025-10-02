@@ -13,13 +13,13 @@ export const IS_DEV_MODE = process.env.NODE_ENV === 'development'
 
 /** Possible platforms that the app may run on. */
 export type Platform =
-  | 'Unknown platform'
-  | 'Windows'
-  | 'macOS'
-  | 'Linux'
-  | 'Windows Phone'
-  | 'iPhone OS'
-  | 'Android'
+  | 'unknown'
+  | 'windows'
+  | 'macos'
+  | 'linux'
+  | 'windows-phone'
+  | 'iphone-os'
+  | 'android'
 
 /**
  * The platform the app is currently running on.
@@ -28,21 +28,21 @@ export type Platform =
 export function platform(): Platform {
   if (isOnWindowsPhone()) {
     // MUST be before Android and Windows.
-    return 'Windows Phone'
+    return 'windows-phone'
   } else if (isOnWindows()) {
-    return 'Windows'
+    return 'windows'
   } else if (isOnIPhoneOS()) {
     // MUST be before macOS.
-    return 'iPhone OS'
+    return 'iphone-os'
   } else if (isOnMacOS()) {
-    return 'macOS'
+    return 'macos'
   } else if (isOnAndroid()) {
     // MUST be before Linux.
-    return 'Android'
+    return 'android'
   } else if (isOnLinux()) {
-    return 'Linux'
+    return 'linux'
   } else {
-    return 'Unknown platform'
+    return 'unknown'
   }
 }
 
@@ -78,7 +78,7 @@ export function isOnAndroid() {
 
 /** Whether the device is running an unknown OS. */
 export function isOnUnknownOS() {
-  return platform() === 'Unknown platform'
+  return platform() === 'unknown'
 }
 
 // ===============
@@ -86,14 +86,7 @@ export function isOnUnknownOS() {
 // ===============
 
 /** Possible browsers that the app may run on. */
-export type Browser =
-  | 'Unknown browser'
-  | 'Electron'
-  | 'Chrome'
-  | 'Edge'
-  | 'Firefox'
-  | 'Safari'
-  | 'Opera'
+export type Browser = 'unknown' | 'electron' | 'chrome' | 'edge' | 'firefox' | 'safari' | 'opera'
 
 /**
  * Return the platform the app is currently running on.
@@ -101,21 +94,21 @@ export type Browser =
  */
 export function browser(): Browser {
   if (isOnElectron()) {
-    return 'Electron'
+    return 'electron'
     // This MUST be above Chrome as it is Chromium-based.
   } else if (isOnEdge()) {
-    return 'Opera'
+    return 'edge'
     // This MUST be above Chrome as it is Chromium-based.
   } else if (isOnOpera()) {
-    return 'Edge'
+    return 'opera'
   } else if (isOnChrome()) {
-    return 'Chrome'
+    return 'chrome'
   } else if (isOnFirefox()) {
-    return 'Firefox'
+    return 'firefox'
   } else if (isOnSafari()) {
-    return 'Safari'
+    return 'safari'
   } else {
-    return 'Unknown browser'
+    return 'unknown'
   }
 }
 /**
@@ -155,7 +148,7 @@ export function isOnSafari() {
 
 /** Whether the current browser is not a recognized browser. */
 export function isOnUnknownBrowser() {
-  return browser() === 'Unknown browser'
+  return browser() === 'unknown'
 }
 
 // ====================
@@ -181,30 +174,30 @@ if (typeof navigator !== 'undefined' && 'userAgentData' in navigator) {
 }
 
 /** Possible processor architectures. */
-export type Architecture = 'x86_64' | 'arm64'
+export type Architecture = 'x86-64' | 'arm64'
 
 /** The processor architecture of the current system. */
-export function architecture() {
+export function architecture(): Architecture {
   if (detectedArchitecture != null) {
     switch (detectedArchitecture) {
       case 'arm': {
         return 'arm64'
       }
       default: {
-        return 'x86_64'
+        return 'x86-64'
       }
     }
   }
   switch (platform()) {
-    case 'Windows':
-    case 'Linux':
-    case 'Unknown platform': {
-      return 'x86_64'
+    case 'windows':
+    case 'linux':
+    case 'unknown': {
+      return 'x86-64'
     }
-    case 'macOS':
-    case 'iPhone OS':
-    case 'Android':
-    case 'Windows Phone': {
+    case 'macos':
+    case 'iphone-os':
+    case 'android':
+    case 'windows-phone': {
       // Assume the macOS device is on a M-series CPU.
       // This is highly unreliable, but operates under the assumption that all
       // new macOS devices will be ARM64.
@@ -215,7 +208,7 @@ export function architecture() {
 
 /** Whether the device has an Intel 64-bit CPU. */
 export function isIntel64() {
-  return architecture() === 'x86_64'
+  return architecture() === 'x86-64'
 }
 
 /** Whether the device has an ARM 64-bit CPU. */

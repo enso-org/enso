@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@fast-check/vitest": "catalog:",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   }
 }

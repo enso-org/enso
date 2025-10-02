@@ -14,7 +14,7 @@ export class YRange {
     this.yhead = yhead
   }
 
-  /** Convert this YRange to a plan JSON object. */
+  /** Convert this YRange to a plain JSON object. */
   toJSON() {
     return {
       yanchor: Y.relativePositionToJSON(this.yanchor),
@@ -22,7 +22,7 @@ export class YRange {
     }
   }
 
-  /** Convert a plan JSON object to a YRange. */
+  /** Convert a plain JSON object to a YRange. */
   static fromJSON(json: { yanchor: unknown; yhead: unknown }) {
     return new YRange(
       Y.createRelativePositionFromJSON(json.yanchor),

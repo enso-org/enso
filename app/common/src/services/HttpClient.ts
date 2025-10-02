@@ -30,7 +30,7 @@ export interface HttpClientRequestOptions<Method extends HttpMethod> {
 
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
 export class HttpClient {
-  defaultHeaders: Record<string, string> = {}
+  defaultHeaders: Record<string, string>
 
   /** Create a new HTTP client with the specified headers to be sent on every request. */
   constructor(

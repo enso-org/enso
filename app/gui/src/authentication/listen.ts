@@ -6,6 +6,7 @@
  * that the login screen is rendered.
  */
 import { includesPredicate } from '#/utilities/array'
+import { unsafeValues } from '#/utilities/object'
 import * as amplify from '@aws-amplify/core'
 
 /** Name of the string identifying the "hub" that AWS Amplify issues authentication events on. */
@@ -17,11 +18,20 @@ const AUTHENTICATION_HUB = 'auth'
  * These are issues by AWS Amplify when it detects a change in authentication state. For example,
  * when the user signs in or signs out by accessing a page like `enso://auth?code=...&state=...`.
  */
-export type AuthEvent = (typeof AUTH_EVENTS)[number]
-export const AUTH_EVENTS = ['customOAuthState', 'cognitoHostedUI', 'signIn', 'signOut'] as const
+export type AuthEvent = (typeof AuthEvent)[keyof typeof AuthEvent]
+export const AuthEvent = {
+  /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
+  customOAuthState: 'customOAuthState',
+  /** Issued when the user completes the sign-in process (via federated identity provider). */
+  cognitoHostedUi: 'cognitoHostedUI',
+  /** Issued when the user completes the sign-in process (via email/password). */
+  signIn: 'signIn',
+  /** Issued when the user signs out. */
+  signOut: 'signOut',
+} as const
 
 /** Return `true` if the given `string` is an {@link AuthEvent}. */
-const isAuthEvent = includesPredicate(AUTH_EVENTS)
+const isAuthEvent = includesPredicate(unsafeValues(AuthEvent))
 
 /**
  * Callback called in response to authentication state changes.
