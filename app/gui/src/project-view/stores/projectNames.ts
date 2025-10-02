@@ -46,6 +46,7 @@ export function createProjectNameStore({
   function parseProjectPath(path: QualifiedName): Result<ProjectPath> {
     const parsed = parseAbsoluteProjectPath(path)
     if (!parsed.ok) return parsed
+    console.log('parseProjectPath', parsed.value.project, inboundProject.value)
     return parsed.value.project === inboundProject.value ?
         Ok(ProjectPath.create(undefined, parsed.value.path))
       : parsed

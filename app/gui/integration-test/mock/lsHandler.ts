@@ -488,7 +488,7 @@ function makeVizUpdate(
 export const mockLSHandler = async (
   method: string,
   params: object,
-  sendMessage: (message: { method: string; result: object }) => void,
+  sendMessage: (message: { method: string; params: object }) => void,
   sendBinary: (data?: ArrayBuffer) => void,
 ) => {
   switch (method) {
@@ -504,11 +504,11 @@ export const mockLSHandler = async (
         () =>
           sendMessage({
             method: 'executionContext/executionComplete',
-            result: { contextId: data_.contextId },
+            params: { contextId: data_.contextId },
           }),
         100,
       )
-      return
+      return { contextId: data_.contextId }
     }
     case 'executionContext/attachVisualization': {
       const data_ = params as {
@@ -574,6 +574,12 @@ export const mockLSHandler = async (
       }
       return
     }
+    case 'executionContext/push':
+    case 'executionContext/pop':
+    case 'executionContext/recompute':
+    case 'executionContext/setExecutionEnvironment': {
+      return {}
+    }
     case 'search/getSuggestionsDatabase':
       return {
         entries: mockDb.map((suggestion, id) => ({
@@ -584,10 +590,6 @@ export const mockLSHandler = async (
       } satisfies response.GetSuggestionsDatabase
     case 'runtime/getComponentGroups':
       return { componentGroups: placeholderGroups() } satisfies response.GetComponentGroups
-    case 'executionContext/push':
-    case 'executionContext/pop':
-    case 'executionContext/recompute':
-    case 'executionContext/setExecutionEnvironment':
     case 'capability/acquire':
       return {}
     case 'file/list': {

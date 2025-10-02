@@ -34,6 +34,7 @@ export interface EditorProps {
 
 /** The container that launches the IDE. */
 export default function Editor(props: EditorProps) {
+  console.log('Editor', props)
   return (
     <ErrorBoundary>
       <EditorContents {...props} />
@@ -43,6 +44,7 @@ export default function Editor(props: EditorProps) {
 
 /** The container that launches the IDE. */
 function EditorContents(props: EditorProps) {
+  console.log('EditorContents', props)
   const { project, onReadyUpdate, onNameUpdate } = props
   const preventAutoReopen =
     project.type !== backendModule.BackendType.local || project.hybrid != null
@@ -93,6 +95,8 @@ function EditorContents(props: EditorProps) {
 
   const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
 
+  console.log('isProjectOpened', isProjectOpened)
+
   const stableOnReadyUpdate = useEventCallback((value: boolean) => onReadyUpdate?.(value))
   const stableOnNameUpdate = useEventCallback((value: string) => onNameUpdate?.(value))
 
@@ -130,6 +134,7 @@ function EditorContents(props: EditorProps) {
   }, [stableOnNameUpdate, name])
 
   React.useEffect(() => {
+    console.log('stableOnReadyUpdate isProjectOpened', isProjectOpened)
     stableOnReadyUpdate(isProjectOpened)
   }, [stableOnReadyUpdate, isProjectOpened])
 
@@ -254,6 +259,7 @@ function EditorInternal(props: EditorInternalProps) {
   invariant(jsonAddress != null, getText('noJSONEndpointError'))
   invariant(binaryAddress != null, getText('noBinaryEndpointError'))
 
+  console.log('openedProject', JSON.stringify(openedProject))
   const appProps: ProjectViewTabProps = {
     hidden,
     projectViewProps: {

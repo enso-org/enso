@@ -1,5 +1,5 @@
-import assert from 'assert'
 import { expect, type Locator, type Page } from 'integration-test/base'
+import assert from 'node:assert'
 
 // ================
 // === Locators ===

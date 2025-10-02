@@ -7,7 +7,6 @@ import {
 } from '#/services/RemoteBackend/ids'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import type { FeatureFlags } from '$/providers/featureFlags'
 import * as paths from 'enso-common/src/services/Backend/remoteBackendPaths'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import * as uniqueString from 'enso-common/src/utilities/uniqueString'
@@ -788,6 +787,7 @@ export async function mockCloudApi(page: Page) {
       const projectId = backend.ProjectId(maybeId)
       called('getProjectDetails', { projectId, presigned })
       const project = assetMap.get(projectId)
+      console.log('getProjectDetailsPath', params, project)
 
       if (!project) {
         throw new Error(`Cannot get details for a project that does not exist. Project ID: ${projectId} \n
@@ -1472,19 +1472,6 @@ export async function mockCloudApi(page: Page) {
     deleteUserGroup,
     createUserPermission,
     createUserGroupPermission,
-    setFeatureFlags: (flags: Partial<FeatureFlags>) => {
-      return page.addInitScript((flags) => {
-        if ('overrideFeatureFlags' in window) {
-          Object.assign(window.overrideFeatureFlags, flags)
-        } else {
-          Object.defineProperty(window, 'overrideFeatureFlags', {
-            value: flags,
-            writable: false,
-            configurable: false,
-          })
-        }
-      }, flags)
-    },
     // TODO:
     // addPermission,
     // deletePermission,
@@ -1492,13 +1479,6 @@ export async function mockCloudApi(page: Page) {
     removeUserGroupFromUser,
     trackCalls,
   } as const
-
-  await api.setFeatureFlags({
-    enableLocalBackend: true,
-    enableCloudExecution: true,
-    enableAdvancedProjectExecutionOptions: true,
-    enableAssetsTableBackgroundRefresh: false,
-  })
 
   return api
 }

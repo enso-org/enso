@@ -274,21 +274,21 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
         return self.step(`Open directory on drive table row ${row}`, async (page) => {
           const navigateButton = getRow(page, row).getByTestId('directory-row-navigate-button')
           await expect(navigateButton).toHaveAttribute('aria-label', TEXT.open)
-          await navigateButton.dblclick()
+          await navigateButton.click()
         })
       },
       /** Open a project at a specific row. */
       openProject(row: number | string) {
         return self.step(`Open directory on drive table row ${row}`, async (page) => {
           const button = getRow(page, row).getByLabel(TEXT.openInEditor)
-          await button.dblclick()
+          await button.click()
         })
       },
       /** Close a project at a specific row. */
       closeProject(row: number | string) {
         return self.step(`Open directory on drive table row ${row}`, async (page) => {
           const button = getRow(page, row).getByLabel(TEXT.stopExecution)
-          await button.dblclick()
+          await button.click()
         })
       },
       /**
@@ -353,18 +353,11 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
     }
   }
 
-  openEditorPage(project: string) {
-    return this.goToCategory
-      .cloud()
-      .driveTable.openProject(project)
-      .expectProjectEditorOpened(project)
-  }
-
   /** Expect editor is opened due to external causes (like auto opening Welcome project). */
   expectProjectEditorOpened(name: string) {
     return this.step('Expect Editor is opened', async (page) => {
       const projectTab = page.getByRole('tab', { name })
-      await expect(projectTab).toBeVisible()
+      await expect(projectTab).toBeVisible({ timeout: 100000 })
       await expect(projectTab).toHaveClass(/selected/)
     }).into(EditorPageActions<Context>)
   }

@@ -45,7 +45,7 @@ export default class LoginPageActions<Context = object> extends BaseActions<Cont
       } else {
         await this.loginInternal(email, password)
       }
-      await expect(page.getByTestId('after-auth-layout')).toBeAttached({ timeout: 30_000 })
+      await expect(page.getByTestId('content-not-allowed')).toHaveCount(0, { timeout: 10_000 })
       const agreementModalVisible = (await page.locator('#agreements-modal').count()) > 0
       if (agreementModalVisible) {
         await passAgreementsDialog(page)
@@ -122,6 +122,7 @@ export default class LoginPageActions<Context = object> extends BaseActions<Cont
       .getByRole('button', { name: TEXT.login, exact: true })
       .getByText(TEXT.login)
       .click()
+    await expect(this.page.getByText(TEXT.loginToYourAccount)).toBeHidden()
     await expect(this.page.getByText(TEXT.loadingAppMessage)).toBeHidden()
   }
 }

@@ -79,6 +79,18 @@ function closeOpenedProject(project: OpenedProject) {
 }
 
 watch(openedProjects, (openedProjectsList) => {
+  console.log(
+    'openedProjectsList',
+    openedProjectsList,
+    JSON.stringify(
+      openedProjectsList.map((p) => ({
+        id: p.id,
+        ensoPath: p.ensoPath,
+        shown: p.shown.value,
+        state: p.state,
+      })),
+    ),
+  )
   const openedProjectsSet = new Set(openedProjectsList.map((proj) => proj.id))
   for (const proj of readyProjects) {
     if (!openedProjectsSet.has(proj)) {

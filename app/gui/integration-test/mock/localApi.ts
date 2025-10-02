@@ -19,6 +19,7 @@ import {
 } from '#/services/ProjectManager/types'
 import { unsafeMutable } from '#/utilities/object'
 import { getDirectoryAndName } from '#/utilities/path'
+import { capitalizeFirst } from '#/utilities/string'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { test } from 'integration-test/base'
@@ -36,9 +37,9 @@ const ROOT_PARENT_PATH = Path('/home/user/enso')
 const ROOT_PATH = Path('/home/user/enso/enso-projects')
 const DOWNLOAD_PATH = Path('/home/user/enso/Downloads')
 
-const languageServerJsonAddress = { host: 'localhost', port: 1235 }
-const languageServerBinaryAddress = { host: 'localhost', port: 1234 }
-const languageServerYdocAddress = { host: 'mock', port: 1233 }
+const languageServerJsonAddress = { host: '127.0.0.1', port: 1235 }
+const languageServerBinaryAddress = { host: '127.0.0.1', port: 1234 }
+const languageServerYdocAddress = { host: '127.0.0.1', port: 1233 }
 
 const INITIAL_CALLS_OBJECT = {
   getRootDirectory: array<object>(),
@@ -149,7 +150,7 @@ export async function mockLocalApi(page: Page) {
     return { type: 'DirectoryEntry', entry, children: [] }
   }
 
-  const addEntry = (path: Path, entry: FileSystemEntryWithData) => {
+  const addEntry = <E extends FileSystemEntryWithData>(path: Path, entry: E) => {
     fileSystem.set(path, entry)
     const { directoryPath } = getDirectoryAndName(path)
     const parentEntry = fileSystem.get(directoryPath)
@@ -195,36 +196,35 @@ export async function mockLocalApi(page: Page) {
   }
 
   type ProjectEntryOptions = {
-    path: Path
+    path?: Path
     metadata: ProjectMetadata
     attributes?: Partial<Attributes>
   }
 
-  const createProjectEntry = ({
-    path,
-    metadata,
-    attributes,
-  }: ProjectEntryOptions): ProjectEntry => ({
-    type: 'ProjectEntry',
-    path,
-    metadata,
-    attributes: createAttributes(attributes),
-  })
-
   const createProject = (options: ProjectEntryOptions): ProjectEntryWithData => {
-    const entry = createProjectEntry(options)
+    const normalizedName = options.metadata.name
+      .split(' ')
+      .filter((n) => n.length)
+      .map((part) => capitalizeFirst(part))
+      .join('_')
     return {
       type: 'ProjectEntry',
-      entry,
+      entry: {
+        type: 'ProjectEntry',
+        path: options.path ?? Path(`${ROOT_PATH}/${normalizedName}`),
+        metadata: options.metadata,
+        attributes: createAttributes(options.attributes),
+      },
       metadata: {
-        projectName: ProjectName(entry.metadata.name),
-        projectNormalizedName: entry.metadata.name,
+        projectName: ProjectName(options.metadata.name),
+        projectNormalizedName: normalizedName,
       },
     }
   }
 
   const addProject = (options: ProjectEntryOptions) => {
-    addEntry(options.path, createProject(options))
+    const project = createProject(options)
+    return addEntry(project.entry.path, project)
   }
 
   type FileEntryOptions = {
@@ -277,24 +277,20 @@ export async function mockLocalApi(page: Page) {
           case 'project/create': {
             const params = message.params
             called('createProject', params)
-            const parentPath = params.projectsDirectory ?? ROOT_PATH
-            const path = Path(`${parentPath}/${params.name}`)
-            const id = UUID(uuidv4())
-            const metadata: ProjectEntryWithData['metadata'] = {
-              projectName: params.name,
-              projectNormalizedName: params.name,
-            }
-            const result: CreateProject = { projectId: id, projectPath: path, ...metadata }
-            addProject({
-              path,
+            const project = addProject({
               metadata: {
-                id,
-                name: metadata.projectName,
+                id: UUID(uuidv4()),
+                name: params.name,
                 namespace: 'local',
                 created: toRfc3339(new Date()),
               },
             })
-            response = toJSONRPCResult(result)
+            response = toJSONRPCResult({
+              projectId: project.entry.metadata.id,
+              projectPath: project.entry.path,
+              projectName: project.metadata.projectName,
+              projectNormalizedName: project.metadata.projectNormalizedName,
+            } satisfies CreateProject)
             break
           }
           case 'project/open': {
@@ -319,7 +315,8 @@ export async function mockLocalApi(page: Page) {
               languageServerJsonAddress,
               languageServerYdocAddress,
               projectNamespace: 'local',
-              ...project.metadata,
+              projectName: project.metadata.projectName,
+              projectNormalizedName: project.metadata.projectNormalizedName,
             }
             openProjects.set(params.projectId, {
               state: backend.ProjectState.opened,
@@ -352,7 +349,9 @@ export async function mockLocalApi(page: Page) {
         languageServerBinaryWs = ws
         ws.onMessage(async (messageRaw) => {
           const response = await mockDataHandler(new Uint8Array(Buffer.from(messageRaw)).buffer)
-          if (response) ws.send(Buffer.from(response))
+          if (response) {
+            ws.send(Buffer.from(response))
+          }
         })
       },
     )
@@ -361,16 +360,20 @@ export async function mockLocalApi(page: Page) {
       (ws) => {
         ws.onMessage(async (messageRaw) => {
           const { method, params, jsonrpc, id } = JSON.parse(messageRaw.toString())
-          const response =
-            (await mockLSHandler(
-              method,
-              params,
-              (message) => ws.send(JSON.stringify({ jsonrpc, ...message })),
-              (binaryData?: ArrayBuffer) => {
-                if (binaryData) languageServerBinaryWs?.send(Buffer.from(binaryData))
-              },
-            )) ?? null
-          ws.send(JSON.stringify({ jsonrpc, id, result: response }))
+          try {
+            const result =
+              (await mockLSHandler(
+                method,
+                params,
+                (message) => ws.send(JSON.stringify({ jsonrpc, ...message })),
+                (binaryData?: ArrayBuffer) => {
+                  if (binaryData) languageServerBinaryWs?.send(Buffer.from(binaryData))
+                },
+              )) ?? null
+            ws.send(JSON.stringify({ jsonrpc, id, result }))
+          } catch (error) {
+            ws.send(JSON.stringify({ jsonrpc, id, error }))
+          }
         })
       },
     )

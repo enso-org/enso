@@ -154,6 +154,7 @@ export class ComputedValueRegistry {
   processUpdates(updates: ExpressionUpdate[]) {
     for (const update of updates) {
       const info = this.db.get(update.expressionId)
+      console.log('processUpdates', update.expressionId, info)
       if (info) {
         updateInfo(info, update, this.projectNames)
       } else {

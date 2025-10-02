@@ -54,6 +54,7 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
     )
 
     function registerProject(props: ToRefs<ProjectProps>) {
+      console.log('registerProject', props)
       const { projectId, projectDisplayedName, projectNamespace } = props
       assert(!projects.has(toValue(projectId)), 'Registering already registered project')
       const storesScope = effectScope()

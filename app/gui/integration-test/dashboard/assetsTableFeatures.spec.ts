@@ -1,6 +1,7 @@
 /** @file Test the drive view. */
 import { EmailAddress, ProjectState } from '#/services/Backend'
 import { expect, test, type Page } from 'integration-test/base'
+import { describe } from 'node:test'
 import { getText, TEXT } from '../actions'
 
 /** Find an extra columns button panel. */
@@ -92,15 +93,19 @@ test('can navigate to parent directory of an asset in the Trash category', async
     .expectCategory(TEXT.cloudCategory)
 })
 
-test("can't run a project in browser by default", async ({ drivePage, page, cloudApi }) => {
-  cloudApi.addProject({ title: 'a' })
-  cloudApi.setFeatureFlags({
-    enableLocalBackend: false,
-    enableCloudExecution: false,
+describe(() => {
+  test.use({
+    featureFlags: {
+      enableLocalBackend: false,
+      enableCloudExecution: false,
+    },
   })
 
-  await drivePage.do(() => {
-    expect(page.getByText(TEXT.cloudBrowserDisabledTitle)).toBeVisible()
+  test("can't run a project in browser by default", async ({ drivePage, page, cloudApi }) => {
+    cloudApi.addProject({ title: 'a' })
+    await drivePage.do(() => {
+      expect(page.getByText(TEXT.cloudBrowserDisabledTitle)).toBeVisible()
+    })
   })
 })
 

@@ -184,7 +184,7 @@ const basePath = computed(() => {
   if (!pathElements) return
   const { start, elements } = pathElements
   const origin = sourceOriginPoint.value
-  if (origin == null) return undefined
+  if (origin == null || !origin.isFinite() || !start.isFinite()) return undefined
   return toSvgPath(origin.add(start), elements)
 })
 

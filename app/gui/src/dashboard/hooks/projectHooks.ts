@@ -480,7 +480,7 @@ function useOpenProject() {
       predicate: (mutation) => mutation.options.scope?.id === project.id,
     })
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
-
+    console.log('isOpeningTheSameProject', isOpeningTheSameProject)
     if (!isOpeningTheSameProject) {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
@@ -490,16 +490,19 @@ function useOpenProject() {
       if (!enableMultitabs) {
         // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
         // The current project is opened as launched above.
+        console.log('containerData.openedProjects.length', containerData.openedProjects.length)
         if (containerData.openedProjects.length > 0) {
           await closeAllProjects()
         }
       }
 
       addLaunchedProject(project)
+      console.log('openProjectMutation', project.id)
 
       void openProjectMutation
         .mutateAsync(project)
         .catch(() => {
+          console.log('openProjectMutation catch', project.id)
           removeLaunchedProject(project.id)
           const newData = client.getQueryData(queryKey)
           // If state has not changed from optimistic state, then:
@@ -509,6 +512,7 @@ function useOpenProject() {
           }
         })
         .finally(() => {
+          console.log('openProjectMutation finally', project.id)
           removeOpeningProject(project.hybrid?.cloudProjectId ?? project.id)
         })
 
@@ -538,6 +542,7 @@ function useOpenHybridProject() {
   return eventCallbacks.useEventCallback(
     async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
       let launchedProject: LaunchedProject | undefined
+      console.log('openHybridProject')
 
       try {
         invariant(localBackend != null, 'Local Backend is null')
@@ -683,7 +688,7 @@ export function useCloseProject() {
         .forEach((mutation) => {
           mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
         })
-
+      console.log('removeLaunchedProject from useCloseProject', new Error().stack)
       removeLaunchedProject(project.id)
 
       await promise
@@ -720,6 +725,7 @@ export function useCloseAllProjects() {
           if (backendModule.IS_OPENING_OR_OPENED[projectDetails.state.type]) {
             await closeProject(project)
           } else {
+            console.log('removeLaunchedProject from useCloseAllProjects')
             removeLaunchedProject(project.id)
           }
         } else {

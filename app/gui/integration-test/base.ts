@@ -1,3 +1,6 @@
+import { UUID } from '#/services/Backend'
+import type { FeatureFlags } from '$/providers/featureFlags'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { test as base, expect as baseExpect, type Locator } from 'playwright/test'
 import type DrivePageActions from './actions/DrivePageActions'
 import type EditorPageActions from './actions/EditorPageActions'
@@ -14,38 +17,53 @@ export interface PageCtx {
 }
 
 export const test = base.extend<{
+  featureFlags: Partial<FeatureFlags>
+  setupApi: { cloud?: (api: MockCloudApi) => void; local?: (api: MockLocalApi) => void }
   cloudApi: MockCloudApi
   localApi: MockLocalApi
   loginPage: LoginPageActions
   drivePage: DrivePageActions
   editorPage: EditorPageActions
 }>({
-  cloudApi: async ({ page }, use) => use(await mockCloudApi(page)),
-  localApi: async ({ page }, use) => use(await mockLocalApi(page)),
-  loginPage: async ({ page, cloudApi, localApi }, use) => {
+  featureFlags: [{}, { option: true }],
+  setupApi: [{}, { option: true }],
+  cloudApi: async ({ page, setupApi }, use) => {
+    const api = await mockCloudApi(page)
+    setupApi.cloud?.(api)
+    return use(api)
+  },
+  localApi: async ({ page, setupApi }, use) => {
+    const api = await mockLocalApi(page)
+    api.addProject({
+      metadata: {
+        id: UUID('135af445-bcfb-42fe-aa74-96f95e99c28b'),
+        name: 'Mock Project',
+        namespace: 'local',
+        created: toRfc3339(new Date()),
+      },
+    })
+    setupApi.local?.(api)
+    return use(api)
+  },
+  loginPage: async ({ page, cloudApi, localApi, featureFlags }, use) => {
     // Only make sure that API mocks are registered, do not actually use the values
     const _ = { cloudApi, localApi }
-    await registerMocks(page)
+    await registerMocks(page, featureFlags)
 
     const loginPage = new LoginPageActions(page, {}).do(async () => {
       await page.goto('/')
     })
-    console.log('loginPage pre use')
-    await use(loginPage)
-    console.log('loginPage post use')
+    await use(await loginPage)
     return
   },
-  drivePage: async ({ loginPage }, use) => await use(loginPage.loginIfNeeded()),
+  drivePage: async ({ loginPage }, use) => await use(await loginPage.loginIfNeeded()),
 
-  editorPage: async ({ drivePage, cloudApi }, use) => {
-    cloudApi.addProject({ title: 'Mock Project' })
-    const editorPage = drivePage.goToCategory
-      .cloud()
-      .driveTable.openProject('Mock Project')
+  editorPage: async ({ drivePage }, use) => {
+    const editorPage = drivePage.driveTable
+      .openProject('Mock Project')
       .expectProjectEditorOpened('Mock Project')
-    console.log('editorPage pre use')
-    await use(editorPage)
-    console.log('editorPage post use')
+      .expectNodePositionsInitialized()
+    await use(await editorPage)
     return
   },
 })

@@ -1,14 +1,44 @@
+import type { FeatureFlags } from '$/providers/featureFlags'
 import { test } from 'integration-test/base'
 import type { Page, Route } from 'playwright'
 import LATEST_GITHUB_RELEASES from './data/latestGithubReleases.json' with { type: 'json' }
 
 /** Execute registration hooks for all playwright mocks that are shared across all tests. */
-export async function registerMocks(page: Page): Promise<void> {
-  await Promise.all([mockDate(page), mockUnneededUrls(page)])
+export async function registerMocks(
+  page: Page,
+  featureFlags: Partial<FeatureFlags>,
+): Promise<void> {
+  await Promise.all([mockDate(page), mockUnneededUrls(page), mockFeatureFlags(page, featureFlags)])
 }
 
 /** A placeholder date for visual regression testing. */
 const MOCK_DATE = Number(new Date('01/23/45 01:23:45'))
+
+async function mockFeatureFlags(page: Page, featureFlags: Partial<FeatureFlags>) {
+  const flags = Object.assign(
+    {
+      enableLocalBackend: true,
+      enableCloudExecution: true,
+      enableAdvancedProjectExecutionOptions: true,
+      enableAssetsTableBackgroundRefresh: false,
+    },
+    featureFlags,
+  )
+
+  await test.step('Set feature flags', async () => {
+    return page.addInitScript((flags) => {
+      if ('overrideFeatureFlags' in window) {
+        Object.assign(window.overrideFeatureFlags, flags)
+      } else {
+        Object.defineProperty(window, 'overrideFeatureFlags', {
+          value: flags,
+          writable: false,
+          configurable: false,
+        })
+      }
+    }, flags)
+  })
+}
 
 /** Replace `Date` with a version that returns a fixed time. */
 async function mockDate(page: Page) {
