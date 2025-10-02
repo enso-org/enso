@@ -211,6 +211,14 @@ ENV = {
     "SBT_SERVER_FORCESTART": "1",
 }
 
+NATIVE_IMAGE_ENV = {
+    "JAVA_HOME": "$(JAVABASE)",
+    "PATH": "$(FLATC_PATH):$(JAVABASE)/bin:$$PATH",
+    "LC_ALL": "C.UTF-8",
+    "SBT_SERVER_FORCESTART": "1",
+    "ENSO_LAUNCHER": "native,fast,-ls"
+}
+
 run_sbt(
     name = "sbt_build_engine_distribution",
     srcs = SRCS,
@@ -219,6 +227,18 @@ run_sbt(
     ],
     env = ENV,
     out_dir = "built-distribution",
+    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
+    visibility = ["//visibility:public"],
+)
+
+run_sbt(
+    name = "sbt_build_native_engine_distribution",
+    srcs = SRCS,
+    args = [
+        "engine-runner/rebuildNativeImage"
+    ],
+    env = NATIVE_IMAGE_ENV,
+    out_dir = "built-distribution-native",
     system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
 )
