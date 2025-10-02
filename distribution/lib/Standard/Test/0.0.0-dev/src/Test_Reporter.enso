@@ -265,8 +265,8 @@ type Ignore_Progress_Reporter
        private: true
        ---
     report_progress self (status_text : Text) (increment : Integer = 1) =
-        _ = [increment, status_text]
-        Nothing
+        _ = [increment]
+        IO.println status_text
 
     ## ---
        private: true
