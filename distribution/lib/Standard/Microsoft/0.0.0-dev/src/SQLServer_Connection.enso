@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Metadata.Display
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 from Standard.Base.Metadata.Choice import Option
@@ -393,9 +394,10 @@ type SQLServer_Connection
        icon: data_output
        ---
        Creates a Data Link that will open the same connection.
+    @path (Widget.Text_Input display=..Always)
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
-        self.base_connection.save_as_data_link destination on_existing_file
+    save_as_data_link self path:Writable_File (on_existing_file:Existing_File_Behavior = ..Error) =
+        self.base_connection.save_as_data_link path on_existing_file
 
     ## ---
        private: true

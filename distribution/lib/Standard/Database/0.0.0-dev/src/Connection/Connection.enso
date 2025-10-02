@@ -5,8 +5,9 @@ import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Context as Execution_Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+from Standard.Base.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
 
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Rows_To_Read.Rows_To_Read
@@ -546,11 +547,12 @@ type Connection
        icon: data_output
        ---
        Creates a Data Link that will open the same connection.
+    @path (Text_Input display=..Always)
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
+    save_as_data_link self path:Writable_File (on_existing_file:Existing_File_Behavior = ..Error) =
         case self.data_link_setup of
             Nothing -> Error.throw (Illegal_State.Error "The connection does not support saving as a data link.")
-            data_link_setup -> data_link_setup.save_as_data_link destination on_existing_file
+            data_link_setup -> data_link_setup.save_as_data_link path on_existing_file
 
 ## ---
    private: true

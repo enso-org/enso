@@ -8,6 +8,8 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Metadata.Widget
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Runtime import assert
 
 import Standard.Table.Internal.Add_Row_Number
@@ -294,9 +296,10 @@ type DB_Table
        ---
        Creates a Data Link that will act as a view into the query represented by
        this table.
+    @path (Widget.Text_Input display=..Always)
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination on_existing_file:Existing_File_Behavior=..Error =
-        DB_Data_Link_Helpers.save_table_as_data_link self destination on_existing_file
+    save_as_data_link self path:Writable_File on_existing_file:Existing_File_Behavior=..Error =
+        DB_Data_Link_Helpers.save_table_as_data_link self path on_existing_file
 
 ## ---
    private: true
