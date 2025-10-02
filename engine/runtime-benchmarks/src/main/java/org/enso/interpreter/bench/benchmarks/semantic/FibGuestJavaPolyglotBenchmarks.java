@@ -1,7 +1,8 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
-import org.openjdk.jmh.annotations.Benchmark;
+import org.enso.common.RuntimeOptions;
+import org.graalvm.polyglot.Context;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
@@ -17,14 +18,10 @@ import org.openjdk.jmh.annotations.Warmup;
 @Measurement(iterations = 3, time = 1)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-public class FibHostJavaPolyglotBenchmarks extends FibBenchmarks {
-  @Benchmark
-  public void fib27() {
-    runBench(27, 317811);
-  }
+public class FibGuestJavaPolyglotBenchmarks extends FibBenchmarks {
 
-  @Benchmark
-  public void fib33() {
-    runBench(33, 5702887);
+  @Override
+  protected Context.Builder withModifiedContext(Context.Builder b) {
+    return b.option(RuntimeOptions.HOST_CLASS_LOADING, RuntimeOptions.HOST_CLASS_LOADING_GUEST);
   }
 }
