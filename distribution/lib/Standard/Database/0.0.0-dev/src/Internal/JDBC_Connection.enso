@@ -313,7 +313,7 @@ properties_as_java_props properties =
 from_java java_jdbc_connection sql_exception=SQLException =
     resource = Managed_Resource.register java_jdbc_connection close_connection
     synchronizer = OperationSynchronizer.new
-    JDBC_Connection.Value sql_ex=sql_exception resource synchronizer
+    JDBC_Connection.Value resource synchronizer sql_exception
 
 ## ---
    private: true
