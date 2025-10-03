@@ -78,4 +78,27 @@ public class TypeChainTest {
     assertArrayEquals(
         "Text.type and Any", new Object[] {exp1, exp2}, rawType.allTypes(ctx.ensoContext()));
   }
+
+  @Test
+  public void anyChain() {
+    var any = ctx.ensoContext().getBuiltins().any();
+    var anyType = typeOf.execute(any);
+    var raw = (Type) ctx.unwrapValue(anyType);
+    var all = raw.allTypes(ctx.ensoContext());
+
+    var exp1 = any.getEigentype();
+    assertArrayEquals("Any.type only", new Object[] {exp1}, all);
+  }
+
+  @Test
+  public void anyEigeintypeChain() {
+    var any = ctx.ensoContext().getBuiltins().any();
+    var anyType = typeOf.execute(any);
+    var anyTypeType = typeOf.execute(anyType);
+    var raw = (Type) ctx.unwrapValue(anyTypeType);
+    var all = raw.allTypes(ctx.ensoContext());
+
+    var exp1 = any.getEigentype();
+    assertArrayEquals("Any.type only", new Object[] {exp1}, all);
+  }
 }
