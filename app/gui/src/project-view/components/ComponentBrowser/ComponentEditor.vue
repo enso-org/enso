@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import ComponentEditorLabel from '@/components/ComponentBrowser/ComponentEditorLabel.vue'
 import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useGraphStore } from '@/stores/graph'
 import { useCodeMirror, useStringSync } from '@/util/codemirror'
 import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
 import { computed, useTemplateRef, watch, type ComponentInstance, type DeepReadonly } from 'vue'
@@ -22,22 +22,20 @@ const graphStore = useGraphStore()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
-const { syncExt, connectSync } = useStringSync()
+const { syncExt, setText } = useStringSync({
+  onUserAction: (text, selection) =>
+    (content.value = {
+      text,
+      selection: Range.unsafeFromBounds(selection.from, selection.to),
+    }),
+})
 const { editorView } = useCodeMirror(editorRoot, {
   extensions: [syncExt],
   contentTestId: 'component-editor-content',
   lineMode: 'single',
 })
 
-const { onUserAction, setText } = connectSync(editorView)
-onUserAction(
-  (text, selection) =>
-    (content.value = {
-      text,
-      selection: Range.unsafeFromBounds(selection.from, selection.to),
-    }),
-)
-watch(content, ({ text, selection }) => setText(text, selection))
+watch(content, ({ text, selection }) => setText(editorView, text, selection), { immediate: true })
 
 const icon = computed(() => {
   if (props.mode.mode === 'componentBrowsing') return 'find'
@@ -76,11 +74,20 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <template v-if="props.mode.mode === 'componentBrowsing'">
-      <ComponentEditorLabel :selfArg="props.mode.filter.selfArg" />
-      <SvgIcon class="selfArgInfoArrow" name="folder_closed" />
-    </template>
-    <CodeMirrorRoot ref="editorRoot" />
+    <div class="componentEditorContent">
+      <CodeMirrorRoot ref="editorRoot" class="componentEditorInput" />
+      <div v-if="props.mode.mode === 'componentBrowsing'" class="componentEditorLabel">
+        <ComponentEditorLabel
+          testId="component-editor-label"
+          :typeInfo="
+            props.mode.filter.selfArg?.type === 'known' ?
+              props.mode.filter.selfArg.typeInfo
+            : undefined
+          "
+          :unknownLabel="props.mode.filter.selfArg == null ? 'Input' : undefined"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -90,6 +97,7 @@ const rootStyle = computed(() => {
   --icon-size: 16px;
   border-radius: 22px;
   background-color: var(--background-color);
+  /*noinspection CssUnresolvedCustomProperty*/
   padding: var(--component-editor-padding);
   display: flex;
   flex-direction: row;
@@ -114,7 +122,18 @@ const rootStyle = computed(() => {
   }
 }
 
-.selfArgInfoArrow {
-  margin: 0 -4px;
+.componentEditorContent {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+}
+
+.componentEditorInput {
+  flex-grow: 1;
+}
+
+.componentEditorLabel {
+  margin: 0 4px;
 }
 </style>

@@ -7,4 +7,5 @@
     - namespace self -> Standard.Base.Any.Any
     - new module:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - root self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
 - enso_project -> Standard.Base.Any.Any

@@ -2,6 +2,8 @@ package org.enso.compiler.test.mock;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import org.enso.common.CompilationStage;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.CompilerContext.ModuleScopeBuilder;
@@ -21,19 +23,35 @@ final class MockModule extends CompilerContext.Module {
   private final org.enso.pkg.Package<? extends Object> pkg;
   private final MockScopeBuilder scopeBuilder = new MockScopeBuilder();
   private final MockPackageRepository repo;
+  private final boolean isSynthetic;
+  private final List<QualifiedName> submoduleNames = new ArrayList<>();
 
   org.enso.compiler.core.ir.Module ir;
   BindingsMap bm;
   CompilationStage stage;
 
+  /**
+   * @param pkg Package that the module belongs to.
+   * @param qName Qualified name of the module.
+   * @param path Path to the file in the virtual FS.
+   * @param code Content of the module
+   * @param repo
+   * @param isSynthetic
+   */
   MockModule(
-      Package<?> pkg, QualifiedName qName, String path, String code, MockPackageRepository repo) {
+      Package<?> pkg,
+      QualifiedName qName,
+      String path,
+      String code,
+      MockPackageRepository repo,
+      boolean isSynthetic) {
     this.pkg = pkg;
     this.qName = qName;
     this.path = path;
     this.code = code;
     this.stage = CompilationStage.INITIAL;
     this.repo = repo;
+    this.isSynthetic = isSynthetic;
   }
 
   @Override
@@ -89,8 +107,12 @@ final class MockModule extends CompilerContext.Module {
   }
 
   @Override
-  public java.util.List<QualifiedName> getDirectModulesRefs() {
-    return java.util.List.of();
+  public List<QualifiedName> getDirectModulesRefs() {
+    return submoduleNames;
+  }
+
+  public void addSubmodule(QualifiedName submoduleName) {
+    submoduleNames.add(submoduleName);
   }
 
   @Override
@@ -100,7 +122,7 @@ final class MockModule extends CompilerContext.Module {
 
   @Override
   public boolean isSynthetic() {
-    return false;
+    return isSynthetic;
   }
 
   @Override

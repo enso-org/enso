@@ -1,5 +1,6 @@
 package org.enso.compiler.test;
 
+import static org.enso.scala.wrapper.ScalaConversions.asScala;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -14,6 +15,7 @@ import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolutionError;
 import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
+import org.enso.compiler.data.BindingsMap.ResolvedModule;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.pkg.QualifiedName;
@@ -81,9 +83,11 @@ public class BindingsMapResolutionTest {
 
   @Test
   public void resolveQualifiedName_DefinedEntity() throws IOException {
-    var projDir = createProject("""
-        type My_Type
-        """);
+    var projDir =
+        createProject(
+            """
+            type My_Type
+            """);
     testBindingsMap(
         projDir,
         bindingsMap -> {
@@ -95,10 +99,12 @@ public class BindingsMapResolutionTest {
   @Test
   @Ignore
   public void resolveConstructor_DefinedEntity() throws IOException {
-    var projDir = createProject("""
-        type My_Type
-            Cons
-        """);
+    var projDir =
+        createProject(
+            """
+            type My_Type
+                Cons
+            """);
     testBindingsMap(
         projDir,
         bindingsMap -> {
@@ -111,6 +117,23 @@ public class BindingsMapResolutionTest {
                   assertThat(resolvedNames.head() instanceof ResolvedConstructor, is(true));
                 });
           }
+        });
+  }
+
+  @Test
+  public void resolveModule_InTheSameModule() throws IOException {
+    var projDir = createProject("type My_Type");
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertResolvedNames(
+              bindingsMap,
+              "local.Proj.Main",
+              resolvedNames -> {
+                assertThat("single module resolved", resolvedNames.size(), is(1));
+                assertThat(
+                    "is ResolvedModule", resolvedNames.head() instanceof ResolvedModule, is(true));
+              });
         });
   }
 
@@ -180,15 +203,15 @@ public class BindingsMapResolutionTest {
             new SourceModule(
                 QualifiedName.fromString("My_Module"),
                 """
-                    type My_Type
-                        Cons
-                    """),
+                type My_Type
+                    Cons
+                """),
             new SourceModule(
                 QualifiedName.fromString("Main"),
                 """
-                    import project.My_Module.My_Type
-                    export project.My_Module.My_Type
-                    """)),
+                import project.My_Module.My_Type
+                export project.My_Module.My_Type
+                """)),
         projDir);
     testBindingsMap(
         projDir,
@@ -211,25 +234,54 @@ public class BindingsMapResolutionTest {
             new SourceModule(
                 QualifiedName.fromString("Main"),
                 """
-                    import project.My_Module.My_Type
-                    export project.My_Module.My_Type
-                    """),
+                import project.My_Module.My_Type
+                export project.My_Module.My_Type
+                """),
             new SourceModule(
                 QualifiedName.fromString("My_Module"),
                 """
-                    type My_Type
-                        Cons
-                    """)),
+                type My_Type
+                    Cons
+                """)),
         libDir);
     ProjectUtils.createProject(
-        "Proj", """
-            from local.Lib import all
-            """, projDir);
+        "Proj",
+        """
+        from local.Lib import all
+        """,
+        projDir);
     testBindingsMap(
         projDir,
         bindingsMap -> {
           assertSingleResolvedType(bindingsMap, "My_Type");
           assertSingleResolvedType(bindingsMap, "local.Lib.My_Module.My_Type");
+        });
+  }
+
+  @Test
+  public void notResolveModule_IfItItWasNotDirectlyImported() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var projDir = tmpDir.toPath().resolve("Proj");
+    projDir.toFile().mkdirs();
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                import project.My_Module.My_Type
+                """),
+            new SourceModule(
+                QualifiedName.fromString("My_Module"),
+                """
+                type My_Type
+                """)),
+        projDir);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          var res = bindingsMap.resolveName("My_Module");
+          assertThat("My_Module is not resolved", res.isLeft(), is(true));
         });
   }
 
@@ -246,26 +298,28 @@ public class BindingsMapResolutionTest {
             new SourceModule(
                 QualifiedName.fromString("Main"),
                 """
-                    import project.My_Other_Module.My_Other_Type
-                    import project.My_Module.My_Type
-                    export project.My_Other_Module.My_Other_Type
-                    export project.My_Module.My_Type
-                    """),
+                import project.My_Other_Module.My_Other_Type
+                import project.My_Module.My_Type
+                export project.My_Other_Module.My_Other_Type
+                export project.My_Module.My_Type
+                """),
             new SourceModule(
                 QualifiedName.fromString("My_Module"),
                 """
-                    type My_Type
-                    """),
+                type My_Type
+                """),
             new SourceModule(
                 QualifiedName.fromString("My_Other_Module"),
                 """
-                    type My_Other_Type
-                    """)),
+                type My_Other_Type
+                """)),
         libDir);
     ProjectUtils.createProject(
-        "Proj", """
-            from local.Lib import all
-            """, projDir);
+        "Proj",
+        """
+        from local.Lib import all
+        """,
+        projDir);
     testBindingsMap(
         projDir,
         bindingsMap -> {
@@ -292,27 +346,29 @@ public class BindingsMapResolutionTest {
             new SourceModule(
                 QualifiedName.fromString("Other_Module"),
                 """
-                    type Other_Type
-                    """),
+                type Other_Type
+                """),
             new SourceModule(
                 QualifiedName.fromString("Main"),
                 """
-                    import project.Other_Module.Other_Type
-                    export project.Other_Module.Other_Type
-                    """)),
+                import project.Other_Module.Other_Type
+                export project.Other_Module.Other_Type
+                """)),
         otherLibDir);
     ProjectUtils.createProject(
         "Lib",
         """
-            import local.Other_Lib.Other_Module.Other_Type
-            export local.Other_Lib.Other_Module.Other_Type
-            type My_Type
-            """,
+        import local.Other_Lib.Other_Module.Other_Type
+        export local.Other_Lib.Other_Module.Other_Type
+        type My_Type
+        """,
         libDir);
     ProjectUtils.createProject(
-        "Proj", """
-            from local.Lib import all
-            """, projDir);
+        "Proj",
+        """
+        from local.Lib import all
+        """,
+        projDir);
     testBindingsMap(
         projDir,
         bindingsMap -> {
@@ -333,31 +389,33 @@ public class BindingsMapResolutionTest {
     projDir.toFile().mkdir();
     otherLibDir.toFile().mkdir();
     ProjectUtils.createProject(
-        "Other_Lib", """
-            type Other_Type
-            """, otherLibDir);
+        "Other_Lib",
+        """
+        type Other_Type
+        """,
+        otherLibDir);
     ProjectUtils.createProject(
         "Lib",
         Set.of(
             new SourceModule(
                 QualifiedName.fromString("Main"),
                 """
-                    import project.My_Module.My_Type
-                    export project.My_Module.My_Type
-                    """),
+                import project.My_Module.My_Type
+                export project.My_Module.My_Type
+                """),
             new SourceModule(
                 QualifiedName.fromString("My_Module"),
                 """
-                    type My_Type
-                        Cons
-                    """)),
+                type My_Type
+                    Cons
+                """)),
         libDir);
     ProjectUtils.createProject(
         "Proj",
         """
-            from local.Other_Lib import all
-            from local.Lib import all
-            """,
+        from local.Other_Lib import all
+        from local.Lib import all
+        """,
         projDir);
     testBindingsMap(
         projDir,
@@ -379,6 +437,159 @@ public class BindingsMapResolutionTest {
         });
   }
 
+  @Test
+  public void resolveModule_InImportCycle_1() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var projDir = tmpDir.toPath().resolve("Proj");
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Data.A"),
+                """
+                import project.Data.B
+                """),
+            new SourceModule(
+                QualifiedName.fromString("Data.B"),
+                """
+                import project.Data.A
+                """),
+            new SourceModule(QualifiedName.fromString("Main"), "")),
+        projDir);
+    testBindingsMap(
+        projDir,
+        "local.Proj.Data.A",
+        bindingsMap -> {
+          var nameToResolve = asScala(List.of("local", "Proj", "Data", "A"));
+          var res = bindingsMap.resolveQualifiedName(nameToResolve);
+          assertThat("Resolution method finishes", res, is(notNullValue()));
+        });
+  }
+
+  @Test
+  public void resolveModule_InImportCycle_2() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var projDir = tmpDir.toPath().resolve("Proj");
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("A"),
+                """
+                import project.B
+                """),
+            new SourceModule(
+                QualifiedName.fromString("B"),
+                """
+                import project.A
+                """),
+            new SourceModule(QualifiedName.fromString("Main"), "")),
+        projDir);
+    testBindingsMap(
+        projDir,
+        "local.Proj.A",
+        bindingsMap -> {
+          var nameToResolve = asScala(List.of("local", "Proj", "A"));
+          var res = bindingsMap.resolveQualifiedName(nameToResolve);
+          assertThat("Resolution method finishes", res, is(notNullValue()));
+        });
+  }
+
+  @Test
+  public void resolveModule_InImportCycle_3() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var projDir = tmpDir.toPath().resolve("Proj");
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("A"),
+                """
+                import project.B
+                import project.C
+                """),
+            new SourceModule(
+                QualifiedName.fromString("B"),
+                """
+                import project.A
+                """),
+            new SourceModule(
+                QualifiedName.fromString("C"),
+                """
+                type C_Type
+                """),
+            new SourceModule(QualifiedName.fromString("Main"), "")),
+        projDir);
+    testBindingsMap(
+        projDir,
+        "local.Proj.A",
+        bindingsMap -> {
+          var nameToResolve = asScala(List.of("local", "Proj", "C", "C_Type"));
+          var res = bindingsMap.resolveQualifiedName(nameToResolve);
+          assertThat("Resolution succeeds", res.toOption().isDefined(), is(true));
+          var resolvedNames = res.toOption().get();
+          assertThat("Single resolution found", resolvedNames.size(), is(1));
+          assertThat("Is ResolvedType", resolvedNames.head() instanceof ResolvedType, is(true));
+        });
+  }
+
+  @Test
+  public void noStackOverflow_WhenResolving_StandardBoolean() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var projDir = tmpDir.toPath().resolve("Proj");
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Proj",
+        """
+        import Standard.Base.Any
+        """,
+        projDir);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          var nameToResolve = asScala(List.of("Standard", "Base", "Data", "Boolean", "boolean"));
+          var res = bindingsMap.resolveQualifiedName(nameToResolve);
+          assertThat("Resolution method finishes", res, is(notNullValue()));
+        });
+  }
+
+  @Test
+  public void resolveMainModule_FromDifferentProject() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var projDir = tmpDir.toPath().resolve("Proj");
+    var libDir = tmpDir.toPath().resolve("Lib");
+    projDir.toFile().mkdirs();
+    libDir.toFile().mkdirs();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                # Empty on purpose
+                """)),
+        libDir);
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                from local.Lib import all
+                """)),
+        projDir);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          var nameToResolve = toScalaList(List.of("local", "Lib", "Main"));
+          var res = bindingsMap.resolveQualifiedName(nameToResolve);
+          assertThat("Is resolved", res.isRight(), is(true));
+        });
+  }
+
   private Path createProject(String mainModuleSrc) throws IOException {
     var projDir = TMP_DIR.newFolder().toPath();
     var modules =
@@ -387,9 +598,9 @@ public class BindingsMapResolutionTest {
             new SourceModule(
                 QualifiedName.fromString("My_Vector"),
                 """
-                    type My_Vector
-                        Cons data
-                    """));
+                type My_Vector
+                    Cons data
+                """));
     ProjectUtils.createProject("Proj", modules, projDir);
     return projDir;
   }

@@ -1,4 +1,4 @@
-from Standard.Base import Nothing, Vector, Number, Float, True, False, Regression
+from Standard.Base import Nothing, Float, Regression
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all

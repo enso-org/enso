@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
+import org.enso.common.Platform;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.PortableDistributionManager;
@@ -38,7 +39,7 @@ final class JavaFinder {
     if (javaHome != null) {
       var binDir = Path.of(javaHome).resolve("bin");
       Path javaExe;
-      if (isOnWindows()) {
+      if (Platform.getOperatingSystem().isWindows()) {
         javaExe = binDir.resolve("java.exe");
       } else {
         javaExe = binDir.resolve("java");
@@ -63,10 +64,6 @@ final class JavaFinder {
     return null;
   }
 
-  private static boolean isOnWindows() {
-    return System.getProperty("os.name").toLowerCase().contains("win");
-  }
-
   /**
    * Tries to find {@code java} executable in the distribution runtime with the same version that
    * was used for building, or a newer one.
@@ -79,7 +76,7 @@ final class JavaFinder {
     if (distributionManager.isRunningPortable()) {
       logger.trace("Running in portable distribution");
     }
-    var graalVersionManager = new GraalVersionManager(distributionManager, env);
+    var graalVersionManager = new GraalVersionManager(distributionManager);
     var versionUsedForBuild =
         new GraalVMVersion(BuildVersion.graalVersion(), BuildVersion.javaVersion());
     var runtimeWithExactVersionMatch = graalVersionManager.findGraalRuntime(versionUsedForBuild);
@@ -110,7 +107,7 @@ final class JavaFinder {
   private static File findJavaOnPath() {
     try {
       ProcessBuilder processBuilder;
-      if (isOnWindows()) {
+      if (Platform.getOperatingSystem().isWindows()) {
         processBuilder = new ProcessBuilder("java.exe", "-h");
       } else {
         processBuilder = new ProcessBuilder("java", "-h");

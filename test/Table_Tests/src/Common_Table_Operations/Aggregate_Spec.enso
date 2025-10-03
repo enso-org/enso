@@ -1,13 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
-import Standard.Base.Errors.Common.Missing_Argument
 
-from Standard.Table import Table, Sort_Column, Value_Type, expr
+from Standard.Table import Sort_Column, Value_Type, expr
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
-import Standard.Database.Feature.Feature
+import Standard.Database.Dialects.Feature.Feature
 from Standard.Database.Errors import Unsupported_Database_Operation, Aggregagtion_Requires_Order
 
 from Standard.Test import all
@@ -1110,7 +1109,7 @@ add_aggregate_specs suite_builder setup =
             get_value t = Frame_Hider.hide <|
                 columns = materialize t . columns
                 columns.length . should_equal 1
-                columns.first.length  . should_equal 1
+                columns.first.row_count  . should_equal 1
                 columns.first . at 0
 
             ## TODO currently our builder does not allow all-null tables, so we

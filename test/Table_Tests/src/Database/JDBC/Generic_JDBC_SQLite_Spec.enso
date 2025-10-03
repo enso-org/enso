@@ -1,8 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Aggregate_Column, Value_Type, Table, Bits
-from Standard.Table.Errors import Inexact_Type_Coercion
 
 from Standard.Database import all
 from Standard.Database.Errors import all
@@ -10,7 +7,6 @@ from Standard.Database.Errors import all
 from Standard.Test import all
 
 import project.Database.Helpers.Name_Generator
-from project.Database.Postgres_Spec import create_connection_builder
 
 import Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
 

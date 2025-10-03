@@ -162,7 +162,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     })
     transport.on('error', (error) => {
       if (this.shouldReconnect) {
-        console.error('Language Server transport error:', error)
+        console.error('Language Server transport error:', error.message, '\n', error)
       }
     })
     const onTransportClosed = () => {

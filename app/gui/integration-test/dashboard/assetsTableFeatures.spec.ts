@@ -1,7 +1,6 @@
 /** @file Test the drive view. */
-import { expect, test, type Page } from '@playwright/test'
-
 import { EmailAddress, ProjectState } from '#/services/Backend'
+import { expect, test, type Page } from 'playwright/test'
 import { getText, mockAllAndLogin, TEXT } from './actions'
 
 /** Find an extra columns button panel. */
@@ -97,9 +96,13 @@ test('can navigate to parent directory of an asset in the Trash category', ({ pa
 test("can't run a project in browser by default", ({ page }) =>
   mockAllAndLogin({
     page,
+    goToCloudFirst: false,
     setupAPI: async (api) => {
       api.addProject({ title: 'a' })
-      api.setFeatureFlags({ enableCloudExecution: false })
+      api.setFeatureFlags({
+        enableLocalBackend: false,
+        enableCloudExecution: false,
+      })
     },
   }).do(() => {
     expect(page.getByText(TEXT.cloudBrowserDisabledTitle)).toBeVisible()

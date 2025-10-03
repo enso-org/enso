@@ -52,11 +52,11 @@ public class AvoidIdInstrumentationTagTest {
   public void avoidIdInstrumentationInLambdaMapFunctionWithFloor() throws Exception {
     var code =
         """
-    from Standard.Base import all
-    import Standard.Visualization
+        from Standard.Base import all
+        import Standard.Visualization
 
-    run n = 0.up_to n . map i-> 1.floor * i
-    """;
+        run n = 0.up_to n . map i-> 1.floor * i
+        """;
     var src = Source.newBuilder("enso", code, "TestLambda.enso").build();
     var module = ctxRule.eval(src);
     var run = module.invokeMember("eval_expression", "run");
@@ -78,11 +78,11 @@ public class AvoidIdInstrumentationTagTest {
   public void avoidIdInstrumentationInLambdaMapFunctionYear2010() throws Exception {
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    operator13 = [ 1973, 1975, 2005, 2006 ]
-    operator15 = operator13.map year-> if year < 2000 then [255, 100] else if year < 2010 then [0, 255] else [0, 100]
-    """;
+        operator13 = [ 1973, 1975, 2005, 2006 ]
+        operator15 = operator13.map year-> if year < 2000 then [255, 100] else if year < 2010 then [0, 255] else [0, 100]
+        """;
     var src = Source.newBuilder("enso", code, "YearLambda.enso").build();
     var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "operator15");
@@ -108,14 +108,14 @@ public class AvoidIdInstrumentationTagTest {
   public void avoidIdInstrumentationInMap() throws Exception {
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    run =
-        operator1 = [ "FooBar", "whateveR" ]
-        fun1 = _.to_case Case.Lower
-        operator2 = operator1.map fun1
-        operator2
-    """;
+        run =
+            operator1 = [ "FooBar", "whateveR" ]
+            fun1 = _.to_case Case.Lower
+            operator2 = operator1.map fun1
+            operator2
+        """;
     var src = Source.newBuilder("enso", code, "CaseLambda.enso").build();
     var module = ctxRule.eval(src);
     var res = module.invokeMember("eval_expression", "run");

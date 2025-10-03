@@ -30,11 +30,11 @@ public class VectorSortTest {
   public static void initNodes() {
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    sort val1 val2 = [val1, val2].sort
-    equals val1 val2 = val1 == val2
-    """;
+        sort val1 val2 = [val1, val2].sort
+        equals val1 val2 = val1 == val2
+        """;
     sortFunc = ctxRule.getMethodFromModule(code, "sort");
     equalsFunc = ctxRule.getMethodFromModule(code, "equals");
 

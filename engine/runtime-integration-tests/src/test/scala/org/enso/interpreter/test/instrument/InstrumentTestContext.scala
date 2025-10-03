@@ -72,7 +72,9 @@ abstract class InstrumentTestContext(packageName: String) {
       n,
       {
         case Some(Api.Response(None, Api.ExpressionUpdates(_, _))) => false
-        case _                                                     => true
+        case Some(Api.Response(None, Api.ExecutionUpdate(_, diagnostics))) =>
+          diagnostics.nonEmpty
+        case _ => true
       },
       timeoutSeconds
     )
@@ -87,7 +89,7 @@ abstract class InstrumentTestContext(packageName: String) {
       n,
       {
         case Some(Api.Response(None, Api.ExpressionUpdates(_, updates))) =>
-          updates.find { u =>
+          updates.exists { u =>
             u.payload match {
               case _: Api.ExpressionUpdate.Payload.Pending => false
               case _ =>
@@ -95,7 +97,9 @@ abstract class InstrumentTestContext(packageName: String) {
                   u.expressionId
                 )
             }
-          }.isDefined
+          }
+        case Some(Api.Response(None, Api.ExecutionUpdate(_, diagnostics))) =>
+          diagnostics.nonEmpty
         case _ => true
       },
       timeoutSeconds
@@ -106,7 +110,15 @@ abstract class InstrumentTestContext(packageName: String) {
     n: Int,
     timeoutSeconds: Long = 60
   ): List[Api.Response] = {
-    receiveNWithFilter(n, _ => true, timeoutSeconds)
+    receiveNWithFilter(
+      n,
+      {
+        case Some(Api.Response(None, Api.ExecutionUpdate(_, diagnostics))) =>
+          diagnostics.nonEmpty
+        case _ => true
+      },
+      timeoutSeconds
+    )
   }
 
   private def receiveNWithFilter(

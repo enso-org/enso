@@ -9,7 +9,7 @@ import scala.Option;
  * @param autoParallelismEnabled whether or not automatic parallelism detection is enabled.
  * @param warningsEnabled whether or not warnings are enabled
  * @param privateCheckEnabled whether or not private keyword is enabled
- * @param staticTypeInferenceEnabled whether or not type inference is enabled
+ * @param staticAnalysisEnabled whether or not type inference, and other static analysis, is enabled
  * @param treatWarningsAsErrors If warnings should be treated as errors.
  * @param dumpModuleIR identification (name) of a module to dump
  * @param isStrictErrors if true, presence of any Error in IR will result in an exception
@@ -22,9 +22,9 @@ public record CompilerConfig(
     boolean autoParallelismEnabled,
     boolean warningsEnabled,
     boolean privateCheckEnabled,
-    boolean staticTypeInferenceEnabled,
+    boolean staticAnalysisEnabled,
     boolean treatWarningsAsErrors,
-    Option<String> dumpModuleIR,
+    Option<IRDumperConfig> dumpModuleIR,
     boolean isStrictErrors,
     boolean isLintingDisabled,
     Option<PrintStream> outputRedirect,
@@ -42,9 +42,9 @@ public record CompilerConfig(
     private boolean autoParallelismEnabled = false;
     private boolean warningsEnabled = true;
     private boolean privateCheckEnabled = true;
-    private boolean staticTypeInferenceEnabled = false;
+    private boolean staticAnalysisEnabled = false;
     private boolean treatWarningsAsErrors = false;
-    private Option<String> dumpModuleIR = Option.empty();
+    private Option<IRDumperConfig> dumpModuleIR = Option.empty();
     private boolean isStrictErrors = false;
     private boolean isLintingDisabled = false;
     private Option<PrintStream> outputRedirect = Option.empty();
@@ -66,8 +66,8 @@ public record CompilerConfig(
       return this;
     }
 
-    public Builder staticTypeInferenceEnabled(boolean staticTypeInferenceEnabled) {
-      this.staticTypeInferenceEnabled = staticTypeInferenceEnabled;
+    public Builder staticAnalysisEnabled(boolean staticAnalysisEnabled) {
+      this.staticAnalysisEnabled = staticAnalysisEnabled;
       return this;
     }
 
@@ -76,7 +76,7 @@ public record CompilerConfig(
       return this;
     }
 
-    public Builder dumpModuleIR(Option<String> dumpModuleIR) {
+    public Builder dumpModuleIR(Option<IRDumperConfig> dumpModuleIR) {
       this.dumpModuleIR = dumpModuleIR;
       return this;
     }
@@ -111,7 +111,7 @@ public record CompilerConfig(
           autoParallelismEnabled,
           warningsEnabled,
           privateCheckEnabled,
-          staticTypeInferenceEnabled,
+          staticAnalysisEnabled,
           treatWarningsAsErrors,
           dumpModuleIR,
           isStrictErrors,

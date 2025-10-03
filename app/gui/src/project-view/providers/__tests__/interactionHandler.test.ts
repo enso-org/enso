@@ -1,22 +1,19 @@
 import { describe, expect, test, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
-import { Interaction, InteractionHandler } from '../interactionHandler'
+import { InteractionHandler, type Interaction } from '../interactionHandler'
 
 function mockInteraction(interaction: Partial<Interaction>) {
   const onPointerDown = vi.fn(() => {})
-  const onPointerUp = vi.fn(() => {})
   const onCancel = vi.fn(() => {})
   const onEnd = vi.fn(() => {})
   return {
     interaction: {
       pointerdown: onPointerDown,
-      pointerup: onPointerUp,
       cancel: onCancel,
       end: onEnd,
       ...interaction,
     },
     onPointerDown,
-    onPointerUp,
     onCancel,
     onEnd,
   }
@@ -32,13 +29,11 @@ function setupNested() {
 }
 
 test('Handle pointer events', () => {
-  const { interaction, onPointerDown, onPointerUp } = mockInteraction({})
+  const { interaction, onPointerDown } = mockInteraction({})
   const handler = new InteractionHandler()
   handler.setCurrent(interaction)
-  handler.handlePointerEvent({} as PointerEvent, 'pointerdown')
+  handler.handlePointerDown({} as PointerEvent)
   expect(onPointerDown).toHaveBeenCalled()
-  handler.handlePointerEvent({} as PointerEvent, 'pointerup')
-  expect(onPointerUp).toHaveBeenCalled()
 })
 
 describe('Cancelling interactions', () => {

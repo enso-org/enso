@@ -29,7 +29,7 @@ public abstract class InteropConversionCallNode extends Node {
     return InteropConversionCallNodeGen.create();
   }
 
-  public abstract Object execute(UnresolvedConversion conversion, Object state, Object[] arguments)
+  public abstract Object execute(UnresolvedConversion conversion, State state, Object[] arguments)
       throws ArityException;
 
   @CompilerDirectives.TruffleBoundary

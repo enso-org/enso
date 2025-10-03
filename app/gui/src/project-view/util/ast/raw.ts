@@ -37,6 +37,7 @@ export function childrenAstNodesOrTokens(obj: LazyObject): (RawAst.Tree | RawAst
     } else {
       obj.visitChildren(visitor)
     }
+    return false
   }
   obj.visitChildren(visitor)
   return children

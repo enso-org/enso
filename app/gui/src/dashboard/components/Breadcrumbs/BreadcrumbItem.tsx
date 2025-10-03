@@ -1,5 +1,10 @@
 /** @file A single breadcrumb item. */
 import { mergeProps } from '#/components/aria'
+import { Button } from '#/components/Button'
+import { IconDisplay } from '#/components/IconDisplay'
+import { Text } from '#/components/Text'
+import type { Addon, IconProp, TestIdProps } from '#/components/types'
+import type { TooltipElementType } from '#/components/VisualTooltip'
 import { useDragDelayAction, type DragDelayCallback } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { noop } from '#/utilities/functions'
@@ -23,15 +28,6 @@ import {
 } from 'react-aria'
 import type * as aria from 'react-aria-components'
 import invariant from 'tiny-invariant'
-import {
-  Button,
-  IconDisplay,
-  Text,
-  type Addon,
-  type IconProp,
-  type TestIdProps,
-  type TooltipElementType,
-} from '../AriaComponents'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const BREADCRUMB_ITEM_STYLES = tv({

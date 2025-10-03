@@ -3,6 +3,12 @@ package org.enso.compiler.pass.analyse.types.scope;
 import java.util.List;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 
+/**
+ * Definition of an atom type with its constructors.
+ *
+ * <p>The static counterpart to what's represented by the fields of the `Type` class in
+ * `ModuleScope`.
+ */
 public final class AtomTypeDefinition {
   private final String name;
   private final List<Constructor> constructors;

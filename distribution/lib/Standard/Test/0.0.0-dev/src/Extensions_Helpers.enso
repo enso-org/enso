@@ -3,7 +3,9 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that ensures that the expected value provided in some of the Test
    operations is not an error.
    The left-hand side may be an error and that will cause a test failure.

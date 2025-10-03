@@ -1,36 +1,37 @@
 <script setup lang="ts">
 import {
-  codeEditorBindings,
-  documentationEditorBindings,
-  graphBindings,
-  undoBindings,
-} from '@/bindings'
+  useGraphStore,
+  useProjectNames,
+  useProjectStore,
+  useSuggestionDbStore,
+  useWidgetRegistry,
+} from '$/components/WithCurrentProject.vue'
+import { useContainerData } from '$/providers/container'
+import { useRightPanelData } from '$/providers/rightPanel'
+import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ComponentBrowser from '@/components/ComponentBrowser.vue'
 import type { Usage } from '@/components/ComponentBrowser/input'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
-import DocumentationEditor from '@/components/DocumentationEditor.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
-import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
+import { useGraphEditorClipboard } from '@/components/GraphEditor/graphClipboard'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { selectionActionHandlers } from '@/components/GraphEditor/selectionActions'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
 import GraphMouse from '@/components/GraphMouse.vue'
-import RightDockPanel from '@/components/RightDockPanel.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
-import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
-import { groupColorVar } from '@/composables/nodeColors'
+import { unrefElement, useEventConditional } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { ActionName, registerHandlers, toggledAction } from '@/providers/action'
+import { registerHandlers, toggledAction, type DisplayableActionName } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -39,50 +40,54 @@ import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
-import { provideWidgetRegistry } from '@/providers/widgetRegistry'
+import { provideLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import type { Node, NodeId } from '@/stores/graph'
-import { provideGraphStore } from '@/stores/graph'
 import { isInputNode, nodeId } from '@/stores/graph/graphDatabase'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { providePersisted } from '@/stores/persisted'
-import { useProjectStore } from '@/stores/project'
 import { provideNodeExecution } from '@/stores/project/nodeExecution'
-import { injectProjectNames } from '@/stores/projectNames'
-import { provideRightDock } from '@/stores/rightDock'
-import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { colorFromString } from '@/util/colors'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import { isDef, VueInstance } from '@vueuse/core'
+import { isDef, type VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import * as objects from 'enso-common/src/utilities/data/object'
 import { set } from 'lib0'
 import {
   computed,
+  onActivated,
+  onDeactivated,
   onMounted,
-  onUnmounted,
   ref,
-  shallowRef,
   toRaw,
   toRef,
+  toValue,
   useTemplateRef,
   watch,
-  type ComponentInstance,
+  watchEffect,
 } from 'vue'
 
 const keyboard = injectKeyboard()
+const rightPanel = useRightPanelData()
+const containerData = useContainerData()
 const projectStore = useProjectStore()
-const projectNames = injectProjectNames()
-const suggestionDb = provideSuggestionDbStore(projectStore, projectNames)
-const graphStore = provideGraphStore(projectStore, suggestionDb, projectNames)
-const widgetRegistry = provideWidgetRegistry(graphStore.db)
-const _visualizationStore = provideVisualizationStore(projectStore)
+const projectNames = useProjectNames()
+const graphStore = useGraphStore()
+const widgetRegistry = useWidgetRegistry()
+const suggestionDb = useSuggestionDbStore()
+provideVisualizationStore(projectStore)
+provideLanguageSupportExtensions({
+  project: projectStore,
+  projectNames,
+  suggestionDb: suggestionDb.entries,
+})
 
 const nodeExecution = provideNodeExecution(projectStore)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
@@ -92,9 +97,6 @@ onMounted(() => {
   if (import.meta.env.DEV) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
-})
-onUnmounted(() => {
-  projectStore.disposeYDocsProvider()
 })
 
 // === Navigator ===
@@ -106,16 +108,16 @@ const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keybo
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
 })
 
+providePopoverRoot(viewportElem)
+
 // === Client saved state ===
 
-const persisted = providePersisted(
+providePersisted(
   () => projectStore.id,
   graphStore,
   graphNavigator,
   () => zoomToAll(true),
 )
-
-const rightDock = provideRightDock(graphStore, projectStore, persisted)
 
 // === Zoom/pan ===
 
@@ -129,10 +131,9 @@ function selectionBounds() {
   return nodesBounds(nodeSelection.selected) ?? scrollBounds.value
 }
 
-function zoomToSelected(skipAnimation: boolean = false) {
+function zoomToSelected() {
   const bounds = selectionBounds()
-  if (bounds)
-    graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale), skipAnimation)
+  if (bounds) graphNavigator.panAndZoomTo(bounds, 0.1, Math.max(1, graphNavigator.targetScale))
 }
 
 function zoomToAll(skipAnimation: boolean = false) {
@@ -218,10 +219,12 @@ const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboa
 
 // === Action Handlers ===
 
+const showCodeEditor = ref(false)
+
 const actionHandlers = registerHandlers({
   'graphEditor.showHelp': {
-    action: () => rightDock.toggleVisible('help'),
-    toggled: computed(() => rightDock.visible && rightDock.displayedTab === 'help'),
+    action: () => rightPanel.toggleTab('help'),
+    toggled: computed(() => rightPanel.tab === 'help'),
   },
   'graph.renameProject': toggledAction(projectNameEdited),
   'graph.addComponent': {
@@ -235,13 +238,10 @@ const actionHandlers = registerHandlers({
       createWithComponentBrowser({ placement })
     },
   },
-  'graph.toggleCodeEditor': {
-    action: () => (showCodeEditor.value = !showCodeEditor.value),
-    toggled: () => showCodeEditor.value,
-  },
+  'graph.toggleCodeEditor': toggledAction(showCodeEditor),
   'graph.toggleDocumentationEditor': {
-    action: () => rightDock.toggleVisible(),
-    toggled: () => rightDock.visible,
+    action: () => rightPanel.toggleTab('documentation'),
+    toggled: () => rightPanel.tab === 'documentation',
   },
   'graph.refreshExecution': {
     action: () => nodeExecution.recomputeAll(),
@@ -250,15 +250,15 @@ const actionHandlers = registerHandlers({
     action: () => nodeExecution.recomputeAll('Live'),
   },
   'graph.undo': {
+    enabled: () => graphStore.undoManager.canUndo,
     action: () => graphStore.undoManager.undo(),
-    disabled: () => !graphStore.undoManager.canUndo.value,
   },
   'graph.redo': {
+    enabled: () => graphStore.undoManager.canRedo,
     action: () => graphStore.undoManager.redo(),
-    disabled: () => !graphStore.undoManager.canRedo.value,
   },
   'graph.fitAll': {
-    action: () => zoomToSelected(),
+    action: zoomToSelected,
   },
   'graph.zoomIn': {
     action: () => graphNavigator.stepZoom(+1),
@@ -267,9 +267,61 @@ const actionHandlers = registerHandlers({
     action: () => graphNavigator.stepZoom(-1),
   },
   'graph.navigateUp': {
+    available: stackNavigator.hasBreadcrumbsBeyondRoot,
+    enabled: stackNavigator.allowNavigationLeft,
     action: () => stackNavigator.exitNode(),
-    disabled: () => !stackNavigator.allowNavigationLeft.value,
-    hidden: () => !stackNavigator.hasBreadcrumbsBeyondRoot.value,
+  },
+  'component.enterNode': {
+    // TODO: Unify with handler in GraphNode.
+    action: () => {
+      const selectedNode = set.first(nodeSelection.selected)
+      if (selectedNode) {
+        stackNavigator.enterNode(selectedNode)
+      }
+    },
+  },
+  'graph.startProfiling': { action: () => void projectStore.lsRpcConnection.profilingStart(true) },
+  'graph.stopProfiling': { action: () => void projectStore.lsRpcConnection.profilingStop() },
+  'graph.openComponentBrowser': {
+    action: () => {
+      if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
+        createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
+      }
+    },
+  },
+  'graph.selectAll': { action: () => nodeSelection.selectAll() },
+  'graph.deselectAll': {
+    action: () => {
+      nodeSelection.deselectAll()
+      clearFocus()
+      graphStore.undoManager.undoStackBoundary()
+    },
+  },
+  'graph.toggleVisualization': {
+    action: () => {
+      // TODO: Merge with component action
+      const selected = nodeSelection.selected
+      const allVisible = iter.every(
+        selected,
+        (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
+      )
+      graphStore.batchEdits(() => {
+        for (const nodeId of selected) {
+          graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
+        }
+      })
+    },
+  },
+  'graph.pasteNode': { action: () => createNodesFromClipboard() },
+  'graph.openDocumentation': {
+    action: () => {
+      const result = tryGetSelectionDocUrl()
+      if (!result.ok) {
+        toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
+        return
+      }
+      window.open(result.value, '_blank')
+    },
   },
   ...selectionActionHandlers(
     () =>
@@ -287,20 +339,19 @@ const actionHandlers = registerHandlers({
   ),
 })
 
-// See also https://github.com/enso-org/enso/issues/10414
-useEvent(
+const isActive = ref(true)
+onActivated(() => (isActive.value = true))
+onDeactivated(() => (isActive.value = false))
+
+useEventConditional(
   window,
   'keydown',
-  (event) =>
-    (!keyboardBusy() && undoBindingsHandler(event)) ||
-    (!keyboardBusy() && graphBindingsHandler(event)) ||
-    (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
-    (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
-    (!keyboardBusy() && graphNavigator.keyboardEvents.keydown(event)),
+  isActive,
+  (e) => graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e),
 )
 
 function tryGetSelectionDocUrl() {
-  const selected = nodeSelection.tryGetSoleSelection()
+  const selected = nodeSelection.tryGetSingleSelectedNode()
   if (!selected.ok) return selected
   const suggestion = graphStore.db.getNodeMainSuggestion(selected.value)
   const documentation = suggestion && suggestionDocumentationUrl(suggestion)
@@ -321,100 +372,42 @@ const { handleClick } = useDoubleClick(
 
 // === Keyboard/Mouse bindings ===
 
-const undoBindingsHandler = undoBindings.handler({
-  undo: actionHandlers['graph.undo'].action,
-  redo: actionHandlers['graph.redo'].action,
-})
-
-const graphBindingsHandler = graphBindings.handler({
-  startProfiling() {
-    projectStore.lsRpcConnection.profilingStart(true)
-  },
-  stopProfiling() {
-    projectStore.lsRpcConnection.profilingStop()
-  },
-  openComponentBrowser() {
-    if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
-      createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
+const graphBindingsHandler = graphBindings.handler(
+  objects.mapEntries(graphBindings.bindings, (actionName) => {
+    const actionDef = actionHandlers[actionName]
+    return () => {
+      if (toValue(actionDef.enabled) === false) return false
+      void actionDef.action()
     }
-  },
-  deleteSelected: actionHandlers['components.deleteSelected'].action,
-  zoomToSelected() {
-    zoomToSelected()
-  },
-  selectAll() {
-    nodeSelection.selectAll()
-  },
-  deselectAll() {
-    nodeSelection.deselectAll()
-    clearFocus()
-    graphStore.undoManager.undoStackBoundary()
-  },
-  toggleVisualization() {
-    const selected = nodeSelection.selected
-    const allVisible = iter.every(
-      selected,
-      (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
-    )
-    graphStore.batchEdits(() => {
-      for (const nodeId of selected) {
-        graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
-      }
-    })
-  },
-  copyNode: actionHandlers['components.copy'].action,
-  pasteNode() {
-    createNodesFromClipboard()
-  },
-  collapse: actionHandlers['components.collapse'].action,
-  enterNode() {
-    const selectedNode = set.first(nodeSelection.selected)
-    if (selectedNode) {
-      stackNavigator.enterNode(selectedNode)
-    }
-  },
-  exitNode() {
-    stackNavigator.exitNode()
-  },
-  changeColorSelectedNodes() {
-    actionHandlers['components.pickColorMulti'].toggled.value = true
-  },
-  openDocumentation() {
-    const result = tryGetSelectionDocUrl()
-    if (!result.ok) {
-      toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
-      return
-    }
-    window.open(result.value, '_blank')
-  },
-})
-
-// === Code Editor ===
-
-const codeEditor = shallowRef<ComponentInstance<typeof CodeEditor>>()
-const codeEditorArea = computed(() => unrefElement(codeEditor))
-const showCodeEditor = ref(false)
-const codeEditorHandler = codeEditorBindings.handler({
-  toggle() {
-    showCodeEditor.value = !showCodeEditor.value
-  },
-})
+  }),
+)
 
 // === Documentation Editor ===
 
-const displayedDocs = ref<SuggestionId>()
+const overrideDisplayedDocs = ref<SuggestionId>()
 const aiMode = ref<boolean>(false)
+const docsForSelection = computed(() => {
+  const selected = nodeSelection.tryGetSingleSelectedNode()
+  if (!selected.ok) return Err('Select a single component to display help')
+  const suggestionId = graphStore.db.nodeMainSuggestionId.lookup(selected.value)
+  if (suggestionId == null) return Err('No documentation available for selected component')
+  return Ok(suggestionId)
+})
+const displayedDocs = computed(() =>
+  overrideDisplayedDocs.value ? Ok(overrideDisplayedDocs.value) : docsForSelection.value,
+)
+
+watchEffect(() => {
+  const projectId = projectStore.id
+  rightPanel.setContext(containerData.tab, {
+    item: projectId,
+    help: { item: displayedDocs.value, aiMode: aiMode.value },
+  })
+})
 
 function toggleRightDockHelpPanel() {
-  rightDock.toggleVisible('help')
+  rightPanel.setTab('help')
 }
-
-const docEditor = shallowRef<ComponentInstance<typeof DocumentationEditor>>()
-const documentationEditorArea = computed(() => unrefElement(docEditor))
-
-const documentationEditorHandler = documentationEditorBindings.handler({
-  toggle: () => rightDock.toggleVisible(),
-})
 
 // === Component Browser ===
 
@@ -433,7 +426,7 @@ function openComponentBrowser(usage: Usage, position: Vec2) {
 function hideComponentBrowser() {
   graphStore.editedNodeInfo = undefined
   componentBrowserOpened.value = false
-  displayedDocs.value = undefined
+  overrideDisplayedDocs.value = undefined
 }
 
 function editWithComponentBrowser(node: NodeId, cursorPos: number) {
@@ -482,10 +475,7 @@ watch(
   },
 )
 
-const componentBrowser = ref<ComponentInstance<typeof ComponentBrowser>>()
-const docPanel = ref<ComponentInstance<typeof RightDockPanel>>()
-
-const componentBrowserElements = computed(() => [componentBrowser.value?.$el, docPanel.value?.$el])
+const root = useTemplateRef<HTMLElement>('root')
 
 // === Node Creation ===
 
@@ -521,12 +511,20 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
     toCommit.map((options: NodeCreationOptions) => ({
-      placement: { type: 'source', node: sourceNode },
+      placement:
+        options.position ?
+          { type: 'fixed', position: options.position }
+        : { type: 'source', node: sourceNode },
       expression: options.content!.instantiateCopied([sourcePortAst]).code(),
     })),
   )
-  if (toEdit.length)
-    createWithComponentBrowser({ placement: { type: 'source', node: sourceNode }, sourcePort })
+  if (toEdit.length) {
+    const placement: PlacementStrategy =
+      toEdit[0]?.position ?
+        { type: 'fixed', position: toEdit[0].position }
+      : { type: 'source', node: sourceNode }
+    createWithComponentBrowser({ placement, sourcePort })
+  }
 }
 
 function handleNodeOutputPortDoubleClick(id: Ast.AstId) {
@@ -555,7 +553,9 @@ function collapseNodes(nodes: Node[]) {
   try {
     const info = prepareCollapsedInfo(selected, graphStore.db)
     if (!info.ok) {
-      toasts.userActionFailed.show(`Unable to group nodes: ${info.error.payload}.`)
+      toasts.userActionFailed.show(
+        `Unable to create User Defined Component: ${info.error.payload}.`,
+      )
       return
     }
     const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
@@ -564,7 +564,7 @@ function collapseNodes(nodes: Node[]) {
     }
     const topLevel = graphStore.moduleRoot
     if (!topLevel) {
-      bail('BUG: no top level, collapsing not possible.')
+      bail('BUG: no top level, creating User Defined Component not possible.')
     }
     const selectedNodeRects = iter.filterDefined(iter.map(selected, graphStore.visibleArea))
     graphStore.edit((edit) => {
@@ -586,7 +586,7 @@ function collapseNodes(nodes: Node[]) {
       }
     })
   } catch (err) {
-    console.error('Error while collapsing, this is not normal.', err)
+    console.error('Error while creating User Defined Component, this is not normal.', err)
   }
 }
 
@@ -632,15 +632,7 @@ provideNodeColors(graphStore, (variable) =>
   viewportElem.value ? getComputedStyle(viewportElem.value).getPropertyValue(variable) : '',
 )
 
-const groupColors = computed(() => {
-  const styles: { [key: string]: string } = {}
-  for (const group of suggestionDb.groups) {
-    styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
-  }
-  return styles
-})
-
-const contextMenuActions: ActionName[] = [
+const contextMenuActions: DisplayableActionName[] = [
   'graph.navigateUp',
   'graph.renameProject',
   'graph.refreshExecution',
@@ -656,10 +648,9 @@ const contextMenuActions: ActionName[] = [
 
 <template>
   <div
-    id="graphEditorRoot"
+    ref="root"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
-    :style="groupColors"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
@@ -691,20 +682,16 @@ const contextMenuActions: ActionName[] = [
             :navigator="graphNavigator"
             :nodePosition="componentBrowserNodePosition"
             :usage="componentBrowserUsage"
-            :associatedElements="componentBrowserElements"
+            :graphEditorRoot="root"
             @accepted="commitComponentBrowser"
             @canceled="hideComponentBrowser"
-            @selectedSuggestionId="displayedDocs = $event"
+            @selectedSuggestionId="overrideDisplayedDocs = $event"
             @isAiPrompt="aiMode = $event"
           />
         </template>
         <TopBar
-          v-model:recordMode="projectStore.recordMode"
-          v-model:showCodeEditor="showCodeEditor"
           v-model:projectNameEdited="projectNameEdited"
-          v-model:showDocumentationEditor="rightDock.visible"
           :zoomLevel="100.0 * graphNavigator.targetScale"
-          :class="{ extraRightSpace: !rightDock.visible }"
           :menuActions="contextMenuActions"
           @contextmenu.stop.prevent
         />
@@ -712,10 +699,9 @@ const contextMenuActions: ActionName[] = [
         <GraphMouse />
       </ContextMenuTrigger>
       <BottomPanel v-model:show="showCodeEditor">
-        <CodeEditor ref="codeEditor" />
+        <CodeEditor />
       </BottomPanel>
     </div>
-    <RightDockPanel ref="docPanel" v-model:displayedDocs="displayedDocs" :aiMode="aiMode" />
   </div>
 </template>
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { Icon } from '@/util/iconMetadata/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { ref, watch } from 'vue'
 
 const props = defineProps<{
@@ -30,7 +30,7 @@ watch(input, (newInput) => {
 </script>
 
 <template>
-  <div :class="{ FileBrowserEntry: true, highlighted }">
+  <div :class="{ FileBrowserEntry: true, highlighted, clickable: true }">
     <GrowingSpinner v-if="editingState === 'pending'" :size="16" phase="loading-medium" />
     <SvgIcon v-else :name="icon" />
     <input

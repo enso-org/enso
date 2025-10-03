@@ -2,7 +2,7 @@ import type { PortId } from '@/providers/portInfo'
 import type { ConnectedEdge } from '@/stores/graph/index'
 import { Vec2 } from '@/util/data/vec2'
 import * as iter from 'enso-common/src/utilities/data/iter'
-import { computed, ref, watch, type WatchSource } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch, type WatchSource } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
 
 export type UnconnectedEdgeAnchor = { type: 'mouse' } | { type: 'fixed'; scenePos: Vec2 }
@@ -90,6 +90,40 @@ export function useUnconnectedEdges() {
     })
   }
 
+  const createNodeFromOutputPortButtonEdgesHovered = reactive(new Set<AstId>())
+  const createNodeFromOutputPortButtonEdgePositions = reactive(new Map<AstId, Vec2>())
+  function showCreateNodeButtonEdge(
+    portId: AstId,
+    { position, hovered }: { position: WatchSource<Vec2>; hovered: WatchSource<boolean> },
+  ) {
+    watch(
+      position,
+      (position) => createNodeFromOutputPortButtonEdgePositions.set(portId, position),
+      { immediate: true },
+    )
+    // NOTE: Cleanup is *before* unmount for HMR to work correctly. When the module registering the
+    // edge is hot-reloaded, if cleanup were in an unmount hook, the old version of the module would
+    // delete the edge after the new version of the module initializes and registers it.
+    onBeforeUnmount(() => createNodeFromOutputPortButtonEdgePositions.delete(portId))
+    watch(
+      hovered,
+      (hovered) => {
+        if (hovered) createNodeFromOutputPortButtonEdgesHovered.add(portId)
+        else createNodeFromOutputPortButtonEdgesHovered.delete(portId)
+      },
+      { immediate: true },
+    )
+    onBeforeUnmount(() => createNodeFromOutputPortButtonEdgesHovered.delete(portId))
+  }
+  const createNodeFromOutputPortButtonEdges = computed<UnconnectedTarget[]>(() =>
+    [...createNodeFromOutputPortButtonEdgePositions.entries()].map(([portId, position]) => ({
+      source: portId,
+      target: undefined,
+      anchor: { type: 'fixed', scenePos: position },
+      suggestion: !createNodeFromOutputPortButtonEdgesHovered.has(portId),
+    })),
+  )
+
   // === Edge status ===
 
   const unconnectedEdges = computed<Set<UnconnectedEdge>>(
@@ -124,6 +158,8 @@ export function useUnconnectedEdges() {
     mouseEditedEdge,
     cbEditedEdge,
     outputSuggestedEdge,
+    createNodeFromOutputPortButtonEdges,
+    showCreateNodeButtonEdge,
     // === Edge creation ===
     createEdgeFromOutput,
     disconnectSource,

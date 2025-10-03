@@ -3,7 +3,7 @@ from Standard.Table import all
 from Standard.Database import all
 from Standard.AWS import all
 from Standard.Geo import all
-from Standard.Google_Api import all
+from Standard.Google import all
 from Standard.Microsoft import all
 from Standard.Snowflake import all
 from Standard.Tableau import all

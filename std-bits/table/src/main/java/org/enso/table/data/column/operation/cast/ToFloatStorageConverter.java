@@ -8,8 +8,6 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -45,16 +43,18 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       return convertLongStorage(longStorage, problemAggregator);
     } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return convertBoolStorage(boolStorage, problemAggregator);
-    } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
-      return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
-    } else if (storage instanceof BigDecimalStorage bigDecimalStorage) {
-      return convertBigDecimalStorage(bigDecimalStorage, problemAggregator);
-    } else if (storage.getType() instanceof AnyObjectType
-        || storage.getType() instanceof NullType) {
-      return castFromObject(storage, problemAggregator);
     } else {
-      throw new IllegalStateException(
-          "No known strategy for casting storage " + storage + " to Float.");
+      var storageType = storage.getType();
+      if (storageType instanceof BigIntegerType bigIntegerType) {
+        return convertBigIntegerStorage(bigIntegerType.asTypedStorage(storage), problemAggregator);
+      } else if (storageType instanceof BigDecimalType bigDecimalType) {
+        return convertBigDecimalStorage(bigDecimalType.asTypedStorage(storage), problemAggregator);
+      } else if (storageType instanceof AnyObjectType || storageType instanceof NullType) {
+        return castFromObject(storage, problemAggregator);
+      } else {
+        throw new IllegalStateException(
+            "No known strategy for casting storage " + storage + " to Float.");
+      }
     }
   }
 

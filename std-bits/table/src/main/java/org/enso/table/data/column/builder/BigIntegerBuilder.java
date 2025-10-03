@@ -3,18 +3,17 @@ package org.enso.table.data.column.builder;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
+final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   // The problem aggregator is only used so that when we are retyping, we can pass it on.
   private final ProblemAggregator problemAggregator;
 
@@ -25,14 +24,13 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
 
   @Override
   public boolean canRetypeTo(StorageType<?> type) {
-    return type instanceof FloatType
-        || type instanceof BigDecimalType;
+    return type instanceof FloatType || type instanceof BigDecimalType;
   }
 
   @Override
   public Builder retypeTo(StorageType<?> type) {
     switch (type) {
-      case FloatType _ -> {
+      case FloatType floatType -> {
         // Needs to be an InferredDoubleBuilder so we can keep the raw data.
         var res = new InferredDoubleBuilder(currentSize, problemAggregator);
         for (int i = 0; i < currentSize; i++) {
@@ -44,7 +42,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
         }
         return res;
       }
-      case BigDecimalType _ -> {
+      case BigDecimalType bigDecimalType -> {
         var res = Builder.getForBigDecimal(data.length);
         for (int i = 0; i < currentSize; i++) {
           if (data[i] == null) {
@@ -60,8 +58,8 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  protected Storage<BigInteger> doSeal() {
-    return new BigIntegerStorage(data);
+  protected ColumnStorage<BigInteger> doSeal() {
+    return new TypedStorage<>(BigIntegerType.INSTANCE, data);
   }
 
   @Override
@@ -70,7 +68,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  public void append(Object o) {
+  public BigIntegerBuilder append(Object o) {
     ensureSpaceToAppend();
 
     if (o == null) {
@@ -82,6 +80,8 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
         throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
       }
     }
+
+    return this;
   }
 
   static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
@@ -96,23 +96,16 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
-    if (storage.getType() instanceof IntegerType) {
-      if (storage instanceof ColumnLongStorage longStorage) {
-        long n = longStorage.getSize();
-        for (long i = 0; i < n; i++) {
-          if (storage.isNothing(i)) {
-            appendNulls(1);
-          } else {
-            long item = longStorage.getItemAsLong(i);
-            append(BigInteger.valueOf(item));
-          }
+  public void appendBulkStorage(ColumnStorage<?> storage) {
+    if (storage instanceof ColumnLongStorage longStorage) {
+      long n = longStorage.getSize();
+      for (long i = 0; i < n; i++) {
+        if (storage.isNothing(i)) {
+          appendNulls(1);
+        } else {
+          long item = longStorage.getItemAsLong(i);
+          append(BigInteger.valueOf(item));
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type INTEGER: "
-                + storage
-                + ". This is a bug in the Table library.");
       }
     } else {
       super.appendBulkStorage(storage);

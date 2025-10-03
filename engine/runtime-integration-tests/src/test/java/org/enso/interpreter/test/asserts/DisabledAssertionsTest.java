@@ -27,7 +27,7 @@ public class DisabledAssertionsTest {
   public void actionInAssertIsNotComputedWhenAssertionsAreDisabled() {
     Value res =
         ctxRule.evalModule(
-            """
+"""
 from Standard.Base import Runtime
 import Standard.Base.Runtime.Ref.Ref
 

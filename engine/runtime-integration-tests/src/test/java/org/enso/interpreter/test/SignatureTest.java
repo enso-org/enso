@@ -9,6 +9,10 @@ import static org.junit.Assert.fail;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
@@ -25,10 +29,12 @@ public class SignatureTest {
     final URI uri = new URI("memory://neg.enso");
     final Source src =
         Source.newBuilder(
-                "enso", """
-    neg : Xyz -> Abc
-    neg a = 0 - a
-    """, uri.getAuthority())
+                "enso",
+                """
+                neg : Xyz -> Abc
+                neg a = 0 - a
+                """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -45,9 +51,12 @@ public class SignatureTest {
   public void wrongLiteralSignature() throws Exception {
     final URI uri = new URI("memory://literal_signature.enso");
     final Source src =
-        Source.newBuilder("enso", """
-    neg a = 0 - a:Xyz
-    """, uri.getAuthority())
+        Source.newBuilder(
+                "enso",
+                """
+                neg a = 0 - a:Xyz
+                """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -64,9 +73,12 @@ public class SignatureTest {
   public void wrongExpressionSignature() throws Exception {
     final URI uri = new URI("memory://exp_signature.enso");
     final Source src =
-        Source.newBuilder("enso", """
-    neg a = (0 - a):Xyz
-    """, uri.getAuthority())
+        Source.newBuilder(
+                "enso",
+                """
+                neg a = (0 - a):Xyz
+                """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -83,9 +95,12 @@ public class SignatureTest {
   public void wrongAscribedTypeSignature() throws Exception {
     final URI uri = new URI("memory://neg.enso");
     final Source src =
-        Source.newBuilder("enso", """
-    neg (a : Xyz) = 0 - a
-    """, uri.getAuthority())
+        Source.newBuilder(
+                "enso",
+                """
+                neg (a : Xyz) = 0 - a
+                """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -105,11 +120,11 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, Error
+                from Standard.Base import Integer, Error
 
-    err msg = Error.throw msg
-    neg (a : Integer) = 0 - a
-    """,
+                err msg = Error.throw msg
+                neg (a : Integer) = 0 - a
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -141,21 +156,21 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import all
+                from Standard.Base import all
 
-    type Int
-        Simple v
-        Complex (~unwrap : Int)
+                type Int
+                    Simple v
+                    Complex (~unwrap : Int)
 
-        value self = case self of
-            Int.Simple v -> v
-            Int.Complex unwrap -> unwrap.value
+                    value self = case self of
+                        Int.Simple v -> v
+                        Int.Complex unwrap -> unwrap.value
 
-        + self (that:Int) = Int.Simple self.value+that.value
+                    + self (that:Int) = Int.Simple self.value+that.value
 
-    simple v = Int.Simple v
-    complex x y = Int.Complex (x+y)
-    """,
+                simple v = Int.Simple v
+                complex x y = Int.Complex (x+y)
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -194,15 +209,15 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, IO
+                from Standard.Base import Integer, IO
 
-    build (~zero : Integer) =
-      neg (~a : Integer) = zero - a
-      neg
+                build (~zero : Integer) =
+                  neg (~a : Integer) = zero - a
+                  neg
 
-    make arr = build <|
-      arr.at 0
-    """,
+                make arr = build <|
+                  arr.at 0
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -247,17 +262,17 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, IO, Polyglot
+                from Standard.Base import Integer, IO, Polyglot
 
-    type Lazy
-        Value (~zero : Integer)
+                type Lazy
+                    Value (~zero : Integer)
 
-        neg self (~a : Integer) = self.zero - a
+                    neg self (~a : Integer) = self.zero - a
 
-    make arr = Lazy.Value <|
-      Polyglot.invoke arr "add" [ arr.length ]
-      arr.at 0
-    """,
+                make arr = Lazy.Value <|
+                  Polyglot.invoke arr "add" [ arr.length ]
+                  arr.at 0
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -298,12 +313,12 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
-    type Neg
-        Singleton
+                from Standard.Base import Integer
+                type Neg
+                    Singleton
 
-        twice self (a : Integer) = a + a
-    """,
+                    twice self (a : Integer) = a + a
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -329,10 +344,10 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
-    type Neg
-        twice (a : Integer) = a + a
-    """,
+                from Standard.Base import Integer
+                type Neg
+                    twice (a : Integer) = a + a
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -358,12 +373,12 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
+                from Standard.Base import Integer
 
-    call_twice x =
-        twice (a : Integer) = a + a
-        twice x
-    """,
+                call_twice x =
+                    twice (a : Integer) = a + a
+                    twice x
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -389,18 +404,18 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import all
-    type My_Type
-        Value x
-        f self y = self.x+y
+                from Standard.Base import all
+                type My_Type
+                    Value x
+                    f self y = self.x+y
 
-    type Other_Type
-        Ctor x
+                type Other_Type
+                    Ctor x
 
-    normal_call = (My_Type.Value 42).f 10
-    static_call = My_Type.f (My_Type.Value 23) 100
-    invalid_static_call = My_Type.f (Other_Type.Ctor 11) 1000
-    """,
+                normal_call = (My_Type.Value 42).f 10
+                static_call = My_Type.f (My_Type.Value 23) 100
+                invalid_static_call = My_Type.f (Other_Type.Ctor 11) 1000
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -428,11 +443,11 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    type Neg
-      Val (a : Xyz)
+                type Neg
+                  Val (a : Xyz)
 
-    neg = Neg.Val 10
-    """,
+                neg = Neg.Val 10
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -453,10 +468,10 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    type Maybe a
-        Nothing
-        Some unwrap:a
-    """,
+                type Maybe a
+                    Nothing
+                    Some unwrap:a
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -473,13 +488,13 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    type Maybe a
-        Nothing
-        Some unwrap:a
+                type Maybe a
+                    Nothing
+                    Some unwrap:a
 
-        get : a
-        get self = self.unwrap
-    """,
+                    get : a
+                    get self = self.unwrap
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -496,12 +511,12 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
+                from Standard.Base import Integer
 
-    type Maybe a
-        Nothing
-        Some (~unwrap : Integer)
-    """,
+                type Maybe a
+                    Nothing
+                    Some (~unwrap : Integer)
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -543,10 +558,10 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
-    my_func (x : Integer) = x + 1
-    main = my_func (Non_Existing_Func 23)
-    """,
+                from Standard.Base import Integer
+                my_func (x : Integer) = x + 1
+                main = my_func (Non_Existing_Func 23)
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -566,21 +581,21 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
+                from Standard.Base import Integer
 
-    type V
-        Val (a : Integer)
+                type V
+                    Val (a : Integer)
 
-        # mul accepts V as the other parameter
-        mul self (other : V) = V.Val self.a*other.a
+                    # mul accepts V as the other parameter
+                    mul self (other : V) = V.Val self.a*other.a
 
-    V.from (that : Integer) = V.Val that
+                V.from (that : Integer) = V.Val that
 
-    create x:Integer = V.from x
+                create x:Integer = V.from x
 
-    # invokes V.mul with Integer parameter, not V!
-    mix a:V b:Integer = a.mul b
-    """,
+                # invokes V.mul with Integer parameter, not V!
+                mix a:V b:Integer = a.mul b
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -603,23 +618,23 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import all
-    type My_Type
-        Value x
-        f self y = self.x+y
+                from Standard.Base import all
+                type My_Type
+                    Value x
+                    f self y = self.x+y
 
-    type Convertible_Type
-        A x
+                type Convertible_Type
+                    A x
 
-    type Inconvertible_Type
-        B x
+                type Inconvertible_Type
+                    B x
 
-    My_Type.from (that : Convertible_Type) = My_Type.Value that.x+1
+                My_Type.from (that : Convertible_Type) = My_Type.Value that.x+1
 
-    static_my_type = My_Type.f (My_Type.Value 23) 1000
-    static_convertible = My_Type.f (Convertible_Type.A 23) 1000
-    static_inconvertible = My_Type.f (Inconvertible_Type.B 23) 1000
-    """,
+                static_my_type = My_Type.f (My_Type.Value 23) 1000
+                static_convertible = My_Type.f (Convertible_Type.A 23) 1000
+                static_inconvertible = My_Type.f (Inconvertible_Type.B 23) 1000
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -651,17 +666,17 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import all
+                from Standard.Base import all
 
-    type Zero
-    type One
+                type Zero
+                type One
 
-    type Bin
-        Zero (v:Zero)
-        One (v:One)
-        Either v:(Zero | One)
-        Vec v:(Integer | Range | Vector (Integer | Range))
-    """,
+                type Bin
+                    Zero (v:Zero)
+                    One (v:One)
+                    Either v:(Zero | One)
+                    Vec v:(Integer | Range | Vector (Integer | Range))
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -726,17 +741,17 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
+                from Standard.Base import Integer
 
-    type V
-        Val a b c
+                type V
+                    Val a b c
 
-    create x:V = x.a + x.b + x.c
+                create x:V = x.a + x.b + x.c
 
-    mix a =
-      partial = V.Val 1 a
-      create partial
-    """,
+                mix a =
+                  partial = V.Val 1 a
+                  create partial
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -764,17 +779,17 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
+                from Standard.Base import Integer
 
-    fn a b c =
-      sum = a + b + c
-      add a = sum + a
-      add
+                fn a b c =
+                  sum = a + b + c
+                  add a = sum + a
+                  add
 
-    neg x:Integer = -x
+                neg x:Integer = -x
 
-    mix n = neg (fn 2 a=4 n)
-    """,
+                mix n = neg (fn 2 a=4 n)
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -803,16 +818,16 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
+                from Standard.Base import Integer
 
-    fn ~a ~b ~c =
-      add x = if x == 0 then 0 else x * (a + b + c)
-      add
+                fn ~a ~b ~c =
+                  add x = if x == 0 then 0 else x * (a + b + c)
+                  add
 
-    neg x:Integer = -x
+                neg x:Integer = -x
 
-    mix a = neg (fn c=(2/0) b=(a/0))
-    """,
+                mix a = neg (fn c=(2/0) b=(a/0))
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -841,33 +856,33 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import all
+                from Standard.Base import all
 
-    type Plus
-        Impl value dict
+                type Plus
+                    Impl value dict
 
-        + self (that:Plus) = if self.dict != that.dict then Panic.throw "panic!" else
-          self.dict.plus self.value that.value
-    type Mul
-        Impl value dict
+                    + self (that:Plus) = if self.dict != that.dict then Panic.throw "panic!" else
+                      self.dict.plus self.value that.value
+                type Mul
+                    Impl value dict
 
-        * self (that:Mul) = if self.dict != that.dict then Panic.throw "panic!" else
-          self.dict.mul self.value that.value
+                    * self (that:Mul) = if self.dict != that.dict then Panic.throw "panic!" else
+                      self.dict.mul self.value that.value
 
-    compute (a : Plus & Mul) (b : Plus & Mul) =
-      p = a+b
-      m = a*b
-      p:Plus + m:Plus
+                compute (a : Plus & Mul) (b : Plus & Mul) =
+                  p = a+b
+                  m = a*b
+                  p:Plus + m:Plus
 
-    type BooleanPlus
-        plus a:Boolean b:Boolean = a || b
-    Plus.from(that:Boolean) = Plus.Impl that BooleanPlus
+                type BooleanPlus
+                    plus a:Boolean b:Boolean = a || b
+                Plus.from(that:Boolean) = Plus.Impl that BooleanPlus
 
-    type BooleanMul
-        mul a:Boolean b:Boolean = a && b
-    Mul.from(that:Boolean) = Mul.Impl that BooleanMul
+                type BooleanMul
+                    mul a:Boolean b:Boolean = a && b
+                Mul.from(that:Boolean) = Mul.Impl that BooleanMul
 
-    """,
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -887,9 +902,9 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import all
-    foo (arg : Integer | Text) = arg
-    """,
+                from Standard.Base import all
+                foo (arg : Integer | Text) = arg
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -911,9 +926,12 @@ public class SignatureTest {
   public void unresolvedReturnTypeSignature() throws Exception {
     final URI uri = new URI("memory://neg.enso");
     final Source src =
-        Source.newBuilder("enso", """
-    neg a -> Xyz = 0 - a
-    """, uri.getAuthority())
+        Source.newBuilder(
+                "enso",
+                """
+                neg a -> Xyz = 0 - a
+                """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -934,10 +952,10 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
-    add1 a b -> Integer = a+b
-    add2 (a : Integer) (b : Integer) -> Integer = a+b
-    """,
+                from Standard.Base import Integer
+                add1 a b -> Integer = a+b
+                add2 (a : Integer) (b : Integer) -> Integer = a+b
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -957,9 +975,9 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
-    plusChecked a b -> Integer = b+a
-    """,
+                from Standard.Base import Integer
+                plusChecked a b -> Integer = b+a
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1076,10 +1094,10 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
-    plusUnchecked : Integer -> Integer -> Integer
-    plusUnchecked a b = b+a
-    """,
+                from Standard.Base import Integer
+                plusUnchecked : Integer -> Integer -> Integer
+                plusUnchecked a b = b+a
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1098,10 +1116,10 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
-    constant -> Integer = "foo"
-    foo a b = a + constant + b
-    """,
+                from Standard.Base import Integer
+                constant -> Integer = "foo"
+                foo a b = a + constant + b
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1124,11 +1142,11 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
-    foo a =
-        x -> Integer = a+a
-        x+x
-    """,
+                from Standard.Base import Integer
+                foo a =
+                    x -> Integer = a+a
+                    x+x
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1151,12 +1169,12 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, IO
-    foo a =
-        x -> Integer =
-            a+a
-        x+x
-    """,
+                from Standard.Base import Integer, IO
+                foo a =
+                    x -> Integer =
+                        a+a
+                    x+x
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1179,13 +1197,13 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, Error
-    foo x -> Integer = case x of
-        1 -> 100
-        2 -> "TWO"
-        3 -> Error.throw "My error"
-        _ -> x+1
-    """,
+                from Standard.Base import Integer, Error
+                foo x -> Integer = case x of
+                    1 -> 100
+                    2 -> "TWO"
+                    3 -> Error.throw "My error"
+                    _ -> x+1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1213,14 +1231,14 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, Error
-    factorial (x : Integer) -> Integer =
-        go n acc -> Integer =
-            if n == 0 then acc else
-                if n == 10 then "TEN :)" else
-                    @Tail_Call go (n-1) (acc*n)
-        go x 1
-    """,
+                from Standard.Base import Integer, Error
+                factorial (x : Integer) -> Integer =
+                    go n acc -> Integer =
+                        if n == 0 then acc else
+                            if n == 10 then "TEN :)" else
+                                @Tail_Call go (n-1) (acc*n)
+                    go x 1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1249,14 +1267,14 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, Error
-    foo (counter : Integer) (trap : Integer) -> Integer =
-        go i acc -> Integer =
-            if i == 0 then acc else
-                if i == trap then "TRAP!" else
-                    @Tail_Call go (i-1) (acc+1)
-        go counter 1
-    """,
+                from Standard.Base import Integer, Error
+                foo (counter : Integer) (trap : Integer) -> Integer =
+                    go i acc -> Integer =
+                        if i == 0 then acc else
+                            if i == trap then "TRAP!" else
+                                @Tail_Call go (i-1) (acc+1)
+                    go counter 1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1280,14 +1298,14 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, Error
-    foo_ok counter -> Integer =
-        if counter == 0 then 0 else
-            @Tail_Call foo_ok (counter-1)
-    foo_bad counter -> Integer =
-        if counter == 0 then "ZERO" else
-            @Tail_Call foo_bad (counter-1)
-    """,
+                from Standard.Base import Integer, Error
+                foo_ok counter -> Integer =
+                    if counter == 0 then 0 else
+                        @Tail_Call foo_ok (counter-1)
+                foo_bad counter -> Integer =
+                    if counter == 0 then "ZERO" else
+                        @Tail_Call foo_bad (counter-1)
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1315,11 +1333,11 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
-    import Standard.Base.Errors.Illegal_State.Illegal_State
-    foo a -> Integer ! Illegal_State =
-        a+a
-    """,
+                from Standard.Base import Integer
+                import Standard.Base.Errors.Illegal_State.Illegal_State
+                foo a -> Integer ! Illegal_State =
+                    a+a
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1348,13 +1366,13 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, Error
-    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-    import Standard.Base.Errors.Illegal_State.Illegal_State
+                from Standard.Base import Integer, Error
+                import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+                import Standard.Base.Errors.Illegal_State.Illegal_State
 
-    foo a -> Integer ! Illegal_State =
-        Error.throw (Illegal_Argument.Error "foo: "+a.to_text)
-    """,
+                foo a -> Integer ! Illegal_State =
+                    Error.throw (Illegal_Argument.Error "foo: "+a.to_text)
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1373,10 +1391,10 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, Text
-    foo a -> Integer | Text =
-        a+a
-    """,
+                from Standard.Base import Integer, Text
+                foo a -> Integer | Text =
+                    a+a
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1403,14 +1421,14 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer, Text
-    type Clazz
-        Value a
-    Clazz.from (that : Integer) = Clazz.Value that
+                from Standard.Base import Integer, Text
+                type Clazz
+                    Value a
+                Clazz.from (that : Integer) = Clazz.Value that
 
-    foo a -> (Integer | Text) & Clazz =
-        a+a
-    """,
+                foo a -> (Integer | Text) & Clazz =
+                    a+a
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1436,12 +1454,12 @@ public class SignatureTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Integer
-    type My_Type
-        Value
-        plus_member self a b -> Integer = b+a
-        plus_static a b -> Integer = b+a
-    """,
+                from Standard.Base import Integer
+                type My_Type
+                    Value
+                    plus_member self a b -> Integer = b+a
+                    plus_static a b -> Integer = b+a
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1473,6 +1491,321 @@ public class SignatureTest {
       assertContains(
           "expected the result of `plus_static` to be Integer, but got Text", e.getMessage());
     }
+  }
+
+  @Test
+  public void avoidDoubleEvaluation() {
+    var code =
+        """
+        from Standard.Base import IO, Integer
+
+        type A
+            A_Ctor a
+        type B
+            B_Ctor b
+
+        A.from that:B =
+            A.A_Ctor that
+
+        A.extension_method self (arg1:Integer) -> A =
+            IO.println "extension_method called"
+            constructed_b = B.B_Ctor "constructed {self.A="+self.to_text+"} {arg1="+arg1.to_text+"}"
+            constructed_b
+
+        main =
+            a = A.A_Ctor "a"
+            v = a.extension_method 42
+            v
+        """;
+
+    ctxRule.resetOut();
+    var res = ctxRule.evalModule(code);
+    assertEquals(res.getMetaObject().getMetaSimpleName(), "A");
+    assertEquals("One call", "extension_method called", ctxRule.getOut().trim());
+  }
+
+  @Test
+  public void intersectionWithAny() {
+    var code =
+        """
+        from Standard.Base import Any
+
+        type A
+            A_Ctor a
+
+            i_am_a self = "YesA"
+        type B
+            B_Ctor b
+
+            i_am_b self = "YesB"
+
+
+        A.from that:B =
+            A.A_Ctor that
+
+        both v -> A & B =
+            B.B_Ctor v
+
+        a_with x -> A & Any = x
+        b_with x -> B & Any = x
+
+        private tripple value =
+            v = both value
+            a = a_with v
+            b = b_with v
+            [v, a, b]
+
+        main = tripple
+        """;
+
+    ctxRule.resetOut();
+    var tripple = ctxRule.evalModule(code);
+    assertTrue("Executable", tripple.canExecute());
+
+    var res = tripple.execute(42);
+    assertTrue("It an array", res.hasArrayElements());
+    assertEquals(3, res.getArraySize());
+
+    var v = res.getArrayElement(0);
+    var a = res.getArrayElement(1);
+    var b = res.getArrayElement(2);
+
+    assertEquals("YesA", v.invokeMember("i_am_a").asString());
+    assertEquals("YesB", v.invokeMember("i_am_b").asString());
+
+    assertEquals("YesA", a.invokeMember("i_am_a").asString());
+    assertEquals("A & Any keeps also B", "YesB", a.invokeMember("i_am_b").asString());
+
+    assertEquals("B & Any keeps also A", "YesA", b.invokeMember("i_am_a").asString());
+    assertEquals("YesB", b.invokeMember("i_am_b").asString());
+  }
+
+  @Test
+  public void intersectionWithAnyDoesNotRevealHidden() {
+    var code =
+        """
+        from Standard.Base import Any, Panic
+
+        type A
+            A_Ctor a
+
+            i_am_a self = "YesA"
+        type B
+            B_Ctor b
+
+            i_am_b self = "YesB"
+
+
+        A.from that:B =
+            A.A_Ctor that
+
+        both v -> A & B =
+            B.B_Ctor v
+        just_a_visible v -> A = both v
+
+        a_with x -> A & Any =
+          x
+        a_unhide x -> A & Any =
+          x:(A & Any)
+        b_with x -> B & Any =
+          x
+        b_unhide x -> B & Any =
+          x:(B & Any)
+
+        private tripple value =
+            v = just_a_visible value
+            a = Panic.recover Any <| a_with v
+            au = Panic.recover Any <| a_unhide v
+            b = Panic.recover Any <| b_with v
+            bu = Panic.recover Any <| b_unhide v
+            [v, a, b, au, bu]
+
+        main = tripple
+        """;
+
+    ctxRule.resetOut();
+    var tripple = ctxRule.evalModule(code);
+    assertTrue("Executable", tripple.canExecute());
+
+    var res = tripple.execute(42);
+    assertTrue("It an array", res.hasArrayElements());
+    assertEquals(5, res.getArraySize());
+
+    var v = res.getArrayElement(0);
+    var a = res.getArrayElement(1);
+    var b = res.getArrayElement(2);
+    var au = res.getArrayElement(3);
+    var bu = res.getArrayElement(4);
+
+    assertEquals("YesA", v.invokeMember("i_am_a").asString());
+    try {
+      var r = v.invokeMember("i_am_b");
+      fail("Unexpected return value " + r);
+    } catch (UnsupportedOperationException ex) {
+      assertContains("non-existent member key", ex.getMessage());
+      assertContains("i_am_b", ex.getMessage());
+    }
+
+    assertEquals("YesA", a.invokeMember("i_am_a").asString());
+    try {
+      // b was hidden and remains hidden
+      var r = a.invokeMember("i_am_b");
+      fail("Unexpected return value " + r);
+    } catch (UnsupportedOperationException ex) {
+      assertContains("non-existent member key", ex.getMessage());
+      assertContains("i_am_b", ex.getMessage());
+    }
+
+    assertEquals("YesA", au.invokeMember("i_am_a").asString());
+    assertEquals(
+        "Explicit x:(A & Any) reveals also hidden B", "YesB", au.invokeMember("i_am_b").asString());
+
+    assertTrue("Cannot reveal hidden B by -> check", b.isException());
+
+    assertEquals("B & Any keeps also A", "YesA", bu.invokeMember("i_am_a").asString());
+    assertEquals("B is unhidden", "YesB", bu.invokeMember("i_am_b").asString());
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyFirst() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var any = Stream.of("Any");
+          var stream = list.stream();
+          var both = Stream.concat(any, stream);
+          return both.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyAtTheEnd() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var stream = list.stream();
+          var any = Stream.of("Any");
+          var both = Stream.concat(stream, any);
+          return both.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyEveryEven() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var stream = list.stream().flatMap(t -> Stream.of(t, "Any"));
+          return stream.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyInMiddle() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var arr = new ArrayList<>(list);
+          arr.add(list.size() / 2, "Any");
+          var stream = arr.stream();
+          return stream.collect(Collectors.joining(" & "));
+        });
+  }
+
+  @Test
+  public void intersectionWithAnyKeepsOrderAnyEveryOdd() {
+    intersetionWithAnyKeepsOrder(
+        (list) -> {
+          var stream = list.stream().flatMap(t -> Stream.of("Any", t));
+          return stream.collect(Collectors.joining(" & "));
+        });
+  }
+
+  private void intersetionWithAnyKeepsOrder(Function<List<String>, String> spiceWithAny) {
+    var begin =
+        """
+        from Standard.Base import Any
+
+        type A
+            A_Ctor a
+
+            i_am_a self = "YesA"
+            id self = self.i_am_a
+        type B
+            B_Ctor b
+
+            i_am_b self = "YesB"
+            id self = self.i_am_b
+        type C
+            C_Ctor b
+
+            i_am_c self = "YesC"
+            id self = self.i_am_c
+
+        A.from that:B =
+            A.A_Ctor that
+        C.from that:B =
+            C.C_Ctor that
+
+        all_of v -> C & B & A =
+            B.B_Ctor v
+        """;
+
+    var middle =
+        "a_with x -> "
+            + spiceWithAny.apply(List.of("A"))
+            + " = x\n"
+            + "b_with x -> "
+            + spiceWithAny.apply(List.of("B"))
+            + " = x\n"
+            + "ab_with x -> "
+            + spiceWithAny.apply(List.of("A", "B"))
+            + " = x\n"
+            + "ba_with x -> "
+            + spiceWithAny.apply(List.of("B", "A"))
+            + " = x\n"
+            + "";
+
+    var end =
+        """
+        private all value =
+            v = all_of value
+            a = a_with v
+            b = b_with v
+            ab = ab_with v
+            ba = ba_with v
+
+            [v, a, b, ab, ba]
+
+        main = all
+        """;
+
+    ctxRule.resetOut();
+    var code = begin + middle + end;
+    var all = ctxRule.evalModule(code);
+    assertTrue("Executable", all.canExecute());
+
+    var res = all.execute(42);
+    assertTrue("It an array", res.hasArrayElements());
+    assertEquals(5, res.getArraySize());
+
+    for (var i = 0; i < res.getArraySize(); i++) {
+      var at = res.getArrayElement(i);
+
+      assertEquals("Can call A at " + i, "YesA", at.invokeMember("i_am_a").asString());
+      assertEquals("Can call B at " + i, "YesB", at.invokeMember("i_am_b").asString());
+      assertEquals("Can call C at " + i, "YesC", at.invokeMember("i_am_c").asString());
+    }
+
+    var v = res.getArrayElement(0);
+    var a = res.getArrayElement(1);
+    var b = res.getArrayElement(2);
+    var ab = res.getArrayElement(3);
+    var ba = res.getArrayElement(4);
+
+    assertEquals("Call overloaded method selects first C", "YesC", v.invokeMember("id").asString());
+    assertEquals("Call overloaded method selects first A", "YesA", a.invokeMember("id").asString());
+    assertEquals("Call overloaded method selects first B", "YesB", b.invokeMember("id").asString());
+    assertEquals(
+        "Call overloaded method selects first A", "YesA", ab.invokeMember("id").asString());
+    assertEquals(
+        "Call overloaded method selects first B", "YesB", ba.invokeMember("id").asString());
   }
 
   static void assertTypeError(String expArg, String expType, String realType, String msg) {

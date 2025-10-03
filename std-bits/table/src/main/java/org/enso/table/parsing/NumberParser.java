@@ -4,7 +4,7 @@ import org.enso.base.parser.FormatDetectingNumberParser;
 import org.enso.base.parser.NegativeSign;
 import org.enso.base.parser.NumberWithSeparators;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.parsing.problems.CommonParseProblemAggregator;
@@ -107,8 +107,8 @@ public class NumberParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Storage<?> parseColumn(
-      Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
+  public ColumnStorage<?> parseColumn(
+      ColumnStorage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
     long size = sourceStorage.getSize();
     Builder builder = makeBuilderWithCapacity(size, problemAggregator.createSimpleChild());
 

@@ -48,7 +48,6 @@ final class IRNodeClassGenerator {
       Set.of(
           "java.util.UUID",
           "java.util.ArrayList",
-          "java.util.function.Function",
           "java.util.Objects",
           "java.util.stream.Collectors",
           "org.enso.compiler.core.Identifier",
@@ -227,9 +226,9 @@ final class IRNodeClassGenerator {
             .map(
                 field ->
                     """
-                ${comment}
-                private final ${type} ${name};
-                """
+                    ${comment}
+                    private final ${type} ${name};
+                    """
                         .replace("${comment}", commentForField(field))
                         .replace("${type}", field.getSimpleTypeName())
                         .replace("${name}", field.getName()))
@@ -276,12 +275,12 @@ final class IRNodeClassGenerator {
     var isChild = "" + field.isChild();
     var isNullable = "" + field.isNullable();
     return """
-        /**
-         * Created from ${matchingCtorInfo}.
-         * <p> - isNullable: ${isNullable}.
-         * <p> - isChild: ${isChild}.
-         */
-        """
+    /**
+     * Created from ${matchingCtorInfo}.
+     * <p> - isNullable: ${isNullable}.
+     * <p> - isChild: ${isChild}.
+     */
+    """
         .replace("${isChild}", isChild)
         .replace("${isNullable}", isNullable)
         .replace("${matchingCtorInfo}", matchingCtorInfo)
@@ -383,10 +382,10 @@ final class IRNodeClassGenerator {
             .map(
                 notNullField ->
                     """
-            if ($fieldName == null) {
-              throw new IllegalArgumentException("$fieldName is required");
-            }
-            """
+                    if ($fieldName == null) {
+                      throw new IllegalArgumentException("$fieldName is required");
+                    }
+                    """
                         .replace("$fieldName", notNullField.name()))
             .collect(Collectors.joining(System.lineSeparator()));
     sb.append(Utils.indent(checkCode, 2));
@@ -469,26 +468,14 @@ final class IRNodeClassGenerator {
   private String userDefinedGetters() {
     var sb = new StringBuilder();
     for (var field : generatedClassContext.getUserFields()) {
-      String code;
-      if (field.isPersistanceReference()) {
-        code =
-            """
-            public ${returnType} ${fieldName}() {
-              return ${fieldName}.get(${returnType}.class);
-            }
-            """
-                .replace("${returnType}", field.getTypeParameter().getSimpleName())
-                .replace("${fieldName}", field.getName());
-      } else {
-        code =
-            """
-            public ${returnType} ${fieldName}() {
-              return ${fieldName};
-            }
-            """
-                .replace("${returnType}", field.getSimpleTypeName())
-                .replace("${fieldName}", field.getName());
-      }
+      var code =
+          """
+          public ${returnType} ${fieldName}() {
+            return ${fieldName};
+          }
+          """
+              .replace("${returnType}", field.getSimpleTypeName())
+              .replace("${fieldName}", field.getName());
       sb.append(code);
       sb.append(System.lineSeparator());
     }

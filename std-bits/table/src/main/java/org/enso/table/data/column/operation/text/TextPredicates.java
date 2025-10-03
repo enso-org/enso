@@ -22,25 +22,12 @@ public final class TextPredicates extends GenericComparators<String> {
       new TextPredicates(TextPredicates::RegexMatchPredicate);
 
   private TextPredicates(BiPredicate<String, String> predicate) {
-    super(predicate, true);
+    super(TextType.VARIABLE_LENGTH, predicate);
   }
 
   @Override
-  protected RuntimeException makeCompareError(Object left, Object right) {
-    return new UnexpectedTypeException("a Text", right.toString());
-  }
-
-  @Override
-  protected ColumnStorage<String> asTypedStorage(ColumnStorage<?> storage) {
-    return TextType.VARIABLE_LENGTH.asTypedStorage(storage);
-  }
-
-  @Override
-  protected String asTypedValue(Object value) {
-    if (value instanceof String stringValue) {
-      return stringValue;
-    }
-    return null;
+  protected boolean onIncomparable(Object left, Object right) {
+    throw new UnexpectedTypeException("a Text", right.toString());
   }
 
   @Override
@@ -51,7 +38,7 @@ public final class TextPredicates extends GenericComparators<String> {
 
   @Override
   public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
-    return canApplyMap(left, null) && canApplyMap(right, null);
+    return canApplyMap(left, null);
   }
 
   private static final Map<String, Pattern> regexCache = new HashMap<>();

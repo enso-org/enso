@@ -2,12 +2,13 @@ package org.enso.table.data.column.operation.binary;
 
 import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.BinaryOperation;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /**
@@ -18,10 +19,10 @@ import org.enso.table.util.BitSets;
  */
 public final class LogicalOperations {
   /** The logical AND operation instance. */
-  public static final BinaryOperation<Boolean> AND = new BooleanAndOperation();
+  public static final BinaryOperationTyped<Boolean> AND = new BooleanAndOperation();
 
   /** The logical OR operation instance. */
-  public static final BinaryOperation<Boolean> OR = new BooleanOrOperation();
+  public static final BinaryOperationTyped<Boolean> OR = new BooleanOrOperation();
 
   /**
    * Logical AND with support for Nulls:
@@ -63,8 +64,8 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       return rightIsNothing || rightBoolean
-          ? BoolStorage.makeEmpty(left.getSize())
-          : BoolStorage.makeConstant(Builder.checkSize(left.getSize()), false);
+          ? Builder.makeEmpty(BooleanType.INSTANCE, left.getSize())
+          : BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(false, left.getSize()));
     }
 
     @Override
@@ -73,11 +74,13 @@ public final class LogicalOperations {
         boolean rightBoolean,
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
-      int size = (int) left.getSize();
       if (!rightIsNothing) {
-        return rightBoolean ? left : BoolStorage.makeConstant(size, false);
+        return rightBoolean
+            ? left
+            : BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(false, left.getSize()));
       }
 
+      int size = (int) left.getSize();
       BitSet values = left.getValues();
       if (left.isNegated()) {
         var newMissing = new BitSet(size);
@@ -186,8 +189,8 @@ public final class LogicalOperations {
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
       return rightIsNothing || !rightBoolean
-          ? BoolStorage.makeEmpty(left.getSize())
-          : BoolStorage.makeConstant(Builder.checkSize(left.getSize()), true);
+          ? Builder.makeEmpty(BooleanType.INSTANCE, left.getSize())
+          : BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(true, left.getSize()));
     }
 
     @Override
@@ -196,11 +199,13 @@ public final class LogicalOperations {
         boolean rightBoolean,
         boolean rightIsNothing,
         MapOperationProblemAggregator problemAggregator) {
-      int size = (int) left.getSize();
       if (!rightIsNothing) {
-        return rightBoolean ? BoolStorage.makeConstant(size, true) : left;
+        return rightBoolean
+            ? BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(true, left.getSize()))
+            : left;
       }
 
+      int size = (int) left.getSize();
       BitSet values = left.getValues();
       if (left.isNegated()) {
         var newMissing = left.getIsNothingMap().get(0, size);

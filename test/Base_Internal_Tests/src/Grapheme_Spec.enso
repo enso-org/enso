@@ -2,7 +2,6 @@ from Standard.Base import all
 
 import Standard.Base.Internal.Extra_Imports.Text_Utils
 import Standard.Base.Internal.Extra_Imports.CaseFoldedString
-import Standard.Base.Internal.Extra_Imports.BreakIterator
 import Standard.Base.Internal.Extra_Imports.Exception as JException
 
 from Standard.Test import all

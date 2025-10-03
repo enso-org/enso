@@ -5,11 +5,12 @@ from Standard.Test import all
 polyglot java import java.util.jar.JarFile
 polyglot java import java.util.jar.JarEntry
 polyglot java import java.nio.file.Path as JPath
-polyglot java import java.io.File as JFile
 polyglot java import java.util.Enumeration
 
+only_on_linux = if System.os == "linux" then Nothing else "Test runs only on Linux"
+
 add_specs suite_builder = suite_builder.group "Embedded native libraries" group_builder->
-    group_builder.specify "Embedded native libraries in all JARs should be the same as in native_libs.json" <|
+    group_builder.specify "Embedded native libraries in all JARs should be the same as in native_libs.json" pending=only_on_linux <|
         expected_native_libs = (enso_project.data / "native_libs.json") . read JSON_Format
         Test.with_clue "native_libs.json is present in the data dir" <|
             expected_native_libs.is_error . should_be_false
@@ -39,8 +40,7 @@ transform_path path:Text -> Text =
     file.is_descendant_of built_distribution_root . should_be_true
     relative = built_distribution_root.relativize file . to_text
     regex = "\d+\.\d+\.\d+-dev".to_regex
-    separator = JFile.separator
-    new_path_items = relative.split separator . map \path_item ->
+    new_path_items = relative.split "/" . map \path_item ->
         path_item.replace regex "0.0.0-dev"
     new_path_items.join "/"
 

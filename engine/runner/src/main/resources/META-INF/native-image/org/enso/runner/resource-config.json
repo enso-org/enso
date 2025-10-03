@@ -63,8 +63,6 @@
   }, {
     "pattern":"\\QMETA-INF/services/org.apache.tika.detect.EncodingDetector\\E"
   }, {
-    "pattern":"\\QMETA-INF/services/org.enso.base.file_format.FileFormatSPI\\E"
-  }, {
     "pattern":"\\QMETA-INF/services/org.enso.logger.LoggerSetup\\E"
   }, {
     "pattern":"\\QMETA-INF/services/org.enso.persist.Persistance\\E"

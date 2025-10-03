@@ -2,9 +2,7 @@
 
 import type { DownloadUrlOptions, SystemApi } from '../../../env'
 
-/**
- * Options for `download` function.
- */
+/** Options for `download` function. */
 export interface DownloadOptions {
   readonly url: string
   readonly name?: string | null | undefined
@@ -51,17 +49,12 @@ export async function downloadWithHeaders(
   return download({ url: objectUrl, name })
 }
 
-/**
- * Options for `downloadUsingElectron`.
- */
-export type DownloadUsingElectronOptions = DownloadUrlOptions & {
+/** Options for `downloadUsingElectron`. */
+export interface DownloadUsingElectronOptions extends DownloadUrlOptions {
   readonly downloadURL: SystemApi['downloadURL']
 }
 
-/**
- * Initiate a download for the specified url using Electron's download API.
- * @throws invariant if you try to use this function in a non-Electron environment.
- */
+/** Initiate a download for the specified url using Electron's download API. */
 export async function downloadUsingElectron(options: DownloadUsingElectronOptions) {
   const { downloadURL, ...rest } = options
   await downloadURL(rest)

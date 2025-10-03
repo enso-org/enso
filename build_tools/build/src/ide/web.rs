@@ -94,6 +94,9 @@ pub mod env {
         /// The client ID for the Google OAuth integration used for Google Credentials.
         ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID, String;
 
+        /// The client ID for the Strava OAuth integration used for Strava Credentials.
+        ENSO_IDE_STRAVA_OAUTH_CLIENT_ID, String;
+
         ENSO_IDE_COMMIT_HASH, String;
         ENSO_IDE_VERSION, String;
     }
@@ -210,7 +213,6 @@ impl FallibleManipulator for ProjectManagerInfo {
 #[derive(Clone)]
 #[derive_where(Debug)]
 pub struct IdeDesktop {
-    pub build_sbt: generated::RepoRootBuildSbt,
     pub repo_root: generated::RepoRoot,
     #[derive_where(skip)]
     pub octocrab:  Octocrab,
@@ -223,12 +225,7 @@ impl IdeDesktop {
         octocrab: Octocrab,
         cache: ide_ci::cache::Cache,
     ) -> Self {
-        Self {
-            build_sbt: repo_root.build_sbt.clone(),
-            repo_root: repo_root.clone(),
-            octocrab,
-            cache,
-        }
+        Self { repo_root: repo_root.clone(), octocrab, cache }
     }
 
     pub fn pnpm(&self) -> Result<PnpmCommand> {
@@ -273,8 +270,11 @@ impl IdeDesktop {
         if TARGET_OS == OS::MacOS && env::CSC_KEY_PASSWORD.is_set() {
             // This means that we will be doing code signing on MacOS. This requires JDK environment
             // to be set up.
-            let graalvm =
-                crate::engine::deduce_graal(self.octocrab.clone(), &self.build_sbt).await?;
+            let graalvm = crate::engine::deduce_graal(
+                self.octocrab.clone(),
+                &self.repo_root.project.dependencies_scala,
+            )
+            .await?;
             graalvm.install_if_missing(&self.cache).await?;
         }
 

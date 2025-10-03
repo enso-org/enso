@@ -3,7 +3,7 @@ import ResizeHandles from '@/components/ResizeHandles.vue'
 import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
-import { UpdateHandler, WidgetInput } from '@/providers/widgetRegistry'
+import { WidgetInput, type UpdateHandler } from '@/providers/widgetRegistry'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, ref, watch } from 'vue'
@@ -12,7 +12,7 @@ const props = defineProps<{
   input: WidgetInput
   metadataKey: string
   config: { size: { x: number; y: number } }
-  onUpdate: UpdateHandler
+  updateCallback: UpdateHandler
 }>()
 
 const size = computed(() => Vec2.FromXY(props.config.size))
@@ -28,7 +28,7 @@ const clientBounds = computed({
   set(value) {
     const sizeToStore = value.size.scale(1 / graphNav.scale)
     if (sizeToStore.equalsApproximately(size.value, 0.01)) return
-    props.onUpdate({
+    props.updateCallback({
       portUpdate: {
         origin: props.input.portId,
         metadataKey: 'WidgetTableEditor',

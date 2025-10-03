@@ -7,19 +7,22 @@ from Standard.Base.Widget_Helpers import make_text_secret_selector
 
 type Connection_Options
     ## Additional customization options for the JDBC connection.
-
        Hold a set of key value pairs used to configure the connection.
     @options Connection_Options.default_widget
     Value options:Vector=[]
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Merge the base set of options with the overrides in this object.
     merge :  Vector -> Vector
     merge self base_options =
         base_options.filter x->(self.options.any (y->y.first==x.first) . not) + self.options
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Widget to design connection options.
     default_widget display:Display=..Always -> Widget =
         fqn = Pair.to Meta.Type . qualified_name . take (..Before_Last '.')
@@ -28,5 +31,7 @@ type Connection_Options
         item_editor = Single_Choice display=..Always values=[pair]
         Vector_Editor item_editor=item_editor display=display item_default=default
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Connection_Options.from (that:Vector) = Connection_Options.Value that

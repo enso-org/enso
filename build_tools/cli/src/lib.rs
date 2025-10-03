@@ -60,7 +60,6 @@ use enso_build::source::Source;
 use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
-use futures_util::future::try_join;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
 use ide_ci::fs::remove_if_exists;
@@ -386,6 +385,7 @@ impl Processor {
             }
             arg::backend::Command::Test { which } => {
                 let mut config = enso_build::engine::BuildConfigurationFlags::default();
+                self.add_heapdump_opts(&mut config);
                 for arg in which {
                     match arg {
                         Tests::Jvm => {
@@ -420,7 +420,7 @@ impl Processor {
                             config.small_jdk_dir = Some(small_jdk_dir.clone());
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::blacklist(vec![
-                                    "Examples_Tests".to_string(),
+                                    "Microsoft_Tests".to_string(),
                                 ]));
                             config.add_engine_runner_arg("--jvm");
                             config.add_engine_runner_arg(
@@ -431,7 +431,7 @@ impl Processor {
                         Tests::StandardLibraryInNative => {
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::blacklist(vec![
-                                    "Examples_Tests".to_string(),
+                                    "Microsoft_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
                         }
@@ -441,6 +441,14 @@ impl Processor {
                                     "Snowflake_Tests".to_string(),
                                 ]));
                             config.use_native_runner = false;
+                        }
+                        Tests::StdSnowflakeJVM => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Snowflake_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = false;
+                            config.extra_engine_runner_args = Some(vec!["--jvm".to_string()])
                         }
                         Tests::StdCloudRelated => {
                             config.test_standard_library =
@@ -458,6 +466,25 @@ impl Processor {
                                     "Image_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
+                        }
+                        Tests::StdMicrosoft => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Microsoft_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = true;
+                        }
+                        Tests::StdMockDualMicrosoft => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Microsoft_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = false;
+                            config.extra_engine_runner_args = Some(vec![
+                                "--jvm".to_string(),
+                                "--vm.D=polyglot.enso.classLoading=Standard.Microsoft:guest,hosted"
+                                    .to_string(),
+                            ])
                         }
                     }
                 }
@@ -529,6 +556,19 @@ impl Processor {
             Ok(enso_build::engine::RunContext { inner, config, paths, external_runtime: None })
         }
         .boxed()
+    }
+
+    /// Add options to produce heap dumps on OOM errors.
+    /// It is essential to pass the `-XX:+HeapDumpOnOutOfMemoryError` option both via
+    /// `JAVA_TOOL_OPTIONS` env var and as a command line argument to the runner.
+    /// For explanation, see https://github.com/enso-org/enso/pull/13984
+    fn add_heapdump_opts(&self, config: &mut enso_build::engine::BuildConfigurationFlags) {
+        let dump_arg = "-XX:+HeapDumpOnOutOfMemoryError";
+        config.add_java_tool_opt(dump_arg);
+        if TARGET_OS != OS::Windows {
+            // This flag is not supported on Windows NI.
+            config.add_engine_runner_arg(dump_arg);
+        }
     }
 
     /// Get a handle to the release by its identifier.
@@ -751,6 +791,12 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             }
 
             if !dry_run {
+                enso_build::web::install(&ctx.repo_root).await?;
+                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean)
+                    .await?;
+            }
+
+            if !dry_run {
                 // On Windows, `npm` uses junctions as symbolic links for in-workspace dependencies.
                 // Unfortunately, Git for Windows treats those as hard links. That then leads to
                 // `git clean` recursing into those linked directories, happily deleting sources of
@@ -771,7 +817,8 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 }
                 Result::Ok(())
             };
-            try_join(git_clean, clean_cache).await?;
+
+            try_join!(git_clean, clean_cache)?;
         }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;

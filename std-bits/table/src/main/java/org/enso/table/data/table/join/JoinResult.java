@@ -1,55 +1,53 @@
 package org.enso.table.data.table.join;
 
-import org.enso.base.arrays.IntArrayBuilder;
-import org.enso.table.data.mask.OrderMask;
+import static org.enso.table.data.column.builder.Builder.checkSize;
+
+import org.enso.base.arrays.LongArrayList;
+import org.enso.table.data.column.operation.masks.IndexMapper;
 
 public class JoinResult {
-  private final int length;
-  private final int[] leftIndices;
-  private final int[] rightIndices;
+  private final IndexMapper leftIndexMapper;
+  private final IndexMapper rightIndexMapper;
 
-  public JoinResult(int[] leftIndices, int[] rightIndices, int length) {
-    this.length = length;
-    this.leftIndices = leftIndices;
-    this.rightIndices = rightIndices;
+  public JoinResult(long[] leftIndices, long[] rightIndices) {
+    this.leftIndexMapper = new IndexMapper.ArrayMapping(leftIndices);
+    this.rightIndexMapper = new IndexMapper.ArrayMapping(rightIndices);
   }
 
-  /** Represents a pair of indices of matched rows. -1 means an unmatched row. */
-  public record RowPair(int leftIndex, int rightIndex) {}
-
-  public OrderMask getLeftOrderMask() {
-    return OrderMask.fromArray(leftIndices, length);
+  public IndexMapper getLeftIndexMapper() {
+    return leftIndexMapper;
   }
 
-  public OrderMask getRightOrderMask() {
-    return OrderMask.fromArray(rightIndices, length);
+  public IndexMapper getRightIndexMapper() {
+    return rightIndexMapper;
   }
 
   public static class Builder {
-    IntArrayBuilder leftIndices;
-    IntArrayBuilder rightIndices;
+    LongArrayList leftIndices;
+    LongArrayList rightIndices;
 
-    public Builder(int initialCapacity) {
-      leftIndices = new IntArrayBuilder(initialCapacity);
-      rightIndices = new IntArrayBuilder(initialCapacity);
+    public Builder(long initialCapacity) {
+      int capacity = checkSize(initialCapacity);
+      leftIndices = new LongArrayList(capacity);
+      rightIndices = new LongArrayList(capacity);
     }
 
     public Builder() {
       this(128);
     }
 
-    public void addMatchedRowsPair(int leftIndex, int rightIndex) {
+    public void addMatchedRowsPair(long leftIndex, long rightIndex) {
       leftIndices.add(leftIndex);
       rightIndices.add(rightIndex);
     }
 
-    public void addUnmatchedLeftRow(int leftIndex) {
+    public void addUnmatchedLeftRow(long leftIndex) {
       leftIndices.add(leftIndex);
-      rightIndices.add(-1);
+      rightIndices.add(IndexMapper.NOT_FOUND_INDEX);
     }
 
-    public void addUnmatchedRightRow(int rightIndex) {
-      leftIndices.add(-1);
+    public void addUnmatchedRightRow(long rightIndex) {
+      leftIndices.add(IndexMapper.NOT_FOUND_INDEX);
       rightIndices.add(rightIndex);
     }
 
@@ -65,10 +63,7 @@ public class JoinResult {
       var right = rightIndices;
       leftIndices = null;
       rightIndices = null;
-      return new JoinResult(
-          left.unsafeGetResultAndInvalidate(),
-          right.unsafeGetResultAndInvalidate(),
-          left.getLength());
+      return new JoinResult(left.toArray(), right.toArray());
     }
   }
 }

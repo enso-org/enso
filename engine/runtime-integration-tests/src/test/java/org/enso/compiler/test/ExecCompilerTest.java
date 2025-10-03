@@ -1,5 +1,6 @@
 package org.enso.compiler.test;
 
+import static org.enso.compiler.test.ExecStrictCompilerTest.ctxRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -40,11 +41,11 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-    run value =
-        case value of
-            -1 -> "minus one"
-            _ -> "none"
-    """);
+            run value =
+                case value of
+                    -1 -> "minus one"
+                    _ -> "none"
+            """);
     var run = module.invokeMember("eval_expression", "run");
     var minusOne = run.execute(-1);
     assertEquals("minus one", minusOne.asString());
@@ -54,10 +55,13 @@ public class ExecCompilerTest {
 
   @Test
   public void testDesugarOperators() {
-    var module = ctxRule.eval(LanguageInfo.ID, """
-    main =
-      ma ==ums==
-    """);
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            main =
+              ma ==ums==
+            """);
     try {
       var run = module.invokeMember("eval_expression", "main");
       fail("Unexpected result: " + run);
@@ -68,9 +72,12 @@ public class ExecCompilerTest {
 
   @Test
   public void testDesugarOperatorsLeftRight() {
-    var module = ctxRule.eval(LanguageInfo.ID, """
-    main = (+ (2 *))
-    """);
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            main = (+ (2 *))
+            """);
     try {
       var run = module.invokeMember("eval_expression", "main");
       fail("Unexpected result: " + run);
@@ -81,9 +88,12 @@ public class ExecCompilerTest {
 
   @Test
   public void testDesugarOperatorsRightLeft() {
-    var module = ctxRule.eval(LanguageInfo.ID, """
-    main = ((* 2) +)
-    """);
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            main = ((* 2) +)
+            """);
     try {
       var run = module.invokeMember("eval_expression", "main");
       fail("Unexpected result: " + run);
@@ -103,12 +113,12 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-    from Standard.Base.Errors.Common import all
-    run value =
-        x = 4
-        y =
-        z = 5
-    """);
+            from Standard.Base.Errors.Common import all
+            run value =
+                x = 4
+                y =
+                z = 5
+            """);
     var run = module.invokeMember("eval_expression", "run");
     try {
       var never = run.execute(-1);
@@ -120,10 +130,13 @@ public class ExecCompilerTest {
 
   @Test
   public void redefinedArgument() {
-    var module = ctxRule.eval(LanguageInfo.ID, """
-    type My_Type
-        Value a b c a
-    """);
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            type My_Type
+                Value a b c a
+            """);
     var run = module.invokeMember("eval_expression", "My_Type.Value");
     var atom = run.newInstance(1, 2, 3, 4);
     assertFalse("In spite of error we get an instance back: " + atom, atom.isException());
@@ -142,11 +155,11 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-    from Standard.Base.Errors.Common import all
-    run value =
-        meta1 = meta1
-        meta1
-    """);
+            from Standard.Base.Errors.Common import all
+            run value =
+                meta1 = meta1
+                meta1
+            """);
     var run = module.invokeMember("eval_expression", "run");
     var error = run.execute(-1);
     assertTrue("We get an error value back", error.isException());
@@ -160,12 +173,12 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-    from Standard.Base import all
+            from Standard.Base import all
 
-    run prefix =
-        op = if False then 42 else prefix+op
-        op
-    """);
+            run prefix =
+                op = if False then 42 else prefix+op
+                op
+            """);
     var run = module.invokeMember("eval_expression", "run");
     var error = run.execute("Nope: ");
     assertTrue("We get an error value back", error.isException());
@@ -178,11 +191,12 @@ public class ExecCompilerTest {
   public void testDefault() {
     var module =
         ctxRule.eval(
-            LanguageInfo.ID, """
-    f x=1 = x
-    value_from_default =
-      f default
-    """);
+            LanguageInfo.ID,
+            """
+            f x=1 = x
+            value_from_default =
+              f default
+            """);
     var result = module.invokeMember("eval_expression", "value_from_default");
     assertEquals("Value obtained from default argument", 1, result.asInt());
   }
@@ -193,21 +207,24 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-    f x=1 = x
-    value_from_binding =
-      default = 2
-      f default
-    """);
+            f x=1 = x
+            value_from_binding =
+              default = 2
+              f default
+            """);
     var result = module.invokeMember("eval_expression", "value_from_binding");
     assertEquals("Value obtained from binding", 2, result.asInt());
   }
 
   @Test
   public void dotUnderscore() {
-    var module = ctxRule.eval(LanguageInfo.ID, """
-    run op =
-      op._
-    """);
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            run op =
+              op._
+            """);
     var run = module.invokeMember("eval_expression", "run");
     try {
       var error = run.execute("false_hope");
@@ -227,13 +244,13 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-    from Standard.Base import all
+            from Standard.Base import all
 
-    nums n = [1, 2, 3, 4, 5]
-        . map (x-> x*2)
-        . filter (x-> x % 3 == 0)
-        . take n
-    """);
+            nums n = [1, 2, 3, 4, 5]
+                . map (x-> x*2)
+                . filter (x-> x % 3 == 0)
+                . take n
+            """);
     var run = module.invokeMember("eval_expression", "nums");
     var six = run.execute(1);
     assertTrue(six.hasArrayElements());
@@ -243,11 +260,14 @@ public class ExecCompilerTest {
 
   @Test
   public void chainedSyntaxOperator() {
-    var module = ctxRule.eval(LanguageInfo.ID, """
-    nums n = n
-        * 2
-        % 3
-    """);
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            nums n = n
+                * 2
+                % 3
+            """);
     var run = module.invokeMember("eval_expression", "nums");
     var result = run.execute(5);
     assertEquals("10 % 3 is one", 1, result.asInt());
@@ -257,9 +277,11 @@ public class ExecCompilerTest {
   public void inlineReturnSignature() {
     var module =
         ctxRule.eval(
-            LanguageInfo.ID, """
-    foo (x : Integer) (y : Integer) -> Integer = 10*x + y
-    """);
+            LanguageInfo.ID,
+            """
+            import Standard.Base.Data.Numbers.Integer
+            foo (x : Integer) (y : Integer) -> Integer = 10*x + y
+            """);
     var foo = module.invokeMember("eval_expression", "foo");
     assertTrue("foo a function", foo.canExecute());
     assertEquals(45, foo.execute(4, 5).asInt());
@@ -272,6 +294,7 @@ public class ExecCompilerTest {
             LanguageInfo.ID,
             """
             import Standard.Base.Data.Numbers
+            import Standard.Base.Data.Numbers.Integer
             type My_Type
                 Value x
 
@@ -286,17 +309,17 @@ public class ExecCompilerTest {
   public void inlineWithBlanks() {
     var code =
         """
-    remap rows:Map -> Map =
-        rows.map (_.set_u 5)
+        remap rows:Map -> Map =
+            rows.map (_.set_u 5)
 
-    type Map
-        M v u=3
+        type Map
+            M v u=3
 
-        map self fn = Map.M (fn self)
-        set_u self i = Map.M self.v i
+            map self fn = Map.M (fn self)
+            set_u self i = Map.M self.v i
 
-    run n = remap (Map.M n)
-    """;
+        run n = remap (Map.M n)
+        """;
     var module = ctxRule.eval(LanguageInfo.ID, code);
     var run = module.invokeMember("eval_expression", "run");
     assertTrue("run is a function", run.canExecute());
@@ -309,12 +332,13 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-    foo x y =
-        inner_foo (z : Integer) -> Integer = 100*z + 10*y + x
-        a = 3
-        r = inner_foo a
-        r + 50000
-    """);
+            import Standard.Base.Data.Numbers.Integer
+            foo x y =
+                inner_foo (z : Integer) -> Integer = 100*z + 10*y + x
+                a = 3
+                r = inner_foo a
+                r + 50000
+            """);
     var instance = module.invokeMember("eval_expression", "foo");
     var result = instance.execute(1, 2);
     assertEquals(50321, result.asInt());
@@ -322,9 +346,13 @@ public class ExecCompilerTest {
 
   @Test
   public void inlineReturnSignatureWithoutArguments() {
-    var module = ctxRule.eval(LanguageInfo.ID, """
-    the_number -> Integer = 23
-    """);
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            import Standard.Base.Data.Numbers.Integer
+            the_number -> Integer = 23
+            """);
     var result = module.invokeMember("eval_expression", "the_number");
     assertEquals("Function-return syntax can be used with 0 arguments", 23, result.asInt());
   }
@@ -342,9 +370,9 @@ public class ExecCompilerTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-    from Standard.Base import Integer
-    foo a:Integer -> Integer = a+10
-    """,
+                from Standard.Base import Integer
+                foo a:Integer -> Integer = a+10
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -361,9 +389,9 @@ public class ExecCompilerTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-    from Standard.Base import Integer
-    foo a : Integer -> Integer = a+10
-    """,
+                from Standard.Base import Integer
+                foo a : Integer -> Integer = a+10
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -383,12 +411,12 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-    from Standard.Base.Errors.Common import all
-    from Standard.Base.Meta.Enso_Project import enso_project
-    run dummy =
-        _ = dummy
-        (enso_project.data / "foo").to_display_text
-    """);
+            from Standard.Base.Errors.Common import all
+            from Standard.Base.Meta.Enso_Project import enso_project
+            run dummy =
+                _ = dummy
+                (enso_project.data / "foo").to_display_text
+            """);
     var run = module.invokeMember("eval_expression", "run");
     var err = run.execute(0);
     assertEquals("Error: Module is not a part of a package.", err.asString());
@@ -400,12 +428,12 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-          from Standard.Base import all
-          polyglot java import java.util.Random
+            from Standard.Base import all
+            polyglot java import java.util.Random
 
-          run seed =
-              Random.new_generator seed
-          """);
+            run seed =
+                Random.new_generator seed
+            """);
     var run = module.invokeMember("eval_expression", "run");
     try {
       var err = run.execute(1L);
@@ -422,13 +450,13 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-          from Standard.Base import all
-          polyglot java import java.util.Random as R
+            from Standard.Base import all
+            polyglot java import java.util.Random as R
 
-          run seed = case seed of
-              R.NO_FIELD -> 0
-              _ -> -1
-          """);
+            run seed = case seed of
+                R.NO_FIELD -> 0
+                _ -> -1
+            """);
     var run = module.invokeMember("eval_expression", "run");
     try {
       var err = run.execute(1L);
@@ -442,16 +470,16 @@ public class ExecCompilerTest {
   public void testFnAsADefaultValue() {
     var code =
         """
-    type N
-    type T
-        V (r:(T -> N | T)=(_->N))
+        type N
+        type T
+            V (r:(T -> N | T)=(_->N))
 
-        v self = self.r self
+            v self = self.r self
 
-    run type = case type of
-      0 -> T.V
-      1 -> T.V (_->N)
-    """;
+        run type = case type of
+          0 -> T.V
+          1 -> T.V (_->N)
+        """;
     var module = ctxRule.eval(LanguageInfo.ID, code);
     var run = module.invokeMember("eval_expression", "run");
     var real = run.execute(1L);
@@ -465,15 +493,15 @@ public class ExecCompilerTest {
   public void testTemporaryFileSpecProblem() {
     var code =
         """
-    from Standard.Base.Errors.Common import all
+        from Standard.Base.Errors.Common import all
 
-    run t = F.app f->
-      f.read t
+        run t = F.app f->
+          f.read t
 
-    type F
-      read self r = r
-      app fn = fn F
-    """;
+        type F
+          read self r = r
+          app fn = fn F
+        """;
     var module = ctxRule.eval(LanguageInfo.ID, code);
     var run = module.invokeMember("eval_expression", "run");
     var real = run.execute(1L);
@@ -486,12 +514,12 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-    from Standard.Base.Errors.Common import all
-    polyglot java import java.lang.Runnable
+            from Standard.Base.Errors.Common import all
+            polyglot java import java.lang.Runnable
 
-    run value =
-        Runnable.invoke value
-    """);
+            run value =
+                Runnable.invoke value
+            """);
     var run = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "run");
     try {
       var never = run.execute(-1);
@@ -509,13 +537,13 @@ public class ExecCompilerTest {
         ctxRule.eval(
             LanguageInfo.ID,
             """
-        type My_Type
-        type Other_Type
-        private My_Type.from (other:Other_Type) =
-            42
-        run value =
-            42
-        """);
+            type My_Type
+            type Other_Type
+            private My_Type.from (other:Other_Type) =
+                42
+            run value =
+                42
+            """);
     var expectedErrMsg = DeclaredAsPrivate$.MODULE$.explain();
     var runMethod = module.invokeMember(Module.EVAL_EXPRESSION, "run");
     runMethod.execute(0);
@@ -544,6 +572,27 @@ public class ExecCompilerTest {
       var typeError = ex.getGuestObject();
       assertEquals("Expected type", "First_Type", typeError.getMember("expected").asString());
       assertEquals("Got wrong value", 42, typeError.getMember("actual").asInt());
+    }
+  }
+
+  @Test
+  public void castToUnresolvedType() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        fn f = (f : Unknown).to_text
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+      var r = fn.execute(0);
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("expected unresolved symbol Unknown"),
+              containsString("to be resolved to a type")));
     }
   }
 }

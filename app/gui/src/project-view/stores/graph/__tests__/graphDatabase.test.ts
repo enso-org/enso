@@ -4,7 +4,7 @@ import { Ast } from '@/util/ast'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
-import { type AstId } from 'ydoc-shared/ast'
+import type { AstId } from 'ydoc-shared/ast'
 import { SourceRange } from 'ydoc-shared/util/data/text'
 import { IdMap, type ExternalId } from 'ydoc-shared/yjsModel'
 
@@ -28,7 +28,7 @@ export function parseWithSpans<T extends Record<string, SourceRange>>(code: stri
 
   const { root: ast, getSpan } = Ast.parseUpdatingIdMap(code, idMap)
   const idFromExternal = new Map<ExternalId, AstId>()
-  ast.visitRecursive((ast) => {
+  Ast.visitRecursive(ast, (ast) => {
     idFromExternal.set(ast.externalId, ast.id)
   })
   const id = (name: keyof T) => idFromExternal.get(eid(name))!

@@ -143,7 +143,8 @@ impl RunContext {
 
         // Setup flatc (FlatBuffers compiler), required for building the engine.
         let flatc_goodie = cache::goodie::flatc::Flatc {
-            version:  engine::deduce_flatbuffers(&self.repo_root.build_sbt).await?,
+            version:  engine::deduce_flatbuffers(&self.repo_root.project.dependencies_scala)
+                .await?,
             platform: TARGET_OS,
         };
         flatc_goodie.install_if_missing(&self.cache).await?;
@@ -170,9 +171,11 @@ impl RunContext {
 
         // Setup GraalVM
         let graalvm =
-            engine::deduce_graal(self.octocrab.clone(), &self.repo_root.build_sbt).await?;
+            engine::deduce_graal(self.octocrab.clone(), &self.repo_root.project.dependencies_scala)
+                .await?;
         graalvm.install_if_missing(&self.cache).await?;
-        let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
+        let graal_version =
+            engine::deduce_graal_bundle(&self.repo_root.project.dependencies_scala).await?;
         let graalpy_version = graal_version.packages;
 
         // Install GraalPy standalone distribution
@@ -197,7 +200,11 @@ impl RunContext {
             sbt.call_arg("syntax-rust-definition/Runtime/managedClasspath").await?;
         }
         if self.config.build_native_runner {
-            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::TestNative)?;
+            if self.config.execute_benchmarks.is_some() {
+                env::ENSO_LAUNCHER.set(&engine::EngineLauncher::NativeWithoutLS)?;
+            } else {
+                env::ENSO_LAUNCHER.set(&engine::EngineLauncher::TestNative)?;
+            }
         }
         prepare_simple_library_server.await??;
 
@@ -329,6 +336,11 @@ impl RunContext {
 
         // === End of Build project-manager distribution and native image ===
 
+        if self.config.build_engine_package {
+            debug!("Checking IR cache sizes of std libs.");
+            sbt.call_arg("checkIRCacheSizes").await?;
+        }
+
         let ret = self.expected_artifacts();
 
         // Native images built by GraalVM on Windows use MSVC build tools. Thus, the generated
@@ -379,6 +391,7 @@ impl RunContext {
                     PARALLEL_ENSO_TESTS,
                     selection.clone(),
                     self.config.extra_engine_runner_args.clone(),
+                    self.config.extra_java_tool_opts.clone(),
                     self.config.has_native_runner(),
                 )
                 .await?;
@@ -418,6 +431,7 @@ impl RunContext {
         let benchmark_command = Sbt::sequential_tasks(build_and_execute_benchmark_task);
         if !benchmark_command.is_empty() {
             debug!("Running benchmarks.");
+            env::ENSO_TEST_JUNIT_DIR.remove();
             sbt.call_arg(benchmark_command).await?;
         } else {
             debug!("No SBT tasks to run.");
@@ -470,7 +484,8 @@ impl RunContext {
             }
         }
 
-        let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
+        let graal_version =
+            engine::deduce_graal_bundle(&self.repo_root.project.dependencies_scala).await?;
         for bundle in ret.bundles() {
             bundle.create(&self.repo_root, &graal_version).await?;
         }

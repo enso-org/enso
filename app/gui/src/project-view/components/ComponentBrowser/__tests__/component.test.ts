@@ -6,6 +6,8 @@ import {
   type MatchedSuggestion,
 } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
+import { TypeInfo } from '@/stores/project/computedValueRegistry'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   makeConstructor,
   makeMethod,
@@ -14,7 +16,7 @@ import {
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/mockSuggestion'
 import { allRanges } from '@/util/data/range'
-import { ProjectPath } from '@/util/projectPath'
+import { ProjectPath, stdPath } from '@/util/projectPath'
 import { QualifiedName } from '@/util/qualifiedName'
 import shuffleSeed from 'shuffle-seed'
 import { expect, test } from 'vitest'
@@ -120,7 +122,8 @@ test.each`
   const pattern = 'foo_bar'
   const entry = makeModuleMethod(`local.Mock_Project.${name}`, { aliases: aliases ?? [] })
   const filtering = new Filtering({ pattern })
-  const match = filtering.filter(entry)
+  const db = new SuggestionDb()
+  const match = filtering.filter(entry, db)
   expect(match).not.toBeNull()
   const componentInfo = { id: 0, entry, match: match! }
   expect(replaceMatches(makeComponent(componentInfo))).toEqual(highlighted)
@@ -137,17 +140,20 @@ test.each`
   'Matched ranges of $highlighted with additional type are correct',
   ({ name, aliases, highlighted }) => {
     const pattern = 'foo_bar'
-    const entry = makeMethod(`local.Mock_Project.${name}`, { aliases: aliases ?? [] })
+    const entry = makeMethod(`Standard.Base.${name}`, { aliases: aliases ?? [] })
     const filtering = new Filtering({
       pattern,
       selfArg: {
         type: 'known',
-        typename: ProjectPath.create(undefined, 'Column' as QualifiedName),
-        additionalTypes: [ProjectPath.create(undefined, 'Table' as QualifiedName)],
+        typeInfo: TypeInfo.fromParsedTypes(
+          [stdPath('Standard.Base.Column')],
+          [stdPath('Standard.Base.Table')],
+        )!,
         ancestors: [],
       },
     })
-    const match = filtering.filter(entry)
+    const db = new SuggestionDb()
+    const match = filtering.filter(entry, db)
     expect(match).not.toBeNull()
     const componentInfo = { id: 0, entry, match: match! }
     expect(replaceMatches(makeComponent(componentInfo))).toEqual(highlighted)

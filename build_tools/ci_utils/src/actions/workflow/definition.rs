@@ -346,22 +346,6 @@ impl Workflow {
         key
     }
 
-    pub fn add_dependent_customized(
-        &mut self,
-        target: Target,
-        job: impl JobArchetype,
-        needed: impl IntoIterator<Item: AsRef<str>>,
-        f: impl FnOnce(&mut Job),
-    ) -> String {
-        let (key, mut job) = job.entry(target);
-        for needed in needed {
-            self.expose_outputs(needed.as_ref(), &mut job);
-        }
-        f(&mut job);
-        self.jobs.insert(key.clone(), job);
-        key
-    }
-
     pub fn env(&mut self, var_name: impl Into<String>, var_value: impl Into<String>) {
         self.env.insert(var_name.into(), var_value.into());
     }
@@ -1004,11 +988,6 @@ impl Step {
         self
     }
 
-    pub fn with_if(mut self, condition: impl Into<String>) -> Self {
-        self.r#if = Some(condition.into());
-        self
-    }
-
     pub fn with_id(mut self, id: impl Into<String>) -> Self {
         self.id = Some(id.into());
         self
@@ -1035,6 +1014,11 @@ impl Step {
                 self.with = Some(step::Argument::new_other(name, value));
             }
         }
+        self
+    }
+
+    pub fn with_shell(mut self, shell: impl Into<Shell>) -> Self {
+        self.shell = Some(shell.into());
         self
     }
 }

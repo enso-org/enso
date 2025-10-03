@@ -1,3 +1,4 @@
+import { frontmatter } from '@/components/ComponentHelp/metadata'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
 import {
   type MethodSuggestionEntry,
@@ -27,6 +28,7 @@ const EMPTY_SCOPE = { start: { line: 0, character: 0 }, end: { line: 0, characte
 
 interface CommonOptions {
   projectNames?: ProjectNameStore
+  documentation?: string
 }
 
 /** Mock a module suggestion entry. */
@@ -78,6 +80,7 @@ export function makeConstructor(
       arguments: opts.args ?? [],
       returnType: type,
       annotations: opts.annotations ?? [],
+      ...(opts.documentation ? { documentation: opts.documentation } : {}),
     },
     opts.projectNames,
   )
@@ -127,10 +130,7 @@ interface DocOptions {
   group?: string
 }
 function makeDocumentation({ aliases, group }: DocOptions): string {
-  const lines = []
-  if (aliases?.length) lines.push(`ALIAS ${aliases.join(', ')}`)
-  if (group) lines.push(`GROUP ${group}`)
-  return lines.join('\n')
+  return frontmatter({ aliases, group })
 }
 
 /** Mock a module method suggestion entry. */

@@ -7,22 +7,19 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record BigDecimalType() implements StorageType<BigDecimal>, NumericType {
+public final class BigDecimalType implements StorageType<BigDecimal>, NumericType {
   public static final BigDecimalType INSTANCE = new BigDecimalType();
+
+  private BigDecimalType() {}
+
+  @Override
+  public char typeChar() {
+    return 'D';
+  }
 
   @Override
   public boolean isNumeric() {
     return true;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
   }
 
   @Override
@@ -38,6 +35,11 @@ public record BigDecimalType() implements StorageType<BigDecimal>, NumericType {
 
     if (NumericConverter.isCoercibleToBigInteger(value)) {
       return new BigDecimal(NumericConverter.coerceToBigInteger(value));
+    }
+
+    if (NumericConverter.isFloatLike(value)) {
+      double doubleValue = NumericConverter.coerceToDouble(value);
+      return BigDecimal.valueOf(doubleValue);
     }
 
     return null;

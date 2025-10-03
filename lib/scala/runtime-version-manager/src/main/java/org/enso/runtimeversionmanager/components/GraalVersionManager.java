@@ -18,9 +18,9 @@ public final class GraalVersionManager {
   private final Environment environment;
   private static final Logger logger = LoggerFactory.getLogger(GraalVersionManager.class);
 
-  public GraalVersionManager(DistributionManager distributionManager, Environment environment) {
+  public GraalVersionManager(DistributionManager distributionManager) {
     this.distributionManager = distributionManager;
-    this.environment = environment;
+    this.environment = distributionManager.env();
   }
 
   /**

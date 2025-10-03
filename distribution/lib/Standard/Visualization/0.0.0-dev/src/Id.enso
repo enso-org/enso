@@ -1,19 +1,27 @@
 from Standard.Base import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
    An ID used by the visualization system to identify different ways of
    displaying data.
 type Id
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A builtin visualization, implemented in the graphical interface and not
        imported from any library.
     Builtin name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A visualization implemented in a library.
     Library project name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Serializes this ID to a JSON format understandable by the graphical
        interface.
     to_js_object : JS_Object
@@ -25,59 +33,79 @@ type Id
                 JS_Object.from_pairs [["name", full_name]]
         JS_Object.from_pairs [["library", project], ["name", self.name]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An identifier for the builtin JSON visualization
     json : Id
     json = Id.Builtin "JSON"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An identifier for the builtin Scatter Plot visualization
     scatter_plot : Id
     scatter_plot = Id.Builtin "Scatter Plot"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An identifier for the builtin Histogram visualization
     histogram : Id
     histogram = Id.Builtin "Histogram"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An identifier for the builtin Heatmap visualization
     heatmap : Id
     heatmap = Id.Builtin "Heatmap"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An identifier for the builtin Table visualization
     table : Id
     table = Id.Builtin "Table"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An identifier for the builtin SQL Query visualization
     sql_query : Id
     sql_query = Id.Builtin "SQL Query"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An identifier for the builtin Geo Map visualization
     geo_map : Id
     geo_map = Id.Builtin "Geo Map"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An identifier for the builtin Image visualization
     image : Id
     image = Id.Builtin "Image"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates an ID for a library-defined visualization
 
-       Arguments:
-       - module: the module defining this visualization
-       - visualization_name: the name of the visualization
+       ## Arguments
+        - `module`: the module defining this visualization
+        - `visualization_name`: the name of the visualization
 
-       > Example
-         Identify the `"My Visualization"` visualization defined in `Standard.Base`.
+       ## Examples
+       ### Identify the `"My Visualization"` visualization defined in `Standard.Base`.
 
+       ```
                 import Standard.Base
                 import Standard.Visualization
 
                 example_id = Visualization.Id.from_module Base "My Visualization"
+       ```
     from_module module visualization_name =
         Id.Library (Project_Description.new module) visualization_name

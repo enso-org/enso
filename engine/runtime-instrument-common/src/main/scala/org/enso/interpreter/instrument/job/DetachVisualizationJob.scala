@@ -30,7 +30,7 @@ class DetachVisualizationJob(
 
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Unit = {
-    ctx.locking.withContextLock(
+    ctx.locking.withReadContextLock(
       ctx.locking.getOrCreateContextLock(contextId),
       this.getClass,
       () => {

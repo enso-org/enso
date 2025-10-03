@@ -12,6 +12,8 @@ public abstract class LanguageServerApi {
   public static final String RPC_PORT_OPTION = "rpc-port";
   public static final String DATA_PORT_OPTION = "data-port";
   public static final String PROJECT_ID_OPTION = "project-id";
+  public static final String CLOUD_PROJECT_ID_OPTION = "cloud-project-id";
+  public static final String CLOUD_PROJECT_SESSION_ID_OPTION = "cloud-project-session-id";
   public static final String SECURE_RPC_PORT_OPTION = "secure-rpc-port";
   public static final String SECURE_DATA_PORT_OPTION = "secure-data-port";
   public static final String SKIP_GRAALVM_UPDATER = "skip-graalvm-updater";

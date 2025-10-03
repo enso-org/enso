@@ -3,7 +3,7 @@ package org.enso.interpreter.instrument.job
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import org.enso.common.{CachePreferences, CompilationStage}
+import org.enso.common.CachePreferences
 import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -287,11 +287,7 @@ class EnsureCompiledJob(
     idMapOpt: Option[IdMap] = None
   )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] =
     try {
-      val compilationStage = module.getCompilationStage
-      if (
-        !compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)
-        || idMapOpt.isDefined
-      ) {
+      if (module.needsCompilation() || idMapOpt.isDefined) {
         logger.trace(s"Compiling ${module.getName}.")
         val compiler = ctx.executionService.getContext.getCompiler
 
@@ -372,16 +368,19 @@ class EnsureCompiledJob(
     * @param changeset the [[Changeset]] object capturing the previous
     * version of IR
     * @param ir the IR of compiled module
+    * @param reason human-readable explanation for invalidation
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
-    ir: IR
+    ir: IR,
+    reason: String
   ): Seq[CacheInvalidation] = {
     val resolutionErrors = findNodesWithResolutionErrors(ir)
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(
-        changeset.invalidated ++ resolutionErrors
+        changeset.invalidated ++ resolutionErrors,
+        reason
       )
     val moduleIds = getModuleIds(ir)
     val invalidateStaleCommand =
@@ -458,7 +457,7 @@ class EnsureCompiledJob(
     changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
     val invalidationCommands =
-      buildCacheInvalidationCommands(changeset, module.getIr)
+      buildCacheInvalidationCommands(changeset, module.getIr, "changeset")
     ctx.contextManager.getAllContexts.values
       .foreach { stack =>
         if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
@@ -514,12 +513,10 @@ class EnsureCompiledJob(
   private def sendDiagnosticUpdates(
     diagnostics: Seq[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit =
-    if (diagnostics.nonEmpty) {
-      ctx.contextManager.getAllContexts.keys.foreach { contextId =>
-        ctx.endpoint.sendToClient(
-          Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
-        )
-      }
+    ctx.contextManager.getAllContexts.keys.foreach { contextId =>
+      ctx.endpoint.sendToClient(
+        Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
+      )
     }
 
   /** Send notification about the compilation status.

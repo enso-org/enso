@@ -1,7 +1,8 @@
 from Standard.Base import all
-from Standard.Base.Metadata import Display, make_single_choice, Widget
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Type to specify the maximum number of rows or unlimited.
 type Row_Limit
     ## Allow unlimited.
@@ -10,11 +11,15 @@ type Row_Limit
     ## Limit to a specific number of rows.
     Limit n:Integer=100
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Row_Limit.from (that:Nothing) =
     _ = that
     Row_Limit.No_Limit
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Row_Limit.from (that:Integer) =
     Row_Limit.Limit that

@@ -1,5 +1,4 @@
 /** @file Validation patterns for text inputs. */
-import { doesTitleContainInvalidCharacters } from '../services/Backend'
 
 /**
  * Regex pattern for valid AWS Cognito passwords.
@@ -34,13 +33,3 @@ export const LOCAL_PROJECT_NAME_PATTERN = '.*\\S.*'
  * - `..` - parent directory
  */
 export const DIRECTORY_NAME_REGEX = /^(?:[^/\\.]|[.](?=[^.]|$))+$/
-
-/**
- * Check if the directory name contains invalid characters.
- * @deprecated Use `doesTitleContainInvalidCharacters` instead.
- */
-export function isDirectoryNameContainInvalidCharacters(name: string) {
-  return doesTitleContainInvalidCharacters(name)
-}
-
-export { doesTitleContainInvalidCharacters } from '../services/Backend'

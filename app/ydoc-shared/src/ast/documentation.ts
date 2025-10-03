@@ -201,7 +201,6 @@ export function prerenderMarkdown(markdown: string): string {
  * representation, with paragraphs hard-wrapped and separated by blank lines.
  */
 function standardizeMarkdown(prerenderedMarkdown: string, textConsumer: TextConsumer): void {
-  let printingTags = true
   const cursor = ensoMarkdownParser.parse(prerenderedMarkdown).cursor()
 
   function standardizeDocument() {
@@ -214,7 +213,7 @@ function standardizeMarkdown(prerenderedMarkdown: string, textConsumer: TextCons
         for (const _match of betweenText.matchAll(LINE_BOUNDARIES)) {
           textConsumer.newline()
         }
-        if (cursor.name === 'Paragraph' && prevName === 'Paragraph' && !printingTags) {
+        if (cursor.name === 'Paragraph' && prevName === 'Paragraph') {
           textConsumer.newline()
         }
       }
@@ -226,7 +225,6 @@ function standardizeMarkdown(prerenderedMarkdown: string, textConsumer: TextCons
           if (i > 0) textConsumer.newline()
           textConsumer.text(line)
         })
-        printingTags = false
       }
       prevTo = cursor.to
       prevName = cursor.name
@@ -236,21 +234,12 @@ function standardizeMarkdown(prerenderedMarkdown: string, textConsumer: TextCons
   function standardizeParagraph(lines: string[]) {
     let printingNonTags = false
     lines.forEach((line, i) => {
-      if (printingTags) {
-        if (cursor.name === 'Paragraph' && line.startsWith('ICON ')) {
-          textConsumer.text(line)
-        } else {
-          printingTags = false
-        }
+      if (i > 0) {
+        textConsumer.newline()
+        if (printingNonTags) textConsumer.newline()
       }
-      if (!printingTags) {
-        if (i > 0) {
-          textConsumer.newline()
-          if (printingNonTags) textConsumer.newline()
-        }
-        textConsumer.wrapText(line)
-        printingNonTags = true
-      }
+      textConsumer.wrapText(line)
+      printingNonTags = true
     })
   }
 

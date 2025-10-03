@@ -1,25 +1,17 @@
-/**
- * @file
- *
- * A button that links to the upgrade page.
- */
-import * as React from 'react'
-
-import * as appUtils from '#/appUtils'
-
+/** @file A button that links to the upgrade page. */
+import { Button, type ButtonProps } from '#/components/Button'
 import * as billingHooks from '#/hooks/billing'
-
+import * as appUtils from '$/appUtils'
 import { useText } from '$/providers/react'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import * as React from 'react'
 
 /** Props for an {@link UpgradeButton}. */
 export type UpgradeButtonProps<IconType extends string = string> = Omit<
-  ariaComponents.ButtonProps<IconType>,
+  ButtonProps<IconType>,
   'variant'
 > & {
   readonly feature: billingHooks.PaywallFeatureName
-  readonly variant?: ariaComponents.ButtonProps<IconType>['variant']
+  readonly variant?: ButtonProps<IconType>['variant']
 }
 
 /** A button that links to the upgrade page. */
@@ -47,26 +39,21 @@ export function UpgradeButton<IconType extends string>(
     children ?? (isEnterprise ? getText('contactSales') : getText('upgradeTo', levelLabel))
 
   return (
-    <ariaComponents.Button
+    <Button
       variant={variant ?? VARIANT_BY_LEVEL[level.name]}
       size={size}
       rounded={rounded}
-      href={
-        isEnterprise ? appUtils.getContactSalesURL() : (href ?? appUtils.getUpgradeURL(level.name))
-      }
+      href={isEnterprise ? appUtils.getContactPage() : (href ?? appUtils.getUpgradeURL(level.name))}
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}
     >
       {child}
-    </ariaComponents.Button>
+    </Button>
   )
 }
 
-const VARIANT_BY_LEVEL: Record<
-  billingHooks.PaywallLevelName,
-  ariaComponents.ButtonProps<string>['variant']
-> = {
+const VARIANT_BY_LEVEL: Record<billingHooks.PaywallLevelName, ButtonProps<string>['variant']> = {
   free: 'primary',
   enterprise: 'primary',
   solo: 'accent',

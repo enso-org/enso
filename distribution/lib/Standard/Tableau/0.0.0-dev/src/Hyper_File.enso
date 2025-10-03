@@ -16,38 +16,49 @@ polyglot java import org.enso.tableau.HyperFormat
 
 ## Represents a Tableau Hyper Extract file.
 type Hyper_File
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Creates a Hyper_File
 
-       Arguments:
-       - file: The file to read.
-       - schema: The schema to read or `*` for all schemas.
+       ## Arguments
+        - `file`: The file to read.
+        - `schema`: The schema to read or `*` for all schemas.
     new : File -> Text -> Hyper_File
     new file:File schema:Text='*' =
         if schema == "" then Error.throw (Illegal_Argument.Error "Schema cannot be empty.") else
             Hyper_File.Value file schema
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A representation of a Tableau Hyper Extract file.
     Value file:File internal_schema:Text
 
-    ## ICON metadata
-       Returns the list of schemas for the connection within the current database (or catalog).
+    ## ---
+       icon: metadata
+       ---
+       Returns the list of schemas for the connection within the current database
+       (or catalog).
     schemas : Vector Text
     schemas self = File_Error.handle_java_exceptions self.file <|
         array = HyperFormat.readSchemas self.file.path
         Vector.from_polyglot_array array
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        Returns the name of the current schema.
        `*` represents all schemas.
     schema : Text
     schema self = self.internal_schema
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Returns a new Hyper_File with the specified schema set as default.
 
-       Arguments:
+       ## Arguments
         - schema: The name of the schema to connect to.
     @schema (hyper -> make_schema_selector hyper True)
     set_schema : Text -> Hyper_File
@@ -56,9 +67,12 @@ type Hyper_File
             if schema == "" then Error.throw (Illegal_Argument.Error "Schema cannot be empty.") else
                 Hyper_File.Value self.file schema
 
-    ## GROUP Standard.Base.Metadata
-       ICON metadata
-       Returns the list of tables for the connection within the current database (or catalog).
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the list of tables for the connection within the current database
+       (or catalog).
     @schema (hyper -> make_schema_selector hyper True)
     tables : Text -> Vector Hyper_Table
     tables self schema:Text=self.schema = if schema == "" then self.tables self.schema else
@@ -68,15 +82,17 @@ type Hyper_File
                 _ -> HyperFormat.listTables self.file.path schema
             array.map t-> Hyper_Table.Value self t.schema t.name
 
-    ## ALIAS get, import, load, open, sheet
-       GROUP Standard.Base.Input
-       ICON data_input
+    ## ---
+       aliases: [get, import, load, open, sheet]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
        Read a table from the Hyper_File into a Table.
 
-       Arguments:
-       - table: table name to read from.
-       - schema: the schema to read from.
-       - limit: the maximum number of rows to read.
+       ## Arguments
+        - `table`: table name to read from.
+        - `schema`: the schema to read from.
+        - `limit`: the maximum number of rows to read.
     @table make_table_selector
     @schema (hyper -> make_schema_selector hyper True)
     @limit Rows_To_Read.default_widget
@@ -93,20 +109,26 @@ type Hyper_File
                 Telemetry.log "Hyper_File.read" "Read Hyper table: output={}, row_count={}, column_count={}" ["Table", result.row_count, result.column_count]
                 result
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_schema_selector hyper_file:Hyper_File include_any:Boolean=False =
     schemas = hyper_file.schemas.map t-> Option t t.pretty
     any_entry = if include_any then [Option "<Any Schema>" "'*'"] else []
     Single_Choice values=schemas+any_entry
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_table_selector hyper_file:Hyper_File cache=Nothing =
     schema = cache.if_not_nothing <| cache "schema"
     used_schema = if schema == "" || schema == Nothing then hyper_file.schema else schema
     tables = hyper_file.tables used_schema . map t-> Option t.table t.table.pretty
     Single_Choice values=tables
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Table_Viz_Data.from (that:Hyper_File) = 
     schemas = that.tables.map t->t.schema.to_text
     tables = that.tables.map t->t.table.to_text

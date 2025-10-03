@@ -3,7 +3,7 @@ layout: developer-doc
 title: Logging Service
 category: infrastructure
 tags: [infrastructure, logging, debug]
-order: 6
+order: 7
 ---
 
 # Logging
@@ -134,6 +134,26 @@ Any custom log level is therefore defined with `-Dx.y.Z.Logger.level` where `x`,
 `y` and `Z` refer to the package elements and class name, respectively. System
 properties always have a higher priority over those defined in the
 `application.conf` file.
+
+### Truffle loggers
+
+[TruffleLogger](https://www.graalvm.org/truffle/javadoc/com/oracle/truffle/api/TruffleLogger.html)
+is designed to be independent of any other logging facilities. Setting a custom
+level for Truffle logger can be done programmatically via
+[ContextBuilder.option](<https://www.graalvm.org/truffle/javadoc/org/graalvm/polyglot/Context.Builder.html#option(java.lang.String,java.lang.String)>)
+polyglot context builder option, or via
+`polyglot.log.<language-id>.<class-name>.level` system property. Note that it is
+not enough to set just `-Dpolyglot.log.<language-id>.<class-name>.level` system
+property, one has to also specify this level via for forwarded log messages via
+`-D<language-id>.<class-name>.Logger.level` prop.
+
+For example, to set trace level for class
+`com.oracle.graal.python.runtime.PythonContext` in `python` Truffle language,
+use the following properties:
+
+```sh
+-Dpolyglot.log.python.com.oracle.graal.python.runtime.PythonContext.level=FINE -Dpython.com.oracle.graal.python.runtime.PythonContext.Logger.level=trace
+```
 
 ### Appenders
 

@@ -17,6 +17,7 @@
     - left_column self -> Standard.Base.Any.Any
     - right_column self -> Standard.Base.Any.Any
     - sheet_name self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
     - top_row self -> Standard.Base.Any.Any
 - excel_2007_column_limit -> Standard.Base.Any.Any

@@ -8,13 +8,18 @@ import { DEFAULT_COLUMN_PREFIX, NOTHING_NAME } from './tableInputArgument'
 
 const toTable = computed(() => Pattern.parseExpression('Table.input __'))
 
+/** Trim trailing newline in TSV data, if any. Simple `trim` is too aggressive, as it also removes tab characters. */
+function trimTrailingNewline(tsvData: string): string {
+  return tsvData.replace(/\r?\n$/, '')
+}
+
 /**
  * Parse data in TSV format (according to RFC 4180).
  * @throws if the number of columns in each row is not the same.
  * @returns an array of rows, each row is an array of cells.
  */
 function parseTsvDataImpl(tsvData: string): string[][] {
-  const parseResult = Papa.parse(tsvData, { delimiter: '\t', header: false })
+  const parseResult = Papa.parse(trimTrailingNewline(tsvData), { delimiter: '\t', header: false })
   for (const error of parseResult.errors) {
     // These errors not necessearily mean that the parsing failed.
     // Malformed TSV data is a non-existent beast (?).

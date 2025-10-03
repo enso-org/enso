@@ -84,7 +84,7 @@ export class InteractionHandler {
   }
 
   /** End all interactions. */
-  endAll() {
+  private endAll() {
     let current = this.currentInteraction.value
     while (current != null) {
       current.end?.()
@@ -130,9 +130,9 @@ export class InteractionHandler {
    *
    * Only the current interaction is considered, its ancestors are not notified.
    */
-  handlePointerEvent(event: PointerEvent, handlerName: 'pointerdown' | 'pointerup'): boolean {
+  handlePointerDown(event: PointerEvent): boolean {
     if (!this.currentInteraction.value) return false
-    const handler = this.currentInteraction.value[handlerName]
+    const handler = this.currentInteraction.value.pointerdown
     if (!handler) return false
     return handler.bind(this.currentInteraction.value)(event) !== false
   }
@@ -169,12 +169,6 @@ export interface Interaction {
   end?(): void
   /** Uses a `capture` event handler to allow an interaction to respond to clicks over any element. */
   pointerdown?: InteractionEventHandler
-  /**
-   * Uses a `capture` event handler to allow an interaction to respond to mouse button release
-   * over any element. It is useful for interactions happening during mouse press (like dragging
-   * edges)
-   */
-  pointerup?: InteractionEventHandler
   /** Parent interaction, to support nesting. */
   parentInteraction?: Interaction | undefined
 }

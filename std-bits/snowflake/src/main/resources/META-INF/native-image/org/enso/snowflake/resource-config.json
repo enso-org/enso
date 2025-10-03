@@ -6,6 +6,66 @@
             },
             {
                 "pattern": "\\Qnet/snowflake/client/jdbc/internal/apache/http/client/version.properties\\E"
+            },
+            {
+                "pattern": "/awssdk_config_override.json"
+            },
+            {
+                "pattern": "/com/amazonaws/endpointdiscovery/endpoint-discovery.json"
+            },
+            {
+                "pattern": "com/amazonaws/global/handlers/request.handler2s"
+            },
+            {
+                "pattern": "com/amazonaws/internal/config/awssdk_config_default.json"
+            },
+            {
+                "pattern": "com/amazonaws/internal/config/awssdk_config_override.json"
+            },
+            {
+                "pattern": "com/amazonaws/partitions/endpoints.json"
+            },
+            {
+                "pattern": "com/amazonaws/partitions/override/endpoints.json"
+            },
+            {
+                "pattern": "com/amazonaws/regions/override/regions.xml"
+            },
+            {
+                "pattern": "com/amazonaws/sdk/versionInfo.properties"
+            },
+            {
+                "pattern": "com/amazonaws/services/s3/request.handler2s"
+            },
+            {
+                "pattern": "com/amazonaws/services/s3/request.handlers"
+            },
+            {
+                "pattern": "com/amazonaws/util/awssdk_config_override.json"
+            },
+            {
+                "pattern": "net/snowflake/client/jdbc/internal/snowflake/common/version.properties"
+            },
+            {
+                "pattern": "net/snowflake/client/jdbc/internal/snowflake/common/version_en.properties"
+            },
+            {
+                "pattern": "net/snowflake/client/jdbc/internal/snowflake/common/version_en_US.properties"
+            },
+            {
+                "pattern": "net/snowflake/client/jdbc/version.properties"
+            },
+            {
+                "pattern": "net/snowflake/client/jdbc/version_en.properties"
+            },
+            {
+                "pattern": "net/snowflake/client/jdbc/version_en_US.properties"
+            },
+            {
+                "pattern": "org/joda/time/tz/data/.*/.*"
+            },
+            {
+                "pattern": "org/joda/time/tz/data/ZoneInfoMap"
             }
         ]
     },

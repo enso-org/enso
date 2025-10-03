@@ -2,21 +2,29 @@ from Standard.Base import all
 
 from Standard.Database.Errors import SQL_Error
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Redshift_Error_Mapper
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_duplicate_primary_key_violation : SQL_Error -> Boolean
     is_duplicate_primary_key_violation error =
         # Currently not implemented, skipping the error recognition.
         _ = error
         False
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_null_primary_key_violation : SQL_Error -> Boolean
     is_null_primary_key_violation error =
         error.java_exception.getMessage.contains "violates not-null constraint"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     transform_custom_errors : SQL_Error -> Any
     transform_custom_errors error = error

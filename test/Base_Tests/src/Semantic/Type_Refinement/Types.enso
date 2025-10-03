@@ -14,7 +14,17 @@ type B
     b_id_unchecked self = self
     b_id self -> B = self
 
+type X
+    X_Ctor x
+
+    x_method self = "X method"
+
 make_a_and_b -> A & B =
     a = A.A_Ctor 1
     # Relies on the hidden conversion
     (a : A & B)
+
+make_abx -> A & B & X =
+    a = A.A_Ctor 1
+    # Relies on the hidden conversions
+    (a : A & B & X)

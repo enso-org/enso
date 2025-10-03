@@ -13,8 +13,8 @@ from Standard.Image import Image, Matrix, Read_Flag
 type Example_Error_Type
     ## Create an example error.
 
-       Arguments:
-       - message: The message contained in the error type.
+       ## Arguments
+        - `message`: The message contained in the error type.
     Error message
 
 ## The data directory of the Examples project.
@@ -33,11 +33,13 @@ csv_path = csv.path
 
 ## An example CSV file with 2,500 rows.
 
-   ! Downloading
-     Calling this method will result in the CSV file being downloaded from the
-     internet if it is not already present on your disk. If you do not
-     want this to happen, please place the spreadsheet in the
-     `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
+   ## Remarks
+
+   ### Downloading
+   Calling this method will result in the CSV file being downloaded from the
+   internet if it is not already present on your disk. If you do not want this
+   to happen, please place the spreadsheet in the
+   `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
 csv_2500_rows : File
 csv_2500_rows =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/data_2500_rows.csv"
@@ -48,11 +50,13 @@ csv_2500_rows =
 
 ## An example XLS file for experimenting with Table and its APIs.
 
-   ! Downloading
-     Calling this method will result in the spreadsheet file being downloaded
-     from the internet if it is not already present on your disk. If you do not
-     want this to happen, please place the spreadsheet in the
-     `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
+   ## Remarks
+
+   ### Downloading
+   Calling this method will result in the spreadsheet file being downloaded from
+   the internet if it is not already present on your disk. If you do not want
+   this to happen, please place the spreadsheet in the
+   `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
 xls : File
 xls =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
@@ -63,11 +67,13 @@ xls =
 
 ## An example XLSX file for experimenting with Table and its APIs.
 
-   ! Downloading
-     Calling this method will result in the spreadsheet file being downloaded
-     from the internet if it is not already present on your disk. If you do not
-     want this to happen, please place the spreadsheet in the
-     `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
+   ## Remarks
+
+   ### Downloading
+   Calling this method will result in the spreadsheet file being downloaded from
+   the internet if it is not already present on your disk. If you do not want
+   this to happen, please place the spreadsheet in the
+   `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
 xlsx : File
 xlsx =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xlsx"
@@ -162,17 +168,21 @@ geo_data_url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/Bus_Stop_Be
 
 ## Gets an HTTP response from a network endpoint.
 
-   ! Makes a Network Request
-     Calling this method will cause Enso to make a network request to a data
-     endpoint.
+   ## Remarks
+
+   ### Makes a Network Request
+   Calling this method will cause Enso to make a network request to a data
+   endpoint.
 get_response : Response
 get_response = HTTP.fetch geo_data_url . with_materialized_body
 
 ## Gets HTTP data from a network endpoint.
 
-   ! Makes a Network Request
-     Calling this method will cause Enso to make a network request to a data
-     endpoint.
+   ## Remarks
+
+   ### Makes a Network Request
+   Calling this method will cause Enso to make a network request to a data
+   endpoint.
 get_geo_data : Response_Body
 get_geo_data = Data.fetch geo_data_url format=Raw_Response
 
@@ -182,11 +192,13 @@ uri = URI.parse "http://user:pass@example.com/foo/bar?key=val"
 
 ## A file that contains an image.
 
-   ! Downloading
-     Calling this method will result in the image file being downloaded from
-     the internet if it is not already present on your disk. If you do not want
-     this to happen, please place the image in the
-     `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
+   ## Remarks
+
+   ### Downloading
+   Calling this method will result in the image file being downloaded from the
+   internet if it is not already present on your disk. If you do not want this to
+   happen, please place the image in the `lib/Standard/Examples/<version>/data`
+   folder for your Enso distribution.
 image_file : File
 image_file =
     url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
@@ -197,11 +209,13 @@ image_file =
 
 ## A PNG image.
 
-   ! Downloading
-     Calling this method will result in the image file being downloaded from
-     the internet if it is not already present on your disk. If you do not want
-     this to happen, please place the image in the
-     `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
+   ## Remarks
+
+   ### Downloading
+   Calling this method will result in the image file being downloaded from the
+   internet if it is not already present on your disk. If you do not want this to
+   happen, please place the image in the `lib/Standard/Examples/<version>/data`
+   folder for your Enso distribution.
 image : Image
 image = Image.read image_file [Read_Flag.Alpha_Channel]
 
@@ -292,7 +306,9 @@ match =
     pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
     pattern.match "aa ab abc a bc bcd"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    The welcome file for Enso.
 welcome : File
 welcome =

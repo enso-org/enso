@@ -2,7 +2,9 @@
 // Taken from https://stackoverflow.com/a/75178110.
 
 const DUMMY_RECT = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-const WIDTH = DUMMY_RECT.width.baseVal
+// This file is imported in tests, where `width` may be null.
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+const WIDTH = DUMMY_RECT.width?.baseVal ?? 0
 const MODES = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   '%': WIDTH.SVG_LENGTHTYPE_PERCENTAGE,

@@ -1,23 +1,26 @@
-<script setup lang="ts" generic="T extends SubmenuEntry<T>">
+<script setup lang="ts" generic="T extends DropdownEntry | SubmenuEntry<T>">
 import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
-import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
+import { usePopoverRoot } from '@/providers/popoverRoot'
 import { targetIsOutside } from '@/util/autoBlur'
-import { computed, ComputedRef, ref, useTemplateRef, watch } from 'vue'
+import type { Opt } from '@/util/data/opt'
+import { computed, ref, toRef, useTemplateRef, watch, type ComputedRef } from 'vue'
 import { submenuDropdownStyles } from './styles'
 import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
-const props = defineProps<{
-  rootElement: HTMLElement | undefined | null
-  floatReference: HTMLElement | undefined | null
+const { extendUpwards = true, ...props } = defineProps<{
+  floatReference: Opt<HTMLElement>
   show: boolean
   entries: T[]
-  isSelected: (value: T) => boolean
   topLevel?: boolean
+  extendUpwards?: boolean
   color?: string | undefined
   backgroundColor?: string | undefined
 }>()
+const floatReference = toRef(props, 'floatReference')
+const rootElement = usePopoverRoot(true)
 
 const emit = defineEmits<{
   clickedEntry: [T, boolean]
@@ -42,8 +45,6 @@ const submenuEntries = computed(() => submenu.value?.entries ?? [])
 const submenuRef = useTemplateRef('submenuRef')
 
 const dropdownElement = useTemplateRef('dropdownElement')
-const floatReference = computed(() => props.floatReference)
-const rootElement = computed(() => props.rootElement)
 
 const { floatingStyles } = submenuDropdownStyles(
   floatReference,
@@ -52,7 +53,9 @@ const { floatingStyles } = submenuDropdownStyles(
   rootElement,
 )
 
-const nestedEntriesPresent = computed(() => props.entries.some((entry) => entry.isNested))
+const nestedEntriesPresent = computed(() =>
+  props.entries.some((entry) => 'isNested' in entry && entry.isNested),
+)
 
 function resetSubmenu() {
   submenu.value = null
@@ -61,15 +64,14 @@ watch([() => props.show, () => props.entries], resetSubmenu)
 
 function nestedEntryToSubmenu(entry: SubmenuEntry<T>, target: HTMLElement): Submenu {
   return {
-    entries: computed(() => entry.nestedValues satisfies SubmenuEntry<T>[]),
+    entries: computed(() => entry.nestedValues),
     relativeTo: target,
   }
 }
 
-function onClick(entry: DropdownEntry, keepOpen: boolean, htmlElement: HTMLElement) {
-  if (!isSubmenuEntry(entry)) return
-  if (entry.isNested) {
-    submenu.value = nestedEntryToSubmenu(entry as SubmenuEntry<T>, htmlElement)
+function onClick(entry: T, keepOpen: boolean, htmlElement: HTMLElement) {
+  if (isSubmenuEntry(entry) && entry.isNested) {
+    submenu.value = nestedEntryToSubmenu(entry, htmlElement)
   } else {
     emit('clickedEntry', entry as T, keepOpen)
   }
@@ -104,7 +106,7 @@ export interface SubmenuComponent {
 </script>
 
 <template>
-  <ConditionalTeleport :target="props.rootElement">
+  <ConditionalTeleport :target="rootElement">
     <div
       ref="dropdownElement"
       :style="floatingStyles"
@@ -114,9 +116,8 @@ export interface SubmenuComponent {
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
-          :class="{ ExtendUpwards: props.topLevel }"
-          :color="props.color ?? 'var(--color-node-text)'"
-          :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
+          class="widgetPill"
+          :class="{ ExtendUpwards: props.topLevel && extendUpwards }"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
@@ -127,19 +128,15 @@ export interface SubmenuComponent {
   <SelectionSubmenu
     v-if="nestedEntriesPresent"
     ref="submenuRef"
-    :rootElement="props.rootElement"
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
     :entries="submenuEntries"
-    :color="props.color ?? 'var(--color-node-text)'"
-    :backgroundColor="props.backgroundColor ?? 'var(--color-node-background)'"
-    :isSelected="props.isSelected"
     @clickedEntry="(entry, keepOpen) => emit('clickedEntry', entry, keepOpen)"
   />
 </template>
 
 <style scoped>
 .SelectionSubmenu {
-  z-index: 21;
+  z-index: var(--z-index-selection-submenu);
 }
 </style>

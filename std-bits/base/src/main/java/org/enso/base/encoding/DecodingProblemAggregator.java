@@ -4,12 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class DecodingProblemAggregator {
+/**
+ * The Location type allows additional location/context information to be added to the positions of
+ * bad characters.
+ */
+public abstract class DecodingProblemAggregator<Location> {
   private final List<DecodingProblem> baseProblems = new ArrayList<>();
   private int invalidUnitCount = 0;
   private String invalidCharacterErrorPrefix = "";
-  private final List<Integer> invalidUnitExamplePositions = new ArrayList<>();
+  private final List<Location> invalidUnitExamplePositions = new ArrayList<>();
   private static final int MAX_ENCODING_ISSUE_EXAMPLES = 3;
+
+  /** Add optional location information. */
+  protected abstract Location toLocation(int position);
 
   public void reportOtherProblem(String message) {
     baseProblems.add(new DecodingProblem(message));
@@ -27,7 +34,7 @@ public class DecodingProblemAggregator {
   public void reportInvalidCharacterProblem(int position) {
     invalidUnitCount++;
     if (invalidUnitExamplePositions.size() < MAX_ENCODING_ISSUE_EXAMPLES) {
-      invalidUnitExamplePositions.add(position);
+      invalidUnitExamplePositions.add(toLocation(position));
     }
   }
 

@@ -1,5 +1,5 @@
-import { test } from '@playwright/test'
 import assert from 'assert'
+import { test } from 'playwright/test'
 import * as actions from './actions'
 import { computedContent } from './css'
 import { expect } from './customExpect'
@@ -65,7 +65,17 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
     ],
   })
 
-  // We may leave fulscreen by pressing Escape
+  // We can switch visualization type to Table
+  await locate.toggleVisualizationSelectorButton(page).click()
+  await page.getByText('Table', { exact: true }).click()
+  const tableVis = locate.tableVisualization(page)
+  await expect(tableVis).toExist()
+  // ... and back to JSON
+  await locate.toggleVisualizationSelectorButton(page).click()
+  await page.getByText('JSON').click()
+  await expect(vis).toExist()
+
+  // We may leave fullscreen by pressing Escape
   await page.keyboard.press('Escape')
   await expect.poll(async () => (await vis.boundingBox())?.width).toBeCloseTo(initialBBox.width)
   await expect.poll(async () => (await vis.boundingBox())?.height).toBeCloseTo(initialBBox.height)

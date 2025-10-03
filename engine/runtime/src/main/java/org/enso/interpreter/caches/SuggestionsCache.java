@@ -1,5 +1,6 @@
 package org.enso.interpreter.caches;
 
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -7,15 +8,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.apache.commons.lang3.StringUtils;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.caches.SuggestionsCache.CachedSuggestions;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.persist.Persistable;
-import org.enso.persist.Persistance;
 import org.enso.polyglot.Suggestion;
 import org.enso.version.BuildVersion;
 
@@ -71,14 +71,16 @@ public final class SuggestionsCache
 
   @Override
   public byte[] serialize(EnsoContext context, CachedSuggestions entry) throws IOException {
-    return Persistance.write(entry, CacheUtils.writeReplace(context.getCompiler().context(), true));
+    var pool = CacheUtils.createPool(context.getCompiler().context(), true);
+    return pool.write(entry);
   }
 
   @Override
   public CachedSuggestions deserialize(
       EnsoContext context, ByteBuffer data, Metadata meta, TruffleLogger logger)
       throws IOException {
-    var ref = Persistance.read(data, CacheUtils.readResolve(context.getCompiler().context()));
+    var pool = CacheUtils.createPool(context.getCompiler().context(), true);
+    var ref = pool.read(data);
     var cachedSuggestions = ref.get(CachedSuggestions.class);
     return cachedSuggestions;
   }
@@ -99,31 +101,16 @@ public final class SuggestionsCache
   }
 
   @Override
-  public Optional<Cache.Roots> getCacheRoots(EnsoContext context) {
-    return context
-        .getPackageRepository()
-        .getPackageForLibraryJava(libraryName)
-        .map(
-            pkg -> {
-              var bindingsCacheRoot =
-                  pkg.getSuggestionsCacheRootForPackage(BuildVersion.ensoVersion());
-              var localCacheRoot = bindingsCacheRoot.resolve(libraryName.namespace());
-              var distribution = context.getDistributionManager();
-              var pathSegments =
-                  new String[] {
-                    pkg.namespace(),
-                    pkg.normalizedName(),
-                    pkg.getConfig().version(),
-                    BuildVersion.ensoVersion(),
-                    libraryName.namespace()
-                  };
-              var path =
-                  distribution.LocallyInstalledDirectories()
-                      .irCacheDirectory()
-                      .resolve(StringUtils.join(pathSegments, "/"));
-              var globalCacheRoot = context.getTruffleFile(path.toFile());
-              return new Cache.Roots(localCacheRoot, globalCacheRoot);
-            });
+  public Iterable<TruffleFile> getCacheRoots(EnsoContext context) {
+    var pkg = context.getPackageRepository().getPackageForLibraryJava(libraryName);
+    if (pkg.isEmpty()) {
+      return Collections.emptyList();
+    } else {
+      var bindingsCacheRoot =
+          pkg.get().getSuggestionsCacheRootForPackage(BuildVersion.ensoVersion());
+      var distributionRoot = bindingsCacheRoot.resolve(libraryName.namespace());
+      return Collections.singletonList(distributionRoot);
+    }
   }
 
   @Override

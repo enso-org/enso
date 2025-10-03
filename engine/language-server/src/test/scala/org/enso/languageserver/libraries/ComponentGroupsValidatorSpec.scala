@@ -208,7 +208,8 @@ object ComponentGroupsValidatorSpec {
           extendedGroups = Nil
         )
       ),
-      jvm = None
+      services = List(),
+      jvm      = None
     )
 
   /** Create a library name from config. */

@@ -1,13 +1,6 @@
-/**
- * @file
- *
- * A button that opens a paywall dialog when clicked.
- */
-
+/** @file A button that opens a paywall dialog when clicked. */
+import { Dialog, type DialogTriggerProps } from '#/components/Dialog'
 import * as React from 'react'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
 import * as components from './components'
 import * as paywallDialog from './PaywallDialog'
 
@@ -15,7 +8,7 @@ import * as paywallDialog from './PaywallDialog'
 export type PaywallDialogButtonProps<IconType extends string> =
   components.PaywallButtonProps<IconType> & {
     readonly dialogProps?: paywallDialog.PaywallDialogProps
-    readonly dialogTriggerProps?: ariaComponents.DialogTriggerProps
+    readonly dialogTriggerProps?: DialogTriggerProps
   }
 
 /** A button that opens a paywall dialog when clicked */
@@ -25,10 +18,10 @@ export function PaywallDialogButton<IconType extends string>(
   const { feature, dialogProps, dialogTriggerProps, ...buttonProps } = props
 
   return (
-    <ariaComponents.DialogTrigger {...dialogTriggerProps}>
+    <Dialog.Trigger {...dialogTriggerProps}>
       <components.PaywallButton feature={feature} {...buttonProps} />
 
       <paywallDialog.PaywallDialog feature={feature} {...dialogProps} />
-    </ariaComponents.DialogTrigger>
+    </Dialog.Trigger>
   )
 }

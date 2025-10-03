@@ -1,13 +1,26 @@
 packages:
-  - app/ide-desktop/*
   - app/common
   - app/gui
+  - app/ide-desktop/client
+  - app/ide-desktop/icons
   - app/lang-markdown
   - app/lezer-markdown
-  - app/table-expression
+  - app/project-manager-shim
   - app/rust-ffi
+  - app/table-expression
   - app/ydoc-server
-  - app/ydoc-shared
   - app/ydoc-server-nodejs
   - app/ydoc-server-polyglot
+  - app/ydoc-shared
   - lib/js/runner
+catalog:
+  typescript: ^5.7.2
+  "@types/node": ^24.2.1
+  vite: ^7.1.2
+  vitest: ^3.2.4
+  playwright: 1.50.1
+  "@codemirror/autocomplete": ^6.18.7
+  "@codemirror/language": ^6.11.3
+  "@codemirror/state": ^6.5.2
+  "@codemirror/view": ^6.38.2
+  "@fast-check/vitest": ^0.2.1

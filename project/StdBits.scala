@@ -6,8 +6,9 @@ import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
 import sbt.util.CacheStoreFactory
 
 import java.io.{File, IOException}
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import java.util.Locale
+import scala.jdk.CollectionConverters.asScalaBufferConverter
 
 object StdBits {
 
@@ -30,8 +31,10 @@ object StdBits {
     * @param ignoreDependencies Depedencies that should be ignored based on a plain file name filter
     * @param ignoreDependencyIncludeTransitive An optional filter to indicate that a direct dependency should be ignored except for its (transitive) dependencies
     * @param ignoreUnmanagedDependency An optional filter that tests if an unmanaged dependency should be ignored
-    *
-    * @param previousRun summary of previous extraction data, if available
+    * @param polyglotLibDir `polyglot/lib` directory for extracted native libraries.
+    * @param extractedNativeLibsDirs Directories where all the extracted native libraries are present.
+    *                               If specified, `polyglotLibDir` must also be specified.
+    * @param extraJars Additional JARs that will be copied into `destination` directory.
     */
   def copyDependencies(
     destination: File,
@@ -45,8 +48,16 @@ object StdBits {
     ignoreDependencies: Option[String => Boolean]       = None,
     ignoreDependencyIncludeTransitive: Option[String]   = None,
     ignoreUnmanagedDependency: Option[File => Boolean]  = None,
-    previousRun: Option[AnalysisOfExtractedNativeLibs]  = None
+    polyglotLibDir: Option[File]                        = None,
+    extractedNativeLibsDirs: Seq[File]                  = Seq.empty,
+    extraJars: Seq[File]                                = Seq.empty
   ): Unit = {
+    if (extractedNativeLibsDirs.nonEmpty) {
+      require(
+        polyglotLibDir.isDefined,
+        "If extracted native libraries dir is provided, polyglotLibDir must be defined."
+      )
+    }
 
     val baseFilter: NameFilter = new ExactFilter(Configurations.Runtime.name)
     val validConfig =
@@ -92,14 +103,22 @@ object StdBits {
       ignoreDependencyIncludeTransitive
         .map(filter => relevantFiles0.filterNot(_.getName.contains(filter)))
         .getOrElse(relevantFiles0)
-    val relevantFiles =
+    val relevantFiles2 =
       ignoreDependencies
         .map(filter => relevantFiles1.filterNot(f => filter(f.getName)))
         .getOrElse(relevantFiles1)
-    val dependencyStore =
-      cacheStoreFactory.make("std-bits-dependencies")
-    Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
+    val relevantFiles =
+      relevantFiles2 ++ extraJars
+
+    val jarDependencyStore =
+      cacheStoreFactory.make("std-bits-jar-dependencies")
+
+    // Copy jars into `destination` if necessary.
+    Tracked.diffInputs(jarDependencyStore, FileInfo.hash)(relevantFiles.toSet) {
       report =>
+        logger.debug(
+          s"jarDependencyStore report: " + report
+        )
         val expectedFileNames =
           report.checked.map(file => file.getName) ++ providedJarNames
         for (existing <- IO.listFiles(destination)) {
@@ -109,23 +128,10 @@ object StdBits {
             ) && ignoreDependencyIncludeTransitive
               .forall(filter => !existing.getName.contains(filter))
           ) {
-            val outdatedArtifact =
-              !previousRun
-                .exists(analysis =>
-                  analysis.libs.exists(a =>
-                    a.matchesTargetArtifact(existing) && !a.isOutdated
-                  )
-                )
-            if (outdatedArtifact) {
-              logger.info(
-                s"Removing outdated std-bits dependency ${existing.getName}."
-              )
-              IO.delete(existing)
-            } else {
-              logger.info(
-                s"Keeping target ${existing.getName} jar as a dependency. Still up-to-date"
-              )
-            }
+            logger.info(
+              s"Removing outdated std-bits dependency ${existing.getName}."
+            )
+            IO.delete(existing)
           }
         }
         for (changed <- report.modified -- report.removed) {
@@ -142,305 +148,71 @@ object StdBits {
           }
         }
     }
-  }
 
-  /** Extract native libraries from `opencv.jar` and put them under
-    * `Standard/Image/polyglot/lib` directory. The minimized `opencv.jar` will
-    * be put under `Standard/Image/polyglot/java` directory.
-    * @param imagePolyglotRoot root dir of Std image polyglot dir
-    * @param imageNativeLibs root dir of Std image lib dir
-    * @param opencvVersion OpenCV's version
-    * @param logger SBT's logger
-    * @param updateReport resolution report
-    * @param moduleName name of the project where extraction happens
-    * @param scalaBinaryVersion Scala's version
-    * @param cacheStoreFactory SBT's cache sotre factory
-    * @param previousRun summary of previous extraction data, if available
-    * @return
-    */
-  def extractNativeLibsFromOpenCV(
-    imagePolyglotRoot: File,
-    imageNativeLibs: File,
-    opencvVersion: String,
-    logger: ManagedLogger,
-    updateReport: UpdateReport,
-    moduleName: String,
-    scalaBinaryVersion: String,
-    cacheStoreFactory: CacheStoreFactory,
-    previousRun: Option[AnalysisOfExtractedNativeLibs]
-  ): AnalysisOfExtractedNativeLibs = {
-    if (previousRun.exists(!_.isOutdated)) {
-      return previousRun.get
-    }
-    val extractPrefix = "nu/pattern/opencv"
-    val validOsName   = osName()
-    val validArch     = arch()
-
-    // Make sure that the native libs in the `lib` directory complies with
-    // `org.enso.interpreter.runtime.NativeLibraryFinder`
-    def renameFunc(entryName: String): Option[String] = {
-      val strippedEntryName = entryName
-        .substring(extractPrefix.length + 1)
-        .replace("ARMv8", "aarch64")
-      if (
-        strippedEntryName.contains("linux/ARM") ||
-        strippedEntryName.contains("linux/x86_32") ||
-        strippedEntryName.contains("README.md")    ||
-        // Remove native libs for different platforms
-        !strippedEntryName.contains(validOsName) ||
-        !strippedEntryName.contains(validArch)
-      ) {
-        None
-      } else {
-        Some(
-          strippedEntryName
-            .replace("linux/x86_64", "amd64")
-            .replace("windows/x86_64", "amd64")
-            .replace("windows/x86_32", "x86_32")
-            .replace("osx/aarch64", "aarch64")
-            .replace("osx/x86_64", "amd64")
+    polyglotLibDir match {
+      case None => ()
+      case Some(destDir) =>
+        copyNativeLibs(
+          destDir,
+          extractedNativeLibsDirs,
+          cacheStoreFactory,
+          logger
         )
-      }
     }
-
-    val openCvJar = JPMSUtils
-      .filterModulesFromUpdate(
-        updateReport,
-        Seq("org.openpnp" % "opencv" % opencvVersion),
-        logger,
-        moduleName,
-        scalaBinaryVersion,
-        shouldContainAll = true
-      )
-      .head
-    val outputJarPath     = (imagePolyglotRoot / "opencv.jar").toPath
-    val thinOutputJar     = outputJarPath.toFile
-    val extractedFilesDir = imageNativeLibs.toPath
-    val extractedLibs = JARUtils.extractFilesFromJar(
-      openCvJar.toPath,
-      Some(extractPrefix),
-      Some(outputJarPath),
-      extractedFilesDir,
-      renameFunc,
-      logger,
-      cacheStoreFactory,
-      previousRun.flatMap(_.forJar(openCvJar))
-    )
-    AnalysisOfExtractedNativeLibs(
-      openCvJar,
-      extractedLibs.getOrElse(Nil),
-      Some(thinOutputJar)
-    )
   }
 
-  /** Extract native libraries from `tableauhyperapi-<osname>.jar` and put them under
-    * `Standard/Tableau/polyglot/lib` directory.
-    * @param tableauPolyglotRoot root dir of Std tableau polyglot dir
-    * @param tableauNativeLibs root dir of Std tableau lib dir
-    * @param tableauVersion Tableau's dependency version
-    * @param jnaVersion JNA's version
-    * @param logger SBT's logger
-    * @param updateReport resolution report
-    * @param unmanagedClasspath classpath of unmanaged jars, if any
-    * @param moduleName name of the project where extraction happens
-    * @param scalaBinaryVersion Scala's version
-    * @param cacheStoreFactory SBT's cache sotre factory
-    * @param previousRun summary of previous extraction data, if available
-    * @return
+  /** Copies native libraries from the specified source directories to the
+    * destination directory, ensuring that the destination is up-to-date.
+    * @param polyglotLibDir Destination directory.
+    * @param extractedNativeLibDirs Source directories with all the extracted native libraries.
     */
-  def extractNativeLibsFromTableau(
-    tableauPolyglotRoot: File,
-    tableauNativeLibs: File,
-    tableauVersion: String,
-    jnaVersion: String,
-    jnaJar: File,
-    logger: ManagedLogger,
-    updateReport: UpdateReport,
-    unmanagedClasspath: Classpath,
-    moduleName: String,
-    scalaBinaryVersion: String,
+  private def copyNativeLibs(
+    polyglotLibDir: File,
+    extractedNativeLibDirs: Seq[File],
     cacheStoreFactory: CacheStoreFactory,
-    previousRun: Option[AnalysisOfExtractedNativeLibs]
-  ): AnalysisOfExtractedNativeLibs = {
-    if (previousRun.exists(!_.isOutdated)) {
-      return previousRun.get
-    }
-    val validOsName = osName(unixName = true)
-    val validOsExt  = osExt()
-    val validArch   = arch().replace("_", "-")
-    // Make sure that the native libs in the `lib` directory complies with
-    // `org.enso.interpreter.runtime.NativeLibraryFinder`
-    def renameFunc(prefix: String)(entryName: String): Option[String] = {
-      val strippedEntryName =
-        (if (prefix.isEmpty) entryName
-         else entryName.substring(prefix.length + 1)).replace("jnilib", "dylib")
-      if (
-        !strippedEntryName.endsWith(validOsExt) ||
-        // Remove native libs for different platforms
-        !strippedEntryName.contains(validOsName) ||
-        !strippedEntryName.contains(validArch)
-      ) {
-        None
-      } else {
-        Some(
-          strippedEntryName
-            .replace("linux-x86-64", "amd64")
-            .replace("win32-x86-64", "amd64")
-            .replace("darwin-aarch64", "aarch64")
-            .replace("darwin-x86-64", "amd64")
-        )
-      }
-    }
-
-    // Extract native library from tableauhyperapi-$arch's jar
-    val tableauSuffixInJar = s"tableauhyperapi-${plainOsName()}"
-    val tableauNativeLibJar = unmanagedClasspath
-      .map(_.data)
-      .filter(f => f.getName.contains(tableauSuffixInJar))
-      .head
-
-    val extractedFilesDir = tableauNativeLibs.toPath
-    val extractedTableauLibs = JARUtils.extractFilesFromJar(
-      tableauNativeLibJar.toPath,
-      None,
-      None,
-      extractedFilesDir,
-      renameFunc(""),
-      logger,
-      cacheStoreFactory,
-      previousRun.flatMap(_.forJar(tableauNativeLibJar))
-    )
-    val extractedTableau = ExtractedNativeLibSummary(
-      tableauNativeLibJar,
-      extractedTableauLibs.getOrElse(Nil),
-      None
-    )
-
-    // Extract native library from jna's jar
-    val outputJnaJarPath =
-      (tableauPolyglotRoot / s"jna-${validOsName}-$jnaVersion.jar").toPath
-    val outputJnaJar  = outputJnaJarPath.toFile
-    val extractPrefix = "com/sun/jna"
-    val extractedJnaLibs = JARUtils.extractFilesFromJar(
-      jnaJar.toPath,
-      Some(extractPrefix),
-      Some(outputJnaJarPath),
-      extractedFilesDir,
-      renameFunc(extractPrefix),
-      logger,
-      cacheStoreFactory,
-      previousRun.flatMap(_.forJar(jnaJar))
-    )
-    val extractedJna = ExtractedNativeLibSummary(
-      jnaJar,
-      extractedJnaLibs.getOrElse(Nil),
-      Some(outputJnaJar)
-    )
-    AnalysisOfExtractedNativeLibs(extractedTableau :: extractedJna :: Nil)
-  }
-
-  /** Extract native libraries from `grpc-netty-shaded-<version>.jar` and put them under
-    * `Standard/Google_Api/polyglot/lib` directory.
-    * @param grpcPolyglotRoot root dir of Std Google polyglot dir
-    * @param grpcNativeLibs root dir of Std Google lib dir
-    * @param grpcVersion GRPC's library version
-    * @param updateReport resolution report
-    * @param logger SBT's logger
-    * @param moduleName name of the project where extraction happens
-    * @param scalaBinaryVersion Scala's version
-    * @param cacheStoreFactory SBT's cache sotre factory
-    * @param previousRun summary of previous extraction data, if available
-    * @return
-    */
-  def extractNativeLibsFromGrpc(
-    grpcPolyglotRoot: File,
-    grpcNativeLibs: File,
-    grpcVersion: String,
-    updateReport: UpdateReport,
-    logger: ManagedLogger,
-    moduleName: String,
-    scalaBinaryVersion: String,
-    cacheStoreFactory: CacheStoreFactory,
-    previousRun: Option[AnalysisOfExtractedNativeLibs]
-  ): AnalysisOfExtractedNativeLibs = {
-    if (previousRun.exists(!_.isOutdated)) {
-      return previousRun.get
-    }
-    val validOsName = osName()
-    val validOsExt  = osExt()
-    val validArch   = arch().replace("-", "_")
-    // Make sure that the native libs in the `lib` directory complies with
-    // `org.enso.interpreter.runtime.NativeLibraryFinder`
-    def renameFunc(prefix: String)(entryName: String): Option[String] = {
-      val strippedEntryName =
-        (if (prefix.isEmpty) entryName
-         else entryName.substring(prefix.length + 1)).replace("jnilib", "dylib")
-      if (
-        !strippedEntryName.endsWith(validOsExt) ||
-        // Remove native libs for different platforms
-        !(strippedEntryName.contains(validOsName) || strippedEntryName.contains(
-          "native_epoll" // native-epol does not have os info in the name
-        )) ||
-        !strippedEntryName.contains(validArch)
-      ) {
-        None
-      } else {
-        Some(strippedEntryName)
-      }
-    }
-
-    val grpcJar = JPMSUtils
-      .filterModulesFromUpdate(
-        updateReport,
-        Seq("io.grpc" % "grpc-netty-shaded" % grpcVersion),
-        logger,
-        moduleName,
-        scalaBinaryVersion,
-        shouldContainAll = true
-      )
-      .head
-    val outputGrpcNettyShaded =
-      (grpcPolyglotRoot / s"grpc-netty-shaded-thin-$grpcVersion.jar").toPath
-    val extractPrefix = "META-INF/native"
-    val extractedLibs = JARUtils.extractFilesFromJar(
-      grpcJar.toPath,
-      Some(extractPrefix),
-      Some(outputGrpcNettyShaded),
-      grpcNativeLibs.toPath,
-      renameFunc(extractPrefix),
-      logger,
-      cacheStoreFactory,
-      previousRun.flatMap(_.forJar(grpcJar))
-    )
-    AnalysisOfExtractedNativeLibs(
-      grpcJar,
-      extractedLibs.getOrElse(Nil),
-      Some(outputGrpcNettyShaded.toFile)
-    )
-  }
-
-  def ensureDirExistsAndIsClean(
-    path: Path,
-    logger: sbt.util.Logger,
-    forceClean: Boolean = true
+    logger: ManagedLogger
   ): Unit = {
-    require(path != null)
-    val dir = path.toFile
-    if (dir.exists && dir.isDirectory) {
-      // Clean previous contents
-      if (forceClean)
-        IO.delete(IO.listFiles(dir))
-    } else {
-      try {
-        IO.createDirectory(dir)
-      } catch {
-        case e: IOException =>
-          logger.err(
-            s"Failed to create directory $path: ${e.getMessage}"
+    val nativeLibsStore =
+      cacheStoreFactory.make("std-bits-native-libs")
+    val nativeLibsOutputDir = polyglotLibDir
+    Tracked.diffInputs(nativeLibsStore, FileInfo.hash)(
+      Set(nativeLibsOutputDir) ++ extractedNativeLibDirs.toSet
+    ) { report =>
+      logger.debug("nativeLibsReport: " + report)
+      val reportChanged = report.modified.nonEmpty ||
+        report.removed.nonEmpty ||
+        report.added.nonEmpty
+      val shouldCopy = !nativeLibsOutputDir.exists() || reportChanged
+      if (shouldCopy) {
+        // Delete and recreate the output dir, just to be sure
+        IO.delete(nativeLibsOutputDir)
+        IO.createDirectory(nativeLibsOutputDir)
+        for (nativeLibsInputDir <- extractedNativeLibDirs) {
+          logger.debug(
+            s"Copying native libraries from ${nativeLibsInputDir.getAbsolutePath} to ${nativeLibsOutputDir.getAbsolutePath}"
           )
-          e.printStackTrace(System.err)
+          IO.copyDirectory(
+            nativeLibsInputDir,
+            nativeLibsOutputDir
+          )
+        }
+      } else {
+        logger.debug(
+          s"Native libraries from ${extractedNativeLibDirs} are already copied to ${nativeLibsOutputDir.getAbsolutePath}"
+        )
       }
     }
+  }
+
+  private def listRecursively(
+    dir: File
+  ): Seq[File] = {
+    Files
+      .walk(dir.toPath)
+      .toList
+      .asScala
+      .map(_.toFile)
+      .filter(_.isFile)
   }
 
   /** Inspired by `org.enso.pkg.NativeLibraryFinder`

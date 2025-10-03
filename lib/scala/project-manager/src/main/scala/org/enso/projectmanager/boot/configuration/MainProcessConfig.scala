@@ -11,13 +11,13 @@ import scala.concurrent.duration.FiniteDuration
   * @param logLevel the logging level
   * @param profilingPath the path to the profiling out file
   * @param profilingTime the time limiting the profiling duration
-  * @param jvmMode if true, enables JVM mode
+  * @param jvm enable JVM mode with default or provided JVM
   * @param extraEnv extra environment variables
   */
 case class MainProcessConfig(
   logLevel: Level,
   profilingPath: Option[Path],
   profilingTime: Option[FiniteDuration],
-  jvmMode: Boolean,
+  jvm: Option[Option[Path]],
   extraEnv: Seq[(String, String)]
 )

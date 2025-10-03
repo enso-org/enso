@@ -16,17 +16,14 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic.Kind;
 import org.enso.benchmarks.Utils;
-import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes("org.enso.benchmarks.processor.GenerateBenchSources")
-@ServiceProvider(service = Processor.class)
 public class BenchProcessor extends AbstractProcessor {
 
   private static final String MODULE_PATH_PROP_NAME =

@@ -66,7 +66,7 @@ record ModuleSources(TruffleFile file, Rope rope, Source source) {
     if (source != null) {
       return this;
     }
-    if (rope() != null) {
+    if (rope != null) {
       Source src = Source.newBuilder(LanguageInfo.ID, rope.characters(), name.toString()).build();
       return new ModuleSources(file, rope, src);
     } else if (file != null) {

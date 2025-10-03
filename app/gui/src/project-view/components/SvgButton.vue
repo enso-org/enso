@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import type { AnyIcon } from '@/util/icons'
 
+const toggledOn = defineModel<boolean | undefined>()
 defineProps<{
-  name?: Icon | URLString | undefined
+  name?: AnyIcon | undefined
   label?: string | undefined
   disabled?: boolean | undefined
   title?: string | undefined
@@ -16,6 +16,7 @@ const emit = defineEmits<{ activate: [] }>()
 
 <template>
   <MenuButton
+    v-model="toggledOn"
     :disabled="disabled"
     class="SvgButton"
     :title="title"
@@ -31,10 +32,9 @@ const emit = defineEmits<{ activate: [] }>()
 .SvgButton {
   margin: -4px;
   gap: 4px;
-  transition: opacity 0.2s;
 
   &.disabled {
-    opacity: 0.3;
+    opacity: 0.2;
   }
 }
 </style>

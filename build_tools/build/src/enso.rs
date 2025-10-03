@@ -37,7 +37,7 @@ impl From<bool> for Boolean {
 }
 
 ide_ci::define_env_var! {
-    JAVA_OPTS, String;
+    JAVA_TOOL_OPTIONS, String;
     ENSO_BENCHMARK_TEST_DRY_RUN, Boolean;
 }
 
@@ -114,6 +114,7 @@ impl BuiltEnso {
         ir_caches: IrCaches,
         environment_overrides: Vec<(String, String)>,
         extra_args: Option<Vec<String>>,
+        extra_java_tool_opts: Option<Vec<String>>,
         native_image: bool,
     ) -> Result<Command> {
         let mut command = if native_image {
@@ -125,13 +126,19 @@ impl BuiltEnso {
         if let Some(args) = extra_args {
             command.args(args);
         }
+        let mut java_tool_opts: Vec<String> = vec![];
+        let enable_asserts_opt: &str = ide_ci::programs::java::Option::EnableAssertions.as_ref();
+        // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
+        // failed on Graal/Truffle assertions, so we want to have them triggered.
+        java_tool_opts.push(enable_asserts_opt.to_string());
+        if let Some(opts) = extra_java_tool_opts {
+            java_tool_opts.extend(opts);
+        }
         command
             .arg(ir_caches)
             .arg("--run")
             .arg(test_path.as_ref())
-            // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
-            // failed on Graal/Truffle assertions, so we want to have them triggered.
-            .set_env(JAVA_OPTS, &ide_ci::programs::java::Option::EnableAssertions.as_ref())?;
+            .set_env(JAVA_TOOL_OPTIONS, &java_tool_opts.join(" "))?;
 
         for (k, v) in environment_overrides {
             command.env(k, &v);
@@ -149,6 +156,7 @@ impl BuiltEnso {
         Ok(command)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn run_tests(
         &self,
         ir_caches: IrCaches,
@@ -156,6 +164,7 @@ impl BuiltEnso {
         async_policy: AsyncPolicy,
         test_selection: StandardLibraryTestsSelection,
         extra_runner_args: Option<Vec<String>>,
+        extra_java_tool_opts: Option<Vec<String>>,
         native_image: bool,
     ) -> Result {
         let paths = &self.paths;
@@ -173,10 +182,10 @@ impl BuiltEnso {
 
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {
-            let google_api_test_data_dir =
-                paths.repo_root.join("test").join("Google_Api_Test").join("data");
-            ide_ci::fs::create_dir_if_missing(&google_api_test_data_dir)?;
-            ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), gdoc_key)?;
+            let google_test_data_dir =
+                paths.repo_root.join("test").join("Google_Test").join("data");
+            ide_ci::fs::create_dir_if_missing(&google_test_data_dir)?;
+            ide_ci::fs::write(google_test_data_dir.join("secret.json"), gdoc_key)?;
         }
 
         let std_tests: Vec<_> = match &test_selection {
@@ -273,7 +282,7 @@ impl BuiltEnso {
                 cloud_tests::env::test_controls::ENSO_CLOUD_CREDENTIALS_FILE.name().to_string(),
                 path.to_string(),
             ));
-            // We do not set ENSO_CLOUD_API_URI - we rely on the default, or any existing overrides.
+            // We do not set ENSO_CLOUD_API_URL - we rely on the default, or any existing overrides.
             environment_overrides.push((
                 cloud_tests::env::test_controls::ENSO_RUN_REAL_CLOUD_TEST.name().to_string(),
                 "1".to_string(),
@@ -286,6 +295,7 @@ impl BuiltEnso {
                 ir_caches,
                 environment_overrides.clone(),
                 extra_runner_args.clone(),
+                extra_java_tool_opts.clone(),
                 native_image,
             );
             async move { command?.run_ok().await }

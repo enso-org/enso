@@ -1,3 +1,5 @@
+import originalIsNetworkError from 'is-network-error'
+
 /**
  * An error that occurs when a network request fails.
  *
@@ -48,5 +50,26 @@ export class ErrorWithDisplayMessage extends Error {
     super(message, options)
     this.name = 'ErrorWithDisplayMessage'
     this.displayMessage = options.displayMessage
+  }
+}
+
+/**
+ * Checks if the given error is a network error.
+ * Wraps the `is-network-error` library to add additional network errors to the check.
+ */
+export function isNetworkError(error: unknown): error is TypeError {
+  const customNetworkErrors = new Set([
+    // aws amplify network error
+    'Network error',
+  ])
+
+  if (error instanceof Error) {
+    if (customNetworkErrors.has(error.message)) {
+      return true
+    } else {
+      return originalIsNetworkError(error)
+    }
+  } else {
+    return false
   }
 }

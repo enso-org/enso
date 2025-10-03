@@ -30,22 +30,23 @@ object InvalidatedExpressions {
   /** A request to invalidate a list of expressions.
     *
     * @param value the list of expressions to invalidate
+    * @param reason human-readable explanation for invalidation
     */
-  case class Expressions(value: Vector[ExpressionId])
+  case class Expressions(value: Vector[ExpressionId], reason: String)
       extends InvalidatedExpressions
 
   object Expressions {
 
     val decoder: Decoder[InvalidatedExpressions] =
       Decoder.instance { cursor =>
-        cursor.as[Vector[ExpressionId]].map(Expressions(_))
+        cursor.as[Vector[ExpressionId]].map(Expressions(_, "<ignored>"))
       }
   }
 
   implicit val encoder: Encoder[InvalidatedExpressions] =
     Encoder.instance[InvalidatedExpressions] {
-      case All                => All.Value.asJson
-      case Expressions(value) => value.asJson
+      case All                   => All.Value.asJson
+      case Expressions(value, _) => value.asJson
     }
 
   implicit val decoder: Decoder[InvalidatedExpressions] =

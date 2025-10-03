@@ -11,7 +11,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 const inputComponent = ref<ComponentInstance<typeof NumericInputWidget>>()
 
 function setValue(value: string | undefined) {
-  props.onUpdate({
+  props.updateCallback({
     portUpdate: { value, origin: props.input.portId },
     directInteraction: true,
   })
@@ -57,6 +57,7 @@ export const widgetDefinition = defineWidget(
     priority: 1001,
     score: (props) => {
       if (
+        props.input.dynamicConfig?.kind === 'Numeric_Input' ||
         props.input.value instanceof Ast.NumericLiteral ||
         (props.input.value instanceof Ast.NegationApp &&
           props.input.value.argument instanceof Ast.NumericLiteral)

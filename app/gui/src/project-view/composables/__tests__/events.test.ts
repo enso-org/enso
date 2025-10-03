@@ -85,8 +85,8 @@ test.each`
     t: number[]
     offset: [number, number][]
     delta: [number, number][]
-  }) => {
-    await withSetup(async () => {
+  }) =>
+    withSetup(async () => {
       const cb = vi.fn()
       const expectedSequence: CbSequenceStep[] = []
       const arrows = useArrows(cb, { velocity })
@@ -122,12 +122,11 @@ test.each`
       ])
       expect(arrows.moving.value).toBeFalsy()
       checkCbSequence(cb, expectedSequence)
-    })[0]
-  },
+    }),
 )
 
-test('useArrow with non-overlaping keystrokes', async () => {
-  await withSetup(async () => {
+test('useArrow with non-overlaping keystrokes', () =>
+  withSetup(async () => {
     const cb = vi.fn()
     const arrows = useArrows(cb, { velocity: 10 })
     const rightDown = keyEvent('keydown', { key: 'ArrowRight', timeStamp: 0 })
@@ -159,11 +158,10 @@ test('useArrow with non-overlaping keystrokes', async () => {
       ['move', [0, 5], [0, 5], undefined],
       ['stop', [0, 10], [0, 5], downUp],
     ])
-  })[0]
-})
+  }))
 
-test('useArrow with overlaping keystrokes', async () => {
-  await withSetup(async () => {
+test('useArrow with overlaping keystrokes', () =>
+  withSetup(async () => {
     const cb = vi.fn()
     const arrows = useArrows(cb, { velocity: 10 })
     const rightDown = keyEvent('keydown', { key: 'ArrowRight', timeStamp: 0 })
@@ -194,5 +192,4 @@ test('useArrow with overlaping keystrokes', async () => {
       ['move', [20, 15], [5, 10], undefined],
       ['stop', [20, 20], [0, 5], downUp],
     ])
-  })[0]
-})
+  }))

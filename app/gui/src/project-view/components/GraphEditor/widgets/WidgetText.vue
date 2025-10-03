@@ -1,37 +1,40 @@
 <script setup lang="ts">
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   defineWidget,
-  HandledUpdate,
+  type HandledUpdate,
   Score,
   WidgetInput,
   widgetProps,
 } from '@/providers/widgetRegistry'
-import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { languageExtension } from '@/util/codemirror/language'
+import { useLanguageSupport } from '@/util/codemirror/language'
 import { computed, ref, useTemplateRef } from 'vue'
 import { Ok } from 'ydoc-shared/util/data/result'
-import CodeMirrorWidgetBase from '../CodeMirrorWidgetBase.vue'
 
 const baseEditor = useTemplateRef('baseEditor')
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
+const currentProject = useCurrentProject().ref
 
-function focusEditor() {
-  baseEditor.value?.focusEditor()
+function focusAndSelect() {
+  baseEditor.value?.focusAndSelect()
 }
 
 const textContents = computed(() =>
   props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
 )
 function acceptValue(text: string): HandledUpdate {
+  if (!currentProject.value) return Ok()
+  const graph = currentProject.value.graph
+
   if (props.input.value instanceof Ast.TextLiteral) {
     const edit = graph.startEdit()
     const value = edit.getVersion(props.input.value)
     if (value.rawTextContent === text) return Ok()
     value.setRawTextContent(text)
-    return props.onUpdate({ edit, directInteraction: true })
+    return props.updateCallback({ edit, directInteraction: true })
   } else {
     let value: Ast.Owned<Ast.MutableTextLiteral>
     if (inputTextLiteral.value) {
@@ -40,7 +43,7 @@ function acceptValue(text: string): HandledUpdate {
     } else {
       value = Ast.TextLiteral.new(text)
     }
-    return props.onUpdate({
+    return props.updateCallback({
       portUpdate: {
         value,
         origin: props.input.portId,
@@ -49,10 +52,6 @@ function acceptValue(text: string): HandledUpdate {
     })
   }
 }
-
-const syntaxLanguage = computed(() =>
-  props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig.syntax : undefined,
-)
 
 /** Widget Input as Text Literal; undefined if there's no value, or the value is not a Text literal. */
 const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
@@ -73,8 +72,11 @@ const placeholder = computed(() =>
   WidgetInput.isPlaceholder(props.input) ? (inputTextLiteral.value?.rawTextContent ?? '') : '',
 )
 
-const languageExt = computed(() => languageExtension(syntaxLanguage.value))
-const extensions = computed(() => (languageExt.value ? [languageExt.value] : []))
+const textInputConfig = computed(() =>
+  props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig : undefined,
+)
+const syntax = computed(() => textInputConfig.value?.syntax)
+const extensions = useLanguageSupport(syntax)
 
 function isTextMultiline(text: string) {
   return !!text.match(/[\r\n]/)
@@ -119,7 +121,8 @@ export const widgetDefinition = defineWidget(
   <label
     class="WidgetText widgetRounded widgetPill"
     :class="{ singleLine: !isMultiline }"
-    @pointerdown.stop.prevent="focusEditor"
+    :data-text-syntax="syntax"
+    @pointerdown.stop.prevent="focusAndSelect"
     @click.stop
   >
     <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" class="delimiter open" />

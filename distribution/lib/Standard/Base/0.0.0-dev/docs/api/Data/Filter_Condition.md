@@ -26,6 +26,7 @@
     - Not_Equal to:Standard.Base.Any.Any=
     - Not_Nan
     - Not_Nothing
+    - Predicate predicate:Standard.Base.Any.Any=
     - Regex_Match pattern:Standard.Base.Any.Any= keep_or_remove:Standard.Base.Data.Filter_Condition.Filter_Action=
     - Starts_With prefix:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= keep_or_remove:Standard.Base.Data.Filter_Condition.Filter_Action=
     - action self -> Standard.Base.Any.Any
@@ -35,5 +36,3 @@
     - to_predicate self -> Standard.Base.Any.Any
 - handle_nothing f:Standard.Base.Any.Any elem:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - sql_like_to_regex sql_pattern:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
-- unify_condition_or_predicate condition_or_predicate:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
-- unify_condition_predicate_or_element condition:Standard.Base.Any.Any -> Standard.Base.Any.Any

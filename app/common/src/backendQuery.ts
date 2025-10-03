@@ -1,13 +1,11 @@
 /** @file Framework-independent helpers for constructing backend Tanstack queries. */
-
 import type * as queryCore from '@tanstack/query-core'
-
-import type Backend from './services/Backend'
-import * as backendModule from './services/Backend'
-import * as object from './utilities/data/object'
+import type Backend from './services/Backend.js'
+import * as backendModule from './services/Backend.js'
+import { omit, type ExtractKeys, type MethodOf } from './utilities/data/object.js'
 
 /** The properties of the Backend type that are methods. */
-export type BackendMethods = object.ExtractKeys<Backend, object.MethodOf<Backend>>
+export type BackendMethods = ExtractKeys<Backend, MethodOf<Backend>>
 
 /** Ensure that the given type contains only names of backend methods. */
 type DefineBackendMethods<T extends BackendMethods> = T
@@ -19,6 +17,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'changeUserGroup'
   | 'closeProject'
   | 'copyAsset'
+  | 'cancelSubscription'
   | 'createCheckoutSession'
   | 'createCredential'
   | 'createDatalink'
@@ -39,6 +38,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'deleteUser'
   | 'deleteUserGroup'
   | 'duplicateProject'
+  | 'exportArchive'
   | 'inviteUser'
   | 'logEvent'
   | 'openProject'
@@ -65,6 +65,13 @@ export type BackendMutationMethod = DefineBackendMethods<
 /** Names of methods corresponding to queries. */
 export type BackendQueryMethod = Exclude<BackendMethods, BackendMutationMethod>
 
+export const PERSISTENCE_MAP: Partial<Record<BackendQueryMethod, false>> = {
+  listDirectory: false,
+  searchDirectory: false,
+  listTags: false,
+  getAssetDetails: false,
+}
+
 /** A value for {@link INVALIDATION_MAP} representing all queries. */
 export const INVALIDATE_ALL_QUERIES = Symbol('invalidate all queries')
 /** A mapping between mutation methods and queries invalidated by them. */
@@ -73,7 +80,22 @@ export const INVALIDATION_MAP: Partial<
 > = {
   createUser: ['usersMe'],
   updateUser: [INVALIDATE_ALL_QUERIES],
-  deleteUser: ['usersMe'],
+  deleteUser: [
+    'usersMe',
+    'listUsers',
+    'listUserGroups',
+    'listDirectory',
+    'searchDirectory',
+    'getAssetDetails',
+  ],
+  removeUser: [
+    'usersMe',
+    'listUsers',
+    'listUserGroups',
+    'listDirectory',
+    'searchDirectory',
+    'getAssetDetails',
+  ],
   restoreUser: ['usersMe'],
   uploadUserPicture: ['usersMe'],
   updateOrganization: ['getOrganization'],
@@ -83,25 +105,25 @@ export const INVALIDATION_MAP: Partial<
   changeUserGroup: [INVALIDATE_ALL_QUERIES],
   createTag: ['listTags'],
   deleteTag: ['listTags'],
-  associateTag: ['listDirectory', 'getAssetDetails'],
+  associateTag: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
   acceptInvitation: [INVALIDATE_ALL_QUERIES],
   declineInvitation: ['usersMe'],
-  createProject: ['listDirectory', 'getAssetDetails'],
-  duplicateProject: ['listDirectory', 'getAssetDetails'],
-  createDirectory: ['listDirectory', 'getAssetDetails'],
-  createSecret: ['listDirectory', 'getAssetDetails'],
-  updateSecret: ['listDirectory', 'getAssetDetails'],
-  updateProject: ['listDirectory', 'getAssetDetails'],
-  updateFile: ['listDirectory', 'getAssetDetails'],
-  updateDirectory: ['listDirectory', 'getAssetDetails'],
-  createDatalink: ['listDirectory', 'getDatalink', 'getAssetDetails'],
-  uploadFileEnd: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
-  copyAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
-  deleteAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
-  undoDeleteAsset: ['listDirectory', 'getAssetDetails'],
-  updateAsset: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
-  openProject: ['listDirectory', 'getAssetDetails'],
-  closeProject: ['listDirectory', 'listAssetVersions', 'getAssetDetails'],
+  createProject: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  duplicateProject: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  createDirectory: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  createSecret: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  updateSecret: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  updateProject: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  updateFile: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  updateDirectory: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  createDatalink: ['listDirectory', 'searchDirectory', 'getDatalink', 'getAssetDetails'],
+  uploadFileEnd: ['listDirectory', 'searchDirectory', 'listAssetVersions', 'getAssetDetails'],
+  copyAsset: ['listDirectory', 'searchDirectory', 'listAssetVersions', 'getAssetDetails'],
+  deleteAsset: ['listDirectory', 'searchDirectory', 'listAssetVersions', 'getAssetDetails'],
+  undoDeleteAsset: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  updateAsset: ['listDirectory', 'searchDirectory', 'listAssetVersions', 'getAssetDetails'],
+  openProject: ['listDirectory', 'searchDirectory', 'getAssetDetails'],
+  closeProject: ['listDirectory', 'searchDirectory', 'listAssetVersions', 'getAssetDetails'],
   createProjectExecution: ['listProjectExecutions'],
   updateProjectExecution: ['listProjectExecutions'],
   syncProjectExecution: ['listProjectExecutions'],
@@ -116,7 +138,7 @@ type BackendQueryNormalizers = {
 }
 
 const NORMALIZE_METHOD_QUERY: BackendQueryNormalizers = {
-  listDirectory: (query) => [query.parentId, object.omit(query, 'parentId')],
+  listDirectory: (query) => [query.parentId, omit(query, 'parentId')],
   getFileDetails: (fileId) => [fileId],
 }
 
@@ -153,13 +175,8 @@ export function backendQueryKey<
   method: Method,
   args: Readonly<Parameters<Backend[Method]>>,
   keyExtra?: TQueryKey | undefined,
-): TQueryKey {
-  return [
-    backend?.type,
-    method,
-    ...normalizeMethodQuery(method, args),
-    ...(keyExtra ?? []),
-  ] as unknown as TQueryKey
+) {
+  return [backend?.type, method, ...normalizeMethodQuery(method, args), ...(keyExtra ?? [])]
 }
 
 /** Returns options applicable to any method of the given backend. */

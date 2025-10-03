@@ -20,7 +20,7 @@ interface DebugProps {
 }
 
 /** A component that adds debugging info to its direct child. */
-export default function Debug(props: DebugProps) {
+export function Debug(props: DebugProps) {
   const {
     name,
     monitorAll = false,

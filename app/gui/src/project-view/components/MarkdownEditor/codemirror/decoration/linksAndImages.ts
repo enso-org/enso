@@ -1,4 +1,5 @@
 import DocumentationImage from '@/components/MarkdownEditor/DocumentationImage.vue'
+import DocumentationVideo from '@/components/MarkdownEditor/DocumentationVideo.vue'
 import { TreeViewDecorator } from '@/components/MarkdownEditor/codemirror/decoration/treeViewDecorator'
 import { VueDecorationWidget } from '@/components/MarkdownEditor/codemirror/decoration/vueDecorationWidget'
 import {
@@ -6,13 +7,13 @@ import {
   analyzeLinkOrImage,
   nodeRange,
 } from '@/components/MarkdownEditor/markdown/trees'
-import { type VueHost } from '@/components/VueHostRender.vue'
+import type { VueHost } from '@/components/VueHostRender.vue'
 import { linkEditPopup } from '@/util/codemirror/linkEditPopup'
 import { linkAttributesFactory, linkAttributesFactoryChanged } from '@/util/codemirror/links'
 import { vueHostChanged } from '@/util/codemirror/vueHostExt'
-import { type EditorState, Extension, Prec, type Text } from '@codemirror/state'
+import { Prec, type EditorState, type Extension, type Text } from '@codemirror/state'
 import { Decoration, ViewPlugin, WidgetType } from '@codemirror/view'
-import { type SyntaxNodeRef } from '@lezer/common'
+import type { SyntaxNodeRef } from '@lezer/common'
 import { Range } from 'ydoc-shared/util/data/range'
 
 // === Links ===
@@ -118,7 +119,7 @@ export function decorateImageWithRendered(
     if (!parsed) return
     const { text, url } = parsed
     const alt = doc.sliceString(text.from, text.to)
-    const widget = new ImageWidget({ alt, src: url }, vueHost)
+    const widget = new MediaWidget({ src: url, alt }, vueHost)
     emitDecoration(
       Range.emptyAt(nodeRef.to),
       Decoration.widget({
@@ -131,14 +132,16 @@ export function decorateImageWithRendered(
   }
 }
 
-class ImageWidget extends VueDecorationWidget<{ alt: string; src: string }> {
+class MediaWidget extends VueDecorationWidget<{ alt: string; src: string }> {
   constructor(props: { alt: string; src: string }, vueHost: VueHost) {
-    super(DocumentationImage, props, vueHost, 'cm-image-rendered', 'span')
+    const isVideo = props.src.match(/https:\/\/www\.youtube(-nocookie)?\.com\/embed\/[^/]+/)
+    const component = isVideo ? DocumentationVideo : DocumentationImage
+    super(component, props, vueHost, 'cm-media-rendered', 'span')
   }
 
   override eq(other: WidgetType) {
     return (
-      other instanceof ImageWidget &&
+      other instanceof MediaWidget &&
       other.props.src == this.props.src &&
       other.props.alt == this.props.alt
     )

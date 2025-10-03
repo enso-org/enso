@@ -5,9 +5,9 @@ import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class DateTruncateOperation implements UnaryOperation {
   public static String TRUNCATE = "truncate";

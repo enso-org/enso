@@ -77,7 +77,10 @@ class PushContextCmd(
       val executable = Executable(request.contextId, stack)
       for {
         _ <- Future(ctx.jobProcessor.run(EnsureCompiledJob(executable.stack)))
-        _ <- ctx.jobProcessor.run(ExecuteJob(executable))
+        _ <-
+          if (request.execute)
+            ctx.jobProcessor.run(ExecuteJob(executable, "push context"))
+          else Future.successful(())
       } yield ()
     } else {
       Future.successful(())

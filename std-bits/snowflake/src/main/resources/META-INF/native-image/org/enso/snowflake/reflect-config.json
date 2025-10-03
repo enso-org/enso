@@ -849,22 +849,29 @@
         ]
     },
     {
-        "name": "net.snowflake.client.jdbc.internal.snowflake.common.core.SubmittedAuthnDTO",
-        "queryAllDeclaredMethods": true
-    },
-    {
-        "name": "net.snowflake.client.log.JDK14JCLWrapper",
+        "name": "net.snowflake.client.jdbc.internal.snowflake.common.core.RemoteStoreFileEncryptionMaterial",
+        "allDeclaredFields": true,
         "methods": [
             {
                 "name": "<init>",
+                "parameterTypes": []
+            },
+            {
+                "name": "setQueryId",
                 "parameterTypes": [
                     "java.lang.String"
                 ]
             },
             {
-                "name": "setLogFactory",
+                "name": "setQueryStageMasterKey",
                 "parameterTypes": [
-                    "net.snowflake.client.jdbc.internal.apache.commons.logging.LogFactory"
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "setSmkId",
+                "parameterTypes": [
+                    "long"
                 ]
             }
         ]
@@ -880,5 +887,334 @@
         "name": "net.snowflake.client.jdbc.telemetry.TelemetryClient",
         "allPublicMethods": true,
         "allPublicConstructors": true
+    },
+    {
+        "name": "com.amazonaws.internal.config.Builder"
+    },
+    {
+        "name": "com.amazonaws.ClientConfiguration",
+        "allPublicMethods": true,
+        "allPublicConstructors": true
+    },
+    {
+        "name": "com.amazonaws.internal.config.HostRegexToRegionMappingJsonHelper",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            },
+            {
+                "name": "setHostNameRegex",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "setRegionName",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.internal.config.HttpClientConfigJsonHelper",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            },
+            {
+                "name": "setRegionMetadataServiceName",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "setServiceName",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.internal.config.InternalConfigJsonHelper",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            },
+            {
+                "name": "setDefaultSigner",
+                "parameterTypes": [
+                    "com.amazonaws.internal.config.SignerConfigJsonHelper"
+                ]
+            },
+            {
+                "name": "setHostRegexToRegionMappings",
+                "parameterTypes": [
+                    "com.amazonaws.internal.config.HostRegexToRegionMappingJsonHelper[]"
+                ]
+            },
+            {
+                "name": "setHttpClients",
+                "parameterTypes": [
+                    "com.amazonaws.internal.config.JsonIndex[]"
+                ]
+            },
+            {
+                "name": "setRegionSigners",
+                "parameterTypes": [
+                    "com.amazonaws.internal.config.JsonIndex[]"
+                ]
+            },
+            {
+                "name": "setServiceRegionSigners",
+                "parameterTypes": [
+                    "com.amazonaws.internal.config.JsonIndex[]"
+                ]
+            },
+            {
+                "name": "setServiceSigners",
+                "parameterTypes": [
+                    "com.amazonaws.internal.config.JsonIndex[]"
+                ]
+            },
+            {
+                "name": "setUserAgentTemplate",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.internal.config.JsonIndex",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            },
+            {
+                "name": "setConfig",
+                "parameterTypes": [
+                    "com.amazonaws.internal.config.Builder"
+                ]
+            },
+            {
+                "name": "setKey",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.internal.config.SignerConfigJsonHelper",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            },
+            {
+                "name": "setSignerType",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.jmx.SdkMBeanRegistrySupport",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.metrics.MetricAdmin"
+    },
+    {
+        "name": "com.amazonaws.metrics.MetricAdminMBean"
+    },
+    {
+        "name": "com.amazonaws.partitions.model.CredentialScope",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            },
+            {
+                "name": "setRegion",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "setService",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.partitions.model.Endpoint",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            },
+            {
+                "name": "setCredentialScope",
+                "parameterTypes": [
+                    "com.amazonaws.partitions.model.CredentialScope"
+                ]
+            },
+            {
+                "name": "setHostName",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "setProtocols",
+                "parameterTypes": [
+                    "java.util.Set"
+                ]
+            },
+            {
+                "name": "setSignatureVersions",
+                "parameterTypes": [
+                    "java.util.Set"
+                ]
+            },
+            {
+                "name": "setSslCommonName",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.partitions.model.Partition",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "java.lang.String",
+                    "java.util.Map",
+                    "java.util.Map"
+                ]
+            },
+            {
+                "name": "setDefaults",
+                "parameterTypes": [
+                    "com.amazonaws.partitions.model.Endpoint"
+                ]
+            },
+            {
+                "name": "setDnsSuffix",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "setPartitionName",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "setRegionRegex",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.partitions.model.Partitions",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "java.lang.String",
+                    "java.util.List"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.partitions.model.Region",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.partitions.model.Service",
+        "allDeclaredFields": true,
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "java.util.Map"
+                ]
+            },
+            {
+                "name": "setDefaults",
+                "parameterTypes": [
+                    "com.amazonaws.partitions.model.Endpoint"
+                ]
+            },
+            {
+                "name": "setPartitionEndpoint",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "setRegionalized",
+                "parameterTypes": [
+                    "boolean"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "com.amazonaws.services.s3.internal.AWSS3V4Signer",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.SFBaseFileTransferAgent$UploadCommandEncryptionFacade",
+        "allDeclaredFields": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.SFBaseFileTransferAgent$UploadCommandFacade",
+        "allDeclaredFields": true
     }
 ]

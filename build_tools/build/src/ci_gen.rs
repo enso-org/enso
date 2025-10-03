@@ -124,7 +124,7 @@ pub mod secret {
     pub const ENSO_CLOUD_COGNITO_USER_POOL_ID: &str = "ENSO_CLOUD_COGNITO_USER_POOL_ID";
     pub const ENSO_CLOUD_COGNITO_REGION: &str = "ENSO_CLOUD_COGNITO_REGION";
     pub const ENSO_CLOUD_TEST_ACCOUNT_USERNAME: &str = "ENSO_CLOUD_TEST_ACCOUNT_USERNAME";
-    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASSWORD";
+    pub const ENSO_CLOUD_TEST_ACCOUNT_PASSWORD: &str = "ENSO_CLOUD_TEST_ACCOUNT_PASS";
 
     // === Apple Code Signing & Notarization ===
     pub const APPLE_CODE_SIGNING_CERT: &str = "APPLE_CODE_SIGNING_CERT";
@@ -161,6 +161,10 @@ pub mod secret {
     // === OAuth Integrations ===
     /// The client ID for the Google OAuth integration used for Google Credentials.
     pub const ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID";
+
+    // === OAuth Integrations ===
+    /// The client ID for the Strava OAuth integration used for Strava Credentials.
+    pub const ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: &str = "ENSO_IDE_STRAVA_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
@@ -268,7 +272,7 @@ pub fn cleaning_step(
     conditions: impl IntoIterator<Item = CleaningCondition>,
 ) -> Step {
     let mut ret = run("git-clean").with_name(name);
-    ret.r#if = CleaningCondition::format_conjunction(conditions);
+    ret.r#if = CleaningCondition::format_conjunction(conditions).map(wrap_expression);
     ret
 }
 
@@ -622,12 +626,11 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
 }
 
 /// Add jobs that perform backend checks, including Scala and Standard Library tests.
-pub fn add_backend_checks_customized(
+pub fn add_backend_checks(
     workflow: &mut Workflow,
     target: Target,
     graal_edition: graalvm::Edition,
     engine_launcher: engine::EngineLauncher,
-    continue_on_error: impl Fn(&Target) -> Option<bool>,
 ) {
     let build_engine_distribution_id =
         workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
@@ -646,50 +649,36 @@ pub fn add_backend_checks_customized(
     }
 
     // Engine distribution is required to run project manager tests.
-    workflow.add_dependent_customized(
-        target,
-        job::JvmTests { graal_edition, engine_launcher },
-        &[&build_engine_distribution_id],
-        |job| {
-            job.continue_on_error = continue_on_error(&target);
-        },
-    );
-    workflow.add_dependent_customized(
+    workflow.add_dependent(target, job::JvmTests { graal_edition, engine_launcher }, &[
+        &build_engine_distribution_id,
+    ]);
+    workflow.add_dependent(
         target,
         job::StandardLibraryTests {
             graal_edition,
             engine_launcher,
-            cloud_tests_enabled: false,
-            native_image_mode: true,
+            scope: job::StandardLibraryTestsScope::StandardLibraryInNative,
         },
         &[&build_engine_distribution_id],
-        |job| {
-            job.continue_on_error = continue_on_error(&target);
-        },
     );
-    workflow.add_dependent_customized(
+    workflow.add_dependent(
         target,
         job::StandardLibraryTests {
             graal_edition,
             engine_launcher,
-            cloud_tests_enabled: false,
-            native_image_mode: false,
+            scope: job::StandardLibraryTestsScope::StandardLibraryJvm,
         },
         &[&build_engine_distribution_id],
-        |job| {
-            job.continue_on_error = continue_on_error(&target);
-        },
     );
-}
-
-/// Add jobs that perform backend checks, including Scala and Standard Library tests.
-pub fn add_backend_checks(
-    workflow: &mut Workflow,
-    target: Target,
-    graal_edition: graalvm::Edition,
-    engine_launcher: engine::EngineLauncher,
-) {
-    add_backend_checks_customized(workflow, target, graal_edition, engine_launcher, |_| None);
+    workflow.add_dependent(
+        target,
+        job::StandardLibraryTests {
+            graal_edition,
+            engine_launcher,
+            scope: job::StandardLibraryTestsScope::Microsoft,
+        },
+        &[&build_engine_distribution_id],
+    );
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
@@ -884,13 +873,7 @@ pub fn engine_checks_optional() -> Result<Workflow> {
     };
     let engine_launcher = engine::EngineLauncher::TestNative;
     for target in PR_OPTIONAL_TARGETS {
-        add_backend_checks_customized(
-            &mut workflow,
-            target,
-            graalvm::Edition::Community,
-            engine_launcher,
-            |_| Some(true),
-        );
+        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     Ok(workflow)
 }
@@ -942,16 +925,22 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     let engine_launcher = engine::EngineLauncher::TestNative;
     let build_engine_distribution_id =
         workflow.add(target, job::BuildEngineDistribution { graal_edition, engine_launcher });
-    workflow.add_dependent(target, job::SnowflakeTests { graal_edition, engine_launcher }, &[
-        &build_engine_distribution_id,
-    ]);
+    workflow.add_dependent(
+        target,
+        job::SnowflakeTests { graal_edition, engine_launcher, jvm_mode: false },
+        &[&build_engine_distribution_id],
+    );
+    workflow.add_dependent(
+        target,
+        job::SnowflakeTests { graal_edition, engine_launcher, jvm_mode: true },
+        &[&build_engine_distribution_id],
+    );
     workflow.add_dependent(
         target,
         job::StandardLibraryTests {
             graal_edition,
             engine_launcher,
-            cloud_tests_enabled: true,
-            native_image_mode: true,
+            scope: job::StandardLibraryTestsScope::CloudRelated,
         },
         &[&build_engine_distribution_id],
     );
@@ -967,9 +956,10 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "Base",
         "Database",
         "Generic_JDBC",
-        "Google_Api",
+        "Google",
         "Image",
         "Microsoft",
+        "Saas",
         "Snowflake",
         "Table",
         "Tableau",

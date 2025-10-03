@@ -1,0 +1,28 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Unimplemented.Unimplemented
+
+from Standard.Table import Value_Type
+
+from project.Internal.DB_Column_Implementation import make_unary_op, naming_helper
+
+type DB_Numeric_Column_Implementation
+    abs column =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "abs" [column]
+            make_unary_op column "ABS" new_name
+
+    signum column =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "signum" [column]
+            make_unary_op column "SIGNUM" new_name
+
+    randbetween column limit seed =
+        _ = [column, limit, seed]
+        Unimplemented.throw "randbetween is not implemented for database backends."
+
+type DB_Text_Column_Implementation
+    to_case column case_option:Case=..Lower locale:Locale=Locale.default =
+        _ = [column, case_option, locale]
+        Unimplemented.throw "to_case is not implemented for database backends."

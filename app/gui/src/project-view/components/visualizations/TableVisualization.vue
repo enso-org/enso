@@ -1,5 +1,4 @@
 <script lang="ts">
-import icons from '@/assets/icons.svg'
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import {
   useTableVizToolbar,
@@ -7,12 +6,14 @@ import {
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { Icon } from '@/util/iconMetadata/iconName'
+import { svgUseHref } from '@/util/icons'
+import { ProjectPath } from '@/util/projectPath'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
   CellDoubleClickedEvent,
   ColDef,
+  ColumnMovedEvent,
   ColumnVisibleEvent,
   GetContextMenuItems,
   GetContextMenuItemsParams,
@@ -25,39 +26,49 @@ import type {
   SortChangedEvent,
 } from 'ag-grid-enterprise'
 import {
-  ComponentInstance,
   computed,
   onMounted,
   ref,
   shallowRef,
   watch,
   watchEffect,
+  type ComponentInstance,
   type Ref,
 } from 'vue'
-import { ComponentExposed } from 'vue-component-type-helpers'
+import type { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
-  Error,
-  GenericGrid,
   isError,
   isGenericGrid,
+  type Error,
+  type GenericGrid,
 } from './TableVisualization/TableVisualisationTypes'
 import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
   createExpressionRowTemplate,
-  ValueTypeArgumentChild,
-  ValueTypes,
+  type ValueTypeArgumentChild,
+  type ValueTypes,
 } from './TableVisualization/TableVizDataSourceUtils'
-import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
+import {
+  getCellDataType,
+  getFilterParams,
+  getFilterType,
+} from './TableVisualization/tableVizFilterSetUpUtils'
+import { makeFilterModelList, type GridFilterModel } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
-import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import {
+  formatText,
+  getCellValueType,
+  isNumericType,
+  type ValueType,
+} from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
 export const icon = 'table'
 export const inputType =
-  'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Table.Row.Row | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Any'
+  'Standard.Table.Table.Table | Standard.Table.Column.Column | Standard.Table.Row.Row | Standard.Base.Data.Vector.Vector | Standard.Base.Data.Array.Array | Standard.Base.Data.Map.Map | Standard.Base.Any.Any'
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
   'prepare_visualization',
@@ -65,11 +76,6 @@ export const defaultPreprocessor = [
 ] as const
 
 type Data = number | string | Error | Matrix | ObjectMatrix | EnsoTableOrColumn | GenericGrid
-
-interface ValueType {
-  constructor: string
-  display_text: string
-}
 
 interface Matrix {
   type: 'Matrix'
@@ -111,13 +117,35 @@ interface EnsoTableOrColumn {
   use_bottom_status_bar: boolean
   enable_create_node: boolean
   requires_number_format: boolean[]
+  is_using_multi_filter: boolean[]
   table_version_hash?: string
 }
 
-type DataQualityMetric = {
+type DataQualityMetricNumber = {
   name: string
-  percentage_value: number[]
+  values: (number | null)[]
+  type: 'Percentage' | 'Count'
 }
+
+type DataQualityMetricText = {
+  name: string
+  values: (string | null)[]
+  type: 'Text'
+}
+
+type DataQualityMetric = DataQualityMetricNumber | DataQualityMetricText
+
+export type DataQualityMetricValue =
+  | {
+      name: string
+      value: number
+      displayType: 'Percentage' | 'Count'
+    }
+  | {
+      name: string
+      value: string
+      displayType: 'Text'
+    }
 
 export type TextFormatOptions = 'full' | 'partial' | 'off'
 </script>
@@ -150,13 +178,13 @@ const defaultColDef: Ref<ColDef> = ref({
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
-const nodeType = ref<string | undefined>(undefined)
+const nodeType = ref<ProjectPath | undefined>(undefined)
 const grid = ref<
   ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
 >()
 
-const getSvgTemplate = (icon: Icon) =>
-  `<svg viewBox="0 0 16 16" width="16" height="16"> <use xlink:href="${icons}#${icon}"/> </svg>`
+const getSvgTemplate = (icon: string) =>
+  `<svg viewBox="0 0 16 16" width="16" height="16"><use xlink:href="${svgUseHref(icon)}"/></svg>`
 
 const getContextMenuItems = (
   params: GetContextMenuItemsParams,
@@ -173,7 +201,7 @@ const getContextMenuItems = (
   const createMenuItem = ({ name, action, colId, rowIndex, icon }: (typeof actions)[number]) => ({
     name,
     action: () => createValueNode(colId, rowIndex, action),
-    icon: getSvgTemplate(icon as Icon),
+    icon: getSvgTemplate(icon),
   })
 
   return [
@@ -289,7 +317,7 @@ const statusBar = computed(() => ({
     : [],
 }))
 
-const isCreateNodeButtonEnabled = computed(
+const isTableFilteredOrSorted = computed(
   () =>
     sortModel.value.length > 0 ||
     filterModel.value.length > 0 ||
@@ -304,7 +332,10 @@ watch(tableVersionHash, () => {
 
 watchEffect(() => {
   // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to change its row model or to fetch new data
-  if (nodeType.value != config.nodeType) {
+  if (
+    (nodeType.value != null || config.nodeType != null) &&
+    !nodeType.value?.equals(config.nodeType)
+  ) {
     grid.value?.forceGridRefresh()
     nodeType.value = config.nodeType
   }
@@ -410,8 +441,6 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   }
 }
 
-const attepmtedCalls = ref(0)
-
 function createServer() {
   return {
     getSetFilterValues: async (
@@ -441,15 +470,24 @@ function createServer() {
         `${columnIndex}`,
         //column indexes that require a filter
         filterColumnIndexList as string[] | 'Nothing',
-        //column actions i.e Greater Than, Between...
+        //column actions i.e. Greater Than, Between...
         filterActions as string[] | 'Nothing',
         //values to filter on
         valueList as string[] | 'Nothing',
       )
-      const response = await config.executeExpression(expressionFunction)
-      return {
-        success: true,
-        data: response.value.distinct_vals,
+
+      try {
+        const response = await config.executeExpression(expressionFunction, 2000)
+        return {
+          success: true,
+          data: response.value.distinct_vals,
+        }
+      } catch (error) {
+        console.warn('Error loading filterValues for column.', error)
+        return {
+          success: false,
+          data: [],
+        }
       }
     },
     getData: async (request: IServerSideGetRowsRequest) => {
@@ -482,21 +520,16 @@ function createServer() {
         valueList as string[] | 'Nothing',
       )
 
-      const response = await config.executeExpression(expressionFunction)
-      if (response.ok) {
+      try {
+        const response = await config.executeExpression(expressionFunction)
         filteredRowCount.value = response.value.row_count
         return {
           success: true,
           data: response.value.rows,
           rowCount: response.value.row_count,
         }
-      } else {
-        if (attepmtedCalls.value < 3) {
-          grid.value?.gridApi?.refreshServerSide({ purge: true })
-          attepmtedCalls.value++
-          return
-        }
-        console.error('Error loading rows:', response.error)
+      } catch (error) {
+        console.warn('Error loading rows for table.', error)
         return {
           success: false,
           data: null,
@@ -597,61 +630,6 @@ function getValueTypeIcon(valueType: string) {
   }
 }
 
-function getFilterType(valueType: string) {
-  if (valueType === 'Date') {
-    return 'agDateColumnFilter'
-  } else if (isNumericType(valueType)) {
-    return 'agNumberColumnFilter'
-  } else if (valueType === 'Char') {
-    return 'agTextColumnFilter'
-  } else {
-    return 'agSetColumnFilter'
-  }
-}
-
-function getFilterOptions(valueType: string) {
-  if (valueType === 'Date') {
-    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'inRange', 'blank', 'notBlank']
-  } else if (isNumericType(valueType)) {
-    return [
-      'equals',
-      'notEqual',
-      'greaterThan',
-      'greaterThanOrEqual',
-      'lessThan',
-      'lessThanOrEqual',
-      'inRange',
-      'blank',
-      'notBlank',
-    ]
-  } else if (valueType === 'Char') {
-    return ['equals', 'notEqual', 'contains', 'startsWith', 'endsWith', 'blank', 'notBlank']
-  } else {
-    return null
-  }
-}
-function getFilterButtons(valueType: string) {
-  if (valueType === 'Date') {
-    return ['apply', 'clear']
-  } else {
-    return ['clear']
-  }
-}
-
-function getCellDataType(valueType: string) {
-  if (valueType === 'Date') {
-    return 'date'
-  } else if (isNumericType(valueType)) {
-    return 'number'
-  } else if (valueType === 'Char') {
-    return 'text'
-  } else if (valueType === 'Boolean') {
-    return 'boolean'
-  } else {
-    return false
-  }
-}
-
 /**
  * Generates the column definition for the table vizulization, including displaying the data value type and
  * data quality indicators.
@@ -670,20 +648,39 @@ function toField(
 
   const displayValue = valueType ? valueType.display_text : null
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
-  const filterType = valueType ? getFilterType(valueType.constructor) : null
-  const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
-  const filterButtons = valueType ? getFilterButtons(valueType.constructor) : null
   const cellValueType = valueType ? getCellDataType(valueType.constructor) : false
+
+  const usingMultiFilterLists =
+    typeof props.data === 'object' && 'is_using_multi_filter' in props.data ?
+      props.data.is_using_multi_filter
+    : []
+  const isUsingMultiFilter = usingMultiFilterLists[index!] ?? false
+
+  const filterType = valueType ? getFilterType(valueType.constructor, isUsingMultiFilter) : null
+
+  const filterParams = getFilterParams(isSSRM.value, valueType, filterType, getFilterValues)
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
-      props.data.data_quality_metrics.map((metric: DataQualityMetric) => {
-        return { [metric.name]: metric.percentage_value[index!] ?? 0 }
-      })
+      props.data.data_quality_metrics
+        .map((metric: DataQualityMetric) => {
+          const result: DataQualityMetricValue =
+            metric.type === 'Text' ?
+              { name: metric.name, value: metric.values[index!] || '', displayType: 'Text' }
+            : { name: metric.name, displayType: metric.type, value: metric.values[index!] || 0 }
+          return (
+              metric.values[index!] === null ||
+                (result.displayType === 'Percentage' && result.value === 0)
+            ) ?
+              null
+            : result
+        })
+        .filter((obj) => obj !== null)
     : []
 
+  const hasDataQualityMetrics = dataQualityMetrics.length > 0
   const showDataQuality =
-    dataQualityMetrics.filter((obj) => (Object.values(obj)[0] as number) > 0).length > 0
+    dataQualityMetrics.filter((obj) => obj.displayType === 'Percentage').length > 0
 
   const svgTemplateWarning = showDataQuality ? getSvgTemplate('warning') : ''
   const menu = `<span data-ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"> </span>`
@@ -702,17 +699,11 @@ function toField(
       `<span style='${styles}'><span data-ref="eLabel" class="ag-header-cell-label" role="presentation" style='${styles}'><span data-ref="eText" class="ag-header-cell-text"></span></span>${menu} ${filterButton} ${sort} ${getSvgTemplate(icon)} ${svgTemplateWarning}</span>`
     : `<span style='${styles}' data-ref="eLabel"><span data-ref="eText" class="ag-header-cell-label"></span> ${menu} ${filterButton} ${sort} ${svgTemplateWarning}</span>`
 
-  return {
+  const colDef = {
     field: name,
     headerName: name, // AGGrid would demangle it its own way if not specified.
     filter: filterType,
-    filterParams: {
-      maxNumConditions: 1,
-      values: isSSRM.value ? getFilterValues : null,
-      filterOptions: filterOptions,
-      buttons: filterButtons,
-      refreshValuesOnOpen: true,
-    },
+    filterParams: filterParams,
     headerComponentParams: {
       template,
       setAriaSort: () => {},
@@ -722,11 +713,34 @@ function toField(
     tooltipComponentParams: {
       dataQualityMetrics,
       total: typeof props.data === 'object' ? props.data.all_rows_count : 0,
-      showDataQuality,
+      showDataQuality: hasDataQualityMetrics,
     },
     cellDataType: cellValueType,
     autoHeight: cellValueType === 'text' && isSSRM.value,
+    sortable: valueType?.constructor !== 'Mixed',
   }
+  if (valueType && ['Date', 'Date_Time', 'Time'].includes(valueType.constructor)) {
+    return {
+      ...colDef,
+      comparator: (valueA, valueB) => {
+        const textA =
+          valueA && typeof valueA === 'object' && '_display_text_' in valueA ?
+            valueA['_display_text_']
+          : valueA
+        const textB =
+          valueB && typeof valueB === 'object' && '_display_text_' in valueB ?
+            valueB['_display_text_']
+          : valueB
+
+        if (textA == null && textB == null) return 0
+        if (textA == null) return 1
+        if (textB == null) return -1
+
+        return textA.toString().localeCompare(textB.toString())
+      },
+    }
+  }
+  return colDef
 }
 
 type ParsedActionTemplate = {
@@ -823,35 +837,43 @@ function toLinkField(fieldName: string, options: LinkFieldOptions): ColDef {
 }
 
 watchEffect(() => {
+  try {
+    refresh()
+  } catch (error) {
+    console.warn('Error refreshing table.', error)
+  }
+})
+
+const DEFAULT_DATA = {
+  type: typeof props.data,
+  json: props.data,
+  // eslint-disable-next-line camelcase
+  all_rows_count: 1,
+  data: undefined,
+  header: undefined,
+  // eslint-disable-next-line camelcase
+  value_type: undefined,
+  // eslint-disable-next-line camelcase
+  has_index_col: false,
+  links: undefined,
+  // eslint-disable-next-line camelcase
+  get_child_node_action: '',
+  // eslint-disable-next-line camelcase
+  get_child_node_link_name: undefined,
+  // eslint-disable-next-line camelcase
+  child_label: undefined,
+  // eslint-disable-next-line camelcase
+  visualization_header: undefined,
+  // eslint-disable-next-line camelcase
+  is_using_server_sort_and_filter: undefined,
+  // eslint-disable-next-line camelcase
+  requires_number_format: undefined,
+}
+
+// Update state computed from the input `data`.
+function refresh() {
   // If the user switches from one visualization type to another, we can receive the raw object.
-  const data_ =
-    typeof props.data === 'object' ?
-      props.data
-    : {
-        type: typeof props.data,
-        json: props.data,
-        // eslint-disable-next-line camelcase
-        all_rows_count: 1,
-        data: undefined,
-        header: undefined,
-        // eslint-disable-next-line camelcase
-        value_type: undefined,
-        // eslint-disable-next-line camelcase
-        has_index_col: false,
-        links: undefined,
-        // eslint-disable-next-line camelcase
-        get_child_node_action: '',
-        // eslint-disable-next-line camelcase
-        get_child_node_link_name: undefined,
-        // eslint-disable-next-line camelcase
-        child_label: undefined,
-        // eslint-disable-next-line camelcase
-        visualization_header: undefined,
-        // eslint-disable-next-line camelcase
-        is_using_server_sort_and_filter: undefined,
-        // eslint-disable-next-line camelcase
-        requires_number_format: undefined,
-      }
+  const data_ = typeof props.data === 'object' ? props.data : DEFAULT_DATA
   if (isError(data_)) {
     columnDefs.value = [
       {
@@ -1003,7 +1025,7 @@ watchEffect(() => {
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
   defaultColDef.value.filter = !isTruncated.value
   defaultColDef.value.sortable = !isTruncated.value
-})
+}
 
 const colTypeMap = computed(() => {
   const colMap: Map<string, string> = new Map()
@@ -1110,7 +1132,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
   }
 }
 
-const onColumnStateChange = (e: ColumnVisibleEvent) => {
+const onColumnStateChange = (e: ColumnVisibleEvent | ColumnMovedEvent) => {
   const colState = e.api.getColumnState()
   hiddenColumns.value = colState.filter((col) => col.hide).map((col) => col.colId)
   const gridColOrder = colState
@@ -1148,7 +1170,7 @@ config.setToolbar(
     textFormatterSelected,
     filterModel,
     sortModel,
-    isButtonDisabled: () => !isCreateNodeButtonEnabled.value,
+    tableFilteredOrSorted: isTableFilteredOrSorted,
     isCreateNewNodeEnabled,
     createNodes: config.createNodes,
     getColumnValueToEnso,
@@ -1160,7 +1182,7 @@ config.setToolbar(
 </script>
 
 <template>
-  <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
+  <div ref="rootNode" class="TableVisualization" @wheel.stop.passive @pointerdown.stop>
     <template v-if="!useBottomStatusBar">
       <div class="table-visualization-status-bar">
         <select
@@ -1202,7 +1224,8 @@ config.setToolbar(
         :gridIdHash="tableVersionHash"
         :getContextMenuItems="getContextMenuItems"
         @sortOrFilterUpdated="checkSortAndFilter"
-        @columnStateChanged="onColumnStateChange"
+        @columnVisibleChanged="onColumnStateChange"
+        @columnMoved="onColumnStateChange"
       />
     </Suspense>
   </div>

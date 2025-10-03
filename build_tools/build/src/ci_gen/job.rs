@@ -25,6 +25,7 @@ use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::RunnerLabel;
+use ide_ci::actions::workflow::definition::Shell;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
@@ -176,6 +177,10 @@ pub fn expose_gui_vars(step: Step) -> Step {
         secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
         ide::web::env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
     )
+    .with_secret_exposed_as(
+        secret::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
+        ide::web::env::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
+    )
 }
 
 /// Expose variables for debugging purposes.
@@ -216,6 +221,10 @@ impl JobArchetype for CancelWorkflow {
 #[derive(Clone, Copy, Debug)]
 pub struct VerifyLicensePackages;
 impl JobArchetype for VerifyLicensePackages {
+    fn id_key_base(&self) -> String {
+        "license-check".to_string()
+    }
+
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(sbt_command("verifyLicensePackages"))
             .build_job("Verify License Packages", target)
@@ -293,40 +302,60 @@ fn enable_cloud_tests(step: Step) -> Step {
     )
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct StandardLibraryTests {
-    pub graal_edition:       graalvm::Edition,
-    pub engine_launcher:     engine::EngineLauncher,
-    pub cloud_tests_enabled: bool,
-    pub native_image_mode:   bool,
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
+pub enum StandardLibraryTestsScope {
+    CloudRelated,
+    StandardLibraryJvm,
+    StandardLibraryInNative,
+    Microsoft,
 }
 
-impl StandardLibraryTests {
-    fn mode_name(&self) -> String {
-        if self.native_image_mode {
-            "native".into()
-        } else {
-            "jvm".into()
+impl Display for StandardLibraryTestsScope {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            StandardLibraryTestsScope::CloudRelated => write!(f, "std-cloud-related"),
+            StandardLibraryTestsScope::StandardLibraryJvm => write!(f, "standard-library"),
+            StandardLibraryTestsScope::StandardLibraryInNative =>
+                write!(f, "standard-library-in-native"),
+            StandardLibraryTestsScope::Microsoft =>
+                write!(f, "std-microsoft std-mock-dual-microsoft"),
         }
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct StandardLibraryTests {
+    pub graal_edition:   graalvm::Edition,
+    pub engine_launcher: engine::EngineLauncher,
+    pub scope:           StandardLibraryTestsScope,
+}
+
+impl StandardLibraryTests {
+    fn title(&self) -> String {
+        let title = match self.scope {
+            StandardLibraryTestsScope::StandardLibraryJvm => "Standard Library JVM Tests",
+            StandardLibraryTestsScope::StandardLibraryInNative => "Standard Library Native Tests",
+            StandardLibraryTestsScope::Microsoft => "Standard Library Microsoft Tests",
+            StandardLibraryTestsScope::CloudRelated => "Standard Library Cloud Tests",
+        };
+        title.to_string()
+    }
+}
+
 impl JobArchetype for StandardLibraryTests {
+    fn id_key_base(&self) -> String {
+        "stdlib".to_string()
+    }
+
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
-        let should_enable_cloud_tests = self.cloud_tests_enabled;
-        // If cloud tests are enabled, we run only cloud related tests.
-        let test_scope = if should_enable_cloud_tests {
-            "std-cloud-related"
-        } else if self.native_image_mode {
-            "standard-library-in-native"
-        } else {
-            "standard-library"
-        };
-        let job_mode_name = self.mode_name();
-        let job_name = format!("Standard Library Tests ({graal_edition}) ({job_mode_name})");
-        let run_command = format!("backend test {test_scope}");
+        let scope = self.scope;
+        let job_name = format!("{job_title} ({graal_edition})", job_title = self.title());
+        let run_command = format!("backend test {scope}");
+        let heapdump_artifact_name =
+            format!("Heap dumps ({}, {}, {})", &self.title(), target.0, target.1);
+
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
             let cleanup_engine_distribution = step::cleanup_engine_distribution(engine_launcher);
 
@@ -347,8 +376,12 @@ impl JobArchetype for StandardLibraryTests {
                     crate::libraries_tests::s3::env::ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY,
                 );
 
-            let updated_main_step =
-                if should_enable_cloud_tests { enable_cloud_tests(main_step) } else { main_step };
+            let updated_main_step = if scope == StandardLibraryTestsScope::CloudRelated {
+                enable_cloud_tests(main_step)
+            } else {
+                main_step
+            };
+            let upload_hprof = step::heapdump_upload(heapdump_artifact_name);
 
             vec![
                 cleanup_engine_distribution,
@@ -357,13 +390,14 @@ impl JobArchetype for StandardLibraryTests {
                 step::unpack_engine_distribution(),
                 updated_main_step,
                 step::stdlib_test_reporter(target, graal_edition),
+                upload_hprof,
             ]
         });
         let mut job = build_job_ensuring_cloud_tests_run_on_github(
             run_steps_builder,
             target,
             &job_name,
-            should_enable_cloud_tests,
+            self.scope,
         )
         .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
@@ -376,7 +410,7 @@ impl JobArchetype for StandardLibraryTests {
         // If running extra cloud tests, enable reporting all tests. These tests run on a nightly
         // schedule, and so the normal test reporter is not available to them. Thus we want to see
         // the full log in the CI to be able to tell which tests have been run.
-        if should_enable_cloud_tests {
+        if self.scope == StandardLibraryTestsScope::CloudRelated {
             job.env(crate::libraries_tests::env::REPORT_ALL_TESTS, "1");
         }
 
@@ -384,12 +418,16 @@ impl JobArchetype for StandardLibraryTests {
     }
 
     fn key(&self, (os, arch): Target) -> String {
-        format!(
+        let key = format!(
             "{}-{}-{}-{os}-{arch}",
             self.id_key_base(),
             self.graal_edition.to_string().to_kebab_case(),
-            self.mode_name(),
-        )
+            self.scope.to_string().replace(' ', "-"),
+        );
+        if key.len() >= 100 {
+            panic!("Too long CI job key: {:}", key)
+        }
+        key
     }
 }
 
@@ -569,9 +607,9 @@ fn build_job_ensuring_cloud_tests_run_on_github(
     run_steps_builder: RunStepsBuilder,
     target: Target,
     job_name: &str,
-    cloud_tests_enabled: bool,
+    scope: StandardLibraryTestsScope,
 ) -> Job {
-    if cloud_tests_enabled {
+    if scope == StandardLibraryTestsScope::CloudRelated {
         if target.0 != OS::Linux {
             panic!("If the Cloud tests are enabled, they require GitHub hosted runner for Cloud auth, so they only run on Linux.");
         }
@@ -586,6 +624,7 @@ fn build_job_ensuring_cloud_tests_run_on_github(
 pub struct SnowflakeTests {
     pub graal_edition:   graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
+    pub jvm_mode:        bool,
 }
 
 const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Community;
@@ -596,9 +635,19 @@ impl JobArchetype for SnowflakeTests {
             panic!("Snowflake tests currently require GitHub hosted runner for Cloud auth, so they only run on Linux.");
         }
         let job_name = "Snowflake Tests";
+        let job_name = if self.jvm_mode {
+            format!("{job_name} (JVM)")
+        } else {
+            format!("{job_name} (Native)")
+        };
         let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
-        let mut job = RunStepsBuilder::new("backend test std-snowflake")
+        let run_command = if self.jvm_mode {
+            "backend test std-snowflake-jvm"
+        } else {
+            "backend test std-snowflake"
+        };
+        let mut job = RunStepsBuilder::new(run_command)
             .customize(move |step| {
                 let main_step = step
                     .with_secret_exposed_as(
@@ -653,7 +702,11 @@ impl JobArchetype for SnowflakeTests {
     }
 
     fn key(&self, (os, arch): Target) -> String {
-        format!("{}-{os}-{arch}", self.id_key_base())
+        if self.jvm_mode {
+            format!("{}-jvm-{os}-{arch}", self.id_key_base())
+        } else {
+            format!("{}-native-{os}-{arch}", self.id_key_base())
+        }
     }
 }
 
@@ -933,12 +986,34 @@ rm dist/backend/project-manager.tar"
                     prepare_packaging_steps(target.0, step, PackagingTarget::Development);
                 steps.append(&mut packaging_steps);
 
+                let upload_ide = step::upload_artifact("Upload ide")
+                    .with_custom_argument("name", format!("ide-{}", target.0))
+                    .with_custom_argument(
+                        "path",
+                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                    );
+                steps.push(upload_ide);
+
+                let test_prepare_step = shell("\
+                    mkdir -p app/ide-desktop/client/playwright/.auth && \
+                    touch app/ide-desktop/client/playwright/.auth/user.json && \
+                    chmod 600 app/ide-desktop/client/playwright/.auth/user.json && \
+                    echo \"{\\\"user\\\": \\\"$ENSO_TEST_USER\\\",\\\"password\\\":\\\"$ENSO_TEST_USER_PASSWORD\\\"}\" > app/ide-desktop/client/playwright/.auth/user.json\
+                    ").with_shell(Shell::Bash).with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+                        "ENSO_TEST_USER",
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+                        "ENSO_TEST_USER_PASSWORD",
+                    ).with_name(
+                        "Prepare Package Tests"
+                    );
+                steps.push(test_prepare_step);
+
                 const TEST_COMMAND: &str = "corepack pnpm -r --filter enso ide-integration-test";
                 let test_step = match target.0 {
-                    OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
-                        // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
-                        .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox"),
-
+                    OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}")),
                     OS::MacOS =>
                     // MacOS CI runners are very slow
                         shell(format!("{TEST_COMMAND} --timeout 300000")),
@@ -946,14 +1021,8 @@ rm dist/backend/project-manager.tar"
                 };
                 let test_step = test_step
                     .with_env("DEBUG", "pw:browser log:")
-                    .with_secret_exposed_as(
-                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
-                        "ENSO_TEST_USER",
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
-                        "ENSO_TEST_USER_PASSWORD",
-                    );
+                    .with_name("Run Package Tests");
+
                 steps.push(test_step);
 
                 let upload_test_traces_step = Step {
@@ -969,38 +1038,19 @@ rm dist/backend/project-manager.tar"
                 };
                 steps.push(upload_test_traces_step);
 
-                steps.push(shell("corepack pnpm -r --filter enso ide-build-chromatic"));
-
-                let upload_chromatic_step = Step {
-                    name: Some("Upload Chromatic snapshots".into()),
-                    uses: Some("chromaui/action@v11".into()),
-                    with: Some(Argument::Other(BTreeMap::from_iter([
-                        (
-                            "projectToken".into(),
-                            "${{ secrets.ELECTRON_IDE_CHROMATIC_PROJECT_TOKEN }}".into(),
-                        ),
-                        ("storybookBuildDir".into(), "storybook-static".into()),
-                        ("workingDir".into(), "app/ide-desktop/client".into()),
-                    ]))),
-                    ..Default::default()
-                };
-                steps.push(upload_chromatic_step);
-
-                let upload_ide = step::upload_artifact("Upload ide")
-                    .with_custom_argument("name", format!("ide-{}", target.0))
-                    .with_custom_argument(
-                        "path",
-                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
-                    );
-                steps.push(upload_ide);
-
                 // After the E2E tests run, they create a credentials file in user home directory.
                 // If that file is not cleaned up, future runs of our tests may randomly get
                 // authenticated into Enso Cloud. We want to run tests as an authenticated
                 // user only when we explicitly set that up, not randomly. So we clean the
                 // credentials file.
                 let cloud_credentials_path = "$HOME/.enso/credentials";
-                let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
+                let cleanup_credentials_step = Step {
+                    r#if: Some("always()".into()),
+                    name: Some("Remove Credentials File".into()),
+                    shell: Some(Shell::Bash),
+                    ..shell(format!("rm -f {cloud_credentials_path}"))
+                };
+
                 steps.push(cleanup_credentials_step);
 
                 steps

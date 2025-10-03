@@ -1,7 +1,7 @@
 import { ZonedDateTime, parseAbsolute } from '@internationalized/date'
-import { EMPTY_ARRAY } from '../../utilities/data/array'
-import { DAYS_PER_WEEK, MONTHS_PER_YEAR, getDay } from '../../utilities/data/dateTime'
-import { ProjectExecutionInfo } from '../Backend'
+import { EMPTY_ARRAY } from '../../utilities/data/array.js'
+import { DAYS_PER_WEEK, MONTHS_PER_YEAR, getDay } from '../../utilities/data/dateTime.js'
+import type { ProjectExecutionInfo } from '../Backend.js'
 
 /** Positive modulo of the number with respect to the base. */
 function remainder(n: number, mod: number) {

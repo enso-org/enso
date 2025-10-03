@@ -179,7 +179,7 @@ class ExportsResolution(private val context: CompilerContext) {
           }
           (symbolName, resolvedNames)
         }
-      bindings.exportedSymbols = newSymbols
+      bindings.exportedSymbols(newSymbols)
     }
   }
 

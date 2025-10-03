@@ -7,8 +7,11 @@ from Standard.Base.Enso_Cloud.Public_Utils import get_required_field
 
 import project.AWS_Credential.AWS_Credential
 
-## PRIVATE
-   Decodes the JSON representation of `AWS_Credential` as defined in `dataLinkSchema.json#/$defs/AwsAuth`.
+## ---
+   private: true
+   ---
+   Decodes the JSON representation of `AWS_Credential` as defined in
+   `dataLinkSchema.json#/$defs/AwsAuth`.
 decode_aws_credential json -> AWS_Credential =
     case get_required_field "type" json of
         "aws_auth" -> case get_required_field "subType" json of

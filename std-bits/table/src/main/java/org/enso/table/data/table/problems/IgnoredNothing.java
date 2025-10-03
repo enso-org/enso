@@ -2,7 +2,7 @@ package org.enso.table.data.table.problems;
 
 public class IgnoredNothing extends ColumnAggregatedProblem {
 
-  public IgnoredNothing(String locationName, Integer row) {
+  public IgnoredNothing(String locationName, long row) {
     super(locationName, row);
   }
 

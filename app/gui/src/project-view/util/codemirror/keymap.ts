@@ -1,19 +1,30 @@
 import { textEditorsCommonBindings, textEditorsMultilineBindings } from '@/bindings'
+import { modKey } from '@/composables/events'
 import * as commands from '@codemirror/commands'
 import { insertNewlineKeepIndent } from '@codemirror/commands'
-import { type Extension, Prec } from '@codemirror/state'
-import { type Command, EditorView, type KeyBinding, keymap } from '@codemirror/view'
+import { Prec, type Extension } from '@codemirror/state'
+import { EditorView, keymap, type Command, type KeyBinding } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'
 import type { LineMode } from './index'
 
-export interface CmKeyboardEvent extends KeyboardEvent {
+export interface CmEvent {
   codemirrorView: EditorView
 }
 
-function extendCmKeyboardEvent(view: EditorView, event: KeyboardEvent): CmKeyboardEvent {
-  const ext = event as CmKeyboardEvent
+export type CmEventExt<T extends Event> = T & CmEvent
+
+type CmKeyboardEvent = CmEventExt<KeyboardEvent>
+
+/** Extend any kind of DOM event with a property holding a reference to codemirror view. */
+export function extendCmEvent<E extends Event>(view: EditorView, event: E): CmEventExt<E> {
+  const ext = event as CmEventExt<E>
   ext.codemirrorView = view
   return ext
+}
+
+const stopEvent = (event: Event) => {
+  event.stopImmediatePropagation()
+  return false
 }
 
 /**
@@ -26,30 +37,58 @@ export function handlerToKeyBinding(
 ): KeyBinding {
   return {
     any: (view: EditorView, event: KeyboardEvent) =>
-      handler(extendCmKeyboardEvent(view, event), stopAndPrevent),
+      handler(extendCmEvent(view, event), stopAndPrevent),
   }
 }
 
 function bindCommands<T extends string>(
   bindings: Record<T, Command>,
 ): Record<T, (event: CmKeyboardEvent) => boolean> {
-  return objects.mapEntries(
-    bindings,
-    (_binding, command) => (event: CmKeyboardEvent) => command(event.codemirrorView),
-  )
+  return objects.mapEntries(bindings, (_binding, command) => (event: CmKeyboardEvent) => {
+    command(event.codemirrorView)
+    // Some commands return `false` if not applicable to the current state; this allows falling
+    // back to a lower-priority command, but we don't allow conditionally bubbling the event out
+    // of the editor.
+    return true
+  })
 }
+
+function isNormalPrintableKey(event: KeyboardEvent) {
+  // This condition matches most printable characters, but not Enter or Tab.
+  return event.key.length === 1 && !modKey(event) && !event.altKey
+}
+
+function isModifierKey(key: string) {
+  // This condition matches modifier keys that may be used as part of text editing and should be
+  // stopped from propagating to ancestors.
+  return ['Control', 'Alt', 'Meta', 'Shift'].includes(key)
+}
+
+const stopNormalKeys: KeyBinding[] = [
+  {
+    any: (_view, event: KeyboardEvent) => {
+      // Stop propagation of typical keys that will result in a character being inserted into the
+      // editor, and modifier keys occurring alone.
+      if (isNormalPrintableKey(event) || isModifierKey(event.key)) event.stopImmediatePropagation()
+      return false
+    },
+  },
+]
 
 /** Key bindings applicable to all CodeMirror instances. */
 const baseKeymap: KeyBinding[] = [
   handlerToKeyBinding(
-    textEditorsCommonBindings.handler(
-      bindCommands({
-        moveLeft: commands.cursorCharLeft,
-        moveRight: commands.cursorCharRight,
-        deleteBack: commands.deleteCharBackward,
-        deleteForward: commands.deleteCharForward,
+    textEditorsCommonBindings.handler({
+      ...bindCommands({
+        'textEditor.moveLeft': commands.cursorCharLeft,
+        'textEditor.moveRight': commands.cursorCharRight,
+        'textEditor.deleteBack': commands.deleteCharBackward,
+        'textEditor.deleteForward': commands.deleteCharForward,
       }),
-    ),
+      'textEditor.copy': stopEvent,
+      'textEditor.cut': stopEvent,
+      'textEditor.paste': stopEvent,
+    }),
     true,
   ),
   {
@@ -156,38 +195,38 @@ const baseKeymap: KeyBinding[] = [
   { mac: 'Mod-Delete', run: commands.deleteLineBoundaryForward, stopPropagation: true },
 
   {
-    key: 'Ctrl-b',
+    mac: 'Ctrl-b',
     run: commands.cursorCharLeft,
     shift: commands.selectCharLeft,
     preventDefault: true,
     stopPropagation: true,
   },
   {
-    key: 'Ctrl-f',
+    mac: 'Ctrl-f',
     run: commands.cursorCharRight,
     shift: commands.selectCharRight,
     stopPropagation: true,
   },
 
   {
-    key: 'Ctrl-a',
+    mac: 'Ctrl-a',
     run: commands.cursorLineStart,
     shift: commands.selectLineStart,
     stopPropagation: true,
   },
   {
-    key: 'Ctrl-e',
+    mac: 'Ctrl-e',
     run: commands.cursorLineEnd,
     shift: commands.selectLineEnd,
     stopPropagation: true,
   },
 
-  { key: 'Ctrl-d', run: commands.deleteCharForward, stopPropagation: true },
-  { key: 'Ctrl-h', run: commands.deleteCharBackward, stopPropagation: true },
-  { key: 'Ctrl-k', run: commands.deleteToLineEnd, stopPropagation: true },
-  { key: 'Ctrl-Alt-h', run: commands.deleteGroupBackward, stopPropagation: true },
+  { mac: 'Ctrl-d', run: commands.deleteCharForward, stopPropagation: true },
+  { mac: 'Ctrl-h', run: commands.deleteCharBackward, stopPropagation: true },
+  { mac: 'Ctrl-k', run: commands.deleteToLineEnd, stopPropagation: true },
+  { mac: 'Ctrl-Alt-h', run: commands.deleteGroupBackward, stopPropagation: true },
 
-  { key: 'Ctrl-t', run: commands.transposeChars, stopPropagation: true },
+  { mac: 'Ctrl-t', run: commands.transposeChars, stopPropagation: true },
 ]
 
 /** Bindings applicable in text that is always single-line, or single-line by default. */
@@ -260,34 +299,29 @@ export const verticalMovementKeymap: KeyBinding[] = [
   },
 
   {
-    key: 'Ctrl-p',
+    mac: 'Ctrl-p',
     run: commands.cursorLineUp,
     shift: commands.selectLineUp,
     stopPropagation: true,
   },
   {
-    key: 'Ctrl-n',
+    mac: 'Ctrl-n',
     run: commands.cursorLineDown,
     shift: commands.selectLineDown,
     stopPropagation: true,
   },
 
-  { key: 'Ctrl-o', run: commands.splitLine, stopPropagation: true },
-  { key: 'Ctrl-v', run: commands.cursorPageDown, stopPropagation: true },
+  { mac: 'Ctrl-o', run: commands.splitLine, stopPropagation: true },
+  { mac: 'Ctrl-v', run: commands.cursorPageDown, stopPropagation: true },
 ]
 
-const stopEvent = (event: Event) => {
-  event.stopImmediatePropagation()
-  return false
-}
-
 const autoOrMultiHandlers = handlerToKeyBinding(
-  textEditorsMultilineBindings.handler({
-    newline: (e) => {
-      e.stopImmediatePropagation()
-      return insertNewlineKeepIndent(e.codemirrorView)
-    },
-  }),
+  textEditorsMultilineBindings.handler(
+    bindCommands({
+      'textEditor.newline': insertNewlineKeepIndent,
+    }),
+  ),
+  true,
 )
 
 const standardBindings: Record<LineMode, KeyBinding[]> = {
@@ -300,6 +334,7 @@ const standardBindings: Record<LineMode, KeyBinding[]> = {
 function makeBindingsExt(lineMode: LineMode, extras?: Extension[]): Extension {
   return [
     Prec.lowest(keymap.of(baseKeymap)),
+    Prec.lowest(keymap.of(stopNormalKeys)),
     Prec.low(keymap.of(standardBindings[lineMode])),
     ...(extras ?? []),
   ]

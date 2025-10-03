@@ -36,6 +36,9 @@ export function mapOr<T, R>(optional: Opt<T>, fallback: R, mapper: (value: T) =>
  * Map the value inside the given {@link Opt} if it is not nullish,
  * else return undefined.
  */
-export function mapOrUndefined<T, R>(optional: Opt<T>, mapper: (value: T) => Opt<R>): Opt<R> {
-  return mapOr(optional, undefined, mapper)
+export function mapOrUndefined<T, R>(
+  optional: Opt<T>,
+  mapper: (value: T) => Opt<R>,
+): R | undefined {
+  return mapOr(optional, undefined, mapper) ?? undefined
 }

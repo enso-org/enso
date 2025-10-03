@@ -10,10 +10,10 @@ public final class CloudAPI {
    * <p>It always ends with a slash.
    */
   public static String getAPIRootURI() {
-    var envUri = Environment_Utils.get_environment_variable("ENSO_CLOUD_API_URI");
-    var effectiveUri = envUri == null ? "https://api.cloud.enso.org/" : envUri;
-    var uriWithSlash = effectiveUri.endsWith("/") ? effectiveUri : effectiveUri + "/";
-    return uriWithSlash;
+    var envUrl = Environment_Utils.get_environment_variable("ENSO_CLOUD_API_URL");
+    var effectiveUrl = envUrl == null ? "https://api.cloud.enso.org/" : envUrl;
+    var urlWithSlash = effectiveUrl.endsWith("/") ? effectiveUrl : effectiveUrl + "/";
+    return urlWithSlash;
   }
 
   /**

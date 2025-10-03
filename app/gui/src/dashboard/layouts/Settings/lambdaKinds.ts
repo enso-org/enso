@@ -1,5 +1,5 @@
 /** @file Kinds of lambda. */
-import type { SvgUseIcon } from '#/components/AriaComponents'
+import type { SvgUseIcon } from '#/components/types'
 import { includesPredicate } from '#/utilities/array'
 import type { TextId } from 'enso-common/src/text'
 

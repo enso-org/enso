@@ -10,5 +10,7 @@ type Prefix_Name
     ## Add a custom prefix to the new name.
     Custom value:Text
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Prefix_Name.from (that:Text) = Prefix_Name.Custom that

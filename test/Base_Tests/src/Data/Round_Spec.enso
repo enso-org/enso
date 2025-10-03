@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Deprecated.Deprecated
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
 

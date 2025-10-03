@@ -5,7 +5,6 @@ from Standard.Table.Errors import all
 from Standard.Test import all
 
 
-from project.Common_Table_Operations.Util import run_default_backend
 
 
 type Data

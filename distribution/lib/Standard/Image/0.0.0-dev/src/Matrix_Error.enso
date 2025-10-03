@@ -1,22 +1,30 @@
 from Standard.Base import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Matrix_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Indicates that a matrix has been accessed with an illegal index.
 
-       Arguments:
-       - rows: The number of rows in the matrix.
-       - columns: The number of columns in the matrix.
-       - index: The requested index in the matrix.
+       ## Arguments
+        - `rows`: The number of rows in the matrix.
+        - `columns`: The number of columns in the matrix.
+        - `index`: The requested index in the matrix.
     Index_Out_Of_Bounds rows columns index
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        An error indicating that an operation has failed due to a mismatch of
        matrix dimensions.
     Dimensions_Not_Equal
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Pretty-prints a matrix error to be readable by the users.
     to_display_text : Text
     to_display_text self = case self of

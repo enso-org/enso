@@ -1,6 +1,38 @@
-import { inject, provide, type App, type InjectionKey } from 'vue'
+import { inject, provide, type InjectionKey } from 'vue'
 
 const MISSING = Symbol('MISSING')
+
+/**
+ * A pair of functions, `provideFn` and `injectFn`. The `provideFn` function creates the
+ * store instance and provides it to the context, allowing child components to access it. The
+ * `injectFn` function retrieves the store instance provided by any of the an ancestor components.
+ */
+export type ContextStore<Factory extends (...args: any[]) => any> = [
+  /**
+   * Create the instance of a store and store it in the current component's context. All child
+   * components will be able to access that store using the corresponding inject function.
+   * @param args The parameters that will be passed to the store factory function.
+   * @returns The store instance created by the factory function.
+   */
+  provideFn: Factory,
+  /**
+   * Access a store instance provided by an ancestor component. When trying to access a store that
+   * has never been provided, the behavior depends on the first parameter value.
+   * @param missingBehavior determines what happens when trying to inject a store has never been provided:
+   * - If `missingBehavior` is `false` or it is not provided, an exception is thrown.
+   * - If `missingBehavior` is `true`, `undefined` is returned. This is also reflected in the return
+   * type of the function.
+   * - If `missingBehavior` is a closure returning store factory arguments, a new store instance
+   * is created and  provided to this component's context, allowing its children to access it.
+   * @returns The store instance provided by an ancestor component, or `undefined` if the store
+   * has never been provided and `missingBehavior` is `true`.
+   */
+  injectFn: {
+    (allowMissing?: false): ReturnType<Factory>
+    (allowMissing: true): ReturnType<Factory> | undefined
+    (orProvideWith: () => Parameters<Factory>): ReturnType<Factory>
+  },
+]
 
 /**
  * Create a pair of functions that allow to provide and inject a store in the current component's
@@ -22,56 +54,21 @@ const MISSING = Symbol('MISSING')
  * has no influence on the standard runtime behavior of the store, and doesn't have to be unique.
  * @param factory A factory function that creates the store. The parameters expected by the factory
  * will match the parameters of the generated `provideFn` function.
- * @returns A pair of functions, `provideFn` and `injectFn`. The `provideFn` function creates the
- * store instance and provides it to the context, allowing child components to access it. The
- * `injectFn` function retrieves the store instance provided by any of the an ancestor components.
+ * @returns A pair of provide and inject functions - {@link ContextStore}.
  *
  * [Context API]: https://vuejs.org/guide/components/provide-inject.html#provide-inject
  */
-export function createContextStore<F extends (...args: any[]) => any>(name: string, factory: F) {
+export function createContextStore<F extends (...args: any[]) => any>(
+  name: string,
+  factory: F,
+): ContextStore<F> {
   const provideKey = Symbol.for(`contextStore-${name}`) as InjectionKey<ReturnType<F>>
 
-  /**
-   * Create the instance of a store and store it in the current component's context. All child
-   * components will be able to access that store using the corresponding inject function.
-   * @param args The parameters that will be passed to the store factory function.
-   * @returns The store instance created by the factory function.
-   */
   function provideFn(...args: Parameters<F>): ReturnType<F> {
     const constructed = factory(...args)
     provide(provideKey, constructed)
     return constructed
   }
-
-  /**
-   * An method allowing to directly provide a store value to any app or component context, possibly
-   * skipping invoking the factory function. **Use in tests only, or in exceptional situations**.
-   */
-  provideFn.provideConstructed = function (
-    valueOrArgs: Parameters<F> | ReturnType<F>,
-    app?: App,
-  ): ReturnType<F> {
-    // Right now this function assumes that an array always represents the arguments to the factory.
-    // If we ever need to mock an array as the context value, we'll worry about it then.
-    const constructed: ReturnType<F> =
-      Array.isArray(valueOrArgs) ? factory(...valueOrArgs) : valueOrArgs
-    if (app != null) app.provide(provideKey, constructed)
-    else provide(provideKey, constructed)
-    return constructed
-  }
-
-  /**
-   * Access a store instance provided by an ancestor component. When trying to access a store that
-   * has never been provided, the behavior depends on the first parameter value.
-   * @param missingBehavior determines what happens when trying to inject a store has never been provided:
-   * - If `missingBehavior` is `false` or it is not provided, an exception is thrown.
-   * - If `missingBehavior` is `true`, `undefined` is returned. This is also reflected in the return
-   * type of the function.
-   * - If `missingBehavior` is a closure returning store factory arguments, a new store instance
-   * is created and  provided to this component's context, allowing its children to access it.
-   * @returns The store instance provided by an ancestor component, or `undefined` if the store
-   * has never been provided and `missingBehavior` is `true`.
-   */
 
   function injectFn(allowMissing: true): ReturnType<F> | undefined
   function injectFn(allowMissing?: false): ReturnType<F>
@@ -91,5 +88,5 @@ export function createContextStore<F extends (...args: any[]) => any>(name: stri
     return injected
   }
 
-  return [provideFn, injectFn] as const
+  return [provideFn as F, injectFn] as const
 }

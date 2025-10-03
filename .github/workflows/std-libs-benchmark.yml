@@ -50,7 +50,7 @@ jobs:
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: (always())
+      - if: ${{ (always()) }}
         name: Clean before
         run: ./run git-clean
         env:
@@ -63,7 +63,7 @@ jobs:
         with:
           name: benchmark-results.xml
           path: std-bits/benchmarks/bench-report.xml
-      - if: (always())
+      - if: ${{ (always()) }}
         name: Clean after
         run: ./run git-clean
         env:

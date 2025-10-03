@@ -24,7 +24,7 @@ class ProjectCreationService[
 ](
   distributionConfiguration: DistributionConfiguration,
   loggingServiceDescriptor: LoggingServiceDescriptor,
-  jvmMode: Boolean
+  jvm: Option[Option[Path]]
 ) extends ProjectCreationServiceApi[F] {
 
   private lazy val logger = Logger[ProjectCreationService[F]]
@@ -62,7 +62,7 @@ class ProjectCreationService[
             path,
             name,
             engineVersion,
-            jvmMode,
+            jvm,
             None,
             projectTemplate,
             None,

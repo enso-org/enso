@@ -1,8 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Metadata.Choice
-import Standard.Base.Metadata.Widget
-import Standard.Base.Metadata.Display
 
 from Standard.Table import all
 from Standard.Database import all

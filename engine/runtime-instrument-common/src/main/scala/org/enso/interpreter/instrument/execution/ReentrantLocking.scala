@@ -39,7 +39,8 @@ class ReentrantLocking extends Locking {
       if (contextLocks.contains(contextId)) {
         contextLocks(contextId)
       } else {
-        val lock = new ContextLockImpl(new ReentrantLock(true), contextId)
+        val lock =
+          new ContextLockImpl(new ReentrantReadWriteLock(true), contextId)
         contextLocks += (contextId -> lock)
         lock
       }
@@ -88,7 +89,16 @@ class ReentrantLocking extends Locking {
       "should already held write compilation lock during the operation"
     )
 
-  def withWriteCompilationLock[T](where: Class[_], callable: Callable[T]): T = {
+  /** @inheritdoc */
+  def withWriteCompilationLock[T](where: Class[_], callable: Callable[T]): T =
+    withWriteCompilationLock(where, null, callable)
+
+  /** @inheritdoc */
+  def withWriteCompilationLock[T](
+    where: Class[_],
+    context: String,
+    callable: Callable[T]
+  ): T = {
     var lockTimestamp: Long = 0
     try {
       lockTimestamp = acquireWriteCompilationLock(where)
@@ -104,8 +114,9 @@ class ReentrantLocking extends Locking {
       if (lockTimestamp != 0) {
         releaseWriteCompilationLock()
         logger.trace(
-          "Kept write compilation lock [{}] for {}ms",
+          "Kept write compilation lock [{}, context {}] for {}ms",
           where.getSimpleName,
+          if (context == null) "<missing>" else context,
           System.currentTimeMillis - lockTimestamp
         )
       }
@@ -191,17 +202,18 @@ class ReentrantLocking extends Locking {
   }
 
   /** @inheritdoc */
-  override def withContextLock[T](
+  override def withReadContextLock[T](
     lock: ContextLock,
     where: Class[_],
     callable: Callable[T]
   ): T = {
     val contextLock                = lock.asInstanceOf[ContextLockImpl]
     var contextLockTimestamp: Long = 0
+    val readLock                   = contextLock.lock.readLock()
     try {
       contextLockTimestamp = logLockAcquisition(
-        contextLock.lock,
-        "context lock",
+        readLock,
+        "read context lock",
         where
       )
       callable.call()
@@ -214,9 +226,54 @@ class ReentrantLocking extends Locking {
         null.asInstanceOf[T]
     } finally {
       if (contextLockTimestamp != 0) {
-        contextLock.lock.unlock()
+        readLock.unlock()
         logger.trace(
-          "Kept context lock [{}] for {}ms",
+          "Kept read context lock [{}] for {}ms",
+          where.getSimpleName,
+          System.currentTimeMillis - contextLockTimestamp
+        )
+      }
+    }
+  }
+
+  /** @inheritdoc */
+  override def withWriteContextLock[T](
+    lock: ContextLock,
+    where: Class[_],
+    callable: Callable[T]
+  ): T =
+    withWriteContextLock(lock, where, null, callable)
+
+  /** @inheritdoc */
+  override def withWriteContextLock[T](
+    lock: ContextLock,
+    where: Class[_],
+    context: String,
+    callable: Callable[T]
+  ): T = {
+    val contextLock                = lock.asInstanceOf[ContextLockImpl]
+    var contextLockTimestamp: Long = 0
+    val writeLock                  = contextLock.lock.writeLock()
+    val ctx                        = if (context == null) "<missing>" else context
+    try {
+      contextLockTimestamp = logLockAcquisition(
+        writeLock,
+        "write context lock (context=" + ctx + ")",
+        where
+      )
+      callable.call()
+    } catch {
+      case _: InterruptedException =>
+        logger.debug(
+          "Failed [{}] to acquire lock: interrupted",
+          where.getSimpleName
+        )
+        null.asInstanceOf[T]
+    } finally {
+      if (contextLockTimestamp != 0) {
+        writeLock.unlock()
+        logger.trace(
+          "Kept write context lock [{}] for {}ms",
           where.getSimpleName,
           System.currentTimeMillis - contextLockTimestamp
         )
@@ -232,6 +289,7 @@ class ReentrantLocking extends Locking {
       if (contextLocks.contains(contextLock.uuid)) {
         assertNotLocked(
           contextLock.lock,
+          true,
           s"Cannot remove context ${contextLock.uuid} lock when having a lock on it"
         )
         contextLocks -= contextLock.uuid
@@ -335,6 +393,7 @@ class ReentrantLocking extends Locking {
         val contextLock = ctx._2.asInstanceOf[ContextLockImpl]
         assertNotLocked(
           contextLock.lock,
+          true,
           msg + s" lock when having context ${ctx._1} lock"
         )
       }
@@ -362,6 +421,6 @@ class ReentrantLocking extends Locking {
     getContextLock(contextId)
   }
 
-  private case class ContextLockImpl(lock: ReentrantLock, uuid: UUID)
+  private case class ContextLockImpl(lock: ReentrantReadWriteLock, uuid: UUID)
       extends ContextLock
 }

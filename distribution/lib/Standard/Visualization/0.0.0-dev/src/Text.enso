@@ -1,13 +1,18 @@
 from Standard.Base import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Message to be sent to the IDE.
 type Message
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value chunks line_count max_line_length
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Generate JSON that can be consumed by the visualization.
     to_json : Json
     to_json self =
@@ -16,10 +21,12 @@ type Message
         max_line_length = ["longest_line", self.max_line_length]
         Json.from_pairs [chunks, line_count, max_line_length]
 
-## PRIVATE
-   Return a sub-window of a string. The window is defined by line/chunk coordinates. The size of
-   a chunk is defined by `chunk_width`. The output is formatted as a message that can be sent to
-   the IDE's lazy text visualization.
+## ---
+   private: true
+   ---
+   Return a sub-window of a string. The window is defined by line/chunk
+   coordinates. The size of a chunk is defined by `chunk_width`. The output is
+   formatted as a message that can be sent to the IDE's lazy text visualization.
 get_lazy_visualization_text_window text pos size chunk_width =
     get_text_chunk = get_item_from text chunk_width
     lines = text.lines.length
@@ -35,15 +42,19 @@ get_lazy_visualization_text_window text pos size chunk_width =
     max_line_length = (active_lines.map (line -> line.length)).fold 0 (l -> r -> l.max r)
     make_grid_visualization_response chunks lines max_line_length
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Format a chunk of text and meta information for the lazy visualization.
 make_grid_visualization_response chunks lines max_line_length =
     message = Message.Value chunks lines max_line_length
     message.to_json + ""
 
-## PRIVATE
-   Return a chunk of text from a string. The chunk is defined by a its size and a line/chunk index
-   coordinate.
+## ---
+   private: true
+   ---
+   Return a chunk of text from a string. The chunk is defined by a its size and a
+   line/chunk index coordinate.
 get_item_from text chunk_size index =
     line_ix = index.second
     if line_ix >= text.lines.length then Nothing else
@@ -51,8 +62,11 @@ get_item_from text chunk_size index =
         line = text.lines.at line_ix
         get_chunk_from_line line chunk_size chunk_ix
 
-## PRIVATE
-   Return a chunk of text from a line. The chunk is defined by a its size and a chunk index.
+## ---
+   private: true
+   ---
+   Return a chunk of text from a line. The chunk is defined by a its size and a
+   chunk index.
 get_chunk_from_line text chunk_size ix =
     upper_bound = text.length
     start = ix * chunk_size

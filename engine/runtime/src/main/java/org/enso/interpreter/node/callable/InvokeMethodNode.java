@@ -244,7 +244,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       if (imported != null) {
         return imported;
       }
-      throw methodNotFound(symbol, self);
+      throw methodNotFound(this, onBoundary, symbol, self);
     }
     CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
     var shouldPrependSyntheticSelfArg =
@@ -297,12 +297,12 @@ public abstract class InvokeMethodNode extends BaseNode {
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  private PanicException methodNotFound(UnresolvedSymbol symbol, Object self)
-      throws PanicException {
+  static PanicException methodNotFound(
+      Node where, boolean onBoundary, UnresolvedSymbol symbol, Object self) throws PanicException {
     var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
-    var ctx = EnsoContext.get(this);
+    var ctx = EnsoContext.get(where);
     var payload = ctx.getBuiltins().error().makeNoSuchMethod(self, symbol);
-    throw new PanicException(ctx, payload, cause, this);
+    throw new PanicException(ctx, payload, cause, where);
   }
 
   @Specialization
@@ -326,7 +326,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
       return invokeFunctionNode.execute(fnAndType.getLeft(), frame, state, arguments);
     }
-    throw methodNotFound(symbol, self);
+    throw methodNotFound(this, onBoundary, symbol, self);
   }
 
   @Specialization
@@ -532,7 +532,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared @Cached AppendWarningNode appendWarningNode,
       @Cached HashMapSizeNode mapSizeNode,
       @Cached HashMapInsertAllNode mapInsertAllNode) {
-    Object[] args = new Object[argExecutors.length];
+    var args = new Object[argExecutors.length];
     boolean anyWarnings = false;
     var accumulatedWarnings = EnsoHashMap.empty();
     for (int i = 0; i < argExecutors.length; i++) {
@@ -559,7 +559,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         args[i] = r;
       }
     }
-    Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
+    var res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
     if (anyWarnings) {
       anyWarningsProfile.enter();
       res = appendWarningNode.executeAppend(null, res, accumulatedWarnings);

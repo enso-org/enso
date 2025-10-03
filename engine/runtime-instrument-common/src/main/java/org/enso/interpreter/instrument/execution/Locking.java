@@ -19,6 +19,16 @@ public interface Locking {
   <T> T withWriteCompilationLock(Class<?> where, Callable<T> callable);
 
   /**
+   * Executes `callable` while holding a compilation write lock
+   *
+   * @param where the class requesting the lock
+   * @param callable code to be executed while holding the lock
+   * @param context human-readable explanation for triggering evaluation
+   * @return the result of calling `callable` or null, if no result is expected
+   */
+  <T> T withWriteCompilationLock(Class<?> where, String context, Callable<T> callable);
+
+  /**
    * Executes `callable` while holding a compilation read lock
    *
    * @param where the class requesting the lock
@@ -37,19 +47,41 @@ public interface Locking {
   <T> T withPendingEditsLock(Class<?> where, Callable<T> callable);
 
   /**
-   * Executes `callable` while holding a context lock
+   * Executes `callable` while holding a read context lock
    *
    * @param contextLock lock used to ensure exclusive access
    * @param where the class requesting the lock
    * @param callable code to be executed while holding the lock
    * @return the result of calling `callable` or null, if no result is expected
    */
-  <T> T withContextLock(ContextLock contextLock, Class<?> where, Callable<T> callable);
+  <T> T withReadContextLock(ContextLock contextLock, Class<?> where, Callable<T> callable);
+
+  /**
+   * Executes `callable` while holding a write context lock
+   *
+   * @param contextLock lock used to ensure exclusive access
+   * @param where the class requesting the lock
+   * @param callable code to be executed while holding the lock
+   * @return the result of calling `callable` or null, if no result is expected
+   */
+  <T> T withWriteContextLock(ContextLock contextLock, Class<?> where, Callable<T> callable);
+
+  /**
+   * Executes `callable` while holding a write context lock
+   *
+   * @param contextLock lock used to ensure exclusive access
+   * @param where the class requesting the lock
+   * @param context human-readable explanation for lock
+   * @param callable code to be executed while holding the lock
+   * @return the result of calling `callable` or null, if no result is expected
+   */
+  <T> T withWriteContextLock(
+      ContextLock contextLock, Class<?> where, String context, Callable<T> callable);
 
   /**
    * Removes a context lock.
    *
-   * @param a context lock to remove
+   * @param contextLock a context lock to remove
    */
   void removeContextLock(ContextLock contextLock);
 

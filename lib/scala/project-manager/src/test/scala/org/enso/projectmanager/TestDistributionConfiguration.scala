@@ -60,7 +60,7 @@ class TestDistributionConfiguration(
   lazy val distributionManager = new DistributionManager(environment)
 
   lazy val graalVersionManager =
-    new GraalVersionManager(distributionManager, environment)
+    new GraalVersionManager(distributionManager)
 
   lazy val lockManager = new TestLocalLockManager
 

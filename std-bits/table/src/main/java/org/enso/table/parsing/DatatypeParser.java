@@ -1,6 +1,8 @@
 package org.enso.table.parsing;
 
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.table.Column;
 import org.enso.table.parsing.problems.CommonParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
 
@@ -19,9 +21,23 @@ public abstract class DatatypeParser {
   public abstract Object parseSingleValue(String text, ParseProblemAggregator problemAggregator);
 
   /**
-   * Parses a column of texts (represented as a {@code Storage<String>}) and returns a new storage,
-   * containing the parsed elements.
+   * Parses a column of texts (represented as a {@code ColumnStorage<String>}) and returns a new
+   * storage, containing the parsed elements.
    */
-  public abstract Storage<?> parseColumn(
-      Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator);
+  public final ColumnStorage<?> parseColumn(
+      Column sourceColumn, CommonParseProblemAggregator problemAggregator) {
+    var storage = sourceColumn.getStorage();
+    if (!(storage.getType() instanceof TextType textType)) {
+      throw new IllegalArgumentException(
+          "Expected a column of text type, got: " + storage.getType());
+    }
+    return parseColumn(textType.asTypedStorage(storage), problemAggregator);
+  }
+
+  /**
+   * Parses a column of texts (represented as a {@code ColumnStorage<String>}) and returns a new
+   * storage, containing the parsed elements.
+   */
+  public abstract ColumnStorage<?> parseColumn(
+      ColumnStorage<String> sourceStorage, CommonParseProblemAggregator problemAggregator);
 }

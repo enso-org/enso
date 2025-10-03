@@ -45,7 +45,7 @@ class LauncherRunner(
     versionOverride: Option[SemVer],
     logLevel: Level,
     logMasking: Boolean,
-    jvmMode: Boolean,
+    jvm: Option[Option[Path]],
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -68,7 +68,7 @@ class LauncherRunner(
       }
       RunSettings(
         version,
-        jvmMode,
+        jvm,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
         workingDirectory         = workingDirectory,
@@ -85,7 +85,7 @@ class LauncherRunner(
     versionOverride: Option[SemVer],
     logLevel: Level,
     logMasking: Boolean,
-    jvmMode: Boolean,
+    jvm: Option[Option[Path]],
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -134,7 +134,7 @@ class LauncherRunner(
           }
       RunSettings(
         version,
-        jvmMode,
+        jvm,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
         workingDirectory         = workingDirectory,
@@ -216,7 +216,7 @@ class LauncherRunner(
       (
         RunSettings(
           version,
-          jvmMode = false,
+          jvm = None,
           arguments,
           workingDirectory         = None,
           connectLoggerIfAvailable = false
@@ -267,7 +267,7 @@ class LauncherRunner(
         tokenOpts ++ hideProgressOpts
       RunSettings(
         version,
-        jvmMode = false,
+        jvm = None,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
         workingDirectory         = None,
@@ -316,7 +316,7 @@ class LauncherRunner(
         hideProgressOpts
       RunSettings(
         version,
-        jvmMode = false,
+        jvm = None,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
         workingDirectory         = None,

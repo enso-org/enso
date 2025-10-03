@@ -5,7 +5,9 @@ import project.Table.Table
 import project.Value_Type.Value_Type
 from project.Internal.Fan_Out import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Splits a column of text into a set of new columns.
    See `Table.split_to_columns`.
 split_to_columns : Table -> Text | Integer -> Text -> Columns_To_Add -> Problem_Behavior -> Table
@@ -14,7 +16,9 @@ split_to_columns table input_column_id delimiter="," column_count:Columns_To_Add
     Value_Type.expect_text column <|
         fan_out_to_columns table column.name (handle_nothing (_.split delimiter)) column_count on_problems=on_problems
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Splits a column of text into a set of new rows.
    See `Table.split_to_rows`.
 split_to_rows : Table -> Text | Integer -> Text -> Table
@@ -23,7 +27,9 @@ split_to_rows table input_column_id:(Text | Integer) delimiter="," =
     Value_Type.expect_text column <|
         fan_out_to_rows table column.name (handle_nothing (_.split delimiter)) at_least_one_row=True
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Tokenizes a column of text into a set of new columns using a regular
    expression.
    See `Table.tokenize_to_columns`.
@@ -33,9 +39,10 @@ tokenize_to_columns table input_column_id pattern case_sensitivity column_count 
     Value_Type.expect_text column <|
         fan_out_to_columns table column.name (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems=on_problems
 
-## PRIVATE
-   Tokenizes a column of text into a set of new rows using a regular
-   expression.
+## ---
+   private: true
+   ---
+   Tokenizes a column of text into a set of new rows using a regular expression.
    See `Table.tokenize_to_rows`.
 tokenize_to_rows : Table -> Text | Integer -> Text -> Case_Sensitivity -> Boolean -> Table
 tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensitivity.Sensitive at_least_one_row=False =
@@ -43,9 +50,10 @@ tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensiti
     Value_Type.expect_text column <|
         fan_out_to_rows table column.name (handle_nothing (_.tokenize pattern case_sensitivity)) at_least_one_row=at_least_one_row
 
-## PRIVATE
-   Converts a Text column into new columns using a regular expression
-   pattern.
+## ---
+   private: true
+   ---
+   Converts a Text column into new columns using a regular expression pattern.
    See `Table.parse_to_columns`.
 parse_to_columns : Table -> Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
 parse_to_columns table input_column_id (pattern:(Text | Regex)=".") case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems:Problem_Behavior=..Report_Error =
@@ -65,10 +73,12 @@ parse_to_columns table input_column_id (pattern:(Text | Regex)=".") case_sensiti
         fan_out_to_rows_and_columns table column.name fun column_names at_least_one_row=True on_problems=on_problems
     if parse_values then new_table.parse on_problems=on_problems else new_table
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Create a parser from a regex to a nested `Vector`. Each match becomes an
-   element of the vector; each group (or the whole match, if there are no
-   groups) becomes an element of the inner vectors.
+   element of the vector; each group (or the whole match, if there are no groups)
+   becomes an element of the inner vectors.
 regex_parse_to_vectors : Regex -> (Text -> Vector (Vector (Text | Nothing)))
 regex_parse_to_vectors pattern =
     input->
@@ -77,7 +87,9 @@ regex_parse_to_vectors pattern =
             1 -> matches.map match-> [match.text]
             _ -> matches.map match-> match.groups . drop 1
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Generate column names for the output columns from a regex match.
    If the regex has no explicit groups, it uses the original column name
    unchanged; otherwise, it uses the group name if it exists, or the original
@@ -102,7 +114,9 @@ regex_to_column_names pattern original_column_name =
                     name : Text ->
                         name
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Wrap a function so that it returns [] if passed Nothing.
 handle_nothing : (Any -> Any) -> (Any -> Any)
 handle_nothing function = x-> case x of

@@ -1,5 +1,6 @@
 import project.Internal.Priv_Type
 import project.Internal.Implicitly_Private
+from project.Internal import priv_func
 
 ## Provides access to the methods of the Priv_Type
 type Public_Type
@@ -13,3 +14,9 @@ type Public_Type
     create data = Priv_Type.create data
     in_ctx ~action = Priv_Type.in_ctx action...
     private priv_method self = Priv_Type.priv_method
+
+    get_priv_func = priv_func
+
+
+private priv_static_method x = x
+

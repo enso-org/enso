@@ -1,4 +1,4 @@
-import { type ProjectNameStore } from '@/stores/projectNames'
+import type { ProjectNameStore } from '@/stores/projectNames'
 import { assert } from '@/util/assert'
 import { findDifferenceIndex } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'
@@ -66,15 +66,16 @@ function visualizationConfigEqual(
 /** Same as {@link visualizationConfigEqual}, but ignores differences in {@link NodeVisualizationConfiguration.positionalArgumentsExpressions}. */
 export function visualizationConfigPreprocessorEqual(
   a: NodeVisualizationConfiguration,
-  b: NodeVisualizationConfiguration,
+  b: Opt<NodeVisualizationConfiguration>,
 ): boolean {
   return (
-    a == b ||
-    (a.visualizationModule === b.visualizationModule &&
-      (a.expression === b.expression ||
-        (typeof a.expression === 'object' &&
-          typeof b.expression === 'object' &&
-          methodPointerEquals(a.expression, b.expression))))
+    b != null &&
+    (a == b ||
+      (a.visualizationModule === b.visualizationModule &&
+        (a.expression === b.expression ||
+          (typeof a.expression === 'object' &&
+            typeof b.expression === 'object' &&
+            methodPointerEquals(a.expression, b.expression)))))
   )
 }
 
@@ -223,7 +224,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
   /** TODO: Add docs */
   pop() {
     if (this._desiredStack.length === 1) {
-      console.debug('Cannot pop last item from execution context stack')
+      console.info('Cannot pop last item from execution context stack')
       return
     }
     this._desiredStack.pop()

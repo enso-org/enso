@@ -12,7 +12,9 @@ type Azure_Environment
     ## The Azure China environment.
     China
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the Java version of the Azure environment.
     private to_java self -> AzureEnvironment = case self of
         Azure_Environment.Default -> AzureEnvironment.AZURE

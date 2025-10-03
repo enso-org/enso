@@ -10,12 +10,6 @@ thread_local! {
 }
 
 #[wasm_bindgen]
-pub fn parse_doc_to_json(docs: &str) -> String {
-    let docs = enso_doc_parser::parse(docs);
-    serde_json::to_string(&docs).expect("Failed to serialize Doc Sections to JSON")
-}
-
-#[wasm_bindgen]
 pub fn parse_module(code: &str) -> Vec<u8> {
     let ast = PARSER.with(|parser| parser.parse_module(code));
     enso_parser::format::serialize(&ast).expect("Failed to serialize AST to binary format")

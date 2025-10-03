@@ -3,12 +3,12 @@
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuButton from '@/components/MenuButton.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
-import { TextSelectionMenuOption } from '@/components/visualizations/toolbar'
+import type { TextSelectionMenuOption } from '@/components/visualizations/toolbar'
 import { ref } from 'vue'
 
 type Key = number | string | symbol
 const selected = defineModel<Key>({ required: true })
-const _props = defineProps<{
+const { options, title, alwaysShowArrow, heading } = defineProps<{
   options: Record<Key, TextSelectionMenuOption>
   title?: string | undefined
   alwaysShowArrow?: boolean

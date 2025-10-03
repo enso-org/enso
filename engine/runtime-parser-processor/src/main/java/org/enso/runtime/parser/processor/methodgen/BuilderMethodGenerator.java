@@ -37,11 +37,11 @@ public class BuilderMethodGenerator {
             .map(
                 field ->
                     """
-        public Builder $fieldName($fieldType $fieldName) {
-          this.$fieldName = $fieldName;
-          return this;
-        }
-        """
+                    public Builder $fieldName($fieldType $fieldName) {
+                      this.$fieldName = $fieldName;
+                      return this;
+                    }
+                    """
                         .replace("$fieldName", field.name())
                         .replace("$fieldType", field.getSimpleTypeName()))
             .collect(Collectors.joining(System.lineSeparator()));
@@ -53,10 +53,10 @@ public class BuilderMethodGenerator {
             .map(
                 field ->
                     """
-            if (this.$fieldName == null) {
-              throw new IllegalArgumentException("$fieldName is required");
-            }
-            """
+                    if (this.$fieldName == null) {
+                      throw new IllegalArgumentException("$fieldName is required");
+                    }
+                    """
                         .replace("$fieldName", field.getName()))
             .collect(Collectors.joining(System.lineSeparator()));
 
@@ -88,6 +88,21 @@ public class BuilderMethodGenerator {
 
   private String copyConstructor() {
     var sb = new StringBuilder();
+    var docs =
+        """
+        /**
+         * Copy builder. Creates a <i>shallow</i> copy of the given object.
+         *
+         * <p>Using this copy builder is equivalent to calling {@code copy} method,
+         * with appropriate parameters set to different values.
+         *
+         * <p>For more information about the copy semantics, see
+         * {@link org.enso.compiler.core.IR}.
+         *
+         * @param obj the object from which the <emph>shallow</emph> copy is made.
+         */
+        """;
+    sb.append(docs);
     sb.append("Builder(")
         .append(generatedClassContext.getProcessedClass().getClazz().getSimpleName())
         .append(" obj) {")
@@ -104,24 +119,13 @@ public class BuilderMethodGenerator {
     }
     // Most user fields are accessed via getters
     for (var userField : generatedClassContext.getUserFields()) {
-      if (userField.isPersistanceReference()) {
-        var line =
-            """
-            this.${fieldName} = Reference.of(
-              obj.${fieldName}()
-            );
-            """
-                .replace("${fieldName}", userField.getName());
-        sb.append(line).append(System.lineSeparator());
-      } else {
-        sb.append("  ")
-            .append("this.")
-            .append(userField.getName())
-            .append(" = obj.")
-            .append(userField.getName())
-            .append("();")
-            .append(System.lineSeparator());
-      }
+      sb.append("  ")
+          .append("this.")
+          .append(userField.getName())
+          .append(" = obj.")
+          .append(userField.getName())
+          .append("();")
+          .append(System.lineSeparator());
     }
     sb.append("}");
     return sb.toString();

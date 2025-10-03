@@ -154,7 +154,7 @@ final class JobExecutionEngine(
     synchronized {
       if (isBackgroundJobsStarted) {
         cancelDuplicateJobs(job, backgroundJobsRef)
-        runInternal(job, backgroundJobExecutor, backgroundJobsRef)
+        runInternal(job, backgroundJobExecutor, backgroundJobsRef, "background")
       } else {
         job match {
           case job: UniqueJob[_] =>
@@ -173,7 +173,7 @@ final class JobExecutionEngine(
     cancelDuplicateJobs(job, runningJobsRef)
     val executor =
       if (job.highPriority) highPriorityJobExecutor else jobExecutor
-    runInternal(job, executor, runningJobsRef)
+    runInternal(job, executor, runningJobsRef, "regular")
   }
 
   private def cancelDuplicateJobs[A](
@@ -220,7 +220,8 @@ final class JobExecutionEngine(
   private def runInternal[A](
     job: Job[A],
     executorService: ExecutorService,
-    runningJobsRef: AtomicReference[Vector[RunningJob]]
+    runningJobsRef: AtomicReference[Vector[RunningJob]],
+    queueName: String
   ): Future[A] = {
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
@@ -254,7 +255,8 @@ final class JobExecutionEngine(
       } finally {
         val remaining = runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
         logger.trace(
-          "Number of remaining pending jobs: {}",
+          "Number of remaining pending {} jobs: {}",
+          queueName,
           remaining.size
         )
       }

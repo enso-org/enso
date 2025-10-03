@@ -16,8 +16,8 @@
     "noImplicitOverride": true,
     "removeComments": true,
     "skipLibCheck": true,
-    "target": "ES2022",
-    "jsx": "react-jsx"
+    "verbatimModuleSyntax": true,
+    "target": "ES2022"
   },
   "exclude": [
     "tools",

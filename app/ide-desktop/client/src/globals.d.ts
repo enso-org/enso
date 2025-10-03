@@ -4,6 +4,7 @@
  * monkeypatching on `window` and generated code.
  */
 
+import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
 import type { FileFilter } from './fileBrowser'
 
 // =============
@@ -86,7 +87,7 @@ interface NavigationApi {
 /** `window.menuApi` exposes functionality related to the system menu. */
 interface MenuApi {
   /** Set the callback to be called when the "about" entry is clicked in the "help" menu. */
-  readonly setShowAboutModalHandler: (callback: () => void) => void
+  readonly setMenuItemHandler: (name: MenuItem, callback: MenuItemHandler) => void
 }
 
 // ==================
@@ -106,6 +107,7 @@ export type DownloadUrlOptions = {
 interface SystemApi {
   readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
+  readonly getFilePath: (item: File) => string
 }
 
 // ========================
@@ -126,9 +128,10 @@ interface FileBrowserApi {
 // ==============================
 
 /** Metadata for a newly imported project. */
-interface ProjectInfo {
+export interface ProjectInfo {
   readonly id: string
   readonly name: string
+  readonly projectRoot: string
   readonly parentDirectory: string
 }
 
@@ -170,7 +173,6 @@ declare global {
     readonly projectManagementApi?: ProjectManagementApi
     readonly versionInfo?: VersionInfo
     readonly mapBoxApiToken: () => string
-    toggleDevtools: () => void
   }
 
   namespace NodeJS {
@@ -210,7 +212,6 @@ declare global {
       readonly ENSO_TEST_PROJECTS_DIR?: string
       readonly ENSO_TEST_APP_ARGS?: string
       readonly ENSO_TEST_USER?: string
-      readonly ENSO_TEST_USER_PASSWORD?: string
       ENSO_TEST_EXEC_PATH?: string
 
       // === Electron watch script variables ===

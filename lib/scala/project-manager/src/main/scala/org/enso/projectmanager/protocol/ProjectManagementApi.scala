@@ -7,6 +7,7 @@ import org.enso.semver.SemVer
 import org.enso.editions.EnsoVersion
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.projectmanager.data.{
+  CloudParams,
   EngineVersion,
   MissingComponentActions,
   ProjectMetadata,
@@ -112,7 +113,7 @@ object ProjectManagementApi {
       missingComponentAction: Option[
         MissingComponentActions.MissingComponentAction
       ],
-      cloudProjectDirectoryPath: Option[String]
+      cloud: Option[CloudParams]
     )
 
     case class Result(

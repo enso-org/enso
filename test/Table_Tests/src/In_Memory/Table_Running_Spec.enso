@@ -2,7 +2,6 @@ from Standard.Base import all
 from Standard.Table import Column, Table, Bits, Value_Type
 from Standard.Test import all
 from Standard.Table.Errors import all
-import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from project.Util import all

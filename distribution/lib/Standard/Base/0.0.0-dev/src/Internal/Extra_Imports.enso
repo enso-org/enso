@@ -1,7 +1,7 @@
 private
 
-## This file contains additional imports necessary for building native image version of Enso with Standard libraries
-   included in
+## This file contains additional imports necessary for building native image
+   version of Enso with Standard libraries included.
 
 polyglot java import org.enso.base.text.CaseFoldedString as JCaseFoldedString
 polyglot java import org.enso.base.text.CaseFoldedString.Grapheme

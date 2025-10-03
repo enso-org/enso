@@ -9,7 +9,7 @@ import * as util from 'node:util'
 import * as contentConfig from '@/contentConfig'
 
 import type * as config from '@/config'
-import { getProjectRoot } from './projectManagement'
+import { getProjectRoot } from 'project-manager-shim'
 
 const logger = contentConfig.logger
 const execFile = util.promisify(childProcess.execFile)

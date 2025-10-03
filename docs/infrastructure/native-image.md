@@ -117,7 +117,7 @@ Note that for convenience, you can run the launcher/engine runtime via
 `bin/enso`, e.g.
 
 ```bash
-env JAVA_OPTS="-agentlib:native-image-agent=config-merge-dir=./engine/runner/src/main/resources/META-INF/native-image/org/enso/runner" ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run tmp.enso
+env JAVA_TOOL_OPTIONS="-agentlib:native-image-agent=config-merge-dir=./engine/runner/src/main/resources/META-INF/native-image/org/enso/runner" ./built-distribution/enso-engine-0.0.0-dev-linux-amd64/enso-0.0.0-dev/bin/enso --run tmp.enso
 ```
 
 The command may need to be re-run with different arguments to ensure that all
@@ -224,6 +224,9 @@ following:
     image debugger_
   - using `native,-ls` disables support for _language server_ in the generated
     binary
+  - using `native,-ms` **opts-out** for `Standard.Microsoft` library being
+    compiled in the `enso` binary effectively executing it in
+    [dual JVM mode](https://github.com/enso-org/enso/pull/14037)
   - it is possible to combine all features - e.g. use `debug,fast,test,native`
 
 To test _native image_ launcher choose one of the `native` configurations and
@@ -293,10 +296,11 @@ $ ENSO_JAVA=espresso ./built-distribution/enso-engine-*/enso-*/bin/enso --run he
 Unless you see a warning containing _"No language for id java found."_ your code
 has just successfully been executed by
 [Espresso](https://www.graalvm.org/jdk17/reference-manual/java-on-truffle/)! To
-debug just add `JAVA_OPTS` environment variable set to your IDE favorite value:
+debug just add `JAVA_TOOL_OPTIONS` environment variable set to your IDE favorite
+value:
 
 ```bash
-$ JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005 ENSO_JAVA=espresso enso --run hello.enso
+$ JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,address=5005 ENSO_JAVA=espresso enso --run hello.enso
 ```
 
 Espresso support works also with
@@ -330,7 +334,10 @@ once can generate a
 that allows to inspect classes, fields, methods, and other contents of the
 generated binary.
 
-### Helpful cmdline options
+### Helpful cmdline build options
+
+This subsection talks about some command line options that may be useful when
+building the native image via the `native-image` tool.
 
 - Since
   [GraalVM JDK 24](https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-24.0.0),
@@ -339,3 +346,29 @@ generated binary.
   `env NATIVE_IMAGE_OPTIONS=--verbose sbt engine-runner/buildNativeImage`.
 - `--diagnostics` - generates a report with information about the generated
   image - classes initialized at runtime and buildtime, cmdline options, etc.
+
+### Runtime VM options
+
+When NI is build, there will be a special cmdline option handling procedure
+executed before the `main` method, which ensures that, e.g., `-XX:...` options
+are correctly passed to the Substrate VM. To see available options, run:
+
+```
+$ ./built-distribution/enso-engine-*/enso-*/bin/enso -XX:PrintFlags=[User|Debug|Expert]
+```
+
+Note that this is a **different behavior** than when running on a regular
+HotSpot VM, where `-XX:...` options need to be passed via `JAVA_TOOL_OPTIONS`
+env var. In other words, in the aforementioned example, if `enso` is not a
+binary produced by native image, that command will fail with
+`Unrecognized option: -XX:PrintFlags=User`.
+
+Also note that the output of the aforementioned command will be different based
+on how the native image was built. For example, if it was built with
+`--enable-monitoring=heapdump`, the `Debug` section will contain help for
+`HeapDumpOnOutOfMemoryError` flag.
+
+In context of [Dual JVM mode](dual_jvm.md):
+
+- `JAVA_TOOL_OPTIONS` env var is only handled by HotSpot VM.
+  - Substrate VM ignores this env var.

@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
-from Standard.Table import Value_Type, Auto, Bits
+from Standard.Table import Value_Type, Bits
 from Standard.Table.Errors import Invalid_Value_Type
 
 from Standard.Database.Errors import Unsupported_Database_Operation

@@ -33,3 +33,27 @@ component-groups:
     - Logical: { color: oklch(0.464 0.14 300) }
     - Operators: { color: oklch(0.464 0.14 275) }
     - Errors: { color: oklch(0.464 0.14 15) }
+
+services:
+  - provides: Standard.Base.System.File.File_System_SPI
+    with: Standard.Base.Enso_Cloud.Enso_File_System_Impl.Enso_File_System_Impl
+
+  # File_Format_SPI definitions
+
+  - provides: Standard.Base.System.File_Format.File_Format_SPI
+    with: Standard.Base.System.Internal.File_Builtins.Default_File_Formats
+  - provides: Standard.Base.System.File_Format.File_Format_SPI
+    with: Standard.Base.Data.XML.XML_Format.XML_Format
+
+  # Data_Link_SPI definitions
+
+  - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+    with: Standard.Base.Enso_Cloud.Internal.Utils.Services_Impl
+
+  - provides: Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+    with: Standard.Base.Network.HTTP.Internal.Services.Impl
+
+  # Return_As.SPI definitions
+
+  - provides: Standard.Base.Data.Read.Return_As.SPI
+    with: Standard.Base.Internal.Data_Read_Helpers.Data_List_Default_Impl

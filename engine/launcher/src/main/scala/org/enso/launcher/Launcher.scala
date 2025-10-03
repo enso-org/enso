@@ -74,7 +74,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     versionOverride: Option[SemVer],
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
-    jvmMode: Boolean,
+    jvm: Option[Option[Path]],
     additionalArguments: Seq[String]
   ): Int = {
     val actualPath = path.getOrElse(Launcher.workingDirectory.resolve(name))
@@ -89,7 +89,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             path                = actualPath,
             name                = name,
             engineVersion       = version,
-            jvmMode             = jvmMode,
+            jvm                 = jvm,
             normalizedName      = normalizedName,
             projectTemplate     = projectTemplate,
             authorName          = globalConfig.authorName,
@@ -212,7 +212,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
-    jvmMode: Boolean,
+    jvm: Option[Option[Path]],
     additionalArguments: Seq[String]
   ): Int = {
     runner
@@ -223,7 +223,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             versionOverride,
             logLevel,
             cliOptions.internalOptions.logMasking,
-            jvmMode,
+            jvm,
             additionalArguments
           )
           .get,
@@ -257,7 +257,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     logLevel: Level,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
-    jvmMode: Boolean,
+    jvm: Option[Option[Path]],
     additionalArguments: Seq[String]
   ): Int = {
     val exitCode = runner
@@ -268,7 +268,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             versionOverride,
             logLevel,
             cliOptions.internalOptions.logMasking,
-            jvmMode,
+            jvm,
             additionalArguments
           )
           .get,

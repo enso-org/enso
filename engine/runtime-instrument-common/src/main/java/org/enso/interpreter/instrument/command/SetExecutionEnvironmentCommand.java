@@ -42,7 +42,7 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
   private void setExecutionEnvironment(
       Runtime$Api$ExecutionEnvironment executionEnvironment, UUID contextId, RuntimeContext ctx) {
     ctx.locking()
-        .withContextLock(
+        .withWriteContextLock(
             ctx.locking().getOrCreateContextLock(contextId),
             this.getClass(),
             () -> {
@@ -75,7 +75,10 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                                                 return null;
                                               }));
                           CacheInvalidation.invalidateAll(stack);
-                          ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
+                          ctx.jobProcessor()
+                              .run(
+                                  ExecuteJob.apply(
+                                      contextId, stack.toList(), "set execution env cmd"));
                           reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
                           return null;
                         });

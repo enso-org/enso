@@ -36,7 +36,7 @@ export interface UseToastOptions extends ToastOptions {
 export function useToast(options: UseToastOptions = {}) {
   const id = makeToastId()
   if (options?.outliveScope !== true) {
-    onScopeDispose(() => toast.dismiss(id))
+    onScopeDispose(() => toast.dismiss(id), true)
   }
 
   return {

@@ -49,7 +49,6 @@
     - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_output_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - list_assets parent:Standard.Base.Enso_Cloud.Enso_File.Enso_File -> (Standard.Base.Data.Vector.Vector Standard.Base.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset)
-- Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type.from that:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
 - Standard.Base.System.File_Format_Metadata.File_Format_Metadata.from that:Standard.Base.Enso_Cloud.Enso_File.Enso_File -> Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 - Standard.Base.System.File.Generic.File_Like.File_Like.from that:Standard.Base.Enso_Cloud.Enso_File.Enso_File -> Standard.Base.System.File.Generic.File_Like.File_Like
 - Standard.Base.System.File.Generic.Writable_File.Writable_File.from that:Standard.Base.Enso_Cloud.Enso_File.Enso_File -> Standard.Base.System.File.Generic.Writable_File.Writable_File

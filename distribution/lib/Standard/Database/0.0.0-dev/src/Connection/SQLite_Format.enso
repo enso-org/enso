@@ -12,21 +12,28 @@ import project.Connection.SQLite.SQLite
 
 ## Read the file to a `SQLite_Connection` from a `.db` or `.sqlite` file
 type SQLite_Format
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Read SQLite files (kept for backwards compatibility)
     For_File
 
     ## Read SQLite files
     SQLite
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> SQLite_Format | Nothing
     resolve constructor =
         Panic.catch Type_Error (constructor:SQLite_Format) _->Nothing
 
-    ## PRIVATE
-       If the File_Format supports reading from the file, return a configured instance.
+    ## ---
+       private: true
+       ---
+       If the File_Format supports reading from the file, return a configured
+       instance.
     for_read : File_Format_Metadata -> SQLite_Format | Nothing
     for_read file:File_Format_Metadata =
         expected_header = magic_header_string
@@ -41,8 +48,11 @@ type SQLite_Format
                     ".sqlite" -> SQLite_Format.SQLite
                     _ -> Nothing
 
-    ## PRIVATE
-       If the File_Format supports writing to the file, return a configured instance.
+    ## ---
+       private: true
+       ---
+       If the File_Format supports writing to the file, return a configured
+       instance.
     for_file_write : Writable_File -> SQLite_Format | Nothing
     for_file_write file:Writable_File =
         case (file:File_Format_Metadata).extension of
@@ -50,28 +60,38 @@ type SQLite_Format
             ".sqlite" -> SQLite_Format.SQLite
             _ -> Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_dropdown_options : Vector Option
     get_dropdown_options = [Option "SQLite" "..SQLite"]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_name_patterns -> Vector File_Name_Pattern =
         [File_Name_Pattern.Value "SQLite Database" ["*.sqlite", "*.db"]]
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
         _ = [on_problems]
         Database.connect (SQLite.From_File file)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream metadata =
         _ = [stream, metadata]
         Error.throw (Illegal_Argument.Error "Cannot connect to a SQLite database backed by a stream. Save it to a local file first.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Based on the File Format definition at: https://www.sqlite.org/fileformat.html
 private magic_header_string =
     "SQLite format 3".utf_8 + [0]

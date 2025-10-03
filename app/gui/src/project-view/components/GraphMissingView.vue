@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { useProjectStore } from '$/components/WithCurrentProject.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useProjectStore } from '@/stores/project'
 import StandaloneButton from './StandaloneButton.vue'
 
 const project = useProjectStore()

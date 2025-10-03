@@ -1,5 +1,5 @@
 /** @file Test the drive view. */
-import { expect, test, type Locator } from '@playwright/test'
+import { expect, test, type Locator } from 'playwright/test'
 
 import { TEXT, mockAllAndLogin } from './actions'
 
@@ -14,7 +14,6 @@ test('drive view', ({ page }) =>
     .withDriveView(async (view) => {
       await expect(view).toBeVisible()
     })
-    .driveTable.expectPlaceholderRow()
     .newEmptyProject()
     .waitForEditorToLoad()
     .goToPage.drive()
@@ -36,7 +35,7 @@ test('drive view', ({ page }) =>
     .driveTable.withRows(async (rows) => {
       await locateStopProjectButton(rows.nth(0)).click()
     })
-    .driveTable.rightClickRow(0)
+    .driveTable.rightClickRow(1)
     .contextMenu.moveToTrash()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)

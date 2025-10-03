@@ -1,5 +1,6 @@
 /** @file A dialog that prompts the user to upgrade to a paid plan. */
-import { Dialog, Text, type DialogProps } from '#/components/AriaComponents'
+import { Dialog, type DialogProps } from '#/components/Dialog'
+import { Text } from '#/components/Text'
 import { usePaywallFeatures, type PaywallFeatureName } from '#/hooks/billing'
 import { useText } from '$/providers/react'
 import { PaywallBulletPoints, PaywallLock } from './components'

@@ -1,12 +1,12 @@
 import * as geoMapVisualization from '@/components/visualizations/GeoMapVisualization.vue'
 import * as imageBase64Visualization from '@/components/visualizations/ImageBase64Visualization.vue'
-import * as jsonVisualization from '@/components/visualizations/JSONVisualization.vue'
+import * as jsonVisualization from '@/components/visualizations/JSONVisualization'
 import * as scatterplotVisualization from '@/components/visualizations/ScatterplotVisualization.vue'
 import * as sqlVisualization from '@/components/visualizations/SQLVisualization.vue'
 import * as tableVisualization from '@/components/visualizations/TableVisualization.vue'
 import * as warningsVisualization from '@/components/visualizations/WarningsVisualization.vue'
 import { createContextStore } from '@/providers'
-import { type ProjectStore } from '@/stores/project'
+import type { ProjectStore } from '@/stores/project'
 import {
   compile,
   currentProjectProtocol,
@@ -23,11 +23,14 @@ import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import { assert } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
 import { isUrlString } from '@/util/data/urlString'
+import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { isIconName } from '@/util/iconMetadata/iconName'
+import { ProjectPath } from '@/util/projectPath'
 import { computed, reactive } from 'vue'
 import { ErrorCode, LsRpcError, RemoteRpcError } from 'ydoc-shared/languageServer'
 import type { Event as LSEvent, VisualizationConfiguration } from 'ydoc-shared/languageServerTypes'
 import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
+import { TypeInfo } from '../project/computedValueRegistry'
 
 /** The directory in the project under which custom visualizations can be found. */
 const customVisualizationsDirectory = 'visualizations'
@@ -248,15 +251,26 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
       }
     })
 
-    function* types(type: Opt<string>) {
+    function* byType(
+      typeInfo: Opt<TypeInfo>,
+      typeName: Opt<ProjectPath>,
+    ): IterableIterator<VisualizationIdentifier> {
       const types =
-        type == null ?
+        typeInfo == null ?
+          typeName == null ?
+            []
+          : [typeName]
+        : [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
+      const vizzes =
+        types.length === 0 ?
           metadata.keys()
         : new Set([
-            ...(metadata.visualizationIdToType.reverseLookup(type) ?? []),
-            ...(metadata.visualizationIdToType.reverseLookup('Any') ?? []),
+            ...types.flatMap((type) => [
+              ...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? []),
+            ]),
+            ...(metadata.visualizationIdToType.reverseLookup(ANY_TYPE_QN) ?? []),
           ])
-      for (const type of types) yield fromVisualizationId(type)
+      for (const viz of vizzes) yield fromVisualizationId(viz)
     }
 
     function icon(type: VisualizationIdentifier) {
@@ -296,6 +310,6 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
       return module
     }
 
-    return { types, get, icon }
+    return { byType, get, icon }
   },
 )

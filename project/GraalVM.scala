@@ -27,12 +27,13 @@ object GraalVM {
     }
 
     private lazy val parsed
-      : (Boolean, Boolean, Boolean, Boolean, Boolean, Boolean) = {
+      : (Boolean, Boolean, Boolean, Boolean, Boolean, Boolean, Boolean) = {
       var shell                 = false
       var native                = false
       var test                  = false
       var debug                 = false
       var fast                  = false
+      var disableMicrosoft      = false
       var disableLanguageServer = false
       toString().split(",").foreach {
         case "shell"  => shell  = true
@@ -53,6 +54,10 @@ object GraalVM {
           native                = true
           disableLanguageServer = true
         }
+        case "-ms" => {
+          native           = true
+          disableMicrosoft = true
+        }
         case v =>
           throw new IllegalStateException(s"Unexpected value of $VAR_NAME: $v")
       }
@@ -61,15 +66,29 @@ object GraalVM {
           s"Cannot specify `shell` and other properties in $VAR_NAME env variable"
         )
       }
-      (shell, native, test, debug, fast, disableLanguageServer)
+      if (fast && disableMicrosoft) {
+        throw new IllegalStateException(
+          s"Cannot specify `fast` and `-ms` in $VAR_NAME env variable at the same time"
+        )
+      }
+      (
+        shell,
+        native,
+        test,
+        debug,
+        fast,
+        disableLanguageServer,
+        disableMicrosoft
+      )
     }
-    def shell                 = parsed._1
     def native                = parsed._2
     def test                  = parsed._3
     def debug                 = parsed._4
     def fast                  = parsed._5
     def disableLanguageServer = parsed._6
-    def release               = native && !test && !debug && !fast && !disableLanguageServer
+    def disableMicrosoft      = parsed._7
+    def release =
+      native && !test && !debug && !fast && !disableLanguageServer && !disableMicrosoft
   }
 
   case class NativeImageSize(
@@ -99,19 +118,18 @@ object GraalVM {
     // Expected production NI sizes deduced from sizes on latest
     // nightly builds: https://github.com/enso-org/enso/pull/12843#issuecomment-2869897463
     // With maximal size relaxed by 30 MB.
-    private val windowsX64Release = NativeImageSize(200, 440)
-    private val linuxX64Release   = NativeImageSize(200, 465)
-    private val macX64Release     = NativeImageSize(200, 426)
-    private val macARM64Release   = NativeImageSize(200, 423)
-    private val testNISize        = NativeImageSize(100, 562)
+    private val windowsX64Release = NativeImageSize(200, 470)
+    private val linuxX64Release   = NativeImageSize(200, 490)
+    private val macX64Release     = NativeImageSize(200, 457)
+    private val macARM64Release   = NativeImageSize(200, 473)
+    private val testNISize        = NativeImageSize(100, 592)
   }
 
   /** Has the user requested to use Espresso for Java interop? */
   private def isEspressoMode(): Boolean =
     "espresso".equals(System.getenv("ENSO_JAVA"))
 
-  // Keep in sync with graalMavenPackagesVersion in build.sbt
-  private val version: String = "24.2.0"
+  private val version: String = Dependencies.graalMavenPackagesVersion
 
   final def mavenPackagesVersion: String = version
 

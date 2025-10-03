@@ -1,33 +1,21 @@
 /** @file Display and modify the properties of an asset. */
-import * as React from 'react'
-
-import PenIcon from '#/assets/pen.svg'
 import { Heading } from '#/components/aria'
-import {
-  Button,
-  ButtonGroup,
-  CopyButton,
-  Form,
-  ResizableContentEditableInput,
-  Text,
-} from '#/components/AriaComponents'
-import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
-import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
-import Label from '#/components/dashboard/Label'
+import { Button, CopyButton } from '#/components/Button'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
+import { Form } from '#/components/Form'
 import { Result } from '#/components/Result'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
+import { Text } from '#/components/Text'
 import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import {
-  assetPanelStore,
-  useAssetPanelCurrentItem,
-  useSetAssetPanelProps,
-} from '#/layouts/AssetPanel/'
+import type { Category } from '#/layouts/Drive/Categories'
 import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
+import { SharedWithColumn } from '#/pages/dashboard/components/column'
+import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
+import Label from '#/pages/dashboard/components/Label'
+import type Backend from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -40,11 +28,16 @@ import {
 } from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
-import { useStore } from '#/utilities/zustand'
-import { useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
+import {
+  useRightPanelContextCategory,
+  useRightPanelFocusedAsset,
+} from '$/providers/react/container'
+import { useFeatureFlags } from '$/providers/react/featureFlags'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import type { AssetPanelProps } from './types'
+import * as React from 'react'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -53,79 +46,58 @@ const ASSET_PROPERTIES_VARIANTS = tv({
   },
 })
 
-/** Possible elements in this screen to spotlight on. */
-export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
-
-/** Props for an {@link AssetPropertiesProps}. */
-export interface AssetPropertiesProps extends AssetPanelProps {
-  readonly isReadonly?: boolean
-}
-
 /** Display and modify the properties of an asset. */
-export function AssetProperties(props: AssetPropertiesProps) {
-  const { isReadonly = false, backend, category } = props
-
-  const item = useAssetPanelCurrentItem()
-
+export function AssetProperties() {
+  const { remoteBackend } = useBackends()
+  const focusedAsset = useRightPanelFocusedAsset()
+  const category = useRightPanelContextCategory()
   const { getText } = useText()
 
-  if (backend.type === BackendType.local) {
+  if (category?.backend !== BackendType.remote) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (item == null) {
+  if (focusedAsset == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
-    <AssetPropertiesInternal
-      key={item.id}
-      backend={backend}
-      item={item}
-      isReadonly={isReadonly}
-      category={category}
-    />
+    <ErrorBoundary>
+      <AssetPropertiesInternal
+        key={focusedAsset.id}
+        backend={remoteBackend}
+        item={focusedAsset}
+        category={category}
+      />
+    </ErrorBoundary>
   )
 }
 
 /** Props for an {@link AssetPropertiesInternal}. */
-export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
+export interface AssetPropertiesInternalProps {
+  readonly backend: Backend
+  readonly category: Category
   readonly item: AnyAsset
 }
 
 /** Display and modify the properties of an asset. */
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
-  const { backend, item, category, isReadonly = false } = props
+  const { backend, item, category } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
-
-  const spotlightOn = useStore(assetPanelStore, (state) => state.assetPanelProps.spotlightOn, {
-    unsafeEnableTransition: true,
-  })
-
-  const setAssetPanelProps = useSetAssetPanelProps()
+  const rightPanel = useRightPanelData()
+  const spotlightOn = useVueValue(
+    React.useCallback(() => rightPanel.context?.spotlightOn, [rightPanel]),
+  )
 
   const closeSpotlight = useEventCallback(() => {
-    const assetPanelProps = assetPanelStore.getState().assetPanelProps
-    setAssetPanelProps({ ...assetPanelProps, spotlightOn: null })
+    rightPanel.updateContext('drive', (ctx) => {
+      ctx.spotlightOn = undefined
+      return ctx
+    })
   })
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
-  const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
-  const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
-  const setIsEditingDescription = useEventCallback(
-    (valueOrUpdater: React.SetStateAction<boolean>) => {
-      setIsEditingDescriptionRaw((currentValue) => {
-        if (typeof valueOrUpdater === 'function') {
-          valueOrUpdater = valueOrUpdater(currentValue)
-        }
-        if (!valueOrUpdater) {
-          closeSpotlight()
-        }
-        return valueOrUpdater
-      })
-    },
-  )
   const featureFlags = useFeatureFlags()
   const datalinkQuery = useQuery(
     backendQueryOptions(
@@ -141,10 +113,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
       },
     ),
   )
-  const descriptionSpotlight = useSpotlight({
-    enabled: spotlightOn === 'description',
-    close: closeSpotlight,
-  })
   const secretSpotlight = useSpotlight({
     enabled: spotlightOn === 'secret',
     close: closeSpotlight,
@@ -165,85 +133,15 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isCredential = isAssetCredential(item)
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
-  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   // Provide an extra `mutationKey` so that it has its own loading state.
-  const editDescriptionMutation = useMutation(
-    backendMutationOptions(backend, 'updateAsset', { mutationKey: ['editDescription'] }),
-  )
+  const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
-  const displayedDescription =
-    editDescriptionMutation.variables?.[0] === item.id ?
-      (editDescriptionMutation.variables[1].description ?? item.description)
-    : item.description
   const ownerPermission = permissions.tryGetOwnerPermission(item)
-
-  const editDescriptionForm = Form.useForm({
-    schema: (z) => z.object({ description: z.string() }),
-    defaultValues: { description: item.description ?? '' },
-    onSubmit: async ({ description }) => {
-      if (description !== item.description) {
-        await editDescriptionMutation.mutateAsync([
-          item.id,
-          { parentDirectoryId: null, description, title: null },
-          item.title,
-        ])
-      }
-      setIsEditingDescription(false)
-    },
-  })
-  const resetEditDescriptionForm = editDescriptionForm.reset
-
-  React.useEffect(() => {
-    setIsEditingDescription(false)
-  }, [item.id, setIsEditingDescription])
-
-  React.useEffect(() => {
-    resetEditDescriptionForm({ description: item.description ?? '' })
-  }, [item.description, resetEditDescriptionForm])
 
   return (
     <div className="flex w-full flex-col gap-8">
-      {descriptionSpotlight.spotlightElement}
       {secretSpotlight.spotlightElement}
       {datalinkSpotlight.spotlightElement}
-      <div className={styles.section()} {...descriptionSpotlight.props}>
-        <Heading
-          level={2}
-          className="flex h-side-panel-heading items-center gap-side-panel-section py-side-panel-heading-y text-lg leading-snug"
-        >
-          {getText('description')}
-          {!isReadonly && ownsThisAsset && !isEditingDescription && (
-            <Button
-              size="medium"
-              variant="icon"
-              icon={PenIcon}
-              loading={editDescriptionMutation.isPending}
-              onPress={() => {
-                setIsEditingDescription(true)
-              }}
-            />
-          )}
-        </Heading>
-        <div
-          data-testid="asset-panel-description"
-          className="self-stretch py-side-panel-description-y"
-        >
-          {!isEditingDescription ?
-            <Text>{displayedDescription}</Text>
-          : <Form form={editDescriptionForm} className="flex flex-col gap-modal pr-4">
-              <ResizableContentEditableInput
-                autoFocus
-                form={editDescriptionForm}
-                name="description"
-                mode="onBlur"
-              />
-              <ButtonGroup>
-                <Form.Submit>{getText('update')}</Form.Submit>
-              </ButtonGroup>
-            </Form>
-          }
-        </div>
-      </div>
 
       {isCloud && (
         <div className={styles.section()}>
@@ -255,7 +153,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           </Heading>
           <table>
             <tbody>
-              {item.ensoPath != null && item.ensoPathValue && (
+              {item.ensoPath != null && (
                 <tr data-testid="asset-panel-path" className="h-row">
                   <td className="my-auto min-w-side-panel-label p-0">
                     <Text>{getText('path')}</Text>
@@ -265,7 +163,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                       <Text className="w-0 grow" truncate="1">
                         {item.ensoPath}
                       </Text>
-                      <CopyButton copyText={item.ensoPathValue} />
+                      <CopyButton copyText={encodeURI(item.ensoPath)} />
                     </div>
                   </td>
                 </tr>
@@ -345,11 +243,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                     <Text className="inline-block">{getText('sharedWith')}</Text>
                   </td>
                   <td className="flex w-full gap-1 p-0">
-                    <SharedWithColumn
-                      isReadonly={isReadonly}
-                      item={item}
-                      state={{ backend, category, setQuery: () => {} }}
-                    />
+                    <SharedWithColumn item={item} state={{ category }} />
                   </td>
                 </tr>
               )}
@@ -485,12 +379,11 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   />
 
                   {canEditThisAsset && form.formState.isDirty && (
-                    <ButtonGroup>
+                    <Button.Group>
                       <Form.Submit>{getText('update')}</Form.Submit>
                       <Form.Reset />
-                    </ButtonGroup>
+                    </Button.Group>
                   )}
-
                   <Form.FormError />
                 </>
               )}

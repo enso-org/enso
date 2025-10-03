@@ -1,8 +1,12 @@
 import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { GraphDb } from '@/stores/graph/graphDatabase'
-import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
+import {
+  ComputedValueRegistry,
+  TypeInfo,
+  type ExpressionInfo,
+} from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
   makeArgument,
   makeConstructor,
@@ -12,7 +16,7 @@ import {
   makeType,
 } from '@/stores/suggestionDatabase/mockSuggestion'
 import { Ast } from '@/util/ast'
-import { type AstId } from '@/util/ast/abstract'
+import type { AstId } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   ArgumentAst,
@@ -20,7 +24,7 @@ import {
   getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
-import { type MethodCall } from '@/util/methodPointer'
+import type { MethodCall } from '@/util/methodPointer'
 import { parseAbsoluteProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type Identifier } from '@/util/qualifiedName'
 import { fail } from 'assert'
@@ -216,12 +220,10 @@ test.each<TestCase>([
     const subApplication = nthSubapplication(ast, subapplicationIndex)
     assert(subApplication)
     setExpressionInfo(subApplication.id, {
-      typename: undefined,
-      rawTypename: undefined,
+      typeInfo: TypeInfo.fromParsedTypes([], [])!,
       methodCall: { ...expectedMethodCall, notAppliedArguments },
       payload: { type: 'Pending' },
       profilingInfo: [],
-      hiddenTypes: [],
       evaluationId: 0,
     })
 
@@ -358,12 +360,10 @@ test.each<ArgsTestCase>([
     assert(subApplication)
     db.updateExternalIds(ast)
     setExpressionInfo(subApplication.id, {
-      typename: undefined,
-      rawTypename: undefined,
+      typeInfo: TypeInfo.fromParsedTypes([], [])!,
       methodCall: { ...expectedMethodCall, notAppliedArguments },
       payload: { type: 'Pending' } as ExpressionUpdatePayload,
       profilingInfo: [],
-      hiddenTypes: [],
       evaluationId: 0,
     })
 

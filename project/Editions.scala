@@ -19,10 +19,12 @@ object Editions {
     "Standard.Examples",
     "Standard.Searcher",
     "Standard.Generic_JDBC",
+    "Standard.Google",
     "Standard.Google_Api",
     "Standard.Snowflake",
     "Standard.Microsoft",
-    "Standard.Tableau"
+    "Standard.Tableau",
+    "Standard.Saas"
   )
 
   case class ContribLibrary(name: String, version: String)

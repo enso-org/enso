@@ -150,12 +150,3 @@ export function useModalRef() {
   const { modalRef } = React.useContext(ModalStaticContext)
   return { modalRef } as const
 }
-
-/**
- * A React context hook exposing functions to set and unset the currently active modal.
- * @deprecated Use directly imported `setModal`, and `unsetModal` functions instead.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSetModal() {
-  return { setModal, unsetModal } as const
-}

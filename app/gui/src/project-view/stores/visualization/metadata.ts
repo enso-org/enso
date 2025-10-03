@@ -1,12 +1,22 @@
 import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
 import type { Opt } from '@/util/data/opt'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
+import { ANY_TYPE, ANY_TYPE_QN } from '@/util/ensoTypes'
+import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 export type VisualizationMetadata = Pick<VisualizationModule, 'name' | 'inputType' | 'icon'>
 
-function getTypesFromUnion(inputType: Opt<string>) {
-  return inputType?.split('|').map((type) => type.trim()) ?? ['Any']
+function getTypesFromUnion(inputType: Opt<string>): string[] {
+  const types = inputType?.split('|').map((type) => {
+    const parsed = parseAbsoluteProjectPathRaw(type.trim())
+    if (!parsed.ok) {
+      console.error(`Invalid type in visualization metadata: ${type}`)
+      return ANY_TYPE
+    }
+    return parsed.value
+  })
+  return types?.map((type) => type.key()) ?? [ANY_TYPE_QN]
 }
 
 declare const visualizationIdBrand: unique symbol

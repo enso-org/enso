@@ -3,7 +3,8 @@ import * as actions from './actions'
 import { expect } from './customExpect'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
-import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
+import { connectedEdgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
+import { addMockClipboardInitScript } from './mockClipboard'
 
 /**
  * Every edge consists of multiple parts.
@@ -11,22 +12,7 @@ import { edgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
  */
 const EDGE_PARTS = 2
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    class MockClipboard {
-      private contents: ClipboardItem[] = []
-      async read(): Promise<ClipboardItem[]> {
-        return [...this.contents]
-      }
-      async write(contents: ClipboardItem[]) {
-        this.contents = [...contents]
-      }
-    }
-    Object.assign(window.navigator, {
-      mockClipboard: new MockClipboard(),
-    })
-  })
-})
+test.beforeEach(({ page }) => addMockClipboardInitScript(page))
 
 test('Copy component with context menu', async ({ page }) => {
   await actions.goToGraph(page)
@@ -93,8 +79,8 @@ async function testCopyMultiple(
   // Check that two copied nodes are isolated, i.e. connected to each other, not original nodes.
   await expect(locate.graphNodeByBinding(page, 'prod1')).toBeVisible()
   await expect(locate.graphNodeByBinding(page, 'final1')).toBeVisible()
-  await expect(await edgesFromNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
-  await expect(await edgesFromNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
+  await expect(await connectedEdgesFromNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
 
   await expect(await edgesToNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
   await expect(await edgesToNodeWithBinding(page, 'final')).toHaveCount(1 * EDGE_PARTS)

@@ -16,6 +16,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -51,7 +52,7 @@ public abstract class PrintErrNode extends Node {
       VirtualFrame frame,
       Object message,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings,
-      @Cached("buildSymbol()") UnresolvedSymbol symbol,
+      @Cached("buildToTextSymbol($node)") UnresolvedSymbol symbol,
       @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
       @Cached ExpectStringNode expectStringNode) {
     var ctx = EnsoContext.get(this);
@@ -79,7 +80,9 @@ public abstract class PrintErrNode extends Node {
   }
 
   @NeverDefault
-  UnresolvedSymbol buildSymbol() {
-    return UnresolvedSymbol.build("to_text", EnsoContext.get(this).getBuiltins().getScope());
+  static UnresolvedSymbol buildToTextSymbol(Node where) {
+    var mod = Builtins.get(where).getModule();
+    var scope = mod.getScope();
+    return UnresolvedSymbol.build("to_text", scope);
   }
 }

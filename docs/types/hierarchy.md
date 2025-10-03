@@ -8,7 +8,7 @@ order: 2
 
 # The Enso Type Hierarchy
 
-Enso is a dynamic language, yet _every object_ in the running system _has a
+Enso is a dynamic language, yet _every value_ in the running system _has a
 type_. Type defines the set of operations that can be performed on a value. The
 most generic type is `Any`. If a value has no better (more specific) type, it
 has the type `Any`. All operations defined on type `Any` can be performed on any
@@ -34,9 +34,10 @@ value in the system.
 > - This lattice is ordered using the `<:` subsumption judgement. For more
 >   information please see [typeset subsumption](#typeset-subsumption).
 
-A value in Enso can have multiple different types attributed to it. It is
-possible to query/inspect these types during runtime and thus decide what
-operations are available for a particular value at hand.
+A value in Enso can have multiple different types attributed to it thanks to so
+called [intersection types](./intersection-types.md). It is possible to
+query/inspect these types during runtime and thus decide what operations are
+available for a particular value at hand.
 
 > [!WARNING] > _Probably not true in current system at all_
 >

@@ -1,6 +1,6 @@
 from Standard.Base.Nothing import Nothing
 
-type Unresolved_Symbol
+type Unresolved
     Value value
 
     name self = get_unresolved_symbol_name self.value
@@ -21,7 +21,7 @@ meta value =
         #1 -> Constructor.Value ac
         #2 -> Atom.Value value
         #3 -> Polyglot.Value value
-        4 -> Unresolved_Symbol.Value value
+        4 -> Unresolved.Value value
         #5 -> Error.Value value.catch
         #6 -> Type.Value value
         _ -> Primitive.Value value

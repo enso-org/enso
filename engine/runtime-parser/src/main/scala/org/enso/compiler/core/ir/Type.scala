@@ -137,7 +137,7 @@ object Type {
   sealed case class Ascription(
     typed: Expression,
     signature: Expression,
-    comment: Option[String],
+    reason: AscriptionReason,
     override val identifiedLocation: IdentifiedLocation,
     override val passData: MetadataStorage = new MetadataStorage()
   ) extends Type
@@ -150,7 +150,7 @@ object Type {
       *
       * @param typed       the expression being ascribed a type
       * @param signature   the signature being ascribed to `typed`
-      * @param comment     a comment that may be used to add context to the type error
+      * @param reason      a reason that may be used to add context to the type error
       * @param location    the source location that the node corresponds to
       * @param passData    the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
@@ -160,7 +160,7 @@ object Type {
     def copy(
       typed: Expression                    = typed,
       signature: Expression                = signature,
-      comment: Option[String]              = comment,
+      reason: AscriptionReason             = reason,
       location: Option[IdentifiedLocation] = location,
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
@@ -169,14 +169,14 @@ object Type {
       if (
         typed != this.typed
         || signature != this.signature
-        || comment != this.comment
+        || reason != this.reason
         || location != this.location
         || (passData ne this.passData)
         || diagnostics != this.diagnostics
         || id != this.id
       ) {
         val res =
-          Ascription(typed, signature, comment, location.orNull, passData)
+          Ascription(typed, signature, reason, location.orNull, passData)
         res.diagnostics = diagnostics
         res.id          = id
         res
@@ -227,7 +227,7 @@ object Type {
       s"""Type.Ascription(
          |typed = $typed,
          |signature = $signature,
-         |comment = $comment,
+         |comment = ${reason.comment},
          |location = $location,
          |passData = ${this.showPassData},
          |diagnostics = $diagnostics,

@@ -8,12 +8,12 @@ public interface BuilderForDouble extends BuilderForType<Double> {
    *
    * @param value the long to append
    */
-  void appendLong(long value);
+  BuilderForDouble appendLong(long value);
 
   /**
    * Append a new double to this builder.
    *
    * @param value the double to append
    */
-  void appendDouble(double value);
+  BuilderForDouble appendDouble(double value);
 }

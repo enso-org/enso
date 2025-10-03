@@ -76,9 +76,8 @@ public final class ContextUtils implements TestRule, AutoCloseable {
   }
 
   /**
-   * The created builder starts with the <emph>default</emph> context. The default context is
-   * roughly equivalent to the one that is created for standard command line execution via engine
-   * runner.
+   * The created builder starts with the <em>default</em> context. The default context is roughly
+   * equivalent to the one that is created for standard command line execution via engine runner.
    *
    * @param permittedLanguages List of languages that are allowed to be used in the context. If
    *     empty, all installed languages are enabled.
@@ -277,8 +276,14 @@ public final class ContextUtils implements TestRule, AutoCloseable {
    */
   private <T> Value executeInContext(Callable<T> callable) {
     var ctx = currentCtx();
-    // Force initialization of the context
-    ctx.eval("enso", "value = 0");
+    try {
+      // Force initialization of the context
+      ctx.eval("enso", "value = 0");
+    } catch (Exception ex) {
+      if (!"Access to language 'enso' is not permitted. ".equals(ex.getMessage())) {
+        throw ex;
+      }
+    }
     var err = new Exception[1];
     ctx.getPolyglotBindings()
         .putMember(
@@ -382,7 +387,11 @@ public final class ContextUtils implements TestRule, AutoCloseable {
 
     private Builder(String... permittedLanguages) {
       this.polyglotCtxBldr = defaultContextBuilder(permittedLanguages);
-      this.polyglotCtxBldr.out(stdout).err(stderr).logHandler(stdout);
+      this.polyglotCtxBldr
+          .out(stdout)
+          .err(stderr)
+          .logHandler(stdout)
+          .environment("NO_COLOR", "true");
     }
 
     private static Context.Builder defaultContextBuilder(String... permittedLanguages) {
@@ -390,7 +399,9 @@ public final class ContextUtils implements TestRule, AutoCloseable {
           .allowExperimentalOptions(true)
           .allowIO(IOAccess.ALL)
           .allowAllAccess(true)
+          .environment("NO_COLOR", "true")
           .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(RuntimeOptions.CHECK_CWD, "false")
           .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
           .option(RuntimeOptions.STRICT_ERRORS, "true")
           .option(
@@ -423,8 +434,9 @@ public final class ContextUtils implements TestRule, AutoCloseable {
      *
      * @param b true for automatically wrapping the test code in the context. If false, the context
      *     entering must be done manually.
+     * @return this builder
      */
-    private Builder alwaysExecuteInContext(boolean b) {
+    public Builder alwaysExecuteInContext(boolean b) {
       this.alwaysExecuteInContext = b;
       return this;
     }

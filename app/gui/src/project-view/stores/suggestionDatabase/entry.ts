@@ -1,20 +1,19 @@
-import { type ProjectNameStore } from '@/stores/projectNames'
-import { type DocumentationData } from '@/stores/suggestionDatabase/documentation'
-import { type MethodPointer } from '@/util/methodPointer'
-import { type ProjectPath } from '@/util/projectPath'
+import type { ProjectNameStore } from '@/stores/projectNames'
+import type { DocumentationData } from '@/stores/suggestionDatabase/documentation'
+import type { MethodPointer } from '@/util/methodPointer'
+import { standardBaseMainPath, type ProjectPath } from '@/util/projectPath'
 import {
-  Identifier,
   qnJoin,
   qnLastSegment,
   qnSegments,
+  type Identifier,
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import {
-  type SuggestionEntryArgument,
-  type SuggestionEntryScope,
+import type {
+  SuggestionEntryArgument,
+  SuggestionEntryScope,
 } from 'ydoc-shared/languageServerTypes/suggestions'
-
 export type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -84,6 +83,34 @@ export interface TypeSuggestionEntry extends SuggestionEntryCommon, Reexportable
   /** Qualified name of the parent type. */
   parentType: ProjectPath | undefined
 }
+
+/**
+ * Determine if a specific suggestion entry represent a "blessed" type that is supposed to be
+ * displayed in general type selector drodpowns. Currently this list is effectively hardcoded.
+ * We might consider more data-driven selection in the future, but for now this is what was
+ * explicitly requested to be present.
+ */
+export function isUserSelectableType(entry: TypeSuggestionEntry) {
+  return (
+    !entry.isPrivate &&
+    (entry.reexportedIn?.equals(standardBaseMainPath) ?? false) &&
+    blessedTypes.has(entry.name)
+  )
+}
+
+const blessedTypes = new Set([
+  'Boolean',
+  'Column',
+  'Date',
+  'Decimal',
+  'Dictionary',
+  'Float',
+  'Integer',
+  'Number',
+  'Table',
+  'Text',
+  'Vector',
+])
 
 export interface ConstructorSuggestionEntry
   extends SuggestionEntryCommon,

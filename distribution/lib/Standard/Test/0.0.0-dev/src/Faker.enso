@@ -6,48 +6,63 @@ polyglot java import org.enso.base.Text_Utils
 
 ## Object to generate (deterministic) random value for testing
 type Faker
-    ## ICON text
+    ## ---
+       icon: text
+       ---
        Set of upper case letters.
     upper_case_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".char_vector
 
-    ## ICON text
+    ## ---
+       icon: text
+       ---
        Set of lower case letters.
     lower_case_letters = "abcdefghijklmnopqrstuvwxyz".char_vector
 
-    ## ICON text
+    ## ---
+       icon: text
+       ---
        Set of numerical digits.
     digits = "0123456789".char_vector
 
-    ## ICON random
+    ## ---
+       icon: random
+       ---
        Creates a new Faker which can be used for creating test values.
 
-       Arguments:
-       - seed: Optional seed value to make the sequence deterministic
+       ## Arguments
+        - `seed`: Optional seed value to make the sequence deterministic
     new : Integer -> Faker
     new (seed = 0) =
         generator = if seed == 0 then Java_Random.new else Java_Random.new seed
         Faker.Value generator
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value generator
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Creates a random Text based on a template of character sets.
 
-       Arguments:
-       - template: Vector of vectors that represent the possible characters for each
-         letter, as UTF-16 code units or a Text value made up of `A` for upper case,
-         `a` for lower case, `0` for digits, and any other character for itself.
+       ## Arguments
+        - `template`: Vector of vectors that represent the possible characters
+          for each letter, as UTF-16 code units or a Text value made up of `A`
+          for upper case, `a` for lower case, `0` for digits, and any other
+          character for itself.
 
-       > Example
-         Creates a fake UK National Insurance number:
+       ## Examples
+       ### Creates a fake UK National Insurance number:
 
+       ```
                 l = "ABCEGHJKLMNOPRSTWXYZ".char_vector
                 n = "0123456789".char_vector
                 s = "ABCDFMP ".char_vector
                 template = [l, l, n, n, n, n, n, s]
                 ni_number = Faker.new . text_value template
+       ```
     text_value : Vector | Text -> Text
     text_value self template =
         case template of
@@ -64,64 +79,74 @@ type Faker
                     possible_chars.at selected_char_ix
                 Text.from_char_vector characters
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Generates a Text consisting of lower/upper case characters.
 
-       Arguments:
-       - length: length of text to generate
-       - upper_case: use upper_case letters
+       ## Arguments
+        - `length`: length of text to generate
+        - `upper_case`: use upper_case letters
     alpha : Integer -> Boolean -> Text
     alpha self length=1 upper_case=False =
         alphabet = if upper_case then Faker.upper_case_letters else Faker.lower_case_letters
         self.text_value <| 0.up_to length . map _->alphabet
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Generates a Text consisting of lower/upper case characters and digits.
 
-       Arguments:
-       - length: length of text to generate
-       - upper_case: use upper_case letters
+       ## Arguments
+        - `length`: length of text to generate
+        - `upper_case`: use upper_case letters
     alpha_numeric : Integer -> Boolean -> Text
     alpha_numeric self length=1 upper_case=False =
         alphabet = (if upper_case then Faker.upper_case_letters else Faker.lower_case_letters) + Faker.digits
         self.text_value <| 0.up_to length . map _->alphabet
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Generates a Text for a hexadecimal number
 
-       Arguments:
-       - length: length of text to generate
+       ## Arguments
+        - `length`: length of text to generate
     hexadecimal : Integer -> Text
     hexadecimal self length=1 =
         alphabet = "0123456789ABCDEF".char_vector
         self.text_value <| 0.up_to length . map _->alphabet
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Create a random Boolean value
     boolean : Boolean
     boolean self =
         if self.generator.nextDouble < 0.5 then True else False
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Create a random Integer value
     integer : Integer -> Integer -> Integer
     integer self minimum=0 maximum=100 =
         minimum + (self.generator.nextInt (maximum - minimum))
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Create a random large Integer value (represented internally as a Java
        `BigInteger`.
-
        The values provided by this method are selected from a sparse set within
        the specified range. For example, with `bit_length=4`, the possible range
        is -16 to 16, but the actual values only include 9, 11, 13 and 15.
-
        Arguments
        - bit_length: specifies the range of values to select from. The values
          will be between -2^bit_length and 2^bit_length.
@@ -129,15 +154,15 @@ type Faker
     large_integer self bit_length =
         BigInteger.new bit_length 0 self.generator
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Create a random Decimal value (represented internally as a Java
        `BigDecimal`.
-
        This generator uses `large_integer` to generate an `Integer`, and then
        adds a random `Float`. See `large_integer` for a description of the range
        of values that this can return.
-
        Arguments
        - bit_length: specifies the range of values to select from. The values
          will be between -2^bit_length and 2^bit_length.
@@ -145,17 +170,21 @@ type Faker
     decimal self bit_length =
         (self.large_integer bit_length) + self.float
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Create a random Float value
     float : Float -> Float -> Float
     float self minimum=0.0 maximum=1.0 =
         minimum + self.generator.nextDouble * (maximum - minimum)
 
-    ## GROUP Standard.Base.Random
-       ICON random
-       Create a random Float value in full range of allowed values,
-       exponentially distributed (exponents are uniformly distributed).
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
+       Create a random Float value in full range of allowed values, exponentially
+       distributed (exponents are uniformly distributed).
     float_full_range_exp : Float
     float_full_range_exp self =
         max_mantissa = 2.0 - (2.0 ^ -52)
@@ -165,19 +194,23 @@ type Faker
         exponent = self.integer 0 max_exponent+1
         sign * mantissa * (2.0 ^ exponent)
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Picks an item at Random from a list
 
-       Arguments:
-       - items: Vector of items to pick from
-       - generator: Random number generator
+       ## Arguments
+        - `items`: Vector of items to pick from
+        - `generator`: Random number generator
     vector_item : Vector -> Any
     vector_item self items =
         items.at (self.generator.nextInt items.length)
 
-    ## GROUP Standard.Base.Random
-       ICON random
+    ## ---
+       group: Standard.Base.Random
+       icon: random
+       ---
        Randomly converts some values to Nothing
     make_some_nothing : Any -> Float -> Any
     make_some_nothing self value (chance=0.1) =

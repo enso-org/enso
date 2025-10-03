@@ -1,0 +1,20 @@
+from Standard.Base import all
+
+import project.Column.Column
+
+## ---
+   private: true
+   ---
+   Constructor to be used by implementations of the Column type to be able to
+   provide a conversion.
+column_from_implementation value implementation =
+    Column.Value value implementation
+
+## ---
+   private: true
+   ---
+   Extracts the underlying value from a generic Column - e.g. In_Memory_Column or
+   DB_Column.
+   It should only be used by implementations to access their implementation
+   details.
+get_underlying_from_column value:Column = value.underlying

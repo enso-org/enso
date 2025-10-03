@@ -301,6 +301,7 @@ public final class Native implements Version {
   private static final Object finalizer =
       new Object() {
         @Override
+        @SuppressWarnings("deprecation")
         protected void finalize() throws Throwable {
           dispose();
           super.finalize();
@@ -791,6 +792,7 @@ public final class Native implements Version {
    * @param type The type class
    * @return The options map
    */
+  @SuppressWarnings("unchecked")
   public static Map<String, Object> getLibraryOptions(Class<?> type) {
     Map<String, Object> libraryOptions;
     // cached already ?
@@ -815,6 +817,7 @@ public final class Native implements Version {
     try {
       Field field = mappingClass.getField("OPTIONS");
       field.setAccessible(true);
+
       libraryOptions = (Map<String, Object>) field.get(null);
       if (libraryOptions == null) {
         throw new IllegalStateException("Null options field");
@@ -1329,6 +1332,7 @@ public final class Native implements Version {
     try {
 
       final ClassLoader cl = Native.class.getClassLoader();
+      @SuppressWarnings("removal")
       Method m =
           AccessController.doPrivileged(
               new PrivilegedAction<Method>() {
@@ -1459,7 +1463,9 @@ public final class Native implements Version {
     }
     if (Structure.class.isAssignableFrom(type)
         && !Structure.ByReference.class.isAssignableFrom(type)) {
-      return Structure.size((Class<Structure>) type, (Structure) value);
+      @SuppressWarnings("unchecked")
+      Class<Structure> tpe = (Class<Structure>) type;
+      return Structure.size(tpe, (Structure) value);
     }
     try {
       return getNativeSize(type);
@@ -1476,6 +1482,7 @@ public final class Native implements Version {
    * @param cls The Java class
    * @return The native size for the class
    */
+  @SuppressWarnings("unchecked")
   public static int getNativeSize(Class<?> cls) {
     if (NativeMapped.class.isAssignableFrom(cls)) {
       cls = NativeMappedConverter.getInstance(cls).nativeType();
@@ -1580,6 +1587,7 @@ public final class Native implements Version {
 
   /** Try to determine the class context in which a {@link #register(String)} call was made. */
   static Class<?> getCallingClass() {
+    @SuppressWarnings("removal")
     Class<?>[] context =
         new SecurityManager() {
           @Override

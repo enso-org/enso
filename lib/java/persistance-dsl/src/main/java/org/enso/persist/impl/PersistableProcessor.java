@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -25,6 +26,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleAnnotationValueVisitor9;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.StandardLocation;
 import org.openide.util.lookup.ServiceProvider;
@@ -85,25 +87,25 @@ public class PersistableProcessor extends AbstractProcessor {
           }
           var src = processingEnv.getFiler().createSourceFile(cn);
           try (var w = src.openWriter()) {
-            w.append("package " + entry.getKey() + ";\n");
-            w.append("public final class Persistables {\n");
-            w.append("  private Persistables() {}\n");
-            w.append("  public static void initialize() {\n");
-            w.append("  }\n");
-
             // values from processor take preceedence
             for (var idName : entry.getValue().entrySet()) {
               props.setProperty("" + idName.getKey(), idName.getValue());
             }
 
+            w.append("package " + entry.getKey() + ";\n");
+            w.append("import org.enso.persist.Persistance;\n");
+            w.append("public final class Persistables extends Persistance.Pool {\n");
+            w.append("  public static final Persistance.Pool POOL = new Persistables();\n");
+            w.append("  private Persistables() {\n");
+            w.append("    super(\"").append(entry.getKey()).append("\",");
+            var lineEnding = "\n";
             for (var idName : props.entrySet()) {
-              w.append(
-                  "  private static final org.enso.persist.Persistance PERSIST_"
-                      + idName.getKey()
-                      + " = new "
-                      + idName.getValue()
-                      + "();\n");
+              w.append(lineEnding);
+              w.append("      new " + idName.getValue() + "()");
+              lineEnding = ",\n";
             }
+            w.append("\n    );\n");
+            w.append("  }\n");
             w.append("}\n");
           }
           var out = processingEnv.getFiler().createResource(propsWhere, propsPkg, propsName);
@@ -121,6 +123,7 @@ public class PersistableProcessor extends AbstractProcessor {
   }
 
   private String findFqn(Element e) {
+    Objects.requireNonNull(e);
     var inPackage = findNameInPackage(e);
     var pkg = processingEnv.getElementUtils().getPackageOf(e);
     return pkg.getQualifiedName() + "." + inPackage;
@@ -158,6 +161,7 @@ public class PersistableProcessor extends AbstractProcessor {
       return true;
     }
     var canInline = !"false".equals(readAnnoValue(anno, "allowInlining"));
+    var shallInline = "true".equals(readAnnoValue(anno, "allowInlining"));
     var richerConstructor =
         new Comparator<Object>() {
           @Override
@@ -179,13 +183,13 @@ public class PersistableProcessor extends AbstractProcessor {
             .collect(Collectors.toList());
 
     ExecutableElement cons;
-    Element singleton;
+    List<Element> singletonFields;
     if (constructors.isEmpty()) {
-      var singletonFields =
+      singletonFields =
           typeElem.getEnclosedElements().stream()
               .filter(
                   e ->
-                      e.getKind() == ElementKind.FIELD
+                      e.getKind().isField()
                           && e.getModifiers().contains(Modifier.STATIC)
                           && isVisibleFrom(e, orig))
               .filter(e -> tu.isSameType(e.asType(), typeElem.asType()))
@@ -197,11 +201,10 @@ public class PersistableProcessor extends AbstractProcessor {
                 Kind.ERROR, "There should be exactly one constructor in " + typeElem, orig);
         return false;
       }
-      singleton = singletonFields.get(0);
       cons = null;
     } else {
       cons = (ExecutableElement) constructors.get(0);
-      singleton = null;
+      singletonFields = null;
       if (constructors.size() > 1) {
         var snd = (ExecutableElement) constructors.get(1);
         if (richerConstructor.compare(cons, snd) == 0) {
@@ -220,6 +223,7 @@ public class PersistableProcessor extends AbstractProcessor {
     var pkgName = eu.getPackageOf(orig).getQualifiedName().toString();
     var className = "Persist" + findNameInPackage(typeElem).replace(".", "_");
     var fo = processingEnv.getFiler().createSourceFile(pkgName + "." + className, orig);
+    var ok = true;
     try (var w = fo.openWriter()) {
       var id = readAnnoValue(anno, "id");
       registerPersistablesClass(pkgName, className, Integer.parseInt(id));
@@ -250,10 +254,13 @@ public class PersistableProcessor extends AbstractProcessor {
           if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
             w.append("    var ").append(v.getSimpleName()).append(" = in.readUTF();\n");
           } else if (!v.asType().getKind().isPrimitive()) {
-            var type = tu.erasure(v.asType());
-            var elem = (TypeElement) tu.asElement(type);
+            var elem = findTypeOrNull(tu, v, orig);
+            if (elem == null) {
+              ok = false;
+              continue;
+            }
             var name = findFqn(elem);
-            if (canInline && shouldInline(elem)) {
+            if (canInline && shouldInline(elem, shallInline)) {
               w.append("    var ")
                   .append(v.getSimpleName())
                   .append(" = in.readInline(")
@@ -268,15 +275,19 @@ public class PersistableProcessor extends AbstractProcessor {
             }
           } else
             switch (v.asType().getKind()) {
-              case BOOLEAN -> w.append("    var ")
-                  .append(v.getSimpleName())
-                  .append(" = in.readBoolean();\n");
-              case INT -> w.append("    var ")
-                  .append(v.getSimpleName())
-                  .append(" = in.readInt();\n");
-              default -> processingEnv
-                  .getMessager()
-                  .printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
+              case BOOLEAN ->
+                  w.append("    var ").append(v.getSimpleName()).append(" = in.readBoolean();\n");
+              case BYTE ->
+                  w.append("    var ").append(v.getSimpleName()).append(" = in.readByte();\n");
+              case INT ->
+                  w.append("    var ").append(v.getSimpleName()).append(" = in.readInt();\n");
+              case LONG ->
+                  w.append("    var ").append(v.getSimpleName()).append(" = in.readLong();\n");
+              default ->
+                  processingEnv
+                      .getMessager()
+                      .printMessage(
+                          Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
             }
         }
         w.append("    return new ").append(typeElemName).append("(\n");
@@ -292,11 +303,29 @@ public class PersistableProcessor extends AbstractProcessor {
         w.append("\n");
         w.append("    );\n");
       } else {
-        w.append("    return ")
-            .append(typeElemName)
-            .append(".")
-            .append(singleton.getSimpleName())
-            .append(";\n");
+        if (singletonFields.size() == 1) {
+          var singleton = singletonFields.get(0);
+          w.append("    return ")
+              .append(typeElemName)
+              .append(".")
+              .append(singleton.getSimpleName())
+              .append(";\n");
+        } else {
+          w.append("    return switch (in.readByte()) {\n");
+          for (var i = 0; i < singletonFields.size(); i++) {
+            var singleton = singletonFields.get(i);
+            w.append(
+                "      case "
+                    + i
+                    + " -> "
+                    + typeElemName
+                    + "."
+                    + singleton.getSimpleName()
+                    + ";\n");
+          }
+          w.append("      default -> throw new IOException();\n");
+          w.append("    };\n");
+        }
       }
       w.append("  }\n");
       w.append("  @SuppressWarnings(\"unchecked\")\n");
@@ -309,10 +338,13 @@ public class PersistableProcessor extends AbstractProcessor {
           if (tu.isSameType(eu.getTypeElement("java.lang.String").asType(), v.asType())) {
             w.append("    out.writeUTF(obj.").append(v.getSimpleName()).append("());\n");
           } else if (!v.asType().getKind().isPrimitive()) {
-            var type = tu.erasure(v.asType());
-            var elem = (TypeElement) tu.asElement(type);
+            var elem = findTypeOrNull(tu, v, orig);
+            if (elem == null) {
+              ok = false;
+              continue;
+            }
             var name = findFqn(elem);
-            if (canInline && shouldInline(elem)) {
+            if (canInline && shouldInline(elem, shallInline)) {
               w.append("    out.writeInline(")
                   .append(name)
                   .append(".class, obj.")
@@ -323,22 +355,53 @@ public class PersistableProcessor extends AbstractProcessor {
             }
           } else
             switch (v.asType().getKind()) {
-              case BOOLEAN -> w.append("    out.writeBoolean(obj.")
-                  .append(v.getSimpleName())
-                  .append("());\n");
-              case INT -> w.append("    out.writeInt(obj.")
-                  .append(v.getSimpleName())
-                  .append("());\n");
-              default -> processingEnv
-                  .getMessager()
-                  .printMessage(Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
+              case BOOLEAN ->
+                  w.append("    out.writeBoolean(obj.").append(v.getSimpleName()).append("());\n");
+              case BYTE ->
+                  w.append("    out.writeByte(obj.").append(v.getSimpleName()).append("());\n");
+              case INT ->
+                  w.append("    out.writeInt(obj.").append(v.getSimpleName()).append("());\n");
+              case LONG ->
+                  w.append("    out.writeLong(obj.").append(v.getSimpleName()).append("());\n");
+              default ->
+                  processingEnv
+                      .getMessager()
+                      .printMessage(
+                          Kind.ERROR, "Unsupported primitive type: " + v.asType().getKind());
             }
+        }
+      } else {
+        if (singletonFields.size() > 1) {
+          w.append("    var index = -1;\n");
+          for (var i = 0; i < singletonFields.size(); i++) {
+            var singleton = singletonFields.get(i);
+            w.append(
+                "    if (obj == "
+                    + typeElemName
+                    + "."
+                    + singleton.getSimpleName()
+                    + ") index = "
+                    + i
+                    + ";\n");
+          }
+          w.append("    out.write(index);\n");
         }
       }
       w.append("  }\n");
       w.append("}\n");
     }
-    return true;
+    return ok;
+  }
+
+  private TypeElement findTypeOrNull(Types tu, VariableElement v, Element orig) {
+    var type = tu.erasure(v.asType());
+    var elem = (TypeElement) tu.asElement(type);
+    if (elem == null) {
+      processingEnv
+          .getMessager()
+          .printMessage(Kind.ERROR, "No persistable class for " + type, orig);
+    }
+    return elem;
   }
 
   private void registerPersistablesClass(Element elem, AnnotationMirror anno) {
@@ -365,7 +428,14 @@ public class PersistableProcessor extends AbstractProcessor {
       pkg = new TreeMap<>();
       registeredClasses.put(pkgName, pkg);
     }
-    pkg.put(id, className);
+    var prev = pkg.put(id, className);
+    if (prev != null) {
+      processingEnv
+          .getMessager()
+          .printMessage(
+              Kind.ERROR,
+              "Duplicated registration with id=" + id + " by " + className + " and " + prev);
+    }
   }
 
   private boolean isVisibleFrom(Element e, Element from) {
@@ -395,11 +465,11 @@ public class PersistableProcessor extends AbstractProcessor {
     return cnt;
   }
 
-  private boolean shouldInline(TypeElement elem) {
+  private boolean shouldInline(TypeElement elem, boolean shallInline) {
     var inline =
         switch (findFqn(elem)) {
               case "scala.collection.immutable.Seq" -> true;
-              default -> false;
+              default -> shallInline;
             }
             || !elem.getKind().isInterface();
     return inline;

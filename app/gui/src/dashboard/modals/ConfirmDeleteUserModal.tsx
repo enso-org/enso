@@ -1,5 +1,8 @@
 /** @file Modal for confirming delete of any type of asset. */
-import { ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
+import { Dialog } from '#/components/Dialog'
+import { Form } from '#/components/Form'
+import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
 import * as z from 'zod'
 
@@ -31,11 +34,11 @@ export function ConfirmDeleteUserModal(props: ConfirmDeleteUserModalProps) {
         <Text className="text-balance text-center">
           {getText('confirmDeleteUserAccountWarning')}
         </Text>
-        <ButtonGroup className="w-min self-center">
+        <Button.Group className="w-min self-center">
           <Form.Submit variant="delete">
             {getText('confirmDeleteUserAccountButtonLabel')}
           </Form.Submit>
-        </ButtonGroup>
+        </Button.Group>
       </Form>
     </Dialog>
   )

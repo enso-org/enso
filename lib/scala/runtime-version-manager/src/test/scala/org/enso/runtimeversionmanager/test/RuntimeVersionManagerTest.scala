@@ -51,7 +51,7 @@ class RuntimeVersionManagerTest
   ): (DistributionManager, RuntimeVersionManager, Environment) = {
     val env                 = fakeInstalledEnvironment(environmentOverrides)
     val distributionManager = new PortableDistributionManager(env)
-    val graalVersionManager = new GraalVersionManager(distributionManager, env)
+    val graalVersionManager = new GraalVersionManager(distributionManager)
 
     val resourceManager = TestLocalResourceManager.create()
     val temporaryDirectoryManager =

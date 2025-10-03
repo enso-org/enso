@@ -59,7 +59,7 @@ export function unsafeMutable<T extends object>(object: T): { -readonly [K in ke
  * Return the entries of an object. UNSAFE only when it is possible for an object to have
  * extra keys.
  */
-export function unsafeKeys<T extends object>(object: T): (keyof T)[] {
+export function unsafeKeys<const T extends object>(object: T): (keyof T)[] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.keys(object)
 }
@@ -75,7 +75,7 @@ export function unsafeValues<const T extends object>(object: T): T[keyof T][] {
  */
 export function unsafeEntries<T extends object>(
   object: T,
-): readonly { [K in keyof T]: [K, T[K]] }[keyof T][] {
+): readonly NonNullable<{ [K in keyof T]: [K, T[K]] }[keyof T]>[] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.entries(object)
 }
@@ -112,7 +112,7 @@ export function unsafeRemoveUndefined<T extends object>(
  * extra keys.
  */
 export function mapEntries<K extends PropertyKey, V, W>(
-  object: Record<K, V>,
+  object: Readonly<Record<K, V>>,
   map: (key: K, value: V) => W,
 ): Record<K, W> {
   // @ts-expect-error It is known that the set of keys is the same for the input and the output,
@@ -204,4 +204,25 @@ export type DisjointKeysUnion<A, B> = keyof A & keyof B extends never ? A & B : 
  */
 export type MergeValuesOfObjectUnion<T> = {
   [K in `${keyof T & string}`]: T[K & keyof T]
+}
+
+// ===============
+// === Records ===
+// ===============
+
+/**
+ * Returns the provided object with its prototype set to `null`, so that it can safely be used as a
+ * map. Similar to {@link kv}, with the additional feature that if the input is a constant object,
+ * its type is generalized to a `Record`, to support lookups of unknown keys.
+ */
+export function record<K extends string | number | symbol, V>(obj: Record<K, V>): Record<K, V> {
+  return kv(obj)
+}
+
+/**
+ * Returns the provided object with its prototype set to `null`, so that it can safely be used as a
+ * map.
+ */
+export function kv<T extends object>(obj: T): T {
+  return Object.assign(Object.create(null), obj)
 }

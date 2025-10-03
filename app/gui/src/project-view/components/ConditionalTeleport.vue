@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 
 const props = defineProps<{ target: Opt<HTMLElement> }>()
 </script>
 
 <template>
-  <Teleport v-if="props.target" :to="props.target">
+  <Teleport :to="props.target" :disabled="props.target == null">
     <slot />
   </Teleport>
-  <slot v-else />
 </template>

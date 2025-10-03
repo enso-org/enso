@@ -12,6 +12,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Semaphore, Sync}
 import org.enso.projectmanager.data.{
+  CloudParams,
   LanguageServerStatus,
   MissingComponentActions,
   ProjectMetadata,
@@ -300,7 +301,7 @@ class ProjectService[
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentActions.MissingComponentAction,
-    cloudProjectDirectoryPath: Option[String],
+    cloud: Option[CloudParams],
     projectsDirectory: Option[File]
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
     for {
@@ -312,9 +313,14 @@ class ProjectService[
       _ <- repo.update(updated).mapError(toServiceFailure)
       projectWithDefaultEdition =
         updated.copy(edition = Some(DefaultEdition.getDefaultEdition))
-      extraEnv = cloudProjectDirectoryPath
-        .map(ProjectService.ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME -> _)
-        .toSeq
+      extraEnv = cloud.toSeq
+        .flatMap(c =>
+          Seq(
+            ProjectService.ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME -> c.cloudProjectDirectoryPath,
+            ProjectService.ENSO_CLOUD_PROJECT_ID_ENV_NAME             -> c.cloudProjectId,
+            ProjectService.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME     -> c.cloudProjectSessionId
+          )
+        )
       sockets <- startServer(
         progressTracker,
         clientId,
@@ -590,4 +596,9 @@ object ProjectService {
   /** The variable is used in stdlib to resolve relative paths. */
   private val ENSO_CLOUD_PROJECT_DIRECTORY_PATH_ENV_NAME =
     "ENSO_CLOUD_PROJECT_DIRECTORY_PATH"
+
+  /** Variables used during startup of a hybrid project */
+  val ENSO_CLOUD_PROJECT_ID_ENV_NAME = "ENSO_CLOUD_PROJECT_ID"
+  val ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME =
+    "ENSO_CLOUD_PROJECT_SESSION_ID"
 }

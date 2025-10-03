@@ -1,15 +1,20 @@
 import project.Data.Text.Text
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A conversion target used by `Error.catch` to determine if the inner error
    should be matched.
-
    See `Error.catch` for details about error wrapping.
 type Wrapped_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value wrapping_error inner_error
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =

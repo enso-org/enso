@@ -141,7 +141,7 @@ final class PathWatcher(
       restartCounter.reset()
 
       val fileInfo =
-        if (e.eventType == Watcher.EventTypeDelete) ZIO.fail(FileNotFound)
+        if (e.eventType == Watcher.EventType.DELETE) ZIO.fail(FileNotFound)
         else fs.info(e.path.toFile)
 
       exec
@@ -153,7 +153,8 @@ final class PathWatcher(
       clients.foreach(_ ! FileEventResult(event))
       context.system.eventStream.publish(event)
 
-    case Watcher.WatcherError(e) =>
+    case err: Watcher.WatcherError =>
+      val e = err.throwable()
       stopWatcher()
       restartCounter.inc()
       if (restartCounter.canRestart) {
@@ -213,7 +214,7 @@ final class PathWatcher(
   private def stopWatcher(): Either[FileSystemFailure, Unit] =
     Try {
       fileWatcher.foreach { watcher =>
-        Await.ready(exec.exec(ZIO.attempt(watcher.stop())), config.timeout)
+        Await.ready(exec.exec(ZIO.attempt(watcher.close())), config.timeout)
       }
     }.toEither.left
       .map(errorHandler)

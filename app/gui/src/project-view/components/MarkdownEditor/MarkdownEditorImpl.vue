@@ -1,160 +1,179 @@
 <script setup lang="ts">
-import { documentationEditorBindings } from '@/bindings'
+import ActionButton from '@/components/ActionButton.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
-import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
+import { useBlockTypeDropdown } from '@/components/MarkdownEditor/blockTypeDropdown'
 import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
-import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
-import SvgButton from '@/components/SvgButton.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
+import type { BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
+import {
+  insertPlaceholder,
+  replaceablePlaceholders,
+  replacePlaceholder,
+} from '@/components/MarkdownEditor/codemirror/placeholder'
+import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
+import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
-import { useCodeMirror } from '@/util/codemirror'
+import { useAsyncResources, type StartedUpload } from '@/providers/asyncResources'
+import { useCurrentProjectResourceContext } from '@/providers/asyncResources/context'
+import { selectResourceFiles, type AnyUploadSource } from '@/providers/asyncResources/upload'
+import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
 import { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import type { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
-import * as Y from 'yjs'
+import { computed, useCssModule, useTemplateRef, watch, type ComponentInstance } from 'vue'
 
-const { content, toolbar, contentTestId } = defineProps<{
-  content: Y.Text | string
-  toolbar: boolean
+const {
+  toolbar = true,
+  readonly = false,
+  extensions = [],
+  contentTestId,
+  scrollerTestId,
+  editorReadyCallback = () => {},
+} = defineProps<{
+  toolbar?: boolean | undefined
+  readonly?: boolean | undefined
+  /**
+   * Additional extensions. This prop is read only during setup, and extensions are not refreshed
+   * afterwards!
+   */
+  extensions?: Extension | undefined
   contentTestId?: string | undefined
+  scrollerTestId?: string | undefined
+  /**
+   * A callback called when CodeMirror is set up, passing {@link EditorView}. It is called in this
+   * component's setup, allowing creating watches bound to the editor view (that's why its not
+   * defined as signal)
+   */
+  editorReadyCallback?: ((view: EditorView) => void) | undefined
 }>()
-defineOptions({
-  inheritAttrs: false,
-})
+defineOptions({ inheritAttrs: false })
 
-const toastError = useToast.error()
+const resourceContext = useCurrentProjectResourceContext()
+const res = useAsyncResources(true)
 
-const focused = ref(false)
-const editing = computed(() => !readonly.value && focused.value)
+async function selectAndUpload() {
+  const files = await selectResourceFiles()
+  if (files.ok) handleUpload(files.value)
+}
+
+const uploadErrorToast = useToast.error()
+
+function handleUpload(source: AnyUploadSource): boolean {
+  if (!res) return false
+  const uploads = res.uploadResources(source, resourceContext)
+  if (uploads.length == 0) return false
+
+  const coords = source instanceof DragEvent ? new Vec2(source.clientX, source.clientY) : undefined
+  insertStartedUploads(uploads, coords)
+  return true
+}
+
+async function insertStartedUploads(uploads: Promise<StartedUpload>[], coords: Vec2 | undefined) {
+  const selection = editorView.state.selection.main
+  let from = coords ? editorView.posAtCoords(coords, false) : selection.from
+  let to = coords ? from : selection.to
+
+  for (const upload of uploads) {
+    const placeholderText = `\n![]()\n`
+    const placeholder = insertPlaceholder(editorView, from, to, placeholderText)
+    // Set next placeholder insert position right after this one.
+    from = to = from + placeholderText.length
+
+    upload.then((result) => {
+      // Once the upload metadata is known, fill in the placeholder.
+      if (result.ok) {
+        const { filename, resourceUrl, complete } = result.value
+        const safeAltText = filename.replace(/\.([^.]+)$/, '').replace(/[[\]]/g, '_')
+
+        const uploadText = `\n![${safeAltText}](${resourceUrl}?uploading)\n`
+        const finalText = `\n![${safeAltText}](${resourceUrl})\n`
+
+        replacePlaceholder(editorView, placeholder, uploadText, false)
+        complete.then(() => replacePlaceholder(editorView, placeholder, finalText))
+      } else {
+        replacePlaceholder(editorView, placeholder, '')
+        uploadErrorToast.reportError(result.error)
+      }
+    })
+  }
+}
 
 const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
-  content: () => content,
+const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   extensions: [
     drawSelection(),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     EditorView.lineWrapping,
     highlightStyle(useCssModule()),
-    EditorView.clipboardInputFilter.of(transformPastedText),
-    ensoMarkdown(),
+    ensoMarkdown({ customClipboardAction: handleUpload, customDropAction: handleUpload }),
+    replaceablePlaceholders,
+    extensions,
   ],
+  readonly: () => readonly,
   vueHost: () => vueHost,
   lineMode: 'multi',
   contentTestId,
-})
-const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
-
-useLinkTitles(editorView, { readonly })
-
-onMounted(() => {
-  // Enable rendering the line containing the current cursor in `editing` mode if focus enters the element *inside* the
-  // scroll area--if we attached the handler to the editor root, clicking the scrollbar would cause editing mode to be
-  // activated.
-  editorView.dom
-    .getElementsByClassName('cm-content')[0]!
-    .addEventListener('focusin', () => (focused.value = true))
+  scrollerTestId,
 })
 
-function reportUnformattable() {
-  toastError.show('The selected text cannot be formated')
-}
+useLinkTitles(editorView, { readonly: () => readonly })
 
-function toggleFormat({
-  set,
-  value,
-}: {
-  set: ((value: boolean) => void) | undefined
-  value: boolean
-}) {
-  if (!set) {
-    reportUnformattable()
-    return
+const { focused, focusHandlers } = useEditorFocus(editorView)
+watch(focused, (focused) => {
+  if (!focused && !editorView.state.selection.main.empty) {
+    editorView.dispatch({
+      selection: {
+        anchor: editorView.state.selection.main.from,
+        head: editorView.state.selection.main.from,
+      },
+    })
   }
-  set(!value)
-}
+})
+const editing = computed(() => !readonly && focused.value)
 
-function doFormat(action: (() => void) | undefined) {
-  if (!action) {
-    reportUnformattable()
-    return
-  }
-  action()
-}
+const formatting = useMarkdownFormatting(editorView)
+const { actions, formatBindings } = useFormatActions({
+  formatting,
+  readonly,
+  editing,
+  uploadImage: selectAndUpload,
+})
+setExtraExtensions([formatBindings])
 
-function binding(binding: keyof typeof documentationEditorBindings.bindings): string {
-  return documentationEditorBindings.bindings[binding].humanReadable
-}
+editorReadyCallback(editorView)
+
+const blockType = computed({
+  get: () => formatting.blockType.value ?? 'Unknown',
+  set: (value) => formatting.blockType.set(value as BlockType),
+})
+const blockTypeDropdown = useBlockTypeDropdown({ blockType, actions })
 
 defineExpose({
-  putText: (text: string) => {
-    const range = editorView.state.selection.main
-    putTextAt(text, range.from, range.to)
-  },
-  putTextAt,
-  putTextAtCoords: (text: string, coords: Vec2) => {
-    const pos = editorView.posAtCoords(coords, false)
-    putTextAt(text, pos, pos)
-  },
-  bold: () => toggleFormat(bold),
-  italic: () => toggleFormat(italic),
-  header1: () => blockType.set('ATXHeading1'),
-  header2: () => blockType.set('ATXHeading2'),
-  header3: () => blockType.set('ATXHeading3'),
-  paragraph: () => blockType.set('Paragraph'),
-  link: () => doFormat(insertLink.value),
+  editorView,
 })
 </script>
 
 <template>
-  <div class="MarkdownEditorRoot">
+  <div class="MarkdownEditorRoot" @dragover.prevent>
     <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
-      <slot name="toolbarLeft" />
-      <template v-if="!readonly">
-        <BlockTypeDropdown
-          :modelValue="blockType.value ?? 'Unknown'"
-          @update:modelValue="blockType.set($event as BlockType)"
-        />
-        <ToggleIcon
-          icon="italic"
-          :disabled="!editing || !italic.set"
-          :modelValue="italic.value"
-          :title="`Italic (${binding('italic')})`"
-          @update:modelValue="italic.set!"
-        />
-        <ToggleIcon
-          icon="bold"
-          :disabled="!editing || !bold.set"
-          :modelValue="bold.value"
-          :title="`Bold (${binding('bold')})`"
-          @update:modelValue="bold.set!"
-        />
-        <SvgButton
-          name="connector_add"
-          :disabled="insertLink == null"
-          :title="`Insert link (${binding('link')})`"
-          @activate="insertLink?.()"
-        />
-        <SvgButton
-          name="code"
-          :disabled="insertCodeBlock == null"
-          title="Insert code block"
-          @activate="insertCodeBlock?.()"
-        />
-      </template>
-      <slot name="toolbarRight" />
+      <ActionButton action="panel.fullscreen" />
+      <SelectionDropdown v-if="blockTypeDropdown" v-bind="blockTypeDropdown" />
+      <ActionButton action="documentationEditor.italic" />
+      <ActionButton action="documentationEditor.bold" />
+      <ActionButton action="documentationEditor.link" />
+      <ActionButton action="documentationEditor.code" />
+      <ActionButton action="documentationEditor.image" />
     </div>
     <slot name="belowToolbar" />
     <CodeMirrorRoot
       ref="editorRoot"
       v-bind="$attrs"
       :class="{ editing }"
-      @focusout="focused = false"
+      v-on="focusHandlers"
       @keydown.enter.stop
     >
       <VueHostRender :host="vueHost" />
@@ -168,10 +187,12 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   width: 100%;
+  gap: 8px;
+  isolation: isolate;
 }
 
 .toolbar {
-  height: 48px;
+  height: 26px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -181,6 +202,11 @@ defineExpose({
 
 /*noinspection CssUnusedSymbol*/
 .CodeMirrorRoot {
+  /* Below popovers from the `belowToolbar` slot. */
+  z-index: -1;
+  min-height: 0;
+
+  /*noinspection CssUnusedSymbol*/
   & :deep(.cm-content) {
     /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
     font-family: var(--font-sans);
@@ -199,11 +225,6 @@ defineExpose({
     opacity: 1;
     color: black;
     font-size: 12px;
-  }
-
-  /*noinspection CssUnusedSymbol*/
-  & :deep(img.uploading) {
-    opacity: 0.5;
   }
 }
 </style>
@@ -298,9 +319,9 @@ defineExpose({
       list-style-type: circle;
     }
     list-style-position: outside;
-    text-indent: -0.3em;
+    text-indent: -0.4em;
     /*noinspection CssUnresolvedCustomProperty*/
-    margin-left: calc(var(--cm-list-depth) * 0.57em + 1em);
+    margin-left: calc(var(--cm-list-depth) * 0.57em + 1.1em);
   }
 
   :global(.cm-OrderedList-item) {

@@ -1,0 +1,29 @@
+from Standard.Base import all
+
+import project.Table.Table
+
+## ---
+   private: true
+   ---
+   Constructor to be used by implementations of the Table type to be able to
+   provide a conversion.
+table_from_implementation value implementation =
+    Table.Value value implementation
+
+## ---
+   private: true
+   unsafe: true
+   ---
+   Extracts the underlying value from a generic Table - e.g. In_Memory_Table or
+   DB_Table.
+   It should only be used by implementations to access their implementation
+   details.
+
+   ## Remarks
+
+   ### Warning
+   This method allows to access the _raw_ In_Memory_Table/DB_Table inside of a
+   Table instance. That instance lacks the `& Table` part. Thus it should never
+   be 'leaked' to users, as it is causing the same issues as described in
+   https://github.com/enso-org/enso/issues/13379
+get_underlying_from_table value:Table = value.underlying

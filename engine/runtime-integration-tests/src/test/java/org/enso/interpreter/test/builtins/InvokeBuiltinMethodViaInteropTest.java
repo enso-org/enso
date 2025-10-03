@@ -71,7 +71,8 @@ public class InvokeBuiltinMethodViaInteropTest {
 
   @Test
   public void invokeToTextOnVector() {
-    var code = """
+    var code =
+        """
         main = [1,2,3]
         """;
     var vec = ctxRule.evalModule(code);

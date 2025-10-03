@@ -36,20 +36,20 @@ final class RuntimeServerTesting {
 
     var code =
         """
-      from Standard.Base.Runtime import value_for_uuid
-      from Standard.Base.Data.Numbers import all
-      import Standard.Base.IO
+        from Standard.Base.Runtime import value_for_uuid
+        from Standard.Base.Data.Numbers import all
+        import Standard.Base.IO
 
-      private v n = value_for_uuid n
+        private v n = value_for_uuid n
 
-      main =
-          x_0 = 6
-          x_1 = 7
-          x_2 = (v "${aa}")*(v "${bb}")
-          IO.println x_2
-          IO.println x_0*x_1
-          IO.println x_2==x_0*x_1
-      """
+        main =
+            x_0 = 6
+            x_1 = 7
+            x_2 = (v "${aa}")*(v "${bb}")
+            IO.println x_2
+            IO.println x_0*x_1
+            IO.println x_2==x_0*x_1
+        """
             .replace("${aa}", id_x_0.toString())
             .replace("${bb}", id_x_1.toString());
     var contents = metadata.appendToCode(code);
@@ -82,9 +82,10 @@ final class RuntimeServerTesting {
                 new Runtime$Api$StackItem$ExplicitCall(
                     new Runtime$Api$MethodPointer(moduleName, moduleName, "main"),
                     Option.empty(),
-                    ScalaConversions.<String>nil().toVector()))));
-    var reply = context.receiveN(5, 60);
-    assertEquals("Five messages", 5, reply.size());
+                    ScalaConversions.<String>nil().toVector()),
+                true)));
+    var reply = context.receiveNIgnoreStdLib(4, 60);
+    assertEquals("Five messages", 4, reply.size());
     assertEquals(
         "Output should be correct for " + reply + " messages",
         List.of("42", "42", "True"),

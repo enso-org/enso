@@ -47,7 +47,8 @@ class PushHandler(
     ContextRegistryProtocol.PushContextRequest(
       session,
       msg.params.contextId,
-      msg.params.stackItem
+      msg.params.stackItem,
+      msg.params.execute.getOrElse(false)
     )
 
   override protected def positiveResponse(

@@ -1,3 +1,4 @@
+import JPMSPlugin.autoImport.modulePath
 import sbt._
 import sbt.Keys._
 import sbt.internal.util.ManagedLogger
@@ -94,7 +95,11 @@ object NativeImage {
     initializeAtRuntime: Seq[String]         = Seq.empty,
     initializeAtBuildtime: Seq[String]       = defaultBuildTimeInitClasses,
     mainClass: Option[String]                = None,
-    verbose: Boolean                         = false
+    mainModule: Option[String]               = None,
+    modulePath: Seq[String]                  = Seq.empty,
+    addModules: Seq[String]                  = Seq.empty,
+    verbose: Boolean                         = false,
+    symlink: Boolean                         = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log       = state.value.log
@@ -193,6 +198,15 @@ object NativeImage {
       val cpStr  = fullCp.mkString(File.pathSeparator)
       log.debug("Class-path: " + cpStr)
 
+      val mp = if (modulePath.nonEmpty) {
+        Seq("--module-path", modulePath.mkString(File.pathSeparator))
+      } else {
+        Seq()
+      }
+      val addModulesOpt =
+        if (addModules.nonEmpty) Seq("--add-modules", addModules.mkString(","))
+        else Seq.empty
+
       val isCi       = sys.env.contains("CI")
       val verboseOpt = if (verbose || isCi) Seq("--verbose") else Seq()
       val excludeConfigsOpt =
@@ -206,8 +220,13 @@ object NativeImage {
         "-H:+UnlockExperimentalVMOptions"
       )
 
+      val compilationTimeoutOpt =
+        if (isCi) Seq("-H:CompilationExpirationPeriod=500") else Seq.empty
+
       var args: Seq[String] =
         excludeConfigsOpt ++
+        mp ++
+        addModulesOpt ++
         Seq("-cp", cpStr) ++
         staticParameters ++
         configs ++
@@ -220,17 +239,17 @@ object NativeImage {
         additionalOptions ++
         additionalOpts.value ++
         deadlockWatchdogOpts ++
+        compilationTimeoutOpt ++
         Seq("-o", targetLoc.toString)
 
-      args = mainClass match {
-        case Some(main) =>
-          args ++
-          Seq(main)
-        case None =>
-          val pathToJAR =
-            (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
-          args ++
-          Seq("-jar", pathToJAR.toString)
+      val pathToJAR =
+        (assembly / assemblyOutputPath).value.toPath.toAbsolutePath.normalize
+      if (mainModule.isDefined && mainClass.isDefined) {
+        args ++= Seq("--module", mainModule.get + "/" + mainClass.get)
+      } else if (mainClass.isDefined) {
+        args ++= Seq(mainClass.get)
+      } else {
+        args ++= Seq("-jar", pathToJAR.toString)
       }
 
       val targetDirValue = (Compile / target).value
@@ -269,7 +288,7 @@ object NativeImage {
         throw new RuntimeException("Native Image build failed")
       }
       var msg = s"$targetLoc native image build successful."
-      if (targetDir != null) {
+      if (targetDir != null && symlink) {
         val symlinkTargetFile = artifactFile(null, name)
         if (symlinkTargetFile.exists()) {
           symlinkTargetFile.delete()

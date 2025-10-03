@@ -15,18 +15,26 @@ type Azure_Client_Authentication
     ## The message for the error.
     message self -> Text = self.java_exception.getMessage
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self =
         "Azure Client Authentication Error:" + self.message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text self = self.to_text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     handler caught_panic:Any =
         Error.throw (Azure_Client_Authentication.Error caught_panic.payload)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_js_object self =
         error_type = ["type", "Azure_Client_Authentication"]
         error_message = ["message", self.message]

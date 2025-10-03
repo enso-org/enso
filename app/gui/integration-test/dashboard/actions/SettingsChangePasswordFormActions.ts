@@ -1,8 +1,8 @@
 /** @file Actions for the "change password" form in settings. */
-import { TEXT } from '.'
 import type PageActions from './PageActions'
 import SettingsAccountTabActions from './SettingsAccountTabActions'
 import SettingsFormActions from './SettingsFormActions'
+import { TEXT } from './utilities'
 
 /** Actions for the "change password" form in settings. */
 export default class SettingsChangePasswordFormActions<Context> extends SettingsFormActions<
@@ -11,14 +11,17 @@ export default class SettingsChangePasswordFormActions<Context> extends Settings
 > {
   /** Create a {@link SettingsChangePasswordFormActions}. */
   constructor(...args: ConstructorParameters<typeof PageActions<Context>>) {
+    const [page, context, promise] = args
     super(
-      SettingsAccountTabActions<Context>,
       (page) =>
         page
           .getByRole('heading')
           .and(page.getByText(TEXT.changePasswordSettingsSection))
           .locator('..'),
-      ...args,
+      page,
+      context,
+      promise,
+      SettingsAccountTabActions<Context>,
     )
   }
 

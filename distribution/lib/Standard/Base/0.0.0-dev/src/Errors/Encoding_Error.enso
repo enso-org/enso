@@ -4,8 +4,9 @@ type Encoding_Error
     ## One or more byte sequences were not decodable using the Encoding.
     Error (message:Text)
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Provides a human-readable representation of the encoding error.
     to_display_text : Text
     to_display_text self = "Encoding_Error: " + self.message

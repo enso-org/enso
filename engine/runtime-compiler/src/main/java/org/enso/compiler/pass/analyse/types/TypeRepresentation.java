@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 import org.enso.pkg.QualifiedName;
 
+/** Representation of types in the Enso type system. */
 public sealed interface TypeRepresentation
     permits TypeRepresentation.ArrowType,
         TypeRepresentation.AtomType,
@@ -21,12 +22,16 @@ public sealed interface TypeRepresentation
   // In the future we may want to split this unknown type to be a separate entity.
   TypeRepresentation UNKNOWN = ANY;
 
+  /**
+   * Computes the effective (simplified) type of a sum of types.
+   *
+   * @see SumTypeSimplifier
+   */
   static TypeRepresentation buildSimplifiedSumType(List<TypeRepresentation> types) {
-    var simplifier = new SumTypeSimplifier();
-    types.forEach(simplifier::traverse);
-    return simplifier.build();
+    return SumTypeSimplifier.simplifySumOfTypes(types);
   }
 
+  /** Builds a function type based on a list of arguments and a result type. */
   static TypeRepresentation buildFunction(
       List<TypeRepresentation> arguments, TypeRepresentation result) {
     var reversed = new ArrayList<>(arguments);

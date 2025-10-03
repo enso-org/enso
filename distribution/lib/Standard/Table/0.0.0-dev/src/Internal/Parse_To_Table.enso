@@ -4,17 +4,14 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column.Column
-import project.Data_Formatter.Data_Formatter
 import project.Internal.Naming_Properties.Unlimited_Naming_Properties
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Table.Table
-from project import Value_Type
-from project.Errors import Duplicate_Output_Column_Names
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Converts a Text into a Table using a regular expression pattern.
-
    See Text.parse_to_table.
 parse_text_to_table : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table ! Type_Error | Regex_Syntax_Error | Illegal_Argument
 parse_text_to_table text regex_or_pattern="." case_sensitivity=Case_Sensitivity.Default parse_values=True on_problems=..Report_Warning =

@@ -1,15 +1,12 @@
 package org.enso.languageserver.runtime.events;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.XMLFormatter;
+import java.util.function.BiConsumer;
 import org.enso.languageserver.runtime.RuntimeConnector;
 import org.enso.polyglot.runtime.Runtime;
 import org.enso.polyglot.runtime.Runtime$Api$Request;
@@ -23,13 +20,9 @@ import scala.Option;
  */
 public final class RuntimeEventsMonitor implements EventsMonitor {
 
-  private final PrintStream out;
+  private final BiConsumer<Instant, String> log;
   private final Clock clock;
 
-  private static final XMLFormatter EVENT_FORMAT = new XMLFormatter();
-  private static final String XML_TAG = "<?xml version='1.0'?>";
-  private static final String RECORDS_TAG_OPEN = "<records>";
-  private static final String RECORDS_TAG_CLOSE = "</records>";
   private static final String MESSAGE_SEPARATOR = ",";
   private static final String MESSAGE_EMPTY_REQUEST_ID = "";
   private static final String HEARTBEAT_PATTERN = "\"method\": \"heartbeat/";
@@ -37,24 +30,21 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
   /**
    * Create an instance of {@link RuntimeEventsMonitor}.
    *
-   * @param out the output stream.
+   * @param log the logger
    * @param clock the system clock.
    */
-  public RuntimeEventsMonitor(PrintStream out, Clock clock) {
-    this.out = out;
+  public RuntimeEventsMonitor(BiConsumer<Instant, String> log, Clock clock) {
+    this.log = log;
     this.clock = clock;
-
-    out.println(XML_TAG);
-    out.println(RECORDS_TAG_OPEN);
   }
 
   /**
    * Create an instance of {@link RuntimeEventsMonitor}.
    *
-   * @param out the output stream.
+   * @param log the logger
    */
-  public RuntimeEventsMonitor(PrintStream out) {
-    this(out, Clock.systemUTC());
+  public RuntimeEventsMonitor(BiConsumer<Instant, String> log) {
+    this(log, Clock.systemUTC());
   }
 
   /** Direction of the message. */
@@ -75,8 +65,7 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
   @Override
   public void registerTextRpcMessage(String message) {
     if (message.contains(HEARTBEAT_PATTERN)) return;
-    String entry = buildEntry(Direction.REQUEST, Option.empty(), message);
-    out.print(entry);
+    logEntry(Direction.REQUEST, Option.empty(), message);
   }
 
   @Override
@@ -84,29 +73,23 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
     byte[] bytes = new byte[message.remaining()];
     message.get(bytes);
     String payload = Base64.getEncoder().encodeToString(bytes);
-    String entry = buildEntry(Direction.REQUEST, Option.empty(), payload);
-    out.print(entry);
+    logEntry(Direction.REQUEST, Option.empty(), payload);
   }
 
   @Override
-  public void close() throws IOException {
-    out.println(RECORDS_TAG_CLOSE);
-    out.close();
-  }
+  public void close() throws IOException {}
 
   private void registerApiEnvelope(Runtime.ApiEnvelope event) {
     if (event instanceof Runtime$Api$Request request) {
       String payload = request.payload().getClass().getSimpleName();
-      String entry = buildEntry(Direction.REQUEST, request.requestId(), payload);
-      out.print(entry);
+      logEntry(Direction.REQUEST, request.requestId(), payload);
     } else if (event instanceof Runtime$Api$Response response) {
       String payload = response.payload().getClass().getSimpleName();
-      String entry = buildEntry(Direction.RESPONSE, response.correlationId(), payload);
-      out.print(entry);
+      logEntry(Direction.RESPONSE, response.correlationId(), payload);
     }
   }
 
-  private String buildEntry(Direction direction, Option<UUID> requestId, String payload) {
+  private void logEntry(Direction direction, Option<UUID> requestId, String payload) {
     String requestIdEntry = requestId.fold(() -> MESSAGE_EMPTY_REQUEST_ID, UUID::toString);
     Instant timeEntry = clock.instant();
 
@@ -119,9 +102,6 @@ public final class RuntimeEventsMonitor implements EventsMonitor {
             .append(payload)
             .toString();
 
-    LogRecord record = new LogRecord(Level.INFO, message);
-    record.setInstant(timeEntry);
-
-    return EVENT_FORMAT.format(record);
+    log.accept(timeEntry, message);
   }
 }

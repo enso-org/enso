@@ -7,5 +7,5 @@ public interface BuilderForLong extends BuilderForType<Long> {
    *
    * @param value the long to append
    */
-  void appendLong(long value);
+  BuilderForLong appendLong(long value);
 }

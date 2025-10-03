@@ -1,21 +1,23 @@
 import { BackendType } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import ProjectManager, {
-  ProjectManagerEvents,
-  Path as ProjectManagerPath,
+import {
+  Path,
+  PROJECT_MANAGER_LOADING_FAILED_EVENT,
+  ProjectManager,
 } from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
-import HttpClient from '#/utilities/HttpClient'
 import { useEvent } from '@/composables/events'
-import { createContextStore } from '@/providers'
-import { GuiConfig } from '@/providers/guiConfig'
-import { ToValue } from '@/util/reactivity'
+import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
+import { proxyRefs, type ToValue } from '@/util/reactivity'
+import { createGlobalState } from '@vueuse/core'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 import invariant from 'tiny-invariant'
-import { computed, proxyRefs, readonly, ref, toValue, watchEffect } from 'vue'
-import { GetText } from './text'
+import { computed, inject, readonly, ref, toValue, watch, watchEffect } from 'vue'
+import { useHttpClient } from './httpClient'
+import { useText, type GetText } from './text'
 
 export type BackendsStore = ReturnType<typeof useBackends>
-function useBackends(
+function initializeBackends(
   httpClient: HttpClient,
   config: ToValue<GuiConfig>,
   rootDirPath: ToValue<string | undefined>,
@@ -24,7 +26,7 @@ function useBackends(
   const createProjectManager = (rootPath: string | undefined, projectManagerUrl: string | null) => {
     if (!rootPath) return
     if (projectManagerUrl == null) return
-    const rootDirectory = ProjectManagerPath(rootPath)
+    const rootDirectory = Path(rootPath)
     return new ProjectManager(projectManagerUrl, rootDirectory)
   }
   const projectManager = ref<ProjectManager>()
@@ -34,9 +36,17 @@ function useBackends(
     projectManager.value = pm
   })
   const localBackend = computed(() =>
-    projectManager.value ? new LocalBackend(projectManager.value) : null,
+    projectManager.value ? new LocalBackend(console, getText, projectManager.value) : null,
   )
-  const remoteBackend = new RemoteBackend(httpClient, console, getText)
+  const remoteBackend = new RemoteBackend(console, getText, httpClient)
+
+  watch(
+    () => getText,
+    (getText) => {
+      localBackend.value?.setGetText(getText)
+      remoteBackend.setGetText(getText)
+    },
+  )
 
   const backendForType = (projectType: BackendType) => {
     switch (projectType) {
@@ -53,7 +63,7 @@ function useBackends(
   }
 
   const didLoadingProjectManagerFail = ref(false)
-  useEvent(document, ProjectManagerEvents.loadingFailed, () => {
+  useEvent(document, PROJECT_MANAGER_LOADING_FAILED_EVENT, () => {
     didLoadingProjectManagerFail.value = true
   })
 
@@ -72,4 +82,6 @@ function useBackends(
   })
 }
 
-export const [provideBackends, injectBackends] = createContextStore('backends', useBackends)
+export const useBackends = createGlobalState(() =>
+  initializeBackends(useHttpClient(), injectGuiConfig(), inject('rootDirPath'), useText().getText),
+)

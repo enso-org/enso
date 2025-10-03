@@ -1,0 +1,317 @@
+from Standard.Base import all
+from Standard.Google import all
+
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Table.Errors import Invalid_Location, Duplicate_Output_Column_Names, Empty_Sheet, Not_All_Rows_Downloaded, No_Rows
+import Standard.Google.Google_Sheets_Workbook.Google_API_Error
+
+from Standard.Test import all
+from Standard.Table import Table
+from enso_dev.Table_Tests.Util import all
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+
+add_specs suite_builder =
+    suite_builder.group "Google Sheets" group_builder->
+        group_builder.specify "can read a workbook via Google_Sheets.read" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1']
+        group_builder.specify "can read a worksheet via Google_Sheets_Workbook.read" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..Has_Headers . should_equal (Table.new [['X', ['Y', 'Z']]])
+        group_builder.specify "can read a worksheet via sheet name or index" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            wb.read 'Sheet3' ..Has_Headers . column_names . should_equal (['S3A', 'S3B', 'S3C'])
+            wb.read 1 ..Has_Headers . column_names . should_equal (['S1A', 'S1B', 'S1C'])
+            wb.read 5 ..Has_Headers . column_names . should_equal (['S5A', 'S5B', 'S5C'])
+        group_builder.specify "out of range sheet index should error" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            r0 = wb.read 0
+            r0.should_fail_with Invalid_Location
+            r0.catch.to_display_text . should_contain 'Sheet 0 is out of range (1 to 5 inclusive).'
+            r6 = wb.read 6
+            r6.should_fail_with Invalid_Location
+            r6.catch.to_display_text . should_contain 'Sheet 6 is out of range (1 to 5 inclusive).'
+        group_builder.specify "Missing sheet name should error" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            r0 = wb.read "BadName"
+            r0.should_fail_with Google_API_Error
+            r0.catch.to_display_text . should_equal 'Unable to parse range: BadName'
+        group_builder.specify "can read a worksheet via named range" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+            wb.read 'Range1' . should_equal (Table.new [['A', ['S1A']], ['B', ['S1B']]])
+
+    suite_builder.group "Google Sheets - Headers" group_builder->
+        group_builder.specify "should be able to read with no headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.read 'Sheet1' ..No_Headers . should_equal (Table.new [['A', ['X', 'Y', 'Z']]])
+        group_builder.specify "Should handle blank headers without warnings" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            wb.read 'BlankHeaders' ..Has_Headers . should_equal (Table.new [['Col1', ['A', 'B', 'C']],['Column 1', ['D', 'E', 'F']],['Col3', ['G', 'H', 'I']]])
+        group_builder.specify "Should handle duplicate headers with warnings" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read 'DuplicateHeaders' ..Has_Headers
+            ws . should_equal (Table.new [['Col1', ['A', 'B', 'C']],['Col2', ['D', 'E', 'F']],['Col2 1', ['G', 'H', 'I']]])
+            Problems.get_attached_warnings ws . should_equal [Duplicate_Output_Column_Names.Error ["Col2"]]
+        group_builder.specify "Warnings can be promoted to errors" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read 'DuplicateHeaders' ..Has_Headers on_problems=..Report_Error
+            ws.catch.should_equal (Duplicate_Output_Column_Names.Error ["Col2"])
+        group_builder.specify "Warnings can be ignored" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read 'DuplicateHeaders' ..Has_Headers on_problems=..Ignore
+            ws . should_equal (Table.new [['Col1', ['A', 'B', 'C']],['Col2', ['D', 'E', 'F']],['Col2 1', ['G', 'H', 'I']]])
+            Problems.get_attached_warnings ws . should_equal []
+        group_builder.specify "No Data Errors" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read 'NoData' ..Detect_Headers
+            ws.should_fail_with Empty_Sheet
+            ws.catch.to_display_text . should_contain 'There is no data in the sheet.'
+        group_builder.specify "One row of data gives no headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read '1RowStringData' ..Detect_Headers
+            ws.column_names . should_equal (['A', 'B', 'C'])
+            ws . should_equal (Table.new [['A', ['X']],['B', ['Y']],['C', ['Z']]])
+        group_builder.specify "Two rows of string data gives no headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read '2RowStringData' ..Detect_Headers
+            ws.column_names . should_equal (['A', 'B', 'C'])
+            ws . should_equal (Table.new [['A', ['X', 'U']],['B', ['Y', 'V']],['C', ['Z', 'W']]])
+        group_builder.specify "First row of string data, second row has a numeric, gives headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read 'Row1StringRow2HasNumeric' ..Detect_Headers
+            ws.column_names . should_equal (['X', 'Y', 'Z'])
+            ws . should_equal (Table.new [['X', ['U']],['Y', ['V']],['Z', [3]]])
+        group_builder.specify "First row has a numeric, gives no headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read 'Row1HasNumeric' ..Detect_Headers
+            ws.column_names . should_equal (['A', 'B', 'C'])
+            ws . should_equal (Table.new [['A', ['U', 'X']],['B', ['V', 'Y']],['C', [3, 'Z']]])
+
+    suite_builder.group "Google Sheets - Limit" group_builder->
+        group_builder.specify "should be able to limit rows returned with headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..Has_Headers (..First 1) . should_equal (Table.new [['X', ['Y']]])
+        group_builder.specify "should be able to limit rows returned with headers (zero limit)" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..Has_Headers (..First 0) . should_equal (Table.new [['X', []]])
+        group_builder.specify "should be able to limit rows returned with headers (negative limit)" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..Has_Headers (..First -1) . should_equal (Table.new [['X', []]])
+        group_builder.specify "should be able to limit rows and warn" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1']
+            ws = wb.read 'Sheet1' ..Has_Headers (..First_With_Warning 1) . should_equal (Table.new [['X', ['Y']]])
+            Problems.get_attached_warnings ws . should_equal [Not_All_Rows_Downloaded.Warning 1]
+        group_builder.specify "should be able to limit rows returned with no headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..No_Headers (..First 1) . should_equal (Table.new [['A', ['X']]])
+        group_builder.specify "should be able to limit rows returned with no headers (zero limit)" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..No_Headers (..First 0) . should_equal (Table.new [['A', []]])
+        group_builder.specify "should be able to limit rows returned with no headers (negative limit)" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1']
+            wb.read 'Sheet1' ..No_Headers (..First -1) . should_equal (Table.new [['A', []]])
+        group_builder.specify "should be able to limit rows with no headers and warn" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names.should_equal ['Sheet1']
+            ws = wb.read 'Sheet1' ..No_Headers (..First_With_Warning 1) . should_equal (Table.new [['A', ['X']]])
+            Problems.get_attached_warnings ws . should_equal [Not_All_Rows_Downloaded.Warning 1]
+
+    suite_builder.group "Google Sheets - Skip Rows" group_builder->
+        group_builder.specify "should be able to skip rows with no headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.read 'Sheet1' ..No_Headers skip_rows=1 . should_equal (Table.new [['A', ['Y', 'Z']]])
+        group_builder.specify "should be able to skip rows with headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.read 'Sheet1' ..Has_Headers skip_rows=1 . should_equal (Table.new [['Y', ['Z']]])
+        group_builder.specify "should be able to skip rows with detect headers" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.read 'Sheet1' ..Detect_Headers skip_rows=1 . should_equal (Table.new [['A', ['Y', 'Z']]])
+        group_builder.specify "should be able to skip rows with negative does nothing" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.read 'Sheet1' ..Detect_Headers skip_rows=-1 . should_equal (Table.new [['A', ['X', 'Y', 'Z']]])
+
+    suite_builder.group "Google Sheets - Meta data" group_builder->
+        group_builder.specify "can get a count of worksheets" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_count . should_equal 5
+        group_builder.specify "can get a list of worksheets" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GoogleSheets')
+            wb.sheet_names . should_equal ['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4', 'Sheet5']
+        group_builder.specify "can get a count of named ranges" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GoogleSheets')
+            wb.named_ranges_count . should_equal 3
+        group_builder.specify "can get a list of named ranges" <|
+            ## Test2
+            wb = Google_Sheets.read '1yKs-vGmxpo5oEKzhk7HN2xF40ux1q07RuzZn_7PQDDI' (Enso_Secret.get 'GoogleSheets')
+            wb.named_ranges . should_equal ['Range1', 'Range2', 'Range3']
+        group_builder.specify "can get a count of named ranges zero case" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.named_ranges_count . should_equal 0
+        group_builder.specify "can get a list of named ranges zero case" <|
+            ## Test1
+            wb = Google_Sheets.read '1ifGXhOlOp2xn4l9bGYbqGvAoSsG5M_M2ga60WFaBZwg' (Enso_Secret.get 'GoogleSheets')
+            wb.named_ranges . should_equal []
+
+    suite_builder.group "Google Sheets - Data Types" group_builder->
+        group_builder.specify "can read different data types correctly" <|
+            ## Test4
+            wb = Google_Sheets.read '1ggI7Kcs6W4E_zeMraHbHbnK9p5FL5YPXIB_be6R3jiw' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read 'Sheet1'
+            c1 = ['Integers', [123, -5, 0, Nothing, 78]]
+            c2 = ['Strings', ["Alea", "iacta", "est", Nothing, "after"]]
+            c3 = ['Floats', [12.34, -98.1, 0, Nothing, 7.8]]
+            c4 = ['Dates', [Date.new 2010 1 1, Date.new 1999 4 12, Date.new 2025 6 7, Nothing, Date.new 1985 4 30]]
+            c5 = ['Percents', [0.1, 0.25, 0.75, Nothing, 3.33]]
+            c6 = ['Currency', [1.23, 4.56, 78.9, Nothing, -1.2]]
+            c7 = ['Times', [Time_Of_Day.new 23 10, Time_Of_Day.new 5 12,  Time_Of_Day.new 23 59, Nothing, Time_Of_Day.new 7 30]]
+            c8 = ['DateTimes', [Date_Time.new 2025 12 30 23 10, Date_Time.new 1981 1 1 5 12 , Date_Time.new 2002 12 11 23 59, Nothing, Date_Time.new 2030 4 30 7 30]]
+            ws . should_equal (Table.new [c1, c2, c3, c4, c5, c6, c7, c8])
+    
+    suite_builder.group "Google Sheets - Read Many" group_builder->
+        group_builder.specify "can read multiple sheets - one sheet" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['1RowStringData']
+            ws . should_equal (Table.new [['Sheet Name', ['1RowStringData']],['A', ['X']],['B', ['Y']],['C', ['Z']]])
+        group_builder.specify "can read multiple sheets" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['1RowStringData','2RowStringData']
+            ws . should_equal (Table.new [['Sheet Name', ['1RowStringData','2RowStringData','2RowStringData']],['A', ['X', 'X', 'U']],['B', ['Y', 'Y', 'V']],['C', ['Z', 'Z', 'W']]])
+        group_builder.specify "can read multiple sheets - defaults to all sheets" <|
+            ## Test5
+            wb = Google_Sheets.read '19qZhzyjZddJFIfCjTVzKF_OxK3KUAH8K6xt3XV06FaA' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many
+            ws . should_equal (Table.new [['Sheet Name', ['Sheet1','Sheet2']],['A', ['Sheet1Data','Sheet2Data']]])
+        group_builder.specify "can read multiple sheets - with headers" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['1RowStringData','2RowStringData'] ..Has_Headers
+            ws . should_equal (Table.new [['Sheet Name', ['2RowStringData']],['X', ['U']],['Y', ['V']],['Z', ['W']]])
+        group_builder.specify "can read multiple sheets - as table of tables" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['1RowStringData','2RowStringData'] return=..With_New_Column
+            s1 = wb.read '1RowStringData'
+            s2 = wb.read '2RowStringData'
+            ws.column_names . should_equal (['Sheet Name', 'Table'])
+            ws . at 'Sheet Name' . at 0 .  should_equal '1RowStringData'
+            ws . at 'Sheet Name' . at 1 .  should_equal '2RowStringData'
+            ws . at 'Table' . at 0 .  should_equal s1
+            ws . at 'Table' . at 1 .  should_equal s2
+        group_builder.specify "can read multiple sheets - error case - default warns" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData']
+            ws . should_equal (Table.new [['Sheet Name', ['1RowStringData','2RowStringData','2RowStringData']],['A', ['X', 'X', 'U']],['B', ['Y', 'Y', 'V']],['C', ['Z', 'Z', 'W']]])
+            Problems.get_attached_warnings ws . should_equal [(No_Rows.Warning "The sheet BadSheetName failed to load, so it is not included in the `As_Merged_Table` result of `read_many`. The error was: Unable to parse range: BadSheetName")]
+        group_builder.specify "can read multiple sheets - error case - can ignore errors" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData'] on_problems=..Ignore
+            ws . should_equal (Table.new [['Sheet Name', ['1RowStringData','2RowStringData','2RowStringData']],['A', ['X', 'X', 'U']],['B', ['Y', 'Y', 'V']],['C', ['Z', 'Z', 'W']]])
+            Problems.get_attached_warnings ws . should_equal []
+        group_builder.specify "can read multiple sheets - error case - can promote to error" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData'] on_problems=..Report_Error
+            ws.should_fail_with Google_API_Error
+            ws.catch.to_display_text . should_equal 'Unable to parse range: BadSheetName'
+        group_builder.specify "can read multiple sheets - error case - no valid sheets is an error" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['BadSheetName','BadSheetName2']
+            ws.should_fail_with Illegal_Argument
+            ws.catch.to_display_text . should_equal 'Illegal Argument: No valid sheets found.'
+        group_builder.specify "can read multiple sheets - error case - With_New_Column - default warns" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData'] return=..With_New_Column
+            s1 = wb.read '1RowStringData'
+            s2 = wb.read '2RowStringData'
+            ws.column_names . should_equal (['Sheet Name', 'Table'])
+            ws . at 'Sheet Name' . at 0 .  should_equal '1RowStringData'
+            ws . at 'Sheet Name' . at 1 .  should_equal 'BadSheetName'
+            ws . at 'Sheet Name' . at 2 .  should_equal '2RowStringData'
+            ws . at 'Table' . at 0 .  should_equal s1
+            ws . at 'Table' . at 1 .  should_equal Nothing
+            ws . at 'Table' . at 2 .  should_equal s2
+            Problems.get_attached_warnings ws . get 0 . to_display_text . should_equal "Unable to parse range: BadSheetName"
+        group_builder.specify "can read multiple sheets - error case - With_New_Column - can ignore errors" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData'] return=..With_New_Column on_problems=..Ignore
+            s1 = wb.read '1RowStringData'
+            s2 = wb.read '2RowStringData'
+            ws.column_names . should_equal (['Sheet Name', 'Table'])
+            ws . at 'Sheet Name' . at 0 .  should_equal '1RowStringData'
+            ws . at 'Sheet Name' . at 1 .  should_equal 'BadSheetName'
+            ws . at 'Sheet Name' . at 2 .  should_equal '2RowStringData'
+            ws . at 'Table' . at 0 .  should_equal s1
+            ws . at 'Table' . at 1 .  should_equal Nothing
+            ws . at 'Table' . at 2 .  should_equal s2
+            Problems.get_attached_warnings ws . should_equal []
+        group_builder.specify "can read multiple sheets - error case - With_New_Column- can promote to error" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['1RowStringData','BadSheetName','2RowStringData'] return=..With_New_Column on_problems=..Report_Error
+            ws.should_fail_with Google_API_Error
+            ws.catch.to_display_text . should_equal 'Error at index 1: Unable to parse range: BadSheetName'
+        group_builder.specify "can read multiple sheets - error case - With_New_Column - no valid sheets" <|
+            ## Test3
+            wb = Google_Sheets.read '1mgBJo2GRivstBYpjy8StVBLVBvt-H_PVqs8ArkE8vT4' (Enso_Secret.get 'GoogleSheets')
+            ws = wb.read_many ['BadSheetName','BadSheetName2'] return=..With_New_Column
+            ws.column_names . should_equal (['Sheet Name', 'Table'])
+            ws . at 'Sheet Name' . at 0 .  should_equal 'BadSheetName'
+            ws . at 'Sheet Name' . at 1 .  should_equal 'BadSheetName2'
+            ws . at 'Table' . at 0 .  should_equal Nothing
+            ws . at 'Table' . at 1 .  should_equal Nothing

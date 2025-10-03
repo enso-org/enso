@@ -193,7 +193,6 @@ public final class WithCompilerContext implements TestRule {
           compilerConfigBldr
               .autoParallelismEnabled(true)
               .warningsEnabled(true)
-              .staticTypeInferenceEnabled(false)
               .isStrictErrors(true)
               .isLintingDisabled(false)
               .outputRedirect(scala.Some.apply(new PrintStream(out)))

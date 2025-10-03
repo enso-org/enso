@@ -47,7 +47,7 @@ export function AssetDiffView(props: AssetDiffViewProps) {
   return (
     <DiffEditor
       beforeMount={(monaco) => {
-        monaco.editor.defineTheme('myTheme', {
+        monaco.editor.defineTheme('transparentBackground', {
           base: 'vs',
           inherit: true,
           rules: [],
@@ -61,7 +61,7 @@ export function AssetDiffView(props: AssetDiffViewProps) {
       language="enso"
       options={{ readOnly: true }}
       loading={loader}
-      theme={'myTheme'}
+      theme="transparentBackground"
     />
   )
 }

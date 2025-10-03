@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import org.enso.persist.Persistance.Reference;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -21,11 +20,6 @@ import org.junit.Test;
  * ReferenceAsObjectTest} for similar yet different test.
  */
 public class ReferenceAsInlineTest {
-  @BeforeClass
-  public static void initPersistables() {
-    Persistables.initialize();
-  }
-
   private static Chain eagerChain(String id, int[] counter, Chain next) {
     Reference<Chain> ref = next == null ? Reference.none() : Reference.of(next, false);
     return new Chain(id, counter, ref);

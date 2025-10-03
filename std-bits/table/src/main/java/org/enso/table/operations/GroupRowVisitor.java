@@ -2,7 +2,7 @@ package org.enso.table.operations;
 
 public interface GroupRowVisitor {
 
-  void visit(int row);
+  void visit(long row);
 
   default void finalise() {}
   ;

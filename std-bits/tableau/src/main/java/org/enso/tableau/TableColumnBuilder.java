@@ -7,7 +7,7 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.util.function.Consumer;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.TextType;
@@ -126,8 +126,10 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
       case Types.VARCHAR, Types.CHAR:
         var textType =
             column.length().isEmpty()
-                ? new TextType(-1, false)
-                : new TextType(column.length().getAsInt(), column.typeID() == Types.CHAR);
+                ? TextType.VARIABLE_LENGTH
+                : (column.typeID() == Types.CHAR
+                    ? TextType.fixedLength(column.length().getAsInt())
+                    : TextType.variableLengthWithLimit(column.length().getAsInt()));
         var textBuilder = Builder.getForText(textType, initialRowCount);
         return new TableColumnBuilder(
             textBuilder,
@@ -198,7 +200,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
     appendMethod.accept(result);
   }
 
-  public Storage<?> seal() {
+  public ColumnStorage<?> seal() {
     return builder.seal();
   }
 }

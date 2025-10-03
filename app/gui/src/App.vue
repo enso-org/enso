@@ -1,114 +1,124 @@
 <script setup lang="ts">
-import { ContextsForReactProvider } from '$/providers/react'
+import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
+import { EnsoPath } from '#/services/Backend'
+import RightPanel from '$/components/AppContainer/RightPanel.vue'
+import { useAppTitle } from '$/composables/appTitle'
+import { useAuth } from '$/providers/auth'
+import { provideContainerData } from '$/providers/container'
+import { provideOpenedProjects } from '$/providers/openedProjects'
+import { ContextsForReactProvider } from '$/providers/react/globalProvider'
+import { provideRightPanelData } from '$/providers/rightPanel'
+import { useText } from '$/providers/text'
 import ReactRoot from '$/ReactRoot'
+import { appOpenCloseCallback } from '$/utils/analytics'
 import '@/assets/base.css'
-import { interactionBindings } from '@/bindings'
+import { appBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
-import { useEvent } from '@/composables/events'
+import { useEvent, useMounted } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
-import { initializeActions } from '@/providers/action'
+import { initializeActions, registerHandlers } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
-import { provideGuiConfig } from '@/providers/guiConfig'
+import { provideAsyncResources } from '@/providers/asyncResources'
+import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
+import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
+import { injectGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
-import { provideKeyboard } from '@/providers/keyboard'
+import { provideBubblingKeyboard, provideKeyboard } from '@/providers/keyboard'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
-import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
 import { reactComponent } from '@/util/react'
-import { urlParams } from '@/util/urlParams'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
-import { computed, onMounted } from 'vue'
-import { ComponentProps } from 'vue-component-type-helpers'
-import { provideBackends } from './providers/backends'
-import { provideHttpClient } from './providers/httpClient'
-import { provideText } from './providers/text'
+import * as objects from 'enso-common/src/utilities/data/object'
+import { computed, onMounted, shallowRef } from 'vue'
+import type { ComponentProps } from 'vue-component-type-helpers'
 
-const { projectViewOnly, onAuthenticated, rootDirPath } = defineProps<{
+const { projectViewOnly } = defineProps<{
   // Used in Project View integration tests. Once both test projects will be merged, this should be
   // removed
   projectViewOnly?: { options: ComponentProps<typeof ProjectView> } | null
-  onAuthenticated?: (accessToken: string | null) => void
-  rootDirPath: string | undefined
 }>()
 
+const LoadingScreen = reactComponent(LoadingScreenReact)
+
+const config = injectGuiConfig()
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()
-
-const appConfig = computed(() =>
-  mergeConfig(baseConfig, urlParams(), {
-    onUnrecognizedOption: (p) => {
-      const filtered = p.filter((p) => !p.startsWith('cloud-ide'))
-
-      if (filtered.length > 0) {
-        console.warn('Unrecognized option:', filtered)
-      }
-    },
-  }),
-)
-const appConfigValue = computed((): ApplicationConfigValue => configValue(appConfig.value))
 
 const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
+const auth = useAuth()
+const userSession = computed(() => auth.session)
+
+useAppTitle(userSession)
+
 provideKeyboard()
-const { getText } = provideText()
-const config = provideGuiConfig(appConfigValue)
+provideBubblingKeyboard()
 const interaction = provideInteractionHandler()
-initializeActions()
+const actions = initializeActions()
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
 
-const interactionBindingsHandler = interactionBindings.handler({
-  cancel: () => interaction.cancelAll(),
-})
+const actionHandlers = registerHandlers(
+  {
+    'app.cancel': { action: () => interaction.cancelAll() },
+    'app.close': { action: () => window.close() },
+  },
+  actions,
+)
 
-useEvent(window, 'keydown', interactionBindingsHandler)
-useEvent(window, 'pointerdown', (e) => interaction.handlePointerEvent(e, 'pointerdown'), {
-  capture: true,
-})
-useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointerup'), {
-  capture: true,
-})
-const httpClient = provideHttpClient()
-provideBackends(httpClient, config, rootDirPath, getText)
+const bindingsHandlers = appBindings.handler(
+  objects.mapEntries(appBindings.bindings, (actionName) => actionHandlers[actionName].action),
+)
 
-const platformClass = (() => {
-  switch (platform()) {
-    case Platform.windows:
-      return 'onWindows'
-    case Platform.macOS:
-      return 'onMacOs'
-    case Platform.linux:
-      return 'onLinux'
-    case Platform.windowsPhone:
-      return 'onWindowsPhone'
-    case Platform.iPhoneOS:
-      return 'onIPhoneOs'
-    case Platform.android:
-      return 'onAndroid'
-    default:
-      return undefined
-  }
-})()
+const { globalEventRegistry } = provideGlobalEventRegistry()
+
+useEvent(window, 'keydown', bindingsHandlers)
+useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
+
+const platformClass = {
+  [Platform.windows]: 'onWindows',
+  [Platform.macOS]: 'onMacOs',
+  [Platform.linux]: 'onLinux',
+  [Platform.windowsPhone]: 'onWindowsPhone',
+  [Platform.iPhoneOS]: 'onIPhoneOs',
+  [Platform.android]: 'onAndroid',
+  [Platform.unknown]: undefined,
+}[platform()]
 
 onMounted(() => {
-  if (appConfigValue.value.window.vibrancy) {
+  if (config.params.window.vibrancy) {
     document.body.classList.add('vibrancy')
   }
 })
+const fullscreenRoot = shallowRef<HTMLElement>()
+
+useMounted(appOpenCloseCallback)
+
+// Mock external context in Project View integration tests. Once both test projects will be merged,
+// this should be removed
+if (projectViewOnly) {
+  const openedProjects = provideOpenedProjects()
+  provideAsyncResources(openedProjects)
+  provideContainerData(EnsoPath(projectViewOnly.options.projectPath))
+  provideRightPanelData(EnsoPath(projectViewOnly.options.projectPath), () => false, useText())
+  provideFullscreenRoot(fullscreenRoot)
+}
 </script>
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <ProjectView v-if="projectViewOnly" v-bind="projectViewOnly.options" />
+    <div v-if="projectViewOnly" ref="fullscreenRoot" class="mainView">
+      <ProjectView v-bind="projectViewOnly.options" />
+      <RightPanel />
+    </div>
     <ContextsForReactProvider v-else>
-      <ReactRootWrapper
-        :config="appConfigValue"
-        :queryClient="queryClient"
-        @authenticated="onAuthenticated ?? (() => {})"
-      >
-        <RouterView />
+      <ReactRootWrapper :queryClient="queryClient">
+        <RouterView v-slot="{ Component }">
+          <component :is="Component" v-if="Component" />
+          <LoadingScreen v-else />
+        </RouterView>
       </ReactRootWrapper>
     </ContextsForReactProvider>
   </div>
@@ -122,6 +132,8 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  /* This is to ensure the tooltips and floating elements will be over all other app elements */
+  isolation: isolate;
 }
 
 #floatingLayer {
@@ -145,6 +157,13 @@ onMounted(() => {
   > * {
     pointer-events: auto;
   }
+}
+
+.mainView {
+  flex-grow: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
 }
 
 /*

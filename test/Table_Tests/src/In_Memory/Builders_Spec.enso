@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-from Standard.Table import Column
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Java_Problems
 

@@ -1,8 +1,7 @@
 /** @file File containing SVG icon definitions. */
-import * as React from 'react'
-
+import type { TestIdProps } from '#/components/types'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import type { TestIdProps } from './AriaComponents'
+import * as React from 'react'
 
 /** Props for a {@link SvgMask}. */
 export interface SvgMaskProps extends TestIdProps {
@@ -24,7 +23,7 @@ const SvgMask = React.forwardRef(function SvgMask(
   props: SvgMaskProps,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {
-  const { invert = false, alt = '', src, style, color, className, testId = 'svg-mask' } = props
+  const { invert = false, alt = '', src, style, color, className, testId } = props
   const urlSrc = `url(${JSON.stringify(src)})`
   const mask = invert ? `${urlSrc}, linear-gradient(white 0 0)` : urlSrc
 

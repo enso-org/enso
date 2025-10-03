@@ -118,7 +118,7 @@ case object BindingAnalysis extends IRPass {
     ir.updateMetadata(
       new MetadataPair(
         this,
-        BindingsMap(
+        new BindingsMap(
           definedSumTypes ++ importedPolyglot ++ staticMethods,
           moduleContext.moduleReference()
         )

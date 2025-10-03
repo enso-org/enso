@@ -1,10 +1,10 @@
 /** @file A panel to switch between settings tabs. */
-import { memo, type Dispatch, type SetStateAction } from 'react'
-
 import { Header } from '#/components/aria'
-import { ButtonGroup, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/Button'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
+import { Text } from '#/components/Text'
 import { useText } from '$/providers/react'
+import { memo, type Dispatch, type SetStateAction } from 'react'
 import { SETTINGS_DATA, type SettingsContext } from './data'
 import type SettingsTabType from './TabType'
 
@@ -46,7 +46,7 @@ function SettingsSidebar(props: SettingsSidebarProps) {
                 <Text.Heading variant="subtitle">{name}</Text.Heading>
               </Header>
 
-              <ButtonGroup gap="xxsmall" direction="column" align="start">
+              <Button.Group gap="xxsmall" direction="column" align="start">
                 {visibleTabData.map((tabData) => (
                   <SidebarTabButton
                     key={tabData.settingsTab}
@@ -54,21 +54,14 @@ function SettingsSidebar(props: SettingsSidebarProps) {
                     icon={tabData.icon}
                     label={getText(tabData.nameId)}
                     isActive={tabData.settingsTab === tab}
-                    onPress={() =>
-                      tabData.onPress ?
-                        tabData.onPress(context)
-                        // even though this function returns void, we don't want to
-                        // complicate things by returning only in case of custom onPress
-                        // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
-                      : (() => {
-                          if (tab !== tabData.settingsTab) {
-                            setTab(tabData.settingsTab)
-                          }
-                        })()
-                    }
+                    onPress={() => {
+                      if (tab !== tabData.settingsTab) {
+                        setTab(tabData.settingsTab)
+                      }
+                    }}
                   />
                 ))}
-              </ButtonGroup>
+              </Button.Group>
             </div>
       })}
     </div>

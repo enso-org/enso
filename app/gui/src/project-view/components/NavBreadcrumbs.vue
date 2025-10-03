@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { useProjectStore } from '$/components/WithCurrentProject.vue'
 import ActionButton from '@/components/ActionButton.vue'
 import NavBreadcrumb from '@/components/NavBreadcrumb.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { injectStackNavigator } from '@/providers/graphStackNavigator'
-import { useProjectStore } from '@/stores/project'
 import { useToast } from '@/util/toast'
 
 export interface BreadcrumbItem {
@@ -68,12 +68,15 @@ async function renameBreadcrumb(index: number, newName: string) {
   gap: 12px;
   padding-left: 8px;
   padding-right: 10px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .NavBreadcrumbs {
   display: flex;
   align-items: center;
   gap: 2px;
+  min-width: 0;
 }
 
 .arrow {

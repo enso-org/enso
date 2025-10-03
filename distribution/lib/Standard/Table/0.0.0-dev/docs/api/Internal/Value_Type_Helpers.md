@@ -4,8 +4,10 @@
     - Numeric_Add
     - Text_Concat
 - type Subtraction_Kind
+    - Date_Difference
     - Date_Time_Difference
     - Numeric_Subtract
+    - Time_Of_Day_Difference
 - check_binary_boolean_op arg1:Standard.Base.Any.Any arg2:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - check_binary_numeric_op arg1:Standard.Base.Any.Any arg2:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - check_multi_argument_comparable_op column:Standard.Base.Any.Any arg_or_args:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any

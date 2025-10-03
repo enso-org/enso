@@ -4,14 +4,14 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A double builder variant that preserves types and can be retyped to Mixed. */
-public final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRetyping {
+final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRetyping {
   /**
    * Converts the provided LongBuilder to a DoubleBuilder.
    *
@@ -79,14 +79,14 @@ public final class InferredDoubleBuilder extends DoubleBuilder implements Builde
   }
 
   @Override
-  public void appendBulkStorage(Storage<?> storage) {
+  public void appendBulkStorage(ColumnStorage<?> storage) {
     throw new UnsupportedOperationException(
         "appendBulkStorage is not supported on InferredDoubleBuilder. A DoubleBuilder or"
             + " MixedBuilder should be used instead. This is a bug in the Table library.");
   }
 
   @Override
-  public void appendLong(long integer) {
+  public InferredDoubleBuilder appendLong(long integer) {
     double convertedFloatValue = (double) integer;
     boolean isLossy = integer != (long) convertedFloatValue;
     if (isLossy) {
@@ -96,13 +96,13 @@ public final class InferredDoubleBuilder extends DoubleBuilder implements Builde
       isLongCompactedAsDouble.set(currentSize, true);
     }
     appendDouble(convertedFloatValue);
+    return this;
   }
 
   @Override
-  public void append(Object o) {
+  public InferredDoubleBuilder append(Object o) {
     if (o == null) {
-      appendNulls(1);
-      return;
+      return appendNulls(1);
     }
 
     if (NumericConverter.isFloatLike(o)) {
@@ -115,6 +115,13 @@ public final class InferredDoubleBuilder extends DoubleBuilder implements Builde
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
+    return this;
+  }
+
+  @Override
+  public InferredDoubleBuilder appendNulls(int count) {
+    super.appendNulls(count);
+    return this;
   }
 
   private void setRaw(int ix, Number o) {

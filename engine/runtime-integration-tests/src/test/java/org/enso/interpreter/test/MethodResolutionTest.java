@@ -35,13 +35,13 @@ public final class MethodResolutionTest {
     var myTypeVal =
         ctxRule.evalModule(
             """
-        from Standard.Base import all
+            from Standard.Base import all
 
-        type My_Type
-            method self = 42
+            type My_Type
+                method self = 42
 
-        main = My_Type
-        """);
+            main = My_Type
+            """);
     var myType = unwrapType(myTypeVal);
     var symbol = UnresolvedSymbol.build("to_display_text", myType.getDefinitionScope());
     var func = methodResolverNode.executeResolution(myType, symbol);
@@ -54,11 +54,11 @@ public final class MethodResolutionTest {
     var myTypeVal =
         ctxRule.evalModule(
             """
-        type My_Type
-            method self = 42
+            type My_Type
+                method self = 42
 
-        main = My_Type
-        """,
+            main = My_Type
+            """,
             "Module",
             "main");
     var myType = unwrapType(myTypeVal);
@@ -73,11 +73,11 @@ public final class MethodResolutionTest {
     var myTypeVal =
         ctxRule.evalModule(
             """
-        type My_Type
-            method = 42
+            type My_Type
+                method = 42
 
-        main = My_Type
-        """,
+            main = My_Type
+            """,
             "Module",
             "main");
     var myType = unwrapType(myTypeVal);
@@ -92,11 +92,11 @@ public final class MethodResolutionTest {
     var myTypeVal =
         ctxRule.evalModule(
             """
-        type My_Type
-        My_Type.method = 42
+            type My_Type
+            My_Type.method = 42
 
-        main = My_Type
-        """,
+            main = My_Type
+            """,
             "Module",
             "main");
     var myType = unwrapType(myTypeVal);

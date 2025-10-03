@@ -1,4 +1,4 @@
-import { type ProjectNameStore } from '@/stores/projectNames'
+import type { ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
@@ -8,7 +8,7 @@ import {
   type Identifier,
   type IdentifierOrOperatorIdentifier,
 } from '@/util/ast/abstract'
-import { type ProjectPath } from '@/util/projectPath'
+import type { ProjectPath } from '@/util/projectPath'
 import {
   normalizeQualifiedName,
   qnLastSegment,
@@ -133,6 +133,15 @@ export function addImports(
   const imports = importsToAdd.map((info) => requiredImportToAst(info, projectNames, scope.module))
   const position = newImportsLocation(scope)
   scope.insert(position, ...imports)
+}
+
+/**
+ * Create a non user-facing string representation of a required import.
+ * Meant for key generation and debugging, does not generate a valid code representation.
+ */
+export function printRequiredImport(i: RequiredImport): string {
+  if (i.kind === 'Qualified') return `${i.kind}:${i.module}`
+  return `${i.kind}:${i.from}(${i.import})`
 }
 
 /**

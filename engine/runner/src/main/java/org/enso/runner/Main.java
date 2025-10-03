@@ -5,9 +5,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,11 +34,14 @@ import org.enso.common.ContextFactory;
 import org.enso.common.DebugServerInfo;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
+import org.enso.common.PythonHomeFinder;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
+import org.enso.jvm.channel.JVM;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
-import org.enso.os.environment.jni.JVM;
+import org.enso.logger.Converter;
+import org.enso.logger.ObservedMessage;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
@@ -44,13 +49,13 @@ import org.enso.pkg.Template;
 import org.enso.polyglot.Module;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.polyglot.debugger.DebuggerSessionManagerEndpoint;
-import org.enso.profiling.sampler.NoopSampler;
-import org.enso.profiling.sampler.OutputStreamSampler;
+import org.enso.profiling.sampler.MethodsSampler;
 import org.enso.runner.common.LanguageServerApi;
 import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
 import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
@@ -62,7 +67,6 @@ import org.slf4j.event.Level;
 import scala.Option$;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.ExecutionContextExecutor;
-import scala.concurrent.duration.FiniteDuration;
 import scala.runtime.BoxedUnit;
 
 /** The main CLI entry point class. */
@@ -95,7 +99,6 @@ public class Main {
   private static final String TREAT_WARNINGS_AS_ERRORS_OPTION = "Werror";
   private static final String COMPILE_OPTION = "compile";
   private static final String NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies";
-  private static final String NO_GLOBAL_CACHE_OPTION = "no-global-cache";
   private static final String LOG_LEVEL = "log-level";
   private static final String LOGGER_CONNECT = "logger-connect";
   private static final String NO_LOG_MASKING = "no-log-masking";
@@ -309,6 +312,22 @@ public class Main {
             .longOpt(LanguageServerApi.PROJECT_ID_OPTION)
             .desc("Project id.")
             .build();
+    var cloudProjectIdOption =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("id")
+            .longOpt(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)
+            .desc("Cloud project id (hybrid).")
+            .build();
+    var cloudProjectSessionIdOption =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("id")
+            .longOpt(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)
+            .desc("Cloud project session id (hybrid).")
+            .build();
     var pathOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -344,8 +363,9 @@ public class Main {
             .argName("log-level")
             .longOpt(LOG_LEVEL)
             .desc(
-                "Sets the runtime log level. Possible values are: OFF, ERROR, "
-                    + "WARNING, INFO, DEBUG and TRACE. Default: INFO.")
+                "Sets the runtime log level. Possible values are: "
+                    + getPossibleLogLevels()
+                    + ". Default: info.")
             .build();
     var loggerConnectOption =
         cliOptionBuilder()
@@ -410,11 +430,6 @@ public class Main {
             .desc(
                 "Tells the compiler to not compile dependencies when performing static"
                     + " compilation.")
-            .build();
-    var noGlobalCacheOption =
-        cliOptionBuilder()
-            .longOpt(NO_GLOBAL_CACHE_OPTION)
-            .desc("Tells the compiler not to write compiled data to the global cache locations.")
             .build();
 
     var irCachesOption =
@@ -524,6 +539,8 @@ public class Main {
         .addOption(secureDataPortOption)
         .addOption(uuidOption)
         .addOption(projectIdOption)
+        .addOption(cloudProjectIdOption)
+        .addOption(cloudProjectSessionIdOption)
         .addOption(pathOption)
         .addOption(inProjectOption)
         .addOption(version)
@@ -538,7 +555,6 @@ public class Main {
         .addOption(noReadIrCachesOption)
         .addOption(compileOption)
         .addOption(noCompileDependenciesOption)
-        .addOption(noGlobalCacheOption)
         .addOptionGroup(cacheOptionsGroup)
         .addOption(autoParallelism)
         .addOption(skipGraalVMUpdater)
@@ -639,7 +655,9 @@ public class Main {
             nil(),
             "",
             Option$.MODULE$.empty(),
-            Option$.MODULE$.empty());
+            nil(),
+            Option$.MODULE$.empty(),
+            false);
     throw exitSuccess();
   }
 
@@ -649,11 +667,10 @@ public class Main {
    * @param path the path to the package or file being compiled
    * @param shouldCompileDependencies whether the dependencies of that package should also be
    *     compiled
-   * @param shouldUseGlobalCache whether or not the compilation result should be written to the
-   *     global cache
    * @param shouldUseIrCaches whether or not IR caches should be used.
    * @param disablePrivateCheck whether or not the private check should be disabled
-   * @param enableStaticAnalysis whether or not static type checking should be enabled
+   * @param enableStaticAnalysis whether or not static type checking, and other static analysis,
+   *     should be enabled
    * @param treatWarningsAsErrors whether or not warnings should be treated as errors
    * @param logLevel the logging level
    * @param logMasking whether or not log masking is enabled
@@ -662,7 +679,6 @@ public class Main {
       String cwd,
       String path,
       boolean shouldCompileDependencies,
-      boolean shouldUseGlobalCache,
       boolean shouldUseIrCaches,
       boolean disablePrivateCheck,
       boolean enableStaticAnalysis,
@@ -681,14 +697,13 @@ public class Main {
                 .projectRoot(projectPath)
                 .in(System.in)
                 .out(System.out)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .logMasking(logMasking)
                 .enableIrCaches(shouldUseIrCaches)
                 .disablePrivateCheck(disablePrivateCheck)
                 .enableStaticAnalysis(enableStaticAnalysis)
                 .treatWarningsAsErrors(treatWarningsAsErrors)
                 .strictErrors(true)
-                .useGlobalIrCacheLocation(shouldUseGlobalCache)
                 .build());
 
     try {
@@ -774,13 +789,19 @@ public class Main {
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
 
+    String pythonResourceDir = null;
+    if (PythonHomeFinder.findPythonHome() instanceof Path pythonHome) {
+      pythonResourceDir = pythonHome.getParent().toFile().getCanonicalPath();
+    }
+
     var factory =
         ContextFactory.create()
             .projectRoot(projectRoot)
-            .logLevel(logLevel)
+            .logLevel(Converter.toJavaLevel(logLevel))
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
+            .pythonResourceDir(pythonResourceDir)
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
             .enableStaticAnalysis(enableStaticAnalysis)
@@ -867,7 +888,7 @@ public class Main {
                 .projectRoot(path)
                 .in(System.in)
                 .out(System.out)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
                 .build());
@@ -998,11 +1019,11 @@ public class Main {
     var mainMethodName = "internal_repl_entry_point___";
     var dummySourceToTriggerRepl =
         """
-         from Standard.Base import all
-         import Standard.Base.Runtime.Debug
+        from Standard.Base import all
+        import Standard.Base.Runtime.Debug
 
-         $mainMethodName = Debug.breakpoint
-         """
+        $mainMethodName = Debug.breakpoint
+        """
             .replace("$mainMethodName", mainMethodName);
     var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
@@ -1013,7 +1034,7 @@ public class Main {
                 .projectRoot(projectRoot)
                 .messageTransport(replTransport())
                 .enableDebugServer(true)
-                .logLevel(logLevel)
+                .logLevel(Converter.toJavaLevel(logLevel))
                 .executionEnvironment("live")
                 .logMasking(logMasking)
                 .enableIrCaches(enableIrCaches)
@@ -1063,14 +1084,16 @@ public class Main {
     var found =
         Stream.of(Level.values()).filter(x -> name.equals(x.name().toLowerCase())).findFirst();
     if (found.isEmpty()) {
-      var possible =
-          Stream.of(Level.values())
-              .map(x -> x.toString().toLowerCase())
-              .collect(Collectors.joining(", "));
-      throw exitFail("Invalid log level. Possible values are " + possible + ".");
+      throw exitFail("Invalid log level. Possible values are " + getPossibleLogLevels() + ".");
     } else {
       return found.get();
     }
+  }
+
+  private static String getPossibleLogLevels() {
+    return Stream.of(Level.values())
+        .map(x -> x.toString().toLowerCase())
+        .collect(Collectors.joining(", "));
   }
 
   /** Parses an URI that specifies the logging service connection. */
@@ -1171,13 +1194,11 @@ public class Main {
     if (line.hasOption(COMPILE_OPTION)) {
       var packagePath = line.getOptionValue(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
-      var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
 
       compile(
           cwd,
           packagePath,
           shouldCompileDependencies,
-          shouldUseGlobalCache,
           shouldEnableIrCaches(line),
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
@@ -1244,17 +1265,26 @@ public class Main {
    * @return `true` if caching should be enabled, `false`, otherwise
    */
   private boolean shouldEnableIrCaches(CommandLine line) {
-    // Temporarily, enabling static analysis disables IR caches.
     if (line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION)) {
       if (line.hasOption(IR_CACHES_OPTION)) {
         throw exitFail(
-            "Currently --"
+            ""
                 + ENABLE_STATIC_ANALYSIS_OPTION
                 + " requires IR caches to be disabled, so --"
                 + IR_CACHES_OPTION
                 + " option cannot be used in combination with this flag.");
       }
-
+      return false;
+    }
+    if (line.hasOption(DISABLE_PRIVATE_CHECK_OPTION)) {
+      if (line.hasOption(IR_CACHES_OPTION)) {
+        throw exitFail(
+            ""
+                + DISABLE_PRIVATE_CHECK_OPTION
+                + " requires IR caches to be disabled, so --"
+                + IR_CACHES_OPTION
+                + " option cannot be used in combination with this flag.");
+      }
       return false;
     }
 
@@ -1283,30 +1313,41 @@ public class Main {
       java.util.concurrent.Callable<A> main)
       throws IOException {
     var path = profilingConfig.profilingPath();
-    var sampler =
-        path.isDefined() ? OutputStreamSampler.ofFile(path.get().toFile()) : new NoopSampler();
+    var events = profilingConfig.profilingEventsLogPath();
+    var pathOS = path.isEmpty() ? null : Files.newOutputStream(path.get());
+    var eventsOS = events.isEmpty() ? null : Files.newOutputStream(events.get());
+    var sampler = MethodsSampler.create(pathOS, eventsOS);
     sampler.start();
-    profilingConfig
-        .profilingTime()
-        .foreach(timeout -> sampler.scheduleStop(timeout.length(), timeout.unit(), executor));
+    profilingConfig.profilingTime().foreach(timeout -> sampler.scheduleStop(timeout));
     scala.sys.package$.MODULE$.addShutdownHook(
         () -> {
           try {
-            sampler.stop();
+            sampler.close();
           } catch (IOException ex) {
             LOGGER.error("Error stopping sampler", ex);
           }
           return BoxedUnit.UNIT;
         });
 
-    try {
+    try (var _ =
+            ObservedMessage.observe(
+                LoggerFactory.getLogger("org.enso"),
+                (ev) -> {
+                  sampler.log(ev.getInstant(), ev.getFormattedMessage());
+                });
+        var _ =
+            ObservedMessage.observe(
+                LoggerFactory.getLogger("enso"),
+                (ev) -> {
+                  sampler.log(ev.getInstant(), ev.getFormattedMessage());
+                }); ) {
       return main.call();
     } catch (IOException | RuntimeException ex) {
       throw ex;
     } catch (Exception ex) {
       throw new IOException(ex);
     } finally {
-      sampler.stop();
+      sampler.close();
     }
   }
 
@@ -1346,11 +1387,11 @@ public class Main {
     } catch (InvalidPathException e) {
       throw new WrongOption("Profiling path is invalid");
     }
-    FiniteDuration profilingTime = null;
+    Duration profilingTime = null;
     try {
       var time = line.getOptionValue(PROFILING_TIME);
       if (time != null) {
-        profilingTime = FiniteDuration.apply(Integer.parseInt(time), TimeUnit.SECONDS);
+        profilingTime = Duration.of(Integer.parseInt(time), TimeUnit.SECONDS.toChronoUnit());
       }
     } catch (NumberFormatException e) {
       throw new WrongOption("Profiling time should be an integer");
@@ -1399,55 +1440,56 @@ public class Main {
    * Checks if JVM mode should be enabled in a project defined by arguments, based on a project's
    * config file, if any.
    *
+   * @param cwd current working directory or {@code null}
    * @param line parsed command line arguments
    * @return true, if project should be launched in JVM mode, false otherwise
    */
-  private boolean isJvmModeEnabled(CommandLine line) {
-    var target = line.getOptionValue(RUN_OPTION);
-    if (target == null) {
-      return false;
-    }
-
-    var f = new File(target);
-    // Guess project's root directory
-    File configFile = null;
-    while (configFile == null && f != null) {
-      var testFile = f.toPath().resolve(org.enso.pkg.Config.ensoPackageConfigName());
-      if (testFile.toFile().exists()) {
-        configFile = testFile.toFile();
-      } else {
-        f = f.getParentFile();
-      }
-    }
-    if (configFile == null) {
-      return false;
-    } else {
-      try (FileReader fileReader = new FileReader(configFile)) {
-        return org.enso.pkg.Config.fromYaml(fileReader)
-            .map(c -> c.jvm().getOrElse(() -> false))
-            .getOrElse(() -> false);
-      } catch (IOException e) {
+  private boolean isJvmModeEnabled(String cwd, CommandLine line) {
+    try {
+      var projectPath = line.getOptionValue(IN_PROJECT_OPTION);
+      var path = line.getOptionValue(RUN_OPTION);
+      if (path == null) {
         return false;
       }
+
+      var fileAndProject = Utils.findFileAndProject(cwd, path, projectPath);
+      if (fileAndProject._3() == null) {
+        return false;
+      } else {
+        var configFile =
+            new File(fileAndProject._3())
+                .toPath()
+                .resolve(org.enso.pkg.Config.ensoPackageConfigName());
+        if (!configFile.toFile().exists()) {
+          return false;
+        } else {
+          try (var fileReader = new FileReader(configFile.toFile())) {
+            return org.enso.pkg.Config.fromYaml(fileReader)
+                .map(c -> c.jvm().getOrElse(() -> false))
+                .getOrElse(() -> false);
+          }
+        }
+      }
+    } catch (IOException e) {
+      return false;
     }
   }
 
   private void launchJvm(
-      CommandLine line, Map<String, String> props, File component, File javaExecutable)
+      String originalCwdOrNull,
+      CommandLine line,
+      Map<String, String> props,
+      File component,
+      File javaExecutable)
       throws IOException, InterruptedException {
-    var useJNI = true;
+    /* Cannot use JNI when not in Native Image code. Fallback to launching a process. */
+    var useJNI = ImageInfo.inImageCode();
     var commandAndArgs = new ArrayList<String>();
+    if (originalCwdOrNull != null) {
+      commandAndArgs.add("-Denso.user.dir=" + originalCwdOrNull);
+    }
     if (!useJNI) {
       commandAndArgs.add(javaExecutable.getPath());
-      var jvmOptions = System.getenv("JAVA_OPTS");
-      if (jvmOptions != null) {
-        for (var op : jvmOptions.split(" ")) {
-          if (op.isEmpty()) {
-            continue;
-          }
-          commandAndArgs.add(op);
-        }
-      }
     }
     var assertsOn = false;
     assert assertsOn = true;
@@ -1530,8 +1572,13 @@ public class Main {
     }
 
     var logMasking = new boolean[1];
-    var logLevel = setupLogging(line, logMasking);
     var props = parseSystemProperties(line);
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        System.setProperty(e.getKey(), e.getValue());
+      }
+    }
+    var logLevel = setupLogging(line, logMasking);
 
     var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
     var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
@@ -1540,7 +1587,7 @@ public class Main {
     }
     assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
     var hasJVMOption = line.hasOption(JVM_OPTION);
-    var jvmInProjectEnforced = isJvmModeEnabled(line);
+    var jvmInProjectEnforced = isJvmModeEnabled(originalCwdOrNull, line);
     if (hasJVMOption || jvmInProjectEnforced) {
       var jvm = line.getOptionValue(JVM_OPTION);
       var current = System.getProperty("java.home");
@@ -1548,34 +1595,35 @@ public class Main {
         jvm = current;
       }
       var shouldLaunchJvm = current == null || !current.equals(jvm);
-      if (!shouldLaunchJvm) {
-        if (hasJVMOption) {
-          stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
-        }
-      } else {
-        if (jvm == null) {
-          var javaExe = JavaFinder.findJavaExecutable();
-          if (javaExe == null) {
-            // Try your best if `jvm` mode enabled in a project
-            if (!jvmInProjectEnforced) {
-              throw exitFail("Cannot find java executable");
-            }
-          } else {
-            launchJvm(line, props, component, javaExe);
-          }
+      if (shouldLaunchJvm) {
+        var javaExecutable =
+            jvm != null
+                ? new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile()
+                : JavaFinder.findJavaExecutable();
+        if (javaExecutable != null) {
+          launchJvm(originalCwdOrNull, line, props, component, javaExecutable);
+          return;
         } else {
-          var javaExecutable = new File(new File(new File(jvm), "bin"), "java").getAbsoluteFile();
-          launchJvm(line, props, component, javaExecutable);
+          throw exitFail(
+              "Cannot find java executable to run in JVM mode. JVM mode "
+                  + "was enforced either by `--jvm` option or by project configuration.");
         }
       }
     }
-
-    if (props != null) {
-      for (var e : props.entrySet()) {
-        System.setProperty(e.getKey(), e.getValue());
+    if (HostEnsoUtils.isAot()) {
+      if (jvmInProjectEnforced) {
+        throw exitFail("Cannot find java executable to run in JVM mode");
+      } else {
+        if (System.getProperty("java.home") == null) {
+          var exe = JavaFinder.findJavaExecutable();
+          if (exe != null) {
+            var path = exe.getParentFile().getParentFile().getAbsolutePath();
+            System.setProperty("java.home", path);
+            LOGGER.debug("Setting java.home property for AOT mode to {}", path);
+          }
+        }
       }
     }
-
     handleLaunch(originalCwdOrNull, line, logLevel, logMasking[0]);
   }
 
@@ -1617,8 +1665,15 @@ public class Main {
     } catch (IllegalArgumentException e) {
       projectId = "00000000-0000-0000-0000-000000000000";
     }
-
-    MDC.put("project.id", projectId);
+    if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)) {
+      MDC.put("projectId", line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_ID_OPTION));
+    }
+    if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)) {
+      MDC.put(
+          "projectSessionId",
+          line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION));
+    }
+    MDC.put("projectLocalId", projectId);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
     return logLevel;
   }

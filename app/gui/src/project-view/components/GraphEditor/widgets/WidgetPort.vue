@@ -1,25 +1,26 @@
 <script setup lang="ts">
+import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
+import type { NavigatorComposable } from '@/composables/navigator'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
 import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { PortViewInstance, useGraphStore } from '@/stores/graph'
+import { PortViewInstance } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
-import { cachedGetter } from '@/util/reactivity'
+import { cachedGetter, proxyRefs } from '@/util/reactivity'
 import {
   computed,
   nextTick,
   onMounted,
   onUpdated,
-  proxyRefs,
   shallowRef,
   toRef,
   watch,
@@ -31,7 +32,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 
 const graph = useGraphStore()
 
-const navigator = injectGraphNavigator()
+const navigator = injectGraphNavigator(true)
 const tree = injectWidgetTree()
 const selection = injectGraphSelection(true)
 
@@ -40,7 +41,8 @@ const isCurrentEdgeHoverTarget = computed(
   () =>
     graph.mouseEditedEdge?.source != null &&
     selection?.hoveredPort === portId.value &&
-    graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.externalId,
+    (tree.externalId == null ||
+      graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.externalId),
 )
 const isCurrentDisconnectedEdgeTarget = computed(
   () =>
@@ -82,9 +84,10 @@ providePortInfo(proxyRefs({ portId, connected: hasConnection }))
 watchEffect(
   (onCleanup) => {
     const externalId = tree.externalId
-    if (!graph.db.isNodeId(externalId)) return
+    if (externalId == null || !graph.db.isNodeId(externalId)) return
     const id = portId.value
-    const instance = new PortViewInstance(portRect, externalId, props.onUpdate)
+    const expectedType = toRef(() => props.input.expectedType)
+    const instance = new PortViewInstance(portRect, expectedType, externalId, props.updateCallback)
     graph.addPortInstance(id, instance)
     onCleanup(() => graph.removePortInstance(id, instance))
   },
@@ -107,7 +110,7 @@ const enabled = computed(() => {
  */
 function updateRect() {
   const oldRect = portRect.value
-  const newRect = relativePortSceneRect()
+  const newRect = navigator ? relativePortSceneRect(navigator) : undefined
   if (
     oldRect !== newRect &&
     (oldRect == null || newRect == null || !oldRect.equalsApproximately(newRect, 0.01))
@@ -116,7 +119,7 @@ function updateRect() {
   }
 }
 
-function relativePortSceneRect(): Rect | undefined {
+function relativePortSceneRect(navigator: NavigatorComposable): Rect | undefined {
   const domNode = portRoot.value
   const rootDomNode = tree.rootElement
   if (domNode == null || rootDomNode == null) return

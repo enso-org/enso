@@ -1,9 +1,9 @@
-import { type BrowserItem } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
-import { type CustomDropdownItem } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
-import { FileType, isExtensions, isFileTypes } from '@/providers/widgetRegistry/configuration'
+import type { BrowserItem } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
+import type { CustomDropdownItem } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
+import { isExtensions, isFileTypes, type FileType } from '@/providers/widgetRegistry/configuration'
 import { assert } from '@/util/assert'
-import { FileFilter } from '@/util/fileFilter'
-import { type ToValue } from '@/util/reactivity'
+import type { FileFilter } from '@/util/fileFilter'
+import type { ToValue } from '@/util/reactivity'
 import { computed, toValue, type ComputedRef } from 'vue'
 
 const LABELS = new Map<BrowserItem, string>([

@@ -74,7 +74,11 @@ object ExecutionApi {
 
   case object ExecutionContextPush extends Method("executionContext/push") {
 
-    case class Params(contextId: ContextId, stackItem: StackItem)
+    case class Params(
+      contextId: ContextId,
+      stackItem: StackItem,
+      execute: Option[Boolean]
+    )
 
     implicit
     val hasParams: HasParams.Aux[this.type, ExecutionContextPush.Params] =

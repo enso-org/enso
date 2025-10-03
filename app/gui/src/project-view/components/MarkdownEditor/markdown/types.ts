@@ -1,6 +1,6 @@
 /** @file Inline formatting types and their basic operations. */
-import * as objects from 'enso-common/src/utilities/data/object'
-import { Range } from 'ydoc-shared/util/data/range'
+import { mapEntries } from 'enso-common/src/utilities/data/object'
+import type { Range } from 'ydoc-shared/util/data/range'
 
 declare const brandDelimitersTrimmed: unique symbol
 /** A {@link Range} that doesn't start with an end delimiter or end with a start delimiter. */
@@ -150,7 +150,7 @@ export function andFormatting(a: Readonly<FormatStates>, b: Readonly<FormatState
 
 /** @returns The formats that have non-zero depth in the input. */
 export function depthsToStates(depths: Readonly<FormatDepths>): FormatStates {
-  return objects.mapEntries(depths, (_k, v) => v > 0)
+  return mapEntries(depths, (_k, v) => v > 0)
 }
 
 /** @returns A base case for {@FormatDepths}. */

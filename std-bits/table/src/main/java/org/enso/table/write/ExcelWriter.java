@@ -1,5 +1,10 @@
 package org.enso.table.write;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.AccessMode;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -15,7 +20,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.ColumnCountMismatchException;
@@ -23,7 +28,13 @@ import org.enso.table.error.ColumnNameMismatchException;
 import org.enso.table.error.ExistingDataException;
 import org.enso.table.error.InvalidLocationException;
 import org.enso.table.error.RangeExceededException;
-import org.enso.table.excel.*;
+import org.enso.table.excel.ExcelFileFormat;
+import org.enso.table.excel.ExcelHeaders;
+import org.enso.table.excel.ExcelRange;
+import org.enso.table.excel.ExcelRow;
+import org.enso.table.excel.ExcelSheet;
+import org.enso.table.excel.ExcelUtils;
+import org.enso.table.excel.ExcelWriteHelper;
 import org.enso.table.util.ColumnMapper;
 import org.enso.table.util.NameDeduplicator;
 
@@ -38,6 +49,26 @@ public class ExcelWriter {
     if (ensoToTextCallback == null) {
       ensoToTextCallback = callback;
     }
+  }
+
+  public static <T> T withWorkbook(
+      File file, ExcelFileFormat format, Function<ExcelWriteHelper, T> action)
+      throws IOException, InterruptedException {
+    verifyIsWritable(file);
+
+    ExcelWriteHelper helper = new ExcelWriteHelper(file, format);
+    return action.apply(helper);
+  }
+
+  private static void verifyIsWritable(File file) throws IOException {
+    Path path = file.toPath();
+
+    if (!Files.exists(path)) {
+      // If the file does not exist, we assume that we can create it.
+      return;
+    }
+
+    path.getFileSystem().provider().checkAccess(path, AccessMode.WRITE, AccessMode.READ);
   }
 
   public static void writeTableToSheet(
@@ -271,8 +302,8 @@ public class ExcelWriter {
           InterruptedException {
     Table mappedTable =
         switch (existingDataMode) {
-          case APPEND_BY_INDEX -> ColumnMapper.mapColumnsByPosition(
-              table, expanded.getColumnCount());
+          case APPEND_BY_INDEX ->
+              ColumnMapper.mapColumnsByPosition(table, expanded.getColumnCount());
           case APPEND_BY_NAME -> {
             if (headers == ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES) {
               throw new IllegalArgumentException(
@@ -285,10 +316,11 @@ public class ExcelWriter {
             yield ColumnMapper.mapColumnsByName(
                 table, NameDeduplicator.createIgnoringProblems().makeUniqueArray(currentHeaders));
           }
-          default -> throw new IllegalArgumentException(
-              "Internal Error: appendRangeWithTable called with illegal existing data mode '"
-                  + existingDataMode
-                  + "'.");
+          default ->
+              throw new IllegalArgumentException(
+                  "Internal Error: appendRangeWithTable called with illegal existing data mode '"
+                      + existingDataMode
+                      + "'.");
         };
 
     if (range.isSingleCell()) {
@@ -457,7 +489,7 @@ public class ExcelWriter {
 
     boolean use1904Format = ExcelUtils.is1904DateSystem(workbook);
 
-    Storage<?>[] storages = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
+    var storages = Arrays.stream(columns).map(Column::getStorage).toArray(ColumnStorage[]::new);
     for (int i = 0; i < rowCount; i++) {
       Row row = sheet.getRow(currentRow);
       if (row == null) {
@@ -465,7 +497,7 @@ public class ExcelWriter {
       }
 
       for (int j = 0; j < columns.length; j++) {
-        Storage<?> storage = storages[j];
+        var storage = storages[j];
         int idx = j + firstColumn - 1;
 
         Cell cell = row.getCell(idx);
@@ -495,7 +527,7 @@ public class ExcelWriter {
   }
 
   private static void writeValueToCell(
-      Cell cell, int j, Storage<?> storage, Workbook workbook, boolean use1904Format)
+      Cell cell, int j, ColumnStorage<?> storage, Workbook workbook, boolean use1904Format)
       throws IllegalStateException {
     if (storage.isNothing(j)) {
       cell.setBlank();

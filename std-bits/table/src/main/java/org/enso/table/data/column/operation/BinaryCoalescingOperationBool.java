@@ -1,14 +1,15 @@
 package org.enso.table.data.column.operation;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.operation.binary.FillMissingOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.error.UnexpectedTypeException;
 
-public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<Boolean> {
+public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<Boolean, Boolean> {
   public static final BinaryCoalescingOperationBool MIN_INSTANCE =
       new BinaryCoalescingOperationBool() {
         @Override
@@ -19,8 +20,9 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
         @Override
         protected ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue) {
           return rightValue
-              ? left.fillMissingBoolean(true)
-              : BoolStorage.makeConstant(Builder.checkSize(left.getSize()), false);
+              ? FillMissingOperation.BooleanFillMissingOperation.fillMissingBoolStorage(left, true)
+              : BooleanType.INSTANCE.asTypedStorage(
+                  Builder.fromRepeatedItem(false, left.getSize()));
         }
       };
 
@@ -34,13 +36,14 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
         @Override
         protected ColumnStorage<Boolean> applyMapBoolStorage(BoolStorage left, boolean rightValue) {
           return rightValue
-              ? BoolStorage.makeConstant(Builder.checkSize(left.getSize()), true)
-              : left.fillMissingBoolean(false);
+              ? BooleanType.INSTANCE.asTypedStorage(Builder.fromRepeatedItem(true, left.getSize()))
+              : FillMissingOperation.BooleanFillMissingOperation.fillMissingBoolStorage(
+                  left, false);
         }
       };
 
   private BinaryCoalescingOperationBool() {
-    super(BooleanType.INSTANCE, false);
+    super(BooleanType.INSTANCE, BooleanType.INSTANCE, false);
   }
 
   @Override

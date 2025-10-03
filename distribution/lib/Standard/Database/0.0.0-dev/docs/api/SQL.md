@@ -14,4 +14,19 @@
     - paren self -> Standard.Base.Any.Any
     - prefix_if_present self prefix:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type SQL_Fragment
+- type SQL_Statement
+    - deserialize json:(Standard.Base.Data.Text.Text|Standard.Base.Data.Json.JS_Object) -> Standard.Database.SQL.SQL_Statement!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+    - fragments self -> Standard.Base.Any.Any
+    - prepare self -> Standard.Base.Any.Any
+    - serialize self ensure_roundtrip:Standard.Base.Data.Boolean.Boolean -> Standard.Base.Data.Json.JS_Object!Standard.Database.SQL.Unable_To_Serialize_SQL_Statement
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Data.Text.Text
+    - unsafe_to_raw_sql self -> Standard.Base.Any.Any
+- type SQL_Type
+    - Value typeid:Standard.Base.Data.Numbers.Integer name:Standard.Base.Data.Text.Text precision:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer)= scale:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Numbers.Integer)= nullable:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Nothing.Nothing)=
+    - from_metadata metadata:Standard.Base.Any.Any ix:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - null -> Standard.Base.Any.Any
+- type Unable_To_Serialize_SQL_Statement
+    - Error obj:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
 - optimize_fragments fragments:Standard.Base.Any.Any -> Standard.Base.Any.Any

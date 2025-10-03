@@ -208,6 +208,7 @@ export class AliasAnalyzer {
       } else {
         this.processNode(child)
       }
+      return false
     })
   }
 
@@ -223,6 +224,7 @@ export class AliasAnalyzer {
     } else {
       node.visitChildren((child) => {
         this.processNode(child)
+        return false
       })
     }
   }

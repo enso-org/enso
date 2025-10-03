@@ -2,57 +2,42 @@
  * @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components.
  */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-
+import Page from '#/components/Page'
+import { backendQueryOptions } from '#/hooks/backendHooks'
+import { usePaywall } from '#/hooks/billing'
+import { useBindGlobalActions } from '#/hooks/menuHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories'
-import DriveProvider from '#/providers/DriveProvider'
-
+import SettingsTabType from '#/layouts/Settings/TabType'
+import { setDriveLocation } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, {
-  useClearLaunchedProjects,
-  useLaunchedProjects,
-  usePage,
-  useSetPage,
-} from '#/providers/ProjectsProvider'
-
-import Page from '#/components/Page'
-
 import * as backendModule from '#/services/Backend'
 import * as localBackendModule from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
-
-import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
-import { useBackends, useConfig } from '$/providers/react'
-import { usePrefetchQuery } from '@tanstack/react-query'
+import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
+import AppContainerInnerVue from '$/components/AppContainer/AppContainerInner.vue'
+import { useBackends, useConfig, useFullUserSession, useRouter } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
+import { useLaunchedProjects } from '$/providers/react/container'
+import { usePrefetchQuery, useQuery } from '@tanstack/react-query'
+import * as detect from 'enso-common/src/detect'
+import * as React from 'react'
+import type { Router } from 'vue-router'
 
-const TabView = React.lazy(() =>
-  import('$/components/TabView.vue').then(({ default: vue }) => vueComponent(vue)),
-)
-
-/** The component that contains the entire UI. */
-export default function Dashboard() {
-  return (
-    /* Ideally this would be in `Drive.tsx`, but it currently must be all the way out here
-     * due to modals being in `TheModal`. */
-    <DriveProvider>
-      {({ resetAssetTableState }) => (
-        <CategoriesProvider onCategoryChange={resetAssetTableState}>
-          <ProjectsProvider>
-            <DashboardInner />
-          </ProjectsProvider>
-        </CategoriesProvider>
-      )}
-    </DriveProvider>
-  )
+/** Dashboard properties */
+export interface DashboardProps {
+  readonly projectToOpen?:
+    | { readonly asset: backendModule.ProjectAsset; readonly backend: backendModule.BackendType }
+    | undefined
 }
+
+// This is a component, not a mere constant
+// eslint-disable-next-line no-restricted-syntax
+const AppContainerInner = vueComponent(AppContainerInnerVue).default
 
 /** Extract proper path from `file://` URL. */
 function fileURLToPath(url: string): string | null {
@@ -73,60 +58,106 @@ function fileURLToPath(url: string): string | null {
   }
 }
 
+/** Navigate to a specific settings tab. */
+function goToSettingsTab(router: Router, tab: SettingsTabType) {
+  void router.push({
+    path: '/settings',
+    query: { [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify(tab) },
+  })
+}
+
 /** The component that contains the entire UI. */
-function DashboardInner() {
-  const { localBackend } = useBackends()
+export function Dashboard(props: DashboardProps) {
+  const { remoteBackend, localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const config = useConfig()
-
-  const initialProjectNameRaw = config.params.startup.project
+  const { router } = useRouter()
+  const initialProjectNameRaw = useVueValue(
+    React.useCallback(() => config.params.startup.project, [config]),
+  )
+  const { data: organization = null } = useQuery(
+    backendQueryOptions(remoteBackend, 'getOrganization', []),
+  )
   const initialLocalProjectPath = fileURLToPath(initialProjectNameRaw)
-  const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
-
-  const categoriesAPI = useCategoriesAPI()
-
+  const launchedProjects = useLaunchedProjects()
   const openProjectLocally = projectHooks.useOpenProjectLocally()
+  const initialAlreadyLaunchedProject = launchedProjects.find(
+    (lp) => lp.id === props.projectToOpen?.asset.id,
+  )
+  const initialAlreadyLaunchedHybridProject = launchedProjects.find(
+    (lp) => lp.state === 'launched' && lp.hybrid?.cloudProjectId === props.projectToOpen?.asset.id,
+  )
+
+  const closeProject = projectHooks.useCloseProject()
+  const closeAllProjects = projectHooks.useCloseAllProjects()
+  const { user } = useFullUserSession()
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
 
   usePrefetchQuery({
-    queryKey: ['loadInitialLocalProject'],
+    queryKey: ['loadInitialProject'],
     networkMode: 'always',
     ...STATIC_QUERY_OPTIONS,
     queryFn: async () => {
-      if (initialLocalProjectPath != null && window.backendApi && localBackend) {
+      if (props.projectToOpen) {
+        if (
+          // If project is already on launched list, then the Editor.tsx will handle opening it.
+          !initialAlreadyLaunchedProject &&
+          !initialAlreadyLaunchedHybridProject &&
+          !projectHooks.BUSY_PROJECT_STATES.has(props.projectToOpen.asset.projectState.type)
+        ) {
+          await openProjectLocally(props.projectToOpen.asset, props.projectToOpen.backend)
+        }
+      } else if (initialLocalProjectPath != null && localBackend) {
         const projectName = baseName(initialLocalProjectPath)
-        const { id } = await window.backendApi.importProjectFromPath(
-          initialLocalProjectPath,
-          localBackend.rootPath(),
-          projectName,
+        const parentDirectoryId = localBackendModule.newDirectoryId(localBackend.rootPath())
+        const metadata = await localBackend.uploadFileStart(
+          {
+            parentDirectoryId,
+            fileName: projectName,
+            fileId: null,
+            filePath: backendModule.Path(initialLocalProjectPath),
+          },
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          null!,
         )
+        const endMetadata = await localBackend.uploadFileEnd({
+          parentDirectoryId,
+          fileName: projectName,
+          assetId: null,
+          parts: [],
+          ...metadata,
+        })
+        if (endMetadata.project == null) {
+          return
+        }
         await openProjectLocally(
           {
-            id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
+            id: endMetadata.id,
             title: projectName,
             parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+            ensoPath: backendModule.EnsoPath(
+              String(backendModule.extractTypeAndPath(endMetadata.id).path),
+            ),
           },
           backendModule.BackendType.local,
         )
       }
       return null
     },
-    staleTime: Infinity,
   })
 
   React.useEffect(() => {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
-      categoriesAPI.setCategory('local')
+      setDriveLocation(null, 'local')
 
-      const projectId = localBackendModule.newProjectId(
-        projectManager.UUID(project.id),
-        projectManager.Path(project.parentDirectory),
-      )
+      const projectId = localBackendModule.newProjectId(project.projectRoot)
 
       void openProjectLocally(
         {
           id: projectId,
           title: project.name,
           parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
+          ensoPath: backendModule.EnsoPath(String(project.projectRoot)),
         },
         backendModule.BackendType.local,
       )
@@ -135,56 +166,87 @@ function DashboardInner() {
     return () => {
       window.projectManagementApi?.setOpenProjectHandler(() => {})
     }
-  }, [openProjectLocally, categoriesAPI])
+  }, [openProjectLocally])
 
-  React.useEffect(() => {
-    if (detect.isOnElectron()) {
+  const inputBindingHandlers = React.useMemo(() => {
+    const hasOrganization = backendModule.isUserOnPlanWithMultipleSeats(user)
+
+    return inputBindings.defineHandlers({
       // We want to handle the back and forward buttons in electron the same way as in the browser.
-      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+      ...(detect.isOnElectron() && {
         goBack: () => {
           window.navigationApi.goBack()
         },
         goForward: () => {
           window.navigationApi.goForward()
         },
-      })
-    }
-  }, [inputBindings])
+        goToAccountSettings: () => {
+          goToSettingsTab(router, SettingsTabType.account)
+        },
+        ...(hasOrganization && {
+          goToOrganizationSettings: () => {
+            goToSettingsTab(router, SettingsTabType.organization)
+          },
+        }),
+        ...(localBackend && {
+          goToLocalSettings: () => {
+            goToSettingsTab(router, SettingsTabType.local)
+          },
+        }),
+        ...(user.isOrganizationAdmin &&
+          organization?.subscription != null && {
+            goToBillingAndPlansSettings: () => {
+              goToSettingsTab(router, SettingsTabType.billingAndPlans)
+            },
+          }),
+        ...(hasOrganization && {
+          goToMembersSettings: () => {
+            goToSettingsTab(router, SettingsTabType.members)
+          },
+        }),
+        ...(hasOrganization && {
+          goToUserGroupsSettings: () => {
+            goToSettingsTab(router, SettingsTabType.userGroups)
+          },
+        }),
+        goToKeyboardShortcutsSettings: () => {
+          goToSettingsTab(router, SettingsTabType.keyboardShortcuts)
+        },
+        ...(hasOrganization && {
+          goToActivityLogSettings: () => {
+            goToSettingsTab(router, SettingsTabType.activityLog)
+          },
+        }),
+      }),
+      closeModal: () => modalProvider.unsetModal(),
+    })
+  }, [inputBindings, localBackend, organization?.subscription, router, user])
+
+  useBindGlobalActions(inputBindingHandlers)
 
   React.useEffect(
     () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-        closeModal: () => modalProvider.unsetModal(),
-      }),
-    [inputBindings],
+      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', inputBindingHandlers),
+    [inputBindings, inputBindingHandlers],
   )
 
-  const page = usePage()
-  const setPage = useSetPage()
-  const launchedProjects = useLaunchedProjects()
-  const closeProject = projectHooks.useCloseProject()
-  const closeAllProjects = projectHooks.useCloseAllProjects()
-  const clearLaunchedProjects = useClearLaunchedProjects()
-
   return (
-    <Page hideInfoBar>
-      <div
-        className="flex min-h-full flex-col text-xs text-primary"
-        onContextMenu={(event) => {
-          event.preventDefault()
-          modalProvider.unsetModal()
-        }}
-      >
-        <TabView
-          initialProjectName={initialProjectName}
-          page={page}
-          setPage={setPage}
-          launchedProjects={launchedProjects}
-          closeProject={closeProject}
-          closeAllProjects={closeAllProjects}
-          clearLaunchedProjects={clearLaunchedProjects}
-        />
-      </div>
-    </Page>
+    <CategoriesProvider>
+      <Page hideInfoBar>
+        <div
+          className="flex min-h-full flex-col text-xs text-primary"
+          onContextMenu={(event) => {
+            event.preventDefault()
+            modalProvider.unsetModal()
+          }}
+        >
+          <AppContainerInner
+            onCloseProject={closeProject}
+            onCloseAllProjects={closeAllProjects}
+            isFeatureUnderPaywall={isFeatureUnderPaywall}
+          />
+        </div>
+      </Page>
+    </CategoriesProvider>
   )
 }

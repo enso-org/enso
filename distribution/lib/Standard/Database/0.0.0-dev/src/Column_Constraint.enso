@@ -1,26 +1,35 @@
 from Standard.Base import all
 
-## ADVANCED
+## ---
+   advanced: true
+   ---
    Specifies additional properties for a column created using
    `Connection.create_table`.
-
    The support for the constraints may vary between databases.
 type Column_Constraint
-    ## ADVANCED
+    ## ---
+       advanced: true
+       ---
        Specifies a default value for the column.
 
-       Arguments:
-       - `sql_expression`: The SQL expression to use as the default value. Note that this is a raw SQL expression, so if you want to set a default to a string, you must include the quotes. The quoting style may depend on the database. Never pass unsanitized data to this parameter.
+       ## Arguments
+        - ``sql_expression``: The SQL expression to use as the default value.
+          Note that this is a raw SQL expression, so if you want to set a default
+          to a string, you must include the quotes. The quoting style may depend
+          on the database. Never pass unsanitized data to this parameter.
 
-       ! SQL Injection
+       ## Remarks
 
-         Since `sql_expression` is a raw SQL expression, note that malicious
-         data can cause execution of arbitrary SQL queries. Only use this
-         parameter with trusted data.
+       ### SQL Injection
+       Since `sql_expression` is a raw SQL expression, note that malicious data
+       can cause execution of arbitrary SQL queries. Only use this parameter with
+       trusted data.
     Default_Expression (sql_expression : Text)
 
-    ## PRIVATE
-       DEPRECATED This will be replaced by extending the `Value_Type` with the concept of non-nullable types. TODO in #5872
-
-       Specifies that the column does not accept `NULL` values.
+    ## ---
+       private: true
+       ---
+       DEPRECATED This will be replaced by extending the `Value_Type` with the
+       concept of non-nullable types. TODO in #5872 Specifies that the column
+       does not accept `NULL` values.
     Not_Null

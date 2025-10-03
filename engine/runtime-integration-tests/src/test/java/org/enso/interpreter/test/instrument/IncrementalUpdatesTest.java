@@ -210,16 +210,16 @@ public class IncrementalUpdatesTest {
     var code =
         extractPositions(
             """
-      import Standard.Base.IO
+            import Standard.Base.IO
 
-      &$foo$ =
-          x = #{originalText}#
-          *x*
-      &
-      main =
-          y = @foo@
-          %IO.println y%
-        """
+            &$foo$ =
+                x = #{originalText}#
+                *x*
+            &
+            main =
+                y = @foo@
+                %IO.println y%
+            """
                 .replace("{originalText}", originalText),
             "&$#*@%",
             pos);
@@ -263,7 +263,8 @@ public class IncrementalUpdatesTest {
                 new Runtime$Api$StackItem$ExplicitCall(
                     new Runtime$Api$MethodPointer(MODULE_NAME, "Enso_Test.Test.Main", "main"),
                     None(),
-                    new Vector1<>(new String[] {"0"})))));
+                    new Vector1<>(new String[] {"0"})),
+                true)));
 
     assertSameElements(
         context.receiveNIgnorePendingExpressionUpdates(4, 60, emptySet()),
@@ -287,7 +288,7 @@ public class IncrementalUpdatesTest {
         Request(
             requestId,
             new Runtime$Api$PushContextRequest(
-                contextId, new Runtime$Api$StackItem$LocalCall(mainFoo))));
+                contextId, new Runtime$Api$StackItem$LocalCall(mainFoo), true)));
     assertSameElements(
         context.receiveNIgnorePendingExpressionUpdates(4, 60, emptySet()),
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),

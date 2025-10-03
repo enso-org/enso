@@ -1,29 +1,31 @@
-import { createContextStore } from '@/providers'
-import { type ProjectStore } from '@/stores/project'
-import { type ProjectNameStore } from '@/stores/projectNames'
+import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
+import type { ProjectStore } from '@/stores/project'
+import type { ProjectNameStore } from '@/stores/projectNames'
 import {
   entryIsCallable,
+  isUserSelectableType,
   SuggestionKind,
   type CallableSuggestionEntry,
+  type MethodSuggestionEntry,
   type SuggestionEntry,
   type SuggestionId,
+  type TypeSuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
+import { assert } from '@/util/assert'
+import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
-import { type MethodPointer } from '@/util/methodPointer'
+import type { MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
 import { ProjectPath } from '@/util/projectPath'
-import { type QualifiedName } from '@/util/qualifiedName'
-import { markRaw, proxyRefs, readonly, ref } from 'vue'
+import type { QualifiedName } from '@/util/qualifiedName'
+import { proxyRefs } from '@/util/reactivity'
+import * as iter from 'enso-common/src/utilities/data/iter'
+import { computed, markRaw, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
-import { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
+import type { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
-
-function pathKey({ project, path }: ProjectPath): string {
-  const projectKey = project ?? '$'
-  return path ? `${projectKey}.${path}` : projectKey
-}
 
 /**
  * Suggestion Database.
@@ -36,27 +38,83 @@ function pathKey({ project, path }: ProjectPath): string {
  */
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   private readonly pathToId = new ReactiveIndex(this, (id, entry) => [
-    [pathKey(entry.definitionPath), id],
+    [entry.definitionPath.key(), id],
   ])
   readonly childIdToParentId = new ReactiveIndex(this, (id, entry) => {
-    const parentAndChild = entry.definitionPath.splitAtName()
+    const parentAndChild = entry.definitionPath.normalized().splitAtName()
     if (parentAndChild) {
       const [parentPath] = parentAndChild
-      const parents = this.pathToId.lookup(pathKey(parentPath))
+      const parents = this.pathToId.lookup(parentPath.key())
       return Array.from(parents, (p) => [id, p])
     }
     return []
   })
   readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
+  private readonly suggestionsByKind = new ReactiveIndex(this, (id, entry) => [[entry.kind, id]])
+  private readonly constructorFields = new ReactiveIndex(this, (id, entry) => {
+    if (entry.kind !== SuggestionKind.Constructor) return []
+    const fields = entry.arguments.map((arg) => arg.name)
+    const path = entry.memberOf
+    const fieldKeys = fields.map((field) => constructorFieldKey(path, field))
+    return Array.from(fieldKeys, (key) => [key, id])
+  })
 
   /** Constructor. */
   constructor() {
     super()
   }
 
+  /** Retrieve all suggestions of the given kind stored in the suggestion database. */
+  private *getAllEntriesOfKind<K extends SuggestionKind>(
+    kind: K,
+  ): IterableIterator<SuggestionEntry & { kind: K }> {
+    const ids = this.suggestionsByKind.lookup(kind)
+    for (const id of ids) {
+      const entry = this.get(id)
+      assert(entry?.kind === kind)
+      yield entry as SuggestionEntry & { kind: K }
+    }
+  }
+
+  selectableTypes = computed(() => {
+    const allTypeEntries = this.getAllEntriesOfKind(SuggestionKind.Type)
+    return [...iter.filter(allTypeEntries, isUserSelectableType)]
+  })
+
+  /**
+   * Retrieve all methods, optionally filtered by the given criteria.
+   *
+   * PERFORMANCE: This function performs a linear search over all entries. Depending on usage
+   * pattern, a `ReactiveIndex` is likely to be more efficient.
+   */
+  methods(
+    filter: {
+      /** Whether to include private methods (false by default). */
+      includePrivate?: true
+      selfType?: ProjectPath | undefined
+      memberOf?: ProjectPath | undefined
+      /** If provided, includes only methods that pass the predicate. */
+      name?: (name: string) => boolean
+    } = {},
+  ): MethodSuggestionEntry[] {
+    const results: MethodSuggestionEntry[] = []
+    for (const method of this.getAllEntriesOfKind(SuggestionKind.Method)) {
+      if (!filter.includePrivate && method.isPrivate) continue
+      if (filter.selfType != null && !filter.selfType.equals(method.selfType)) continue
+      if (filter.memberOf != null && !filter.memberOf.equals(method.memberOf)) continue
+      if (filter.name != null && !filter.name(method.name)) continue
+      results.push(method)
+    }
+    return results
+  }
+
+  dropdownTypeExpressionTags = computed((): ExpressionTag[] => {
+    return Array.from(this.selectableTypes.value, (ty) => ExpressionTag.FromEntry(this, ty))
+  })
+
   /** Look up an entry by its path within a project */
   findByProjectPath(projectPath: ProjectPath): SuggestionId | undefined {
-    const [id] = this.pathToId.lookup(pathKey(projectPath))
+    const [id] = this.pathToId.lookup(projectPath.key())
     return id
   }
 
@@ -64,6 +122,26 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   getEntryByProjectPath(projectPath: ProjectPath): SuggestionEntry | undefined {
     const id = this.findByProjectPath(projectPath)
     if (id != null) return this.get(id)
+  }
+
+  /** Get entries of given type and all its parent types. */
+  getTypeAndItsParentsEntries(path: ProjectPath): Result<TypeSuggestionEntry[]> {
+    let next: ProjectPath | undefined = path
+    const result = []
+    while (next != null) {
+      const entry = this.getEntryByProjectPath(next)
+      if (entry?.kind !== SuggestionKind.Type) {
+        if (result.length > 0) {
+          console.error(
+            `Suggestion Database inconsitency: parent type of ${result[result.length - 1]?.definedIn.key()} is not a non-type entity ${next.key()}`,
+          )
+        }
+        return Err(`Path ${next.key()} does not resolve to a type`)
+      }
+      result.push(entry)
+      next = entry.parentType
+    }
+    return Ok(result)
   }
 
   /** Same as {@link getEntryByProjectPath}, but usable from dev console for debugging. */
@@ -88,6 +166,11 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
     return entry && entryIsCallable(entry) ? entry : undefined
   }
 
+  /** Get a list of constructors for `type` that have an argument named `field`. */
+  lookupConstructorField(type: ProjectPath, field: string): Set<SuggestionId> {
+    return this.constructorFields.lookup(constructorFieldKey(type, field))
+  }
+
   /** Returns the entry's ancestors, starting with its parent. */
   *ancestors(entry: SuggestionEntry): Iterable<ProjectPath> {
     while (entry.kind === SuggestionKind.Type && entry.parentType) {
@@ -97,6 +180,11 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
       entry = parent
     }
   }
+}
+
+/** Helper for serializing keys of `constructorFields` index. */
+function constructorFieldKey(type: ProjectPath, field: string): string {
+  return `${type.key()}#${field}`
 }
 
 /**
@@ -220,39 +308,42 @@ async function loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown
 }
 
 /** {@link useSuggestionDbStore} composable object */
-export type SuggestionDbStore = ReturnType<typeof useSuggestionDbStore>
-export const [provideSuggestionDbStore, useSuggestionDbStore] = createContextStore(
-  'suggestionDatabase',
-  (projectStore: ProjectStore, projectNames: ProjectNameStore) => {
-    const entries = new SuggestionDb()
-    const groups = ref<GroupInfo[]>([])
+export type SuggestionDbStore = ReturnType<typeof createSuggestionDbStore>
+/**
+ * A store maintaining suggestions database.
+ */
+export function createSuggestionDbStore(
+  projectStore: ProjectStore,
+  projectNames: ProjectNameStore,
+) {
+  const entries = new SuggestionDb()
+  const groups = ref<GroupInfo[]>([])
 
-    const updateProcessor = loadGroups(
-      projectStore.lsRpcConnection,
-      projectStore.firstExecution,
-    ).then((loadedGroups) => {
-      groups.value = loadedGroups
-      return new SuggestionUpdateProcessor(loadedGroups, projectNames)
-    })
+  const updateProcessor = loadGroups(
+    projectStore.lsRpcConnection,
+    projectStore.firstExecution,
+  ).then((loadedGroups) => {
+    groups.value = loadedGroups
+    return new SuggestionUpdateProcessor(loadedGroups, projectNames)
+  })
 
-    /** Add an entry to the suggestion database. */
-    function mockSuggestion(entry: lsTypes.SuggestionEntry) {
-      const id = Math.max(...entries.keys()) + 1
-      new SuggestionUpdateProcessor([], projectNames).applyUpdates(entries, [
-        {
-          type: 'Add',
-          id,
-          suggestion: entry,
-        },
-      ])
-    }
+  /** Add an entry to the suggestion database. */
+  function mockSuggestion(entry: lsTypes.SuggestionEntry) {
+    const id = Math.max(...entries.keys()) + 1
+    new SuggestionUpdateProcessor([], projectNames).applyUpdates(entries, [
+      {
+        type: 'Add',
+        id,
+        suggestion: entry,
+      },
+    ])
+  }
 
-    const _synchronizer = new Synchronizer(projectStore, entries, updateProcessor)
-    return proxyRefs({
-      entries: markRaw(entries),
-      groups: readonly(groups),
-      _synchronizer,
-      mockSuggestion,
-    })
-  },
-)
+  const _synchronizer = new Synchronizer(projectStore, entries, updateProcessor)
+  return proxyRefs({
+    entries: markRaw(entries),
+    groups: readonly(groups),
+    _synchronizer,
+    mockSuggestion,
+  })
+}

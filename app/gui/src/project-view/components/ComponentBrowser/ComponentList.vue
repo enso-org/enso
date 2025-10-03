@@ -1,13 +1,15 @@
 <script setup lang="ts">
+import {
+  useProjectNames,
+  useProjectStore,
+  useSuggestionDbStore,
+} from '$/components/WithCurrentProject.vue'
 import { makeComponentLists, type Component } from '@/components/ComponentBrowser/component'
 import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
-import { Filter, Filtering } from '@/components/ComponentBrowser/filtering'
+import { Filtering, type Filter } from '@/components/ComponentBrowser/filtering'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VirtualizedList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
-import { useProjectStore } from '@/stores/project'
-import { injectProjectNames } from '@/stores/projectNames'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
 import { substituteQualifiedName } from '@/util/ast/abstract'
 import { tryGetIndex } from '@/util/data/array'
@@ -61,7 +63,7 @@ watch(filtering, () => (displayedSelectedComponentIndex.value = 0))
 watch(selectedGroupIndex, () => (selectedComponentIndex.value = 0))
 
 const suggestionDbStore = useSuggestionDbStore()
-const projectNames = injectProjectNames()
+const projectNames = useProjectNames()
 const components = computed(() => {
   const lists = makeComponentLists(suggestionDbStore.entries, filtering.value)
   if (props.literal != null) {
@@ -107,6 +109,7 @@ const selectedSuggestion = computed(() => {
   if (selectedComponent.value?.suggestionId == null) return null
   return suggestionDbStore.entries.get(selectedComponent.value.suggestionId)
 })
+const documentationSummary = computed(() => selectedSuggestion.value?.documentationSummary)
 
 const selectedSuggestionReturnType = computed(() => {
   if (selectedSuggestion.value == null) return undefined
@@ -178,7 +181,7 @@ defineExpose({
       <div class="documentation">
         <div class="documentationContent">
           <!-- eslint-disable-next-line vue/no-v-html -->
-          <p v-if="selectedSuggestion?.docSummaryHtml" v-html="selectedSuggestion.docSummaryHtml" />
+          <p v-if="documentationSummary" v-html="documentationSummary" />
           <p v-if="selectedSuggestion" v-text="`Returns: ${selectedSuggestionReturnType}`" />
         </div>
         <ActionButton class="helpButton" action="graphEditor.showHelp" />

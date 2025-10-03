@@ -23,7 +23,7 @@ test('Start editing comment via menu', async ({ page }) => {
   const node = locate.graphNodeByBinding(page, 'final')
   await node.click()
   await locate.componentMenu(node).getByRole('button', { name: 'More' }).click()
-  await locate.componentMenu(node).getByRole('button', { name: 'Comment' }).click()
+  await locate.componentMenuMoreEntries(node).getByRole('button', { name: 'Comment' }).click()
   await expect(locate.nodeCommentContent(node)).toBeFocused()
 })
 
@@ -61,7 +61,7 @@ test('Add new comment via menu', async ({ page }) => {
 
   await node.click()
   await locate.componentMenu(node).getByRole('button', { name: 'More' }).click()
-  await locate.componentMenu(node).getByRole('button', { name: 'Comment' }).click()
+  await locate.componentMenuMoreEntries(node).getByRole('button', { name: 'Comment' }).click()
   await expect(locate.nodeCommentContent(node)).toBeFocused()
   const NEW_COMMENT = 'New comment text'
   await nodeComment.fill(NEW_COMMENT)
@@ -80,15 +80,14 @@ test('Delete comment by clearing text', async ({ page }) => {
   await page.keyboard.press(`${CONTROL_KEY}+A`)
   await page.keyboard.press(`Delete`)
   await page.keyboard.press(`Enter`)
-  await expect(nodeComment).not.toExist()
+  await expect(nodeComment).toBeHidden()
 })
 
 test('URL added to comment is rendered as link', async ({ page, context }) => {
   await actions.goToGraph(page)
-  const comment = locate.nodeComment(locate.graphNodeByBinding(page, 'final'))
   const commentContent = locate.nodeCommentContent(locate.graphNodeByBinding(page, 'final'))
   await expect(commentContent).toHaveText('This node can be entered')
-  await expect(commentContent.locator('a')).not.toExist()
+  await expect(commentContent.locator('a')).toBeHidden()
 
   await commentContent.click()
   await page.keyboard.press(`${CONTROL_KEY}+A`)
@@ -104,13 +103,14 @@ test('URL added to comment is rendered as link', async ({ page, context }) => {
   )
   await commentContent.locator('a').click()
   await expect(commentContent).toBeFocused()
-  await expect(comment.locator('.LinkEditPopup')).toExist()
+  await expect(page.locator('.LinkEditPopup')).toBeVisible()
   await page.keyboard.press(`Enter`)
   await expect(commentContent).not.toBeFocused()
-  await expect(comment.locator('.LinkEditPopup')).not.toBeVisible()
-  const newPagePromise = new Promise<true>((resolve) => context.once('page', () => resolve(true)))
+  await expect(page.locator('.LinkEditPopup')).toBeHidden()
+  context.route('https://example.com', (route) => route.fulfill({ status: 200, body: 'YAY' }))
+  const newPagePromise = context.waitForEvent('page', { timeout: 10000 })
   await commentContent.locator('a').click({ modifiers: ['ControlOrMeta'] })
-  await expect(() => newPagePromise).toPass({ timeout: 5000 })
+  await expect(newPagePromise).resolves.toHaveURL('https://example.com')
 })
 
 test('Long comment displays wrapped', async ({ page }) => {

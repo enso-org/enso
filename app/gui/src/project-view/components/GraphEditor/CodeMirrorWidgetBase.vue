@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import { HandledUpdate, WidgetInput, WidgetTypeId } from '@/providers/widgetRegistry'
+import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
+import type { HandledUpdate, WidgetInput, WidgetTypeId } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
@@ -8,17 +9,15 @@ import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemir
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { Ok } from '@/util/data/result'
 import { useToast } from '@/util/toast'
-import { Extension, SelectionRange } from '@codemirror/state'
-import { ComponentInstance, ref, useTemplateRef, watch, watchEffect } from 'vue'
+import { SelectionRange, type Extension } from '@codemirror/state'
+import { ref, useTemplateRef, watch, type ComponentInstance } from 'vue'
 
 const props = defineProps<{
   widgetTypeId: WidgetTypeId
   input: WidgetInput
   placeholder?: string | undefined
-  /**
-   * Additional extensions to provide to codemirror editor. Usually useful for language definition.
-   */
-  extensions?: Extension[]
+  /** Additional extensions to provide to codemirror editor. */
+  extensions?: Extension
   /**
    * If provided, the element with class `cm-content` will also have the given `data-testid`.
    * Warning: Not reactive - Set only once during setup.
@@ -38,30 +37,30 @@ const emit = defineEmits<{
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
-const { syncExt, connectSync } = useStringSync()
-const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
-  content: model.value,
+const { syncExt, getText, setText } = useStringSync({
+  onTextEdited: (text) => {
+    editing.value.edit(props.transformUserInput?.(text) ?? text)
+    emit('textEdited', text)
+  },
+  onUserAction: (text, selection) => emit('userAction', text, selection),
+})
+const vueHost = new VueHostInstance()
+const { editorView } = useCodeMirror(editorRoot, {
   placeholder: () => props.placeholder ?? ' ',
-  extensions: [syncExt],
+  extensions: [
+    syncExt,
+    () => (editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : []),
+    () =>
+      props.lineMode !== 'multi' && props.lineMode !== 'autoMulti' ? [selectOnMouseFocus] : [],
+    () => props.extensions ?? [],
+  ],
   readonly: false,
   contentTestId: props.contentTestId,
   lineMode: () => props.lineMode ?? 'single',
+  vueHost: () => vueHost,
 })
-watchEffect(() =>
-  setExtraExtensions([
-    highlightStyle(editorRoot.value?.highlightClasses ?? {}),
-    ...(props.lineMode !== 'multi' && props.lineMode !== 'autoMulti' ? [selectOnMouseFocus] : []),
-    ...(props.extensions ?? []),
-  ]),
-)
 
-const { getText, setText, onTextEdited, onUserAction } = connectSync(editorView)
-watch(model, (text) => setText(text))
-onTextEdited((text) => {
-  editing.value.edit(props.transformUserInput?.(text) ?? text)
-  emit('textEdited', text)
-})
-onUserAction((text, selection) => emit('userAction', text, selection))
+watch(model, (text) => setText(editorView, text), { immediate: true })
 
 const previousValue = ref<string>()
 const editing = WidgetEditHandler.New(props, {
@@ -69,7 +68,7 @@ const editing = WidgetEditHandler.New(props, {
     previousValue.value = model.value
   },
   cancel() {
-    if (getText() !== model.value) setText(model.value)
+    if (getText(editorView) !== model.value) setText(editorView, model.value)
     blurEditor()
   },
   pointerdown(event) {
@@ -87,7 +86,7 @@ function blurEditor() {
   editorView.contentDOM.blur()
 }
 
-function focusEditor() {
+function focusAndSelect() {
   editorView.dispatch({ selection: { anchor: 0, head: editorView.state.doc.length } })
   editorView.focus()
 }
@@ -95,7 +94,7 @@ function focusEditor() {
 const inputError = useToast.error()
 
 async function accepted() {
-  const text = getText()
+  const text = getText(editorView)
   if (previousValue.value === text) {
     editing.value.end()
     return
@@ -126,9 +125,7 @@ function onEnter(event: KeyboardEvent) {
 }
 
 defineExpose({
-  focusEditor,
-  blurEditor,
-  setText,
+  focusAndSelect,
 })
 </script>
 
@@ -142,15 +139,15 @@ defineExpose({
     @keydown.up.stop
     @keydown.down.stop
     @click.stop
-  />
+    @wheel.stop.passive
+  >
+    <VueHostRender :host="vueHost" />
+  </CodeMirrorRoot>
 </template>
+
 <style scoped>
-.CodeMirrorWidgetBase {
-  :deep(.cm-content) {
-    caret-color: var(--color-node-text);
-  }
-  &:deep(::selection) {
-    background: var(--color-widget-selection);
-  }
+/*noinspection CssUnusedSymbol*/
+.CodeMirrorWidgetBase :deep(.cm-content) {
+  caret-color: var(--color-node-text);
 }
 </style>

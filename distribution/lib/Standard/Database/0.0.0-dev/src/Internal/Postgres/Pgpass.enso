@@ -1,25 +1,23 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-## PRIVATE
-   Read the .pgpass file from the User's home directory and obtain username
-   and password.
+## ---
+   private: true
+   ---
+   Read the .pgpass file from the User's home directory and obtain username and
+   password.
+   See https://www.postgresql.org/docs/current/libpq-pgpass.html On Windows this
+   file is expected to be located at `%APPDATA%\postgresql\pgpass.conf`.
+   On Linux and macOS this file is expected to be located at `~/.pgpass` and it
+   is should be inaccessible by other users and the group - otherwise it will be
+   ignored. This can be achieved by running `chmod 0600 ~/.pgpass`.
+   If `PGPASSFILE` environment variable is set, the provided location is used
+   instead of the default one.
 
-   See https://www.postgresql.org/docs/current/libpq-pgpass.html
-
-   On Windows this file is expected to be located at
-   `%APPDATA%\postgresql\pgpass.conf`.
-   On Linux and macOS this file is expected to be located at `~/.pgpass` and
-   it is should be inaccessible by other users and the group - otherwise it
-   will be ignored. This can be achieved by running `chmod 0600 ~/.pgpass`.
-
-   If `PGPASSFILE` environment variable is set, the provided location is
-   used instead of the default one.
-
-   Arguments:
-   - host: The hostname of the database server.
-   - port: The port of the database server.
-   - database: The database to connect to.
+   ## Arguments
+    - `host`: The hostname of the database server.
+    - `port`: The port of the database server.
+    - `database`: The database to connect to.
 read : Text -> Integer -> Text -> Text -> Vector (Pair Text Text)
 read host port database username=Nothing =
     pgpass_file = locate
@@ -32,10 +30,14 @@ read host port database username=Nothing =
             entry -> [Pair.new 'user' entry.username, Pair.new 'password' entry.password]
 
 type Pgpass_Entry
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value host port database username password
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     matches : Text -> Text|Integer -> Text -> Text -> Boolean
     matches self host port database username=Nothing =
         wildcard='*'
@@ -49,7 +51,9 @@ type Pgpass_Entry
         username_match = username==Nothing || self.username==wildcard || self.username==username
         host_match && port_match && database_match && username_match
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Determines the location of the .pgpass file to use.
 locate = case Environment.get "PGPASSFILE" of
     Nothing -> case Platform.os of
@@ -61,9 +65,10 @@ locate = case Environment.get "PGPASSFILE" of
             home -> File.new home / ".pgpass"
     path -> File.new path
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Checks if the given .pgpass file can be used.
-
    The file can be used if it exists and has correct permissions on UNIX systems.
 verify file = case Platform.os of
     Platform.OS.Windows -> file.exists
@@ -74,7 +79,9 @@ verify file = case Platform.os of
             can_others_access = permissions.group.not_empty || permissions.others.not_empty
             can_others_access.not
 
-## PRIVATE
+## ---
+   private: true
+   ---
 parse_file file =
     parse line =
         if line.starts_with "#" || line.is_empty then Nothing else
@@ -84,7 +91,9 @@ parse_file file =
 
     File.new file . read_text . lines . map parse . filter (x -> x.is_nothing.not)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 parse_line line =
     Vector.build existing_entries->
         current_entry = Ref.new ""

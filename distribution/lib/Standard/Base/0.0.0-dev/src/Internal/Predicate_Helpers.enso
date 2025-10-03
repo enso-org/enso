@@ -1,0 +1,18 @@
+private
+
+from project.Data.Filter_Condition import Filter_Condition
+from project.Function import Function
+
+## this is a private conversion used only in this module
+Filter_Condition.from (that:Function) = Filter_Condition.Predicate that 
+
+resolve_auto_scoped c:Filter_Condition = c
+
+unify_condition_or_predicate c:Filter_Condition = 
+    c.to_predicate
+    
+unify_condition_predicate_or_element condition =
+    case condition of
+        _ : Filter_Condition -> condition.to_predicate
+        _ : Function -> unify_condition_or_predicate condition
+        element -> (== element)

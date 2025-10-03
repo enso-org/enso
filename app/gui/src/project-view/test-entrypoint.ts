@@ -10,6 +10,7 @@ import { mockDataHandler, mockLSHandler, mockYdocProvider } from './mock/engine'
 
 import '#/styles.css'
 import '#/tailwind.css'
+import router from '$/router'
 import '@/assets/base.css'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createApp } from 'vue'
@@ -31,8 +32,9 @@ const app = createApp(App, {
   projectViewOnly: {
     options: {
       projectId: 'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
-      projectName: 'Mock_Project',
+      projectInitialName: 'Mock_Project',
       projectDisplayedName: 'Mock Project',
+      projectPath: 'enso://User/mock/Mock Project',
       projectNamespace: 'local',
       engine: {
         rpcUrl: 'mock://engine',
@@ -45,6 +47,8 @@ const app = createApp(App, {
       },
     },
   },
+  rootDirPath: '',
 })
 app.use(VueQueryPlugin)
+app.use(router)
 app.mount('body')

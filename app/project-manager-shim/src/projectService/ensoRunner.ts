@@ -1,0 +1,640 @@
+import { Path } from 'enso-common/src/utilities/file'
+import extractZip from 'extract-zip'
+import * as childProcess from 'node:child_process'
+import * as fs from 'node:fs'
+import { createWriteStream } from 'node:fs'
+import * as os from 'node:os'
+import * as path from 'node:path'
+import { pipeline } from 'node:stream/promises'
+import { extract } from 'tar'
+
+export interface Runner {
+  createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
+  openProject(
+    projectPath: Path,
+    projectId: string,
+    extraEnv?: Array<[string, string]>,
+  ): Promise<LanguageServerSockets>
+  closeProject(projectId: string): Promise<void>
+  isProjectRunning(projectId: string): Promise<boolean>
+  renameProject(
+    projectId: string,
+    namespace: string,
+    oldPackage: string,
+    newPackage: string,
+  ): Promise<void>
+  registerShutdownHook(
+    projectId: string,
+    hookType: ShutdownHookType,
+    hook: () => Promise<void>,
+  ): Promise<void>
+}
+
+export interface LanguageServerSockets {
+  readonly jsonSocket: Socket
+  readonly secureJsonSocket?: Socket
+  readonly binarySocket: Socket
+  readonly secureBinarySocket?: Socket
+}
+
+export interface Socket {
+  readonly host: string
+  readonly port: number
+}
+
+export type ShutdownHookType = 'rename-project-directory'
+
+interface RunningProject {
+  process: childProcess.ChildProcess
+  sockets: LanguageServerSockets
+  shutdownHooks: Map<ShutdownHookType, () => Promise<void>>
+}
+
+const DEFAULT_JSONRPC_PORT = 30616
+
+/** Implementation of Runner that uses the Enso executable. */
+export class EnsoRunner implements Runner {
+  private runningProjects: Map<string, RunningProject> = new Map()
+
+  /** Creates a new EnsoRunner with the path to the Enso executable. */
+  constructor(private ensoPath: Path) {}
+
+  /** Creates a new Enso project at the specified path. */
+  async createProject(projectPath: Path, name: string, projectTemplate?: string): Promise<void> {
+    const args: string[] = []
+    args.push('--new', projectPath)
+    args.push('--new-project-name', name)
+    if (projectTemplate) {
+      args.push('--new-project-template', projectTemplate)
+    }
+
+    return new Promise((resolve, reject) => {
+      const process = childProcess.spawn(this.ensoPath, args)
+
+      let _stdout = ''
+      let stderr = ''
+
+      process.stdout.on('data', (data) => {
+        _stdout += data.toString()
+      })
+
+      process.stderr.on('data', (data) => {
+        stderr += data.toString()
+      })
+
+      process.on('error', (error) => {
+        reject(new Error(`Failed to spawn enso process: ${error.message}`))
+      })
+
+      process.on('close', (code) => {
+        if (code === 0) {
+          resolve()
+        } else {
+          reject(new Error(`Enso process exited with code ${code}. stderr: ${stderr}`))
+        }
+      })
+    })
+  }
+
+  /** Opens a project and starts its language server. */
+  async openProject(
+    projectPath: Path,
+    projectId: string,
+    extraEnv?: Array<[string, string]>,
+  ): Promise<LanguageServerSockets> {
+    // Check if the project is already running
+    const runningProject = this.runningProjects.get(projectId)
+    if (runningProject) {
+      return runningProject.sockets
+    }
+    // Find available ports for the language server
+    const jsonPort = await this.findAvailablePort(DEFAULT_JSONRPC_PORT)
+    const binaryPort = await this.findAvailablePort(jsonPort + 1)
+    // Create log file for this language server instance (overwrite if exists)
+    const logFileName = `language-server-${jsonPort}.log`
+    const logStream = fs.createWriteStream(logFileName, { flags: 'w' })
+    logStream.write(`=== Language Server Started at ${new Date().toISOString()} ===\n`)
+    logStream.write(`Project ID: ${projectId}\n`)
+    logStream.write(`Project Path: ${projectPath}\n`)
+    logStream.write(`JSON Port: ${jsonPort}\n`)
+    logStream.write(`Binary Port: ${binaryPort}\n`)
+    logStream.write(`===========================================\n\n`)
+
+    const rootId = crypto.randomUUID()
+    const args: string[] = [
+      '--server',
+      '--root-id',
+      rootId,
+      '--project-id',
+      projectId,
+      '--path',
+      projectPath,
+      '--interface',
+      '127.0.0.1',
+      '--rpc-port',
+      jsonPort.toString(),
+      '--data-port',
+      binaryPort.toString(),
+    ]
+
+    const env = { ...process.env }
+    if (extraEnv) {
+      for (const [key, value] of extraEnv) {
+        env[key] = value
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      const serverProcess = childProcess.spawn(this.ensoPath, args, {
+        env,
+        detached: false,
+      })
+
+      let stderr = ''
+      let resolved = false
+
+      // Health check function
+      const checkServerHealth = async (): Promise<boolean> => {
+        try {
+          const response = await fetch(`http://127.0.0.1:${jsonPort}/_health`)
+          logStream.write(
+            `[HEALTH CHECK] Checking readiness at ${new Date().toISOString()}: ${response.status}\n`,
+          )
+          return response.ok
+        } catch {
+          return false
+        }
+      }
+
+      // Start polling for server readiness after initial delay
+      const startHealthCheck = () => {
+        const pollInterval = setInterval(async () => {
+          if (resolved) {
+            clearInterval(pollInterval)
+            return
+          }
+
+          const isReady = await checkServerHealth()
+          if (isReady) {
+            clearInterval(pollInterval)
+            resolved = true
+            logStream.write(`[HEALTH CHECK] Server is ready at ${new Date().toISOString()}\n`)
+            const sockets: LanguageServerSockets = {
+              jsonSocket: { host: '127.0.0.1', port: jsonPort },
+              binarySocket: { host: '127.0.0.1', port: binaryPort },
+            }
+            this.runningProjects.set(projectId, {
+              process: serverProcess,
+              sockets: sockets,
+              shutdownHooks: new Map(),
+            })
+            resolve(sockets)
+          }
+        }, 250) // Poll every 250ms
+      }
+
+      // Start health check after initial delay
+      setTimeout(startHealthCheck, 250)
+
+      serverProcess.stdout.on('data', (data) => {
+        const dataStr = data.toString()
+        logStream.write(`[STDOUT] ${dataStr}`)
+      })
+
+      serverProcess.stderr.on('data', (data) => {
+        const dataStr = data.toString()
+        stderr += dataStr
+        logStream.write(`[STDERR] ${dataStr}`)
+      })
+
+      serverProcess.on('error', (error) => {
+        logStream.write(`[ERROR] ${error.message}\n`)
+        if (!resolved) {
+          reject(new Error(`Failed to start language server: ${error.message}`))
+        }
+      })
+
+      serverProcess.on('close', async (code) => {
+        logStream.write(`\n[PROCESS EXIT] Code: ${code} at ${new Date().toISOString()}\n`)
+        logStream.end()
+
+        // Execute shutdown hooks if the process exits unexpectedly
+        const runningProject = this.runningProjects.get(projectId)
+        if (runningProject && runningProject.shutdownHooks) {
+          for (const [hookType, hook] of runningProject.shutdownHooks) {
+            try {
+              runningProject.shutdownHooks.delete(hookType)
+              await hook()
+            } catch (error) {
+              console.error(
+                `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
+                error,
+              )
+            }
+          }
+        }
+
+        // Remove from running projects when it closes
+        this.runningProjects.delete(projectId)
+        if (!resolved) {
+          reject(new Error(`Language server process exited with code ${code}. stderr: ${stderr}`))
+        }
+      })
+
+      // Timeout after 30 seconds if server doesn't start
+      setTimeout(() => {
+        if (!resolved) {
+          serverProcess.kill('SIGKILL')
+          logStream.write(`[TIMEOUT] Language server startup timeout after 30 seconds\n`)
+          reject(new Error('Language server startup timeout'))
+        }
+      }, 30000)
+    })
+  }
+
+  /** Closes a project and stops its language server. */
+  async closeProject(projectId: string): Promise<void> {
+    const runningProject = this.runningProjects.get(projectId)
+
+    if (!runningProject) {
+      // Project is not running or already closed
+      return
+    }
+
+    const { process, shutdownHooks } = runningProject
+
+    return new Promise((resolve) => {
+      // Function to execute shutdown hooks
+      const executeShutdownHooks = async () => {
+        for (const [hookType, hook] of shutdownHooks) {
+          try {
+            shutdownHooks.delete(hookType)
+            await hook()
+          } catch (error) {
+            console.error(
+              `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
+              error,
+            )
+          }
+        }
+      }
+
+      // Set a timeout in case the process doesn't exit gracefully
+      const timeout = setTimeout(async () => {
+        if (!process.killed) {
+          process.kill('SIGKILL')
+        }
+        await executeShutdownHooks()
+        this.runningProjects.delete(projectId)
+        resolve()
+      }, 30000)
+
+      // Listen for the process to exit
+      process.on('exit', async () => {
+        clearTimeout(timeout)
+        await executeShutdownHooks()
+        this.runningProjects.delete(projectId)
+        resolve()
+      })
+
+      // Send line break to stdin to trigger graceful shutdown
+      if (process.stdin && !process.stdin.destroyed) {
+        process.stdin.write('\n')
+      } else {
+        process.kill('SIGTERM')
+      }
+    })
+  }
+
+  /** Checks if a project's language server is currently running. */
+  async isProjectRunning(projectId: string): Promise<boolean> {
+    return this.runningProjects.has(projectId)
+  }
+
+  /** Registers an action to be executed when the project is closed. */
+  async registerShutdownHook(
+    projectId: string,
+    hookType: ShutdownHookType,
+    hook: () => Promise<void>,
+  ): Promise<void> {
+    const runningProject = this.runningProjects.get(projectId)
+
+    if (!runningProject) {
+      // If project is not running, execute the hook immediately
+      await hook()
+      return
+    }
+
+    runningProject.shutdownHooks.set(hookType, hook)
+  }
+
+  /** Renames the running language server project. */
+  async renameProject(
+    projectId: string,
+    namespace: string,
+    oldPackage: string,
+    newPackage: string,
+  ): Promise<void> {
+    const runningProject = this.runningProjects.get(projectId)
+    if (!runningProject) {
+      throw new Error(`Project ${projectId} is not running`)
+    }
+
+    const { sockets } = runningProject
+    const requestBody = {
+      namespace: namespace,
+      oldName: oldPackage,
+      newName: newPackage,
+    }
+
+    try {
+      // Send POST request to the language server's rename endpoint
+      const response = await fetch(
+        `http://127.0.0.1:${sockets.jsonSocket.port}/refactoring/renameProject`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        },
+      )
+
+      if (!response.ok) {
+        const errorBody = await response.text()
+        let errorMessage = `Failed to rename project: ${response.status} ${response.statusText}`
+        try {
+          const errorJson = JSON.parse(errorBody)
+          if (errorJson.error) {
+            errorMessage = `Failed to rename project: ${errorJson.error}`
+          }
+        } catch {
+          if (errorBody) {
+            errorMessage += ` - ${errorBody}`
+          }
+        }
+        throw new Error(errorMessage)
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
+      } else {
+        throw new Error(`Failed to rename project: ${error}`)
+      }
+    }
+  }
+
+  /** Finds an available port starting from the given port number. */
+  private async findAvailablePort(startPort: number): Promise<number> {
+    const net = await import('node:net')
+
+    return new Promise((resolve) => {
+      const tryPort = (port: number) => {
+        const server = net.createServer()
+
+        server.listen(port, '127.0.0.1')
+
+        server.on('listening', () => {
+          server.close(() => {
+            resolve(port)
+          })
+        })
+
+        server.on('error', () => {
+          // Port is in use, try the next one
+          tryPort(port + 1)
+        })
+      }
+
+      tryPort(startPort)
+    })
+  }
+}
+
+/** Find the path to the `enso` executable. */
+export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
+  const checkExecutable = (filePath: string) => {
+    try {
+      fs.accessSync(filePath, fs.constants.X_OK)
+    } catch {
+      throw new Error(`Enso executable at ${filePath} is not executable`)
+    }
+    return Path(filePath)
+  }
+
+  let ensoExecutables: string[]
+  if (os.platform() === 'win32') {
+    ensoExecutables = ['enso.exe', 'enso.bat']
+  } else {
+    ensoExecutables = ['enso']
+  }
+
+  // Check ENSO_RUNNER_PATH environment variable first
+  const envPath = process.env.ENSO_RUNNER_PATH
+  if (envPath) {
+    try {
+      fs.accessSync(envPath)
+      return checkExecutable(envPath)
+    } catch {
+      // File doesn't exist, continue searching
+    }
+  }
+
+  // Check enso/dist/*/bin/enso
+  const ensoDistPath = path.join(workDir, 'enso', 'dist')
+  try {
+    const stat = fs.statSync(ensoDistPath)
+    if (stat.isDirectory()) {
+      const distDirs = fs.readdirSync(ensoDistPath)
+      for (const distDir of distDirs) {
+        for (const ensoExecutable of ensoExecutables) {
+          const ensoPath = path.join(ensoDistPath, distDir, 'bin', ensoExecutable)
+          try {
+            fs.accessSync(ensoPath)
+            return checkExecutable(ensoPath)
+          } catch {
+            // File doesn't exist, continue searching
+          }
+        }
+      }
+    }
+  } catch {
+    // Directory doesn't exist, continue to next directory
+  }
+
+  // Check built-distribution/*/*/bin/enso
+  const builtDistDir = path.join(workDir, 'built-distribution')
+  try {
+    const stat = fs.statSync(builtDistDir)
+    if (stat.isDirectory()) {
+      const topLevelDirs = fs.readdirSync(builtDistDir)
+      for (const topDir of topLevelDirs) {
+        const topPath = path.join(builtDistDir, topDir)
+        const topStat = fs.statSync(topPath)
+        if (topStat.isDirectory()) {
+          const subDirs = fs.readdirSync(topPath)
+          for (const subDir of subDirs) {
+            for (const ensoExecutable of ensoExecutables) {
+              const ensoPath = path.join(topPath, subDir, 'bin', ensoExecutable)
+              try {
+                fs.accessSync(ensoPath)
+                return checkExecutable(ensoPath)
+              } catch {
+                // File doesn't exist, continue searching
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // Directory doesn't exist
+  }
+
+  // No enso executable found
+  return undefined
+}
+
+/**
+ * Downloads the latest Enso engine from GitHub.
+ *
+ * This function automatically detects the current platform (macOS, Linux, or Windows)
+ * and architecture (amd64 or aarch64) to download the appropriate engine binary.
+ * The engine is downloaded from GitHub and extracted to the built-distribution directory.
+ *
+ * The type of release to download is controlled by the DOWNLOAD_ENSO_RUNNER environment variable:
+ * - If set to 'release': downloads the latest stable release
+ * - If set to 'prerelease' or not set: downloads the latest prerelease
+ * @param projectRoot - The root directory of the project where the engine will be installed
+ * @returns A promise that resolves to the path where the engine was extracted
+ */
+export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
+  // Check if we should download release or prerelease
+  const downloadType = process.env.DOWNLOAD_ENSO_RUNNER
+  const useRelease = downloadType === 'release'
+
+  console.log(`Downloading latest Enso engine (${useRelease ? 'release' : 'prerelease'})...`)
+
+  // Determine platform and architecture
+  const platform = os.platform()
+  const arch = os.arch()
+
+  let platformString: string
+  let extensionString: string
+  if (platform === 'darwin') {
+    platformString = 'macos'
+    extensionString = '.tar.gz'
+  } else if (platform === 'linux') {
+    platformString = 'linux'
+    extensionString = '.tar.gz'
+  } else if (platform === 'win32') {
+    platformString = 'windows'
+    extensionString = '.zip'
+  } else {
+    throw new Error(`Unsupported platform: ${platform}`)
+  }
+
+  let archString: string
+  if (arch === 'x64') {
+    archString = 'amd64'
+  } else if (arch === 'arm64') {
+    archString = 'aarch64'
+  } else {
+    throw new Error(`Unsupported architecture: ${arch}`)
+  }
+
+  // Fetch all releases from GitHub API
+  const releasesUrl = 'https://api.github.com/repos/enso-org/enso/releases'
+  const headers: HeadersInit = {}
+  if (process.env.GITHUB_TOKEN) {
+    headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`
+  }
+  const releasesResponse = await fetch(releasesUrl, { headers })
+
+  if (!releasesResponse.ok) {
+    throw new Error(`Failed to fetch releases: ${releasesResponse.statusText}`)
+  }
+
+  const releases = await releasesResponse.json()
+
+  // Filter based on whether we want releases or prereleases
+  const targetReleases =
+    useRelease ?
+      releases.filter((release: any) => !release.prerelease)
+    : releases.filter((release: any) => release.prerelease)
+
+  if (targetReleases.length === 0) {
+    throw new Error(`No ${useRelease ? 'releases' : 'prereleases'} found`)
+  }
+
+  let releaseData: any = null
+  let asset: any = null
+  let assetName: string = ''
+
+  // Iterate through target releases to find one with matching asset
+  for (const targetRelease of targetReleases) {
+    const version = targetRelease.tag_name
+    assetName = `enso-engine-${version}-${platformString}-${archString}${extensionString}`
+    asset = targetRelease.assets.find((a: any) => a.name === assetName)
+
+    if (asset) {
+      releaseData = targetRelease
+      break
+    }
+  }
+
+  if (!releaseData || !asset) {
+    throw new Error(
+      `Could not find asset: enso-engine-*-${platformString}-${archString}${extensionString} in any ${useRelease ? 'release' : 'prerelease'}`,
+    )
+  }
+
+  console.log(`Downloading ${assetName}...`)
+
+  // Download the asset
+  const downloadResponse = await fetch(asset.browser_download_url, { headers })
+
+  if (!downloadResponse.ok) {
+    throw new Error(`Failed to download asset: ${downloadResponse.statusText}`)
+  }
+
+  // Create the built-distribution directory if it doesn't exist
+  const distDir = path.join(projectRoot, 'built-distribution')
+  if (!fs.existsSync(distDir)) {
+    fs.mkdirSync(distDir, { recursive: true })
+  }
+
+  // Save and extract the archive
+  const archivePath = path.join(distDir, assetName)
+  const extractDir = path.join(distDir, assetName.replace(extensionString, ''))
+
+  // Create extract directory if it doesn't exist
+  if (!fs.existsSync(extractDir)) {
+    fs.mkdirSync(extractDir, { recursive: true })
+  }
+
+  // Download and save the file
+  const fileStream = createWriteStream(archivePath)
+  await pipeline(downloadResponse.body as any, fileStream)
+
+  console.log(`Extracting to ${extractDir}...`)
+
+  // Extract the archive
+  if (extensionString === '.tar.gz') {
+    await pipeline(
+      fs.createReadStream(archivePath),
+      extract({
+        cwd: extractDir,
+      }),
+    )
+  } else {
+    await extractZip(archivePath, { dir: extractDir })
+  }
+
+  // Clean up the archive file
+  fs.unlinkSync(archivePath)
+
+  console.log(`Enso engine downloaded and extracted to ${extractDir}`)
+
+  return extractDir
+}

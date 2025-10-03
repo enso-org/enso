@@ -17,3 +17,12 @@ Please set the following environment variables:
   (optional, defaults to `PUBLIC`),
 - `ENSO_SNOWFLAKE_WAREHOUSE` - the name of the warehouse to use for the tests
   (optional, defaults to blank value).
+
+Thus one can use the `sbt` command like:
+
+```sbt
+sbt:enso> runEngineDistribution --env ENSO_SNOWFLAKE_USER=xyz --env ENSO_SNOWFLAKE_PASSWORD=uwv --run test/Snowflake_Tests/src/Snowflake_Bulk_Spec.enso --debug
+```
+
+with or without the `--debug` command to execute one of the Snowflake tests with
+their own `main` method.
