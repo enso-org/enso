@@ -355,6 +355,7 @@ jobs:
         env:
           DEBUG: "pw:browser log:"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_ENABLE_LOGGING: "true"
       - if: failure()
         name: Upload Test Traces
         uses: actions/upload-artifact@v4
