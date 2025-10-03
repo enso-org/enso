@@ -117,9 +117,6 @@ export function useComputedNotifications(options: UseComputedNotificationsOption
   const uploadsStore = useUploadsToCloudStore()
   const uploadingFiles = useVueValue(() => [...uploadsStore.uploads.entries()])
   const uploadingFilesEntries = uploadingFiles.filter(([, data]) => data.kind === 'requestedByUser')
-  const uploadingHybridProjectEntries = uploadingFiles.filter(
-    ([, data]) => data.kind === 'hybridSync',
-  )
 
   if (uploadingFilesEntries[0]) {
     const totalFiles = uploadingFilesEntries.length
@@ -160,17 +157,5 @@ export function useComputedNotifications(options: UseComputedNotificationsOption
         showToast: true,
       })
     }
-  }
-
-  if (
-    uploadingHybridProjectEntries[0] &&
-    getComputedNotification(uploadingHybridProjectEntries[0][0]) == null
-  ) {
-    upsertComputedNotification(uploadingHybridProjectEntries[0][0], {
-      id: uploadingHybridProjectEntries[0][0],
-      message: getText('syncingProjectFiles'),
-      icon: 'data_upload',
-      showToast: true,
-    })
   }
 }

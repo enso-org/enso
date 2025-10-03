@@ -9,31 +9,8 @@ import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-pers
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
 import { toRaw } from 'vue'
-import { ConditionVariable } from './utilities/ConditionVariable'
 import { useCallbackRegistry } from './utilities/data/callbacks'
 import { cloneDeepUnref } from './utilities/data/reactive'
-
-/** An enumeration of all mutation pool ids. */
-export interface MutationPools {
-  // Required otherwise in this module there are no keys, and `pools[poolMeta.id]` below becomes
-  // `never`.
-  readonly [DUMMY_MUTATION_POOL_SYMBOL]: true
-}
-declare const DUMMY_MUTATION_POOL_SYMBOL: unique symbol
-
-/**
- * Declaration merge into `MutationPools` to add a new mutation pool id:
- *
- * ```ts
- * declare module 'enso-common/src/queryClient' {
- *   interface MutationPools {
- *     myNewPoolId: true
- *   }
- * }
- * ```
- */
-export type MutationPoolId = keyof MutationPools
-
 declare module '@tanstack/query-core' {
   /** Query client with additional methods. */
   interface QueryClient {
@@ -65,10 +42,6 @@ declare module '@tanstack/query-core' {
        */
       readonly awaitInvalidates?: queryCore.QueryKey[] | boolean
       readonly refetchType?: queryCore.InvalidateQueryFilters['refetchType']
-      readonly pool?: {
-        id: MutationPoolId
-        parallelism: number
-      }
     }
 
     readonly queryMeta: {
@@ -170,30 +143,6 @@ function useMutationCache(): {
       onError: onError.register,
     },
   }
-}
-
-function useConcurrencyControl({ onMutate, onSettled }: MutationHooks) {
-  const pools: Partial<Record<MutationPoolId, { usedLanes: number; queue: ConditionVariable }>> = {}
-
-  onMutate(async (_variables, mutation) => {
-    const poolMeta = mutation.meta?.pool
-    if (!poolMeta) {
-      return
-    }
-    const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 0, queue: new ConditionVariable() })
-    if (poolInfo.usedLanes >= poolMeta.parallelism) {
-      await poolInfo.queue.wait()
-    }
-    poolInfo.usedLanes += 1
-  })
-  onSettled(async (_data, _error, _variables, _context, mutation) => {
-    const poolMeta = mutation.meta?.pool
-    if (poolMeta) {
-      const poolInfo = (pools[poolMeta.id] ??= { usedLanes: 1, queue: new ConditionVariable() })
-      poolInfo.usedLanes -= 1
-      while (poolInfo.usedLanes < poolMeta.parallelism && (await poolInfo.queue.notifyOne()));
-    }
-  })
 }
 
 declare const brandRaw: unique symbol
@@ -309,7 +258,6 @@ export function createQueryClient<TStorageValue = string>(
       },
     },
   })
-  useConcurrencyControl(mutationHooks)
   useInvalidation({ mutationHooks, queryHooks, queryClient })
 
   Object.defineProperty(queryClient, 'nukePersister', {

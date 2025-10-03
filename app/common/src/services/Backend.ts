@@ -1445,7 +1445,6 @@ export interface UploadLargeFileMetadata {
 export interface S3MultipartPart {
   readonly eTag: string
   readonly partNumber: number
-  readonly size: number
 }
 
 /** HTTP request body for the "upload file end" endpoint. */
@@ -1968,7 +1967,7 @@ export default abstract class Backend {
     file: Blob,
     index: number,
     abort?: AbortSignal,
-  ): Promise<S3MultipartPart>
+  ): Promise<{ part: S3MultipartPart; size: number }>
   /** Finish uploading a large file. */
   abstract uploadFileEnd(
     body: UploadFileEndRequestBody,

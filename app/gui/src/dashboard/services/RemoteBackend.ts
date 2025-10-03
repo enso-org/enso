@@ -892,7 +892,7 @@ export default class RemoteBackend extends Backend {
     file: Blob,
     index: number,
     abort?: AbortSignal,
-  ): Promise<backend.S3MultipartPart> {
+  ): Promise<{ part: backend.S3MultipartPart; size: number }> {
     const start = index * backend.S3_CHUNK_SIZE_BYTES
     const end = Math.min(start + backend.S3_CHUNK_SIZE_BYTES, file.size)
     const body = file.slice(start, end)
@@ -901,7 +901,7 @@ export default class RemoteBackend extends Backend {
     if (!response.ok || eTag == null) {
       return await this.throw(response, 'uploadFileChunkBackendError')
     } else {
-      return { eTag, partNumber: index + 1, size: body.size }
+      return { part: { eTag, partNumber: index + 1 }, size: body.size }
     }
   }
 

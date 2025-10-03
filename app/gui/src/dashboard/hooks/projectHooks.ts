@@ -347,11 +347,15 @@ export function useCloseProjectMutation() {
         const fileName = 'project_root.enso-project'
         const file = await remoteBackend.getProjectArchive(parentId, fileName)
         await uploads
-          .uploadFile(file, {
-            fileId: hybrid.cloudProjectId,
-            fileName,
-            parentDirectoryId: hybrid.cloudParentId,
-          })
+          .uploadFile(
+            file,
+            {
+              fileId: hybrid.cloudProjectId,
+              fileName,
+              parentDirectoryId: hybrid.cloudParentId,
+            },
+            'hybridSync',
+          )
           .catch((error) => {
             toastAndLog('uploadProjectError', error)
           })
