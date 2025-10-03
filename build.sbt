@@ -5673,7 +5673,8 @@ lazy val `std-database` = project
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided",
       "org.xerial"           % "sqlite-jdbc" % sqliteVersion,
-      "org.postgresql"       % "postgresql"  % postgresVersion
+      "org.postgresql"       % "postgresql"  % postgresVersion,
+      "org.duckdb"           % "duckdb_jdbc" % duckdbVersion
     ),
     // Extract native libraries from sqlite-jdbc-**.jar and put them under
     // Standard/Database/polyglot/lib directory. The minimized jar will be
