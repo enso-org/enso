@@ -266,8 +266,8 @@ definition in its _symbol table_:
 
 - 3.1. `symbol` is a method in Receiver's type (or its parent type) symbol
   table.
-- 3.2. Such method is treated as if it's first parameter is named `self` and has
-  the default value of `Receiver`. In other words, the method invocation is
+- 3.2. Such method is treated as if it's first argument is named `self` and has
+  the preapplied value of `Receiver`. In other words, the method invocation is
   equivalent to the `method self=Receiver` expression.
 
 ### Static method invocation
