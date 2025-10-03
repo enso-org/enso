@@ -87,10 +87,6 @@ public interface Method extends Definition {
     }
 
     public Builder copyBuilder() {
-      if (methodReference().name().contains("Any.should_fail_with")) {
-        // TODO: FreamePointerAnalysis meta expected
-        var x = 1;
-      }
       return new Builder(this);
     }
 
