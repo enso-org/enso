@@ -1,0 +1,104 @@
+from Standard.Base import all
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
+
+import project.Connection.Connection.Connection
+import project.Dialects.Dialect
+import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import project.Internal.DuckDB.DuckDB_Entity_Naming_Properties
+import project.Internal.JDBC_Connection
+from project.Connection.Connection import make_schema_selector
+from project.Errors import SQL_Error
+
+type DuckDB_Connection
+    ## ---
+       private: true
+       ---
+       Creates a DuckDB connection based on a URL and properties.
+
+       ## Arguments
+        - `url`: The URL to connect to.
+        - `properties`: A vector of properties for the connection.
+        - `make_new`: A function that returns a new connection (DB->Schema->DuckDB).
+        - `database`: The initial database to connect to.
+        - `schema`: The initial schema to connect to.
+    create : Text -> Vector -> (Text -> Text -> DuckDB_Connection) -> Text -> Text -> DuckDB_Connection
+    create url properties make_new database schema =
+        jdbc_connection = JDBC_Connection.create url properties database schema
+
+        ## For initial work using DuckDB, we will use the Postgres dialect.
+        DuckDB_Connection.Value (Connection.new jdbc_connection Dialect.postgres DuckDB_Entity_Naming_Properties.new) make_new
+
+    ## ---
+       private: true
+       ---
+       A DuckDB database connection.
+
+       ## Arguments
+        - `connection`: the underlying connection.
+        - `make_new`: a function that returns a new connection.
+    private Value (connection:Connection) (make_new : Text -> Text -> DuckDB_Connection)
+
+    ## ---
+       icon: close
+       ---
+       Closes the connection releasing the underlying database resources
+       immediately instead of waiting for them to be automatically released.
+       The connection is not usable afterwards.
+    close : Nothing
+    close self = self.connection.close
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the list of databases (or catalogs) for the connection.
+    databases : Vector Text
+    databases self = self.connection.databases
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the name of the current database (or catalog).
+    database : Text
+    database self = self.connection.database
+
+    ## ---
+       icon: data_input
+       ---
+       Returns a new Connection with the specified database set as default.
+
+       ## Arguments
+        - database: The name of the database to connect to.
+    @database (self-> Single_Choice display=..Always values=(self.databases . map d-> Option d d.pretty))
+    set_database : Text -> Connection ! SQL_Error
+    set_database self database =
+        if database == self.database then self else
+            self.make_new database Nothing
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the list of schemas for the connection within the current database
+       (or catalog).
+    schemas : Vector Text
+    schemas self = self.connection.schemas
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the name of the current schema.
+    schema : Text
+    schema self = self.connection.schema
+
+    ## ---
+       icon: data_input
+       ---
+       Returns a new Connection with the specified schema set as default.
+
+       ## Arguments
+        - schema: The name of the schema to connect to.
+    @schema make_schema_selector
+    set_schema : Text -> Connection ! SQL_Error
+    set_schema self schema =
+        if schema == self.schema then self else
+            self.make_new Nothing schema

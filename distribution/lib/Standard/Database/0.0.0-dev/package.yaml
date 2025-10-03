@@ -21,3 +21,6 @@ services:
 
   - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
     with: Standard.Database.Internal.Postgres.Postgres_Services.Impl
+
+  - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
+    with: Standard.Database.Internal.DuckDB.DuckDB_Services.Impl
