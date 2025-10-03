@@ -87,7 +87,8 @@ class App {
         this.setProjectToOpenOnStartup(pathToURL(path))
       }
     })
-
+    this.setChromeOptions()
+    logChromiumSwitches(electron.app)
     const { args, fileToOpen, urlToOpen } = this.processArguments()
     if (args.version) {
       await this.printVersion(args)
@@ -104,7 +105,6 @@ class App {
       })
       if (isOriginalInstance) {
         this.handleItemOpening(fileToOpen, urlToOpen)
-        this.setChromeOptions()
         security.enableAll()
 
         this.onStart().catch((err) => {
@@ -142,6 +142,7 @@ class App {
         electron.app.whenReady().then(
           async () => {
             console.log('Electron application is ready.')
+            logChromiumSwitches(electron.app)
 
             electron.protocol.handle('enso', (request) =>
               projectManager.handleProjectProtocol(
@@ -657,3 +658,21 @@ process.on('uncaughtException', (err, origin) => {
 
 const APP = new App()
 void APP.run()
+
+function logChromiumSwitches(app: electron.App) {
+  const flags = [
+    'disable-gpu',
+    'use-gl',
+    'enable-unsafe-swiftshader',
+    'ignore-certificate-errors',
+    // add any others you set
+  ]
+  const values = flags.map((f) => [f, app.commandLine.getSwitchValue(f)])
+  console.log(
+    '[DIAG] chromium switches:',
+    'disable-gpu=' + app.commandLine.hasSwitch('disable-gpu'),
+    'use-gl=' + app.commandLine.getSwitchValue('use-gl'),
+    'enable-unsafe-swiftshader=' + app.commandLine.hasSwitch('enable-unsafe-swiftshader'),
+    'ignore-certificate-errors=' + app.commandLine.hasSwitch('ignore-certificate-errors'),
+  )
+}
