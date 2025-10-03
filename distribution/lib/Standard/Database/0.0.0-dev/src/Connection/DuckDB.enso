@@ -11,18 +11,16 @@ type DuckDB
 
        ## Arguments:
         - 'location': The file path to the DuckDB database file.
-        - 'database': The name of the database to connect to. Default is an empty string.
         - 'schema': The schema to use within the database. Default is 'main'.
         - 'read_only': Whether to open the database in read-only mode. Default is false.
-    From_File (location : File = (Missing_Argument.throw "location")) (database : Text = "") (schema : Text = "") (read_only : Boolean = False)
+    From_File (location : File = (Missing_Argument.throw "location")) (schema : Text = "") (read_only : Boolean = False)
 
     ## Connect to a DuckDB In Memory.
 
        ## Arguments:
-        - 'database': The name of the database to connect to. Default is an empty string.
         - 'schema': The schema to use within the database. Default is 'main'.
         - 'read_only': Whether to open the database in read-only mode. Default is false.
-    In_Memory (database : Text = "") (schema : Text = "") (read_only : Boolean = False)
+    In_Memory (schema : Text = "") (read_only : Boolean = False)
 
     ## ---
        private: true
@@ -43,16 +41,15 @@ type DuckDB
     connect self options =
         properties = options.merge self.jdbc_properties
 
-        make_new database schema =
-            used_database = (if database.is_nothing then "" else database).trim
+        make_new schema =
             used_schema = (if schema.is_nothing then "" else schema).trim
 
             new_settings = case self of
-                DuckDB.From_File f _ _ r -> DuckDB.From_File f used_database used_schema r
-                DuckDB.In_Memory _ _ r -> DuckDB.In_Memory used_database used_schema r
+                DuckDB.From_File f _ r -> DuckDB.From_File f used_schema r
+                DuckDB.In_Memory _ r -> DuckDB.In_Memory used_schema r
             new_settings.connect options
 
-        DuckDB_Connection.create self.jdbc_url properties make_new self.database self.schema
+        DuckDB_Connection.create self.jdbc_url properties make_new self.schema
 
     ## ---
        private: true
@@ -60,8 +57,8 @@ type DuckDB
        Provides the jdbc url for the connection.
     jdbc_url : Text
     jdbc_url self = case self of
-        DuckDB.From_File _ _ _ _ -> "jdbc:duckdb:" + (self.location.absolute.path.replace '\\' '/')
-        DuckDB.In_Memory _ _ _ -> "jdbc:duckdb::memory:"
+        DuckDB.From_File _ _ _ -> "jdbc:duckdb:" + (self.location.absolute.path.replace '\\' '/')
+        DuckDB.In_Memory _ _ -> "jdbc:duckdb::memory:"
 
     ## ---
        private: true
@@ -69,6 +66,6 @@ type DuckDB
        Provides the properties for the connection.
     jdbc_properties : Vector
     jdbc_properties self = case self of
-        DuckDB.From_File _ _ _ True -> [Pair.new "duckdb.read_only" "true"]
-        DuckDB.In_Memory _ _ True -> [Pair.new "duckdb.read_only" "true"]
+        DuckDB.From_File _ _ True -> [Pair.new "duckdb.read_only" "true"]
+        DuckDB.In_Memory _ True -> [Pair.new "duckdb.read_only" "true"]
         _ -> []

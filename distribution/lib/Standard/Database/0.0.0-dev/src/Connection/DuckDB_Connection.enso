@@ -19,12 +19,11 @@ type DuckDB_Connection
        ## Arguments
         - `url`: The URL to connect to.
         - `properties`: A vector of properties for the connection.
-        - `make_new`: A function that returns a new connection (DB->Schema->DuckDB).
-        - `database`: The initial database to connect to.
+        - `make_new`: A function that returns a new connection (Schema->DuckDB).
         - `schema`: The initial schema to connect to.
-    create : Text -> Vector -> (Text -> Text -> DuckDB_Connection) -> Text -> Text -> DuckDB_Connection
-    create url properties make_new database schema =
-        jdbc_connection = JDBC_Connection.create url properties database schema
+    create : Text -> Vector -> (Text -> Text -> DuckDB_Connection) -> Text -> DuckDB_Connection
+    create url properties make_new schema =
+        jdbc_connection = JDBC_Connection.create url properties schema=schema
 
         ## For initial work using DuckDB, we will use the Postgres dialect.
         DuckDB_Connection.Value (Connection.new jdbc_connection Dialect.postgres DuckDB_Entity_Naming_Properties.new) make_new
@@ -72,8 +71,9 @@ type DuckDB_Connection
     @database (self-> Single_Choice display=..Always values=(self.databases . map d-> Option d d.pretty))
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
-        if database == self.database then self else
-            self.make_new database Nothing
+        if database . equals_ignore_case self.database then self else
+            SQL_Error.throw_sql_error "Changing the database is not supported for DuckDB."
+
 
     ## ---
        icon: metadata
