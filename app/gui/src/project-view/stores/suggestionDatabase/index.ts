@@ -9,9 +9,11 @@ import {
   type MethodSuggestionEntry,
   type SuggestionEntry,
   type SuggestionId,
+  type TypeSuggestionEntry,
 } from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { assert } from '@/util/assert'
+import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import type { MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
@@ -120,6 +122,26 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
   getEntryByProjectPath(projectPath: ProjectPath): SuggestionEntry | undefined {
     const id = this.findByProjectPath(projectPath)
     if (id != null) return this.get(id)
+  }
+
+  /** Get entries of given type and all its parent types. */
+  getTypeAndItsParentsEntries(path: ProjectPath): Result<TypeSuggestionEntry[]> {
+    let next: ProjectPath | undefined = path
+    const result = []
+    while (next != null) {
+      const entry = this.getEntryByProjectPath(next)
+      if (entry?.kind !== SuggestionKind.Type) {
+        if (result.length > 0) {
+          console.error(
+            `Suggestion Database inconsitency: parent type of ${result[result.length - 1]?.definedIn.key()} is not a non-type entity ${next.key()}`,
+          )
+        }
+        return Err(`Path ${next.key()} does not resolve to a type`)
+      }
+      result.push(entry)
+      next = entry.parentType
+    }
+    return Ok(result)
   }
 
   /** Same as {@link getEntryByProjectPath}, but usable from dev console for debugging. */

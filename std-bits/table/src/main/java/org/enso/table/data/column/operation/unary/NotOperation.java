@@ -37,17 +37,18 @@ public class NotOperation implements UnaryOperation {
     return switch (storage) {
       case BoolStorage boolStorage -> applySpecializedBoolStorage(boolStorage);
       case ColumnBooleanStorage columnBooleanStorage -> applyOverBooleans(columnBooleanStorage);
-      default -> StorageIterators.buildOverStorage(
-          storage,
-          Builder.getForBoolean(storage.getSize()),
-          (builder, index, value) -> {
-            if (value instanceof Boolean b) {
-              builder.appendBoolean(!b);
-            } else {
-              throw new IllegalArgumentException(
-                  "Unsupported type: " + value.getClass() + " (expected boolean type).");
-            }
-          });
+      default ->
+          StorageIterators.buildOverStorage(
+              storage,
+              Builder.getForBoolean(storage.getSize()),
+              (builder, index, value) -> {
+                if (value instanceof Boolean b) {
+                  builder.appendBoolean(!b);
+                } else {
+                  throw new IllegalArgumentException(
+                      "Unsupported type: " + value.getClass() + " (expected boolean type).");
+                }
+              });
     };
   }
 

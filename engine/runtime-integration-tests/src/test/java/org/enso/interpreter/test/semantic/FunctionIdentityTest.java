@@ -17,7 +17,8 @@ public class FunctionIdentityTest {
 
   @Test
   public void functionWithArgIdentity() throws Exception {
-    var rawCode = """
+    var rawCode =
+        """
         am_i_me _ = am_i_me...
         """;
     assertFunctionIdentity(rawCode, "Am_I_Me_With_Arg");
@@ -25,7 +26,8 @@ public class FunctionIdentityTest {
 
   @Test
   public void functionIdentity() throws Exception {
-    var rawCode = """
+    var rawCode =
+        """
         am_i_me = am_i_me...
         """;
     assertFunctionIdentity(rawCode, "Am_I_Me");

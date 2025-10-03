@@ -1,8 +1,16 @@
 package org.enso.interpreter.node.typecheck;
 
-
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
@@ -15,17 +23,7 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.graalvm.collections.Pair;
 
-import com.oracle.truffle.api.CompilerAsserts;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-
-non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
+abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
   private final Type expectedType;
   @Node.Child IsValueOfTypeNode checkType;
   @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
@@ -68,17 +66,14 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
 
   @Specialization(replaces = "doWithConversionCached")
   Object doWithConversionUncached(
-      VirtualFrame frame,
-      Object v,
-      @Cached.Shared("typeOfNode") @Cached TypeOfNode typeOfNode) {
+      VirtualFrame frame, Object v, @Cached.Shared("typeOfNode") @Cached TypeOfNode typeOfNode) {
     var type = findType(typeOfNode, v);
-    return doWithConversionUncachedBoundary(
-        frame == null ? null : frame.materialize(), v, type);
+    return doWithConversionUncachedBoundary(frame == null ? null : frame.materialize(), v, type);
   }
 
   @Override
   final Object findDirectMatch(VirtualFrame frame, Object v) {
-      return directMatchImpl(v);
+    return directMatchImpl(v);
   }
 
   @ExplodeLoop
@@ -93,7 +88,8 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
       var lazyCheckFn = lazyCheck.wrapThunk(fn);
       return lazyCheckFn;
     }
-    assert EnsoContext.get(this).getBuiltins().any() != expectedType : "Don't check for Any: " + expectedType;
+    assert EnsoContext.get(this).getBuiltins().any() != expectedType
+        : "Don't check for Any: " + expectedType;
     if (v instanceof EnsoMultiValue mv) {
       if (castTo == null) {
         CompilerDirectives.transferToInterpreter();
@@ -140,7 +136,7 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
     final Object executeConvert(VirtualFrame frame, Object value) {
       var ctx = EnsoContext.get(this);
       var state = ctx.currentState();
-      return invokeNode.execute(conv, frame, state, new Object[] { intoType, value });
+      return invokeNode.execute(conv, frame, state, new Object[] {intoType, value});
     }
   }
 
@@ -165,7 +161,8 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
     return findType(typeOfNode, v, null);
   }
 
-  final Type[] findType(TypeOfNode typeOfNode, Object v, Type[] previous) {;
+  final Type[] findType(TypeOfNode typeOfNode, Object v, Type[] previous) {
+    ;
     if (v instanceof EnsoMultiValue multi) {
       var all = typeOfNode.findAllTypesOrNull(multi, false);
       return all;
@@ -194,8 +191,7 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Object doWithConversionUncachedBoundary(
-      MaterializedFrame frame, Object v, Type[] type) {
+  private Object doWithConversionUncachedBoundary(MaterializedFrame frame, Object v, Type[] type) {
     var c = findConversionNode(type);
     return handleWithConversion(frame, v, c);
   }

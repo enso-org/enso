@@ -8,7 +8,6 @@ from Standard.Table import Table
 
 import project.Column_Description.Column_Description
 import project.DB_Table.DB_Table
-import project.SQL_Query.SQL_Query
 from project.Internal.Upload.Operations.Upload_Table import create_table_structure
 
 ## ---
@@ -69,7 +68,7 @@ type Transactional_Table_Description
        proceed.
     private create self connection -> Table & DB_Table = Context.Output.with_enabled <|
         created_name = create_table_structure connection self.name self.structure primary_key=self.primary_key temporary=self.temporary on_problems=self.on_problems
-        connection.query (SQL_Query.Table_Name created_name)
+        connection.query (..Table_Name created_name)
 
 ## ---
    private: true

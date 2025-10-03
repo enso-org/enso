@@ -55,11 +55,11 @@ public class MetaIsATest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import Meta, Warning
+                from Standard.Base import Meta, Warning
 
-    check x y = Meta.is_a x y
-    check_warning x = Warning.has_warnings x
-    """,
+                check x y = Meta.is_a x y
+                check_warning x = Warning.has_warnings x
+                """,
                 "check.enso")
             .uri(uri)
             .buildLiteral();

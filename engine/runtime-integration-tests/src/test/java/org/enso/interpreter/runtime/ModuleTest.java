@@ -74,9 +74,14 @@ public class ModuleTest {
     var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
 
-    var code = Source.newBuilder("enso", """
-    main = 42
-    """, name.toString()).build();
+    var code =
+        Source.newBuilder(
+                "enso",
+                """
+                main = 42
+                """,
+                name.toString())
+            .build();
 
     ctxRule.eval(code);
     var module = ensoContext.getTopScope().getModule(name.toString()).get().asCompilerModule();
@@ -106,9 +111,14 @@ public class ModuleTest {
     var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
 
-    var code = Source.newBuilder("enso", """
-    main = 42
-    """, name.toString()).build();
+    var code =
+        Source.newBuilder(
+                "enso",
+                """
+                main = 42
+                """,
+                name.toString())
+            .build();
 
     ctxRule.eval(code);
     var module = ensoContext.getTopScope().getModule(name.toString()).get().asCompilerModule();

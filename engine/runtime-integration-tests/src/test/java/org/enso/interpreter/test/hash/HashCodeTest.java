@@ -110,9 +110,9 @@ public class HashCodeTest {
             assertEquals(
                 String.format(
                     """
-                  If two objects are same, they should have same hash codes:
-                    firstVal = %s, secondVal = %s, firstHash = %d, secondHash = %d
-                  """,
+                    If two objects are same, they should have same hash codes:
+                      firstVal = %s, secondVal = %s, firstHash = %d, secondHash = %d
+                    """,
                     interop.toDisplayString(firstValue),
                     interop.toDisplayString(secondValue),
                     firstHash,

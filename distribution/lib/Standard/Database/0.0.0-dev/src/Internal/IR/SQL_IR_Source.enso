@@ -23,12 +23,14 @@ type SQL_IR_Source
        ## Arguments
         - `table_name`: The name of the table for which the context is being
           created.
+        - `schema`: The schema in which the table resides, or "" if not
+          applicable.
         - `alias`: An alias name to use for table within the query.
         - `internal_temporary_keep_alive_reference`: See `SQL_IR_From_Part.Table`
           for more details.
-    for_table : Text -> Text -> Any -> SQL_IR_Source
-    for_table table_name:Text alias:Text=table_name internal_temporary_keep_alive_reference=Nothing =
-        SQL_IR_Source.Value (SQL_IR_From_Part.Table table_name alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
+    for_table : Text -> Text -> Text -> Any -> SQL_IR_Source
+    for_table table_name:Text schema:Text alias:Text=table_name internal_temporary_keep_alive_reference=Nothing =
+        SQL_IR_Source.Value (SQL_IR_From_Part.Table table_name schema alias internal_temporary_keep_alive_reference=internal_temporary_keep_alive_reference) [] [] [] Nothing []
 
     ## ---
        private: true
@@ -223,10 +225,10 @@ type SQL_IR_Source_Extension
     ## A recipe for building the extension.
 
        ## Arguments
-        - `part_name`: Should be initilised with SQL_Part.Extension
+        - `part_name`: Should be initialised with SQL_Part.Extension
           "<<extension_description>>" where extension_description is a
           description of this extension. SQL_Part.Extension
-          "<<extenion_descption>>" then needs to be added to get_part_order to
+          "<<extension_description>>" then needs to be added to get_part_order to
           determine where in the final SQL query this extension should be placed.
         - `expressions`: Sub-expressions needed for the part. They will be
           generated and the results of that will be passed to `run_generator`.

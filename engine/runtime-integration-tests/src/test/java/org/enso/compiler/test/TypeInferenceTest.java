@@ -46,15 +46,15 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value x
+                type My_Type
+                    Value x
 
-                    const -> My_Type = My_Type.Value 42
+                const -> My_Type = My_Type.Value 42
 
-                    foo =
-                        x = const
-                        x
-                    """,
+                foo =
+                    x = const
+                    x
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -71,16 +71,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value x
+                type My_Type
+                    Value x
 
-                    add x y -> My_Type = My_Type.Value (x.x+y.x)
+                add x y -> My_Type = My_Type.Value (x.x+y.x)
 
-                    foo z =
-                        a = My_Type.Value 42
-                        b = add a z
-                        b
-                    """,
+                foo z =
+                    a = My_Type.Value 42
+                    b = add a z
+                    b
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -100,20 +100,20 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
+                type My_Type
+                    Value v
 
-                    f1 (x1 : My_Type) =
-                        y1 = x1
-                        My_Type.Value (y1.v + y1.v)
+                f1 (x1 : My_Type) =
+                    y1 = x1
+                    My_Type.Value (y1.v + y1.v)
 
-                    f2 : My_Type -> My_Type
-                    f2 x2 =
-                        y2 = x2
-                        My_Type.Value (y2.v + y2.v)
+                f2 : My_Type -> My_Type
+                f2 x2 =
+                    y2 = x2
+                    My_Type.Value (y2.v + y2.v)
 
-                    f3 (x3 : My_Type) -> My_Type = My_Type.Value (x3.v + x3.v)
-                    """,
+                f3 (x3 : My_Type) -> My_Type = My_Type.Value (x3.v + x3.v)
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -141,13 +141,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value x
+                type My_Type
+                    Value x
 
-                    f x =
-                        y = (x : My_Type)
-                        My_Type.Value (y.x + y.x)
-                    """,
+                f x =
+                    y = (x : My_Type)
+                    My_Type.Value (y.x + y.x)
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -166,15 +166,15 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value x
-                    type Other_Type
-                        Value y
-                    f z =
-                        y1 = (z : My_Type | Other_Type)
-                        y2 = (z : My_Type & Other_Type)
-                        My_Type.Value (y1.x + y2.x)
-                    """,
+                type My_Type
+                    Value x
+                type Other_Type
+                    Value y
+                f z =
+                    y1 = (z : My_Type | Other_Type)
+                    y2 = (z : My_Type & Other_Type)
+                    My_Type.Value (y1.x + y2.x)
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -209,15 +209,15 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value x
-                    type Other_Type
-                        Value y
-                    f z w =
-                        f1 = (z : My_Type -> Other_Type)
-                        f2 = (w : My_Type -> My_Type -> Other_Type)
-                        f2 (f1 (My_Type.Value 42))
-                    """,
+                type My_Type
+                    Value x
+                type Other_Type
+                    Value y
+                f z w =
+                    f1 = (z : My_Type -> Other_Type)
+                    f2 = (w : My_Type -> My_Type -> Other_Type)
+                    f2 (f1 (My_Type.Value 42))
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -245,13 +245,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    f =
-                        x = 42
-                        y = "foo"
-                        z = 1.5
-                        w = [1, 2, 3]
-                        x.to_text + y + z.to_text + w.to_text
-                    """,
+                f =
+                    x = 42
+                    y = "foo"
+                    z = 1.5
+                    w = [1, 2, 3]
+                    x.to_text + y + z.to_text + w.to_text
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -272,14 +272,14 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    foo x =
-                        y = (x : My_Type)
-                        z = y
-                        w = z
-                        w
-                    """,
+                type My_Type
+                    Value v
+                foo x =
+                    y = (x : My_Type)
+                    z = y
+                    w = z
+                    w
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -299,13 +299,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    foo (x1 : My_Type) x2 =
-                        y1 = x1
-                        y2 = x2
-                        [y1, y2]
-                    """,
+                type My_Type
+                    Value v
+                foo (x1 : My_Type) x2 =
+                    y1 = x1
+                    y2 = x2
+                    [y1, y2]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -329,15 +329,15 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    foo =
-                        f (x : My_Type) (y : My_Type) -> My_Type = My_Type.Value x.v+y.v
+                type My_Type
+                    Value v
+                foo =
+                    f (x : My_Type) (y : My_Type) -> My_Type = My_Type.Value x.v+y.v
 
-                        f1 = f
-                        y = f (My_Type.Value 1) (My_Type.Value 2)
-                        [y, f1]
-                    """,
+                    f1 = f
+                    y = f (My_Type.Value 1) (My_Type.Value 2)
+                    [y, f1]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -359,13 +359,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Singleton
-                    foo =
-                        # x = zeroArgConstructor.My_Type
-                        x = My_Type.Singleton
-                        x
-                    """,
+                type My_Type
+                    Singleton
+                foo =
+                    # x = zeroArgConstructor.My_Type
+                    x = My_Type.Singleton
+                    x
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -384,12 +384,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value x y z
-                    foo =
-                        x = My_Type.Value 1 2 3
-                        x
-                    """,
+                type My_Type
+                    Value x y z
+                foo =
+                    x = My_Type.Value 1 2 3
+                    x
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -408,12 +408,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value x y z
-                    foo =
-                        x = My_Type.Non_Existent 1
-                        x
-                    """,
+                type My_Type
+                    Value x y z
+                foo =
+                    x = My_Type.Non_Existent 1
+                    x
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -438,19 +438,19 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value x y=100 z=200
-                        All_Defaults a=1000 b=2000
-                    foo =
-                        x1 = My_Type.Value 1 2 3
-                        x2 = My_Type.Value 1 2
-                        x3 = My_Type.Value 1
-                        x4 = My_Type.Value
-                        x5 = My_Type.Value 1 ...
-                        x6 = My_Type.All_Defaults
-                        x7 = My_Type.All_Defaults ...
-                        [x1, x2, x3, x4, x5, x6, x7]
-                    """,
+                type My_Type
+                    Value x y=100 z=200
+                    All_Defaults a=1000 b=2000
+                foo =
+                    x1 = My_Type.Value 1 2 3
+                    x2 = My_Type.Value 1 2
+                    x3 = My_Type.Value 1
+                    x4 = My_Type.Value
+                    x5 = My_Type.Value 1 ...
+                    x6 = My_Type.All_Defaults
+                    x7 = My_Type.All_Defaults ...
+                    [x1, x2, x3, x4, x5, x6, x7]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -493,10 +493,10 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    f x =
-                      y = if x == 10 then 1 else 2
-                      y
-                    """,
+                f x =
+                  y = if x == 10 then 1 else 2
+                  y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -513,15 +513,15 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    f x =
-                      y = case x of
-                        1 -> My_Type.Value 1
-                        2 -> My_Type.Value 20
-                        _ -> My_Type.Value 300
-                      y
-                    """,
+                type My_Type
+                    Value v
+                f x =
+                  y = case x of
+                    1 -> My_Type.Value 1
+                    2 -> My_Type.Value 20
+                    _ -> My_Type.Value 300
+                  y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -539,14 +539,14 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    f x =
-                      y = case x of
-                        i : My_Type -> i
-                        _ -> My_Type.Value 0
-                      y
-                    """,
+                type My_Type
+                    Value v
+                f x =
+                  y = case x of
+                    i : My_Type -> i
+                    _ -> My_Type.Value 0
+                  y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -570,14 +570,14 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    f x =
-                      y = case x of
-                        _ : My_Type -> x
-                        _ -> My_Type.Value 42
-                      y
-                    """,
+                type My_Type
+                    Value v
+                f x =
+                  y = case x of
+                    _ : My_Type -> x
+                    _ -> My_Type.Value 42
+                  y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -596,12 +596,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    f x =
-                      y = case x of
-                        1 -> x
-                        "foo" -> x
-                      y
-                    """,
+                f x =
+                  y = case x of
+                    1 -> x
+                    "foo" -> x
+                  y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -621,16 +621,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    type Other_Type
-                        Value o
-                    f x =
-                      y = case x of
-                        _ : Other_Type -> My_Type.Value 42
-                        _ : My_Type -> x
-                      y
-                    """,
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                f x =
+                  y = case x of
+                    _ : Other_Type -> My_Type.Value 42
+                    _ : My_Type -> x
+                  y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -648,16 +648,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    type Other_Type
-                        Value o
-                    f x =
-                      y = case x of
-                        1 -> My_Type.Value 42
-                        2 -> Other_Type.Value 23
-                      y
-                    """,
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                f x =
+                  y = case x of
+                    1 -> My_Type.Value 42
+                    2 -> Other_Type.Value 23
+                  y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -675,10 +675,10 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    f x =
-                      y = if x == 1 then "foo" else 42
-                      y
-                    """,
+                f x =
+                  y = if x == 1 then "foo" else 42
+                  y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -696,10 +696,10 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    f x =
-                      y = if x == 1 then "foo"
-                      y
-                    """,
+                f x =
+                  y = if x == 1 then "foo"
+                  y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -716,21 +716,21 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
+                type My_Type
+                    Value v
 
-                        static_method (x : My_Type) =
-                            y = x
-                            z = My_Type.Value 23
-                            w = 42
-                            [y, z, w]
+                    static_method (x : My_Type) =
+                        y = x
+                        z = My_Type.Value 23
+                        w = 42
+                        [y, z, w]
 
-                        member_method self (x : My_Type) =
-                            y = x
-                            z = My_Type.Value 23
-                            w = 42
-                            [y, z, w]
-                    """,
+                    member_method self (x : My_Type) =
+                        y = x
+                        z = My_Type.Value 23
+                        w = 42
+                        [y, z, w]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -759,13 +759,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
+                type My_Type
+                    Value v
 
-                        member_method self =
-                            y = self
-                            y
-                    """,
+                    member_method self =
+                        y = self
+                        y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -783,13 +783,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                    foo unknown =
-                        x1 = 0 1
-                        x2 = "a" 2
-                        x3 = unknown 3
-                        [x1, x2, x3]
-                    """,
+                type My_Type
+                foo unknown =
+                    x1 = 0 1
+                    x2 = "a" 2
+                    x3 = unknown 3
+                    [x1, x2, x3]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -825,16 +825,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type a
-                        Value v
-                    type Other_Type
-                        Value (v : My_Type Other_Type)
+                type My_Type a
+                    Value v
+                type Other_Type
+                    Value (v : My_Type Other_Type)
 
-                    foo1 : My_Type Other_Type -> My_Type Other_Type
-                    foo1 v = v
+                foo1 : My_Type Other_Type -> My_Type Other_Type
+                foo1 v = v
 
-                    foo2 (v : My_Type Other_Type) -> My_Type Other_Type = v
-                    """,
+                foo2 (v : My_Type Other_Type) -> My_Type Other_Type = v
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -850,20 +850,20 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    type Other_Type
-                        Value o
-                    Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
 
-                    function_taking_other o:Other_Type =
-                        o.o
+                function_taking_other o:Other_Type =
+                    o.o
 
-                    foo =
-                        x = My_Type.Value 12
-                        y = function_taking_other x
-                        y
-                    """,
+                foo =
+                    x = My_Type.Value 12
+                    y = function_taking_other x
+                    y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -885,12 +885,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    type Other_Type
-                        Value o
-                    Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
-                    """,
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
+                """,
                 uriA.getAuthority())
             .uri(uriA)
             .buildLiteral();
@@ -901,16 +901,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    from local.Project1.typeDef import My_Type, Other_Type
+                from local.Project1.typeDef import My_Type, Other_Type
 
-                    function_taking_other o:Other_Type =
-                        o.o
+                function_taking_other o:Other_Type =
+                    o.o
 
-                    foo =
-                        x = My_Type.Value 12
-                        y = function_taking_other x
-                        y
-                    """,
+                foo =
+                    x = My_Type.Value 12
+                    y = function_taking_other x
+                    y
+                """,
                 uriB.getAuthority())
             .uri(uriB)
             .buildLiteral();
@@ -932,11 +932,11 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    type Other_Type
-                        Value o
-                    """,
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                """,
                 uriA.getAuthority())
             .uri(uriA)
             .buildLiteral();
@@ -947,9 +947,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    from local.Project1.typeDef import My_Type, Other_Type
-                    Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
-                    """,
+                from local.Project1.typeDef import My_Type, Other_Type
+                Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
+                """,
                 uriB.getAuthority())
             .uri(uriB)
             .buildLiteral();
@@ -960,16 +960,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    from local.Project1.typeDef import My_Type, Other_Type
+                from local.Project1.typeDef import My_Type, Other_Type
 
-                    function_taking_other o:Other_Type =
-                        o.o
+                function_taking_other o:Other_Type =
+                    o.o
 
-                    foo =
-                        x = My_Type.Value 12
-                        y = function_taking_other x
-                        y
-                    """,
+                foo =
+                    x = My_Type.Value 12
+                    y = function_taking_other x
+                    y
+                """,
                 uriC.getAuthority())
             .uri(uriC)
             .buildLiteral();
@@ -985,17 +985,17 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    from local.Project1.typeDef import My_Type, Other_Type
-                    from local.Project1.conversionDef import all
+                from local.Project1.typeDef import My_Type, Other_Type
+                from local.Project1.conversionDef import all
 
-                    function_taking_other o:Other_Type =
-                        o.o
+                function_taking_other o:Other_Type =
+                    o.o
 
-                    foo =
-                        x = My_Type.Value 12
-                        y = function_taking_other x
-                        y
-                    """,
+                foo =
+                    x = My_Type.Value 12
+                    y = function_taking_other x
+                    y
+                """,
                 uriD.getAuthority())
             .uri(uriD)
             .buildLiteral();
@@ -1015,22 +1015,22 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
+                type My_Type
+                    Value v
 
-                    foo =
-                        f x = x
-                        takes_my_type (m : My_Type) = m
-                        y1 = takes_my_type f
-                        g (x : My_Type) -> My_Type = x
-                        y2 = takes_my_type g
+                foo =
+                    f x = x
+                    takes_my_type (m : My_Type) = m
+                    y1 = takes_my_type f
+                    g (x : My_Type) -> My_Type = x
+                    y2 = takes_my_type g
 
-                        takes_function (f : Any -> Any) = f
-                        y3 = takes_function (My_Type.Value 123)
-                        y4 = takes_function My_Type.Value
-                        y5 = takes_function f
-                        [y1, y2, y3, y4, y5]
-                    """,
+                    takes_function (f : Any -> Any) = f
+                    y3 = takes_function (My_Type.Value 123)
+                    y4 = takes_function My_Type.Value
+                    y5 = takes_function f
+                    [y1, y2, y3, y4, y5]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1062,16 +1062,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    type Other_Type
-                        Value o
-                    foo =
-                        bar (x : Other_Type) = x
-                        y = My_Type.Value 10
-                        z = bar y
-                        z
-                    """,
+                type My_Type
+                    Value v
+                type Other_Type
+                    Value o
+                foo =
+                    bar (x : Other_Type) = x
+                    y = My_Type.Value 10
+                    z = bar y
+                    z
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1083,8 +1083,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var arg =
         switch (z.expression()) {
           case Application.Prefix app -> app.arguments().head();
-          default -> throw new AssertionError(
-              "Expected " + z.showCode() + " to be an application expression.");
+          default ->
+              throw new AssertionError(
+                  "Expected " + z.showCode() + " to be an application expression.");
         };
     var typeError = new Warning.TypeMismatch(arg.identifiedLocation(), "Other_Type", "My_Type");
     assertEquals(List.of(typeError), ModuleUtils.getImmediateDiagnostics(arg));
@@ -1098,12 +1099,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    foo =
-                        x -> My_Type = 10
-                        x
-                    """,
+                type My_Type
+                    Value v
+                foo =
+                    x -> My_Type = 10
+                    x
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1122,15 +1123,15 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    foo unknown =
-                        bar (x : My_Type) = x
-                        baz -> My_Type = unknown
-                        y = bar unknown
-                        z = (unknown : My_Type)
-                        [y, z]
-                    """,
+                type My_Type
+                    Value v
+                foo unknown =
+                    bar (x : My_Type) = x
+                    baz -> My_Type = unknown
+                    y = bar unknown
+                    z = (unknown : My_Type)
+                    [y, z]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1164,18 +1165,18 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
+                type My_Type
+                    Value v
 
-                    const -> My_Type = My_Type.Value 23
-                    check (x : My_Type) -> My_Type = x
+                const -> My_Type = My_Type.Value 23
+                check (x : My_Type) -> My_Type = x
 
-                    foo =
-                        x1 = const
-                        x2 = check
-                        x3 = check const
-                        [x1, x2, x3]
-                    """,
+                foo =
+                    x1 = const
+                    x2 = check
+                    x3 = check const
+                    [x1, x2, x3]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1198,33 +1199,33 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
+                type My_Type
+                    Value v
 
-                        zero_arg self -> My_Type = My_Type.Value [self.v]
-                        one_arg self (x : My_Type) -> My_Type = My_Type.Value [self.v, x.v]
+                    zero_arg self -> My_Type = My_Type.Value [self.v]
+                    one_arg self (x : My_Type) -> My_Type = My_Type.Value [self.v, x.v]
 
-                        static_zero -> My_Type = My_Type.Value 42
-                        static_one (x : My_Type) -> My_Type = My_Type.Value [x.v, 1]
+                    static_zero -> My_Type = My_Type.Value 42
+                    static_one (x : My_Type) -> My_Type = My_Type.Value [x.v, 1]
 
-                    My_Type.extension_method self -> My_Type = My_Type.Value [self.v, 2]
+                My_Type.extension_method self -> My_Type = My_Type.Value [self.v, 2]
 
-                    foo =
-                        inst = My_Type.Value 23
-                        x1 = inst.zero_arg
-                        x2 = inst.one_arg inst
-                        x3 = My_Type.static_zero
-                        x4 = My_Type.static_one inst
+                foo =
+                    inst = My_Type.Value 23
+                    x1 = inst.zero_arg
+                    x2 = inst.one_arg inst
+                    x3 = My_Type.static_zero
+                    x4 = My_Type.static_one inst
 
-                        # And calling member methods through static syntax:
-                        x5 = My_Type.zero_arg inst
-                        x6 = My_Type.one_arg inst
+                    # And calling member methods through static syntax:
+                    x5 = My_Type.zero_arg inst
+                    x6 = My_Type.one_arg inst
 
-                        # And extension methods
-                        x7 = inst.extension_method
-                        x8 = My_Type.extension_method inst
-                        [x1, x2, x3, x4, x5, x6, x7, x8]
-                    """,
+                    # And extension methods
+                    x7 = inst.extension_method
+                    x8 = My_Type.extension_method inst
+                    [x1, x2, x3, x4, x5, x6, x7, x8]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1256,21 +1257,21 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-            type My_Type
-                Value v
+                type My_Type
+                    Value v
 
-                member_method self = [self.v]
+                    member_method self = [self.v]
 
-            type Other_Type
-                Constructor v
+                type Other_Type
+                    Constructor v
 
-                member_method = [self.v, self.v]
+                    member_method = [self.v, self.v]
 
-            foo =
-                other = Other_Type.Constructor 44
-                x1 = My_Type.member_method other
-                x1
-            """,
+                foo =
+                    other = Other_Type.Constructor 44
+                    x1 = My_Type.member_method other
+                    x1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1289,14 +1290,14 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-            type My_Type
-                Value v
+                type My_Type
+                    Value v
 
-            type Other_Type
-                Constructor v
+                type Other_Type
+                    Constructor v
 
-            foo (arg : My_Type = Other_Type.Constructor 1) = arg
-            """,
+                foo (arg : My_Type = Other_Type.Constructor 1) = arg
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1320,14 +1321,14 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-            type My_Type
-                Value v
+                type My_Type
+                    Value v
 
-            type Other_Type
-                Constructor v
+                type Other_Type
+                    Constructor v
 
-            foo -> My_Type = Other_Type.Constructor 1
-            """,
+                foo -> My_Type = Other_Type.Constructor 1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1344,24 +1345,24 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-            type My_Type
-                Constructor_1 (field_a : Typ_X) (field_b : Typ_Y)
-                Constructor_2 (field_b : Typ_Z)
-                Constructor_3 (field_c : Typ_Z)
-                Constructor_4 (field_c : Typ_Z)
-                Constructor_5 field_d
+                type My_Type
+                    Constructor_1 (field_a : Typ_X) (field_b : Typ_Y)
+                    Constructor_2 (field_b : Typ_Z)
+                    Constructor_3 (field_c : Typ_Z)
+                    Constructor_4 (field_c : Typ_Z)
+                    Constructor_5 field_d
 
-            type Typ_X
-            type Typ_Y
-            type Typ_Z
+                type Typ_X
+                type Typ_Y
+                type Typ_Z
 
-            foo (instance : My_Type) =
-                x_a = instance.field_a
-                x_b = instance.field_b
-                x_c = instance.field_c
-                x_d = instance.field_d
-                [x_a, x_b, x_c, x_d]
-            """,
+                foo (instance : My_Type) =
+                    x_a = instance.field_a
+                    x_b = instance.field_b
+                    x_c = instance.field_c
+                    x_d = instance.field_d
+                    [x_a, x_b, x_c, x_d]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1393,23 +1394,23 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    import Standard.Base.Any.Any
+                import Standard.Base.Any.Any
 
-                    type My_Type
-                        Value v
+                type My_Type
+                    Value v
 
-                        method_one self = 42
-                        static_method = 44
+                    method_one self = 42
+                    static_method = 44
 
-                    foo =
-                        inst = My_Type.Value 23
-                        x1 = inst.method_one
-                        x2 = inst.method_two
-                        x3 = inst.to_text
-                        x4 = inst.is_error
-                        x5 = inst.static_method
-                        [x1, x2, x3, x4, x5]
-                    """,
+                foo =
+                    inst = My_Type.Value 23
+                    x1 = inst.method_one
+                    x2 = inst.method_two
+                    x3 = inst.to_text
+                    x4 = inst.is_error
+                    x5 = inst.static_method
+                    [x1, x2, x3, x4, x5]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1454,18 +1455,18 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    import Standard.Base.Any.Any
+                import Standard.Base.Any.Any
 
-                    type My_Type
-                        Value v
-                        method_one self = 42
+                type My_Type
+                    Value v
+                    method_one self = 42
 
-                    foo arg1 arg2="default" =
-                        inst = My_Type.Value 23
-                        x1 = inst.method_one
-                        x2 = inst.nonexistent
-                        [x1, x2]
-                    """,
+                foo arg1 arg2="default" =
+                    inst = My_Type.Value 23
+                    x1 = inst.method_one
+                    x2 = inst.nonexistent
+                    [x1, x2]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1494,17 +1495,17 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
+                type My_Type
+                    Value v
 
-                    foo x =
-                        txt1 = x.to_text
-                        txt2 = 42.to_text
-                        txt3 = (My_Type.Value 1).to_text
+                foo x =
+                    txt1 = x.to_text
+                    txt2 = 42.to_text
+                    txt3 = (My_Type.Value 1).to_text
 
-                        bool = (x == x)
-                        [txt1, txt2, txt3, bool]
-                    """,
+                    bool = (x == x)
+                    [txt1, txt2, txt3, bool]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1527,15 +1528,15 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
+                type My_Type
+                    Value v
 
-                        method_one self = 42
-                        method_two self =
-                            x1 = self.method_one
-                            x2 = self.non_existent_method
-                            [x1, x2]
-                    """,
+                    method_one self = 42
+                    method_two self =
+                        x1 = self.method_one
+                        x2 = self.non_existent_method
+                        [x1, x2]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1564,9 +1565,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    """,
+                type My_Type
+                    Value v
+                """,
                 uriA.getAuthority())
             .uri(uriA)
             .buildLiteral();
@@ -1577,16 +1578,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    import local.Project1.modA.My_Type
+                import local.Project1.modA.My_Type
 
-                    type Typ_X
-                        Value a
-                    type Typ_Y
-                        Value a
+                type Typ_X
+                    Value a
+                type Typ_Y
+                    Value a
 
-                    My_Type.member self -> Typ_X = Typ_X.Value self
-                    My_Type.static -> Typ_Y = Typ_Y.Value 32
-                    """,
+                My_Type.member self -> Typ_X = Typ_X.Value self
+                My_Type.static -> Typ_Y = Typ_Y.Value 32
+                """,
                 uriB.getAuthority())
             .uri(uriB)
             .buildLiteral();
@@ -1597,15 +1598,15 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    import local.Project1.modA.My_Type
-                    from local.Project1.modB import all
+                import local.Project1.modA.My_Type
+                from local.Project1.modB import all
 
-                    foo =
-                        inst = My_Type.Value 23
-                        x1 = inst.member
-                        x2 = My_Type.static
-                        [x1, x2]
-                    """,
+                foo =
+                    inst = My_Type.Value 23
+                    x1 = inst.member
+                    x2 = My_Type.static
+                    [x1, x2]
+                """,
                 uriC.getAuthority())
             .uri(uriC)
             .buildLiteral();
@@ -1624,9 +1625,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        Value v
-                    """,
+                type My_Type
+                    Value v
+                """,
                 uriA.getAuthority())
             .uri(uriA)
             .buildLiteral();
@@ -1638,16 +1639,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    import local.Project1.modA.My_Type
+                import local.Project1.modA.My_Type
 
-                    type Typ_X
-                        Value a
-                    type Typ_Y
-                        Value a
+                type Typ_X
+                    Value a
+                type Typ_Y
+                    Value a
 
-                    My_Type.member self -> Typ_X = Typ_X.Value self
-                    My_Type.static -> Typ_Y = Typ_Y.Value 32
-                    """,
+                My_Type.member self -> Typ_X = Typ_X.Value self
+                My_Type.static -> Typ_Y = Typ_Y.Value 32
+                """,
                 uriB.getAuthority())
             .uri(uriB)
             .buildLiteral();
@@ -1659,9 +1660,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    export local.Project1.modA.My_Type
-                    export local.Project1.modB.member
-                    """,
+                export local.Project1.modA.My_Type
+                export local.Project1.modB.member
+                """,
                 uriC.getAuthority())
             .uri(uriC)
             .buildLiteral();
@@ -1672,14 +1673,14 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    from local.Project1.modC import all
+                from local.Project1.modC import all
 
-                    foo =
-                        inst = My_Type.Value 23
-                        x1 = inst.member
-                        x2 = My_Type.static
-                        [x1, x2]
-                    """,
+                foo =
+                    inst = My_Type.Value 23
+                    x1 = inst.member
+                    x2 = My_Type.static
+                    [x1, x2]
+                """,
                 uriD.getAuthority())
             .uri(uriD)
             .buildLiteral();
@@ -1697,15 +1698,15 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    from project.modA.My_Type import My_Constructor
+                from project.modA.My_Type import My_Constructor
 
-                    type My_Type
-                        My_Constructor v
+                type My_Type
+                    My_Constructor v
 
-                    foo =
-                        x1 = My_Constructor 1
-                        x1
-                    """,
+                foo =
+                    x1 = My_Constructor 1
+                    x1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1724,13 +1725,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        My_Constructor v
+                type My_Type
+                    My_Constructor v
 
-                    foo =
-                        x1 = local.Project1.modA.My_Type.My_Constructor 1
-                        x1
-                    """,
+                foo =
+                    x1 = local.Project1.modA.My_Type.My_Constructor 1
+                    x1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1747,43 +1748,43 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    import Standard.Base.Any.Any
+                import Standard.Base.Any.Any
 
-                    type A
-                        A_Value
-                    type B
-                        B_Value
-                    type C
-                        C_Value
-                    type D
-                        D_Value
-                    type E
-                        E_Value
+                type A
+                    A_Value
+                type B
+                    B_Value
+                type C
+                    C_Value
+                type D
+                    D_Value
+                type E
+                    E_Value
 
-                    Any.method self -> A = A.A_Value
-                    Any.static_method -> D = D.D_Value
+                Any.method self -> A = A.A_Value
+                Any.static_method -> D = D.D_Value
 
-                    type My_Type
-                        Value
+                type My_Type
+                    Value
 
-                        method self -> B = B.B_Value
-                        static_method -> E = E.E_Value
+                    method self -> B = B.B_Value
+                    static_method -> E = E.E_Value
 
-                    type Other_Type
-                        Value
+                type Other_Type
+                    Value
 
-                    method -> C = C.C_Value
+                method -> C = C.C_Value
 
-                    foo =
-                        x1 = Other_Type.Value.method
-                        x2 = My_Type.Value.method
-                        x3 = method
-                        x4 = My_Type.method
-                        x5 = Any.method My_Type.Value
-                        x6 = Any.static_method
-                        x7 = My_Type.static_method
-                        [x1, x2, x3, x4, x5, x6, x7]
-                    """,
+                foo =
+                    x1 = Other_Type.Value.method
+                    x2 = My_Type.Value.method
+                    x3 = method
+                    x4 = My_Type.method
+                    x5 = Any.method My_Type.Value
+                    x6 = Any.static_method
+                    x7 = My_Type.static_method
+                    [x1, x2, x3, x4, x5, x6, x7]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1798,15 +1799,15 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type A
-                        A_Value
+                type A
+                    A_Value
 
-                    Any.method self -> A = A.A_Value
+                Any.method self -> A = A.A_Value
 
-                    foo =
-                        x1 = 42.method
-                        x1
-                    """,
+                foo =
+                    x1 = 42.method
+                    x1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -1858,12 +1859,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    my_function a b c = [a, b, c]
-                    foo =
-                        # This call has no effect as the result is discarded but no function was called either.
-                        my_function 1
-                        0
-                    """,
+                my_function a b c = [a, b, c]
+                foo =
+                    # This call has no effect as the result is discarded but no function was called either.
+                    my_function 1
+                    0
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();

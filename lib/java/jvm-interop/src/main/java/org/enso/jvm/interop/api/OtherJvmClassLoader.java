@@ -2,6 +2,7 @@ package org.enso.jvm.interop.api;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleContext;
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -34,6 +35,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
   /**
    * Creates instance of the class loader.
    *
+   * @param language the language to associate objects loaded by this loader with
    * @param otherJvm normally we run in AOT mode but for debugging purposes we can also emulate the
    *     connection in a single JVM
    * @param ctx own context to execute code in
@@ -41,12 +43,13 @@ public final class OtherJvmClassLoader implements TruffleObject {
    * @throws IOException
    * @throws URISyntaxException
    */
-  public static OtherJvmClassLoader create(boolean otherJvm, TruffleContext ctx)
+  public static OtherJvmClassLoader create(
+      Class<? extends TruffleLanguage> language, boolean otherJvm, TruffleContext ctx)
       throws IOException, URISyntaxException {
     var jvm = otherJvm ? initializeJvm() : null;
     var ch = Channel.create(jvm, OtherJvmPool.class);
     var pool = ch.getConfig();
-    pool.onEnterLeave(ctx::enter, ctx::leave);
+    pool.onEnterLeave(language, ctx::enter, ctx::leave);
     return new OtherJvmClassLoader(ch);
   }
 
