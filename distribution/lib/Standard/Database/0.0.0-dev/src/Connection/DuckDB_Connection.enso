@@ -81,7 +81,7 @@ type DuckDB_Connection
        Returns the list of schemas for the connection within the current database
        (or catalog).
     schemas : Vector Text
-    schemas self = self.connection.schemas
+    schemas self = self.connection.schemas.distinct
 
     ## ---
        icon: metadata
@@ -100,5 +100,5 @@ type DuckDB_Connection
     @schema make_schema_selector
     set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
-        if schema == self.schema then self else
-            self.make_new Nothing schema
+        if schema . equals_ignore_case self.schema then self else
+            self.make_new schema

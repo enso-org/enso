@@ -6,6 +6,7 @@ export project.Connection.Client_Certificate.Client_Certificate
 export project.Connection.Connection_Options.Connection_Options
 export project.Connection.Credentials.Credentials
 export project.Connection.Database
+export project.Connection.DuckDB.DuckDB
 export project.Connection.Postgres.Postgres
 export project.Connection.SQLite.SQLite
 export project.Connection.SQLite_Format.SQLite_Format
