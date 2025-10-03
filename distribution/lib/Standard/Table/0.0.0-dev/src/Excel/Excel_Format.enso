@@ -252,3 +252,4 @@ Excel_Format.from (that : JS_Object) =
             headers = section.get "headers" |> parse_boolean_with_infer "headers"
             Excel_Format.Range address=address headers=headers
         unknown -> Error.throw (Illegal_Argument.Error "The `section.type` was "+unknown+" but it must be one of `workbook`, `sheet`, or `range`.")
+

@@ -41,11 +41,6 @@ final class MockCompilerContext implements CompilerContext {
   }
 
   @Override
-  public boolean isUseGlobalCacheLocations() {
-    return false;
-  }
-
-  @Override
   public boolean isInteractiveMode() {
     return false;
   }
@@ -190,8 +185,7 @@ final class MockCompilerContext implements CompilerContext {
   }
 
   @Override
-  public Future<Boolean> serializeLibrary(
-      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
+  public Future<Boolean> serializeLibrary(Compiler compiler, LibraryName libraryName) {
     throw new UnsupportedOperationException();
   }
 
@@ -202,8 +196,7 @@ final class MockCompilerContext implements CompilerContext {
   }
 
   @Override
-  public Future<Boolean> serializeModule(
-      Compiler compiler, Module module, boolean useGlobalCacheLocations, boolean usePool) {
+  public Future<Boolean> serializeModule(Compiler compiler, Module module, boolean usePool) {
     throw new UnsupportedOperationException();
   }
 

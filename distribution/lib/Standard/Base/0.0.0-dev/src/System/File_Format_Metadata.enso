@@ -5,6 +5,7 @@ import project.Data.Vector.Vector
 import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Text.Extensions import all
+from project.Error import all
 from project.System.File import find_extension_from_name
 
 ## ---

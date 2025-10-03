@@ -8,7 +8,7 @@ import { partition } from '@/util/data/array'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
-import { ToolbarItem } from './toolbar'
+import type { ToolbarItem } from './toolbar'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'
@@ -716,7 +716,7 @@ watchPostEffect(() => {
   const allPlotData = getPlotData(data.value)
   const [circleData, symbolData] = partition(allPlotData, (p) => (p.shape || 'circle') === 'circle')
   const labelsData =
-    data.value.points.labels === VISIBLE_POINTS ?
+    data.value.points.labels !== VISIBLE_POINTS ?
       []
     : allPlotData.filter((d) => d.label != null && d.label !== '')
 

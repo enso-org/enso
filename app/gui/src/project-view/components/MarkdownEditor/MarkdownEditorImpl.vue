@@ -12,18 +12,18 @@ import {
 import { useFormatActions } from '@/components/MarkdownEditor/formatActions'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
-import { StartedUpload, useAsyncResources } from '@/providers/asyncResources'
+import { useAsyncResources, type StartedUpload } from '@/providers/asyncResources'
 import { useCurrentProjectResourceContext } from '@/providers/asyncResources/context'
-import { AnyUploadSource, selectResourceFiles } from '@/providers/asyncResources/upload'
+import { selectResourceFiles, type AnyUploadSource } from '@/providers/asyncResources/upload'
 import { useCodeMirror, useEditorFocus } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
 import { Vec2 } from '@/util/data/vec2'
 import { useToast } from '@/util/toast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import { drawSelection, EditorView } from '@codemirror/view'
-import { type ComponentInstance, computed, useCssModule, useTemplateRef, watch } from 'vue'
+import { computed, useCssModule, useTemplateRef, watch, type ComponentInstance } from 'vue'
 
 const {
   toolbar = true,

@@ -11,7 +11,7 @@
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
 
-import { Consumer, LogLevel } from 'enso-runner/src/runner/log'
+import { Consumer, type LogLevel } from 'enso-runner/src/runner/log'
 
 import * as contentConfig from '@/contentConfig'
 import * as paths from '@/paths'

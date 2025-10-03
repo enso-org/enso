@@ -34,10 +34,10 @@
   "devDependencies": {
     "@fast-check/vitest": "catalog:",
     "@types/debug": "^4.1.12",
-    "@types/node": "^22.10.4",
+    "@types/node": "catalog:",
     "@types/ws": "8.5.13",
     "typescript": "catalog:",
-    "vite-plugin-wasm": "^3.4.1",
+    "vite-plugin-wasm": "^3.5.0",
     "vitest": "catalog:"
   }
 }

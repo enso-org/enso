@@ -91,9 +91,9 @@ public class VersionDescription {
       runtimeDescription =
           String.format(
               """
-          Running on: %s, %s, JDK %s
-                      %s, %s (%s)
-          """,
+              Running on: %s, %s, JDK %s
+                          %s, %s (%s)
+              """,
               vmName, vmVendor, jreVersion, osName, osVersion, osArch);
     } else if (enableNativeImageOSWorkaround) {
       // TODO [RW] Currently the `os.name` property seems to be set to the
@@ -135,22 +135,22 @@ public class VersionDescription {
       runtimeDescription =
           String.format(
               """
-          "osName": "%s",
-          "osVersion": "%s",
-          "osArch": "%s"
-          """,
+              "osName": "%s",
+              "osVersion": "%s",
+              "osArch": "%s"
+              """,
               osName, osVersion, osArch);
     } else {
       runtimeDescription =
           String.format(
               """
-          "vmName": "%s",
-          "vmVendor": "%s",
-          "jreVersion": "%s",
-          "osName": "%s",
-          "osVersion": "%s",
-          "osArch": "%s"
-          """,
+              "vmName": "%s",
+              "vmVendor": "%s",
+              "jreVersion": "%s",
+              "osName": "%s",
+              "osVersion": "%s",
+              "osArch": "%s"
+              """,
               vmName, vmVendor, jreVersion, osName, osVersion, osArch);
     }
     var parameters = formatParameters(VersionDescription::formatParameterAsJSONString, ",\n");

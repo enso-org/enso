@@ -39,6 +39,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           .environment("NO_COLOR", "true")
           .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
           .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(RuntimeOptions.CHECK_CWD, "false")
           .option(
             RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
             sequentialExecution.toString
@@ -516,7 +517,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
-      context.receiveNIgnoreExpressionUpdates(3) should contain allOf (
+      context.receiveNIgnoreExpressionUpdates(2) should contain allOf (
         Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
         context.executionComplete(contextId)
       )
@@ -529,7 +530,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             contextId,
             Some(
               Api.InvalidatedExpressions.Expressions(
-                Vector(context.Main.idMainX)
+                Vector(context.Main.idMainX),
+                ""
               )
             ),
             None,
@@ -1558,7 +1560,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             contextId,
             Some(
               Api.InvalidatedExpressions.Expressions(
-                Vector(context.Main.idMainX)
+                Vector(context.Main.idMainX),
+                ""
               )
             ),
             None,
@@ -1689,25 +1692,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val responsesAfterEdit = context.receiveNIgnoreExpressionUpdates(2)
-      responsesAfterEdit should contain(
+      context.receiveNIgnoreExpressionUpdates(
+        1
+      ) should contain theSameElementsAs Seq(
         context.executionComplete(contextId)
       )
-      val Some(data2) = responsesAfterEdit.collectFirst {
-        case Api.Response(
-              None,
-              Api.VisualizationUpdate(
-                Api.VisualizationContext(
-                  `visualizationId`,
-                  `contextId`,
-                  `expectedExpressionId`
-                ),
-                data
-              )
-            ) =>
-          data
-      }
-      data2.sameElements("6".getBytes) shouldBe true
   }
 
   it should "not reorder visualization commands" in withContext() { context =>
@@ -4487,15 +4476,19 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         Vector()
       )
       context.send(
-        Api.Request(
-          requestId,
-          Api.PushContextRequest(contextId, item1, execute = false)
-        )
+        Api.Request(requestId, Api.PushContextRequest(contextId, item1))
       )
       context.receiveNIgnorePendingExpressionUpdates(
-        1
+        3
       ) should contain theSameElementsAs Seq(
-        Api.Response(requestId, Api.PushContextResponse(contextId))
+        Api.Response(requestId, Api.PushContextResponse(contextId)),
+        TestMessages.update(
+          contextId,
+          idY,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "inc"))
+        ),
+        context.executionComplete(contextId)
       )
 
       // Send IdMap
@@ -4505,11 +4498,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(),
-            execute = true,
+            execute = false,
             idMap = Some(
-              model.IdMap(
-                Vector(model.Span(100, 101) -> idYX, model.Span(65, 72) -> idY)
-              )
+              model.IdMap(Vector(model.Span(100, 101) -> idYX))
             )
           )
         )
@@ -4535,15 +4526,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
       val attachVisualizationResponses =
-        context.receiveNIgnoreStdLib(5)
+        context.receiveNIgnoreExpressionUpdates(3)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
-        TestMessages.update(
-          contextId,
-          idY,
-          ConstantsGen.INTEGER,
-          Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "inc"))
-        ),
         context.executionComplete(contextId)
       )
       val Some(data) = attachVisualizationResponses.collectFirst {
@@ -5689,7 +5674,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // Includes a warning about unused variable
-      val editFileResponse = context.receiveNIgnoreExpressionUpdates(3)
+      val editFileResponse = context.receiveNIgnoreExpressionUpdates(2)
       editFileResponse should contain(
         context.executionComplete(contextId)
       )

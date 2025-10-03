@@ -1,9 +1,9 @@
+import { markdownDecorators } from '@/components/MarkdownEditor/codemirror/decoration'
+import { markdownFormatting } from '@/components/MarkdownEditor/codemirror/formatting'
 import {
   markdownClipboard,
   type MarkdownClipboardOptions,
-} from '@/components/MarkdownEditor/codemirror/clipboard'
-import { markdownDecorators } from '@/components/MarkdownEditor/codemirror/decoration'
-import { markdownFormatting } from '@/components/MarkdownEditor/codemirror/formatting'
+} from '@/components/MarkdownEditor/codemirror/markdownClipboard'
 import { ensoMarkdownSyntax } from '@/components/MarkdownEditor/markdown/syntax'
 import type { Extension } from '@codemirror/state'
 export { useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror/formatting'

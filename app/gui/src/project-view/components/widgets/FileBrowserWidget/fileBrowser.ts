@@ -23,6 +23,10 @@ export function listDirectoryArgs(params: ToValue<Directory | undefined>) {
             filterBy: null,
             labels: null,
             recentProjects: false,
+            from: null,
+            pageSize: null,
+            sortDirection: null,
+            sortExpression: null,
           },
           paramsValue.title,
         ]
@@ -91,7 +95,7 @@ export function useCurrentPath({
 
   const chosenFilename = computed(
     () =>
-      (!!chosenFile.value &&
+      (chosenFile.value != null &&
         ensoPathEqual(currentDirPath.value, chosenFile.value.path) &&
         chosenFile.value.name) ||
       null,

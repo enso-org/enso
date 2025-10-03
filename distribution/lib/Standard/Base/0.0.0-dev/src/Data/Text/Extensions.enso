@@ -24,7 +24,6 @@ import project.Data.Time.Date_Time_Formatter.Date_Time_Formatter
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Syntax_Error
@@ -42,6 +41,7 @@ from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
 from project.Data.Text.Text_Cleanse import Cleansable_Text, Text_Cleanse
+from project.Error import all
 from project.Metadata import Display, make_single_choice, Widget
 from project.Widget_Helpers import make_data_cleanse_vector_selector, make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
@@ -1353,10 +1353,8 @@ Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
    implementation treats all words in the same way.
 @locale Locale.default_widget
 Text.to_case : Case -> Locale -> Text
-Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default = case case_option of
-    Case.Lower -> UCharacter.toLowerCase locale.java_locale self
-    Case.Upper -> UCharacter.toUpperCase locale.java_locale self
-    Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing
+Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default =
+    Text_Utils.toCase self case_option.to_java locale.java_locale
 
 ## ---
    group: Calculations

@@ -1,21 +1,16 @@
 <script setup lang="ts" generic="T extends DropdownEntry | SubmenuEntry<T>">
 import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
-import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
 import { usePopoverRoot } from '@/providers/popoverRoot'
 import { targetIsOutside } from '@/util/autoBlur'
-import { Opt } from '@/util/data/opt'
-import { computed, ComputedRef, ref, toRef, useTemplateRef, watch } from 'vue'
+import type { Opt } from '@/util/data/opt'
+import { computed, ref, toRef, useTemplateRef, watch, type ComputedRef } from 'vue'
 import { submenuDropdownStyles } from './styles'
 import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
-const {
-  extendUpwards = true,
-  backgroundColor = 'var(--color-node-background)',
-  color = 'var(--color-node-text)',
-  ...props
-} = defineProps<{
+const { extendUpwards = true, ...props } = defineProps<{
   floatReference: Opt<HTMLElement>
   show: boolean
   entries: T[]
@@ -121,9 +116,8 @@ export interface SubmenuComponent {
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
+          class="widgetPill"
           :class="{ ExtendUpwards: props.topLevel && extendUpwards }"
-          :color="color"
-          :backgroundColor="backgroundColor"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
@@ -137,8 +131,6 @@ export interface SubmenuComponent {
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
     :entries="submenuEntries"
-    :color="color"
-    :backgroundColor="backgroundColor"
     @clickedEntry="(entry, keepOpen) => emit('clickedEntry', entry, keepOpen)"
   />
 </template>

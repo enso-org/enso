@@ -2,15 +2,11 @@
  * @file A HTTP server middleware which handles routes normally proxied through to
  * the Project Manager.
  */
-import * as crypto from 'node:crypto'
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
-
-import * as tar from 'tar'
-import * as yaml from 'yaml'
 
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
@@ -37,7 +33,10 @@ import {
   type FileAsset,
   type ProjectAsset,
 } from 'enso-common/src/services/Backend'
-import { EXPORT_ARCHIVE_PATH } from 'enso-common/src/services/Backend/remoteBackendPaths'
+import {
+  DOWNLOAD_PROJECT_REGEX,
+  EXPORT_ARCHIVE_PATH,
+} from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import {
   basenameAndExtension,
@@ -49,18 +48,26 @@ import { tmpdir } from 'node:os'
 import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
+import * as projectManagement from 'project-manager-shim'
+import {
+  handleFilesystemCommand,
+  handleProjectServiceRequest,
+  isProjectServiceRequest,
+} from 'project-manager-shim/handler'
+import { ProjectService } from 'project-manager-shim/projectService'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
-import * as projectManagement from './projectManagement'
 
 // =================
 // === Constants ===
 // =================
 
+const FS_MAX_RETRIES = 3
+
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
-const PROJECTS_ROOT_DIRECTORY = projectManagement.getProjectsDirectory()
+const PROJECTS_ROOT_DIRECTORY = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
 
 const COMMON_HEADERS = {
   'Cross-Origin-Opener-Policy': 'same-origin',
@@ -71,547 +78,262 @@ const COOP_COEP_CORP_HEADERS = [
   ['Cross-Origin-Resource-Policy', 'same-origin'],
 ]
 
-// =============
-// === Types ===
-// =============
-
-/** Details of a project. */
-interface ProjectMetadata {
-  /** The name of the project. */
-  readonly name: string
-  /** The namespace of the project. */
-  readonly namespace: string
-  /** The project id. */
-  readonly id: string
-  /**
-   * The Enso Engine version to use for the project, represented by a semver version
-   * string.
-   *
-   * If the edition associated with the project could not be resolved, the
-   * engine version may be missing.
-   */
-  readonly engineVersion?: string
-  /** The project creation time. */
-  readonly created: string
-  /** The last opened datetime. */
-  readonly lastOpened?: string
-}
-
-/** Attributes of a file or folder. */
-interface Attributes {
-  readonly creationTime: string
-  readonly lastAccessTime: string
-  readonly lastModifiedTime: string
-  readonly byteSize: number
-}
-
-/** Metadata for an arbitrary file system entry. */
-type FileSystemEntry = DirectoryEntry | FileEntry | ProjectEntry
-
-/** The discriminator value for {@link FileSystemEntry}. */
-enum FileSystemEntryType {
-  DirectoryEntry = 'DirectoryEntry',
-  ProjectEntry = 'ProjectEntry',
-  FileEntry = 'FileEntry',
-}
-
-/** Metadata for a file. */
-interface FileEntry {
-  readonly type: FileSystemEntryType.FileEntry
-  readonly path: string
-  readonly attributes: Attributes
-}
-
-/** Metadata for a directory. */
-interface DirectoryEntry {
-  readonly type: FileSystemEntryType.DirectoryEntry
-  readonly path: string
-  readonly attributes: Attributes
-}
-
-/** Metadata for a project. */
-interface ProjectEntry {
-  readonly type: FileSystemEntryType.ProjectEntry
-  readonly path: string
-  readonly metadata: ProjectMetadata
-  readonly attributes: Attributes
-}
-
 // ====================================
-// === projectManagerShimMiddleware ===
+// === ProjectManagerShimMiddleware ===
 // ====================================
 
-/** A middleware that handles  */
-export default function projectManagerShimMiddleware(
-  request: http.IncomingMessage,
-  response: http.ServerResponse,
-  next: () => void,
-) {
-  const requestUrl = request.url ?? ''
-  if (!requestUrl.startsWith('/api/')) return next()
-  const url = new URL(requestUrl, 'https://apishim.local')
-  const requestPath = url.pathname
-  if (requestPath.startsWith('/api/project-manager/')) {
-    const urlString = requestUrl.replace(
-      /^\/api\/project-manager/,
-      GLOBAL_CONFIG.projectManagerHttpEndpoint,
-    )
-    const actualUrl = new URL(urlString)
-    request.pipe(
-      http.request(
-        // `...actualUrl` does NOT work because `URL` properties are not enumerable.
-        {
-          headers: request.headers,
-          host: actualUrl.host,
-          hostname: actualUrl.hostname,
-          method: request.method,
-          path: actualUrl.pathname,
-          port: actualUrl.port,
-          protocol: actualUrl.protocol,
-        },
-        (actualResponse) => {
-          response.writeHead(
-            // This is SAFE. The documentation says:
-            // Only valid for response obtained from ClientRequest.
-            actualResponse.statusCode!,
-            actualResponse.statusMessage,
-            actualResponse.headers,
-          )
-          actualResponse.pipe(response, { end: true })
-        },
-      ),
-      { end: true },
-    )
-  } else if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
-    switch (requestPath) {
-      case '/api/cloud/download-project': {
-        const downloadUrl = url.searchParams.get('downloadUrl')
-        const projectId = url.searchParams.get('projectId')
+/** Middleware for project manager shim. */
+export class ProjectManagerShimMiddleware {
+  private projectService?: ProjectService
 
-        if (downloadUrl == null) {
-          response
-            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-            .end('Request is missing search parameter `downloadUrl`.')
-          break
-        }
+  /** Create the new middleware. */
+  constructor(private readonly setup: () => Promise<void>) {}
 
-        if (projectId == null) {
-          response
-            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-            .end('Request is missing search parameter `projectId`.')
-          break
-        }
-
-        https.get(downloadUrl, (actualResponse) => {
-          const projectsDirectory = projectManagement.getProjectsDirectory()
-          const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
-          const projectRootDirectory = path.join(parentDirectory, 'project_root')
-
-          fs.mkdir(projectRootDirectory, { recursive: true })
-            .then(() => projectManagement.unpackBundle(actualResponse, projectRootDirectory))
-            .then(() => {
-              response
-                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
-                .end(JSON.stringify({ parentDirectory, projectRootDirectory }))
-            })
-            .catch((e) => {
-              console.error(e)
-              try {
-                if (fsSync.existsSync(parentDirectory)) {
-                  fsSync.rmdirSync(parentDirectory, { maxRetries: 3, recursive: true })
-                }
-              } catch (e) {
-                console.error(`Failed to cleanup directory ${parentDirectory}.`, e)
-              }
-              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
-            })
-        })
-
-        break
-      }
-      case '/api/cloud/get-project-archive': {
-        const parentDir = url.searchParams.get('directory')
-
-        if (parentDir == null) {
-          response
-            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-            .end('Request is missing search parameter `directory`.')
-          break
-        }
-        const projectDir = path.join(parentDir, 'project_root')
-
-        projectManagement
-          .createBundle(projectDir)
-          .then((projectBundle) => {
-            response
-              .writeHead(HTTP_STATUS_OK, {
-                ...COMMON_HEADERS,
-                'Content-Length': String(projectBundle.byteLength),
-              })
-              .end(projectBundle)
-          })
-          .catch((err) => {
-            console.error(err)
-            response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
-          })
-
-        break
-      }
-      default: {
-        console.error(`Unknown Cloud middleware request:`, requestPath)
-        break
-      }
+  /** Get the project service. */
+  async getProjectService(): Promise<ProjectService> {
+    if (!this.projectService) {
+      await this.setup()
+      this.projectService = ProjectService.default()
     }
-  } else if (request.method === 'POST') {
-    switch (requestPath) {
-      case `/api/${EXPORT_ARCHIVE_PATH}`: {
-        httpDownloadArchive(request, response, url.searchParams)
-        break
-      }
-      case '/api/upload-file': {
-        httpUploadFile(request, response, url.searchParams)
-        break
-      }
-      // This endpoint should only be used when accessing the app from the browser.
-      // When accessing the app from Electron, the file input event will have the
-      // full system path.
-      case '/api/upload-project': {
-        const directory = url.searchParams.get('directory')
-        const name = url.searchParams.get('name')
-        void projectManagement
-          .uploadBundle(request, directory, name)
-          .then(({ id }) => {
-            response
-              .writeHead(HTTP_STATUS_OK, {
-                'Content-Length': String(id.length),
-                'Content-Type': 'text/plain',
-                ...COMMON_HEADERS,
-              })
-              .end(id)
-          })
-          .catch(() => {
-            response.writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS).end()
-          })
-        break
-      }
-      case '/api/run-project-manager-command': {
-        const cliArguments: unknown = JSON.parse(url.searchParams.get('cli-arguments') ?? '[]')
-        if (
-          !Array.isArray(cliArguments) ||
-          !cliArguments.every((item): item is string => typeof item === 'string')
-        ) {
-          response
-            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-            .end('Command arguments must be an array of strings.')
-        } else {
-          void (async () => {
-            const toJSONRPCResult = (result: unknown) =>
-              JSON.stringify({ jsonrpc: '2.0', id: 0, result })
-            const toJSONRPCError = (message: string, data?: unknown) =>
-              JSON.stringify({
-                jsonrpc: '2.0',
-                id: 0,
-                error: { code: 0, message, ...(data != null ? { data } : {}) },
-              })
-            let result: string | fsSync.ReadStream = toJSONRPCError(
-              `Error running Project Manager command.`,
-              {
-                command: cliArguments,
-              },
-            )
-            try {
-              switch (cliArguments[0]) {
-                case '--filesystem-exists': {
-                  const directoryPath = cliArguments[1]
-                  if (directoryPath != null) {
-                    const exists = fsSync.existsSync(directoryPath)
-                    result = toJSONRPCResult({ exists })
-                  }
-                  break
-                }
-                case '--filesystem-list': {
-                  const directoryPath = cliArguments[1]
-                  if (directoryPath != null) {
-                    const entryNames = await fs.readdir(directoryPath)
-                    const entries: FileSystemEntry[] = []
-                    for (const entryName of entryNames) {
-                      const entryPath = path.join(directoryPath, entryName)
-                      if (isHidden(entryPath)) continue
-                      const stat = await fs.stat(entryPath)
-                      const attributes: Attributes = {
-                        byteSize: stat.size,
-                        creationTime: new Date(stat.ctimeMs).toISOString(),
-                        lastAccessTime: new Date(stat.atimeMs).toISOString(),
-                        lastModifiedTime: new Date(stat.mtimeMs).toISOString(),
-                      }
-                      if (stat.isFile()) {
-                        entries.push({
-                          type: FileSystemEntryType.FileEntry,
-                          path: entryPath,
-                          attributes,
-                        } satisfies FileEntry)
-                      } else {
-                        try {
-                          const packageMetadataPath = path.join(entryPath, 'package.yaml')
-                          const projectMetadataPath = path.join(
-                            entryPath,
-                            projectManagement.PROJECT_METADATA_RELATIVE_PATH,
-                          )
-                          const packageMetadataContents = await fs.readFile(packageMetadataPath)
-                          const packageMetadataYaml = yaml.parse(packageMetadataContents.toString())
-                          let projectMetadataJson
-                          try {
-                            const projectMetadataContents = await fs.readFile(projectMetadataPath)
-                            projectMetadataJson = JSON.parse(projectMetadataContents.toString())
-                          } catch (e) {
-                            if (
-                              'name' in packageMetadataYaml &&
-                              typeof packageMetadataYaml.name === 'string'
-                            ) {
-                              projectMetadataJson = {
-                                id: crypto.randomUUID(),
-                                kind: 'UserProject',
-                                created: new Date().toISOString(),
-                                lastOpened: null,
-                              }
-                              await fs.mkdir(path.dirname(projectMetadataPath), { recursive: true })
-                              await fs.writeFile(
-                                projectMetadataPath,
-                                JSON.stringify(projectMetadataJson),
-                              )
-                            } else {
-                              throw e
-                            }
-                          }
-                          const metadata = extractProjectMetadata(
-                            packageMetadataYaml,
-                            projectMetadataJson,
-                          )
-                          if (metadata != null) {
-                            // This is a project.
-                            entries.push({
-                              type: FileSystemEntryType.ProjectEntry,
-                              path: entryPath,
-                              attributes,
-                              metadata,
-                            } satisfies ProjectEntry)
-                          } else {
-                            // This error moves control flow to the
-                            // `catch` clause directly below.
-                            throw new Error('Invalid project metadata.')
-                          }
-                        } catch {
-                          // This is a regular directory, not a project.
-                          entries.push({
-                            type: FileSystemEntryType.DirectoryEntry,
-                            path: entryPath,
-                            attributes,
-                          } satisfies DirectoryEntry)
-                        }
-                      }
-                    }
-                    result = toJSONRPCResult({ entries })
-                  }
-                  break
-                }
-                case '--filesystem-create-directory': {
-                  const directoryPath = cliArguments[1]
-                  if (directoryPath != null) {
-                    await fs.mkdir(directoryPath, { recursive: true })
-                    result = toJSONRPCResult(null)
-                  }
-                  break
-                }
-                case '--filesystem-read-path': {
-                  const filePath = cliArguments[1]
-                  if (filePath != null) {
-                    result = await fsSync.createReadStream(filePath)
-                  }
-                  break
-                }
-                case '--filesystem-write-path': {
-                  const filePath = cliArguments[1]
-                  if (filePath != null) {
-                    await new Promise((resolve, reject) => {
-                      request
-                        .pipe(fsSync.createWriteStream(filePath), {
-                          end: true,
-                        })
-                        .on('close', resolve)
-                        .on('error', reject)
-                    })
-                    result = toJSONRPCResult(null)
-                  }
-                  break
-                }
-                case '--filesystem-move-from': {
-                  const sourcePath = cliArguments[1]
-                  const destinationPath = cliArguments[3]
-                  if (
-                    sourcePath != null &&
-                    cliArguments[2] === '--filesystem-move-to' &&
-                    destinationPath != null
-                  ) {
-                    await fs.rename(sourcePath, destinationPath)
-                    result = toJSONRPCResult(null)
-                  }
-                  break
-                }
-                case '--filesystem-delete': {
-                  const fileOrDirectoryPath = cliArguments[1]
-                  if (fileOrDirectoryPath != null) {
-                    await fs.rm(fileOrDirectoryPath, { recursive: true })
-                    result = toJSONRPCResult(null)
-                  }
-                  break
-                }
-                default: {
-                  const message = `Error in Project Manager shim: unknown command ${JSON.stringify(cliArguments)}`
-                  console.error(message)
-                  result = toJSONRPCError(message)
-                  break
-                }
-              }
-            } catch {
-              // Ignored. `result` retains its original value indicating an error.
-            }
+    return this.projectService
+  }
 
-            const resultData = typeof result === 'string' ? Buffer.from(result) : result
-            if (resultData instanceof fsSync.ReadStream) {
-              const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
-                'Content-Type': 'application/octet-stream',
-                ...COMMON_HEADERS,
+  /** A middleware handler.  */
+  handler(request: http.IncomingMessage, response: http.ServerResponse, next: () => void) {
+    const requestUrl = request.url ?? ''
+    if (!requestUrl.startsWith('/api/')) return next()
+    const url = new URL(requestUrl, 'https://apishim.local')
+    const requestPath = url.pathname
+    if (requestPath.startsWith('/api/project-manager/')) {
+      const urlString = requestUrl.replace(
+        /^\/api\/project-manager/,
+        GLOBAL_CONFIG.projectManagerHttpEndpoint,
+      )
+      const actualUrl = new URL(urlString)
+      request.pipe(
+        http.request(
+          // `...actualUrl` does NOT work because `URL` properties are not enumerable.
+          {
+            headers: request.headers,
+            host: actualUrl.host,
+            hostname: actualUrl.hostname,
+            method: request.method,
+            path: actualUrl.pathname,
+            port: actualUrl.port,
+            protocol: actualUrl.protocol,
+          },
+          (actualResponse) => {
+            response.writeHead(
+              // This is SAFE. The documentation says:
+              // Only valid for response obtained from ClientRequest.
+              actualResponse.statusCode!,
+              actualResponse.statusMessage,
+              actualResponse.headers,
+            )
+            actualResponse.pipe(response, { end: true })
+          },
+        ),
+        { end: true },
+      )
+    } else if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
+      switch (requestPath) {
+        case '/api/cloud/download-project': {
+          const downloadUrl = url.searchParams.get('downloadUrl')
+          const projectId = url.searchParams.get('projectId')
+
+          if (downloadUrl == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+              .end('Request is missing search parameter `downloadUrl`.')
+            break
+          }
+
+          if (projectId == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+              .end('Request is missing search parameter `projectId`.')
+            break
+          }
+
+          https.get(downloadUrl, (actualResponse) => {
+            const projectsDirectory = projectManagement.getProjectsDirectory()
+            const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+            const projectRootDirectory = path.join(parentDirectory, 'project_root')
+
+            fs.rm(parentDirectory, { recursive: true, force: true, maxRetries: FS_MAX_RETRIES })
+              .then(() => fs.mkdir(projectRootDirectory, { recursive: true }))
+              .then(() => projectManagement.unpackBundle(actualResponse, projectRootDirectory))
+              .then(() => {
+                response
+                  .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
+                  .end(JSON.stringify({ parentDirectory, projectRootDirectory }))
               })
-              resultData.pipe(responseWithHead)
-            } else {
+              .catch((e) => {
+                console.error(e)
+                try {
+                  if (fsSync.existsSync(parentDirectory)) {
+                    fsSync.rmdirSync(parentDirectory, { maxRetries: 3, recursive: true })
+                  }
+                } catch (e) {
+                  console.error(`Failed to cleanup directory ${parentDirectory}.`, e)
+                }
+                response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
+              })
+          })
+
+          break
+        }
+        case '/api/cloud/get-project-archive': {
+          const parentDir = url.searchParams.get('directory')
+
+          if (parentDir == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+              .end('Request is missing search parameter `directory`.')
+            break
+          }
+          const projectDir = path.join(parentDir, 'project_root')
+
+          projectManagement
+            .createBundle(projectDir)
+            .then((projectBundle) => {
               response
                 .writeHead(HTTP_STATUS_OK, {
-                  'Content-Length': String(resultData.byteLength),
-                  'Content-Type': 'application/json',
                   ...COMMON_HEADERS,
+                  'Content-Length': String(projectBundle.byteLength),
                 })
-                .end(resultData)
-            }
-          })()
-        }
-        break
-      }
-      default: {
-        const downloadProjectMatch = requestPath?.match(
-          /^[/]api[/]project-manager[/]projects[/]([^/]+)[/]enso-project$/,
-        )
-        if (downloadProjectMatch) {
-          const uuid = downloadProjectMatch[1]
-          void fs.readdir(PROJECTS_ROOT_DIRECTORY).then(async (filenames) => {
-            let success = false
-            for (const filename of filenames) {
-              try {
-                const projectRoot = path.join(PROJECTS_ROOT_DIRECTORY, filename)
-                const stat = await fs.stat(projectRoot)
-                if (stat.isDirectory()) {
-                  const metadataPath = path.join(
-                    projectRoot,
-                    projectManagement.PROJECT_METADATA_RELATIVE_PATH,
-                  )
-                  const metadataContents = await fs.readFile(metadataPath)
-                  const metadata: unknown = JSON.parse(metadataContents.toString())
-                  if (
-                    typeof metadata === 'object' &&
-                    metadata != null &&
-                    'id' in metadata &&
-                    metadata.id === uuid
-                  ) {
-                    response.writeHead(HTTP_STATUS_OK, {
-                      'Content-Type': 'application/gzip+x-enso-project',
-                      ...COMMON_HEADERS,
-                    })
-                    tar
-                      .create({ gzip: true, cwd: projectRoot }, [projectRoot])
-                      .pipe(response, { end: true })
-                    success = true
-                    break
-                  }
-                }
-              } catch {
-                // Ignored.
-              }
-            }
-            if (!success) {
-              response.writeHead(HTTP_STATUS_NOT_FOUND, COMMON_HEADERS).end()
-            }
-          })
+                .end(projectBundle)
+            })
+            .catch((err) => {
+              console.error(err)
+              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
+            })
+
           break
         }
-        response.writeHead(HTTP_STATUS_NOT_FOUND, COMMON_HEADERS).end()
-        break
+        default: {
+          console.error(`Unknown Cloud middleware request:`, requestPath)
+          break
+        }
       }
-    }
-  } else if (request.method === 'GET' && requestPath === '/api/root-directory-path') {
-    response
-      .writeHead(HTTP_STATUS_OK, {
-        'Content-Length': String(PROJECTS_ROOT_DIRECTORY.length),
-        'Content-Type': 'text/plain',
-        ...COMMON_HEADERS,
-      })
-      .end(PROJECTS_ROOT_DIRECTORY)
-  } else {
-    next()
-  }
-}
+    } else if (isProjectServiceRequest(requestPath)) {
+      handleProjectServiceRequest(
+        request,
+        response,
+        requestPath,
+        () => this.getProjectService(),
+        COMMON_HEADERS,
+      )
+    } else if (requestPath.startsWith('/api/')) {
+      switch (`${request.method} ${requestPath}`) {
+        case `POST /api/${EXPORT_ARCHIVE_PATH}`: {
+          httpDownloadArchive(request, response, url.searchParams)
+          break
+        }
+        case 'POST /api/upload-file': {
+          httpUploadFile(request, response, url.searchParams)
+          break
+        }
+        // This endpoint should only be used when accessing the app from the browser.
+        // When accessing the app from Electron, the file input event will have the
+        // full system path.
+        case 'POST /api/upload-project': {
+          const directory = url.searchParams.get('directory')
+          const name = url.searchParams.get('name')
+          void projectManagement
+            .uploadBundle(request, directory, name)
+            .then(({ id }) => {
+              response
+                .writeHead(HTTP_STATUS_OK, {
+                  'Content-Length': String(id.length),
+                  'Content-Type': 'text/plain',
+                  ...COMMON_HEADERS,
+                })
+                .end(id)
+            })
+            .catch(() => {
+              response.writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS).end()
+            })
+          break
+        }
+        case 'POST /api/run-project-manager-command': {
+          const cliArguments: unknown = JSON.parse(url.searchParams.get('cli-arguments') ?? '[]')
+          if (
+            !Array.isArray(cliArguments) ||
+            !cliArguments.every((item): item is string => typeof item === 'string')
+          ) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+              .end('Command arguments must be an array of strings.')
+          } else {
+            void (async () => {
+              const result = await handleFilesystemCommand(cliArguments, request)
 
-/**
- * Return a {@link ProjectMetadata} if the metadata is a valid metadata object,
- * else return `null`.
- */
-function extractProjectMetadata(yamlObj: unknown, jsonObj: unknown): ProjectMetadata | null {
-  if (
-    typeof yamlObj !== 'object' ||
-    yamlObj == null ||
-    typeof jsonObj !== 'object' ||
-    jsonObj == null
-  ) {
-    return null
-  } else {
-    const validDateString = (string: string) => {
-      const date = new Date(string)
-      return !Number.isNaN(Number(date)) ? date.toString() : null
-    }
-    const name = 'name' in yamlObj && typeof yamlObj.name === 'string' ? yamlObj.name : null
-    const namespace =
-      'namespace' in yamlObj && typeof yamlObj.namespace === 'string' ? yamlObj.namespace : 'local'
-    const engineVersion =
-      'edition' in yamlObj && typeof yamlObj.edition === 'string' ? yamlObj.edition : null
-    const id = 'id' in jsonObj && typeof jsonObj.id === 'string' ? jsonObj.id : null
-    const created =
-      'created' in jsonObj && typeof jsonObj.created === 'string' ?
-        validDateString(jsonObj.created)
-      : null
-    const lastOpened =
-      'lastOpened' in jsonObj && typeof jsonObj.lastOpened === 'string' ?
-        validDateString(jsonObj.lastOpened)
-      : null
-    if (name != null && id != null && created != null) {
-      return {
-        name,
-        namespace,
-        id,
-        ...(engineVersion != null ? { engineVersion } : {}),
-        created,
-        ...(lastOpened != null ? { lastOpened } : {}),
-      } satisfies ProjectMetadata
+              if (typeof result === 'string') {
+                const resultData = Buffer.from(result)
+                response
+                  .writeHead(HTTP_STATUS_OK, {
+                    'Content-Length': String(resultData.byteLength),
+                    'Content-Type': 'application/json',
+                    ...COMMON_HEADERS,
+                  })
+                  .end(resultData)
+              } else {
+                const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
+                  'Content-Type': 'application/octet-stream',
+                  ...COMMON_HEADERS,
+                })
+                result.pipe(responseWithHead, { end: true })
+              }
+            })()
+          }
+          break
+        }
+        case 'GET /api/root-directory-path': {
+          response
+            .writeHead(HTTP_STATUS_OK, {
+              'Content-Length': String(PROJECTS_ROOT_DIRECTORY.length),
+              'Content-Type': 'text/plain',
+              ...COMMON_HEADERS,
+            })
+            .end(PROJECTS_ROOT_DIRECTORY)
+          break
+        }
+        default: {
+          const route = requestPath.replace('/api/', '/')
+          let match: RegExpMatchArray | null = null
+
+          match = route.match(DOWNLOAD_PROJECT_REGEX)
+          if (request.method === 'GET' && match?.groups?.['projectId'] != null) {
+            const projectId = ProjectId(match.groups['projectId'])
+            const projectPath = extractTypeAndPath(projectId).path
+            projectManagement
+              .createBundle(projectPath)
+              .then((projectBundle) => {
+                response
+                  .writeHead(HTTP_STATUS_OK, {
+                    ...COMMON_HEADERS,
+                    'Content-Length': String(projectBundle.byteLength),
+                    'Content-Type': 'application/octet-stream',
+                  })
+                  .end(projectBundle)
+              })
+              .catch((err) => {
+                console.error(err)
+                response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
+              })
+
+            break
+          }
+
+          response.writeHead(HTTP_STATUS_NOT_FOUND, COMMON_HEADERS).end()
+          break
+        }
+      }
     } else {
-      return null
+      next()
     }
   }
-}
-
-/**
- * Checks if files that start with the dot.
- * Note on Windows does not check the hidden property.
- */
-function isHidden(filePath: string): boolean {
-  const dotfile = /(^|[\\/])\.[^\\/]+$/g
-  return dotfile.test(filePath)
 }
 
 /** Return whether a file exists. */
@@ -1026,7 +748,7 @@ async function httpUploadFile(
         filePath ?
           projectManagement.importProjectFromPath(filePath, directory, fileName)
         : await projectManagement.uploadBundle(request, directory, fileName)
-      httpOkText(response, project.path)
+      httpOkText(response, project.projectRoot)
     } else {
       const filePath = path.join(directory, fileName)
       void fs

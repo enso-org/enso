@@ -109,9 +109,27 @@ export type WidgetConfiguration =
   | FolderBrowse
   | FileBrowse
   | SecretBrowse
+  | AnyToTarget
   | FunctionCall
   | OneOfFunctionCalls
   | SomeOfFunctionCalls
+  | PendingConfiguration
+
+/**
+ * Sometimes it takes time to receive the configuration, but we still want to know that it is expected.
+ * This configuration is not provided by the engine directly, but is derived from existing argument annotations.
+ */
+export interface PendingConfiguration {
+  kind: 'Pending'
+}
+
+/** Helper for creating a pending configuration record. */
+export function pending(): WidgetConfiguration & WithDisplay {
+  return {
+    kind: 'Pending',
+    display: DisplayMode.Always,
+  }
+}
 
 export interface VectorEditor {
   kind: 'Vector_Editor'
@@ -158,6 +176,10 @@ export interface SingleChoice {
   kind: 'Single_Choice'
   label: string | null
   values: Choice[]
+}
+
+export interface AnyToTarget {
+  kind: 'Any_To_Target'
 }
 
 /**
@@ -236,6 +258,7 @@ export const widgetConfigurationSchema: z.ZodType<
       })
       .merge(withDisplay),
     z.object({ kind: z.literal('Secret_Browse') }).merge(withDisplay),
+    z.object({ kind: z.literal('Any_To_Target') }).merge(withDisplay),
     /* eslint-enable camelcase */
   ]),
 )
@@ -250,6 +273,9 @@ export type ArgsWidgetConfiguration = z.infer<typeof argsWidgetConfigurationSche
 /**
  * Create {@link WidgetConfiguration} object from parameters received from the engine, possibly
  * applying those to an inherited config received from parent widget.
+ *
+ * Inherited config has a priority, as we expect parent widget has more information available
+ * and can provide better configuration for its children.
  */
 export function functionCallConfiguration(
   parameters: ArgumentWidgetConfiguration[],
@@ -257,7 +283,8 @@ export function functionCallConfiguration(
 ): FunctionCall {
   const parametersMap = new Map(inherited?.parameters)
   for (const [name, param] of parameters) {
-    parametersMap.set(name, parametersMap.get(name) ?? param)
+    // Merge with inherited parameters, inherited ones have priority.
+    if (param && !parametersMap.has(name)) parametersMap.set(name, param)
   }
   return {
     kind: 'FunctionCall',

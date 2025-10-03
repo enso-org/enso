@@ -9,14 +9,14 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import { MenuItem } from '@/components/shared/AgGridTableView.vue'
 import { WidgetInput } from '@/providers/widgetRegistry'
-import { type RequiredImport } from '@/stores/graph/imports'
+import type { RequiredImport } from '@/stores/graph/imports'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { makeType } from '@/stores/suggestionDatabase/mockSuggestion'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { type Identifier } from '@/util/ast/abstract'
+import type { Identifier } from '@/util/ast/abstract'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
-import { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
+import type { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
 import { unwrap } from 'ydoc-shared/util/data/result'
@@ -595,8 +595,7 @@ test('Pasted data which would exceed cells limit is truncated', () => {
     const inputAst = update.edit!.getVersion(ast)
     // We expect the table to be fully extended, so the number of cells (numbers or Nothings) should be equal to the limit.
     let cellCount = 0
-    inputAst.visitRecursive((ast: Ast.Ast | Ast.Token) => {
-      if (ast instanceof Ast.Token) return
+    Ast.visitRecursive(inputAst, (ast) => {
       if (ast instanceof Ast.TextLiteral && ast.code().startsWith(`'${DEFAULT_COLUMN_PREFIX}`))
         return
       if (ast instanceof Ast.TextLiteral || ast.code() === 'Nothing') cellCount++

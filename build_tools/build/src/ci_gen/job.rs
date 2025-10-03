@@ -25,6 +25,7 @@ use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::RunnerLabel;
+use ide_ci::actions::workflow::definition::Shell;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
@@ -220,6 +221,10 @@ impl JobArchetype for CancelWorkflow {
 #[derive(Clone, Copy, Debug)]
 pub struct VerifyLicensePackages;
 impl JobArchetype for VerifyLicensePackages {
+    fn id_key_base(&self) -> String {
+        "license-check".to_string()
+    }
+
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(sbt_command("verifyLicensePackages"))
             .build_job("Verify License Packages", target)
@@ -312,7 +317,8 @@ impl Display for StandardLibraryTestsScope {
             StandardLibraryTestsScope::StandardLibraryJvm => write!(f, "standard-library"),
             StandardLibraryTestsScope::StandardLibraryInNative =>
                 write!(f, "standard-library-in-native"),
-            StandardLibraryTestsScope::Microsoft => write!(f, "std-microsoft"),
+            StandardLibraryTestsScope::Microsoft =>
+                write!(f, "std-microsoft std-mock-dual-microsoft"),
         }
     }
 }
@@ -337,12 +343,18 @@ impl StandardLibraryTests {
 }
 
 impl JobArchetype for StandardLibraryTests {
+    fn id_key_base(&self) -> String {
+        "stdlib".to_string()
+    }
+
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
         let scope = self.scope;
         let job_name = format!("{job_title} ({graal_edition})", job_title = self.title());
         let run_command = format!("backend test {scope}");
+        let heapdump_artifact_name =
+            format!("Heap dumps ({}, {}, {})", &self.title(), target.0, target.1);
 
         let run_steps_builder = RunStepsBuilder::new(run_command).customize(move |step| {
             let cleanup_engine_distribution = step::cleanup_engine_distribution(engine_launcher);
@@ -369,6 +381,7 @@ impl JobArchetype for StandardLibraryTests {
             } else {
                 main_step
             };
+            let upload_hprof = step::heapdump_upload(heapdump_artifact_name);
 
             vec![
                 cleanup_engine_distribution,
@@ -377,6 +390,7 @@ impl JobArchetype for StandardLibraryTests {
                 step::unpack_engine_distribution(),
                 updated_main_step,
                 step::stdlib_test_reporter(target, graal_edition),
+                upload_hprof,
             ]
         });
         let mut job = build_job_ensuring_cloud_tests_run_on_github(
@@ -404,12 +418,16 @@ impl JobArchetype for StandardLibraryTests {
     }
 
     fn key(&self, (os, arch): Target) -> String {
-        format!(
+        let key = format!(
             "{}-{}-{}-{os}-{arch}",
             self.id_key_base(),
             self.graal_edition.to_string().to_kebab_case(),
-            self.scope,
-        )
+            self.scope.to_string().replace(' ', "-"),
+        );
+        if key.len() >= 100 {
+            panic!("Too long CI job key: {:}", key)
+        }
+        key
     }
 }
 
@@ -968,12 +986,34 @@ rm dist/backend/project-manager.tar"
                     prepare_packaging_steps(target.0, step, PackagingTarget::Development);
                 steps.append(&mut packaging_steps);
 
+                let upload_ide = step::upload_artifact("Upload ide")
+                    .with_custom_argument("name", format!("ide-{}", target.0))
+                    .with_custom_argument(
+                        "path",
+                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                    );
+                steps.push(upload_ide);
+
+                let test_prepare_step = shell("\
+                    mkdir -p app/ide-desktop/client/playwright/.auth && \
+                    touch app/ide-desktop/client/playwright/.auth/user.json && \
+                    chmod 600 app/ide-desktop/client/playwright/.auth/user.json && \
+                    echo \"{\\\"user\\\": \\\"$ENSO_TEST_USER\\\",\\\"password\\\":\\\"$ENSO_TEST_USER_PASSWORD\\\"}\" > app/ide-desktop/client/playwright/.auth/user.json\
+                    ").with_shell(Shell::Bash).with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+                        "ENSO_TEST_USER",
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+                        "ENSO_TEST_USER_PASSWORD",
+                    ).with_name(
+                        "Prepare Package Tests"
+                    );
+                steps.push(test_prepare_step);
+
                 const TEST_COMMAND: &str = "corepack pnpm -r --filter enso ide-integration-test";
                 let test_step = match target.0 {
-                    OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
-                        // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
-                        .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox"),
-
+                    OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}")),
                     OS::MacOS =>
                     // MacOS CI runners are very slow
                         shell(format!("{TEST_COMMAND} --timeout 300000")),
@@ -981,14 +1021,8 @@ rm dist/backend/project-manager.tar"
                 };
                 let test_step = test_step
                     .with_env("DEBUG", "pw:browser log:")
-                    .with_secret_exposed_as(
-                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
-                        "ENSO_TEST_USER",
-                    )
-                    .with_secret_exposed_as(
-                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
-                        "ENSO_TEST_USER_PASSWORD",
-                    );
+                    .with_name("Run Package Tests");
+
                 steps.push(test_step);
 
                 let upload_test_traces_step = Step {
@@ -1004,21 +1038,19 @@ rm dist/backend/project-manager.tar"
                 };
                 steps.push(upload_test_traces_step);
 
-                let upload_ide = step::upload_artifact("Upload ide")
-                    .with_custom_argument("name", format!("ide-{}", target.0))
-                    .with_custom_argument(
-                        "path",
-                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
-                    );
-                steps.push(upload_ide);
-
                 // After the E2E tests run, they create a credentials file in user home directory.
                 // If that file is not cleaned up, future runs of our tests may randomly get
                 // authenticated into Enso Cloud. We want to run tests as an authenticated
                 // user only when we explicitly set that up, not randomly. So we clean the
                 // credentials file.
                 let cloud_credentials_path = "$HOME/.enso/credentials";
-                let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
+                let cleanup_credentials_step = Step {
+                    r#if: Some("always()".into()),
+                    name: Some("Remove Credentials File".into()),
+                    shell: Some(Shell::Bash),
+                    ..shell(format!("rm -f {cloud_credentials_path}"))
+                };
+
                 steps.push(cleanup_credentials_step);
 
                 steps

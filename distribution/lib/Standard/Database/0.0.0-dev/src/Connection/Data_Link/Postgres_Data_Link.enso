@@ -47,3 +47,4 @@ type Postgres_Data_Link
             default_options = DB_Data_Link_Helpers.data_link_connection_parameters self.source
             connection = self.details.connect default_options allow_data_links=False
             self.link_type.interpret connection
+

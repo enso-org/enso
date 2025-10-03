@@ -40,6 +40,7 @@ class RuntimeRecomputeTest
           RuntimeOptions.LOG_LEVEL,
           java.util.logging.Level.WARNING.getName
         )
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
@@ -264,7 +265,8 @@ class RuntimeRecomputeTest
         Api.RecomputeContextRequest(
           contextId,
           Some(
-            Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainZ))
+            Api.InvalidatedExpressions
+              .Expressions(Vector(context.Main.idMainZ), "")
           ),
           None,
           Seq()
@@ -829,7 +831,7 @@ class RuntimeRecomputeTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.Expressions(Vector(idIn))),
+          Some(Api.InvalidatedExpressions.Expressions(Vector(idIn), "")),
           None,
           Seq(
             Api.ExpressionConfig(idOut, Some(Api.ExecutionEnvironment.Live()))

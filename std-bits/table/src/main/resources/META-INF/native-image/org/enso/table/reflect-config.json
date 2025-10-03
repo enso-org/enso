@@ -429,14 +429,6 @@
         ]
     },
     {
-        "name": "org.enso.table.excel.ReadOnlyExcelConnection",
-        "fields": [
-            {
-                "name": "record"
-            }
-        ]
-    },
-    {
         "name": "org.enso.table.excel.xssfreader.XSSFReaderWorkbook",
         "methods": [
             {
@@ -499,6 +491,19 @@
                     "boolean",
                     "boolean"
                 ]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.table.operations.AddGroupNumber$EqualSumResult",
+        "methods": [
+            {
+                "name": "storage",
+                "parameterTypes": []
+            },
+            {
+                "name": "actualGroupCount",
+                "parameterTypes": []
             }
         ]
     },

@@ -4,14 +4,12 @@
  * APIs to the renderer via the contextBridge API. To learn more, visit:
  * https://www.electronjs.org/docs/latest/tutorial/tutorial-preload.
  */
-
-import type * as accessToken from 'enso-common/src/accessToken'
-
 import * as debug from '@/debug'
 import * as ipc from '@/ipc'
-import type * as projectManagement from '@/projectManagement'
-import { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
-import { FileFilter } from './fileBrowser'
+import type * as accessToken from 'enso-common/src/accessToken'
+import type { MenuItem, MenuItemHandler } from 'enso-gui/src/project-view/util/menuItems'
+import type * as projectManagement from 'project-manager-shim'
+import type { FileFilter } from './fileBrowser'
 
 // Even though this is already built as an mjs module, we are "faking" cjs format on preload script
 // due to missing module support. Since this is the only module that's treated as external by
@@ -64,7 +62,11 @@ exposeInMainWorld(NAVIGATION_API_KEY, {
 
 electron.ipcRenderer.on(
   ipc.Channel.importProjectFromPath,
-  (_event, projectPath: string, projectInfo: projectManagement.ProjectInfo) => {
+  (
+    _event: Electron.IpcRendererEvent,
+    projectPath: string,
+    projectInfo: projectManagement.ProjectInfo,
+  ) => {
     const resolveFunction = IMPORT_PROJECT_RESOLVE_FUNCTIONS.get(projectPath)
     IMPORT_PROJECT_RESOLVE_FUNCTIONS.delete(projectPath)
     resolveFunction?.(projectInfo)
@@ -158,9 +160,12 @@ const menuApiHandlers: Record<MenuItem, MenuItemHandler | undefined> = {
   closeTab: undefined,
 }
 
-electron.ipcRenderer.on(ipc.Channel.handleMenuItem, (_event, name: MenuItem) => {
-  menuApiHandlers[name]?.()
-})
+electron.ipcRenderer.on(
+  ipc.Channel.handleMenuItem,
+  (_event: Electron.IpcRendererEvent, name: MenuItem) => {
+    menuApiHandlers[name]?.()
+  },
+)
 
 exposeInMainWorld(MENU_API_KEY, {
   setMenuItemHandler: (name: MenuItem, handler: MenuItemHandler) => {

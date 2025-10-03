@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -79,3 +81,5 @@ type Image_File_Format
         Panic.with_finalizer tmp_file.delete <|
             stream.write_to_file tmp_file
             Image.read tmp_file
+
+File_Format_SPI (_:Image_File_Format) = File_Format_SPI.new Image_File_Format

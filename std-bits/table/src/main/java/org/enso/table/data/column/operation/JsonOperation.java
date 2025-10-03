@@ -41,12 +41,12 @@ public class JsonOperation {
 
     return switch (fullStorage.getType()) {
       case NullType nullType -> createNullJson(length);
-      case BooleanType booleanType -> createBooleanJson(
-          booleanType.asTypedStorage(fullStorage), start, length);
-      case IntegerType integerType -> createIntegerJson(
-          integerType.asTypedStorage(fullStorage), start, length);
-      case FloatType floatType -> createFloatJson(
-          floatType.asTypedStorage(fullStorage), start, length);
+      case BooleanType booleanType ->
+          createBooleanJson(booleanType.asTypedStorage(fullStorage), start, length);
+      case IntegerType integerType ->
+          createIntegerJson(integerType.asTypedStorage(fullStorage), start, length);
+      case FloatType floatType ->
+          createFloatJson(floatType.asTypedStorage(fullStorage), start, length);
       default -> createObjectJson(fullStorage, start, length, ensoJsonCallback);
     };
   }
@@ -173,6 +173,17 @@ public class JsonOperation {
   }
 
   private static String toJson(double value) {
+    if (Double.isNaN(value)) {
+      return "{\"_display_text_\":\"NaN\",\"type\":\"Float\",\"value\":\"NaN\"}";
+    }
+    if (Double.isInfinite(value)) {
+      var txtValue = value > 0 ? "Infinity" : "-Infinity";
+      return "{\"_display_text_\":\""
+          + txtValue
+          + "\",\"type\":\"Float\",\"value\":\""
+          + txtValue
+          + "\"}";
+    }
     return String.valueOf(value);
   }
 

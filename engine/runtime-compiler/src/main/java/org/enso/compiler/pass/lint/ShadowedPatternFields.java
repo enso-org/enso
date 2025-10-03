@@ -164,8 +164,9 @@ public final class ShadowedPatternFields implements MiniPassFactory {
             yield typed;
           }
         }
-        case Pattern.Documentation doc -> throw new CompilerError(
-            "Branch documentation should be desugared at an earlier stage.");
+        case Pattern.Documentation doc ->
+            throw new CompilerError(
+                "Branch documentation should be desugared at an earlier stage.");
         default -> pattern;
       };
     }

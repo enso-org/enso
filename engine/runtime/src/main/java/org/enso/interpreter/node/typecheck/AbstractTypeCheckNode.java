@@ -35,7 +35,7 @@ abstract sealed class AbstractTypeCheckNode extends Node
   final boolean isAllTypes() {
     Node p = this;
     CompilerAsserts.partialEvaluationConstant(p);
-    for (; ; ) {
+    while (p != null) {
       if (p instanceof TypeCheckValueNode vn) {
         CompilerAsserts.partialEvaluationConstant(vn);
         var allTypes = vn.isAllTypes();
@@ -44,6 +44,7 @@ abstract sealed class AbstractTypeCheckNode extends Node
       }
       p = p.getParent();
     }
+    return false;
   }
 
   /**

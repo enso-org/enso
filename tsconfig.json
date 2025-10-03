@@ -16,6 +16,7 @@
     "noImplicitOverride": true,
     "removeComments": true,
     "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
     "target": "ES2022"
   },
   "exclude": [

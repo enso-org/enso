@@ -2,7 +2,7 @@
 import ActionMenu from '@/components/ActionMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { type DisplayableActionName } from '@/providers/action'
+import type { DisplayableActionName } from '@/providers/action'
 import ZoomControl from './ZoomControl.vue'
 
 const open = defineModel<boolean>('open', { default: false })

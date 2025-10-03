@@ -41,9 +41,12 @@ public class TypeInferenceConsistencyTest {
   public void notInvokableTest() throws Exception {
     final URI uri = new URI("memory://notInvokableTest.enso");
     final Source src =
-        Source.newBuilder("enso", """
-    foo = 1 2
-    """, uri.getAuthority())
+        Source.newBuilder(
+                "enso",
+                """
+                foo = 1 2
+                """,
+                uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
@@ -70,13 +73,13 @@ public class TypeInferenceConsistencyTest {
         Source.newBuilder(
                 "enso",
                 """
-                    import Standard.Base.Data.Numbers
-                    import Standard.Base.Function.Function
-                    foo (fun : Function)  =
-                        f = fun
-                        x1 = f 123
-                        x1
-                    """,
+                import Standard.Base.Data.Numbers
+                import Standard.Base.Function.Function
+                foo (fun : Function)  =
+                    f = fun
+                    x1 = f 123
+                    x1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -96,14 +99,14 @@ public class TypeInferenceConsistencyTest {
         Source.newBuilder(
                 "enso",
                 """
-                    import Standard.Base.Data.Numbers
-                    import Standard.Base.Data.Numbers.Integer
-                    import Standard.Base.Function.Function
-                    foo (fun : Function | Integer)  =
-                        f = fun
-                        x1 = f 123
-                        x1
-                    """,
+                import Standard.Base.Data.Numbers
+                import Standard.Base.Data.Numbers.Integer
+                import Standard.Base.Function.Function
+                foo (fun : Function | Integer)  =
+                    f = fun
+                    x1 = f 123
+                    x1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -130,13 +133,13 @@ public class TypeInferenceConsistencyTest {
         Source.newBuilder(
                 "enso",
                 """
-                    import Standard.Base.Any.Any
-                    import Standard.Base.Data.Numbers
-                    foo (fun : Any)  =
-                        f = fun
-                        x1 = f 123
-                        x1
-                    """,
+                import Standard.Base.Any.Any
+                import Standard.Base.Data.Numbers
+                foo (fun : Any)  =
+                    f = fun
+                    x1 = f 123
+                    x1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -162,13 +165,13 @@ public class TypeInferenceConsistencyTest {
         Source.newBuilder(
                 "enso",
                 """
-                    foo x =
-                        f = case x of
-                          1 -> 33
-                          _ -> "foo"
-                        x1 = f 123
-                        x1
-                    """,
+                foo x =
+                    f = case x of
+                      1 -> 33
+                      _ -> "foo"
+                    x1 = f 123
+                    x1
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -202,16 +205,16 @@ public class TypeInferenceConsistencyTest {
         Source.newBuilder(
                 "enso",
                 """
-                    import Standard.Base.Function.Function
-                    type My_Type
-                        Value v
+                import Standard.Base.Function.Function
+                type My_Type
+                    Value v
 
-                    My_Type.from (that : Function) = My_Type.Value (that 1)
-                    foo =
-                        f x = x+100
-                        y = (f : My_Type)
-                        y
-                    """,
+                My_Type.from (that : Function) = My_Type.Value (that 1)
+                foo =
+                    f x = x+100
+                    y = (f : My_Type)
+                    y
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -249,9 +252,9 @@ public class TypeInferenceConsistencyTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base import all
-    foo = (123 + 10000).to_text.take 3
-    """,
+                from Standard.Base import all
+                foo = (123 + 10000).to_text.take 3
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();

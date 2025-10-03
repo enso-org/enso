@@ -15,7 +15,10 @@ import { persist } from 'zustand/middleware'
 
 const MIN_ASSETS_TABLE_REFRESH_INTERVAL_MS = 100
 export const DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS = 3_000
+export const DEFAULT_GET_LOG_EVENTS_PAGE_SIZE = 100
+export const DEFAULT_LIST_DIRECTORY_PAGE_SIZE = 100
 export const DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE = 5
+export const DEFAULT_DATA_CATALOG_QUERY_DEBOUNCE_DELAY_MS = 500
 
 export const FEATURE_FLAGS_SCHEMA = z.object({
   enableDeepLinks: z.boolean(),
@@ -29,9 +32,12 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   developerPlanOverride: z.nativeEnum(Plan).optional(),
   overrideProfilePicture: z.boolean(),
   multiplyUserList: z.boolean(),
-  disableAnimations: z.boolean(),
   fileChunkUploadPoolSize: z.number().int().min(1),
+  getLogEventsPageSize: z.number().int().min(1),
+  listDirectoryPageSize: z.number().int().min(1),
+  dataCatalogQueryDebounceDelay: z.number().int().min(0),
   unsafeDarkTheme: z.boolean(),
+  enableProjectService: z.boolean(),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA.partial() })
@@ -64,9 +70,12 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         developerPlanOverride: undefined,
         overrideProfilePicture: false,
         multiplyUserList: false,
-        disableAnimations: false,
         fileChunkUploadPoolSize: DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
+        getLogEventsPageSize: DEFAULT_GET_LOG_EVENTS_PAGE_SIZE,
+        listDirectoryPageSize: DEFAULT_LIST_DIRECTORY_PAGE_SIZE,
+        dataCatalogQueryDebounceDelay: DEFAULT_DATA_CATALOG_QUERY_DEBOUNCE_DELAY_MS,
         unsafeDarkTheme: false,
+        enableProjectService: IS_DEV_MODE,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))
@@ -121,6 +130,11 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
 /** Composable for getting a specific feature flag. */
 export function useFeatureFlag<Key extends keyof FeatureFlags>(key: Key) {
   return useZustandStoreRef(flagsStore, (store) => store.featureFlags[key])
+}
+
+/** Get a single feature flag. Similar to `useFeatureFlag` but without using Vue reactivity. */
+export function getFeatureFlag<Key extends keyof FeatureFlags>(key: Key) {
+  return flagsStore.getState().featureFlags[key]
 }
 
 /** Set a subset of feature flags. */

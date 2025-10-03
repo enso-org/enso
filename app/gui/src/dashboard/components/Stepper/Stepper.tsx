@@ -1,37 +1,28 @@
-/**
- * @file
- *
- * A stepper component is used to indicate progress through a multi-step process.
- */
-import * as React from 'react'
-
-import { AnimatePresence, motion } from 'framer-motion'
-
-import * as eventCallback from '#/hooks/eventCallbackHooks'
-
+/** @file UI for a multi-step process. */
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
-
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { tv } from '#/utilities/tailwindVariants'
+import type { CSSProperties, ReactNode } from 'react'
 import { Step } from './Step'
 import { StepContent } from './StepContent'
-import * as stepperProvider from './StepperProvider'
+import { StepperProvider } from './StepperProvider'
 import type { BaseRenderProps, RenderChildrenProps, RenderStepProps } from './types'
-import * as stepperState from './useStepperState'
+import { useStepperState, type StepperState } from './useStepperState'
 
 /** Props for {@link Stepper} component. */
 export interface StepperProps {
-  readonly state: stepperState.StepperState
-  readonly children: React.ReactNode | ((props: RenderChildrenProps) => React.ReactNode)
+  readonly state: StepperState
+  readonly children: ReactNode | ((props: RenderChildrenProps) => ReactNode)
   readonly className?:
     | string
     | ((props: BaseRenderProps) => string | null | undefined)
     | null
     | undefined
-  readonly renderStep?: ((props: RenderStepProps) => React.ReactNode) | null
+  readonly renderStep?: ((props: RenderStepProps) => ReactNode) | null
   readonly style?:
-    | React.CSSProperties
-    | ((props: BaseRenderProps) => React.CSSProperties | undefined)
+    | CSSProperties
+    | ((props: BaseRenderProps) => CSSProperties | undefined)
     | undefined
 }
 
@@ -44,21 +35,15 @@ const STEPPER_STYLES = tv({
   },
 })
 
-const ANIMATION_OFFSET = 15
-
 /** A stepper component is used to indicate progress through a multi-step process. */
 export function Stepper(props: StepperProps) {
   const { renderStep, children, state } = props
 
-  const { onStepChange, currentStep, totalSteps, nextStep, previousStep, direction } = state
+  const { onStepChange, currentStep, totalSteps, nextStep, previousStep } = state
 
-  const goToStep = eventCallback.useEventCallback((step: number) => {
-    if (step < 0 || step >= totalSteps) {
-      return
-    } else {
-      onStepChange(step)
-      return
-    }
+  const goToStep = useEventCallback((step: number) => {
+    if (step < 0 || step >= totalSteps) return
+    onStepChange(step)
   })
 
   const baseRenderProps = {
@@ -98,9 +83,7 @@ export function Stepper(props: StepperProps) {
       })}
       style={style}
     >
-      <stepperProvider.StepperProvider
-        value={{ totalSteps, currentStep, goToStep, nextStep, previousStep, state }}
-      >
+      <StepperProvider value={{ totalSteps, currentStep, goToStep, nextStep, previousStep }}>
         {renderStep == null ? null : (
           <div className={styles.steps()}>
             {Array.from({ length: totalSteps }).map((_, index) => {
@@ -134,57 +117,17 @@ export function Stepper(props: StepperProps) {
         )}
 
         <div className={styles.content()}>
-          <AnimatePresence initial={false} mode="sync" custom={direction}>
-            <motion.div
-              key={currentStep}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              variants={{
-                enter: {
-                  x: direction === 'back' ? -ANIMATION_OFFSET : ANIMATION_OFFSET,
-                  opacity: 0,
-                  position: 'absolute',
-                  height: 'auto',
-                  top: 0,
-                  width: '100%',
-                },
-                center: {
-                  zIndex: 1,
-                  x: 0,
-                  opacity: 1,
-                  height: 'auto',
-                  position: 'static',
-                  width: '100%',
-                },
-                exit: (currentDirection: stepperState.StepperState['direction']) => ({
-                  zIndex: 0,
-                  x: currentDirection === 'back' ? ANIMATION_OFFSET : -ANIMATION_OFFSET,
-                  opacity: 0,
-                  position: 'absolute',
-                  top: 0,
-                  width: '100%',
-                  height: 'auto',
-                }),
-              }}
-              transition={{
-                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                x: { type: 'spring', stiffness: 500, damping: 50, mass: 2 },
-                // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                opacity: { duration: 0.2 },
-              }}
-            >
-              <ErrorBoundary>
-                <Suspense loaderProps={{ minHeight: 'h32' }}>{renderChildren()}</Suspense>
-              </ErrorBoundary>
-            </motion.div>
-          </AnimatePresence>
+          <div key={currentStep}>
+            <ErrorBoundary>
+              <Suspense loaderProps={{ minHeight: 'h32' }}>{renderChildren()}</Suspense>
+            </ErrorBoundary>
+          </div>
         </div>
-      </stepperProvider.StepperProvider>
+      </StepperProvider>
     </div>
   )
 }
 
 Stepper.Step = Step
 Stepper.StepContent = StepContent
-Stepper.useStepperState = stepperState.useStepperState
+Stepper.useStepperState = useStepperState

@@ -37,6 +37,10 @@ public final class OptionsHelper {
     if (!option.equals("")) {
       return Optional.of(option);
     }
+    var prop = System.getProperty(RuntimeOptions.LANGUAGE_HOME_OVERRIDE);
+    if (prop != null) {
+      return Optional.of(prop);
+    }
     try {
       var cs = OptionsHelper.class.getProtectionDomain().getCodeSource();
       var runtimeJarUri = cs.getLocation().toURI();

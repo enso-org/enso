@@ -165,7 +165,7 @@ public class ManyNestedBlocksBenchmark {
               .append(System.lineSeparator());
           createNestedBlocks(nestedBlockIdx + 1);
         }
-          // Create a nested anonymous function
+        // Create a nested anonymous function
         case 3 -> {
           var argsCnt = random.nextInt(1, ANONYMOUS_FUNC_MAX_ARGS);
           sb.append(spaces);

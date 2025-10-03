@@ -7,13 +7,13 @@ import {
   type NodeVisualizationConfiguration,
 } from '@/stores/project/executionContext'
 import { VisualizationDataRegistry } from '@/stores/project/visualizationDataRegistry'
-import { type ProjectNameStore } from '@/stores/projectNames'
+import type { ProjectNameStore } from '@/stores/projectNames'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
-import { type Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
-import { type MethodPointer } from '@/util/methodPointer'
+import type { MethodPointer } from '@/util/methodPointer'
 import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
 import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
@@ -32,11 +32,11 @@ import {
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'
-import { type Identifier } from 'ydoc-shared/ast'
+import type { Identifier } from 'ydoc-shared/ast'
 import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { Diagnostic, ExpressionId } from 'ydoc-shared/languageServerTypes'
-import { type AbortScope } from 'ydoc-shared/util/net'
+import type { AbortScope } from 'ydoc-shared/util/net'
 import {
   DistributedProject,
   localUserActionOrigins,
@@ -230,17 +230,19 @@ export function createProjectStore(
   })
 
   function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
-    const newId = () => crypto.randomUUID() as Uuid
-    const visId = ref(newId())
-    // Regenerate the visualization ID when the preprocessor changes.
-    watch(configuration, (a, b) => {
-      if (a != null && b != null && !visualizationConfigPreprocessorEqual(a, b))
-        visId.value = newId()
-    })
+    const visId = ref<Uuid>()
 
     watch(
-      [configuration, visId],
-      ([config, id], _, onCleanup) => {
+      configuration,
+      (config, oldConfig, onCleanup) => {
+        if (!config) {
+          visId.value = undefined
+          return
+        }
+        // Regenerate the visualization ID when the preprocessor changes.
+        if (!visualizationConfigPreprocessorEqual(config, oldConfig))
+          visId.value = crypto.randomUUID()
+        const id = visId.value!
         executionContext.setVisualization(id, config)
         onCleanup(() => executionContext.setVisualization(id, null))
       },
@@ -249,7 +251,11 @@ export function createProjectStore(
       { immediate: true, flush: 'post' },
     )
 
-    return computed(() => parseVisualizationData(visualizationDataRegistry.getRawData(visId.value)))
+    return computed(() =>
+      visId.value == null ?
+        null
+      : parseVisualizationData(visualizationDataRegistry.getRawData(visId.value)),
+    )
   }
 
   const dataflowErrors = new ReactiveMapping(computedValueRegistry.db, (id, info) => {
@@ -273,7 +279,12 @@ export function createProjectStore(
       if (!visResult.ok) {
         visResult.error.log('Dataflow Error visualization evaluation failed')
         return undefined
-      } else if ('message' in visResult.value && typeof visResult.value.message === 'string') {
+      } else if (
+        visResult.value != null &&
+        typeof visResult.value === 'object' &&
+        'message' in visResult.value &&
+        typeof visResult.value.message === 'string'
+      ) {
         if ('kind' in visResult.value && visResult.value.kind === 'Dataflow')
           return { kind: visResult.value.kind, message: visResult.value.message }
         // Other kinds of error are not handled here
@@ -330,6 +341,7 @@ export function createProjectStore(
 
   // Maximum number of in-progress expressions.
   const MAX_IN_PROGRESS = 5
+  const MAX_RETRIES_IN_QUEUE = 5
 
   const inProgress = ref(0)
   const queueLength = ref(0)
@@ -338,17 +350,13 @@ export function createProjectStore(
     expressionId: ExternalId,
     expression: string,
     timeoutMs: number = 5000,
-  ): Promise<Result<any> | null> {
-    if (inProgress.value > MAX_IN_PROGRESS) {
-      if (timeoutMs < 0) {
-        return Promise.reject(Err(`queuedExecuteExpression: Execution timed out.`))
-      }
-
+  ): Promise<Result<unknown> | null> {
+    if (inProgress.value >= MAX_IN_PROGRESS) {
       queueLength.value += 1
       const pause = queueLength.value * 250
       return new Promise((resolve) => setTimeout(resolve, pause)).then(() => {
         queueLength.value -= 1
-        return queuedExecuteExpression(expressionId, expression, timeoutMs - pause)
+        return queuedExecuteExpression(expressionId, expression, timeoutMs)
       })
     }
 
@@ -387,15 +395,31 @@ export function createProjectStore(
         reject(Err(message))
       }
 
-      wait((timeoutMs < 1000 ? 1000 : timeoutMs) + 100).then(() => {
-        if (state === 1) {
-          inProgress.value -= 1
-          state = 0 // Prevent further updates from this handler.
-          dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
-          executionContext.off('visualizationEvaluationFailed', errorHandler)
-          reject(Err(`executeExpression: Execution timed out.`))
-        }
-      })
+      const waitWithExponentialBackoff = (retryAttempt: number, timeoutMs: number) => {
+        wait(timeoutMs).then(() => {
+          if (state === 1) {
+            if (retryAttempt < MAX_RETRIES_IN_QUEUE) {
+              const incRetryAttempt = retryAttempt + 1
+              DEV: console.warn(
+                'Waiting on data (expressionId=' +
+                  expressionId +
+                  ', visualizationId=' +
+                  visualizationId +
+                  '), retry attempt: ' +
+                  incRetryAttempt,
+              )
+              waitWithExponentialBackoff(incRetryAttempt, timeoutMs * 2 ** retryAttempt)
+            } else {
+              inProgress.value -= 1
+              state = 0 // Prevent further updates from this handler.
+              dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
+              executionContext.off('visualizationEvaluationFailed', errorHandler)
+              reject(Err(`executeExpression: Execution timed out.`))
+            }
+          }
+        })
+      }
+      waitWithExponentialBackoff(0, timeoutMs)
 
       dataConnection.on(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
       executionContext.on('visualizationEvaluationFailed', errorHandler)
@@ -408,7 +432,7 @@ export function createProjectStore(
     })
   }
 
-  function parseVisualizationData(data: Result<string | null> | null): Result<any> | null {
+  function parseVisualizationData(data: Result<string | null> | null): Result<unknown> | null {
     if (!data?.ok) return data
     if (data.value == null) return null
     try {

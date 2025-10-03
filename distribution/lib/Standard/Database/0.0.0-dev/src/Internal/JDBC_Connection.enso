@@ -8,7 +8,6 @@ from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 from Standard.Table import Table, Value_Type
 
-import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
@@ -22,7 +21,6 @@ polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
-polyglot java import org.enso.base.enso_cloud.HideableValue
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.graalvm.collections.Pair as Java_Pair
@@ -36,7 +34,7 @@ type JDBC_Connection
           Connection instance.
         - `operation_synchronizer`: a helper for synchronizing access to the
           underlying Connection.
-    Value connection_resource operation_synchronizer
+    Value connection_resource operation_synchronizer sql_exception=SQLException
 
     ## ---
        private: true
@@ -123,7 +121,7 @@ type JDBC_Connection
                 stmt
 
         go template values =
-            handle_sql_errors related_query=template <|
+            handle_sql_errors sql_exception=self.sql_exception related_query=template <|
                 if skip_log.not then log_sql_if_enabled self template
                 Managed_Resource.bracket (prepare template values) .close action
 
@@ -195,9 +193,7 @@ type JDBC_Connection
     raw_read_statement self raw_sql =
         self.with_prepared_statement raw_sql Statement_Setter.null stmt->
             rs = stmt.executeQuery
-            make_fallback_fetcher _ =
-                Column_Fetcher_Module.fallback_fetcher
-            table = result_set_to_table rs make_fallback_fetcher
+            table = result_set_to_table rs
             SQL_Warning_Helper.process_warnings stmt <|
                 table
 
@@ -306,10 +302,7 @@ create url properties = handle_sql_errors <|
    ---
 properties_as_java_props properties =
     properties.map pair->
-        # Some parameters may be passed by the dialect as a `HideableValue` directly, so they do not need to be converted.
-        value = pair.second
-        java_value = if value.is_a HideableValue then value else
-            as_hideable_value value
+        java_value = as_hideable_value pair.second
         Java_Pair.create pair.first java_value
 
 ## ---
@@ -317,10 +310,10 @@ properties_as_java_props properties =
    ---
    A special method used by dialects that construct a Java JDBC connection using
    some custom logic.
-from_java java_jdbc_connection =
+from_java java_jdbc_connection sql_exception=SQLException =
     resource = Managed_Resource.register java_jdbc_connection close_connection
     synchronizer = OperationSynchronizer.new
-    JDBC_Connection.Value resource synchronizer
+    JDBC_Connection.Value resource synchronizer sql_exception
 
 ## ---
    private: true
@@ -344,8 +337,8 @@ close_connection connection =
     - `action`: The computation to execute. This computation may throw SQL
       errors.
 handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout)
-handle_sql_errors ~action related_query=Nothing =
-    Panic.catch SQLException action caught_panic->
+handle_sql_errors ~action related_query=Nothing sql_exception=SQLException =
+    Panic.catch sql_exception action caught_panic->
         case caught_panic.payload of
             exc : SQLTimeoutException -> Error.throw (SQL_Timeout.Error exc related_query)
             exc -> Error.throw (SQL_Error.Error exc related_query)

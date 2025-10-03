@@ -59,11 +59,12 @@ public final class JDBCProxy {
         EnsoSecretHelper.getJDBCConnection(url, partitionedProperties.jdbcProperties);
     return switch (partitionedProperties.audited()) {
       case "local" -> new LocalAuditedConnection(rawConnection);
-      case "cloud" -> new CloudAuditedConnection(
-          rawConnection, partitionedProperties.getRelatedAssetId());
+      case "cloud" ->
+          new CloudAuditedConnection(rawConnection, partitionedProperties.getRelatedAssetId());
       case null -> rawConnection;
-      default -> throw new IllegalArgumentException(
-          "Unknown audit mode: " + partitionedProperties.audited());
+      default ->
+          throw new IllegalArgumentException(
+              "Unknown audit mode: " + partitionedProperties.audited());
     };
   }
 

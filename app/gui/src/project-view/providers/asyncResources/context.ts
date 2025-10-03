@@ -1,6 +1,6 @@
 import { ProjectId } from '#/services/Backend'
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import { ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import { toValue } from 'vue'
 
 /**

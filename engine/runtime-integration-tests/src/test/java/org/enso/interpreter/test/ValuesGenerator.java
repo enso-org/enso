@@ -91,13 +91,13 @@ public final class ValuesGenerator implements AutoCloseable {
             ctx.eval(
                 "enso",
                 """
-        {import}
+                {import}
 
-        check x = case x of
-            _ : {type} -> 1
-            _ -> 0
+                check x = case x of
+                    _ : {type} -> 1
+                    _ -> 0
 
-        """
+                """
                     .replace("{type}", typeCheck)
                     .replace("{import}", prelude));
         var check = c.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "check");
@@ -143,11 +143,11 @@ public final class ValuesGenerator implements AutoCloseable {
       }
       sb.append(
           """
-      check_{i} x = case x of
-          _ : {type} -> 1
-          _ -> 0
+          check_{i} x = case x of
+              _ : {type} -> 1
+              _ -> 0
 
-      """
+          """
               .replace("{type}", c)
               .replace("{i}", "" + i));
     }
@@ -168,23 +168,31 @@ public final class ValuesGenerator implements AutoCloseable {
   }
 
   public Value typeAny() {
-    return v("typeAny", """
-    import Standard.Base.Any.Any
-    """, "Any").type();
+    return v(
+            "typeAny",
+            """
+            import Standard.Base.Any.Any
+            """,
+            "Any")
+        .type();
   }
 
   public Value typeNothing() {
-    return v("typeNothing", """
-    import Standard.Base.Nothing.Nothing
-    """, "Nothing").type();
+    return v(
+            "typeNothing",
+            """
+            import Standard.Base.Nothing.Nothing
+            """,
+            "Nothing")
+        .type();
   }
 
   public Value typeNumber() {
     return v(
             "typeNumber",
             """
-    from Standard.Base import Nothing, Vector, Number, Float, Integer
-    """,
+            from Standard.Base import Nothing, Vector, Number, Float, Integer
+            """,
             "Number")
         .type();
   }
@@ -193,8 +201,8 @@ public final class ValuesGenerator implements AutoCloseable {
     return v(
             "typeInteger",
             """
-    from Standard.Base import Nothing, Vector, Number, Float, Integer
-    """,
+            from Standard.Base import Nothing, Vector, Number, Float, Integer
+            """,
             "Integer")
         .type();
   }
@@ -203,16 +211,19 @@ public final class ValuesGenerator implements AutoCloseable {
     return v(
             "typeFloat",
             """
-    from Standard.Base import Nothing, Vector, Number, Float, Integer
-    """,
+            from Standard.Base import Nothing, Vector, Number, Float, Integer
+            """,
             "Float")
         .type();
   }
 
   public Value typeBoolean() {
-    return v("typeBoolean", """
-    import Standard.Base.Data.Boolean.Boolean
-    """, "Boolean")
+    return v(
+            "typeBoolean",
+            """
+            import Standard.Base.Data.Boolean.Boolean
+            """,
+            "Boolean")
         .type();
   }
 
@@ -220,30 +231,38 @@ public final class ValuesGenerator implements AutoCloseable {
     return v(
             "typeArrayProxy",
             """
-    import Standard.Base.Data.Array_Proxy.Array_Proxy
-    """,
+            import Standard.Base.Data.Array_Proxy.Array_Proxy
+            """,
             "Array_Proxy")
         .type();
   }
 
   public Value typeText() {
-    return v("typeText", """
-    import Standard.Base.Data.Text.Text
-    """, "Text").type();
+    return v(
+            "typeText",
+            """
+            import Standard.Base.Data.Text.Text
+            """,
+            "Text")
+        .type();
   }
 
   public Value typeDate() {
-    return v("typeDate", """
-    import Standard.Base.Data.Time.Date.Date
-    """, "Date").type();
+    return v(
+            "typeDate",
+            """
+            import Standard.Base.Data.Time.Date.Date
+            """,
+            "Date")
+        .type();
   }
 
   public Value typeDatePeriod() {
     return v(
             "typeDate_Period",
             """
-    import Standard.Base.Data.Time.Date_Period.Date_Period
-    """,
+            import Standard.Base.Data.Time.Date_Period.Date_Period
+            """,
             "Date_Period")
         .type();
   }
@@ -252,8 +271,8 @@ public final class ValuesGenerator implements AutoCloseable {
     return v(
             "typeDate_Time",
             """
-    import Standard.Base.Data.Time.Date_Time.Date_Time
-    """,
+            import Standard.Base.Data.Time.Date_Time.Date_Time
+            """,
             "Date_Time")
         .type();
   }
@@ -262,8 +281,8 @@ public final class ValuesGenerator implements AutoCloseable {
     return v(
             "typeTimeOfDay",
             """
-    import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
-    """,
+            import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
+            """,
             "Time_Of_Day")
         .type();
   }
@@ -272,16 +291,19 @@ public final class ValuesGenerator implements AutoCloseable {
     return v(
             "typeDuration",
             """
-    import Standard.Base.Data.Time.Duration.Duration
-    """,
+            import Standard.Base.Data.Time.Duration.Duration
+            """,
             "Duration")
         .type();
   }
 
   public Value typePeriod() {
-    return v("typePeriod", """
-    import Standard.Base.Data.Time.Period.Period
-    """, "Period")
+    return v(
+            "typePeriod",
+            """
+            import Standard.Base.Data.Time.Period.Period
+            """,
+            "Period")
         .type();
   }
 
@@ -289,8 +311,8 @@ public final class ValuesGenerator implements AutoCloseable {
     return v(
             "typeTimePeriod",
             """
-    import Standard.Base.Data.Time.Time_Period.Time_Period
-    """,
+            import Standard.Base.Data.Time.Time_Period.Time_Period
+            """,
             "Time_Period")
         .type();
   }
@@ -299,29 +321,39 @@ public final class ValuesGenerator implements AutoCloseable {
     return v(
             "typeTimeZone",
             """
-    import Standard.Base.Data.Time.Time_Zone.Time_Zone
-    """,
+            import Standard.Base.Data.Time.Time_Zone.Time_Zone
+            """,
             "Time_Zone")
         .type();
   }
 
   public Value typeArray() {
-    return v("typeArray", """
-    import Standard.Base.Data.Array.Array
-    """, "Array").type();
+    return v(
+            "typeArray",
+            """
+            import Standard.Base.Data.Array.Array
+            """,
+            "Array")
+        .type();
   }
 
   public Value typeVector() {
-    return v("typeVector", """
-    import Standard.Base.Data.Vector.Vector
-    """, "Vector")
+    return v(
+            "typeVector",
+            """
+            import Standard.Base.Data.Vector.Vector
+            """,
+            "Vector")
         .type();
   }
 
   public Value typeNoWrap() {
-    return v("typeNoWrap", """
-    import Standard.Base.Data.Vector.No_Wrap
-    """, "No_Wrap")
+    return v(
+            "typeNoWrap",
+            """
+            import Standard.Base.Data.Vector.No_Wrap
+            """,
+            "No_Wrap")
         .type();
   }
 
@@ -329,8 +361,8 @@ public final class ValuesGenerator implements AutoCloseable {
     return v(
             "typeProblemBehavior",
             """
-    import Standard.Base.Errors.Problem_Behavior.Problem_Behavior
-    """,
+            import Standard.Base.Errors.Problem_Behavior.Problem_Behavior
+            """,
             "Problem_Behavior")
         .type();
   }
@@ -339,55 +371,78 @@ public final class ValuesGenerator implements AutoCloseable {
     return v(
             "typeMap",
             """
-    import Standard.Base.Data.Dictionary.Dictionary
-    """,
+            import Standard.Base.Data.Dictionary.Dictionary
+            """,
             "Dictionary")
         .type();
   }
 
   public Value typeWarning() {
-    return v("typeWarning", """
-    import Standard.Base.Warning.Warning
-    """, "Warning").type();
+    return v(
+            "typeWarning",
+            """
+            import Standard.Base.Warning.Warning
+            """,
+            "Warning")
+        .type();
   }
 
   public Value typeFile() {
-    return v("typeFile", """
-    import Standard.Base.System.File.File
-    """, "File").type();
+    return v(
+            "typeFile",
+            """
+            import Standard.Base.System.File.File
+            """,
+            "File")
+        .type();
   }
 
   public Value typeRef() {
-    return v("typeRef", """
-    import Standard.Base.Runtime.Ref.Ref
-    """, "Ref").type();
+    return v(
+            "typeRef",
+            """
+            import Standard.Base.Runtime.Ref.Ref
+            """,
+            "Ref")
+        .type();
   }
 
   public Value typeFunction() {
-    return v("typeFunction", """
-    import Standard.Base.Function.Function
-    """, "Function")
+    return v(
+            "typeFunction",
+            """
+            import Standard.Base.Function.Function
+            """,
+            "Function")
         .type();
   }
 
   public Value typeError() {
-    return v("typeError", """
-    import Standard.Base.Error.Error
-    """, "Error").type();
+    return v(
+            "typeError",
+            """
+            import Standard.Base.Error.Error
+            """,
+            "Error")
+        .type();
   }
 
   public Value typePanic() {
-    return v("typePanic", """
-    import Standard.Base.Panic.Panic
-    """, "Panic").type();
+    return v(
+            "typePanic",
+            """
+            import Standard.Base.Panic.Panic
+            """,
+            "Panic")
+        .type();
   }
 
   public Value typeManagedResource() {
     return v(
             "typeManaged_Resource",
             """
-    import Standard.Base.Runtime.Managed_Resource.Managed_Resource
-    """,
+            import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+            """,
             "Managed_Resource")
         .type();
   }
@@ -417,11 +472,11 @@ public final class ValuesGenerator implements AutoCloseable {
           v(
                   null,
                   """
-      from Standard.Base.Data.Ordering import all
+                  from Standard.Base.Data.Ordering import all
 
-      fac s n = if n <= 1 then s else
-          @Tail_Call fac n*s n-1
-      """,
+                  fac s n = if n <= 1 then s else
+                      @Tail_Call fac n*s n-1
+                  """,
                   "fac 1 100")
               .type());
       collect.add(v(null, "", "123 * 10^40").type());
@@ -466,11 +521,11 @@ public final class ValuesGenerator implements AutoCloseable {
                   null,
                   "",
                   """
-      '''
-          block of
-          multi-line
-          texts
-      """)
+                  '''
+                      block of
+                      multi-line
+                      texts
+                  """)
               .type());
     }
 
@@ -612,10 +667,10 @@ public final class ValuesGenerator implements AutoCloseable {
             v(
                     null,
                     """
-                                  import Standard.Base.Data.Time.Duration.Duration
-                                  import Standard.Base.Data.Time.Date_Time.Date_Time
-                                  from Standard.Base.Data.Boolean.Boolean import False
-                                  """,
+                    import Standard.Base.Data.Time.Duration.Duration
+                    import Standard.Base.Data.Time.Date_Time.Date_Time
+                    from Standard.Base.Data.Boolean.Boolean import False
+                    """,
                     expr)
                 .type());
       }
@@ -677,8 +732,8 @@ public final class ValuesGenerator implements AutoCloseable {
           v(
                   null,
                   """
-      import Standard.Base.Data.Array_Proxy.Array_Proxy
-      """,
+                  import Standard.Base.Data.Array_Proxy.Array_Proxy
+                  """,
                   "Array_Proxy.new 10 (x -> 2 * x)")
               .type());
     }
@@ -754,13 +809,13 @@ public final class ValuesGenerator implements AutoCloseable {
           ctx.eval(
               "js",
               """
-      (function() {
-        var map = new Map();
-        map.set('A', 1);
-        map.set('B', 2);
-        return map;
-      })
-      """);
+              (function() {
+                var map = new Map();
+                map.set('A', 1);
+                map.set('B', 2);
+                return map;
+              })
+              """);
       collect.add(fn.execute());
     }
     return collect;
@@ -825,9 +880,9 @@ public final class ValuesGenerator implements AutoCloseable {
     if (languages.contains(Language.ENSO)) {
       var code =
           """
-        type Sum_Type
-            Variant_A x
-            Variant_B y
+          type Sum_Type
+              Variant_A x
+              Variant_B y
           """;
       var constructors =
           List.of(
@@ -920,9 +975,9 @@ public final class ValuesGenerator implements AutoCloseable {
           v(
                   null,
                   """
-      import Standard.Base.Any.Any
-      import Standard.Base.Error.Error
-      """,
+                  import Standard.Base.Any.Any
+                  import Standard.Base.Error.Error
+                  """,
                   "Error.throw 'In error'")
               .type());
 
@@ -931,9 +986,9 @@ public final class ValuesGenerator implements AutoCloseable {
             v(
                     null,
                     """
-        import Standard.Base.Any.Any
-        import Standard.Base.Panic.Panic
-        """,
+                    import Standard.Base.Any.Any
+                    import Standard.Base.Panic.Panic
+                    """,
                     "Panic.throw 'In panic'")
                 .type();
         assertNull("Exception thrown instead", noValue);
@@ -958,8 +1013,8 @@ public final class ValuesGenerator implements AutoCloseable {
           v(
                   null,
                   """
-      import Standard.Base.Warning.Warning
-      """,
+                  import Standard.Base.Warning.Warning
+                  """,
                   "Warning.attach 'err' 'value'")
               .type());
     }

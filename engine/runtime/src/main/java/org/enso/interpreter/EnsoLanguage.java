@@ -15,7 +15,6 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.ExecutableNode;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.time.ZoneId;
@@ -226,7 +225,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
    */
   @Override
   protected CallTarget parse(ParsingRequest request) {
-    RootNode root = ProgramRootNode.build(this, request.getSource());
+    var root = ProgramRootNode.build(this, request.getSource());
     return root.getCallTarget();
   }
 
@@ -300,12 +299,12 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           var ir = optionTupple.get()._2();
           var sco = newInlineContext.localScope().getOrElse(LocalScope::empty);
           var mod = newInlineContext.getModule();
-          var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
           var toTruffle =
               new IrToTruffle(
                   context,
-                  request.getSource(),
-                  m.getScopeBuilder(),
+                  module.getPackage(),
+                  request::getSource,
+                  mod,
                   redirectConfigWithStrictErrors);
           exprNode = toTruffle.runInline(ir, sco, "<inline_source>");
         } else {

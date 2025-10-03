@@ -5,11 +5,25 @@ import { TEXTS } from 'enso-common/src/text'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { _electron, test as base, ElectronApplication, expect, type Page } from 'playwright/test'
+import {
+  _electron,
+  test as base,
+  expect,
+  type ElectronApplication,
+  type Locator,
+  type Page,
+} from 'playwright/test'
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
 export const CONTROL_KEY = os.platform() === 'darwin' ? 'Meta' : 'Control'
+const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
+
+const credentials = JSON.parse(
+  await fs.readFile(TEST_USER_FILE, { encoding: 'utf-8' }).catch((err) => {
+    throw Error('Cannot read Test User credentials.', { cause: err })
+  }),
+)
 
 const electronExecutablePath = await (async () => {
   const POSSIBLE_EXEC_PATHS = [
@@ -56,6 +70,11 @@ export const test = base.extend<{
       args,
       env: { ...process.env, ENSO_TEST: 'true', ENSO_TEST_PROJECTS_DIR: projectsDir },
     })
+    // Set the password as global var before turning on tracing.
+    // This way it will be not disclosed to anyone downloading traces of failed tests.
+    ;(await app.firstWindow()).evaluate((password) => {
+      ;(window as any).passwordOverride = password
+    }, credentials.password)
     await app.context().tracing.start({ screenshots: true, snapshots: true, sources: true })
     await use(app)
     await app.context().tracing.stop({ path: `test-traces/${testRunId}.zip` })
@@ -70,20 +89,16 @@ export const test = base.extend<{
 
 /**
  * Login as test user. This function asserts that page is the login page, and uses
- * credentials from ENSO_TEST_USER and ENSO_TEST_USER_PASSWORD env variables.
+ * credentials from playwright/.auth/user.json file.
  */
 export async function loginAsTestUser(page: Page) {
   // Login screen
   await expect(page.getByText('Login to your account')).toBeVisible({ timeout: LOADING_TIMEOUT })
   await expect(page.getByRole('textbox', { name: 'email' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'password' })).toBeVisible()
-  if (process.env.ENSO_TEST_USER == null || process.env.ENSO_TEST_USER_PASSWORD == null) {
-    throw Error(
-      'Cannot log in; `ENSO_TEST_USER` and `ENSO_TEST_USER_PASSWORD` env variables are not provided',
-    )
-  }
-  await page.getByRole('textbox', { name: 'email' }).fill(process.env.ENSO_TEST_USER)
-  await page.getByRole('textbox', { name: 'password' }).fill(process.env.ENSO_TEST_USER_PASSWORD)
+  await page.getByRole('textbox', { name: 'email' }).fill(credentials.user)
+  // Put some placeholder - the actual password was set in fixture (see above).
+  await page.getByRole('textbox', { name: 'password' }).fill('mellon')
   await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
   await page
@@ -96,4 +111,57 @@ export async function loginAsTestUser(page: Page) {
     .click()
 
   await page.getByRole('button', { name: TEXT.accept }).click()
+}
+
+/**
+ * The funcion creates a new Enso project
+ */
+export async function createNewProject(page: Page) {
+  const newProjectTab = page.getByRole('button', { name: 'New Project', exact: true })
+
+  await expect(newProjectTab).toBeVisible()
+  await newProjectTab.click()
+  await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
+
+  const tableViz = page.locator('.TableVisualization')
+  await expect(tableViz).toBeVisible({ timeout: 30000 })
+  await expect(tableViz).toContainText('Welcome To Enso!')
+}
+
+/**
+ * If welcome project is to be opened, this function takes you back to your dashboard
+ */
+export async function closeWelcome(page: Page) {
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
+  if (await welcomeProjectTab.isVisible()) {
+    await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  }
+}
+
+/**
+ * Finds the "newest" project (highest numbered "New Project N") in the user dasboard.
+ * @param page - The Playwright Page instance
+ * @returns Locator for the newest project
+ */
+export async function getNewestProject(page: Page): Promise<Locator> {
+  // Returning back to the data catalog
+  const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
+  await expect(dataCatalogTab).toBeVisible()
+  await dataCatalogTab.click()
+
+  const projects = await page
+    .getByTestId('drive-view')
+    .getByText(/New Project \d+/)
+    .all()
+
+  const numbered = await Promise.all(
+    projects.map(async (p) => {
+      const text = await p.innerText()
+      const num = parseInt(text.replace('New Project ', ''), 10)
+      return { locator: p, num }
+    }),
+  )
+
+  return numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
 }

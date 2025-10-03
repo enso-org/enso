@@ -31,6 +31,7 @@
 /* eslint-disable vue/require-prop-types */
 /* eslint-disable vue/order-in-components */
 
+import { AG_GRID_LOCALE_EN } from '@ag-grid-community/locale'
 import {
   _combineAttributesAndGridOptions,
   _processOnChange,
@@ -82,6 +83,12 @@ const DATA_MODEL_ATTR_NAME = 'onUpdate:modelValue' // emit name would be update:
 const DATA_MODEL_EMIT_NAME = 'update:modelValue'
 
 const [props, computed, watch] = getAgGridProperties()
+
+const customLocale = {
+  ...AG_GRID_LOCALE_EN,
+  // Add any customizations to the locale here
+  loadingError: 'Error fetching data - close and reopen visualization to retry',
+}
 
 export const AgGridVue = defineComponent({
   render() {
@@ -278,6 +285,9 @@ export const AgGridVue = defineComponent({
       globalSyncEventListener: this.globalEventListenerFactory(true).bind(this),
       modules: this.modules,
     }
+
+    // Set the localeText to improve ERR
+    gridOptions.localeText = customLocale
 
     this.api = createGrid(this.$el as HTMLElement, gridOptions, gridParams)
     this.gridCreated = true

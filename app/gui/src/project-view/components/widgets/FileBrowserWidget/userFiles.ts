@@ -1,6 +1,6 @@
 /** @file Support for getting information about a user's cloud files. */
-import { type Opt } from '@/util/data/opt'
-import { type ToValue } from '@/util/reactivity'
+import type { Opt } from '@/util/data/opt'
+import type { ToValue } from '@/util/reactivity'
 import type { DirectoryId, OrganizationInfo, User } from 'enso-common/src/services/Backend'
 import { computed, toValue, type Ref } from 'vue'
 
@@ -18,7 +18,7 @@ interface QueryResult<T> {
 export interface UserFiles {
   rootPath: ToValue<string>
   rootDirectoryId: ToValue<DirectoryId>
-  /** Path to the user's home, relative to `rootPath`. */
+  /** Path to the user's home. */
   home: ToValue<string[]>
 }
 

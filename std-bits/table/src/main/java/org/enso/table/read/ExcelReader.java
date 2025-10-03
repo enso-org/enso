@@ -14,14 +14,13 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.EmptySheetException;
 import org.enso.table.error.InvalidLocationException;
-import org.enso.table.excel.ExcelConnectionPool;
 import org.enso.table.excel.ExcelFileFormat;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.excel.ExcelWorkbook;
-import org.enso.table.excel.ReadOnlyExcelConnection;
+import org.enso.table.excel.internal.ExcelConnectionPool;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.FunctionWithException;
 import org.graalvm.polyglot.Context;
@@ -29,6 +28,31 @@ import org.graalvm.polyglot.Context;
 /** A table reader for MS Excel files. */
 public class ExcelReader {
   private static final ColumnStorage<?> EMPTY_STORAGE = Builder.getObjectBuilder(0).seal();
+
+  /**
+   * Opens the workbook to validate it can be accessed, performing no actions. The workbook is
+   * opened and any exceptions propagate.
+   *
+   * @param file the {@link File} to load
+   * @param format specifies the file format
+   * @throws IOException when the action fails
+   */
+  public static void openFile(File file, ExcelFileFormat format)
+      throws IOException, InterruptedException {
+    withWorkbook(file, format, workbook -> null);
+  }
+
+  /**
+   * Closes the workbook in the connection pool, so it can be deleted by another process
+   *
+   * @param file the {@link File} to load
+   * @param format specifies the file format
+   * @throws IOException when the action fails
+   */
+  public static void closeFile(File file, ExcelFileFormat format)
+      throws IOException, InterruptedException {
+    ExcelConnectionPool.INSTANCE.closeConnection(file, format);
+  }
 
   /**
    * Reads a list of sheet names for the specified XLSX/XLS file into an array.
@@ -49,7 +73,7 @@ public class ExcelReader {
    * @param workbook a {@link ExcelWorkbook} to read the sheet names from.
    * @return a String[] containing the sheet names.
    */
-  public static String[] readSheetNames(ExcelWorkbook workbook) {
+  private static String[] readSheetNames(ExcelWorkbook workbook) {
     int sheetCount = workbook.getNumberOfSheets();
     var output = new String[sheetCount];
     Context context = Context.getCurrent();
@@ -154,7 +178,7 @@ public class ExcelReader {
    * @return a {@link Table} containing the specified data.
    * @throws InvalidLocationException when the sheet index is not valid.
    */
-  public static Table readSheetByIndex(
+  private static Table readSheetByIndex(
       ExcelWorkbook workbook,
       int index,
       ExcelHeaders.HeaderBehavior headers,
@@ -221,7 +245,7 @@ public class ExcelReader {
    * @return a {@link Table} containing the specified data.
    * @throws InvalidLocationException when the range name or address is not found.
    */
-  public static Table readRangeByName(
+  private static Table readRangeByName(
       ExcelWorkbook workbook,
       String rangeNameOrAddress,
       ExcelHeaders.HeaderBehavior headers,
@@ -286,13 +310,10 @@ public class ExcelReader {
       ExcelFileFormat format,
       FunctionWithException<ExcelWorkbook, T, InterruptedException> action)
       throws IOException, InterruptedException {
-    try (ReadOnlyExcelConnection connection =
-        ExcelConnectionPool.INSTANCE.openReadOnlyConnection(file, format)) {
-      return connection.withWorkbook(action);
-    }
+    return ExcelConnectionPool.INSTANCE.performReadOnlyAction(file, format, action);
   }
 
-  public static Table readRange(
+  private static Table readRange(
       ExcelWorkbook workbook,
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,

@@ -146,7 +146,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-standard-library-in-native-macos-amd64:
+  stdlib-graal-vm-ce-standard-library-in-native-macos-amd64:
     name: Standard Library Native Tests (GraalVM CE) (macos, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
@@ -213,6 +213,14 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (Standard Library Native Tests, macos, amd64)
+          path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -222,7 +230,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-standard-library-macos-amd64:
+  stdlib-graal-vm-ce-standard-library-macos-amd64:
     name: Standard Library JVM Tests (GraalVM CE) (macos, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
@@ -289,6 +297,14 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (Standard Library JVM Tests, macos, amd64)
+          path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -298,7 +314,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-std-microsoft-macos-amd64:
+  stdlib-graal-vm-ce-std-microsoft-std-mock-dual-microsoft-macos-amd64:
     name: Standard Library Microsoft Tests (GraalVM CE) (macos, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
@@ -350,7 +366,7 @@ jobs:
         run: |-
           tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
-      - run: ./run backend test std-microsoft
+      - run: ./run backend test std-microsoft std-mock-dual-microsoft
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}
@@ -365,6 +381,14 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (Standard Library Microsoft Tests, macos, amd64)
+          path: "**/*.hprof"
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean

@@ -5,7 +5,11 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.{definition, Definition}
-import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
+import org.enso.compiler.refactoring.IRUtils
+import org.enso.compiler.pass.analyse.{
+  CachePreferenceAnalysis,
+  DataflowAnalysis
+}
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   EvaluationFailed,
@@ -78,6 +82,7 @@ class UpsertVisualizationJob(
           )
           ctx.locking.withWriteCompilationLock(
             classOf[UpsertVisualizationJob],
+            "visualizationId=" + visualizationId + ",expressionId=" + expressionId,
             () =>
               evaluateAndExecuteVisualization(
                 hasWriteLock = true
@@ -149,7 +154,7 @@ class UpsertVisualizationJob(
   )(implicit ctx: RuntimeContext): Option[Executable] = {
     val EvaluationResult(module, callable, arguments) = evaluatedVisualization
     UpsertVisualizationJob.logger.trace(
-      "Executing visalization {} for expression {}",
+      "Executing visualization {} for expression {}",
       visualizationId,
       expressionId
     )
@@ -171,7 +176,7 @@ class UpsertVisualizationJob(
       .flatMap(c => Option(c.get(expressionId)))
     UpsertVisualizationJob.requireVisualizationSynchronization(
       stack,
-      expressionId
+      visualizationId
     )
     cachedValue match {
       case Some(value) =>
@@ -185,6 +190,10 @@ class UpsertVisualizationJob(
         )
         None
       case None =>
+        UpsertVisualizationJob.logger.trace(
+          "Cached value for expresion {}: missing",
+          expressionId
+        )
         Some(Executable(config.executionContextId, stack))
     }
   }
@@ -222,6 +231,20 @@ class UpsertVisualizationJob(
 object UpsertVisualizationJob {
   private lazy val logger =
     LoggerFactory.getLogger(classOf[UpsertVisualizationJob])
+
+  /** Invalidate caches for a particular expression id. */
+  sealed private case class InvalidateCaches(
+    expressionId: Api.ExpressionId
+  )(implicit ctx: RuntimeContext)
+      extends Runnable {
+
+    override def run(): Unit = {
+      ctx.locking.withWriteCompilationLock(
+        classOf[UpsertVisualizationJob],
+        () => invalidateCaches(expressionId)
+      )
+    }
+  }
 
   /** The number of times to retry the expression evaluation. */
   private val MaxEvaluationRetryCount: Int = 5
@@ -370,7 +393,11 @@ object UpsertVisualizationJob {
   ): Either[EvaluationFailure, AnyRef] = {
     Try {
       val pending =
-        ctx.executionService.evaluateExpression(module, argumentExpression)
+        ctx.executionService.evaluateExpression(
+          module,
+          argumentExpression,
+          "evaluate args"
+        )
       pending.toCompletableFuture.get()
     }.toEither.left.flatMap {
       case _: ThreadInterruptedException
@@ -435,7 +462,8 @@ object UpsertVisualizationJob {
         case Api.VisualizationExpression.Text(_, expression, _) =>
           ctx.executionService.evaluateExpression(
             expressionModule,
-            expression
+            expression,
+            "evaluate visualization function"
           )
         case Api.VisualizationExpression.ModuleMethod(
               Api.MethodPointer(_, definedOnType, name),
@@ -573,7 +601,7 @@ object UpsertVisualizationJob {
     * @param ctx the runtime context
     * @return the re-evaluated visualization
     */
-  private def updateAttachedVisualization(
+  def updateAttachedVisualization(
     visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
     module: Module,
@@ -595,6 +623,7 @@ object UpsertVisualizationJob {
         arguments
       )
     setCacheWeights(visualization)
+    ctx.state.executionHooks.add(InvalidateCaches(expressionId))
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization
@@ -645,6 +674,44 @@ object UpsertVisualizationJob {
     }
   }
 
+  /** Update the caches. */
+  private def invalidateCaches(
+    expressionId: Api.ExpressionId
+  )(implicit ctx: RuntimeContext): Unit = {
+    val stacks = ctx.contextManager.getAllContexts.values
+    /* The invalidation of the first cached dependent node is required for
+     * attaching the visualizations to sub-expressions. Consider the example
+     * ```
+     * op = target.foo arg
+     * ```
+     * The result of expression `target.foo arg` is cached. If you attach the
+     * visualization to say `target`, the sub-expression `target` won't be
+     * executed because the whole expression is cached. And the visualization
+     * won't be computed.
+     * To workaround this issue, the logic below tries to identify if the
+     * visualized expression is a sub-expression and invalidate the first parent
+     * expression accordingly.
+     */
+    if (!stacks.exists(isExpressionCached(expressionId, _))) {
+      invalidateFirstDependent(expressionId)
+    }
+  }
+
+  /** Check if the expression is cached in the execution stack.
+    *
+    * @param expressionId the expression id to check
+    * @param stack the execution stack
+    * @return `true` if the expression exists in the frame cache
+    */
+  private def isExpressionCached(
+    expressionId: Api.ExpressionId,
+    stack: Iterable[InstrumentFrame]
+  ): Boolean = {
+    stack.headOption.exists { frame =>
+      frame.cache.get(expressionId) ne null
+    }
+  }
+
   /** Set the cache weights for the provided visualization.
     *
     * @param visualization the visualization to update
@@ -657,6 +724,55 @@ object UpsertVisualizationJob {
           Seq(visualization),
           CacheInvalidation.Command.SetMetadata(metadata)
         )
+      }
+  }
+
+  /** Invalidate the first cached dependent node of the provided expression.
+    *
+    * @param expressionId the expression id
+    */
+  private def invalidateFirstDependent(
+    expressionId: Api.ExpressionId
+  )(implicit ctx: RuntimeContext): Unit = {
+    ctx.executionService.getContext
+      .findModuleByExpressionId(expressionId)
+      .ifPresent { module =>
+        module.getIr
+          .getMetadata(DataflowAnalysis)
+          .foreach { metadata =>
+            val externalId = expressionId
+            IRUtils
+              .findByExternalId(module.getIr, externalId)
+              .map { ir =>
+                DataflowAnalysis.DependencyInfo.Type
+                  .Static(ir.getId, ir.getExternalId)
+              }
+              .flatMap { expressionKey =>
+                metadata.dependents.getExternal(expressionKey)
+              }
+              .foreach { dependents =>
+                val stacks = ctx.contextManager.getAllContexts.values
+                stacks.foreach { stack =>
+                  stack.headOption.foreach { frame =>
+                    dependents
+                      .find { id => frame.cache.get(id) ne null }
+                      .foreach { firstDependent =>
+                        CacheInvalidation.run(
+                          stack,
+                          CacheInvalidation(
+                            CacheInvalidation.StackSelector.Top,
+                            CacheInvalidation.Command
+                              .InvalidateKeys(
+                                Seq(firstDependent),
+                                "first dependendent of " + expressionId + " in upsert"
+                              )
+                          )
+                        )
+                      }
+                  }
+                }
+              }
+          }
       }
   }
 

@@ -1,47 +1,52 @@
 import { textEditorsBindings } from '@/bindings'
 import type CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import { type VueHost } from '@/components/VueHostRender.vue'
+import type { VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
+import { usePopoverRoot } from '@/providers/popoverRoot'
 import {
   contentFocused,
   contentFocusedExt,
   setContentFocused,
 } from '@/util/codemirror/contentFocusedExt'
-import { CmEventExt, extendCmEvent, keyBindings } from '@/util/codemirror/keymap'
+import { extendCmEvent, keyBindings, type CmEventExt } from '@/util/codemirror/keymap'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
-import { setVueHost } from '@/util/codemirror/vueHostExt'
+import { setVueHost, vueHostExt } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import type { Vec2 } from '@/util/data/vec2'
 import { elementHierarchy } from '@/util/dom'
-import { type ToValue } from '@/util/reactivity'
+import type { ToValue } from '@/util/reactivity'
 import type { AnyHandlerEvent } from '@/util/shortcuts'
 import {
   Compartment,
   EditorState,
+  Text,
+  Transaction,
   type Extension,
   type SelectionRange,
   type StateEffect,
   type StateEffectType,
-  Text,
-  Transaction,
-  TransactionSpec,
+  type TransactionSpec,
 } from '@codemirror/state'
-import { EditorView, placeholder } from '@codemirror/view'
+import { EditorView, placeholder, tooltips } from '@codemirror/view'
 import { find, takeUntil } from 'enso-common/src/utilities/data/iter'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import { createDebouncer } from 'lib0/eventloop.js'
 import {
-  type ComponentInstance,
   computed,
+  isRef,
+  markRaw,
   onUnmounted,
+  readonly,
   ref,
   toValue,
   watch,
+  type ComponentInstance,
   type WatchSource,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
+import type { LocalUserActionOrigin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
 function disableEditContextApi() {
@@ -57,8 +62,12 @@ export type Getter<T> = () => T
 
 interface CodeMirrorOptions {
   placeholder?: ToValue<string>
-  /** CodeMirror {@link Extension}s to include in the editor's initial state. */
-  extensions?: Extension
+  /**
+   * CodeMirror extensions to include in the editor's state. Values may be {@link Extension}s, or
+   * {@link WatchSource}s that return {@link Extension}s; in the latter case, a compartment will be
+   * created for each watch source to allow its contents to be reactively reconfigured.
+   */
+  extensions?: (Extension | WatchSource<Extension>)[]
   /**
    * If a value is provided, it will be made available to extensions that render Vue components.
    */
@@ -75,7 +84,7 @@ interface CodeMirrorOptions {
  * Creates a CodeMirror editor instance.
  *
  * The editor will be empty. To set and synchronize its contents, use proper extension, like
- * {@link useStringSync}, {@link yCollab} or {@link useYTextSync}. If they require {@link EditorView},
+ * {@link useStringSync}, {@link yCollab}, or {@link useYTextSync}. If they require {@link EditorView},
  * they may be attached with `setExtraExtensions` method.
  */
 export function useCodeMirror(
@@ -92,12 +101,16 @@ export function useCodeMirror(
 ) {
   const dispatch = { dispatch: (...specs: TransactionSpec[]) => view.dispatch(...specs) }
   const readonlyExt = useCompartment(dispatch, () =>
-    toValue(readonly) ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [],
+    toValue(readonly) ?
+      [EditorState.readOnly.of(true), EditorView.editable.of(false)]
+    : NULL_EXTENSION,
   )
   const placeholderExt =
-    placeholderText ? useCompartment(dispatch, () => placeholder(toValue(placeholderText))) : []
+    placeholderText ?
+      useCompartment(dispatch, () => placeholder(toValue(placeholderText)))
+    : NULL_EXTENSION
   const { bindingsExt } = useBindings()
-  const extrasCompartment = new Compartment()
+  const extrasCompartment = markRaw(new Compartment())
   const bindingsCompartment = useCompartment(dispatch, () => keyBindings(toValue(lineMode)))
   const singleLineState = computed(() => {
     const mode = toValue(lineMode)
@@ -106,20 +119,42 @@ export function useCodeMirror(
   const themeCompartment = useCompartment(dispatch, () =>
     theme({ singleLine: singleLineState.value }),
   )
+  const popoverRoot = usePopoverRoot(true)
+  const tooltipsConfigExt =
+    popoverRoot == null ? NULL_EXTENSION : (
+      useCompartment(dispatch, () =>
+        popoverRoot.value == null ?
+          NULL_EXTENSION
+        : tooltips({
+            position: 'absolute',
+            parent: popoverRoot.value,
+          }),
+      )
+    )
 
-  const view = new EditorView({
-    state: EditorState.create({
-      extensions: [
-        readonlyExt,
-        bindingsExt,
-        placeholderExt,
-        bindingsCompartment,
-        themeCompartment,
-        extrasCompartment.of([]),
-        extensions ?? [],
-      ],
+  const reactiveExtensions =
+    extensions ?
+      extensions.map((ext) =>
+        isRef(ext) || typeof ext === 'function' ? useCompartment(dispatch, ext) : ext,
+      )
+    : NULL_EXTENSION
+  const view = markRaw(
+    new EditorView({
+      state: EditorState.create({
+        extensions: [
+          readonlyExt,
+          bindingsExt,
+          placeholderExt,
+          bindingsCompartment,
+          themeCompartment,
+          extrasCompartment.of(NULL_EXTENSION),
+          reactiveExtensions,
+          tooltipsConfigExt,
+          vueHost ? vueHostExt : NULL_EXTENSION,
+        ],
+      }),
     }),
-  })
+  )
   watch(
     () => toValue(editorRoot),
     (editorRootValue) => {
@@ -143,12 +178,12 @@ export function useCodeMirror(
      * Update a set of additional extensions for the editor.
      *
      * This function can be used to provide extensions that are not ready before `useCodeMirror` can
-     * be called, e.g. because they require an {@link EditorView} instance to be created. If called
+     * be called, e.g., because they require an {@link EditorView} instance to be created. If called
      * more than once, the new collection of extra extensions will replace the previous collection.
      *
      * The change will be dispatched asynchronously; this avoids observing an inconsistent state:
      * When an extension is removed, its event handlers may still fire if they were triggered in the
-     * same tick (i.e. by the same event that caused the extension to be removed); in that case, the
+     * same tick (i.e., by the same event that caused the extension to be removed); in that case, the
      * handler would likely misbehave due to its extension not being installed, and all its state
      * fields being missing.
      *
@@ -159,7 +194,7 @@ export function useCodeMirror(
     setExtraExtensions: (extensions: Extension | undefined) => {
       extraExtsDebouncer(() =>
         view.dispatch({
-          effects: extrasCompartment.reconfigure(extensions ?? []),
+          effects: extrasCompartment.reconfigure(extensions ?? NULL_EXTENSION),
         }),
       )
     },
@@ -167,6 +202,8 @@ export function useCodeMirror(
     contentElement: view.contentDOM,
   }
 }
+
+const NULL_EXTENSION: Extension = readonly([])
 
 function useBindings() {
   const keyboard = injectKeyboard(true)
@@ -200,14 +237,16 @@ function useBindings() {
   }
 }
 
+interface StringSyncOptions {
+  onTextEdited?: (text: string) => void
+  onUserAction?: (text: string, selection: SelectionRange) => void
+}
+
 /**
  * Creates a CodeMirror extension for reading, writing, and watching the editor's contents as a
  * string value.
  */
-export function useStringSync() {
-  const textEditCallbacks: ((text: string) => void)[] = []
-  const userActionCallbacks: ((text: string, selection: SelectionRange) => void)[] = []
-
+export function useStringSync({ onTextEdited, onUserAction }: StringSyncOptions = {}) {
   return {
     syncExt: EditorView.updateListener.of((update) => {
       const textEdit = update.transactions.some(
@@ -220,40 +259,28 @@ export function useStringSync() {
         )
       if (userAction) {
         const text = update.state.doc.toString()
-        for (const cb of userActionCallbacks) cb(text, update.state.selection.main)
-        if (textEdit) for (const cb of textEditCallbacks) cb(text)
+        if (onUserAction) onUserAction(text, update.state.selection.main)
+        if (onTextEdited) onTextEdited(text)
       }
     }),
-    connectSync: (view: EditorView) => {
-      function getText(): string {
-        return view.state.doc.toString()
-      }
-
-      function setText(text: string, selection?: Range): void {
-        const safeSelection = selection?.clip(Range.fromStartAndLength(0, text.length))
-        if (selection && !selection.rangeEquals(safeSelection))
-          console.warn('Clipping invalid selection', { text, selection })
-        view.dispatch({
-          changes: { from: 0, to: view.state.doc.length, insert: text },
-          selection:
-            safeSelection ? { anchor: safeSelection.from, head: safeSelection.to } : { anchor: 0 },
-        })
-      }
-
-      function onTextEdited(callback: (text: string) => void): void {
-        textEditCallbacks.push(callback)
-      }
-
-      function onUserAction(callback: (text: string, selection: SelectionRange) => void): void {
-        userActionCallbacks.push(callback)
-      }
-      return { getText, setText, onTextEdited, onUserAction }
+    getText: (view: EditorView): string => {
+      return view.state.doc.toString()
+    },
+    setText: (view: EditorView, text: string, selection?: Range): void => {
+      const safeSelection = selection?.clip(Range.fromStartAndLength(0, text.length))
+      if (selection && !selection.rangeEquals(safeSelection))
+        console.warn('Clipping invalid selection', { text, selection })
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: text },
+        selection:
+          safeSelection ? { anchor: safeSelection.from, head: safeSelection.to } : { anchor: 0 },
+      })
     },
   }
 }
 
 /** An extension synchronizing CM with a Y.Text node in the ref. */
-export function useYTextSync(content: ToValue<Y.Text | undefined>) {
+export function useYTextSync(content: ToValue<Y.Text | undefined>, origin?: LocalUserActionOrigin) {
   const syncCompartment = new Compartment()
   const awareness = new Awareness(new Y.Doc())
 
@@ -262,7 +289,7 @@ export function useYTextSync(content: ToValue<Y.Text | undefined>) {
     if (contentValue != null) {
       assert(contentValue.doc !== null)
       const yTextWithDoc: Y.Text & { doc: Y.Doc } = contentValue as any
-      return { text: contentValue.toString(), extensions: yCollab(yTextWithDoc, awareness) }
+      return { text: contentValue.toString(), extensions: yCollab(yTextWithDoc, awareness, origin) }
     } else {
       return { text: '', extensions: [] }
     }
@@ -283,7 +310,7 @@ export function useYTextSync(content: ToValue<Y.Text | undefined>) {
   }
 
   return {
-    syncExt: syncCompartment.of([]),
+    syncExt: syncCompartment.of(NULL_EXTENSION),
     connectSync: (view: EditorView) => {
       useDispatch(
         view,
@@ -292,7 +319,7 @@ export function useYTextSync(content: ToValue<Y.Text | undefined>) {
         // yText), but can handle being removed and reinstalled.
         () =>
           view.dispatch({
-            effects: syncCompartment.reconfigure([]),
+            effects: syncCompartment.reconfigure(NULL_EXTENSION),
           }),
       )
     },

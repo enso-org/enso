@@ -4,7 +4,6 @@ import project.Data.Numbers.Number
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
@@ -27,8 +26,9 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 from project.Data.Boolean import Boolean
 from project.Data.Text.Extensions import all
+from project.Error import all
 from project.Metadata.Widget import Single_Choice
-from project.System.File_Format import format_types
+from project.System.File_Format import File_Format_SPI
 
 ## ---
    private: true
@@ -224,7 +224,7 @@ can_decode type = Meta.meta type . methods . contains "read_stream"
    Selector for decoding from the web.
 decode_format_selector : Widget
 decode_format_selector =
-    all_types = [Auto_Detect] + (format_types.filter can_decode)
+    all_types = [Auto_Detect] + (File_Format_SPI.get_types.filter can_decode)
     Single_Choice display=Display.Always values=(all_types.flat_map .get_dropdown_options)
 
 ## ---

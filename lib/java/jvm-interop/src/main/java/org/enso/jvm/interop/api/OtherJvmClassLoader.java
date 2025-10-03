@@ -2,10 +2,12 @@ package org.enso.jvm.interop.api;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleContext;
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.File;
@@ -33,6 +35,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
   /**
    * Creates instance of the class loader.
    *
+   * @param language the language to associate objects loaded by this loader with
    * @param otherJvm normally we run in AOT mode but for debugging purposes we can also emulate the
    *     connection in a single JVM
    * @param ctx own context to execute code in
@@ -40,12 +43,13 @@ public final class OtherJvmClassLoader implements TruffleObject {
    * @throws IOException
    * @throws URISyntaxException
    */
-  public static OtherJvmClassLoader create(boolean otherJvm, TruffleContext ctx)
+  public static OtherJvmClassLoader create(
+      Class<? extends TruffleLanguage> language, boolean otherJvm, TruffleContext ctx)
       throws IOException, URISyntaxException {
     var jvm = otherJvm ? initializeJvm() : null;
     var ch = Channel.create(jvm, OtherJvmPool.class);
     var pool = ch.getConfig();
-    pool.onEnterLeave(ctx::enter, ctx::leave);
+    pool.onEnterLeave(language, ctx::enter, ctx::leave);
     return new OtherJvmClassLoader(ch);
   }
 
@@ -79,13 +83,22 @@ public final class OtherJvmClassLoader implements TruffleObject {
   }
 
   @ExportMessage
+  @CompilerDirectives.TruffleBoundary
   final TruffleObject invokeMember(String name, Object[] args)
-      throws UnknownIdentifierException, UnsupportedMessageException {
-    if (!"addPath".equals(name)) {
-      throw UnknownIdentifierException.create(name);
-    } else {
-      var path = InteropLibrary.getUncached().asString(args[0]);
-      addToClassPath(path);
+      throws UnknownIdentifierException, UnsupportedMessageException, UnsupportedTypeException {
+    switch (name) {
+      case "addPath" -> {
+        var path = InteropLibrary.getUncached().asString(args[0]);
+        channel.execute(Void.class, new OtherJvmMessage.AddToClassPath(path));
+      }
+      case "findLibraries" -> {
+        if (args[0] instanceof TruffleObject obj) {
+          channel.execute(Void.class, new OtherJvmMessage.FindLibraries(obj));
+        } else {
+          throw UnsupportedTypeException.create(args);
+        }
+      }
+      default -> throw UnknownIdentifierException.create(name);
     }
     return this;
   }
@@ -93,12 +106,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   private final TruffleObject loadClass(String name) throws ClassNotFoundException {
     var result = channel.execute(OtherJvmResult.class, new OtherJvmMessage.LoadClass(name));
-    return result.value();
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private final void addToClassPath(String path) {
-    channel.execute(Void.class, new OtherJvmMessage.AddToClassPath(path));
+    return result.value(null);
   }
 
   private static JVM initializeJvm() throws IOException, URISyntaxException {

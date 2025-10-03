@@ -20,7 +20,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.4",
+    "@types/node": "catalog:",
     "esbuild": "^0.25.0",
     "esbuild-plugin-wasm": "^1.1.0",
     "typescript": "catalog:"

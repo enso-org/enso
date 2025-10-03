@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import { type ComponentInstance, computed, defineAsyncComponent, ref } from 'vue'
+import { computed, defineAsyncComponent, ref, type ComponentInstance } from 'vue'
 
 const props = defineProps<{
   extensions?: Extension

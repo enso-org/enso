@@ -15,6 +15,7 @@
 - type File_Type
     - Option label:Standard.Base.Data.Text.Text extensions:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)= icon:Standard.Base.Data.Text.Text=
 - type Widget
+    - Any_To_Target display:Standard.Base.Metadata.Display=
     - Boolean_Input label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=
     - File_Browse existing_only:Standard.Base.Data.Boolean.Boolean= label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= action:Standard.Base.Metadata.File_Action= file_types:(Standard.Base.Data.Vector.Vector Standard.Base.Metadata.File_Type)=
     - Folder_Browse label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=

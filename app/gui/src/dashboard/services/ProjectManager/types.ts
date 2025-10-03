@@ -140,7 +140,6 @@ export interface CreateProject {
 
 /** The return value of the "open project" endpoint. */
 export interface OpenProject {
-  readonly engineVersion: string
   readonly languageServerJsonAddress: IpWithSocket
   readonly languageServerBinaryAddress: IpWithSocket
   readonly projectName: ProjectName

@@ -115,6 +115,7 @@ class RuntimeAsyncCommandsTest
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName)
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .option(
           RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
           "false"
@@ -789,7 +790,7 @@ class RuntimeAsyncCommandsTest
         requestId,
         Api.RecomputeContextRequest(
           contextId,
-          Some(InvalidatedExpressions.Expressions(Vector(idOp1, idOp2))),
+          Some(InvalidatedExpressions.Expressions(Vector(idOp1, idOp2), "")),
           None,
           Seq()
         )

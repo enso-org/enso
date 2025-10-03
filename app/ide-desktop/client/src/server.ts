@@ -5,15 +5,22 @@ import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
 import * as stream from 'node:stream'
+import * as streamConsumers from 'node:stream/consumers'
 
 import createServer from 'create-servers'
 import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
-import * as projectManagement from '@/projectManagement'
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
+import * as projectManagement from 'project-manager-shim'
+import {
+  handleFilesystemCommand,
+  handleProjectServiceRequest,
+  isProjectServiceRequest,
+} from 'project-manager-shim/handler'
+import { ProjectService } from 'project-manager-shim/projectService'
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
@@ -22,22 +29,22 @@ import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
 import * as paths from '@/paths'
 import { app } from 'electron'
 import {
-  AnyAsset,
+  type AnyAsset,
   AssetId,
   AssetType,
-  DirectoryAsset,
+  type DirectoryAsset,
   DirectoryId,
   EnsoPath,
-  ExportedArchive,
+  type ExportedArchive,
   extractTypeFromId,
-  FileAsset,
-  FileDetails,
+  type FileAsset,
+  type FileDetails,
   FileId,
   fileNameIsArchive,
   fileNameIsProject,
   ParentsPath,
   Path,
-  ProjectAsset,
+  type ProjectAsset,
   ProjectId,
   ProjectState,
   S3FilePath,
@@ -59,17 +66,7 @@ import {
   isFolderPath,
 } from 'enso-common/src/utilities/file'
 import { createReadStream, createWriteStream, statSync } from 'node:fs'
-import {
-  access,
-  mkdir,
-  mkdtemp,
-  readdir,
-  readFile,
-  rm,
-  rmdir,
-  stat,
-  writeFile,
-} from 'node:fs/promises'
+import { access, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
@@ -204,10 +201,19 @@ async function findPort(port: number): Promise<number> {
 export class Server {
   private projectsRootDirectory: string
   private devServer?: vite.ViteDevServer
+  private projectService?: ProjectService
 
   /** Create a simple HTTP server. */
   constructor(public config: Config) {
     this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
+  }
+
+  /** Get the project service. */
+  getProjectService(): ProjectService {
+    if (!this.projectService) {
+      this.projectService = ProjectService.default()
+    }
+    return this.projectService
   }
 
   /** Server constructor. */
@@ -324,6 +330,15 @@ export class Server {
         ),
         { end: true },
       )
+    } else if (isProjectServiceRequest(requestUrl)) {
+      const headers = Object.fromEntries(COOP_COEP_CORP_HEADERS)
+      handleProjectServiceRequest(
+        request,
+        response,
+        requestUrl,
+        async () => this.getProjectService(),
+        headers,
+      )
     } else if (request.url?.startsWith('/api/')) {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
       const params = route.searchParams
@@ -372,6 +387,7 @@ export class Server {
             await this.httpDownloadProject(request, response, params, [projectId as ProjectId])
             break
           }
+          logger.error(`Unknown Cloud middleware request:`, route.pathname)
           const content = JSON.stringify({
             type: 'error',
             error: `Unknown endpoint '${route.pathname}'`,
@@ -494,6 +510,7 @@ export class Server {
     const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
     const projectRootDirectory = path.join(parentDirectory, 'project_root')
 
+    await rm(parentDirectory, { recursive: true, force: true, maxRetries: 3 })
     await mkdir(projectRootDirectory, { recursive: true })
     await projectManagement.unpackBundle(response, projectRootDirectory)
     return { projectRootDirectory, parentDirectory }
@@ -522,7 +539,7 @@ export class Server {
       const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
       await access(parentDirectory)
         .then(() => {
-          rmdir(parentDirectory, { maxRetries: 3, recursive: true })
+          rm(parentDirectory, { maxRetries: 3, recursive: true, force: true })
         })
         .catch((e) => {
           logger.error(`Failed to cleanup directory ${parentDirectory}.`, e)
@@ -857,43 +874,63 @@ export class Server {
 
   /** Response handler for "download archive" endpoint. */
   async httpDownloadArchive(
-    _request: http.IncomingMessage,
+    request: http.IncomingMessage,
     response: http.ServerResponse,
     params: URLSearchParams,
   ) {
-    const assets = params.getAll('asset') as AssetId[]
-    const filePath = params.get('filePath')
-    const archive = this.apiArchiveStream(assets)
-    let promise: Promise<void> | undefined
-    if (filePath != null) {
-      promise = finished(archive.stream.pipe(createWriteStream(filePath)))
-    } else {
-      response.writeHead(HTTP_STATUS_OK, [
-        ['Content-Type', 'application/octet-stream'],
-        ...COOP_COEP_CORP_HEADERS,
-      ])
-      await finished(archive.stream.pipe(response))
-    }
-
-    if (filePath == null) {
-      // The HTTP headers were already sent
-      return
-    }
-    const error = await archive.promise
-    if (error) {
-      const content = JSON.stringify({ error: `Asset '${error.id}' not found` })
-      response
-        .writeHead(HTTP_STATUS_NOT_FOUND, [
-          ['Content-Length', String(content.length)],
-          ['Content-Type', 'application/json'],
+    try {
+      // This is SAFE because it is wrapped in a try-catch.
+      // If the body is not valid JSON, an error will be thrown and handled.
+      const body = await streamConsumers.json(request)
+      const assetIds =
+        (
+          typeof body === 'object' &&
+          body &&
+          'assetIds' in body &&
+          Array.isArray(body.assetIds) &&
+          body.assetIds.every((id) => typeof id === 'string')
+        ) ?
+          body.assetIds.map((id) => AssetId(id))
+        : null
+      if (!assetIds) {
+        this.httpError(response, 'Asset IDs invalid or missing.')
+        return
+      }
+      const filePath = params.get('filePath')
+      const archive = this.apiArchiveStream(assetIds)
+      let promise: Promise<void> | undefined
+      if (filePath != null) {
+        promise = finished(archive.stream.pipe(createWriteStream(filePath)))
+      } else {
+        response.writeHead(HTTP_STATUS_OK, [
+          ['Content-Type', 'application/octet-stream'],
           ...COOP_COEP_CORP_HEADERS,
         ])
-        .end(content)
+        await finished(archive.stream.pipe(response))
+      }
+
+      if (filePath == null) {
+        // The HTTP headers were already sent
+        return
+      }
+      const error = await archive.promise
+      if (error) {
+        const content = JSON.stringify({ error: `Asset '${error.id}' not found` })
+        response
+          .writeHead(HTTP_STATUS_NOT_FOUND, [
+            ['Content-Length', String(content.length)],
+            ['Content-Type', 'application/json'],
+            ...COOP_COEP_CORP_HEADERS,
+          ])
+          .end(content)
+      }
+      await promise
+      this.httpOkJson<ExportedArchive>(response, {
+        filePath: Path(filePath),
+      })
+    } catch (error) {
+      this.httpError(response, error instanceof Error ? error.message : String(error))
     }
-    await promise
-    this.httpOkJson<ExportedArchive>(response, {
-      filePath: Path(filePath),
-    })
   }
 
   /** Get details for an asset by its path. */
@@ -1064,25 +1101,49 @@ export class Server {
         .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
         .end('Command arguments must be an array of strings.')
     } else {
-      const commandOutput = (() => {
-        try {
-          return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
-        } catch {
-          const readableStream = new stream.Readable()
-          readableStream.push(
-            JSON.stringify({
-              error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
-            }),
-          )
-          readableStream.push(null)
-          return readableStream
+      // Check if it's a filesystem command
+      if (cliArguments[0]?.startsWith('--filesystem-')) {
+        const result = await handleFilesystemCommand(cliArguments, request)
+
+        if (typeof result === 'string') {
+          const resultData = Buffer.from(result)
+          response
+            .writeHead(HTTP_STATUS_OK, {
+              'Content-Length': String(resultData.byteLength),
+              'Content-Type': 'application/json',
+              ...COOP_COEP_CORP_HEADERS,
+            })
+            .end(resultData)
+        } else {
+          const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
+            'Content-Type': 'application/octet-stream',
+            ...COOP_COEP_CORP_HEADERS,
+          })
+          result.pipe(responseWithHead, { end: true })
         }
-      })()
-      response.writeHead(HTTP_STATUS_OK, [
-        ['Content-Type', 'application/json'],
-        ...COOP_COEP_CORP_HEADERS,
-      ])
-      commandOutput.pipe(response, { end: true })
+      } else {
+        // For non-filesystem commands, fallback to the project manager
+        const commandOutput = (() => {
+          try {
+            return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
+          } catch {
+            const readableStream = new stream.Readable()
+            readableStream.push(
+              JSON.stringify({
+                error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
+              }),
+            )
+            readableStream.push(null)
+            return readableStream
+          }
+        })()
+
+        response.writeHead(HTTP_STATUS_OK, [
+          ['Content-Type', 'application/json'],
+          ...COOP_COEP_CORP_HEADERS,
+        ])
+        commandOutput.pipe(response, { end: true })
+      }
     }
   }
 }

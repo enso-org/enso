@@ -12,7 +12,7 @@ import { tryIdentifier } from '@/util/qualifiedName'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
-import { Identifier } from 'ydoc-shared/ast'
+import type { Identifier } from 'ydoc-shared/ast'
 import { nodeIdFromOuterAst } from '../../../stores/graph/graphDatabase'
 
 // ===============================

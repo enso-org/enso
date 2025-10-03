@@ -1,7 +1,7 @@
 /** @file Translation of `yjsModel` types to and from the `fileFormat` representation. */
 import * as json from 'lib0/json'
 import { SourceRange, sourceRangeFromKey } from 'ydoc-shared/util/data/text'
-import { type ExternalId, IdMap } from 'ydoc-shared/yjsModel'
+import { IdMap, type ExternalId } from 'ydoc-shared/yjsModel'
 import * as fileFormat from './fileFormat'
 
 /** Convert a JSON string to an {@link IdMap}. */

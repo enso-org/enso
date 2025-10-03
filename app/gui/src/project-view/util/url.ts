@@ -1,4 +1,4 @@
-import { Err, Ok, Result } from '@/util/data/result'
+import { Err, Ok, type Result } from '@/util/data/result'
 
 /** Save version of {@link URL.parse} that works in tests. */
 export function urlParse(url: string | URL, base?: string | URL): URL | null {

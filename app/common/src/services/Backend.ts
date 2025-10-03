@@ -1,7 +1,6 @@
 /** @file Type definitions common between all backends. */
-
 import { z } from 'zod'
-import { getText, Replacements, resolveDictionary, type TextId } from '../text.js'
+import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
 import * as array from '../utilities/data/array.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
@@ -13,6 +12,8 @@ import {
   DirectoryId,
   EnsoPath,
   FileId,
+  MetadataId,
+  PaginationToken,
   ParentsPath,
   Path,
   ProjectId,
@@ -37,7 +38,7 @@ import {
   type UserId,
   type UserPermissionIdentifier,
 } from './Backend/types.js'
-import { HttpClient, HttpClientPostOptions, ResponseWithTypedJson } from './HttpClient.js'
+import { HttpClient, type HttpClientPostOptions, type ResponseWithTypedJson } from './HttpClient.js'
 export { prettifyError } from 'zod/v4'
 
 export * from './Backend/types.js'
@@ -192,11 +193,6 @@ export enum ProjectState {
    * `openInProgress`, but has not yet been added to the backend.
    */
   placeholder = 'Placeholder',
-  /**
-   * A frontend-specific state, representing a project that should be displayed as `closed`,
-   * but is still in the process of shutting down.
-   */
-  closing = 'Closing',
 }
 
 /** Wrapper around a project state value. */
@@ -224,7 +220,6 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.hybridOpened]: false,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
 }
 
 export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
@@ -238,7 +233,6 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.hybridOpened]: true,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
@@ -600,9 +594,11 @@ export interface ListUsersResponseBody {
   readonly users: readonly User[]
 }
 
-/** HTTP response body for the "list projects" endpoint. */
+/** HTTP response body for the "list directory" endpoint. */
 export interface ListDirectoryResponseBody {
   readonly assets: readonly AnyAsset[]
+  /** `null` if and only if this is the last page. */
+  readonly paginationToken: PaginationToken | null
 }
 
 /** HTTP response body for the "list files" endpoint. */
@@ -640,10 +636,13 @@ export type AssetDetailsResponse<Id extends RealAssetId> =
   // evaluating the conditional type for each member of the union type,
   // and then resolving to a union of the results of this operation.
   IsAny<Id> extends true ? AssetDetailsResponse<RealAssetId>
-  : (Id extends Id ? Omit<AnyAsset<RealAssetTypeId<Id>>, 'ensoPath'> : never) | null
+  : | (Id extends Id ?
+        Omit<AnyAsset<RealAssetTypeId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId }
+      : never)
+    | null
 
-/** Whether the user is on a plan associated with an organization. */
-export function isUserOnPlanWithOrganization(user: User) {
+/** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
+export function isUserOnPlanWithMultipleSeats(user: User) {
   switch (user.plan) {
     case undefined:
     case Plan.free:
@@ -922,11 +921,11 @@ export interface SpecialAssetIdType {
  */
 export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.directory]: 0,
-  [AssetType.project]: 1,
-  [AssetType.file]: 2,
-  [AssetType.datalink]: 3,
-  [AssetType.secret]: 4,
-  [AssetType.specialUp]: -1,
+  [AssetType.project]: -1,
+  [AssetType.file]: -2,
+  [AssetType.datalink]: -3,
+  [AssetType.secret]: -4,
+  [AssetType.specialUp]: 1,
 }
 
 /** A state associated with a credential. */
@@ -1263,6 +1262,7 @@ export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
   readonly title: string | null
+  readonly metadataId: MetadataId | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
@@ -1385,11 +1385,17 @@ export interface GetLogEventsRequestParams {
   readonly pageSize?: number | null | undefined
 }
 
+export type AssetSortExpression = 'asset_id_discriminator_and_modified_at' | 'modified_at' | 'title'
+
+export type AssetSortDirection = 'ascending' | 'descending'
+
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
   readonly filterBy: FilterBy | null
-  readonly labels: LabelName[] | null
+  readonly labels: readonly LabelName[] | null
+  readonly sortExpression: AssetSortExpression | null
+  readonly sortDirection: AssetSortDirection | null
   readonly recentProjects: boolean
   /**
    * The root path of the directory to list.
@@ -1397,6 +1403,23 @@ export interface ListDirectoryRequestParams {
    * because a root could be any local folder on the machine.
    */
   readonly rootPath?: Path | undefined
+  readonly from: PaginationToken | null
+  readonly pageSize: number | null
+}
+
+/** URL query string parameters for the "search directory" endpoint. */
+export interface SearchDirectoryRequestParams {
+  readonly parentId: DirectoryId | null
+  readonly query: string | null
+  readonly title: string | null
+  readonly description: string | null
+  readonly type: string | null
+  readonly extension: string | null
+  readonly labels: readonly LabelName[] | null
+  readonly sortExpression: AssetSortExpression | null
+  readonly sortDirection: AssetSortDirection | null
+  readonly from: PaginationToken | null
+  readonly pageSize: number | null
 }
 
 /** URL query string parameters for the "get project session logs" endpoint. */
@@ -1501,31 +1524,71 @@ export function getAssetTypeFromId(id: AssetId) {
 }
 
 /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
-export function compareAssets(a: AnyAsset, b: AnyAsset) {
-  const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
+export function compareAssets(
+  a: AnyAsset,
+  b: AnyAsset,
+  sortExpression?: AssetSortExpression | null,
+  sortDirection?: AssetSortDirection | null,
+) {
+  sortExpression ??= 'asset_id_discriminator_and_modified_at'
+  sortDirection ??=
+    sortExpression == 'asset_id_discriminator_and_modified_at' ? 'descending' : 'ascending'
 
-  if (relativeTypeOrder !== 0) {
-    return relativeTypeOrder
-  } else {
-    // We sort by modified date, because the running/recent projects should be at the top,
-    // but below the folders.
-    const aModified = Number(new Date(a.modifiedAt))
-    const bModified = Number(new Date(b.modifiedAt))
-    const modifiedDelta = aModified - bModified
+  const multiplier = sortDirection === 'ascending' ? 1 : -1
 
-    const aTitle = a.title.toLowerCase()
-    const bTitle = b.title.toLowerCase()
+  const relativeTypeOrder = multiplier * (ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type])
+  const modifiedAtDelta =
+    multiplier * (Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt)))
+  const titleDelta = multiplier * a.title.localeCompare(b.title, 'en-US', { numeric: true })
 
-    if (modifiedDelta !== 0) {
-      // Sort by date descending, rather than ascending.
-      return -modifiedDelta
-    } else {
-      return (
-        aTitle > bTitle ? 1
-        : aTitle < bTitle ? -1
-        : 0
-      )
+  switch (sortExpression) {
+    case 'asset_id_discriminator_and_modified_at': {
+      if (relativeTypeOrder !== 0) {
+        return relativeTypeOrder
+      }
+      // On the Remote backend, ids are KSUIDs so they are implicitly sorted by creation date.
+      return modifiedAtDelta
     }
+    case 'modified_at': {
+      return modifiedAtDelta
+    }
+    case 'title': {
+      return titleDelta
+    }
+  }
+}
+
+/** Whether an asset matches the given backend search query. */
+export function doesAssetMatchQuery(query: SearchDirectoryRequestParams) {
+  const typeLower = query.type?.toLowerCase()
+  const titleLower = query.title?.toLowerCase()
+  const extensionLower = query.extension?.toLowerCase()
+  const queryLower = query.query?.toLowerCase().split(/\s+/)
+
+  return (asset: AnyAsset) => {
+    if (typeLower != null && String(asset.type) !== typeLower) {
+      return false
+    }
+    if (titleLower != null && !asset.title.toLowerCase().includes(titleLower)) {
+      return false
+    }
+    if (
+      extensionLower != null &&
+      asset.extension?.toLowerCase().includes(extensionLower) !== true
+    ) {
+      return false
+    }
+    if (
+      queryLower?.some(
+        (term) =>
+          String(asset.type) !== term &&
+          !asset.title.toLowerCase().includes(term) &&
+          asset.extension?.toLowerCase().includes(term) !== true,
+      ) === true
+    ) {
+      return false
+    }
+    return true
   }
 }
 
@@ -1790,7 +1853,9 @@ export default abstract class Backend {
   abstract listDirectory(
     query: ListDirectoryRequestParams,
     title: string,
-  ): Promise<readonly AnyAsset[]>
+  ): Promise<ListDirectoryResponseBody>
+  /** Return a list of assets recursively in a directory matching a query. */
+  abstract searchDirectory(query: SearchDirectoryRequestParams): Promise<ListDirectoryResponseBody>
   /** Create a directory. */
   abstract createDirectory(
     body: CreateDirectoryRequestBody,

@@ -385,6 +385,7 @@ impl Processor {
             }
             arg::backend::Command::Test { which } => {
                 let mut config = enso_build::engine::BuildConfigurationFlags::default();
+                self.add_heapdump_opts(&mut config);
                 for arg in which {
                     match arg {
                         Tests::Jvm => {
@@ -419,7 +420,6 @@ impl Processor {
                             config.small_jdk_dir = Some(small_jdk_dir.clone());
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::blacklist(vec![
-                                    "Examples_Tests".to_string(),
                                     "Microsoft_Tests".to_string(),
                                 ]));
                             config.add_engine_runner_arg("--jvm");
@@ -431,7 +431,6 @@ impl Processor {
                         Tests::StandardLibraryInNative => {
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::blacklist(vec![
-                                    "Examples_Tests".to_string(),
                                     "Microsoft_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
@@ -474,6 +473,18 @@ impl Processor {
                                     "Microsoft_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
+                        }
+                        Tests::StdMockDualMicrosoft => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Microsoft_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = false;
+                            config.extra_engine_runner_args = Some(vec![
+                                "--jvm".to_string(),
+                                "--vm.D=polyglot.enso.classLoading=Standard.Microsoft:guest,hosted"
+                                    .to_string(),
+                            ])
                         }
                     }
                 }
@@ -545,6 +556,19 @@ impl Processor {
             Ok(enso_build::engine::RunContext { inner, config, paths, external_runtime: None })
         }
         .boxed()
+    }
+
+    /// Add options to produce heap dumps on OOM errors.
+    /// It is essential to pass the `-XX:+HeapDumpOnOutOfMemoryError` option both via
+    /// `JAVA_TOOL_OPTIONS` env var and as a command line argument to the runner.
+    /// For explanation, see https://github.com/enso-org/enso/pull/13984
+    fn add_heapdump_opts(&self, config: &mut enso_build::engine::BuildConfigurationFlags) {
+        let dump_arg = "-XX:+HeapDumpOnOutOfMemoryError";
+        config.add_java_tool_opt(dump_arg);
+        if TARGET_OS != OS::Windows {
+            // This flag is not supported on Windows NI.
+            config.add_engine_runner_arg(dump_arg);
+        }
     }
 
     /// Get a handle to the release by its identifier.

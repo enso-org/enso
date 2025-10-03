@@ -30,6 +30,7 @@ import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMo
 import org.enso.interpreter.node.callable.InvokeMethodNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -39,7 +40,6 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.scope.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.pkg.QualifiedName;
 
@@ -155,7 +155,7 @@ public final class Type extends EnsoObject {
   }
 
   public ModuleScope getDefinitionScope() {
-    definitionScope.build();
+    definitionScope.finish();
     return definitionScope.asModuleScope();
   }
 
@@ -403,10 +403,13 @@ public final class Type extends EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   boolean isMemberReadable(String member) {
+    if (methods().containsKey(member)) {
+      return true;
+    }
     if (hasAllConstructorsPrivate) {
       return false;
     } else {
-      return constructors.containsKey(member) || methods().containsKey(member);
+      return constructors.containsKey(member);
     }
   }
 
@@ -493,12 +496,11 @@ public final class Type extends EnsoObject {
   @ExportMessage
   @CompilerDirectives.TruffleBoundary
   Object readMember(String member) throws UnknownIdentifierException {
-    if (hasAllConstructorsPrivate) {
-      throw UnknownIdentifierException.create(member);
-    }
-    var cons = constructors.get(member);
-    if (cons != null) {
-      return cons;
+    if (!hasAllConstructorsPrivate) {
+      var cons = constructors.get(member);
+      if (cons != null) {
+        return cons;
+      }
     }
     var method = methods().get(member);
     if (method != null) {

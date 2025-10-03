@@ -137,6 +137,9 @@ type Widget
     ## Describes a secret chooser.
     Secret_Browse display:Display=..When_Modified
 
+    ## Describes possible target types for Any.to conversion.
+    Any_To_Target display:Display=..When_Modified
+
     ## ---
        private: true
        ---

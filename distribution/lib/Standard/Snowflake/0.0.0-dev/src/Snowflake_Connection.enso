@@ -1,9 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Metadata.Display
-from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference, as_hideable_value
+import Standard.Base.Metadata.File_Type
+from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
+from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
@@ -26,7 +27,6 @@ from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_co
 import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
 import project.Internal.Snowflake_Dialect
 
-polyglot java import org.enso.base.enso_cloud.InterpretAsPrivateKey
 polyglot java import org.enso.snowflake.SnowflakeCloudCredentials
 
 type Snowflake_Connection
@@ -86,7 +86,7 @@ type Snowflake_Connection
        Returns the list of warehouses for the connection.
     warehouses : Vector Text
     warehouses self =
-        self.connection.read_single_column "show warehouses" "name"
+        self.connection.read_text_column "show warehouses" "name"
 
     ## ---
        icon: metadata
@@ -94,7 +94,7 @@ type Snowflake_Connection
        Returns the name of the current warehouse.
     warehouse : Text
     warehouse self =
-        vector = self.connection.read_single_column "SELECT current_warehouse() as name" "name"
+        vector = self.connection.read_text_column "SELECT current_warehouse() as name" "name"
         vector.first
 
     ## ---
@@ -104,7 +104,7 @@ type Snowflake_Connection
 
        ## Arguments
         - database: The name of the database to connect to.
-    @warehouse (self-> Single_Choice display=Display.Always values=(self.warehouses . map d-> Option d d.pretty))
+    @warehouse (self-> Single_Choice display=..Always values=(self.warehouses . map d-> Option d d.pretty))
     set_warehouse : Text -> Connection ! SQL_Error
     set_warehouse self warehouse =
         if warehouse == self.warehouse then self else
@@ -131,7 +131,7 @@ type Snowflake_Connection
 
        ## Arguments
         - database: The name of the database to connect to.
-    @database (self-> Single_Choice display=Display.Always values=(self.databases . map d-> Option d d.pretty))
+    @database (self-> Single_Choice display=..Always values=(self.databases . map d-> Option d d.pretty))
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
         if database . equals_ignore_case self.database then self else
@@ -144,7 +144,7 @@ type Snowflake_Connection
        (or catalog).
     schemas : Vector Text
     schemas self =
-        self.connection.read_single_column "show schemas in database" "name"
+        self.connection.read_text_column "show schemas in database" "name"
 
     ## ---
        icon: metadata
@@ -410,9 +410,10 @@ type Snowflake_Connection
        icon: data_output
        ---
        Creates a Data Link that will open the same connection.
+    @path (File_Browse file_types=[File_Type.Option "DataLink" ["datalink"]] existing_only=False display=..Always)
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
-        self.base_connection.save_as_data_link destination on_existing_file
+    save_as_data_link self path:Enso_File (on_existing_file:Existing_File_Behavior = ..Error) =
+        self.base_connection.save_as_data_link path on_existing_file
 
     ## ---
        private: true
@@ -436,16 +437,15 @@ private auth_jdbc_properties credentials = case credentials of
             secret : Enso_Secret ->
                 if resolved_passphrase != Nothing then
                     Error.throw (Illegal_Argument.Error "Passphrase is not applicable when using a secret as a private key.")
-                secret_as_private_key = InterpretAsPrivateKey.new (as_hideable_value secret)
-                [Pair.new 'privateKey' secret_as_private_key]
+                [Pair.new 'privateKey' (Derived_Secret_Value.Interpret_As_Private_Key secret)]
         [Pair.new 'user' username] + key_part
     _ : Enso_Secret ->
         Panic.throw (Illegal_Argument.Error "Cannot extract `auth_jdbc_properties` from a Cloud Credential. This is a bug in Snowflake library.")
 
-private _resolve_passphrase passphrase:Text|Enso_Secret =
-    case passphrase of
-      _ : Text -> if passphrase.is_empty then Nothing else passphrase
-      secret : Enso_Secret -> as_hideable_value secret
+private _resolve_passphrase passphrase:Text|Enso_Secret = case passphrase of
+    _ : Text -> if passphrase.is_empty then Nothing else passphrase
+    _ : Enso_Secret -> passphrase
+
 ## ---
    private: true
    ---

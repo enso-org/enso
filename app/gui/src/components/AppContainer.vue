@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Dashboard as DashboardReact, type DashboardProps } from '#/pages/dashboard/Dashboard'
 import { EnsoPath } from '#/services/Backend'
+import CommandPalette from '$/components/CommandPalette.vue'
 import { useBackends } from '$/providers/backends'
 import { provideContainerData } from '$/providers/container'
 import { provideOpenedProjects } from '$/providers/openedProjects'
@@ -12,12 +13,12 @@ import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import {
-  AssetDetailsResponse,
   AssetType,
   extractTypeFromId,
   isRemoteAssetPath,
-  ProjectAsset,
   ProjectId,
+  type AssetDetailsResponse,
+  type ProjectAsset,
 } from 'enso-common/src/services/Backend'
 import { ref } from 'vue'
 
@@ -62,6 +63,7 @@ provideContainerData()
 
 <template>
   <div class="TabView">
+    <CommandPalette />
     <ContainerDataProviderForReact>
       <Dashboard v-bind="dashboardProps" />
     </ContainerDataProviderForReact>

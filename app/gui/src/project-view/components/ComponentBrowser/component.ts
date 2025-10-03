@@ -10,7 +10,7 @@ import {
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/data/opt'
 import { displayedIconOf } from '@/util/getIconName'
-import { type Icon } from '@/util/iconMetadata/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import * as map from 'lib0/map'
@@ -150,7 +150,7 @@ export function makeComponentLists(
   function* matchSuggestions() {
     for (const [id, entry] of db.entries()) {
       if (!entry) continue
-      const match = filtering.filter(entry)
+      const match = filtering.filter(entry, db)
       if (isSome(match)) {
         const component = makeComponent({ id, entry, match })
         yield { id, entry, match, component }
