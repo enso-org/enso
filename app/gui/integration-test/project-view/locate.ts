@@ -42,6 +42,11 @@ declare const nodeLocatorBrand: unique symbol
 /** A locator which resolves to graph nodes only */
 export type Node = Locator & { [nodeLocatorBrand]: never }
 
+/** Filter selector that only matches input nodes. */
+export const INPUT_NODE_FILTER = '.inputNode'
+/** Filter selector that only matches output nodes. */
+export const OUTPUT_NODE_FILTER = '.outputNode'
+
 /** All nodes in graph */
 export function graphNode(page: Page | Locator): Node {
   return page.locator('.GraphNode') as Node

@@ -132,11 +132,9 @@ export const [provideContainerData, useContainerData] = createContextStore(
     })
 
     const addLaunchedProject = (project: LaunchedProject) => {
-      console.log('addLaunchedProject', project.id)
       updateLaunchedProjects((current) => [...current, project])
     }
     const removeLaunchedProject = (projectId: LaunchedProjectId) => {
-      console.log('removeLaunchedProject', projectId)
       updateLaunchedProjects((current) =>
         current.filter(
           ({ id, hybrid }) => id !== projectId && hybrid?.cloudProjectId !== projectId,

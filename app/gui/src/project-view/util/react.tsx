@@ -35,14 +35,11 @@ export function reactComponent<Props extends object>(
 export function suspendedReactComponent<Props extends object>(
   Component: (props: Props) => ReactNode,
 ) {
-  return reactComponent((props: Props) => {
-    console.log('suspendedReactComponent', Component)
-    return (
-      <Suspense>
-        <Component {...props} />
-      </Suspense>
-    )
-  })
+  return reactComponent((props: Props) => (
+    <Suspense>
+      <Component {...props} />
+    </Suspense>
+  ))
 }
 
 // Common components

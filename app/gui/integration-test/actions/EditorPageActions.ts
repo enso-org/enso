@@ -65,21 +65,48 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
 
   /** Locate a graph node and perform action on it. */
   withNode(binding: string, callback: (node: Locator, page: Page) => void | Promise<void>) {
-    return this.do(async () => {
-      await callback(await this.locateNode(binding), this.page)
-    })
+    return this.do(async () => callback(await this.locateNodes(binding), this.page))
   }
 
-  /** Locate a graph node with given binding. */
-  locateNode(binding: string | '$OUTPUT' | '$INPUT') {
-    switch (binding) {
-      case '$INPUT':
-        return locate.inputNode(this.page)
-      case '$OUTPUT':
-        return locate.outputNode(this.page)
-      default:
-        return locate.graphNodeByBinding(this.page, binding)
+  /** Locate a graph node with given binding or class filter. Returns all present nodes if nothing provided. */
+  locateNodes(bindingOrFilter?: string) {
+    if (!bindingOrFilter) {
+      return locate.graphNode(this.page)
+    } else if (!treatAsBinding(bindingOrFilter)) {
+      return locate.graphNode(this.page).and(this.page.locator(bindingOrFilter))
+    } else {
+      return locate.graphNodeByBinding(this.page, bindingOrFilter)
     }
+
+    function treatAsBinding(bindingOrFilter: string) {
+      // Decide whether or not the argument should be interpreted as a binding or a filter.
+      // Assume anything that looks like simple variable name is a binding, otherwise assume it is a filter.
+      // Common filters start with dot (class name).
+      return /^[a-z0-9_]+$/.test(bindingOrFilter)
+    }
+  }
+
+  /** Check for existence or absence of edges that match given source/target specification. */
+  expectEdgesFromTo(
+    sourceNode: string | undefined,
+    targetNode: string | undefined,
+    expectedCount = 1,
+  ) {
+    return this.step(`Expect edge '${sourceNode || '*'}' -> '${targetNode || '*'}'`, async () => {
+      // The mouse is often in output port area, making our checks fooled by the edge ghost.
+      await this.page.mouse.move(0, 0)
+
+      const [sourceId, targetId] = await Promise.all([
+        sourceNode ? this.locateNodes(sourceNode).getAttribute('data-node-id') : undefined,
+        targetNode ? this.locateNodes(targetNode).getAttribute('data-node-id') : undefined,
+      ])
+      if (sourceNode) expect(sourceId).toBeDefined()
+      if (targetNode) expect(targetId).toBeDefined()
+      let edgeLocator = 'g.GraphEdge'
+      if (sourceId) edgeLocator += `[data-source-node-id="${sourceId}"]`
+      if (targetId) edgeLocator += `[data-target-node-id="${targetId}"]`
+      expect(this.page.locator(edgeLocator)).toHaveCount(expectedCount)
+    })
   }
 
   /** Check if current graph breadcrumbs match expected value. */
@@ -99,21 +126,15 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
     })
   }
 
-  /** Locate all or filtered subset of graph nodes. */
-  nodes(filter?: string) {
-    const allNodes = locate.graphNode(this.page)
-    return filter ? allNodes.and(this.page.locator(filter)) : allNodes
-  }
-
   /** Get count of nodes in the graph. */
   nodeCount(filter?: string) {
-    return this.nodes(filter).count()
+    return this.locateNodes(filter).count()
   }
 
   /** Expect count of nodes to reachto given value. */
   expectNodeCount(expected: number, filter?: string) {
     return this.step(`Expect node count to be ${expected}`, () =>
-      expect(this.nodes(filter)).toHaveCount(expected),
+      expect(this.locateNodes(filter)).toHaveCount(expected),
     )
   }
 
@@ -128,7 +149,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
   expectNodesToExist(nodeBindings: string[]) {
     return this.do(async () => {
       for (const binding of nodeBindings) {
-        await expect(this.locateNode(binding)).toExist()
+        await expect(this.locateNodes(binding)).toExist()
       }
     })
   }
@@ -136,10 +157,9 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
   /** Expect an exact sequence of input nodes to exist within the graph, positioned in order from left to right. */
   expectInputNodesInOrder(expectedOrder: string[]) {
     return this.step('Expect input nodes in order', async () => {
-      const inputNodes = await this.nodes().all()
+      const inputNodes = await this.locateNodes(locate.INPUT_NODE_FILTER).all()
       const inputNodePositions = await Promise.all(
-        inputNodes.map(async (node) => {
-          console.log('node', node, expectedOrder)
+        inputNodes.map(async (node, i) => {
           const nodeText = (await node.locator('.WidgetToken').allTextContents())[0]
           const bbox = await node.boundingBox()
           expect(nodeText).toBeDefined()
@@ -166,11 +186,11 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
     return this.step(
       `Drag node '${nodeBinding}' to ${printRelativePos(targetPosition)}`,
       async () => {
-        const node = this.locateNode(nodeBinding)
+        const node = this.locateNodes(nodeBinding)
         const grabHandle = node.locator('.grab-handle')
         const dragTarget =
           targetPosition.relativeTo ?
-            this.locateNode(targetPosition.relativeTo).locator('.grab-handle')
+            this.locateNodes(targetPosition.relativeTo).locator('.grab-handle')
           : grabHandle
         await grabHandle.dragTo(dragTarget, { targetPosition, force: true })
       },
@@ -191,7 +211,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
   /** Select a node by clicking on it without modifiers. */
   selectSingleNode(binding: string) {
     return this.step(`Select node '${binding}'`, async () => {
-      this.locateNode(binding).locator('.grab-handle').click()
+      this.locateNodes(binding).locator('.grab-handle').click()
     })
   }
 
@@ -199,7 +219,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
   selectNodes(nodeBindings: string[]) {
     return this.step(`Select ${nodeBindings.length} nodes`, async () => {
       for (const binding of nodeBindings) {
-        await this.locateNode(binding)
+        await this.locateNodes(binding)
           .locator('.grab-handle')
           .click({ modifiers: ['Shift'] })
       }
@@ -216,7 +236,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
   /** Double-click on a node to enter it. */
   enterNode(binding: string) {
     return this.step(`Enter node '${binding}'`, async () => {
-      await this.locateNode(binding).dblclick()
+      await this.locateNodes(binding).dblclick()
     })
   }
 

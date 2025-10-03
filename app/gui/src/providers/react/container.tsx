@@ -94,7 +94,6 @@ export function useClearLaunchedProjects() {
 export function useAddOpeningProject() {
   const { openingProjects } = useContainerData()
   return useEventCallback((id: ProjectId, ensoPath: string) => {
-    console.log('useAddOpeningProject', id)
     openingProjects.set(id, EnsoPath(ensoPath))
   })
 }
@@ -103,7 +102,6 @@ export function useAddOpeningProject() {
 export function useRemoveOpeningProject() {
   const { openingProjects } = useContainerData()
   return useEventCallback((id: ProjectId) => {
-    console.log('useRemoveOpeningProject', id)
     openingProjects.delete(id)
   })
 }

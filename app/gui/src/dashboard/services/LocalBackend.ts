@@ -348,10 +348,8 @@ export default class LocalBackend extends Backend {
     _getPresignedUrl = false,
   ): Promise<backend.Project> {
     const { path } = backend.extractTypeAndPath(projectId)
-    console.log('getProjectDetails path', path)
     const { directoryPath } = getDirectoryAndName(path)
     const state = await this.projectManager.getProject(path)
-    console.log('getProjectDetails state', JSON.stringify(state))
     if (state == null) {
       const entries = await this.projectManager.listDirectory(directoryPath)
       const project = entries

@@ -53,8 +53,6 @@ export function useLocalKeyboard(element: ToValue<Opt<HTMLElement>>): KeyboardCo
       if (element) {
         useEventListener(element, 'keydown', updateState, onCleanup)
         useEventListener(element, 'focusout', resetState, onCleanup)
-        element.addEventListener('focusout', resetState)
-        onCleanup(() => element.removeEventListener('focusout', resetState))
       }
     },
     { immediate: true },

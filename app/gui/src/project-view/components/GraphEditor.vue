@@ -343,12 +343,9 @@ const isActive = ref(true)
 onActivated(() => (isActive.value = true))
 onDeactivated(() => (isActive.value = false))
 
-useEventConditional(
-  window,
-  'keydown',
-  isActive,
-  (e) => graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e),
-)
+useEventConditional(window, 'keydown', isActive, (e) => {
+  return graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e)
+})
 
 function tryGetSelectionDocUrl() {
   const selected = nodeSelection.tryGetSingleSelectedNode()

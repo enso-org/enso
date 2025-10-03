@@ -79,18 +79,6 @@ function closeOpenedProject(project: OpenedProject) {
 }
 
 watch(openedProjects, (openedProjectsList) => {
-  console.log(
-    'openedProjectsList',
-    openedProjectsList,
-    JSON.stringify(
-      openedProjectsList.map((p) => ({
-        id: p.id,
-        ensoPath: p.ensoPath,
-        shown: p.shown.value,
-        state: p.state,
-      })),
-    ),
-  )
   const openedProjectsSet = new Set(openedProjectsList.map((proj) => proj.id))
   for (const proj of readyProjects) {
     if (!openedProjectsSet.has(proj)) {
@@ -135,16 +123,17 @@ const actionHandlers = registerHandlers({
   },
 })
 
-useEvent(
-  window,
-  'keydown',
-  appContainerBindings.handler(
-    objects.mapEntries(
-      appContainerBindings.bindings,
-      (actionName) => actionHandlers[actionName].action,
-    ),
+const keydownHandler = appContainerBindings.handler(
+  objects.mapEntries(
+    appContainerBindings.bindings,
+    (actionName) => actionHandlers[actionName].action,
   ),
 )
+
+useEvent(window, 'keydown', (event) => {
+  console.log('AppContainerInner keydown', event.key)
+  return keydownHandler(event)
+})
 
 const onSignOut = () => {
   emit('closeAllProjects')

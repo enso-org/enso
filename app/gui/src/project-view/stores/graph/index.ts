@@ -820,14 +820,6 @@ export function createGraphStore(
 
   function nodeCanBeEntered(id: NodeId): boolean {
     const methodCall = db.getExpressionInfo(id)?.methodCall
-    console.log(
-      'nodeCanBeEntered',
-      id,
-      JSON.stringify(methodCall),
-      JSON.stringify(
-        proj.moduleProjectPath?.ok ? proj.moduleProjectPath.value : proj.moduleProjectPath,
-      ),
-    )
     if (!methodCall || !proj.moduleProjectPath?.ok) return false
     if (!methodCall.methodPointer.definedOnType.equals(proj.moduleProjectPath.value)) {
       // Cannot enter node that is not defined on current module.

@@ -3,10 +3,6 @@ import type { RelativePos } from 'integration-test/actions/EditorPageActions'
 import { expect, test } from 'integration-test/base'
 import { DELETE_KEY } from './keyboard'
 import * as locate from './locate'
-import { edgesFromNode, edgesToNode } from './locate'
-
-const MAIN_FILE_NODES = 14
-const EDGE_PARTS = 2
 
 const COLLAPSE_SHORTCUT = `Mod+G`
 
@@ -127,7 +123,7 @@ test.describe('Collapsing nodes with multiple inputs', () => {
         })
         .enterNode('prod')
         .expectNodeCount(6)
-        .expectNodeCount(3, '.inputNode')
+        .expectNodeCount(3, locate.INPUT_NODE_FILTER)
         .expectInputNodesInOrder(testCase.expectedOrder)
     })
   })
@@ -159,13 +155,13 @@ test('Collapsing nodes', async ({ editorPage }) => {
     })
     .enterNode('prod')
     .expectNodeCount(6)
-    .expectNodeCount(1, '.inputNode')
+    .expectNodeCount(1, locate.INPUT_NODE_FILTER)
     .expectNodesToExist(['ten', 'sum', 'prod'])
     .selectNodes(['ten', 'sum'])
     .expectNodeCount(2, '.selected')
     .press(COLLAPSE_SHORTCUT)
     .expectNodeCount(5)
-    .expectNodeCount(1, '.inputNode')
+    .expectNodeCount(1, locate.INPUT_NODE_FILTER)
     .expectNodeTokens('sum', ['Main', '.', 'user_defined_component1', 'five', 'twenty'])
     .mockUserDefinedFunctionInfo('sum', 'user_defined_component1')
     .enterNode('sum')
@@ -186,26 +182,29 @@ test('Display message when User Defined Component ceases to exist', async ({ edi
     .do((page) => expect(page.locator('.GraphMissingView')).toExist())
 })
 
-test('Input node', async ({ editorPage }) => {
+test.only('Input node', async ({ editorPage }) => {
   await editorPage
     .call(enterToFunc2)
-    .expectNodeCount(1, '.inputNode')
-    .withNode('$INPUT', async (inputNode, page) => {
+    .expectNodeCount(1, locate.INPUT_NODE_FILTER)
+    .withNode(locate.INPUT_NODE_FILTER, async (inputNode, page) => {
       // Input node with identifier should have the icon and an identifier.
       await expect(inputNode.locator('.WidgetIcon')).toHaveCount(1)
       await expect(inputNode.locator('.WidgetToken')).toContainText('a')
+
+      // Input node has output port
       const outputPort = await locate.outputPortCoordinates(page, inputNode)
       await page.mouse.click(outputPort.x + 20, outputPort.y)
       await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
       await expect(locate.componentBrowserInput(page)).toBeFocused()
-      await page.keyboard.press('Escape')
-
-      // Input node cannot be deleted
-      await inputNode.locator('.grab-handle').click()
-      await page.keyboard.press('Delete')
-      await expect(inputNode).toHaveCount(1)
-      await inputNode.locator('.More').click({})
-      await expect(inputNode.getByTestId('action:components.deleteSelected')).toHaveClass(
+    })
+    .press('Escape')
+    // Input node cannot be deleted
+    .selectSingleNode(locate.INPUT_NODE_FILTER)
+    .press('Delete')
+    .expectNodeCount(1, locate.INPUT_NODE_FILTER)
+    .withNode(locate.INPUT_NODE_FILTER, async (node) => {
+      await node.locator('.More').click()
+      await expect(node.getByTestId('action:components.deleteSelected')).toHaveClass(
         /(?<=^| )disabled(?=$| )/,
       )
     })
@@ -216,19 +215,20 @@ test('Input node', async ({ editorPage }) => {
 test('Output node', async ({ editorPage }) => {
   await editorPage
     .call(enterToFunc2)
-    .expectNodeCount(1, '.outputNode')
+    .expectNodeCount(1, locate.OUTPUT_NODE_FILTER)
 
-    .withNode('$OUTPUT', async (outputNode, page) => {
-      await expect(outputNode).toHaveCount(1)
+    .withNode(locate.OUTPUT_NODE_FILTER, async (outputNode) => {
       // Output node with identifier should have only icon and no displayed identifiers
       await expect(outputNode.locator('.WidgetIcon')).toHaveCount(1)
       await expect(outputNode.locator('.WidgetToken')).toHaveCount(0)
-
-      await outputNode.click()
-      await page.keyboard.press('Delete')
-      await expect(outputNode).toHaveCount(1)
-      await outputNode.locator('.More').click({})
-      await expect(outputNode.getByTestId('action:components.deleteSelected')).toHaveClass(
+    })
+    // Output node cannot be deleted
+    .selectSingleNode(locate.OUTPUT_NODE_FILTER)
+    .press('Delete')
+    .expectNodeCount(1, locate.OUTPUT_NODE_FILTER)
+    .withNode(locate.OUTPUT_NODE_FILTER, async (node) => {
+      await node.locator('.More').click()
+      await expect(node.getByTestId('action:components.deleteSelected')).toHaveClass(
         /(?<=^| )disabled(?=$| )/,
       )
     })
@@ -237,7 +237,7 @@ test('Output node', async ({ editorPage }) => {
 test('Output node is not collapsed', async ({ editorPage }) => {
   await editorPage
     .call(enterToFunc2)
-    .selectNodes(['$OUTPUT', 'r'])
+    .selectNodes([locate.OUTPUT_NODE_FILTER, 'r'])
     .clickActionTrigger('components.collapse')
     .expectNodeTokens('r', ['Main', '.', 'user_defined_component', 'a'])
     .expectNodeCount(1)
@@ -246,10 +246,10 @@ test('Output node is not collapsed', async ({ editorPage }) => {
 test('Input node is not collapsed', async ({ editorPage }) => {
   await editorPage
     .call(enterToFunc2)
-    .selectNodes(['r', '$INPUT'])
+    .selectNodes(['r', locate.INPUT_NODE_FILTER])
     .clickActionTrigger('components.collapse')
     .expectNodeTokens('r', ['Main', '.', 'user_defined_component', 'a'])
-    .expectNodeCount(1, '.outputNode')
+    .expectNodeCount(1, locate.OUTPUT_NODE_FILTER)
 })
 
 test('User Defined Component call shows argument placeholders', async ({ editorPage }) => {
@@ -278,15 +278,15 @@ test('User Defined Component call shows argument placeholders', async ({ editorP
     .selectSingleNode('prod')
     .press(DELETE_KEY)
     .expectNodeCount(0, '.selected')
-    .withNode('final', async (collapsedCallComponent, page) => {
-      await expect(await edgesToNode(page, collapsedCallComponent)).toHaveCount(0)
-      await expect(collapsedCallComponent.locator('.WidgetArgumentName .name')).toHaveText('arg1')
-    })
+    .expectEdgesFromTo(undefined, 'final', 0)
+    .withNode('final', async (node) =>
+      expect(node.locator('.WidgetArgumentName .name')).toHaveText('arg1'),
+    )
 })
 
 function expectInsideMain(editorPage: EditorPageActions) {
   return editorPage
-    .expectNodeCount(MAIN_FILE_NODES)
+    .expectNodeCount(14)
     .expectNodesToExist([
       'five',
       'ten',
@@ -304,29 +304,21 @@ function expectInsideMain(editorPage: EditorPageActions) {
 function expectInsideFunc1(editorPage: EditorPageActions) {
   return editorPage
     .expectNodeCount(4)
-    .expectNodeCount(1, '.inputNode')
-    .expectNodeCount(1, '.outputNode')
+    .expectNodeCount(1, locate.INPUT_NODE_FILTER)
+    .expectNodeCount(1, locate.OUTPUT_NODE_FILTER)
     .expectNodesToExist(['f2', 'result'])
-    .do(async (page) => {
-      // The mouse is often in output port area, making our checks fooled by the edge ghost.
-      await page.mouse.move(0, 0)
-      await expect(await edgesFromNode(page, locate.inputNode(page))).toHaveCount(EDGE_PARTS)
-      await expect(await edgesToNode(page, locate.outputNode(page))).toHaveCount(EDGE_PARTS)
-    })
+    .expectEdgesFromTo(locate.INPUT_NODE_FILTER, undefined)
+    .expectEdgesFromTo(undefined, locate.OUTPUT_NODE_FILTER)
 }
 
 function expectInsideFunc2(editorPage: EditorPageActions) {
   return editorPage
     .expectNodeCount(3)
-    .expectNodeCount(1, '.inputNode')
-    .expectNodeCount(1, '.outputNode')
+    .expectNodeCount(1, locate.INPUT_NODE_FILTER)
+    .expectNodeCount(1, locate.OUTPUT_NODE_FILTER)
     .expectNodesToExist(['r'])
-    .do(async (page) => {
-      // The mouse is often in output port area, making our checks fooled by the edge ghost.
-      await page.mouse.move(0, 0)
-      await expect(await edgesFromNode(page, locate.inputNode(page))).toHaveCount(EDGE_PARTS)
-      await expect(await edgesToNode(page, locate.outputNode(page))).toHaveCount(EDGE_PARTS)
-    })
+    .expectEdgesFromTo(locate.INPUT_NODE_FILTER, undefined)
+    .expectEdgesFromTo(undefined, locate.OUTPUT_NODE_FILTER)
 }
 
 function enterToFunc2(editorPage: EditorPageActions) {

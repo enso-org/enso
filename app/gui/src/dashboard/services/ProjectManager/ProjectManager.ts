@@ -154,26 +154,22 @@ export class ProjectManager {
   async openProject(params: WithProjectPath<OpenProjectParams>): Promise<OpenProject> {
     const fullParams: OpenProjectParams = this.paramsWithPathToWithId(params)
     const cached = this.projects.get(fullParams.projectId)
-    console.log('[PM] openProject', JSON.stringify(fullParams), 'cached?', cached)
     if (cached) {
       return cached.data
     } else {
       const promise = this.sendRequest<OpenProject>('project/open', fullParams)
-      console.log('[PM] openInProgress', fullParams.projectId)
       this.projects.set(fullParams.projectId, {
         state: backend.ProjectState.openInProgress,
         data: promise,
       })
       try {
         const result = await promise
-        console.log('[PM] opened', fullParams.projectId)
         this.projects.set(fullParams.projectId, {
           state: backend.ProjectState.opened,
           data: result,
         })
         return result
       } catch (error) {
-        console.log('[PM] delete', fullParams.projectId, error)
         this.projects.delete(fullParams.projectId)
         throw error
       }
