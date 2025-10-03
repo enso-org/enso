@@ -262,9 +262,9 @@ class App {
     electron.app.commandLine.appendSwitch('enable-unsafe-swiftshader')
     electron.app.commandLine.appendSwitch('ozone-platform', 'x11')
     electron.app.commandLine.appendSwitch('disable-dev-shm-usage')
-    electron.app.commandLine.appendSwitch('enable-logging', 'stderr')
-    electron.app.commandLine.appendSwitch('v', '1')
-    electron.app.commandLine.appendSwitch('vmodule', 'renderer=2,gpu=2,viz=2')
+    // electron.app.commandLine.appendSwitch('enable-logging', 'stderr')
+    // electron.app.commandLine.appendSwitch('v', '1')
+    // electron.app.commandLine.appendSwitch('vmodule', 'renderer=2,gpu=2,viz=2')
   }
 
   /** Main app entry point. */
@@ -665,13 +665,6 @@ const APP = new App()
 void APP.run()
 
 function logChromiumSwitches(app: electron.App) {
-  const flags = [
-    'disable-gpu',
-    'use-gl',
-    'enable-unsafe-swiftshader',
-    'ignore-certificate-errors',
-    // add any others you set
-  ]
   console.log(
     '[DIAG] chromium switches:',
     'disable-gpu=' + app.commandLine.hasSwitch('disable-gpu'),
