@@ -216,6 +216,7 @@ const config = [
             'eslint.config.mjs',
             // 'app/ydoc-server/vitest.config.ts',
             'app/ydoc-shared/vitest.config.ts',
+            'app/project-manager-shim/scripts/*.js',
             'app/ide-desktop/icons/src/index.js',
           ],
         },

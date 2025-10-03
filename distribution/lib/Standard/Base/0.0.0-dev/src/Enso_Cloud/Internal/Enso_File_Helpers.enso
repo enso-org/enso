@@ -17,6 +17,7 @@ import project.Enso_Cloud.Internal.Utils
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
+import project.Meta
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Body.Request_Body
@@ -215,7 +216,8 @@ create_tag (name : Text) (color : Color) =
    Returns a list of known tags.
 list_tags -> Vector Tag =
     response = Utils.http_request_as_json HTTP_Method.Get Utils.tags_api
-    tags = get_required_field "tags" response expected_type=Vector
+    tags = if response.is_a Vector then response else
+        get_required_field "tags" response expected_type=Vector
     tags.map tag_json->
         id = get_required_field "id" tag_json expected_type=Text
         value = get_required_field "value" tag_json expected_type=Text

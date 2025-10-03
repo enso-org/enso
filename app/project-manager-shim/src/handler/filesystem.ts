@@ -4,7 +4,8 @@ import * as fs from 'node:fs/promises'
 import type * as http from 'node:http'
 import * as path from 'node:path'
 import * as yaml from 'yaml'
-import * as projectManagement from './projectManagement.js'
+import * as projectManagement from '../projectManagement.js'
+import { toJSONRPCError, toJSONRPCResult } from './jsonrpc.js'
 
 // =======================
 // === ProjectMetadata ===
@@ -83,20 +84,6 @@ export interface ProjectEntry {
 // ================
 // === Handlers ===
 // ================
-
-/** JSON-RPC result wrapper */
-export function toJSONRPCResult(result: unknown): string {
-  return JSON.stringify({ jsonrpc: '2.0', id: 0, result })
-}
-
-/** JSON-RPC error wrapper */
-export function toJSONRPCError(message: string, data?: unknown): string {
-  return JSON.stringify({
-    jsonrpc: '2.0',
-    id: 0,
-    error: { code: 0, message, ...(data != null ? { data } : {}) },
-  })
-}
 
 /**
  * Return a {@link ProjectMetadata} if the metadata is a valid metadata object,

@@ -344,7 +344,7 @@ jobs:
           name: ide-linux
           path: dist/ide/enso-*.AppImage
       - name: Prepare Package Tests
-        run: 'mkdir -p app/ide-desktop/client/playwright/.auth && touch app/ide-desktop/client/playwright/.auth/user.json && chmod 600 app/ide-desktop/client/playwright/.auth/user.json && echo "{\"user\": \"$ENSO_TEST_USER\",\"password\":\"$ENSO_TEST_USER_PASSWORD\"}" >> app/ide-desktop/client/playwright/.auth/user.json'
+        run: 'mkdir -p app/ide-desktop/client/playwright/.auth && touch app/ide-desktop/client/playwright/.auth/user.json && chmod 600 app/ide-desktop/client/playwright/.auth/user.json && echo "{\"user\": \"$ENSO_TEST_USER\",\"password\":\"$ENSO_TEST_USER_PASSWORD\"}" > app/ide-desktop/client/playwright/.auth/user.json'
         shell: bash
         env:
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}
@@ -449,7 +449,7 @@ jobs:
           name: ide-windows
           path: dist/ide/enso-*.exe
       - name: Prepare Package Tests
-        run: 'mkdir -p app/ide-desktop/client/playwright/.auth && touch app/ide-desktop/client/playwright/.auth/user.json && chmod 600 app/ide-desktop/client/playwright/.auth/user.json && echo "{\"user\": \"$ENSO_TEST_USER\",\"password\":\"$ENSO_TEST_USER_PASSWORD\"}" >> app/ide-desktop/client/playwright/.auth/user.json'
+        run: 'mkdir -p app/ide-desktop/client/playwright/.auth && touch app/ide-desktop/client/playwright/.auth/user.json && chmod 600 app/ide-desktop/client/playwright/.auth/user.json && echo "{\"user\": \"$ENSO_TEST_USER\",\"password\":\"$ENSO_TEST_USER_PASSWORD\"}" > app/ide-desktop/client/playwright/.auth/user.json'
         shell: bash
         env:
           ENSO_TEST_USER: ${{ secrets.ENSO_CLOUD_TEST_ACCOUNT_USERNAME }}

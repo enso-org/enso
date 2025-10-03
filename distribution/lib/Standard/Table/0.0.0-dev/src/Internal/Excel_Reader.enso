@@ -17,7 +17,6 @@ polyglot java import java.io.IOException
 polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ExcelHeaders
-polyglot java import org.enso.table.excel.ExcelConnectionPool.ExcelFileFormatMismatchException
 polyglot java import org.enso.table.read.ExcelReader
 
 ## ---
@@ -96,9 +95,8 @@ handle_bad_format file ~action =
    A helper that handles the Java exceptions reported when a malformed XLS file
    is opened.
 handle_bad_format_with_handler handler ~action =
-    Panic.catch ExcelFileFormatMismatchException handler=handler <|
-        Panic.catch IOException handler=handler <|
-            action
+    Panic.catch IOException handler=handler <|
+        action
 
 ## ---
    private: true

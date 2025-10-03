@@ -9,9 +9,11 @@ import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import type { LaunchedProject, LaunchedProjectId } from '$/providers/container'
 import * as authProvider from '$/providers/react'
 import {
+  useAddClosingProject,
   useAddLaunchedProject,
   useAddOpeningProject,
   useContainerData,
+  useRemoveClosingProject,
   useRemoveLaunchedProject,
   useRemoveOpeningProject,
   useUpdateLaunchedProjects,
@@ -20,10 +22,14 @@ import {
 import { useCanRunProjects } from '#/hooks/backendHooks'
 import { useUploadFile } from '#/hooks/backendUploadFilesHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useLogger } from '#/providers/LoggerProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import { useBackends } from '$/providers/react'
+import { assert } from '#/utilities/error'
+import { usePreventNavigation } from '#/utilities/preventNavigation'
+import { useBackends, useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { useState } from 'react'
 import { z } from 'zod'
 import { useEnsureQueryData, useMutationCallback } from '../utilities/tanstackQuery'
 
@@ -104,11 +110,9 @@ export const OPENING_PROJECT_STATES = new Set([
   backendModule.ProjectState.provisioned,
   backendModule.ProjectState.scheduled,
   backendModule.ProjectState.openInProgress,
-  backendModule.ProjectState.closing,
 ])
 export const OPENED_PROJECT_STATES = new Set([backendModule.ProjectState.opened])
 export const CLOSED_PROJECT_STATES = new Set([backendModule.ProjectState.closed])
-export const CLOSING_PROJECT_STATES = new Set([backendModule.ProjectState.closing])
 export const STATIC_PROJECT_STATES = new Set([
   backendModule.ProjectState.opened,
   backendModule.ProjectState.closed,
@@ -119,7 +123,6 @@ export const CREATED_PROJECT_STATES = new Set([
 ])
 export const BUSY_PROJECT_STATES = new Set([
   ...Array.from(OPENING_PROJECT_STATES),
-  ...Array.from(CLOSING_PROJECT_STATES),
   backendModule.ProjectState.opened,
   backendModule.ProjectState.hybridOpened,
 ])
@@ -175,8 +178,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
 
       const createdStates = CREATED_PROJECT_STATES
 
-      const closingStates = CLOSING_PROJECT_STATES
-
       if (state.status === 'error') {
         return false
       }
@@ -199,10 +200,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
         if (openingStates.has(state.data.state.type)) {
           return LOCAL_OPENING_INTERVAL_MS
         }
-
-        if (closingStates.has(state.data.state.type)) {
-          return LOCAL_OPENING_INTERVAL_MS
-        }
       }
 
       if (createdStates.has(currentState)) {
@@ -214,10 +211,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
         return OPENED_INTERVAL_MS
       }
       if (openingStates.has(state.data.state.type)) {
-        return CLOUD_OPENING_INTERVAL_MS
-      }
-
-      if (closingStates.has(state.data.state.type)) {
         return CLOUD_OPENING_INTERVAL_MS
       }
 
@@ -237,6 +230,7 @@ export function useOpenProjectMutation() {
   const setProjectAsset = useSetProjectAsset()
   const addOpeningProject = useAddOpeningProject()
   const removeOpeningProject = useRemoveOpeningProject()
+  const { closingProjects } = useContainerData()
 
   return reactQuery.useMutation({
     mutationKey: OPEN_PROJECT_MUTATION_KEY,
@@ -250,6 +244,7 @@ export function useOpenProjectMutation() {
       suppressHybridProjectOpen: _ = false,
       ensoPath,
     }: LaunchedProject & { inBackground?: boolean; suppressHybridProjectOpen?: boolean }) => {
+      assert(() => !closingProjects.has(id))
       addOpeningProject(hybrid?.cloudProjectId ?? id, ensoPath)
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
@@ -305,11 +300,16 @@ export function useOpenProjectMutation() {
 
 /** Mutation to close a project. */
 export function useCloseProjectMutation() {
+  const { getText } = useText()
   const client = reactQuery.useQueryClient()
+  const logger = useLogger()
   const { remoteBackend, localBackend } = useBackends()
-  const setProjectAsset = useSetProjectAsset()
   const uploadFile = useUploadFile(remoteBackend, { updateProgress: false })
+  const [isHybridPending, setIsHybridPending] = useState(false)
   const toastAndLog = useToastAndLog()
+  const addClosingProject = useAddClosingProject()
+  const removeClosingProject = useRemoveClosingProject()
+  usePreventNavigation({ message: getText('anUploadIsInProgress'), isEnabled: isHybridPending })
 
   return useMutationCallback({
     mutationKey: ['closeProject'],
@@ -329,23 +329,20 @@ export function useCloseProjectMutation() {
 
       return backend.closeProject(id, title)
     },
-    onMutate: ({ type, id, parentId }) => {
+    onMutate: ({ hybrid, id }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
 
-      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closing } })
-      setProjectAsset(type, id, parentId, (asset) => ({
-        ...asset,
-        projectState: { ...asset.projectState, type: backendModule.ProjectState.closing },
-      }))
+      if (hybrid) {
+        setIsHybridPending(true)
+        addClosingProject(hybrid.cloudProjectId)
+      } else {
+        addClosingProject(id)
+      }
 
       void client.cancelQueries({ queryKey })
     },
     onSuccess: async (_, { type, id, parentId, hybrid }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
-      setProjectAsset(type, id, parentId, (asset) => ({
-        ...asset,
-        projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
-      }))
 
       if (hybrid) {
         const fileName = 'project_root.enso-project'
@@ -360,9 +357,14 @@ export function useCloseProjectMutation() {
         ]).catch((error) => {
           toastAndLog('uploadProjectError', error)
         })
-
         invariant(localBackend != null, 'LocalBackend is null')
-        await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
+        await localBackend
+          .deleteAsset(hybrid.parentId, { force: true }, null)
+          .catch((error) => logger.error('Failed to remove local version of hybrid project', error))
+        setIsHybridPending(false)
+        removeClosingProject(hybrid.cloudProjectId)
+      } else {
+        removeClosingProject(id)
       }
 
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
@@ -384,7 +386,19 @@ export function useCloseProjectMutation() {
         })
 
         invariant(localBackend != null, 'LocalBackend is null')
-        await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
+        await localBackend
+          .deleteAsset(hybrid.parentId, { force: true }, null)
+          .catch((error) => logger.error('Failed to remove local version of hybrid project', error))
+        removeClosingProject(hybrid.cloudProjectId)
+        setIsHybridPending(false)
+        await client.invalidateQueries({
+          queryKey: createGetProjectDetailsQuery.getQueryKey(hybrid.cloudProjectId),
+        })
+        await client.invalidateQueries({
+          queryKey: [backendModule.BackendType.remote, 'listDirectory', hybrid.cloudParentId],
+        })
+      } else {
+        removeClosingProject(id)
       }
 
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })

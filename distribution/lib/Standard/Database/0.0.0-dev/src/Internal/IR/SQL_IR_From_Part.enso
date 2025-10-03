@@ -18,6 +18,7 @@ type SQL_IR_From_Part
 
        ## Arguments
         - `table_name`: the full name identifying the table in the database.
+        - `schema_name`: the schema in which the table resides, if applicable (or "").
         - `alias`: the name upon which the table can be referred to in other
           parts of the query, this is especially useful for example in
           self-joins, allowing to differentiate between different instances of
@@ -26,7 +27,7 @@ type SQL_IR_From_Part
           to track the lifetime of a temporary dry-run table. Once this context
           is garbage collected, the temporary table may be dropped. See
           `Hidden_Table_Registry` for more details.
-    Table (table_name : Text) (alias : Text) internal_temporary_keep_alive_reference=Nothing
+    Table (table_name : Text) (schema : Text) (alias : Text) internal_temporary_keep_alive_reference=Nothing
 
     ## ---
        private: true
@@ -110,7 +111,7 @@ type SQL_IR_From_Part
         do_name_exps pairs = pairs.if_not_nothing (pairs.map pair-> [pair.first, rec pair.second])
 
         new_from_spec = case self of
-            SQL_IR_From_Part.Table _ _ _ -> self
+            SQL_IR_From_Part.Table _ _ _ _ -> self
             SQL_IR_From_Part.Query _ _ -> self
             SQL_IR_From_Part.Literal_Values _ _ _ -> self
             SQL_IR_From_Part.Join kind left_spec right_spec on ->
@@ -131,9 +132,9 @@ type SQL_IR_From_Part_Comparator
        Special handling to ignore the alias and internal temporary keep alive
        reference when comparing two `SQL_IR_From_Part.Table` values.
     compare x y = case x of
-        SQL_IR_From_Part.Table table_name _ _ -> case y of
-            SQL_IR_From_Part.Table other_table_name _ _ ->
-                if table_name == other_table_name then Ordering.Equal else Nothing
+        SQL_IR_From_Part.Table table_name schema_name _ _ -> case y of
+            SQL_IR_From_Part.Table other_table_name other_schema _ _ ->
+                if table_name==other_table_name && schema_name==other_schema then Ordering.Equal else Nothing
             _ -> Nothing
         SQL_IR_From_Part.Literal_Values _ _ _ -> case y of
             SQL_IR_From_Part.Literal_Values _ _ _ ->
@@ -144,8 +145,8 @@ type SQL_IR_From_Part_Comparator
        private: true
        ---
     hash x = case x of
-        SQL_IR_From_Part.Table table_name _ _ ->
-            Ordering.hash table_name
+        SQL_IR_From_Part.Table table_name schema_name _ _ ->
+            Ordering.hash (schema_name + "." + table_name)
         _ -> Ordering.hash x
 
 ## ---
