@@ -9,7 +9,7 @@ import { edgesToNodeWithBinding, graphNodeByBinding, outputPortCoordinates } fro
  * to the edges.
  */
 async function initGraph(page: Page) {
-  await actions.goToGraph(page)
+  await editorPage
   await actions.dragNodeByBinding(page, 'ten', 400, 0)
   await actions.dragNodeByBinding(page, 'sum', -400, 0)
 }
@@ -71,7 +71,7 @@ test('Connect an node to a port via dragging the edge', async ({ page }) => {
 })
 
 test('Conditional ports: Disabled', async ({ page }) => {
-  await actions.goToGraph(page)
+  await editorPage
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
 
@@ -93,7 +93,7 @@ test('Conditional ports: Disabled', async ({ page }) => {
 })
 
 test('Conditional ports: Enabled', async ({ page }) => {
-  await actions.goToGraph(page)
+  await editorPage
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
 
@@ -113,7 +113,7 @@ test('Conditional ports: Enabled', async ({ page }) => {
 })
 
 test('Edge drop prevents further handling of event', async ({ page }) => {
-  await actions.goToGraph(page)
+  await editorPage
 
   const outputPort = await locate.outputPortCoordinates(
     page,

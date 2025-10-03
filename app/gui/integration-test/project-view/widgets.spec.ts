@@ -2,7 +2,6 @@ import { expect, test, type Locator, type Page } from 'integration-test/base'
 import { resetMockWidgetConfigurations } from 'integration-test/mock/lsHandler'
 import * as actions from './actions'
 import { mockMethodCallInfo } from './expressionUpdates'
-import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
 class DropDownLocator {
@@ -68,8 +67,8 @@ const CHOOSE_CLOUD_FILE = 'Choose file in cloud…'
 const CHOOSE_LOCAL_FILE = 'Choose file…'
 const CHOOSE_FILE_OPTIONS = [CHOOSE_CLOUD_FILE, CHOOSE_LOCAL_FILE]
 
-test('Widget in plain AST', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Widget in plain AST', async ({ editorPage, page }) => {
+  await editorPage
   const numberNode = locate.graphNodeByBinding(page, 'five')
   const numberWidget = numberNode.locator('.WidgetNumber')
   await expect(numberWidget).toBeVisible()
@@ -85,8 +84,8 @@ test('Widget in plain AST', async ({ page }) => {
   await expect(textWidget.getByTestId('widget-text-content')).toHaveText('test')
 })
 
-test('Text widget: Convert to multiline', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Text widget: Convert to multiline', async ({ editorPage, page }) => {
+  await editorPage
   const textNode = locate.graphNodeByBinding(page, 'text')
   const textWidget = textNode.locator('.WidgetText')
   await expect(textWidget).toBeVisible()
@@ -105,8 +104,8 @@ test('Text widget: Convert to multiline', async ({ page }) => {
 })
 
 test.describe('Multi-selection widget', () => {
-  test.beforeEach(async ({ page }) => {
-    await actions.goToGraph(page)
+  test.beforeEach(async ({ editorPage, page }) => {
+    await editorPage
 
     await mockMethodCallInfo(page, 'selected', {
       methodPointer: {
@@ -238,8 +237,8 @@ test.describe('Multi-selection widget', () => {
   })
 })
 
-test('Editing list', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Editing list', async ({ editorPage, page }) => {
+  await editorPage
   const node = locate.graphNodeByBinding(page, 'autoscoped')
   const vector = node.locator('.WidgetVector')
   const vectorItems = vector.locator('.item')
@@ -300,8 +299,8 @@ async function dataReadNodeWithMethodCallInfo(page: Page): Promise<Locator> {
 }
 
 test.describe('Dynamic configuration updates', () => {
-  test.beforeEach(async ({ page }) => {
-    await actions.goToGraph(page)
+  test.beforeEach(async ({ editorPage }) => {
+    await editorPage
     await resetMockWidgetConfigurations()
   })
 
@@ -364,7 +363,7 @@ test.describe('Dynamic configuration updates', () => {
    */
   test('Number widget', async ({ page, localApi }) => {
     const node = locate.graphNodeByBinding(page, 'selected')
-    await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
+    await locate.graphNodeIcon(node).click({ modifiers: ['ControlOrMeta'] })
     await expect(locate.componentBrowser(page)).toBeVisible()
     const content = locate.componentBrowserInput(page)
     await page.keyboard.press('End')
@@ -610,8 +609,8 @@ test.describe('Dynamic configuration updates', () => {
   })
 })
 
-test('Selection widgets in Data.read node', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Selection widgets in Data.read node', async ({ editorPage, page }) => {
+  await editorPage
 
   // Check initially visible arguments
   const node = await dataReadNodeWithMethodCallInfo(page)
@@ -675,8 +674,8 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await expect(pathArg.getByTestId('widget-text-content')).toHaveText('File 1')
 })
 
-test('Selection widget with text widget as input', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Selection widget with text widget as input', async ({ editorPage, page }) => {
+  await editorPage
 
   const node = await dataReadNodeWithMethodCallInfo(page)
   const topLevelArgs = node.locator('.WidgetTopLevelArgument')
@@ -740,8 +739,8 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await expect(pathDropdown.dropDown).toBeHidden()
 })
 
-test('File Browser widget', async ({ page }) => {
-  await actions.goToGraph(page)
+test('File Browser widget', async ({ editorPage, page }) => {
+  await editorPage
   await mockMethodCallInfo(page, 'data', {
     methodPointer: {
       module: 'Standard.Base.Data',
@@ -763,8 +762,8 @@ test('File Browser widget', async ({ page }) => {
 })
 
 test.describe('Table expression', () => {
-  test.beforeEach(async ({ page }) => {
-    await actions.goToGraph(page)
+  test.beforeEach(async ({ editorPage, page }) => {
+    await editorPage
 
     await mockMethodCallInfo(page, 'table', {
       methodPointer: {
@@ -837,8 +836,8 @@ class AutocompleteMenu {
   }
 }
 
-test('Manage aggregates in `aggregate` node', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Manage aggregates in `aggregate` node', async ({ editorPage, page }) => {
+  await editorPage
   // Hide docpanel to not obscure long node.
   await page.getByRole('tab', { name: 'Documentation' }).click()
   await mockMethodCallInfo(page, 'aggregated', {
@@ -999,8 +998,8 @@ test('Manage aggregates in `aggregate` node', async ({ page }) => {
 // Test that autoscoped constructors provide argument placeholders.
 // This test can be removed when `aggregate` inserts autoscoped constructors by default,
 // so this behavior will be tested in regular `aggregate` tests.
-test('Autoscoped constructors', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Autoscoped constructors', async ({ editorPage, page }) => {
+  await editorPage
   await mockMethodCallInfo(page, 'autoscoped', {
     methodPointer: {
       module: 'Standard.Table.Table',
@@ -1032,8 +1031,8 @@ test('Autoscoped constructors', async ({ page }) => {
   await expect(groupBy.locator('.WidgetArgumentName')).toContainText(['column', 'as“”'])
 })
 
-test('Table widget', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Table widget', async ({ editorPage, page }) => {
+  await editorPage
 
   const node = await actions.createTableNode(page)
   const widget = node.locator('.WidgetTableEditor')
@@ -1081,9 +1080,10 @@ test('Table widget', async ({ page }) => {
 })
 
 test('Text widget can be refocused after focus is lost in an unexpected way (#12571)', async ({
+  editorPage,
   page,
 }) => {
-  await actions.goToGraph(page)
+  await editorPage
   const textNode = locate.graphNodeByBinding(page, 'text')
   const textInput = textNode.getByTestId('widget-text-content')
   await textInput.click()

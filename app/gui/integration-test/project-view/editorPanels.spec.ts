@@ -1,13 +1,12 @@
 /** @file Tests for the multiline CodeMirror editor panels: documentation editor and code editor. */
 import type { Page } from 'integration-test/base'
 import { expect, type Locator, test } from 'integration-test/base'
-import * as actions from './actions'
 import { mockMethodCallInfo, mockUserDefinedFunctionInfo } from './expressionUpdates'
 import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
 async function goToGraphAndGetDocs(page: Page) {
-  await actions.goToGraph(page)
+  await editorPage
   const docsContent = page.getByTestId('documentation-editor-content')
   const docsScroller = page.getByTestId('documentation-editor-scroller')
   await expect(docsContent.locator('.cm-line')).toExist()
@@ -183,7 +182,7 @@ async function openCodeEditor(page: Page) {
 }
 
 test('Component help', async ({ page }) => {
-  await actions.goToGraph(page)
+  await editorPage
 
   await page.getByRole('tab', { name: 'Help' }).click()
   await expect(locate.rightDock(page)).toHaveText(/Select a single component/)
@@ -368,7 +367,7 @@ test('Scrollbars in editor panels', async ({ page }) => {
 test.skip('Code editor: Copy and paste (clipboard cannot be used in CI but test can be run locally)', async ({
   page,
 }) => {
-  await actions.goToGraph(page)
+  await editorPage
   const { codeEditor, getCodeEditorContent } = await openCodeEditor(page)
   await codeEditor.click()
   await page.evaluate(() => {

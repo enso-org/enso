@@ -1,6 +1,5 @@
 import assert from 'assert'
 import { expect, test } from 'integration-test/base'
-import * as actions from './actions'
 import { computedContent } from './css'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
@@ -9,8 +8,8 @@ import { graphNodeByBinding } from './locate'
  Scenario: We open the default visualisation of the `aggregated` node. We then make it fullscreen and expect it to show
  the JSON data of the node. We also expect it to cover the whole screen and to have a button to exit fullscreen mode.
  */
-test('Load Fullscreen Visualisation', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Load Fullscreen Visualisation', async ({ editorPage, page }) => {
+  await editorPage
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await page.keyboard.press('Space')

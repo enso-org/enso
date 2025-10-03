@@ -7,7 +7,7 @@ import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
 test('Node can open and load visualization', async ({ page }) => {
-  await actions.goToGraph(page)
+  await editorPage
   const node = locate.graphNodeByBinding(page, 'final')
   await node.click({ position: { x: 8, y: 8 } })
   await expect(locate.componentMenu(page)).toExist()
@@ -33,7 +33,7 @@ test('Node can open and load visualization', async ({ page }) => {
 })
 
 test('Previewing visualization', async ({ page }) => {
-  await actions.goToGraph(page)
+  await editorPage
   const node = locate.graphNode(page).last()
   const port = await locate.outputPortCoordinates(page, node)
   await page.keyboard.down('Meta')
@@ -58,7 +58,7 @@ test('Previewing visualization', async ({ page }) => {
 })
 
 test('Warnings visualization', async ({ page }) => {
-  await actions.goToGraph(page)
+  await editorPage
   // Without centering the graph, menu sometimes goes out of the view.
   await page.keyboard.press(`${CONTROL_KEY}+Shift+A`)
   // Create a node, attach a warning, open the warnings-visualization.

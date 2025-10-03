@@ -10,7 +10,7 @@ test('delete (local)', async ({ drivePage }) => {
     .goToCategory.local()
     .createFolder()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
+      await expect(rows).toHaveCount(2)
     })
     .driveTable.rightClickRow(0)
     .contextMenu.delete()

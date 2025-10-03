@@ -1,5 +1,4 @@
 import { expect, test, type Page } from 'integration-test/base'
-import * as actions from './actions'
 import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
@@ -20,8 +19,8 @@ async function expectNodeCreated(page: Page, expectedNodesCount: number, express
   await expect(page.locator('[data-transitioning]')).toHaveCount(0)
 }
 
-test('Undo/redo buttons work', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Undo/redo buttons work', async ({ editorPage, page }) => {
+  await editorPage
   const undoButton = page.getByTestId('action:graph.undo')
   const redoButton = page.getByTestId('action:graph.redo')
 
@@ -37,8 +36,8 @@ test('Undo/redo buttons work', async ({ page }) => {
   await expectNodeCreated(page, nodesCount, 'foo')
 })
 
-test('Adding new node', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Adding new node', async ({ editorPage, page }) => {
+  await editorPage
 
   const nodesCount = await createNode(page, 'foo')
   const newNodeBBox = await locate.graphNode(page).last().boundingBox()
@@ -56,8 +55,8 @@ test('Adding new node', async ({ page }) => {
   expect(restoredBox).toEqual(newNodeBBox)
 })
 
-test('Removing node', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Removing node', async ({ editorPage, page }) => {
+  await editorPage
 
   const nodesCount = await locate.graphNode(page).count()
   const deletedNode = locate.graphNodeByBinding(page, 'final')

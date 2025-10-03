@@ -84,7 +84,7 @@ export default class LoginPageActions<Context = object> extends BaseActions<Cont
     } = {},
   ) {
     const { emailError, passwordError, formError } = assert
-    const next = this.step('Login (should fail)', () => this.loginInternal(email, password))
+    const next = this.step('Login (should fail)', () => this.loginInternal(email, password, false))
       .expectInputError('email-input', 'email', emailError)
       .expectInputError('password-input', 'password', passwordError)
     if (formError === undefined) {
@@ -115,14 +115,16 @@ export default class LoginPageActions<Context = object> extends BaseActions<Cont
   }
 
   /** Internal login logic shared between all public methods. */
-  private async loginInternal(email: string, password: string) {
+  private async loginInternal(email: string, password: string, expectPass = true) {
     await this.page.getByPlaceholder(TEXT.emailPlaceholder).fill(email)
     await this.page.getByPlaceholder(TEXT.passwordPlaceholder).fill(password)
     await this.page
       .getByRole('button', { name: TEXT.login, exact: true })
       .getByText(TEXT.login)
       .click()
-    await expect(this.page.getByText(TEXT.loginToYourAccount)).toBeHidden()
-    await expect(this.page.getByText(TEXT.loadingAppMessage)).toBeHidden()
+    if (expectPass) {
+      await expect(this.page.getByText(TEXT.loginToYourAccount)).toBeHidden()
+      await expect(this.page.getByText(TEXT.loadingAppMessage)).toBeHidden()
+    }
   }
 }

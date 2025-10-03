@@ -1,7 +1,8 @@
+import type EditorPageActions from 'integration-test/actions/EditorPageActions'
 import { expect, test, type BrowserContext, type Locator, type Page } from 'integration-test/base'
 import type { MockLocalApi } from 'integration-test/mock/localApi'
 import * as actions from './actions'
-import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
+import { mockMethodCallInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
@@ -10,9 +11,8 @@ import singleColumnDatetimes from './table-vis-json/singleColumnDatetimes.json' 
 import singleColumnTimes from './table-vis-json/singleColumnTimes.json' with { type: 'json' }
 
 /** Prepare the graph for the tests. We add the table type to the `aggregated` node. */
-async function initGraph(page: Page) {
-  await actions.goToGraph(page)
-  await mockExpressionUpdate(page, 'aggregated', { type: ['Standard.Table.Table.Table'] })
+async function initGraph(editorPage: EditorPageActions) {
+  await editorPage.mockExpressionUpdate('aggregated', { type: ['Standard.Table.Table.Table'] })
 }
 
 /**
@@ -20,8 +20,8 @@ async function initGraph(page: Page) {
     contain 10 rows and the values 0,0 to 3,0, which are just some sample values that should be visible in the table
     after opening it.
  */
-test('Load Table Visualisation', async ({ page }) => {
-  await initGraph(page)
+test('Load Table Visualisation', async ({ editorPage, page }) => {
+  await initGraph(editorPage)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
@@ -36,8 +36,8 @@ test('Load Table Visualisation', async ({ page }) => {
   await expect(tableVisualization).toContainText('3,0')
 })
 
-test('Column size can be set and is retained', async ({ page, localApi }) => {
-  await initGraph(page)
+test('Column size can be set and is retained', async ({ editorPage, page, localApi }) => {
+  await initGraph(editorPage)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
@@ -52,7 +52,6 @@ test('Column size can be set and is retained', async ({ page, localApi }) => {
 
   // A data update causes column autosizing to run
   await localApi.updateVisualization(
-    page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     {
       type: 'Matrix',
@@ -90,12 +89,12 @@ async function resizeCol(col: Locator): Promise<number> {
   return widthAfterResize
 }
 
-test('Copy/paste from Table Visualization', async ({ page, context }) => {
+test('Copy/paste from Table Visualization', async ({ editorPage, page, context }) => {
   const expectClipboard = expect.poll(() =>
     page.evaluate(() => window.navigator.clipboard.readText()),
   )
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-  await actions.goToGraph(page)
+  await editorPage
 
   await actions.openVisualization(page, 'Table')
   const tableVisualization = locate.tableVisualization(page)
@@ -169,8 +168,12 @@ async function expectTableInputContent(page: Page, node: Locator) {
   ])
 }
 
-test('Single Column Of Actions Table Visualisation Test', async ({ page, localApi }) => {
-  await initGraph(page)
+test('Single Column Of Actions Table Visualisation Test', async ({
+  editorPage,
+  page,
+  localApi,
+}) => {
+  await initGraph(editorPage)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
@@ -180,7 +183,6 @@ test('Single Column Of Actions Table Visualisation Test', async ({ page, localAp
   await expect(tableVisualization).toExist()
 
   await localApi.updateVisualization(
-    page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     /* eslint-disable camelcase */
     {
@@ -203,8 +205,8 @@ test('Single Column Of Actions Table Visualisation Test', async ({ page, localAp
   await expect(newNode).toContainText('Sheet2')
 })
 
-test('Error Visualisation Test', async ({ page, localApi }) => {
-  await initGraph(page)
+test('Error Visualisation Test', async ({ editorPage, page, localApi }) => {
+  await initGraph(editorPage)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
@@ -214,7 +216,6 @@ test('Error Visualisation Test', async ({ page, localApi }) => {
   await expect(tableVisualization).toExist()
 
   await localApi.updateVisualization(
-    page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     {
       type: 'Error',
@@ -224,8 +225,8 @@ test('Error Visualisation Test', async ({ page, localApi }) => {
   await expect(tableVisualization).toContainText('This is an error message.')
 })
 
-test('get_child_node_action temmplate Test as number', async ({ page }) => {
-  await initGraph(page)
+test('get_child_node_action temmplate Test as number', async ({ editorPage, page, localApi }) => {
+  await initGraph(editorPage)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
@@ -235,7 +236,6 @@ test('get_child_node_action temmplate Test as number', async ({ page }) => {
   await expect(tableVisualization).toExist()
 
   await localApi.updateVisualization(
-    page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     /* eslint-disable camelcase */
     {
@@ -264,8 +264,8 @@ test('get_child_node_action temmplate Test as number', async ({ page }) => {
   await expect(numberWidget).toHaveValue('2')
 })
 
-test('get_child_node_action temmplate Test as text', async ({ page, localApi }) => {
-  await initGraph(page)
+test('get_child_node_action temmplate Test as text', async ({ editorPage, page, localApi }) => {
+  await initGraph(editorPage)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
@@ -275,7 +275,6 @@ test('get_child_node_action temmplate Test as text', async ({ page, localApi }) 
   await expect(tableVisualization).toExist()
 
   await localApi.updateVisualization(
-    page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     /* eslint-disable camelcase */
     {
@@ -303,8 +302,12 @@ test('get_child_node_action temmplate Test as text', async ({ page, localApi }) 
   await expect(textWidget.getByTestId('widget-text-content')).toHaveText('2')
 })
 
-test('GenericGrid Table Visualisation Test - single column - no links', async ({ page }) => {
-  await initGraph(page)
+test('GenericGrid Table Visualisation Test - single column - no links', async ({
+  editorPage,
+  page,
+  localApi,
+}) => {
+  await initGraph(editorPage)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
@@ -314,7 +317,6 @@ test('GenericGrid Table Visualisation Test - single column - no links', async ({
   await expect(tableVisualization).toExist()
 
   await localApi.updateVisualization(
-    page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     /* eslint-disable camelcase */
     {
@@ -331,10 +333,11 @@ test('GenericGrid Table Visualisation Test - single column - no links', async ({
 })
 
 test('GenericGrid Table Visualisation Test - two column - link on second', async ({
+  editorPage,
   page,
   localApi,
 }) => {
-  await initGraph(page)
+  await initGraph(editorPage)
 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
@@ -344,7 +347,6 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
   await expect(tableVisualization).toExist()
 
   await localApi.updateVisualization(
-    page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     /* eslint-disable camelcase */
     {
@@ -393,8 +395,8 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
    Remember to comment the write back out
 */
 
-test('Datetime test - sorting and copying', async ({ page, context }) => {
-  await loadData(page, singleColumnDatetimes)
+test('Datetime test - sorting and copying', async ({ editorPage, page, localApi, context }) => {
+  await loadData(editorPage, localApi, singleColumnDatetimes)
   await expectCellDataToBe(
     page,
     'Value',
@@ -437,8 +439,8 @@ test('Datetime test - sorting and copying', async ({ page, context }) => {
   )
 })
 
-test('Date test - sorting and copying', async ({ page, context, localApi }) => {
-  await loadData(page, localApi, singleColumnDates)
+test('Date test - sorting and copying', async ({ editorPage, page, context, localApi }) => {
+  await loadData(editorPage, localApi, singleColumnDates)
   await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
   const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
   await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
@@ -450,8 +452,8 @@ test('Date test - sorting and copying', async ({ page, context, localApi }) => {
   await expectCopyingColumnClipboardToBe(page, context, 'Value', 0, 1, '2025-01-02\r\n2025-01-01')
 })
 
-test('Time test - sorting and copying', async ({ page, context, localApi }) => {
-  await loadData(page, localApi, singleColumnTimes)
+test('Time test - sorting and copying', async ({ editorPage, page, context, localApi }) => {
+  await loadData(editorPage, localApi, singleColumnTimes)
   await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
   const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
   await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
@@ -490,17 +492,13 @@ async function expectCopyingColumnClipboardToBe(
   await expectClipboard.toBe(expectedClipboardText)
 }
 
-async function loadData(page: Page, localApi: MockLocalApi, data: any) {
-  await initGraph(page)
-
-  const aggregatedNode = graphNodeByBinding(page, 'aggregated')
-  await aggregatedNode.click()
-  await page.keyboard.press('Space')
-  const tableVisualization = locate.tableVisualization(page)
-  await expect(tableVisualization).toExist()
-
+async function loadData(editorPage: EditorPageActions, localApi: MockLocalApi, data: any) {
+  await initGraph(editorPage)
+  await editorPage
+    .selectSingleNode('aggregated')
+    .press('Space')
+    .do((page) => expect(locate.tableVisualization(page)).toExist())
   await localApi.updateVisualization(
-    page,
     'Standard.Visualization.Table.Visualization.prepare_visualization',
     data,
   )

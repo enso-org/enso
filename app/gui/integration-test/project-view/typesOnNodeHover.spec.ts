@@ -1,6 +1,5 @@
 import { expect, test, type Locator, type Page } from 'integration-test/base'
 import * as actions from './actions'
-import { mockExpressionUpdate } from './expressionUpdates'
 import * as locate from './locate'
 
 const DUMMY_INT_TYPE = { full: 'Standard.Base.Data.Numbers.Integer', short: 'Integer' }
@@ -27,26 +26,23 @@ async function bringNodeToFront(page: Page, node: Locator) {
   await page.keyboard.press('Escape')
 }
 
-async function assertTypeLabelOnNodeByBinding(
-  page: Page,
-  label: string,
-  type: { full: string; short: string },
-) {
-  const node = locate.graphNodeByBinding(page, label)
-  await assertTypeLabelOnNode(page, node, type)
+function assertTypeLabelOnNodeByBinding(label: string, type: { full: string; short: string }) {
+  return async (page: Page) => {
+    const node = locate.graphNodeByBinding(page, label)
+    await assertTypeLabelOnNode(page, node, type)
+  }
 }
 
-test('shows the correct type when hovering a node', async ({ page }) => {
-  await actions.goToGraph(page)
-  // Note that the types don't have to make sense, they just have to be applied.
-  await mockExpressionUpdate(page, 'five', { type: [DUMMY_INT_TYPE.full] })
-  await mockExpressionUpdate(page, 'ten', { type: [DUMMY_STRING_TYPE.full] })
-  await mockExpressionUpdate(page, 'sum', { type: [DUMMY_FLOAT_TYPE.full] })
-  await mockExpressionUpdate(page, 'prod', { type: [DUMMY_INT_TYPE.full] })
-
-  await assertTypeLabelOnNodeByBinding(page, 'five', DUMMY_INT_TYPE)
-  await assertTypeLabelOnNodeByBinding(page, 'ten', DUMMY_STRING_TYPE)
-  await assertTypeLabelOnNodeByBinding(page, 'sum', DUMMY_FLOAT_TYPE)
-  await assertTypeLabelOnNodeByBinding(page, 'prod', DUMMY_INT_TYPE)
-  await assertTypeLabelOnNodeByBinding(page, 'final', UNKNOWN_TYPE)
+test('shows the correct type when hovering a node', async ({ editorPage }) => {
+  await editorPage
+    // Note that the types don't have to make sense, they just have to be applied.
+    .mockExpressionUpdate('five', { type: [DUMMY_INT_TYPE.full] })
+    .mockExpressionUpdate('ten', { type: [DUMMY_STRING_TYPE.full] })
+    .mockExpressionUpdate('sum', { type: [DUMMY_FLOAT_TYPE.full] })
+    .mockExpressionUpdate('prod', { type: [DUMMY_INT_TYPE.full] })
+    .do(assertTypeLabelOnNodeByBinding('five', DUMMY_INT_TYPE))
+    .do(assertTypeLabelOnNodeByBinding('ten', DUMMY_STRING_TYPE))
+    .do(assertTypeLabelOnNodeByBinding('sum', DUMMY_FLOAT_TYPE))
+    .do(assertTypeLabelOnNodeByBinding('prod', DUMMY_INT_TYPE))
+    .do(assertTypeLabelOnNodeByBinding('final', UNKNOWN_TYPE))
 })

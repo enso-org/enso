@@ -1,10 +1,9 @@
 import assert from 'assert'
 import { expect, test } from 'integration-test/base'
-import * as actions from './actions'
 import * as locate from './locate'
 
 test('Navigating with arrows', async ({ page }) => {
-  await actions.goToGraph(page)
+  await editorPage
   // Make sure nothing else is focused right now.
   await locate.graphEditor(page).click({ position: { x: 400, y: 400 } })
   const allNodes = await locate.graphNode(page).all()

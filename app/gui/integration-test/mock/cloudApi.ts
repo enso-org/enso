@@ -787,7 +787,6 @@ export async function mockCloudApi(page: Page) {
       const projectId = backend.ProjectId(maybeId)
       called('getProjectDetails', { projectId, presigned })
       const project = assetMap.get(projectId)
-      console.log('getProjectDetailsPath', params, project)
 
       if (!project) {
         throw new Error(`Cannot get details for a project that does not exist. Project ID: ${projectId} \n

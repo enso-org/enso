@@ -8,7 +8,7 @@ const EDGE_PARTS = 2
 const SPLIT_EDGE_PARTS = EDGE_PARTS + 1
 
 test('Existence of edges between nodes', async ({ page }) => {
-  await actions.goToGraph(page)
+  await editorPage
 
   await expect(await connectedEdgesFromNodeWithBinding(page, 'aggregated')).toHaveCount(0)
   await expect(await connectedEdgesFromNodeWithBinding(page, 'filtered')).toHaveCount(0)
@@ -36,7 +36,7 @@ test('Existence of edges between nodes', async ({ page }) => {
 
 /** Prepare the graph for the tests. We drag the `ten` node to the right for better access to its outgoing edge. */
 async function initGraph(page: Page) {
-  await actions.goToGraph(page)
+  await editorPage
   await actions.dragNodeByBinding(page, 'ten', 400, 0)
 }
 

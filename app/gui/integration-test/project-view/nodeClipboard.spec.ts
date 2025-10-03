@@ -1,5 +1,5 @@
-import { expect, test, type Locator, type Page } from 'integration-test/base'
-import * as actions from './actions'
+import type EditorPageActions from 'integration-test/actions/EditorPageActions'
+import { expect, test, type Locator } from 'integration-test/base'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { connectedEdgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
@@ -27,8 +27,8 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-test('Copy component with context menu', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Copy component with context menu', async ({ editorPage, page }) => {
+  await editorPage
   const originalNodes = await locate.graphNode(page).count()
   const nodeToCopy = locate.graphNodeByBinding(page, 'final')
   await nodeToCopy.click({ button: 'right' })
@@ -40,8 +40,8 @@ test('Copy component with context menu', async ({ page }) => {
   await expect(locate.graphNode(page)).toHaveCount(originalNodes + 1)
 })
 
-test('Copy component with comment', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Copy component with comment', async ({ editorPage, page }) => {
+  await editorPage
 
   // Check state before operation.
   const originalNodes = await locate.graphNode(page).count()
@@ -64,63 +64,60 @@ test('Copy component with comment', async ({ page }) => {
 })
 
 async function testCopyMultiple(
-  page: Page,
+  editorPage: EditorPageActions,
   copyNodes: (node1: Locator, node2: Locator) => Promise<void>,
 ) {
-  await actions.goToGraph(page)
+  await editorPage.do(async (page) => {
+    // Check state before operation.
+    const originalNodes = await locate.graphNode(page).count()
+    await expect(locate.nodeCommentContent(page)).toExist()
+    const originalNodeComments = await locate.nodeCommentContent(page).count()
 
-  // Check state before operation.
-  const originalNodes = await locate.graphNode(page).count()
-  await expect(locate.nodeCommentContent(page)).toExist()
-  const originalNodeComments = await locate.nodeCommentContent(page).count()
+    // Select some nodes.
+    const node1 = locate.graphNodeByBinding(page, 'final')
+    const node2 = locate.graphNodeByBinding(page, 'prod')
 
-  // Select some nodes.
-  const node1 = locate.graphNodeByBinding(page, 'final')
-  const node2 = locate.graphNodeByBinding(page, 'prod')
+    // Copy and paste.
+    await copyNodes(node1, node2)
+    await page.keyboard.press(`${CONTROL_KEY}+V`)
+    await expect(node1).not.toBeSelected()
+    await expect(node2).not.toBeSelected()
+    await expect(locate.selectedNodes(page)).toHaveCount(2)
 
-  // Copy and paste.
-  await copyNodes(node1, node2)
-  await page.keyboard.press(`${CONTROL_KEY}+V`)
-  await expect(node1).not.toBeSelected()
-  await expect(node2).not.toBeSelected()
-  await expect(locate.selectedNodes(page)).toHaveCount(2)
+    // Nodes and comment have been copied.
+    await expect(locate.graphNode(page)).toHaveCount(originalNodes + 2)
+    // `final` node has a comment.
+    await expect(locate.nodeCommentContent(page)).toHaveCount(originalNodeComments + 1)
+    // Check that two copied nodes are isolated, i.e. connected to each other, not original nodes.
+    await expect(locate.graphNodeByBinding(page, 'prod1')).toBeVisible()
+    await expect(locate.graphNodeByBinding(page, 'final1')).toBeVisible()
+    await expect(await connectedEdgesFromNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
+    await expect(await connectedEdgesFromNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
 
-  // Nodes and comment have been copied.
-  await expect(locate.graphNode(page)).toHaveCount(originalNodes + 2)
-  // `final` node has a comment.
-  await expect(locate.nodeCommentContent(page)).toHaveCount(originalNodeComments + 1)
-  // Check that two copied nodes are isolated, i.e. connected to each other, not original nodes.
-  await expect(locate.graphNodeByBinding(page, 'prod1')).toBeVisible()
-  await expect(locate.graphNodeByBinding(page, 'final1')).toBeVisible()
-  await expect(await connectedEdgesFromNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
-  await expect(await connectedEdgesFromNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
-
-  await expect(await edgesToNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
-  await expect(await edgesToNodeWithBinding(page, 'final')).toHaveCount(1 * EDGE_PARTS)
-  await expect(await edgesToNodeWithBinding(page, 'prod1')).toHaveCount(1 * EDGE_PARTS)
-  await expect(await edgesToNodeWithBinding(page, 'final1')).toHaveCount(1 * EDGE_PARTS)
+    await expect(await edgesToNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
+    await expect(await edgesToNodeWithBinding(page, 'final')).toHaveCount(1 * EDGE_PARTS)
+    await expect(await edgesToNodeWithBinding(page, 'prod1')).toHaveCount(1 * EDGE_PARTS)
+    await expect(await edgesToNodeWithBinding(page, 'final1')).toHaveCount(1 * EDGE_PARTS)
+  })
 }
 
-test('Copy multiple components with keyboard shortcut', async ({ page }) => {
-  await testCopyMultiple(page, async (node1, node2) => {
+test('Copy multiple components with keyboard shortcut', async ({ editorPage }) => {
+  await testCopyMultiple(editorPage, async (node1, node2) => {
     await node1.click()
     await node2.click({ modifiers: ['Shift'] })
     await expect(node1).toBeSelected()
     await expect(node2).toBeSelected()
-    await page.keyboard.press(`${CONTROL_KEY}+C`)
+    await editorPage.press(`${CONTROL_KEY}+C`)
   })
 })
 
-test('Copy multiple components with context menu', async ({ page }) => {
-  await testCopyMultiple(page, async (node1, node2) => {
+test('Copy multiple components with context menu', async ({ editorPage }) => {
+  await testCopyMultiple(editorPage, async (node1, node2) => {
     await node1.click()
     await node2.click({ modifiers: ['Shift'] })
     await expect(node1).toBeSelected()
     await expect(node2).toBeSelected()
     await node1.click({ button: 'right' })
-    await page
-      .locator('.ActionMenu')
-      .getByRole('button', { name: 'Copy Selected Components' })
-      .click()
+    await editorPage.clickActionTrigger('components.copy')
   })
 })
