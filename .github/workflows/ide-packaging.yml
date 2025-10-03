@@ -356,6 +356,7 @@ jobs:
           DEBUG: "pw:browser log:"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_ENABLE_LOGGING: "true"
+          ENSO_RUNNER_PATH: "${{ github.workspace }}/dist/2025.3.1-dev/bin/enso"
       - if: failure()
         name: Upload Test Traces
         uses: actions/upload-artifact@v4
