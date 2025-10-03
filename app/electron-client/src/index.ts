@@ -46,8 +46,8 @@ import * as download from 'electron-dl'
 import type { DownloadUrlOptions } from 'enso-gui/src/electronApi'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 
-const DEFAULT_WINDOW_WIDTH = 1380
-const DEFAULT_WINDOW_HEIGHT = 900
+const DEFAULT_WINDOW_WIDTH = 1280
+const DEFAULT_WINDOW_HEIGHT = 720
 
 /** Convert path to proper `file://` URL. */
 function pathToURL(path: string): URL {
