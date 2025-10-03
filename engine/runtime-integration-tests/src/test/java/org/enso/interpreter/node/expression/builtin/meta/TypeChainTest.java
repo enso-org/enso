@@ -94,7 +94,9 @@ public class TypeChainTest {
   public void anyEigeintypeChain() {
     var any = ctx.ensoContext().getBuiltins().any();
     var anyType = typeOf.execute(any);
+    assertEquals("Any.type", anyType.toString());
     var anyTypeType = typeOf.execute(anyType);
+    assertEquals("Type of Any.type is again Any.type", anyType, anyTypeType);
     var raw = (Type) ctx.unwrapValue(anyTypeType);
     var all = raw.allTypes(ctx.ensoContext());
 
