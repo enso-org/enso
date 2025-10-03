@@ -75,7 +75,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         listDirectoryPageSize: DEFAULT_LIST_DIRECTORY_PAGE_SIZE,
         dataCatalogQueryDebounceDelay: DEFAULT_DATA_CATALOG_QUERY_DEBOUNCE_DELAY_MS,
         unsafeDarkTheme: false,
-        enableProjectService: true,
+        enableProjectService: IS_DEV_MODE,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))
