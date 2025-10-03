@@ -28,7 +28,7 @@ public class TypeChainTest {
 
   @Test
   public void textChain() {
-    var type = typeOf.execute("Text");
+    var type = typeOf.execute("Hello World!");
     var raw = (Type) ctx.unwrapValue(type);
     var all = raw.allTypes(ctx.ensoContext());
 
@@ -39,7 +39,7 @@ public class TypeChainTest {
 
   @Test
   public void textTypeChain() {
-    var textType = typeOf.execute("Text");
+    var textType = typeOf.execute("Ciao");
     var textTypeType = typeOf.execute(textType);
     var raw = (Type) ctx.unwrapValue(textTypeType);
     var all = raw.allTypes(ctx.ensoContext());
@@ -51,7 +51,7 @@ public class TypeChainTest {
 
   @Test
   public void textEigeintypeChain() {
-    var textType = typeOf.execute("Text");
+    var textType = typeOf.execute("Ahoj");
     var textTypeType = typeOf.execute(textType);
     var loop = typeOf.execute(textTypeType);
     assertEquals("Eigentype is the last type - then we loop", textTypeType, loop);
