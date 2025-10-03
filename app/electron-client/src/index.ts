@@ -255,6 +255,10 @@ class App {
   setChromeOptions() {
     // Needed to accept localhost self-signed cert
     electron.app.commandLine.appendSwitch('ignore-certificate-errors')
+    // TODO: remove
+    electron.app.commandLine.appendSwitch('disable-gpu')
+    electron.app.commandLine.appendSwitch('use-gl', 'swiftshader')
+    electron.app.commandLine.appendSwitch('enable-unsafe-swiftshader')
   }
 
   /** Main app entry point. */
