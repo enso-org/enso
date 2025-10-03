@@ -105,7 +105,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
       let edgeLocator = 'g.GraphEdge'
       if (sourceId) edgeLocator += `[data-source-node-id="${sourceId}"]`
       if (targetId) edgeLocator += `[data-target-node-id="${targetId}"]`
-      expect(this.page.locator(edgeLocator)).toHaveCount(expectedCount)
+      await expect(this.page.locator(edgeLocator)).toHaveCount(expectedCount)
     })
   }
 
@@ -211,7 +211,8 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
   /** Select a node by clicking on it without modifiers. */
   selectSingleNode(binding: string) {
     return this.step(`Select node '${binding}'`, async () => {
-      this.locateNodes(binding).locator('.grab-handle').click()
+      await this.locateNodes(binding).locator('.grab-handle').click()
+      await this.expectNodeCount(1, '.selected')
     })
   }
 

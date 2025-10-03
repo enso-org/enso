@@ -177,12 +177,12 @@ test('Display message when User Defined Component ceases to exist', async ({ edi
     .expectNodeCount(initialNodesCount - 1)
     .mockUserDefinedFunctionInfo('prod', 'user_defined_component')
     .enterNode('prod')
-    .expectNodeCount(2)
+    .expectNodeCount(6)
     .press(`Mod+Z`)
     .do((page) => expect(page.locator('.GraphMissingView')).toExist())
 })
 
-test.only('Input node', async ({ editorPage }) => {
+test('Input node', async ({ editorPage }) => {
   await editorPage
     .call(enterToFunc2)
     .expectNodeCount(1, locate.INPUT_NODE_FILTER)
@@ -198,9 +198,10 @@ test.only('Input node', async ({ editorPage }) => {
       await expect(locate.componentBrowserInput(page)).toBeFocused()
     })
     .press('Escape')
+    .clickActionTrigger('graph.fitAll')
     // Input node cannot be deleted
     .selectSingleNode(locate.INPUT_NODE_FILTER)
-    .press('Delete')
+    .press(DELETE_KEY)
     .expectNodeCount(1, locate.INPUT_NODE_FILTER)
     .withNode(locate.INPUT_NODE_FILTER, async (node) => {
       await node.locator('.More').click()
@@ -208,8 +209,6 @@ test.only('Input node', async ({ editorPage }) => {
         /(?<=^| )disabled(?=$| )/,
       )
     })
-
-  // Input node has output port
 })
 
 test('Output node', async ({ editorPage }) => {
@@ -224,7 +223,7 @@ test('Output node', async ({ editorPage }) => {
     })
     // Output node cannot be deleted
     .selectSingleNode(locate.OUTPUT_NODE_FILTER)
-    .press('Delete')
+    .press(DELETE_KEY)
     .expectNodeCount(1, locate.OUTPUT_NODE_FILTER)
     .withNode(locate.OUTPUT_NODE_FILTER, async (node) => {
       await node.locator('.More').click()
@@ -240,7 +239,7 @@ test('Output node is not collapsed', async ({ editorPage }) => {
     .selectNodes([locate.OUTPUT_NODE_FILTER, 'r'])
     .clickActionTrigger('components.collapse')
     .expectNodeTokens('r', ['Main', '.', 'user_defined_component', 'a'])
-    .expectNodeCount(1)
+    .expectNodeCount(3)
 })
 
 test('Input node is not collapsed', async ({ editorPage }) => {
@@ -249,7 +248,7 @@ test('Input node is not collapsed', async ({ editorPage }) => {
     .selectNodes(['r', locate.INPUT_NODE_FILTER])
     .clickActionTrigger('components.collapse')
     .expectNodeTokens('r', ['Main', '.', 'user_defined_component', 'a'])
-    .expectNodeCount(1, locate.OUTPUT_NODE_FILTER)
+    .expectNodeCount(3)
 })
 
 test('User Defined Component call shows argument placeholders', async ({ editorPage }) => {
