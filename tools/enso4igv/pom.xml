@@ -104,8 +104,10 @@
                         <configuration>
                             <target>
                                 <property name="module" value="org-netbeans-modules-textmate-lexer"/>
-                                <get src="https://repo1.maven.org/maven2/org/netbeans/api/${module}/${netbeans.version}/${module}-${netbeans.version}.nbm"
-                                     dest="${project.build.directory}/${module}-${netbeans.version}.nbm"/>
+                                <!-- could be ${netbeans.version}, but that has too old deps using latest -->
+                                <property name="modver" value="${netbeans.runtime.version}"/>
+                                <get src="https://repo1.maven.org/maven2/org/netbeans/api/${module}/${modver}/${module}-${modver}.nbm"
+                                     dest="${project.build.directory}/${module}-${modver}.nbm"/>
                             </target>
                         </configuration>
                     </execution>
@@ -251,7 +253,7 @@
         <dependency>
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-api-lsp</artifactId>
-            <version>RELEASE160</version>
+            <version>${netbeans.version}</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -305,7 +307,8 @@
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <netbeans.version>RELEASE140</netbeans.version>
+        <netbeans.version>RELEASE220</netbeans.version>
+        <netbeans.runtime.version>RELEASE270</netbeans.runtime.version>
         <netbeans.compile.on.save>none</netbeans.compile.on.save>
         <enso.root>${basedir}/../../</enso.root>
         <enso.parser.lib>${enso.root}/lib/rust/parser/target/classes/</enso.parser.lib>
