@@ -91,6 +91,26 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.15</version>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="module" value="org-netbeans-modules-textmate-lexer"/>
+                                <get src="https://repo1.maven.org/maven2/org/netbeans/api/${module}/${netbeans.version}/${module}-${netbeans.version}.nbm"
+                                     dest="${project.build.directory}/${module}-${netbeans.version}.nbm"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -103,7 +123,7 @@
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-modules-textmate-lexer</artifactId>
             <version>${netbeans.version}</version>
-            <scope>provided</scope>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.netbeans.api</groupId>
