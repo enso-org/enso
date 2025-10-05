@@ -1968,6 +1968,7 @@ lazy val `ydoc-server` = project
       ),
     Compile / internalModuleDependencies := Seq(
       (`engine-runner-common` / Compile / exportedModule).value,
+      (`jvm-interop` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value,
       (`syntax-rust-definition` / Compile / exportedModule).value
     ),
@@ -2046,6 +2047,7 @@ lazy val `ydoc-server` = project
       )
       .value
   )
+  .dependsOn(`jvm-interop`)
   .dependsOn(`ydoc-polyfill`)
   .dependsOn(`logging-service-logback`)
 
