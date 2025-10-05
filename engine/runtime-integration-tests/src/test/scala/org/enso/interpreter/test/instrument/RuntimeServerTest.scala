@@ -7882,6 +7882,183 @@ class RuntimeServerTest
     )
   }
 
+  it should "infer correct changes for auto-scoped constructors" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val moduleNameLib   = "Enso_Test.Test.Lib"
+    val moduleNameTypes = "Enso_Test.Test.Types"
+    val metadata        = new Metadata
+
+
+    val typesMetadata = new Metadata
+    val codeTypes = typesMetadata.appendToCode(
+      """type Base
+        |    Foo
+        |    Bar
+        |
+        |    to_number self =
+        |        case self of
+        |            Base.Foo -> 1
+        |            Base.Bar -> 2
+        |""".stripMargin.linesIterator.mkString("\n")
+    )
+    val typesFile = context.writeInSrcDir("Types", codeTypes)
+
+    val libMetadata = new Metadata
+    val codeLib = libMetadata.appendToCode(
+      """from project.Types import Base
+        |from Standard.Base import all
+        |
+        |type Singleton
+        |    S value
+        |
+        |    test : Base -> Number
+        |    test self (x : Base) =
+        |        Singleton.from_test x
+        |
+        |    from_test : Base -> Number
+        |    from_test (x : Base) =
+        |        x.to_number
+        |""".stripMargin.linesIterator.mkString("\n")
+    )
+
+    val libFile = context.writeInSrcDir("Lib", codeLib)
+
+    val idA = metadata.addItem(50, 13, "aa")
+    val idB = metadata.addItem(72, 13, "bb")
+    val x = metadata.addItem(94, 12, "a1")
+    val y = metadata.addItem(115, 12, "a2")
+    val z = metadata.addItem(136, 5, "a3")
+    val xFoo = metadata.addItem(101, 5, "b1")
+    val yBar = metadata.addItem(122, 5, "b2")
+    val yBar2 = new UUID(0, 1)
+    val xTest = metadata.addItem(96, 4, "c1")
+    val yTest = metadata.addItem(117, 4, "c2")
+    val res = metadata.addItem(146, 1, "dd")
+
+    val code =
+      """from project.Lib import Singleton
+        |
+        |main =
+        |    a = Singleton.S 1
+        |    b = Singleton.S 2
+        |    x = a.test ..Foo
+        |    y = b.test ..Bar
+        |    z = x + y
+        |    z
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open files
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(typesFile, codeTypes))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(libFile, codeLib))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, moduleName, "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnoreStdLib(
+      12, 10
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idA,
+        expressionType = "Enso_Test.Test.Lib.Singleton",
+        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameLib, "Enso_Test.Test.Lib.Singleton", "S"))
+        ),
+      TestMessages.update(contextId, idB,
+        expressionType = "Enso_Test.Test.Lib.Singleton",
+        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameLib, "Enso_Test.Test.Lib.Singleton", "S"))
+      ),
+      TestMessages.update(contextId, xTest, Constants.UNRESOLVED_SYMBOL),
+      TestMessages.update(contextId, yTest, Constants.UNRESOLVED_SYMBOL),
+      TestMessages.update(contextId, xFoo,
+        expressionType = "Enso_Test.Test.Types.Base",
+        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameTypes, "Enso_Test.Test.Types.Base", "Foo"))
+      ),
+      TestMessages.update(contextId, yBar,
+        expressionType = "Enso_Test.Test.Types.Base",
+        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameTypes, "Enso_Test.Test.Types.Base", "Bar"))
+      ),
+      TestMessages.update(contextId, x,
+        expressionType = ConstantsGen.INTEGER,
+        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameLib, "Enso_Test.Test.Lib.Singleton", "test"))
+      ),
+      TestMessages.update(contextId, y,
+        expressionType = ConstantsGen.INTEGER,
+        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameLib, "Enso_Test.Test.Lib.Singleton", "test"))
+      ),
+      TestMessages.update(contextId, z,
+        expressionType = ConstantsGen.INTEGER,
+        methodCall = Api.MethodCall(Api.MethodPointer("Standard.Base.Data.Numbers", ConstantsGen.INTEGER, "+"))
+      ),
+      TestMessages.update(contextId, res,
+        expressionType = ConstantsGen.INTEGER,
+      ),
+      context.executionComplete(contextId)
+    )
+
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(6, 15), model.Position(6, 20)),
+              "..Foo"
+            )
+          ),
+          execute = true,
+          idMap   = Some(
+            model.IdMap(Vector(model.Span(122, 127) -> yBar2))
+          )
+        )
+      )
+    )
+
+    // FIXME: currently failing test
+    context.receiveNIgnoreStdLib(
+      3, 10
+    ) should contain theSameElementsAs Seq(
+      TestMessages.pending(contextId, yBar, y, z, res), // Currently invalidates also `xTest` and `yTest`
+      TestMessages.update(contextId, yBar2,
+        expressionType = "Enso_Test.Test.Types.Base",
+        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameTypes, "Enso_Test.Test.Types.Base", "Foo"))
+      ),
+      context.executionComplete(contextId)
+    )
+
+  }
+
+
 }
 object RuntimeServerTest {
 
