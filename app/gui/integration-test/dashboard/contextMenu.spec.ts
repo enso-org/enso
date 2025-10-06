@@ -11,19 +11,27 @@ function locateContextMenu(page: Page) {
   return page.getByTestId('context-menu')
 }
 
-test('drive view', async ({ drivePage, cloudApi }) => {
-  cloudApi.addLabel(LABEL_NAME, COLORS[0])
-  drivePage.goToCategory
-    .cloud()
-    .driveTable.expectPlaceholderRow()
-    .withDriveView(async (view) => {
-      await view.click({ button: 'right' })
-    })
-    .do(async (page) => {
-      await expect(locateContextMenu(page)).toHaveCount(1)
-    })
-    .press('Escape')
-    .do(async (thePage) => {
-      await expect(locateContextMenu(thePage)).toHaveCount(0)
-    })
+test.describe(() => {
+  test.use({
+    setupApi: {
+      cloud: (cloudApi) => {
+        cloudApi.addLabel(LABEL_NAME, COLORS[0])
+      },
+    },
+  })
+  test('drive view', async ({ drivePage }) => {
+    await drivePage.goToCategory
+      .cloud()
+      .driveTable.expectPlaceholderRow()
+      .withDriveView(async (view) => {
+        await view.click({ button: 'right' })
+      })
+      .do(async (page) => {
+        await expect(locateContextMenu(page)).toHaveCount(1)
+      })
+      .press('Escape')
+      .do(async (thePage) => {
+        await expect(locateContextMenu(thePage)).toHaveCount(0)
+      })
+  })
 })

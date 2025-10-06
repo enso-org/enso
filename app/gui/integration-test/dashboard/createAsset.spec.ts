@@ -27,7 +27,7 @@ test('create folder (local)', async ({ drivePage }) => {
     .goToCategory.local()
     .createFolder()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
+      await expect(rows).toHaveCount(2)
       await expect(rows.nth(0)).toBeVisible()
       await expect(rows.nth(0)).toHaveText(/^New Folder 1/)
     })
@@ -49,7 +49,7 @@ test('create project (local)', async ({ drivePage }) => {
     .newEmptyProject()
     .waitForEditorToLoad()
     .goToPage.drive()
-    .driveTable.withRows((rows) => expect(rows).toHaveCount(1))
+    .driveTable.withRows((rows) => expect(rows).toHaveCount(2))
 })
 
 test('upload file (remote)', async ({ drivePage }) => {
@@ -68,9 +68,9 @@ test('upload file (local)', async ({ drivePage }) => {
     .local()
     .uploadFile(FILE_NAME, FILE_CONTENTS)
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
-      await expect(rows.nth(0)).toBeVisible()
-      await expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
+      await expect(rows).toHaveCount(2)
+      await expect(rows.nth(1)).toBeVisible()
+      await expect(rows.nth(1)).toHaveText(new RegExp('^' + FILE_NAME))
     })
 })
 

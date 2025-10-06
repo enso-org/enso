@@ -63,7 +63,7 @@ test('export from local to remote (local+remote)', async ({ drivePage }) => {
     .waitForEditorToLoad()
     .goToPage.drive()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
+      await expect(rows).toHaveCount(2)
     })
     .driveTable.closeProject(0)
     .driveTable.rightClickRow(0)
@@ -82,7 +82,7 @@ test('export from local to remote (drag) (local+remote)', async ({ drivePage }) 
     .waitForEditorToLoad()
     .goToPage.drive()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
+      await expect(rows).toHaveCount(2)
     })
     .driveTable.closeProject(0)
     .driveTable.clickRow(0)
