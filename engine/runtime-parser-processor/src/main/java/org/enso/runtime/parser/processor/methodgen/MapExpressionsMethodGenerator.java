@@ -195,7 +195,9 @@ public final class MapExpressionsMethodGenerator {
               bldr.diagnostics(this.diagnostics.copy());
             }
             if (this.passData != null) {
-              bldr.passData(this.passData.duplicate());
+              // passData should not be duplicated, i.e., no call of `this.passData.duplicate()`
+              // method. Just assign the same reference.
+              bldr.passData(this.passData);
             }
             if (this.location != null) {
               bldr.location(this.location);
