@@ -256,6 +256,13 @@ class App {
     electron.app.commandLine.appendSwitch('ignore-certificate-errors')
     // Enable native CPU-mappable GPU memory buffer support on Linux.
     electron.app.commandLine.appendSwitch('enable-native-gpu-memory-buffers')
+    // Override the list of blocked GPU hardware, allowing for GPU acceleration on system configurations
+    // that do not inherently support it. It should be noted that some hardware configurations may have
+    // driver issues that could result in rendering discrepancies. Despite this, the utilization of GPU
+    // acceleration has the potential to significantly enhance the performance of the application in our
+    // specific use cases. This behavior can be observed in the following example:
+    // https://groups.google.com/a/chromium.org/g/chromium-dev/c/09NnO6jYT6o.
+    electron.app.commandLine.appendSwitch('ignore-gpu-blocklist')
   }
 
   /** Main app entry point. */
