@@ -46,8 +46,8 @@ import * as download from 'electron-dl'
 import type { DownloadUrlOptions } from 'enso-gui/src/electronApi'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 
-const DEFAULT_WINDOW_WIDTH = 1280
-const DEFAULT_WINDOW_HEIGHT = 720
+const DEFAULT_WINDOW_WIDTH = 1380
+const DEFAULT_WINDOW_HEIGHT = 900
 
 /** Convert path to proper `file://` URL. */
 function pathToURL(path: string): URL {
@@ -87,8 +87,6 @@ class App {
         this.setProjectToOpenOnStartup(pathToURL(path))
       }
     })
-    this.setChromeOptions()
-    logChromiumSwitches(electron.app)
     const { args, fileToOpen, urlToOpen } = this.processArguments()
     if (args.version) {
       await this.printVersion(args)
@@ -105,6 +103,7 @@ class App {
       })
       if (isOriginalInstance) {
         this.handleItemOpening(fileToOpen, urlToOpen)
+        this.setChromeOptions()
         security.enableAll()
 
         this.onStart().catch((err) => {
@@ -142,7 +141,6 @@ class App {
         electron.app.whenReady().then(
           async () => {
             console.log('Electron application is ready.')
-            logChromiumSwitches(electron.app)
 
             electron.protocol.handle('enso', (request) =>
               projectManager.handleProjectProtocol(
@@ -256,15 +254,37 @@ class App {
   setChromeOptions() {
     // Needed to accept localhost self-signed cert
     electron.app.commandLine.appendSwitch('ignore-certificate-errors')
-    // TODO: remove
-    // electron.app.commandLine.appendSwitch('disable-gpu')
-    // electron.app.commandLine.appendSwitch('use-gl', 'swiftshader')
-    // electron.app.commandLine.appendSwitch('enable-unsafe-swiftshader')
-    // electron.app.commandLine.appendSwitch('ozone-platform', 'x11')
-    electron.app.commandLine.appendSwitch('disable-dev-shm-usage')
-    // electron.app.commandLine.appendSwitch('enable-logging', 'stderr')
-    // electron.app.commandLine.appendSwitch('v', '1')
-    // electron.app.commandLine.appendSwitch('vmodule', 'renderer=2,gpu=2,viz=2')
+    // Disable the GPU process sandbox. It should be noted that on certain hardware configurations,
+    // the utilization of GPU sandboxing may result in WebGL crashes. Despite Google's discouragement
+    // of this option, it is considered safe for use in this specific instance, as the browser is
+    // dedicated solely to the display of Enso, which has unrestricted access to all files and system
+    // settings on the user's machine. For a detailed explanation of instances where such crashes may
+    // occur, please refer to this document: https://wiki.archlinux.org/title/chromium.
+    electron.app.commandLine.appendSwitch('disable-gpu-sandbox')
+    // Force using discrete GPU when there are multiple GPUs available.
+    electron.app.commandLine.appendSwitch('force-high-performance-gpu')
+    // Disable the GPU Vertical Synchronization (VSync). This feature synchronizes the refresh rate
+    // and frame rate of the monitor to ensure optimal picture quality, particularly in gaming
+    // scenarios. However, in applications that heavily rely on a graphical user interface, the
+    // utilization of VSync is not deemed essential. By disabling this feature, performance may be
+    // improved on hardware configurations with limited capabilities. In addition, disabling VSync
+    // also has the potential to reduce rendering latency. For a comprehensive understanding of this
+    // aspect, please refer to this thread:
+    // https://bugs.chromium.org/p/chromium/issues/detail?id=460919.
+    electron.app.commandLine.appendSwitch('disable-gpu-vsync')
+    // Disable smooth scrolling feature. This modification has the potential to reduce latency
+    // experienced with input devices. For further elaboration, please refer to this thread:
+    // https://news.ycombinator.com/item?id=28782493.
+    electron.app.commandLine.appendSwitch('disable-smooth-scrolling')
+    // Enable native CPU-mappable GPU memory buffer support on Linux.
+    electron.app.commandLine.appendSwitch('enable-native-gpu-memory-buffers')
+    // Override the list of blocked GPU hardware, allowing for GPU acceleration on system configurations
+    // that do not inherently support it. It should be noted that some hardware configurations may have
+    // driver issues that could result in rendering discrepancies. Despite this, the utilization of GPU
+    // acceleration has the potential to significantly enhance the performance of the application in our
+    // specific use cases. This behavior can be observed in the following example:
+    // https://groups.google.com/a/chromium.org/g/chromium-dev/c/09NnO6jYT6o.
+    electron.app.commandLine.appendSwitch('ignore-gpu-blocklist')
   }
 
   /** Main app entry point. */
@@ -352,6 +372,7 @@ class App {
         preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
         sandbox: true,
         spellcheck: false,
+        backgroundThrottling: false,
         ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
       }
       const windowPreferences: electron.BrowserWindowConstructorOptions = {
@@ -663,13 +684,3 @@ process.on('uncaughtException', (err, origin) => {
 
 const APP = new App()
 void APP.run()
-
-function logChromiumSwitches(app: electron.App) {
-  console.log(
-    '[DIAG] chromium switches:',
-    'disable-gpu=' + app.commandLine.hasSwitch('disable-gpu'),
-    'use-gl=' + app.commandLine.getSwitchValue('use-gl'),
-    'enable-unsafe-swiftshader=' + app.commandLine.hasSwitch('enable-unsafe-swiftshader'),
-    'ignore-certificate-errors=' + app.commandLine.hasSwitch('ignore-certificate-errors'),
-  )
-}

@@ -62,7 +62,6 @@ export const CLIENT_ARGUMENTS = getClientArguments()
 
 /** Decide what are client arguments, @see {@link CLIENT_ARGUMENTS}. */
 function getClientArguments(args = process.argv): readonly string[] {
-  console.log('getClientArguments', args)
   if (electronIsDev) {
     // Client arguments are separated from the electron dev mode arguments by a '--' argument.
     const separator = '--'
