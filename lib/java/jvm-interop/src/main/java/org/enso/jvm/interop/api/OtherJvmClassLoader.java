@@ -3,6 +3,7 @@ package org.enso.jvm.interop.api;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -71,7 +72,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
 
   @ExportMessage
   boolean isMemberInvocable(String member) {
-    return "addPath".equals(member);
+    return "addPath".equals(member) || "findLibraries".equals(member) || "close".equals(member);
   }
 
   @ExportMessage
@@ -102,6 +103,15 @@ public final class OtherJvmClassLoader implements TruffleObject {
           channel.execute(Void.class, new OtherJvmMessage.FindLibraries(obj));
         } else {
           throw UnsupportedTypeException.create(args);
+        }
+      }
+      case "close" -> {
+        try {
+          channel.close();
+        } catch (AbstractTruffleException ex) {
+          throw ex;
+        } catch (Exception ex) {
+          throw new org.enso.jvm.interop.impl.OtherJvmException(ex);
         }
       }
       default -> throw UnknownIdentifierException.create(name);
