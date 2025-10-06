@@ -192,6 +192,12 @@ primarily as a _container for module (static) methods_.
     is singleton itself.
   - The name is motivated by an
     [eigen value of a matrix](https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors).
+- **singleton type** is a type that has no constructors.
+  - There can be no atoms of a singleton type.
+  - The only instance of a _singleton type_ is the type itself.
+  - `Meta.type_of Singleton_Type` is `Singleton_Type`.
+  - This is different to `Meta.type_of Normal_Type`, which is
+    `Normal_Type.type`.
 - **associated type** of a module `My_Module` is a type for the module
   - It is basically an eigen type for a module.
 - **builtin type** is a type annotated with `@Builtin_Type`.
@@ -238,12 +244,13 @@ definition in its _symbol table_:
 
 1. **Determine the type of `Receiver`:**
 
-- 1.1. If `Receiver` is type, the result will be _eigen type_
-- 1.2. If `Receiver` is a value (instance / atom), the result will be the _type
-  of the value_
-- 1.3. If `Receiver` is a module, the result will be the _associated type_ for
-  the module
-- 1.4. If `Receiver` is a polyglot object, method resolution and invocation will
+- 1.1. If `Receiver` is type, the result will be _eigen type_.
+- 1.2. If `Receiver` is _singleton type_, the result will be the _type itself_.
+- 1.3. If `Receiver` is a value (instance / atom), the result will be the _type
+  of the value_.
+- 1.4. If `Receiver` is a module, the result will be the _associated type_ for
+  the module.
+- 1.5. If `Receiver` is a polyglot object, method resolution and invocation will
   be handled according to the [polyglot interoperability](../polyglot/README.md)
   rules.
   - Polyglot object can be, for example:
@@ -252,7 +259,7 @@ definition in its _symbol table_:
     - Javascript, Python, or any other allowed foreign language object returned
       by a foreign method call.
     - Refer to [polyglot readme](../polyglot/README.md) for more details.
-- 1.5. If there is no `Receiver`, we are just looking for a variable in the
+- 1.6. If there is no `Receiver`, we are just looking for a variable in the
   current lexical scope or any parent scopes. See
   [Lexical scope lookup](#lexical-scope-lookup).
 
@@ -319,7 +326,7 @@ obj = My_Type.Cons
 
 Evaluation of `obj.method 41`:
 
-- Receiver type is determined as `My_Type` (1.2)
+- Receiver type is determined as `My_Type` (1.3)
 - `method` is looked up in `My_Type` symbol table, and found (2.2)
 - `method` is executed as `My_Type.method self=obj x=41` (3.2)
 - expression is evaluated to 42.
