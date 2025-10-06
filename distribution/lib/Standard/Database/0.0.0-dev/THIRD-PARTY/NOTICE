@@ -6,6 +6,11 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.checkerframework.checker-qual-3.5.0`.
 
 
+'duckdb_jdbc', licensed under the MIT License, is distributed with the Database.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.duckdb.duckdb_jdbc-1.4.0.0`.
+
+
 'postgresql', licensed under the BSD-2-Clause, is distributed with the Database.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.postgresql.postgresql-42.4.0`.
