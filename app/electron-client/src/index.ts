@@ -261,7 +261,7 @@ class App {
     electron.app.commandLine.appendSwitch('use-gl', 'swiftshader')
     electron.app.commandLine.appendSwitch('enable-unsafe-swiftshader')
     electron.app.commandLine.appendSwitch('ozone-platform', 'x11')
-    electron.app.commandLine.appendSwitch('disable-dev-shm-usage')
+    // electron.app.commandLine.appendSwitch('disable-dev-shm-usage')
     // electron.app.commandLine.appendSwitch('enable-logging', 'stderr')
     // electron.app.commandLine.appendSwitch('v', '1')
     // electron.app.commandLine.appendSwitch('vmodule', 'renderer=2,gpu=2,viz=2')
