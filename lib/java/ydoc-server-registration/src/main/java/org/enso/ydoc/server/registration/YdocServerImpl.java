@@ -40,10 +40,10 @@ public final class YdocServerImpl extends YdocServerApi {
       assert ydocServerJar.exists() : "Found " + ydocServerJar;
       loader.invokeMember("addPath", ydocServerJar.getPath());
     }
-    var fqn = "org.enso.ydoc.server.DualMain";
+    var fqn = "org.enso.ydoc.server.Main";
     var impl = loader.getMember(fqn);
     assert impl != null;
-    Object arr = ProxyArray.fromArray(hostname, "" + port);
+    var arr = ProxyArray.fromArray(hostname, "" + port);
     impl.invokeMember("main", arr);
     return () -> {
       loader.invokeMember("close");
