@@ -1,8 +1,8 @@
 from Standard.Base import all
-import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.File_Type
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
+from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -87,7 +87,7 @@ type Postgres_Connection
 
        ## Arguments
         - database: The name of the database to connect to.
-    @database (self-> Single_Choice display=Display.Always values=(self.databases . map d-> Option d d.pretty))
+    @database (self-> Single_Choice display=..Always values=(self.databases . map d-> Option d d.pretty))
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
         if database == self.database then self else
@@ -364,9 +364,10 @@ type Postgres_Connection
        icon: data_output
        ---
        Creates a Data Link that will open the same connection.
+    @path (File_Browse file_types=[File_Type.Option "DataLink" ["datalink"]] existing_only=False display=..Always)
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
-        self.base_connection.save_as_data_link destination on_existing_file
+    save_as_data_link self path:Enso_File (on_existing_file:Existing_File_Behavior = ..Error) =
+        self.base_connection.save_as_data_link path on_existing_file
 
     ## ---
        private: true

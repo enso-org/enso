@@ -14,7 +14,6 @@ import project.Dialects.Dialect.Temp_Table_Style
 import project.Internal.DDL_Transaction.Transactional_Table_Description
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import project.SQL_Query.SQL_Query
 from project.Errors import Different_Connections, SQL_Error, Table_Already_Exists
 from project.Internal.JDBC_Connection import log_sql_if_enabled
 from project.Internal.Upload.Helpers.Argument_Checks import resolve_primary_key
@@ -108,7 +107,7 @@ private _create_in_memory_table_upload_op (source_table : Table) connection tabl
                 connection.jdbc_connection.batch_insert insert_template statement_setter source_table batch_size=default_batch_size expected_type_hints=expected_type_hints row_limit=row_limit
 
         upload_status.if_not_error <|
-            connection.query (SQL_Query.Table_Name table_name)
+            connection.query (..Table_Name table_name)
 
     Table_Upload_Operation.Value table_description callback
 
@@ -137,7 +136,7 @@ private _create_database_table_upload_op (source_table : Table & DB_Table) conne
                 internal_translate_known_upload_errors source_table connection primary_key <|
                     Panic.rethrow <| connection.execute_update copy_into_statement
             upload_status.if_not_error <|
-                connection.query (SQL_Query.Table_Name table_name)
+                connection.query (..Table_Name table_name)
 
         Table_Upload_Operation.Value table_description callback
 

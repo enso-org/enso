@@ -8,9 +8,11 @@ import { ProjectPath } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { Extension } from '@codemirror/state'
-import { tableExpression, type MethodCompletionInfo } from 'lezer-enso-table-expr'
+import { tableExpression } from 'lezer-enso-table-expr'
 import { computed, toRef, toValue } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
+import { tableExpressionAutocomplete } from './autocomplete'
+import type { MethodCompletionInfo } from './completionData'
 
 export interface TableExpressionExtensionOptions {
   project: ToValue<Opt<ProjectStore>>
@@ -43,10 +45,11 @@ export function useTableExpressionExtension(
       project ?
         useTableColumns({ project, projectNames, expressionId: useTableContext(true)?.externalId })
       : undefined
-    return tableExpression({
+    const autocomplete = tableExpressionAutocomplete({
       methods: () => methodInfos.value,
       columns: () => columns?.value ?? [],
     })
+    return [tableExpression(), autocomplete]
   }
 }
 
@@ -73,6 +76,7 @@ function methodInfoFromEntry(entry: MethodSuggestionEntry): MethodCompletionInfo
     name: entry.name,
     description: entry.documentationSummary,
     args: entry.arguments.length > 0,
+    documentation: entry,
   }
 }
 

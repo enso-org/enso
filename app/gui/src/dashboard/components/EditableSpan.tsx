@@ -116,6 +116,10 @@ function EditForm(props: EditFormProps) {
             onContextMenu={(event) => {
               event.stopPropagation()
             }}
+            onDoubleClick={(event) => {
+              // Double click should select text, rather than triggering an action.
+              event.stopPropagation()
+            }}
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
                 event.preventDefault()

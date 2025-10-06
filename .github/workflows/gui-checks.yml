@@ -89,6 +89,13 @@ jobs:
           fail-on-error: false
           fail-on-warning: false
 
+      - name: 📥 Download Enso Engine
+        continue-on-error: true
+        working-directory: app/project-manager-shim
+        run: pnpm run download-engine
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: 🧪 Unit Tests
         id: unit-tests
         continue-on-error: true
@@ -158,8 +165,6 @@ jobs:
       - name: 🎭 Playwright Tests
         working-directory: app/gui
         run: pnpm run test:integration --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: ⬆️ Upload blob report to GitHub Actions Artifacts
         if: ${{ !cancelled() }}

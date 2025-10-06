@@ -264,9 +264,9 @@ type Dialect
        ---
        The dialect-dependent strategy to get the Primary Key for a given table.
        Returns `Nothing` if the key is not defined.
-    fetch_primary_key : Connection -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name =
-        _ = [connection, table_name]
+    fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
+    fetch_primary_key self connection table_name schema_name =
+        _ = [connection, table_name, schema_name]
         Unimplemented.throw "This is an interface only."
 
     ## ---
@@ -362,9 +362,10 @@ postgres = Postgres_Dialect.postgres
    private: true
    ---
    Default implementation relying on DatabaseMetaData.
-default_fetch_primary_key connection table_name =
+default_fetch_primary_key connection table_name schema_name =
     connection.jdbc_connection.with_metadata metadata->
-        rs = metadata.getPrimaryKeys Nothing Nothing table_name
+        used_schema = if schema_name == "" then Nothing else schema_name
+        rs = metadata.getPrimaryKeys Nothing used_schema table_name
         tm = connection.dialect.get_type_mapping
         keys_table = result_set_to_table rs tm.sql_type_to_value_type tm.column_fetcher_factory
         # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.

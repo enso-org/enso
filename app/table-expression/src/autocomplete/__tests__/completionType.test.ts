@@ -1,7 +1,7 @@
 import { EditorState } from '@codemirror/state'
 import { expect, test } from 'vitest'
+import { completionTypeAt } from '..'
 import { tableExpression } from '../..'
-import { completionTypeAt } from '../completionType'
 
 function completionTypeCase(source: string) {
   const anchor = source.indexOf('|')
@@ -11,7 +11,7 @@ function completionTypeCase(source: string) {
   const doc = source.replaceAll('|', '')
   const state = EditorState.create({
     doc,
-    extensions: [tableExpression({ methods: () => [] })],
+    extensions: tableExpression(),
   })
   return { completion: completionTypeAt(pos, state), anchor }
 }
@@ -65,7 +65,7 @@ test.each([
   'a_function(1, 2, 3|)',
 ])('Function info completion: %s', (source) => {
   const { completion } = completionTypeCase(source)
-  expect(completion).toStrictEqual({ type: 'functionInfo', functionName: 'a_function' })
+  expect(completion).toStrictEqual({ type: 'functionInfo', pos: 0, functionName: 'a_function' })
 })
 
 test.each([
