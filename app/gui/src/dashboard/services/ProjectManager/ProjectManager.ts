@@ -20,7 +20,6 @@ import {
   type DuplicatedProject,
   type DuplicateProjectParams,
   type FileSystemEntry,
-  type JSONRPCError,
   type JSONRPCResponse,
   type OpenProject,
   type OpenProjectParams,
@@ -45,8 +44,6 @@ export class ProjectManager {
   private readonly directories = new Map<Path, readonly FileSystemEntry[]>()
   private readonly projects = new Map<UUID, ProjectState>()
   private readonly projectIds = new Map<Path, UUID>()
-  private resolvers = new Map<number, (value: never) => void>()
-  private rejecters = new Map<number, (reason?: JSONRPCError) => void>()
 
   /** Create a {@link ProjectManager} */
   constructor(public readonly rootDirectory: Path) {}
@@ -349,12 +346,6 @@ export class ProjectManager {
         siblings.filter((entry) => entry.path !== path),
       )
     }
-  }
-
-  /** Remove all handlers for a specified request ID. */
-  private cleanup(id: number) {
-    this.resolvers.delete(id)
-    this.rejecters.delete(id)
   }
 
   /**

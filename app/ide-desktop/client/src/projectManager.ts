@@ -20,7 +20,7 @@ let extraArgs: string[] = []
 /** Get the project service. */
 export function getProjectService(): ProjectService {
   if (!projectService) {
-    projectService = ProjectService.default(paths.RESOURCES_PATH)
+    projectService = ProjectService.default(paths.RESOURCES_PATH, extraArgs)
   }
   return projectService
 }

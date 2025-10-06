@@ -3,7 +3,6 @@ import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
 import { Button } from '#/components/Button'
 import type { ContextMenuApi } from '#/components/ContextMenu'
-import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { Scroller } from '#/components/Scroller'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
@@ -89,7 +88,6 @@ import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import {
-  useBackends,
   useFullUserSession,
   useLocalStorage,
   useRightPanelData,

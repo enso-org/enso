@@ -13,6 +13,7 @@ export interface Runner {
   openProject(
     projectPath: Path,
     projectId: string,
+    extraArgs?: Array<string>,
     extraEnv?: Array<[string, string]>,
   ): Promise<LanguageServerSockets>
   closeProject(projectId: string): Promise<void>
@@ -103,6 +104,7 @@ export class EnsoRunner implements Runner {
   async openProject(
     projectPath: Path,
     projectId: string,
+    extraArgs?: Array<string>,
     extraEnv?: Array<[string, string]>,
   ): Promise<LanguageServerSockets> {
     // Check if the project is already running
@@ -113,15 +115,6 @@ export class EnsoRunner implements Runner {
     // Find available ports for the language server
     const jsonPort = await this.findAvailablePort(DEFAULT_JSONRPC_PORT)
     const binaryPort = await this.findAvailablePort(jsonPort + 1)
-    // Create log file for this language server instance (overwrite if exists)
-    const logFileName = `language-server-${jsonPort}.log`
-    const logStream = fs.createWriteStream(logFileName, { flags: 'w' })
-    logStream.write(`=== Language Server Started at ${new Date().toISOString()} ===\n`)
-    logStream.write(`Project ID: ${projectId}\n`)
-    logStream.write(`Project Path: ${projectPath}\n`)
-    logStream.write(`JSON Port: ${jsonPort}\n`)
-    logStream.write(`Binary Port: ${binaryPort}\n`)
-    logStream.write(`===========================================\n\n`)
 
     const rootId = crypto.randomUUID()
     const args: string[] = [
@@ -139,6 +132,11 @@ export class EnsoRunner implements Runner {
       '--data-port',
       binaryPort.toString(),
     ]
+
+    // Add extra arguments if provided
+    if (extraArgs) {
+      args.push(...extraArgs)
+    }
 
     const env = { ...process.env }
     if (extraEnv) {
@@ -159,9 +157,6 @@ export class EnsoRunner implements Runner {
       const checkServerHealth = async (): Promise<boolean> => {
         try {
           const response = await fetch(`http://127.0.0.1:${jsonPort}/_health`)
-          logStream.write(
-            `[HEALTH CHECK] Checking readiness at ${new Date().toISOString()}: ${response.status}\n`,
-          )
           return response.ok
         } catch {
           return false
@@ -180,7 +175,6 @@ export class EnsoRunner implements Runner {
           if (isReady) {
             clearInterval(pollInterval)
             resolved = true
-            logStream.write(`[HEALTH CHECK] Server is ready at ${new Date().toISOString()}\n`)
             const sockets: LanguageServerSockets = {
               jsonSocket: { host: '127.0.0.1', port: jsonPort },
               binarySocket: { host: '127.0.0.1', port: binaryPort },
@@ -198,28 +192,18 @@ export class EnsoRunner implements Runner {
       // Start health check after initial delay
       setTimeout(startHealthCheck, 250)
 
-      serverProcess.stdout.on('data', (data) => {
-        const dataStr = data.toString()
-        logStream.write(`[STDOUT] ${dataStr}`)
-      })
-
       serverProcess.stderr.on('data', (data) => {
         const dataStr = data.toString()
         stderr += dataStr
-        logStream.write(`[STDERR] ${dataStr}`)
       })
 
       serverProcess.on('error', (error) => {
-        logStream.write(`[ERROR] ${error.message}\n`)
         if (!resolved) {
           reject(new Error(`Failed to start language server: ${error.message}`))
         }
       })
 
       serverProcess.on('close', async (code) => {
-        logStream.write(`\n[PROCESS EXIT] Code: ${code} at ${new Date().toISOString()}\n`)
-        logStream.end()
-
         // Execute shutdown hooks if the process exits unexpectedly
         const runningProject = this.runningProjects.get(projectId)
         if (runningProject && runningProject.shutdownHooks) {
@@ -247,7 +231,6 @@ export class EnsoRunner implements Runner {
       setTimeout(() => {
         if (!resolved) {
           serverProcess.kill('SIGKILL')
-          logStream.write(`[TIMEOUT] Language server startup timeout after 30 seconds\n`)
           reject(new Error('Language server startup timeout'))
         }
       }, 30000)

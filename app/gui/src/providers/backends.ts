@@ -10,7 +10,7 @@ import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import invariant from 'tiny-invariant'
-import { computed, inject, readonly, ref, toValue, watch, watchEffect } from 'vue'
+import { computed, inject, ref, toValue, watch, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText, type GetText } from './text'
 
