@@ -4,6 +4,7 @@ from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
 import project.Connection.Connection.Connection
@@ -176,6 +177,32 @@ type DuckDB_Connection
             SQL_Query.Raw_SQL sql -> SQL_Query_With_Schema.Raw_SQL sql
             _ : SQL_Query_With_Schema -> query
         self.connection.query used_query alias
+
+    ## ---
+       aliases: [import, load, open, query, sql]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Execute the query and load the results into memory as a Table.
+
+       ## Arguments
+        - `query`: name of the table or sql statement to query. If supplied as
+          `Text` it is treated as a table name.
+        - `limit`: the maximum number of rows to read.
+
+       ## Remarks
+
+       ### Side Effects
+       Note that the `read` method is running without restrictions when the
+       output context is disabled, but it can technically cause side effects, if
+       it is provided with a DML query. Usually it is preferred to use
+       `execute_update` for DML queries, or if they are supposed to return
+       results, the `read` should be wrapped in an execution context check.
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
+    @limit Rows_To_Read.default_widget
+    read : (SQL_Query_With_Schema | SQL_Query) -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query:(SQL_Query_With_Schema | SQL_Query) (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        self.query query . read limit
 
     ## ---
        private: true
