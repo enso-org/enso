@@ -69,7 +69,6 @@ import { createReadStream, createWriteStream, statSync } from 'node:fs'
 import { access, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
-import { pathToFileURL } from 'node:url'
 import { createGzip } from 'node:zlib'
 
 const logger = contentConfig.logger
