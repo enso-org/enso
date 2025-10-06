@@ -34,7 +34,7 @@ type JDBC_Connection
           Connection instance.
         - `operation_synchronizer`: a helper for synchronizing access to the
           underlying Connection.
-    Value connection_resource operation_synchronizer
+    Value connection_resource operation_synchronizer sql_exception=SQLException
 
     ## ---
        private: true
@@ -121,7 +121,7 @@ type JDBC_Connection
                 stmt
 
         go template values =
-            handle_sql_errors related_query=template <|
+            handle_sql_errors sql_exception=self.sql_exception related_query=template <|
                 if skip_log.not then log_sql_if_enabled self template
                 Managed_Resource.bracket (prepare template values) .close action
 
@@ -310,10 +310,10 @@ properties_as_java_props properties =
    ---
    A special method used by dialects that construct a Java JDBC connection using
    some custom logic.
-from_java java_jdbc_connection =
+from_java java_jdbc_connection sql_exception=SQLException =
     resource = Managed_Resource.register java_jdbc_connection close_connection
     synchronizer = OperationSynchronizer.new
-    JDBC_Connection.Value resource synchronizer
+    JDBC_Connection.Value resource synchronizer sql_exception
 
 ## ---
    private: true
@@ -337,8 +337,8 @@ close_connection connection =
     - `action`: The computation to execute. This computation may throw SQL
       errors.
 handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout)
-handle_sql_errors ~action related_query=Nothing =
-    Panic.catch SQLException action caught_panic->
+handle_sql_errors ~action related_query=Nothing sql_exception=SQLException =
+    Panic.catch sql_exception action caught_panic->
         case caught_panic.payload of
             exc : SQLTimeoutException -> Error.throw (SQL_Timeout.Error exc related_query)
             exc -> Error.throw (SQL_Error.Error exc related_query)

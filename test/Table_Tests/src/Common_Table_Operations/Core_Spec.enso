@@ -365,16 +365,16 @@ add_core_specs suite_builder setup =
 
         group_builder.specify "should also work as Column.read" <|
             c1 = data.t_big.at "X"
-            c1.length . should_equal 1500
+            c1.row_count . should_equal 1500
 
             r2 = c1.read
             case has_default_row_limit of
                 True ->
-                    r2.length . should_equal 1000
+                    r2.row_count . should_equal 1000
                     w2 = Problems.expect_only_warning Not_All_Rows_Downloaded r2
                     w2.max_rows . should_equal 1000
                 False ->
-                    r2.length . should_equal 1500
+                    r2.row_count . should_equal 1500
                     Problems.assume_no_problems r2
 
             v1 = c1.to_vector
@@ -388,15 +388,15 @@ add_core_specs suite_builder setup =
                     Problems.assume_no_problems v1
 
             r3 = c1.read (..First_With_Warning 10)
-            r3.length . should_equal 10
+            r3.row_count . should_equal 10
             Problems.expect_only_warning Not_All_Rows_Downloaded r3
 
             r4 = c1.read (..All_Rows)
-            r4.length . should_equal 1500
+            r4.row_count . should_equal 1500
             Problems.assume_no_problems r4
 
             r5 = c1.read (..First 3)
-            r5.length . should_equal 3
+            r5.row_count . should_equal 3
             Problems.assume_no_problems r5
 
         if setup.is_database then group_builder.specify "should allow similar API on Connection.read" <|

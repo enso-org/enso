@@ -1,9 +1,9 @@
 from Standard.Base import all
-import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.File_Type
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
+from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -18,12 +18,19 @@ import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL_Query.SQL_Query
-from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
+from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_types_selector
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
 import project.Connection.SQLServer_Query.SQLServer_Query
 import project.Internal.SQLServer_Dialect
+
+polyglot java import java.sql.SQLException
+polyglot java import org.enso.database.JDBCProxy
+polyglot java import org.graalvm.collections.Pair as Java_Pair
+
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
+polyglot java import org.enso.base.enso_cloud.HideableValue
 
 type SQLServer_Connection
     ## ---
@@ -38,7 +45,18 @@ type SQLServer_Connection
         - `data_link_setup`: the setup for saving the connection as a data link.
     create : Text -> Vector -> (Text -> SQLServer_Connection) -> Data_Link_Setup -> SQLServer_Connection
     create url properties make_new data_link_setup =
-        jdbc_connection = JDBC_Connection.create url properties
+        properties_as_java_props properties =
+            properties.map pair->
+                # Some parameters may be passed by the dialect as a `HideableValue` directly, so they do not need to be converted.
+                value = pair.second
+                java_value = if value.is_a HideableValue then value else
+                    as_hideable_value value factory=HideableValue
+                Java_Pair.create pair.first java_value
+
+        java_connection = JDBC_Connection.handle_sql_errors <|
+            props = properties_as_java_props properties
+            JDBCProxy.getConnection url props
+        jdbc_connection = JDBC_Connection.from_java sql_exception=SQLException java_connection
         jdbc_entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
         ## jdbc reports table name length limit as 128, but it actually seems to be 116 for temp tables so we override it
         limited = Encoding_Limited_Naming_Properties.Instance Encoding.utf_8 limit=116 is_case_sensitive=True
@@ -85,7 +103,7 @@ type SQLServer_Connection
 
        ## Arguments
         - database: The name of the database to connect to.
-    @database (self-> Single_Choice display=Display.Always values=(self.databases . map d-> Option d d.pretty))
+    @database (self-> Single_Choice display=..Always values=(self.databases . map d-> Option d d.pretty))
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
         if database . equals_ignore_case self.database then self else
@@ -375,9 +393,10 @@ type SQLServer_Connection
        icon: data_output
        ---
        Creates a Data Link that will open the same connection.
+    @path (File_Browse file_types=[File_Type.Option "DataLink" ["datalink"]] existing_only=False display=..Always)
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
-        self.base_connection.save_as_data_link destination on_existing_file
+    save_as_data_link self path:Enso_File (on_existing_file:Existing_File_Behavior = ..Error) =
+        self.base_connection.save_as_data_link path on_existing_file
 
     ## ---
        private: true
@@ -391,7 +410,7 @@ type SQLServer_Connection
    private: true
    ---
 Table_Viz_Data.from (that:SQLServer_Connection) =
-    tables = that.connection.tables.filter "Schema" (..Is_In schema_black_list ..Remove)
+    tables = that.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}} {{@Schema}})", Table_Viz_Header.Label "Schema"] [tables.at "Name" . to_vector, tables.at "Schema" . to_vector]
 
 ## ---
@@ -399,3 +418,17 @@ Table_Viz_Data.from (that:SQLServer_Connection) =
    ---
 schema_black_list =
     ["INFORMATION_SCHEMA", "sys", "db_accessadmin", "db_backupoperator", "db_datareader", "db_datawriter", "db_ddladmin", "db_denydatareader", "db_denydatawriter", "db_owner", "db_securityadmin"]
+
+## ---
+   private: true
+   ---
+make_table_name_selector connection =
+    schema = connection.schema
+    schema_text sch = if sch == schema then "" else sch+"."
+    tables = connection.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
+    table_name_values = tables.rows.map r->
+        name = r.at "Name"
+        sch = r.at "Schema"
+        Option ((schema_text sch) + name) "(..Table_Name "+name.pretty+(if sch == schema then "" else " "+sch.pretty)+")"
+    values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
+    Single_Choice display=..Always values=values

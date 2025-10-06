@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
+import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import type { HandledUpdate, WidgetInput, WidgetTypeId } from '@/providers/widgetRegistry'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
@@ -15,9 +16,7 @@ const props = defineProps<{
   widgetTypeId: WidgetTypeId
   input: WidgetInput
   placeholder?: string | undefined
-  /**
-   * Additional extensions to provide to codemirror editor. Usually useful for language definition.
-   */
+  /** Additional extensions to provide to codemirror editor. */
   extensions?: Extension
   /**
    * If provided, the element with class `cm-content` will also have the given `data-testid`.
@@ -45,6 +44,7 @@ const { syncExt, getText, setText } = useStringSync({
   },
   onUserAction: (text, selection) => emit('userAction', text, selection),
 })
+const vueHost = new VueHostInstance()
 const { editorView } = useCodeMirror(editorRoot, {
   placeholder: () => props.placeholder ?? ' ',
   extensions: [
@@ -57,6 +57,7 @@ const { editorView } = useCodeMirror(editorRoot, {
   readonly: false,
   contentTestId: props.contentTestId,
   lineMode: () => props.lineMode ?? 'single',
+  vueHost: () => vueHost,
 })
 
 watch(model, (text) => setText(editorView, text), { immediate: true })
@@ -139,7 +140,9 @@ defineExpose({
     @keydown.down.stop
     @click.stop
     @wheel.stop.passive
-  />
+  >
+    <VueHostRender :host="vueHost" />
+  </CodeMirrorRoot>
 </template>
 
 <style scoped>

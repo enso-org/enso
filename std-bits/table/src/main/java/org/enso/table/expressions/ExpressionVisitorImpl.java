@@ -117,11 +117,15 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     public static Method create(
         Iterable<MethodResolver> methodResolvers,
         String methodName,
-        boolean isVariableArgumentMethod) {
+        boolean isVariableArgumentMethod,
+        boolean isMappingFunction,
+        Function<Value, Value> mapColumn) {
       for (var resolver : methodResolvers) {
         if (resolver.canResolve(methodName)) {
           if (isVariableArgumentMethod) {
             return new VariableArgumentMethod(resolver, methodName);
+          } else if (isMappingFunction) {
+            return new StaticMapArgumentMethod(resolver, methodName, mapColumn);
           } else if (resolver.isStaticMethod) {
             return new StaticArgumentMethod(resolver, methodName);
           } else {
@@ -132,11 +136,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       throw new UnsupportedOperationException("Method not found: " + methodName);
     }
 
-    @Override
-    public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
-      Object[] objects;
+    protected final Object[] prepareArgumentsForExecute(
+        Value[] args, Function<Object, Value> makeConstantColumn) {
       try {
-        objects = prepareArguments(args, makeConstantColumn);
+        return prepareArguments(args, makeConstantColumn);
       } catch (PolyglotException e) {
         if (e.getMessage().startsWith("Type error: expected expression to be")) {
           throw new TypeErrorException(
@@ -147,12 +150,28 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         }
         throw e;
       }
+    }
+
+    protected Value doExecute(Object[] objects) {
+      return methodResolver.resolve(this.name).execute(objects);
+    }
+
+    protected static boolean isFunction(Value value) {
+      return value.canExecute() && !value.isDate() && !value.isTime();
+    }
+
+    @Override
+    public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
+      Object[] objects = prepareArgumentsForExecute(args, makeConstantColumn);
+
       try {
-        var result = methodResolver.resolve(this.name).execute(objects);
+        var result = doExecute(objects);
+
         // Date and Time objects report as can execute() but we want to treat as a value.
-        if (!result.isDate() && !result.isTime() && result.canExecute()) {
+        if (isFunction(result)) {
           throw new IllegalArgumentException("Insufficient arguments for method " + name);
         }
+
         return result;
       } catch (PolyglotException e) {
         if (e.getMessage().startsWith("Type error: expected a function")) {
@@ -198,22 +217,48 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
+  public static class StaticMapArgumentMethod extends StaticArgumentMethod {
+    private final Function<Value, Value> mapColumn;
+
+    public StaticMapArgumentMethod(
+        MethodResolver methodResolver, String name, Function<Value, Value> mapColumn) {
+      super(methodResolver, name);
+      this.mapColumn = mapColumn;
+    }
+
+    @Override
+    protected Value doExecute(Object[] objects) {
+      var result = methodResolver.resolve(this.name).execute(objects);
+      if (!isFunction(result)) {
+        return result;
+      }
+
+      // We have a function back, so we need to map this over the column
+      return mapColumn.apply(result);
+    }
+  }
+
   public static Value evaluate(
       String expression,
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       Function<Value, Boolean> isColumn,
       MethodResolver[] methodResolvers,
-      String[] variableArgumentFunctions)
+      String[] variableArgumentFunctions,
+      String[] mappingFunctions,
+      Function<Value, Value> mapColumn)
       throws UnsupportedOperationException, IllegalArgumentException {
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
+    final var setMappingFunctions = new HashSet<>(Arrays.asList(mappingFunctions));
     Function<String, MethodInterface> getMethod =
         name ->
             Method.create(
                 java.util.Arrays.stream(methodResolvers).toList(),
                 name,
-                setVariableArgumentFunctions.contains(name));
+                setVariableArgumentFunctions.contains(name),
+                setMappingFunctions.contains(name),
+                mapColumn);
     Function<String, Value> makeConstructor =
         name -> methodResolvers[0].module.invokeMember("eval_expression", ".." + name);
 
