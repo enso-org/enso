@@ -214,8 +214,10 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
 
         Info info = new NodeInfo(frame.materialize(), context.getInstrumentedNode());
+        var node = context.getInstrumentedNode();
+        var skipTracking = node instanceof FunctionCallInstrumentationNode;
         if (!info.getId().isExternal()) {
-          setParentNode(info.getId());
+          setParentNode(info.getId(), skipTracking);
           return;
         }
         Object result = callbacks.findCachedResult(info, parentNodeID);
@@ -223,7 +225,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         if (result != null && !callbacks.needsFullExecution()) {
           throw context.createUnwind(result);
         }
-        setParentNode(info.getId());
+        setParentNode(info.getId(), skipTracking);
         setExecutionEnvironment(info);
         nanoTimeElapsed = timer.getTime();
       }
@@ -245,8 +247,9 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         var uuid = NodeInfo.getNodeID(node);
         assert uuid != null; // If it is instrumented, it has to have UUID.
 
+        var skipTracking = node instanceof FunctionCallInstrumentationNode;
         if (!uuid.isExternal()) {
-          restoreParentNode(uuid);
+          restoreParentNode(uuid, skipTracking);
           return;
         }
 
@@ -261,7 +264,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   node);
           Object cachedResult = callbacks.onFunctionReturn(info);
           resetExecutionEnvironment(uuid);
-          restoreParentNode(uuid);
+          restoreParentNode(uuid, skipTracking);
           if (cachedResult != null) {
             throw context.createUnwind(cachedResult);
           }
@@ -274,14 +277,14 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                   nanoTimeElapsed,
                   frame == null ? null : frame.materialize(),
                   node);
-          restoreParentNode(uuid);
+          restoreParentNode(uuid, skipTracking);
           callbacks.updateCachedResult(info);
           resetExecutionEnvironment(uuid);
           if (info.isPanic()) {
             throw context.createUnwind(result);
           }
         } else {
-          restoreParentNode(uuid);
+          restoreParentNode(uuid, skipTracking);
           resetExecutionEnvironment(uuid);
         }
       }
@@ -359,7 +362,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
       }
 
-      private void setParentNode(RuntimeID thisNodeId) {
+      private void setParentNode(RuntimeID thisNodeId, boolean skipDependencyTracking) {
+        if (skipDependencyTracking) {
+          return;
+        }
+
         if (thisNodeId != null) {
           callbacks.updateParent(thisNodeId, parentNodeID);
           parentNodeID = thisNodeId;
@@ -367,7 +374,11 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         EnsoContext.get(this).currentRuntimeAnalysis().enterNode(thisNodeId);
       }
 
-      private void restoreParentNode(RuntimeID previousUUID) {
+      private void restoreParentNode(RuntimeID previousUUID, boolean skipDependencyTracking) {
+        if (skipDependencyTracking) {
+          return;
+        }
+
         if (previousUUID != null) {
           var parent = callbacks.getAndRemoveParent(previousUUID);
           parentNodeID = parent;
