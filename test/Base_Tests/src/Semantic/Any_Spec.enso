@@ -44,29 +44,33 @@ add_specs suite_builder =
             With_Y.Value 44 . x . should_equal "With_Y:With_Y(44)"
             My_Type.x . should_equal "Any:My_Type"
             With_X.x . to_text . should_equal "Any:With_X"
+            Test.expect_panic_with (With_X.y) No_Such_Method
             With_Y.x . to_text . should_equal "Any:With_Y"
+            Test.expect_panic_with (With_Y.y) No_Such_Method
             With_X.to_text . to_text . should_equal "With_X"
             With_Y.to_text . to_text . should_equal "With_Y"
-            Date.to_display_text . should_equal "Date"
-            Any.x . should_equal "Any:Any"
-            Test.expect_panic_with (With_X.y) No_Such_Method
-            Test.expect_panic_with (With_Y.y) No_Such_Method
+            Any.x . to_text . should_equal "Any:Any"
 
         group_builder.specify "Static method invocation (x)" <|
             Any.x self=Any . to_text . should_equal "Any:Any"
             Any.x self=With_X . should_equal "Any:With_X"
             Any.x self=With_Y . should_equal "Any:With_Y"
+            Test.expect_panic_with (Any.x (My_Type.Value 22)) Not_Invokable
+            Test.expect_panic_with (Any.x (With_X.Value 22)) Not_Invokable
+            Test.expect_panic_with (Any.x (With_Y.Value 22)) Not_Invokable
+            Date.to_display_text . should_equal "Date"
             Any.x self=(My_Type.Value 22) . should_equal "Any:(My_Type.Value 22)"
             Any.x self=(With_X.Value 22) . should_equal "Any:(With_X.Value 22)"
             Any.x self=(With_Y.Value 22) . should_equal "Any:With_Y(22)"
 
         group_builder.specify "Static method invocation (==)" <|
             # Any.== is a method that takes two arguments (self other)
-            Any.== . should_be_a Function
-            Any.== Any . should_be_true
-            Any.== Boolean . should_be_false
+            (Any.==) . should_be_a Function
             (Any.== self=Boolean) . should_be_a Function
             (Any.== self=Any Boolean) . should_be_false
+            Test.expect_panic_with (Any.== Any Any) Not_Invokable
+            (Any.== Boolean) . should_be_false
+            (Any.== Any) . should_be_true
             (Any.== self=Any Any) . should_be_true
 
         group_builder.specify "Instance method invocation (==)" <|
@@ -81,6 +85,9 @@ add_specs suite_builder =
             Any.to_text self=Any . should_equal "Any"
             Any.to_text self=Vector . should_equal "Vector"
             Any.to_text self=[1,2,3] . should_equal "[1, 2, 3]"
+            Test.expect_panic_with (Any.to_text Any) Not_Invokable
+            Test.expect_panic_with (Any.to_text Vector) Not_Invokable
+            Test.expect_panic_with (Any.to_text [1,2,3]) Not_Invokable
 
             Vector.to_text . should_equal "Vector"
             Text.to_text . should_equal "Text"
@@ -89,12 +96,13 @@ add_specs suite_builder =
 
         group_builder.specify "Static method invocation (spec_method)" <|
             # Any.spec_method is a method that takes three arguments (self, arg1, arg2)
-            Any.spec_method . should_be_a Function
-            Any.spec_method Boolean . should_be_a Function
-            Any.spec_method Boolean Vector . should_equals "Any.spec_method:{Any}{Boolean}{Vector}"
-            Test.expect_panic_with (Any.spec_method Date Boolean Vector) Not_Invokable
+            (Any.spec_method) . should_be_a Function
+            (Any.spec_method Boolean) . should_be_a Function
             (Any.spec_method self=Boolean) . should_be_a Function
             (Any.spec_method self=Boolean Vector) . should_be_a Function
+            Any.spec_method Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
+            Test.expect_panic_with (Any.spec_method Any Boolean Vector) Not_Invokable
+            Test.expect_panic_with (Any.spec_method Date Boolean Vector) Not_Invokable
             Any.spec_method self=Date Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
             Any.spec_method self=Any Boolean Vector . should_equal "Any.spec_method:{Any}{Boolean}{Vector}"
             Date.spec_method Boolean Vector . should_equal "Any.spec_method:{Date}{Boolean}{Vector}"
@@ -106,11 +114,13 @@ add_specs suite_builder =
             Test.expect_panic_with (Vector.contains [42]) No_Such_Method
             Test.expect_panic_with (Vector.contains [42] 1) No_Such_Method
             Vector.contains self=[1,2,3] 1 . should_be_true
+            Test.expect_panic_with (Vector.contains [1,2,3] 1) No_Such_Method
 
             # Vector.is_empty has just one argument (self)
             Test.expect_panic_with (Vector.is_empty) No_Such_Method
             Test.expect_panic_with (Vector.is_empty []) No_Such_Method
             Vector.is_empty self=[] . should_be_true
+            Test.expect_panic_with (Vector.is_empty) No_Such_Method
 
 
 main filter=Nothing =
