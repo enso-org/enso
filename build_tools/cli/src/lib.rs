@@ -72,7 +72,6 @@ use ide_ci::programs::git;
 use ide_ci::programs::git::clean;
 use ide_ci::programs::rustc;
 use ide_ci::programs::Cargo;
-use ide_ci::programs::Pnpm;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
 use tokio::process::Child;
