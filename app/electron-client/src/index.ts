@@ -254,37 +254,8 @@ class App {
   setChromeOptions() {
     // Needed to accept localhost self-signed cert
     electron.app.commandLine.appendSwitch('ignore-certificate-errors')
-    // Disable the GPU process sandbox. It should be noted that on certain hardware configurations,
-    // the utilization of GPU sandboxing may result in WebGL crashes. Despite Google's discouragement
-    // of this option, it is considered safe for use in this specific instance, as the browser is
-    // dedicated solely to the display of Enso, which has unrestricted access to all files and system
-    // settings on the user's machine. For a detailed explanation of instances where such crashes may
-    // occur, please refer to this document: https://wiki.archlinux.org/title/chromium.
-    electron.app.commandLine.appendSwitch('disable-gpu-sandbox')
-    // Force using discrete GPU when there are multiple GPUs available.
-    electron.app.commandLine.appendSwitch('force-high-performance-gpu')
-    // Disable the GPU Vertical Synchronization (VSync). This feature synchronizes the refresh rate
-    // and frame rate of the monitor to ensure optimal picture quality, particularly in gaming
-    // scenarios. However, in applications that heavily rely on a graphical user interface, the
-    // utilization of VSync is not deemed essential. By disabling this feature, performance may be
-    // improved on hardware configurations with limited capabilities. In addition, disabling VSync
-    // also has the potential to reduce rendering latency. For a comprehensive understanding of this
-    // aspect, please refer to this thread:
-    // https://bugs.chromium.org/p/chromium/issues/detail?id=460919.
-    electron.app.commandLine.appendSwitch('disable-gpu-vsync')
-    // Disable smooth scrolling feature. This modification has the potential to reduce latency
-    // experienced with input devices. For further elaboration, please refer to this thread:
-    // https://news.ycombinator.com/item?id=28782493.
-    electron.app.commandLine.appendSwitch('disable-smooth-scrolling')
     // Enable native CPU-mappable GPU memory buffer support on Linux.
     electron.app.commandLine.appendSwitch('enable-native-gpu-memory-buffers')
-    // Override the list of blocked GPU hardware, allowing for GPU acceleration on system configurations
-    // that do not inherently support it. It should be noted that some hardware configurations may have
-    // driver issues that could result in rendering discrepancies. Despite this, the utilization of GPU
-    // acceleration has the potential to significantly enhance the performance of the application in our
-    // specific use cases. This behavior can be observed in the following example:
-    // https://groups.google.com/a/chromium.org/g/chromium-dev/c/09NnO6jYT6o.
-    electron.app.commandLine.appendSwitch('ignore-gpu-blocklist')
   }
 
   /** Main app entry point. */
