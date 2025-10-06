@@ -6,6 +6,7 @@ import { createWriteStream } from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { pipeline } from 'node:stream/promises'
+import * as portfinder from 'portfinder'
 import { extract } from 'tar'
 
 export interface Runner {
@@ -112,10 +113,9 @@ export class EnsoRunner implements Runner {
     if (runningProject) {
       return runningProject.sockets
     }
-    // Find available ports for the language server
-    const jsonPort = await this.findAvailablePort(DEFAULT_JSONRPC_PORT)
-    const binaryPort = await this.findAvailablePort(jsonPort + 1)
 
+    // Find available ports for the language server
+    const [jsonPort, binaryPort] = await this.findServerPorts(DEFAULT_JSONRPC_PORT)
     const rootId = crypto.randomUUID()
     const args: string[] = [
       '--server',
@@ -403,28 +403,17 @@ export class EnsoRunner implements Runner {
   }
 
   /** Finds an available port starting from the given port number. */
-  private async findAvailablePort(startPort: number): Promise<number> {
-    const net = await import('node:net')
-
-    return new Promise((resolve) => {
-      const tryPort = (port: number) => {
-        const server = net.createServer()
-
-        server.listen(port, '127.0.0.1')
-
-        server.on('listening', () => {
-          server.close(() => {
-            resolve(port)
-          })
-        })
-
-        server.on('error', () => {
-          // Port is in use, try the next one
-          tryPort(port + 1)
-        })
-      }
-
-      tryPort(startPort)
+  private async findServerPorts(startPort: number): Promise<[number, number]> {
+    return new Promise((resolve, reject) => {
+      portfinder.getPorts(2, { port: startPort }, (err, ports) => {
+        if (err) {
+          reject(new Error(`Failed to find ports: ${err}`))
+        }
+        if (ports.length < 2) {
+          reject(new Error(`Failed to find all ports: ${ports}`))
+        }
+        resolve(ports as [number, number])
+      })
     })
   }
 }
