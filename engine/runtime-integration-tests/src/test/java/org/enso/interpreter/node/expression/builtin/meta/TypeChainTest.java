@@ -1,5 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -14,6 +16,8 @@ import org.junit.Test;
 public class TypeChainTest {
   @ClassRule public static final ContextUtils ctx = ContextUtils.createDefault();
   private static Value typeOf;
+  private static Value normalType;
+  private static Value singletonType;
 
   @BeforeClass
   public static void initTypeOf() {
@@ -23,6 +27,21 @@ public class TypeChainTest {
             import Standard.Base.Meta
 
             main = Meta.type_of
+            """);
+    normalType =
+        ctx.evalModule(
+            """
+            type Normal_Type
+                Cons a
+
+            main = Normal_Type
+            """);
+    singletonType =
+        ctx.evalModule(
+            """
+            type Singleton_Type
+
+            main = Singleton_Type
             """);
   }
 
@@ -122,5 +141,32 @@ public class TypeChainTest {
     var anyTypeExpected = ctx.ensoContext().getBuiltins().any();
     assertArrayEquals(
         "allTypes(Any.type) == [Any.type, Any]", new Object[] {anyEigenType, anyTypeExpected}, all);
+  }
+
+  /** {@code allTypes(Normal_Type) == [Normal_Type, Any]} */
+  @Test
+  public void normalTypeChain() {
+    var raw = (Type) ctx.unwrapValue(normalType);
+    assertThat("Is not eigen type", raw.isEigenType(), is(false));
+    var all = raw.allTypes(ctx.ensoContext());
+
+    var exp1 = raw;
+    var exp2 = ctx.ensoContext().getBuiltins().any();
+    assertArrayEquals(
+        "allTypes(Normal_Type) == [Normal_Type, Any]", new Object[] {exp1, exp2}, all);
+  }
+
+  @Test
+  public void singletonTypeChain() {
+    var raw = (Type) ctx.unwrapValue(singletonType);
+    assertThat("Is eigen type", raw.isEigenType(), is(true));
+    var all = raw.allTypes(ctx.ensoContext());
+
+    var exp1 = raw;
+    var exp2 = ctx.ensoContext().getBuiltins().any();
+    assertArrayEquals(
+        "allTypes(Singleton_Type.type) == [Singleton_Type.type, Any]",
+        new Object[] {exp1, exp2},
+        all);
   }
 }
