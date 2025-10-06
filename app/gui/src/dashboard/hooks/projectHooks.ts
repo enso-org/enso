@@ -165,7 +165,6 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
     queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
     queryFn: () => backend.getProjectDetails(assetId),
     refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
     refetchOnMount: true,
     networkMode: backend.type === backendModule.BackendType.remote ? 'online' : 'always',
     meta: { persist: false },

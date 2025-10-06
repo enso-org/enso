@@ -11,8 +11,8 @@ export function defaultEquality(a: unknown, b: unknown): boolean {
  * @returns true if arrays are equal.
  */
 export function arrayEquals<T>(
-  a: Array<T>,
-  b: Array<T>,
+  a: readonly T[],
+  b: readonly T[],
   eq: (a: T, b: T) => boolean = defaultEquality,
 ) {
   if (a === b) return true
