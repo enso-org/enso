@@ -10,7 +10,7 @@ import OpenProjectModal from '@/components/OpenProjectModal.vue'
 import { useOpenProjectLocally } from '@/composables/project'
 import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
 import { useQuery } from '@tanstack/vue-query'
-import { BackendType, EnsoPath, RealAssetId } from 'enso-common/src/services/Backend'
+import { BackendType, EnsoPath,type RealAssetId } from 'enso-common/src/services/Backend'
 import { createElement } from 'react'
 import { computed, toRef, useTemplateRef } from 'vue'
 
