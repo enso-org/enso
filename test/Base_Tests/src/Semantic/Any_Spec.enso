@@ -122,6 +122,19 @@ add_specs suite_builder =
             Vector.is_empty self=[] . should_be_true
             Test.expect_panic_with (Vector.is_empty) No_Such_Method
 
+        # type of Singleton_Type is Singleton_Type, not its eigen type.
+        # That is why `Singleton_Type.x` will resolve to `Singleton_Type.x` and not
+        # to `Any.x`. This is different to non-singleton types, like `With_X` or `With_Y`.
+        group_builder.specify "Instance method invocation (singleton type)" <|
+            Singleton_Type.x . should_equal "Singleton_Type:Singleton_Type"
+            Singleton_Type.y . should_equal "Singleton_Type:Singleton_Type"
+
+        group_builder.specify "Static method invocation (singleton type)" <|
+            Singleton_Type.x self=Singleton_Type . should_equal "Singleton_Type:Singleton_Type"
+            Singleton_Type.y self=Singleton_Type . should_equal "Singleton_Type:Singleton_Type"
+            Singleton_Type.x self=Any . should_equal "Singleton_Type:Any"
+            Singleton_Type.x self=Boolean . should_equal "Singleton_Type:Boolean"
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->
