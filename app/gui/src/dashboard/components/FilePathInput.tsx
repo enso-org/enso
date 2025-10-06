@@ -26,6 +26,7 @@ export default function FilePathInput(props: FilePathInputProps) {
   const { getText } = useText()
   const [fileBrowserPath, setFileBrowserPath] = useState(() => value)
   const [isFileBrowserOpened, setFileBrowserOpened] = useState(false)
+  const hasPathBeenChangedRef = useRef(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -53,16 +54,17 @@ export default function FilePathInput(props: FilePathInputProps) {
       style={fileBrowserStyles}
       tabIndex={-1}
       onBlur={(event) => {
+        if (!event.relatedTarget || !hasPathBeenChangedRef.current) return
         // Check if the focus is still inside the current component, otherwise close the file browser.
         if (rootRef.current && !rootRef.current.contains(event.relatedTarget)) {
           setFileBrowserOpened(false)
+          hasPathBeenChangedRef.current = false
         }
       }}
     >
       <FocusRing within={true}>
         <div
-          style={{ position: 'relative' }}
-          className="rounded-input focus-within:focus-ring-outset"
+          className="relative rounded-input focus-within:focus-ring-outset"
           onFocus={() => {
             setFileBrowserOpened(true)
           }}
@@ -92,6 +94,7 @@ export default function FilePathInput(props: FilePathInputProps) {
               onPathAccepted={(p: string) => {
                 setFileBrowserPath(p)
                 onChange(p)
+                hasPathBeenChangedRef.current = true
               }}
               allowOverride={true}
             />

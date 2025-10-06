@@ -268,7 +268,9 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           action: 'label',
           doAction: () => {
             void goToDrive()
-            setModal(<ManageLabelsModal backend={backend} item={asset} triggerRef={triggerRef} />)
+            setModal(
+              <ManageLabelsModal backend={backend} items={[asset]} triggerRef={triggerRef} />,
+            )
           },
         },
         isUploadableAsset(asset) &&

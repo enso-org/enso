@@ -10,6 +10,7 @@ import { Separator } from '#/components/Separator'
 import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import type { SelectedAssetInfo } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
 import {
   COLORS,
@@ -17,30 +18,22 @@ import {
   findLeastUsedColor,
   LabelName,
   lChColorToCssColor,
-  type AnyAsset,
   type Label,
   type LChColor,
 } from '#/services/Backend'
-import { twJoin } from '#/utilities/tailwindMerge'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import {
-  ListBox,
-  ListBoxItem,
-  Tag,
-  TagGroup,
-  TagList,
-  useFilter,
-  type Selection,
-} from 'react-aria-components'
+import { useMemo } from 'react'
+import { Tag, TagGroup, TagList, useFilter } from 'react-aria-components'
+import type { ControllerRenderProps } from 'react-hook-form'
 import ConfirmDeleteModal from './ConfirmDeleteModal'
 
 /** Props for a {@link ManageLabelsModal}. */
-export interface ManageLabelsModalProps<Asset extends AnyAsset = AnyAsset> {
+export interface ManageLabelsModalProps {
   readonly backend: Backend
-  readonly item: Asset
+  readonly items: readonly SelectedAssetInfo[]
   readonly triggerRef?: React.MutableRefObject<HTMLElement | null>
 }
 
@@ -49,9 +42,7 @@ export interface ManageLabelsModalProps<Asset extends AnyAsset = AnyAsset> {
  * @throws {Error} when the current backend is the local backend, or when the user is offline.
  * This should never happen, as this modal should not be accessible in either case.
  */
-export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
-  props: ManageLabelsModalProps<Asset>,
-) {
+export default function ManageLabelsModal(props: ManageLabelsModalProps) {
   const { triggerRef } = props
 
   return (
@@ -79,20 +70,34 @@ const MANAGE_LABELS_MODAL_STYLES = tv({
   },
 })
 
-/**
- * Form for {@link ManageLabelsModal}.
- */
+/** Metadata for a label. */
+interface LabelInfo {
+  readonly label: Label
+  readonly state: 'all' | 'none' | 'some'
+}
+
+/** Form for {@link ManageLabelsModal}. */
 function ManageLabelsForm(props: ManageLabelsModalProps) {
-  const { backend, item } = props
+  const { backend, items } = props
 
   const { getText } = useText()
   const { data: allLabels } = useSuspenseQuery(backendQueryOptions(backend, 'listTags', []))
   const leastUsedColor = findLeastUsedColor(allLabels)
 
-  const itemLabels =
-    item.labels
-      ?.map((labelName) => allLabels.find((label) => label.value === labelName))
-      .filter((label) => label !== undefined) ?? []
+  const labelsPresence = useMemo(
+    () =>
+      allLabels.map<LabelInfo>((label) => {
+        const count = items.filter((item) => item.labels?.includes(label.value) === true).length
+        return {
+          label,
+          state:
+            count === items.length ? ('all' as const)
+            : count === 0 ? ('none' as const)
+            : ('some' as const),
+        }
+      }),
+    [allLabels, items],
+  )
 
   const styles = MANAGE_LABELS_MODAL_STYLES()
 
@@ -103,15 +108,16 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
   const createLabel = useEventCallback(async (name: string, color?: LChColor) => {
     const labelName = LabelName(name)
     const newLabel = await createTag([{ value: labelName, color: color ?? leastUsedColor }])
-    await associateTag([item.id, [...(item.labels ?? []), labelName], item.title])
-
-    form.setValue('labels', [...selectedLabels, newLabel.id])
+    await Promise.allSettled(
+      items.map((item) => associateTag([item.id, [...(item.labels ?? []), labelName], item.title])),
+    )
+    form.setValue('labels', [...form.getValues('labels'), { label: newLabel, state: 'all' }])
   })
 
   const deleteLabel = useEventCallback((label: Label) => {
     form.setValue(
       'labels',
-      selectedLabels.filter((id) => id !== label.id),
+      selectedLabels.filter((l) => l.label.id !== label.id),
     )
     return deleteTag([label.id, label.value])
   })
@@ -119,27 +125,96 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
   const form = Form.useForm({
     schema: (z) =>
       z.object({
-        labels: z.string().array().readonly(),
+        labels: z
+          .object({ label: z.custom<Label>(), state: z.enum(['none', 'some', 'all']) })
+          .array()
+          .readonly(),
         query: z.string(),
       }),
-    onChange: (name) => {
-      if (name === 'labels') {
-        const value = form.getValues('labels')
-
-        form.clearErrors()
-
-        const labelNames = value
-          .map((label) => allLabels.find((l) => l.id === label)?.value)
-          .filter((label) => label !== undefined)
-
-        void associateTag([item.id, labelNames, item.title]).catch(() => {
-          form.setFormError(getText('arbitraryMutationError'))
-          form.resetField('labels')
-        })
-      }
-    },
-    defaultValues: { labels: itemLabels.map((label) => label.id), query: '' },
+    defaultValues: { labels: labelsPresence, query: '' },
   })
+
+  const onChange = useEventCallback(
+    async (
+      field: ControllerRenderProps<
+        {
+          labels: readonly { label: Label; state: 'all' | 'none' | 'some' }[]
+          query: string
+        },
+        'labels'
+      >,
+      newSelectedLabels: readonly LabelInfo[],
+    ) => {
+      const previousLabels = field.value
+      field.onChange(newSelectedLabels)
+      const deltas = previousLabels.flatMap((previousLabel) => {
+        const newLabel = newSelectedLabels.find(
+          (otherLabel) => otherLabel.label.id === previousLabel.label.id,
+        )
+        if (!newLabel || newLabel.state === previousLabel.state) {
+          return []
+        }
+        return { previous: previousLabel, current: newLabel }
+      })
+      return await Promise.allSettled(
+        items.map((item) => {
+          let isChanged = false
+          for (const { previous, current } of deltas) {
+            const wasLabelPresent = (() => {
+              switch (previous.state) {
+                case 'all':
+                  return true
+                case 'none':
+                  return false
+                case 'some':
+                  return item.labels?.includes(previous.label.value) === true
+              }
+            })()
+            switch (current.state) {
+              case 'all': {
+                if (!wasLabelPresent) {
+                  isChanged = true
+                }
+                break
+              }
+              case 'none': {
+                if (wasLabelPresent) {
+                  isChanged = true
+                }
+                break
+              }
+              case 'some': {
+                break
+              }
+            }
+            if (isChanged) {
+              break
+            }
+          }
+          if (!isChanged) {
+            return Promise.resolve()
+          }
+          const newLabels = new Set(item.labels ?? [])
+          for (const label of newSelectedLabels) {
+            switch (label.state) {
+              case 'all': {
+                newLabels.add(label.label.value)
+                break
+              }
+              case 'none': {
+                newLabels.delete(label.label.value)
+                break
+              }
+              case 'some': {
+                break
+              }
+            }
+          }
+          return associateTag([item.id, [...newLabels], item.title])
+        }),
+      )
+    },
+  )
 
   const selectedLabels = Form.useWatch({ control: form.control, name: 'labels' })
 
@@ -162,7 +237,9 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
               <TagList
                 className="flex w-full gap-1"
                 items={selectedLabels
-                  .map((label) => allLabels.find((allLabelsItem) => allLabelsItem.id === label))
+                  .map((label) =>
+                    allLabels.find((allLabelsItem) => allLabelsItem.id === label.label.id),
+                  )
                   .filter((label) => label !== undefined)}
               >
                 {(label) => (
@@ -200,25 +277,26 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
                 <AllLabels
                   colors={COLORS}
                   leastUsedColor={leastUsedColor}
-                  labels={allLabels}
-                  selectedLabels={field.value}
-                  defaultSelectedKeys={itemLabels.map((label) => label.id)}
-                  onSelectionChange={(keys) => {
-                    const newLabels = (() => {
-                      if (keys instanceof Set) {
-                        return Array.from(keys)
-                          .map((key) => allLabels.find((label) => label.id === key))
-                          .filter((label) => label !== undefined)
-                      }
-
-                      return allLabels
-                    })()
-
-                    field.onChange(newLabels.map((label) => label.id))
-                  }}
+                  labels={field.value}
                   query={query}
                   onCreateLabel={createLabel}
                   onDeleteLabel={deleteLabel}
+                  onCheckLabel={(newLabel) =>
+                    onChange(
+                      field,
+                      selectedLabels.map((l) =>
+                        l.label.id === newLabel.id ? { ...l, state: 'all' } : l,
+                      ),
+                    )
+                  }
+                  onUncheckLabel={(label) =>
+                    onChange(
+                      field,
+                      selectedLabels.map((l) =>
+                        l.label.id === label.id ? { ...l, state: 'none' } : l,
+                      ),
+                    )
+                  }
                 />
               )}
             />
@@ -287,54 +365,41 @@ function ManageLabelsForm(props: ManageLabelsModalProps) {
   )
 }
 
-/**
- * Props for a {@link AllLabels}.
- */
+/** Props for a {@link AllLabels}. */
 interface AllLabelsProps {
   readonly colors: readonly LChColor[]
   readonly leastUsedColor: LChColor
-  readonly labels: readonly Label[]
-  readonly selectedLabels: readonly string[]
+  readonly labels: readonly LabelInfo[]
   readonly query: string
-  readonly defaultSelectedKeys: readonly string[]
-  readonly onSelectionChange: (keys: Selection) => void
+  readonly onCheckLabel: (label: Label) => void
+  readonly onUncheckLabel: (label: Label) => void
   readonly onCreateLabel: (name: string, color: LChColor) => Promise<void>
   readonly onDeleteLabel: (label: Label) => Promise<void>
 }
 
-/**
- * A list of all labels.
- */
+/** A list of all labels. */
 function AllLabels(props: AllLabelsProps) {
   const {
     labels,
     query,
-    onCreateLabel,
-    onDeleteLabel,
     colors,
     leastUsedColor,
-    defaultSelectedKeys,
-    selectedLabels,
-    onSelectionChange,
+    onCreateLabel,
+    onDeleteLabel,
+    onCheckLabel,
+    onUncheckLabel,
   } = props
 
   const { getText } = useText()
-
   const filter = useFilter({ sensitivity: 'base' })
-
-  const filteredLabels = labels.filter((label) => filter.contains(label.value, query))
+  const filteredLabels = labels.filter((label) => filter.contains(label.label.value, query))
 
   return (
-    <ListBox
-      items={filteredLabels}
-      className="flex max-h-72 flex-col overflow-y-auto overflow-x-hidden scroll-offset-edge-0"
+    <div
       aria-label={getText('manageLabelsModal.allLabels')}
-      selectionMode="multiple"
-      selectedKeys={selectedLabels}
-      defaultSelectedKeys={defaultSelectedKeys}
-      onSelectionChange={onSelectionChange}
-      dependencies={[query]}
-      renderEmptyState={() => (
+      className="flex max-h-72 flex-col overflow-y-auto overflow-x-hidden scroll-offset-edge-0"
+    >
+      {filteredLabels.length === 0 && (
         <NotFoundLabel
           query={query}
           onCreateLabel={onCreateLabel}
@@ -342,22 +407,20 @@ function AllLabels(props: AllLabelsProps) {
           colors={colors}
         />
       )}
-    >
-      {(label) => (
-        <ListBoxItem
-          key={label.id}
-          id={label.id}
-          textValue={label.value}
-          className="group rounded-3xl pressed:bg-primary/5"
-        >
-          {({ isSelected, isPressed, isHovered }) => (
-            <div
-              className={twJoin(
-                'flex w-full items-center gap-2 px-2 py-0.5',
-                (isHovered || isPressed) && 'rounded-3xl bg-primary/5',
-              )}
+      {filteredLabels.map(({ label, state }) => (
+        <div key={label.id} id={label.id} className="group rounded-3xl pressed:bg-primary/5">
+          <div className="flex w-full items-center gap-2 px-2 py-0.5 hover:rounded-3xl hover:bg-primary/5">
+            <Button
+              variant="custom"
+              onPress={() => {
+                if (state === 'all') {
+                  onUncheckLabel(label)
+                } else {
+                  onCheckLabel(label)
+                }
+              }}
             >
-              <Check isSelected={isSelected} />
+              <Check isSelected={state === 'all'} isIndeterminate={state === 'some'} />
 
               <div
                 className="aspect-square w-4 flex-none rounded-full"
@@ -367,28 +430,28 @@ function AllLabels(props: AllLabelsProps) {
               <Text truncate nowrap textSelection="none">
                 {label.value}
               </Text>
+            </Button>
 
-              <Dialog.Trigger>
-                <Button
-                  variant="icon"
-                  aria-label={getText('delete')}
-                  icon="trash_small"
-                  size="small"
-                  className="ml-auto opacity-0 transition-opacity duration-75 group-hover:opacity-100"
-                />
+            <Dialog.Trigger>
+              <Button
+                variant="icon"
+                aria-label={getText('delete')}
+                icon="trash_small"
+                size="small"
+                className="ml-auto opacity-0 transition-opacity duration-75 group-hover:opacity-100"
+              />
 
-                <ConfirmDeleteModal
-                  cannotUndo
-                  actionText={getText('deleteLabelActionText', label.value)}
-                  actionButtonLabel={getText('delete')}
-                  onConfirm={() => onDeleteLabel(label)}
-                />
-              </Dialog.Trigger>
-            </div>
-          )}
-        </ListBoxItem>
-      )}
-    </ListBox>
+              <ConfirmDeleteModal
+                cannotUndo
+                actionText={getText('deleteLabelActionText', label.value)}
+                actionButtonLabel={getText('delete')}
+                onConfirm={() => onDeleteLabel(label)}
+              />
+            </Dialog.Trigger>
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
