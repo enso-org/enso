@@ -118,12 +118,9 @@ public class TypeChainTest {
   @Test
   public void anyChain() {
     var any = ctx.ensoContext().getBuiltins().any();
-    var anyType = typeOf.execute(any);
-    var raw = (Type) ctx.unwrapValue(anyType);
-    var all = raw.allTypes(ctx.ensoContext());
+    var all = any.allTypes(ctx.ensoContext());
 
-    var anyEigenType = any.getEigentype();
-    assertArrayEquals("allTypes(Any) == [Any]", new Object[] {anyEigenType}, all);
+    assertArrayEquals("allTypes(Any) == [Any]", new Object[] {any}, all);
   }
 
   /** {@code allTypes(Any.type) == [Any.type, Any]} */
