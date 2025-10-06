@@ -1,6 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
+from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 
@@ -11,7 +11,6 @@ import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Dialects.Dialect
-import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.DuckDB.DuckDB_Entity_Naming_Properties
 import project.Internal.JDBC_Connection
 import project.SQL.SQL_Statement

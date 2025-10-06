@@ -37,4 +37,5 @@
 - make_schema_selector connection:Standard.Base.Any.Any include_any:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_structure_creator -> Standard.Base.Any.Any
 - make_table_name_selector connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_table_name_with_schema_selector connection:Standard.Base.Any.Any schema_black_list:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_table_types_selector connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
