@@ -1972,7 +1972,6 @@ lazy val `ydoc-server` = project
     ),
     libraryDependencies ++= slf4jApi ++ Seq(
       "org.graalvm.truffle"        % "truffle-api"                 % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"           % "org-openide-util-lookup"     % netbeansApiVersion        % "provided",
       "org.graalvm.sdk"            % "nativeimage"                 % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot"       % "inspect-community"           % graalMavenPackagesVersion % "runtime",
       "org.graalvm.polyglot"       % "js-community"                % graalMavenPackagesVersion % "runtime",
@@ -2045,7 +2044,6 @@ lazy val `ydoc-server` = project
       )
       .value
   )
-  .dependsOn(`jvm-interop`)
   .dependsOn(`ydoc-polyfill`)
   .dependsOn(`logging-service-logback`)
 

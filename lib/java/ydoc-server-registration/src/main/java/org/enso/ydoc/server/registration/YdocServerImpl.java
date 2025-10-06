@@ -1,5 +1,6 @@
 package org.enso.ydoc.server.registration;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import org.enso.jvm.interop.api.OtherJvmClassLoader;
@@ -20,15 +21,32 @@ public final class YdocServerImpl extends YdocServerApi {
     // but in the other JVM
     var isAot = ImageInfo.inImageRuntimeCode();
     var ctx = Context.create("hosted");
-    var loader = OtherJvmClassLoader.create("org.enso.ydoc.server", null, isAot, null);
-    var loadValue = ctx.asValue(loader);
+    var rawLoader = OtherJvmClassLoader.create("org.enso.ydoc.server", null, isAot, null);
+    var loader = ctx.asValue(rawLoader);
+    if (isAot) {
+      // in AOT mode the org.enso.ydoc.server is the main module loaded
+      // to the JVM's boot layer - e.g. its classes are available
+    } else {
+      // in "single JVM mock mode" we have to make sure JAR is added to
+      // the classloader - right now by calling addPath
+      var myJar =
+          new File(
+              OtherJvmClassLoader.class
+                  .getProtectionDomain()
+                  .getCodeSource()
+                  .getLocation()
+                  .toURI());
+      var ydocServerJar = new File(myJar.getParentFile(), "ydoc-server.jar");
+      assert ydocServerJar.exists() : "Found " + ydocServerJar;
+      loader.invokeMember("addPath", ydocServerJar.getPath());
+    }
     var fqn = "org.enso.ydoc.server.DualMain";
-    var impl = loadValue.getMember(fqn);
+    var impl = loader.getMember(fqn);
     assert impl != null;
     Object arr = ProxyArray.fromArray(hostname, "" + port);
     impl.invokeMember("main", arr);
     return () -> {
-      loadValue.invokeMember("close");
+      loader.invokeMember("close");
       ctx.close();
     };
   }
