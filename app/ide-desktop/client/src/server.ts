@@ -211,7 +211,7 @@ export class Server {
   /** Get the project service. */
   getProjectService(): ProjectService {
     if (!this.projectService) {
-      this.projectService = ProjectService.default()
+      this.projectService = ProjectService.default(paths.RESOURCES_PATH)
     }
     return this.projectService
   }
