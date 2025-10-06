@@ -72,7 +72,10 @@ export class ProjectManager {
     if (cached) {
       return cached.data
     } else {
-      const promise: Promise<OpenProject> = this.runProjectServiceCommand('project/open', fullParams)
+      const promise: Promise<OpenProject> = this.runProjectServiceCommand(
+        'project/open',
+        fullParams,
+      )
       this.projects.set(fullParams.projectId, {
         state: backend.ProjectState.openInProgress,
         data: promise,

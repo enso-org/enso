@@ -1,9 +1,6 @@
 import { BackendType } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import {
-  Path,
-  ProjectManager,
-} from '#/services/ProjectManager'
+import { Path, ProjectManager } from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
