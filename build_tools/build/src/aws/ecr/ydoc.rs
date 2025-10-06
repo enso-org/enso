@@ -60,27 +60,4 @@ mod tests {
         info!("Built image: {}", id);
         Ok(())
     }
-
-    /// Convenience test that builds the Node.js Ydoc image.
-    ///
-    /// The `app/ydoc-server-nodejs` distribution must be already built.
-    #[tokio::test]
-    #[ignore]
-    async fn test_ydoc_nodejs() -> Result {
-        setup_logging().ok();
-        let tag = "ydoc-server-nodejs:0.0.0-dev";
-        info!("Current directory: {}", ide_ci::env::current_dir()?.display());
-        let root = deduce_repository_path()?;
-        let root = root.absolutize()?;
-        info!("Repository root: {}", root.display());
-        let docker_context = generated::RepoRootToolsCiDockerYdocServerNodejs::new_root(
-            root.join("tools/ci/docker/ydoc-server-nodejs"),
-        );
-        let app_ydoc_server_nodejs =
-            generated::RepoRootAppYdocServerNodejs::new_root(root.join("app/ydoc-server-nodejs"));
-        let id = build_ydoc_nodejs_image(&docker_context, &app_ydoc_server_nodejs, tag.to_string())
-            .await?;
-        info!("Built image: {}", id);
-        Ok(())
-    }
 }
