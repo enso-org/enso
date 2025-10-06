@@ -346,4 +346,9 @@ export class ProjectService {
   private getNameForDuplicatedProject(projectName: string): string {
     return `${projectName} (copy)`
   }
+
+  /** Gets the version of the Enso executable. */
+  async version(): Promise<string> {
+    return this.runner.version()
+  }
 }

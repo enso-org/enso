@@ -233,5 +233,3 @@ export interface DeleteProjectParams {
   readonly projectId: UUID
   readonly projectsDirectory: Path
 }
-
-export const PROJECT_MANAGER_LOADING_FAILED_EVENT = 'enso-project-manager-loading-failed'

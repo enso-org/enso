@@ -95,7 +95,6 @@ import {
   useRightPanelData,
   useText,
 } from '$/providers/react'
-import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
 import { useLaunchedProjects } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
@@ -179,8 +178,6 @@ function AssetsTable(props: AssetsTableProps) {
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const { reconnectToProjectManager } = useBackends()
-  const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const localStorage = useLocalStorage()
   const { getText } = useText()
@@ -1194,15 +1191,6 @@ function AssetsTable(props: AssetsTableProps) {
       </AssetsTableAssetsUnselector>
     </Scroller>
   )
-
-  if (!isCloud && didLoadingProjectManagerFail) {
-    return (
-      <ErrorDisplay
-        error={getText('couldNotConnectToPM')}
-        resetErrorBoundary={reconnectToProjectManager}
-      />
-    )
-  }
 
   return (
     <BindingFocusScopeContext.Provider value={rootRef}>

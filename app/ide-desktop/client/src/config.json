@@ -32,11 +32,6 @@
     "engine": {
       "description": "Options that control the Enso Engine, the data processing backend.",
       "options": {
-        "projectManagerUrl": {
-          "value": "",
-          "description": "The address of the Project Manager service.",
-          "primary": false
-        },
         "rpcUrl": {
           "value": "",
           "description": "The address of the Language Server RPC endpoint. This argument should be provided together with `dataUrl`, `namespace`, `project` and `displayedProjectName` options. They enable Enso to connect directly to an already-spawned Language Server of some project.",

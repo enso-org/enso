@@ -28,6 +28,7 @@ export interface Runner {
     hookType: ShutdownHookType,
     hook: () => Promise<void>,
   ): Promise<void>
+  version(): Promise<string>
 }
 
 export interface LanguageServerSockets {
@@ -383,6 +384,39 @@ export class EnsoRunner implements Runner {
         throw new Error(`Failed to rename project: ${error}`)
       }
     }
+  }
+
+  /** Gets the version of the Enso executable. */
+  async version(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const args = ['--version']
+      const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
+      const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
+      const process = childProcess.spawn(cmd, cmdArgs)
+
+      let stdout = ''
+      let stderr = ''
+
+      process.stdout.on('data', (data) => {
+        stdout += data.toString()
+      })
+
+      process.stderr.on('data', (data) => {
+        stderr += data.toString()
+      })
+
+      process.on('error', (error) => {
+        reject(new Error(`Failed to spawn enso process: ${error.message}`))
+      })
+
+      process.on('close', (code) => {
+        if (code === 0) {
+          resolve(stdout.trim())
+        } else {
+          reject(new Error(`Enso process exited with code ${code}. stderr: ${stderr}`))
+        }
+      })
+    })
   }
 
   /** Finds an available port starting from the given port number. */

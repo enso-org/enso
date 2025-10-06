@@ -16,10 +16,7 @@ import * as pathModule from 'node:path'
 import process from 'node:process'
 
 import * as electron from 'electron'
-import * as portfinder from 'portfinder'
-
 import * as common from 'enso-common'
-import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
 import * as authentication from '@/authentication'
 import * as config from '@/config'
@@ -65,8 +62,6 @@ class App {
   window: electron.BrowserWindow | null = null
   server: server.Server | null = null
   args: config.Args = config.CONFIG
-  projectManagerHost: string | null = null
-  projectManagerPort: number | null = null
   isQuitting = false
 
   /** Initialize and run the Electron application. */
@@ -300,7 +295,7 @@ class App {
         // Note that we want to do all the actions synchronously, so when the window
         // appears, it serves the website immediately.
         await this.startContentServerIfEnabled()
-        await this.startBackendIfEnabled()
+        await this.setupProjectService()
         await this.createWindowIfEnabled(windowSize)
         this.initIpc()
         await this.loadWindowContent()
@@ -330,35 +325,20 @@ class App {
   }
 
   /** Start the backend processes. */
-  async startBackendIfEnabled() {
-    await this.runIfEnabled(this.args.options.engine, async () => {
-      // The first return value is the original string, which is not needed.
-      // These all cannot be null as the format is known at runtime.
-      const [, projectManagerHost, projectManagerPort] =
-        GLOBAL_CONFIG.projectManagerEndpoint.match(/^ws:\/\/(.+):(.+)$/)!
-      this.projectManagerHost ??= projectManagerHost!
-      this.projectManagerPort ??= await portfinder.getPortPromise({
-        port: parseInt(projectManagerPort!),
-      })
-      const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
-      this.args.groups.engine.options.projectManagerUrl.value = projectManagerUrl
-      const backendVerboseOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
-      const backendProfileTime =
-        this.args.groups.debug.options.profileTime.value ?
-          ['--profiling-time', String(this.args.groups.debug.options.profileTime.value)]
-        : ['--profiling-time', '120']
-      const backendProfileOpts =
-        this.args.groups.debug.options.profile.value ?
-          ['--profiling-path', 'profiling.npss', ...backendProfileTime]
-        : []
-      const backendJvmOpts = this.args.options.jvm.value ? ['--jvm'] : []
-      const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
-      const backendEnv = Object.assign({}, process.env, {
-        SERVER_HOST: this.projectManagerHost,
-        SERVER_PORT: `${this.projectManagerPort}`,
-      })
-      projectManager.spawn(this.args, backendOpts, backendEnv)
-    })
+  async setupProjectService() {
+    const backendVerboseOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
+    const backendProfileTime =
+      this.args.groups.debug.options.profileTime.value ?
+        ['--profiling-time', String(this.args.groups.debug.options.profileTime.value)]
+      : ['--profiling-time', '120']
+    const backendProfileOpts =
+      this.args.groups.debug.options.profile.value ?
+        ['--profiling-path', 'profiling.npss', ...backendProfileTime]
+      : []
+    const backendJvmOpts = this.args.options.jvm.value ? ['--jvm'] : []
+    const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
+
+    projectManager.setupProjectService(backendOpts)
   }
 
   /** Start the content server, which will serve the application content (HTML) to the window. */
@@ -369,10 +349,6 @@ class App {
           const serverCfg = new server.Config({
             dir: paths.ASSETS_PATH,
             port: this.args.groups.server.options.port.value,
-            externalFunctions: {
-              runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
-                projectManager.runCommand(this.args, cliArguments, body),
-            },
           })
           this.server = await server.Server.create(serverCfg)
         })
@@ -690,14 +666,10 @@ class App {
     }
     console.log('')
     console.log('Backend:')
-    const backend = await projectManager.version(this.args)
-    if (backend == null) {
-      console.log(`${indent}No backend available.`)
-    } else {
-      const lines = backend.split(/\r?\n/).filter((line) => line.length > 0)
-      for (const line of lines) {
-        console.log(`${indent}${line}`)
-      }
+    const backend = await projectManager.version()
+    const lines = backend.split(/\r?\n/).filter((line) => line.length > 0)
+    for (const line of lines) {
+      console.log(`${indent}${line}`)
     }
   }
 

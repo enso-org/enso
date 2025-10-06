@@ -97,11 +97,6 @@ export const CONFIG = contentConfig.OPTIONS.merge(
         description:
           'Show all the configuration options help page, including the less-common ' + 'options.',
       }),
-      engine: new contentConfig.Option({
-        passToWebApplication: false,
-        value: true,
-        description: 'Start the engine process.',
-      }),
       jvm: new contentConfig.Option({
         passToWebApplication: false,
         value: false,
@@ -595,8 +590,6 @@ export const CONFIG = contentConfig.OPTIONS.merge(
     },
   }),
 )
-
-CONFIG.groups.engine.options.projectManagerUrl.passToWebApplication = true
 
 /** The type of the full configuration object. */
 export type Args = typeof CONFIG
