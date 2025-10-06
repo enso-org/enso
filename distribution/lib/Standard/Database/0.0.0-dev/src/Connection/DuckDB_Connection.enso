@@ -7,16 +7,19 @@ import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
+import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Dialects.Dialect
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.DuckDB.DuckDB_Entity_Naming_Properties
 import project.Internal.JDBC_Connection
+import project.SQL.SQL_Statement
 import project.SQL_Query.SQL_Query
 import project.SQL_Query.SQL_Query_With_Schema
-from project.Connection.Connection import make_database_selector, make_schema_selector, make_table_name_with_schema_selector, make_table_types_selector
-from project.Errors import SQL_Error, Table_Not_Found
+from project.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_with_schema_selector, make_table_types_selector
+from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
+from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
 type DuckDB_Connection
     ## ---
@@ -205,6 +208,148 @@ type DuckDB_Connection
         self.query query . read limit
 
     ## ---
+       group: Standard.Base.Output
+       icon: data_output
+       ---
+       Creates a new empty table in the database and returns a query referencing
+       the new table.
+
+       ## Arguments
+        - `table_name`: the name of the table to create.
+        - `structure`: the structure of the table, provided as either an existing
+          `Table` (no data will be copied) or a `Vector` of `Column_Description`.
+        - `primary_key`: the names of the columns to use as the primary key. The
+          first column from the table is used by default. If it is set to
+          `Nothing` or an empty vector, no primary key will be created.
+        - `temporary`: if set to `True`, the table will be temporary, meaning
+          that it will be dropped once the `connection` is closed. Defaults to
+          `False`.
+        - `allow_existing`: Defaults to `False`, meaning that if the table with
+          the provided name already exists, an error will be raised. If set to
+          `True`, the existing table will be returned instead. Note that the
+          existing table is not guaranteed to have the same structure as the one
+          provided.
+        - `on_problems`: the behavior to use when encountering non-fatal
+          problems. Defaults to reporting them as warning.
+
+       ## Errors
+        - If a table with the given name already exists, then a
+          `Table_Already_Exists` error is raised.
+        - If a column type is not supported and is coerced to a similar supported
+          type, an `Inexact_Type_Coercion` problem is reported according to the
+          `on_problems` setting.
+        - If a column type is not supported and there is no replacement (e.g.
+          native Enso types), an `Unsupported_Type` error is raised.
+        - If the provided primary key columns are not present in table structure
+          provided, `Missing_Input_Columns` error is raised.
+        - An `SQL_Error` may be reported if there is a failure on the database
+          side.
+
+       ## Remarks
+
+       ### Dry Run if Output disabled
+       If performing output actions is disabled, only a dry run is performed and
+       no permanent changes occur. The operation will test for errors (like
+       missing columns) and if successful, return a temporary table with a
+       `Dry_Run_Operation` warning attached.
+    @structure make_structure_creator
+    create_table : Text  -> Vector Column_Description | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Table & DB_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
+        self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
+
+    ## ---
+       advanced: true
+       aliases: [sql]
+       icon: data_input
+       ---
+       Executes a raw query returning a Table object, which can be used to get
+       the results of the query. This is meant for advanced users who need to
+       call direct SQL queries that are not supported by the `query` method.
+
+       ## Arguments
+        - `query`: either raw SQL code as Text or an instance of SQL_Statement
+          representing the query to execute.
+        - `write_operation`: if set to `True`, the query is expected to be a
+          write operation and will only run if the output context is enabled. If
+          set to `False`, the query is expected to be a read operation and will
+          run regardless of the output context. Defaults to `True`.
+    @query Text_Input display=..Always
+    @limit Rows_To_Read.default_widget
+    execute_query : Text | SQL_Statement -> Rows_To_Read -> Boolean -> Table
+    execute_query self query (limit : Rows_To_Read = ..First_With_Warning 1000) write_operation:Boolean=True =
+        self.connection.execute_query query limit write_operation
+
+    ## ---
+       advanced: true
+       aliases: [sql]
+       group: Standard.Base.Output
+       icon: data_output
+       ---
+       Executes a raw update query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       ## Arguments
+        - `query`: either raw SQL code as Text or an instance of SQL_Statement
+          representing the query to execute.
+    execute_update : Text | SQL_Statement -> Integer
+    execute_update self query =
+        self.connection.execute_update query
+
+    ## ---
+       private: true
+       advanced: true
+       group: Standard.Base.Output
+       icon: data_output
+       ---
+       Executes a raw query. If the query was inserting, updating or deleting
+       rows, the number of affected rows is returned; otherwise it returns 0 for
+       other types of queries (like creating or altering tables).
+
+       ## Arguments
+        - `query`: either raw SQL code as Text or an instance of SQL_Statement
+          representing the query to execute.
+    execute : Text | SQL_Statement -> Integer
+    execute self query =
+        self.connection.execute query
+
+    ## ---
+       private: true
+       ---
+       Access the dialect.
+    dialect self = self.connection.dialect
+
+    ## ---
+       private: true
+       ---
+       Access the underlying JDBC connection.
+    jdbc_connection self = self.connection.jdbc_connection
+
+    ## ---
+       private: true
+       ---
+       Drops a table.
+
+       ## Arguments
+        - `table_name`: the name of the table to drop.
+        - `if_exists`: if set to `True`, the operation will not fail if the table
+          does not exist. Defaults to `False`.
+    drop_table : Text -> Boolean -> Nothing
+    drop_table self table_name if_exists=False =
+        self.connection.drop_table table_name if_exists
+
+    ## ---
+       private: true
+       ---
+       Removes all rows from a table.
+
+       ## Arguments
+        - `table_name`: the name of the table to truncate.
+    truncate_table : Text -> Nothing ! Table_Not_Found
+    truncate_table self table_name =
+        self.connection.truncate_table table_name
+
+    ## ---
        private: true
        ---
        Returns the base `Connection` instance.
@@ -212,6 +357,14 @@ type DuckDB_Connection
        on the 'subclasses'.
     base_connection : Connection
     base_connection self = self.connection
+
+    ## ---
+       private: true
+       ---
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs <| [["type", "DuckDB_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
 
 ## ---
    private: true

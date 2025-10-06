@@ -280,7 +280,6 @@ type Postgres_Connection
     execute_query self query (limit : Rows_To_Read = ..First_With_Warning 1000) write_operation:Boolean=True =
         self.connection.execute_query query limit write_operation
 
-
     ## ---
        advanced: true
        aliases: [sql]
