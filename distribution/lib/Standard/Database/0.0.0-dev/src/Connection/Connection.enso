@@ -2,11 +2,12 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
+import Standard.Base.Metadata.File_Type
 import Standard.Base.Runtime.Context as Execution_Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input, Vector_Editor
 
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Rows_To_Read.Rows_To_Read
@@ -546,11 +547,16 @@ type Connection
        icon: data_output
        ---
        Creates a Data Link that will open the same connection.
+    @path (File_Browse file_types=[File_Type.Option "DataLink" ["datalink"]] existing_only=False display=..Always)
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
-        case self.data_link_setup of
-            Nothing -> Error.throw (Illegal_State.Error "The connection does not support saving as a data link.")
-            data_link_setup -> data_link_setup.save_as_data_link destination on_existing_file
+    save_as_data_link self path:Enso_File (on_existing_file:Existing_File_Behavior = ..Error) =
+        case path.is_data_link of
+            False ->
+                self.save_as_data_link (Enso_File.new path.path+".datalink") on_existing_file
+            True ->
+                case self.data_link_setup of
+                    Nothing -> Error.throw (Illegal_State.Error "The connection does not support saving as a data link.")
+                    data_link_setup -> data_link_setup.save_as_data_link path on_existing_file
 
 ## ---
    private: true

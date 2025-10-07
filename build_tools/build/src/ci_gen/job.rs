@@ -221,6 +221,10 @@ impl JobArchetype for CancelWorkflow {
 #[derive(Clone, Copy, Debug)]
 pub struct VerifyLicensePackages;
 impl JobArchetype for VerifyLicensePackages {
+    fn id_key_base(&self) -> String {
+        "license-check".to_string()
+    }
+
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(sbt_command("verifyLicensePackages"))
             .build_job("Verify License Packages", target)
@@ -313,7 +317,8 @@ impl Display for StandardLibraryTestsScope {
             StandardLibraryTestsScope::StandardLibraryJvm => write!(f, "standard-library"),
             StandardLibraryTestsScope::StandardLibraryInNative =>
                 write!(f, "standard-library-in-native"),
-            StandardLibraryTestsScope::Microsoft => write!(f, "std-microsoft"),
+            StandardLibraryTestsScope::Microsoft =>
+                write!(f, "std-microsoft std-mock-dual-microsoft"),
         }
     }
 }
@@ -338,6 +343,10 @@ impl StandardLibraryTests {
 }
 
 impl JobArchetype for StandardLibraryTests {
+    fn id_key_base(&self) -> String {
+        "stdlib".to_string()
+    }
+
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
@@ -409,12 +418,16 @@ impl JobArchetype for StandardLibraryTests {
     }
 
     fn key(&self, (os, arch): Target) -> String {
-        format!(
+        let key = format!(
             "{}-{}-{}-{os}-{arch}",
             self.id_key_base(),
             self.graal_edition.to_string().to_kebab_case(),
-            self.scope,
-        )
+            self.scope.to_string().replace(' ', "-"),
+        );
+        if key.len() >= 100 {
+            panic!("Too long CI job key: {:}", key)
+        }
+        key
     }
 }
 

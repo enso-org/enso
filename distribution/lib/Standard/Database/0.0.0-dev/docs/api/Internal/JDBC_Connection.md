@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.Internal.JDBC_Connection
 - type JDBC_Connection
-    - Value connection_resource:Standard.Base.Any.Any operation_synchronizer:Standard.Base.Any.Any
+    - Value connection_resource:Standard.Base.Any.Any operation_synchronizer:Standard.Base.Any.Any sql_exception:Standard.Base.Any.Any=
     - batch_insert self insert_template:Standard.Base.Any.Any statement_setter:Standard.Base.Any.Any table:Standard.Base.Any.Any batch_size:Standard.Base.Any.Any expected_type_hints:Standard.Base.Any.Any= row_limit:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - close self -> Standard.Base.Any.Any
     - ensure_query_has_no_holes self raw_sql:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -17,9 +17,9 @@
     - with_prepared_statement self query:Standard.Base.Any.Any statement_setter:Standard.Base.Any.Any action:Standard.Base.Any.Any skip_log:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - close_connection connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - create url:Standard.Base.Any.Any properties:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- from_java java_jdbc_connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- from_java java_jdbc_connection:Standard.Base.Any.Any sql_exception:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - get_pragma_value jdbc_connection:Standard.Base.Any.Any sql:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- handle_sql_errors ~action:Standard.Base.Any.Any related_query:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- handle_sql_errors ~action:Standard.Base.Any.Any related_query:Standard.Base.Any.Any= sql_exception:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - log_sql_if_enabled jdbc_connection:Standard.Base.Any.Any ~query_text:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - profile_sql_if_enabled jdbc_connection:Standard.Database.Internal.JDBC_Connection.JDBC_Connection ~query_text:Standard.Base.Data.Text.Text ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - properties_as_java_props properties:Standard.Base.Any.Any -> Standard.Base.Any.Any

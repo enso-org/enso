@@ -32,7 +32,8 @@ save_table_as_data_link table destination on_existing_file:Existing_File_Behavio
     table_schema_name = table.table_name_schema
     link_type = case table_schema_name of
         _ : Text -> DB_Data_Link_Type.Table table.name
-        _ : Vector -> DB_Data_Link_Type.Table_Schema table_schema_name.first table_schema_name.second
+        _ : Vector -> if table_schema_name.length == 1 then DB_Data_Link_Type.Table table_schema_name.first else
+            DB_Data_Link_Type.Table_Schema table_schema_name.first table_schema_name.second
         Nothing ->
             sql_statement = table.to_sql
             prepared = sql_statement.prepare

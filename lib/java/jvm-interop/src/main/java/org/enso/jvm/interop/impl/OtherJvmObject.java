@@ -179,10 +179,10 @@ final class OtherJvmObject implements TruffleObject {
         return OtherInteropType.fitsBigInteger(mask);
       }
       if (HAS_LANGUAGE == message) {
-        return true;
+        return channel.getConfig().hasLanguage();
       }
       if (GET_LANGUAGE == message) {
-        return OtherLanguage.class;
+        return channel.getConfig().getLanguage();
       }
 
       // proper dispatch to the other JVM

@@ -34,6 +34,7 @@ export function usePreventNavigation(options: PreventNavigationOptions) {
           // Allow the window to close. Set `shouldClose` to false just in case something goes wrong.
           shouldClose = false
         }
+        event.stopImmediatePropagation()
       }
       window.addEventListener('beforeunload', onBeforeUnload)
       return () => {

@@ -60,7 +60,6 @@
     - is_nothing self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - is_present self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - last self -> Standard.Base.Any.Any!Standard.Base.Errors.Common.Index_Out_Of_Bounds
-    - length self -> Standard.Base.Data.Numbers.Integer
     - like self pattern:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - map self function:Standard.Base.Any.Any skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
     - max self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
@@ -78,6 +77,7 @@
     - rename self name:Standard.Base.Data.Text.Text -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
     - reverse self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!(Standard.Base.Errors.Illegal_Argument.Illegal_Argument|Standard.Table.Errors.Invalid_Value_Type)
+    - row_count self -> Standard.Base.Data.Numbers.Integer
     - running self statistic:Standard.Base.Data.Statistics.Statistic= name:Standard.Base.Data.Text.Text= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - second self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
     - should_be_selected_by_type self value_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
