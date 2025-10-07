@@ -19,6 +19,7 @@ from Standard.Table.Internal.Table_Helpers import duplicate_rows
 
 import project.Internal.Telemetry
 
+polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 polyglot java import com.google.api.client.googleapis.json.GoogleJsonResponseException
 polyglot java import org.enso.google.GoogleSheetsForEnso
 polyglot java import org.enso.google.GoogleSheetsHeaders.HeaderBehavior
@@ -174,7 +175,7 @@ private _handle_exceptions ~action = Empty_Sheet.handle_java_exception <|
 private _wrap_credentials credential:(File|Enso_Secret|Nothing)=Nothing =
     case credential of
         secret : Enso_Secret ->
-            WrappedGoogleCredentials.fromCredentialReference (as_credential_reference secret)
+            WrappedGoogleCredentials.fromCredentialReference (as_credential_reference secret CredentialReference)
         secret_file : File ->
             secret_file.with_input_stream [File_Access.Read] stream->
                 stream.with_java_stream java_input_stream->
