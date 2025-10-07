@@ -105,7 +105,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
       let edgeLocator = 'g.GraphEdge'
       if (sourceId) edgeLocator += `[data-source-node-id="${sourceId}"]`
       if (targetId) edgeLocator += `[data-target-node-id="${targetId}"]`
-      await expect(this.page.locator(edgeLocator)).toHaveCount(expectedCount)
+      await expect(this.page.locator(edgeLocator)).toHaveCount(expectedCount, { timeout: 1000 })
     })
   }
 
