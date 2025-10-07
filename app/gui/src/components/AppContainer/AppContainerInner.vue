@@ -15,6 +15,7 @@ import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { useEvent } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { reactComponent } from '@/util/react'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { onMounted, reactive, shallowRef, toRefs, watch } from 'vue'
@@ -130,8 +131,8 @@ const keydownHandler = appContainerBindings.handler(
   ),
 )
 
-useEvent(window, 'keydown', (event) => {
-  console.log('AppContainerInner keydown', event.key)
+const { globalEventRegistry } = useGlobalEventRegistry()
+useEvent(globalEventRegistry, 'keydown', (event) => {
   return keydownHandler(event)
 })
 

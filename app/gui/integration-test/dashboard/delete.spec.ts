@@ -14,7 +14,9 @@ test('delete (local)', async ({ drivePage }) => {
     })
     .driveTable.rightClickRow(0)
     .contextMenu.delete()
-    .driveTable.expectPlaceholderRow()
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveCount(1)
+    })
 })
 
 test('delete and restore (remote)', async ({ drivePage }) => {

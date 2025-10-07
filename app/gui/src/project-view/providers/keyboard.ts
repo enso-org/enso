@@ -3,10 +3,11 @@ import { createContextStore } from '@/providers'
 
 export const [provideKeyboard, injectKeyboard] = createContextStore(
   'Global keyboard modifier state',
-  () => useGlobalKeyboard(),
+  (globalEventRegistry: GlobalEventRegistry) => useGlobalKeyboard(globalEventRegistry),
 )
 
 export const [provideBubblingKeyboard, injectBubblingKeyboard] = createContextStore(
   'Bubbling keyboard modifier state',
-  () => useLocalKeyboard(document.body),
+  (globalEventRegistry: GlobalEventRegistry) =>
+    useLocalKeyboard(globalEventRegistry, document.body),
 )

@@ -1,5 +1,5 @@
 /** @file The base class from which all `Actions` classes are derived. */
-import type { AutocompleteKeybind, ModifierKey } from '#/utilities/inputBindings'
+import type { AutocompleteKeybind, ModifierKey } from '@/util/shortcuts'
 import { expect, test, type Locator, type Page } from 'integration-test/base'
 
 /** `Meta` (`Cmd`) on macOS, and `Control` on all other platforms. */

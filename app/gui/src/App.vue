@@ -36,9 +36,9 @@ const auth = useAuth()
 const userSession = computed(() => auth.session)
 
 useAppTitle(userSession)
-
-provideKeyboard()
-provideBubblingKeyboard()
+const globalEvents = provideGlobalEventRegistry()
+provideKeyboard(globalEvents)
+provideBubblingKeyboard(globalEvents)
 const interaction = provideInteractionHandler()
 const actions = initializeActions()
 registerAutoBlurHandler()
@@ -56,8 +56,7 @@ const bindingsHandlers = appBindings.handler(
   objects.mapEntries(appBindings.bindings, (actionName) => actionHandlers[actionName].action),
 )
 
-const { globalEventRegistry } = provideGlobalEventRegistry()
-
+const { globalEventRegistry } = globalEvents
 useEvent(globalEventRegistry, 'keydown', (event) => bindingsHandlers(event))
 useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
 

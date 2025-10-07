@@ -32,6 +32,7 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { unrefElement, useEventConditional } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { type DisplayableActionName, registerHandlers, toggledAction } from '@/providers/action'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -343,7 +344,8 @@ const isActive = ref(true)
 onActivated(() => (isActive.value = true))
 onDeactivated(() => (isActive.value = false))
 
-useEventConditional(window, 'keydown', isActive, (e) => {
+const { globalEventRegistry } = useGlobalEventRegistry()
+useEventConditional(globalEventRegistry, 'keydown', isActive, (e) => {
   return graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e)
 })
 
