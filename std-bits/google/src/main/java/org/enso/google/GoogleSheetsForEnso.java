@@ -13,10 +13,10 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.temporal.Temporal;
 import java.util.List;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.error.EmptySheetException;
 import org.enso.table.problems.ProblemAggregator;
 
 public class GoogleSheetsForEnso {
@@ -63,7 +63,11 @@ public class GoogleSheetsForEnso {
             .getRowData();
 
     if (rowData == null) {
-      throw new EmptySheetException();
+      var emptySheetType = EnsoMeta.getType("Standard.Table.Errors", "Empty_Sheet");
+      var emptySheetError = emptySheetType.invokeMember("Error");
+      var errorType = EnsoMeta.getType("Standard.Base.Error", "Error");
+      var error = errorType.invokeMember("throw", emptySheetError);
+      throw error.throwException();
     }
 
     final int firstRowIndex = Math.max(0, skip_rows);

@@ -420,8 +420,8 @@ type Empty_Sheet
     ## ---
        private: true
        ---
-    handle_java_exception =
-        Panic.catch EmptySheetException handler=(_ -> Error.throw Empty_Sheet.Error)
+    handle_java_exception ~action =
+        Panic.recover Empty_Sheet action
 
 ## Indicates that the column was already present in the table.
 type Existing_Column

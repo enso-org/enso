@@ -217,7 +217,7 @@ public final class DataflowError extends AbstractTruffleException {
 
   @ExportMessage
   RuntimeException throwException() throws UnsupportedMessageException {
-    return this;
+    return new PanicException(getPayload(), getLocation());
   }
 
   @ExportMessage

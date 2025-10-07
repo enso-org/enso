@@ -7,12 +7,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.poi.ss.util.CellReference;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.error.EmptySheetException;
 import org.enso.table.error.InvalidLocationException;
 import org.enso.table.excel.ExcelFileFormat;
 import org.enso.table.excel.ExcelHeaders;
@@ -26,8 +26,10 @@ import org.enso.table.util.FunctionWithException;
 import org.graalvm.polyglot.Context;
 
 /** A table reader for MS Excel files. */
-public class ExcelReader {
+public final class ExcelReader {
   private static final ColumnStorage<?> EMPTY_STORAGE = Builder.getObjectBuilder(0).seal();
+
+  private ExcelReader() {}
 
   /**
    * Opens the workbook to validate it can be accessed, performing no actions. The workbook is
@@ -430,7 +432,11 @@ public class ExcelReader {
             .toArray(Column[]::new);
 
     if (columns.length == 0) {
-      throw new EmptySheetException();
+      var emptySheetType = EnsoMeta.getType("Standard.Table.Errors", "Empty_Sheet");
+      var emptySheetError = emptySheetType.invokeMember("Error");
+      var errorType = EnsoMeta.getType("Standard.Base.Error", "Error");
+      var error = errorType.invokeMember("throw", emptySheetError);
+      throw error.throwException();
     }
 
     return new Table(columns);
