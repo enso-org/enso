@@ -18,6 +18,8 @@ from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_co
 
 import project.Internal.DuckDB_Entity_Naming_Properties
 
+polyglot java import org.enso.duckdb.DuckDBUtils
+
 type DuckDB_Connection
     ## ---
        private: true
@@ -45,6 +47,11 @@ type DuckDB_Connection
         - `connection`: the underlying connection.
         - `make_new`: a function that returns a new connection.
     private Value (connection:Connection) (make_new : Text -> Text -> DuckDB_Connection)
+
+    ## Gets the DuckDB Version string.
+    version self -> Text =
+        self.jdbc_connection.with_connection connection->
+            DuckDBUtils.getVersion connection
 
     ## ---
        icon: close
