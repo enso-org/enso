@@ -45,6 +45,7 @@ public final class RuntimeOptions {
 
   public static final String HOST_CLASS_LOADING = optionName("classLoading");
   public static final String HOST_CLASS_LOADING_HOSTED = "hosted";
+  public static final String HOST_CLASS_LOADING_GUEST = "guest";
   public static final OptionKey<String> HOST_CLASS_LOADING_KEY =
       new OptionKey<>(HOST_CLASS_LOADING_HOSTED);
   private static final OptionDescriptor HOST_CLASS_LOADING_DESCRIPTOR =

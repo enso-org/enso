@@ -8,6 +8,8 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Metadata.Widget
+import Standard.Base.Metadata.File_Type
 from Standard.Base.Runtime import assert
 
 import Standard.Table.Internal.Add_Row_Number
@@ -287,16 +289,17 @@ type DB_Table
                     if schema_name.is_nothing || schema_name == "" then [table_name] else [schema_name, table_name]
             _ -> Nothing
 
-
     ## ---
        group: Standard.Base.Output
        icon: data_output
        ---
        Creates a Data Link that will act as a view into the query represented by
        this table.
+    @path (Widget.File_Browse file_types=[File_Type.Option "DataLink" ["datalink"]] existing_only=False display=..Always)
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination on_existing_file:Existing_File_Behavior=..Error =
-        DB_Data_Link_Helpers.save_table_as_data_link self destination on_existing_file
+    save_as_data_link self path:Enso_File on_existing_file:Existing_File_Behavior=..Error =
+        if path.is_data_link then DB_Data_Link_Helpers.save_table_as_data_link self path on_existing_file else
+            self.save_as_data_link (Enso_File.new path.path+".datalink") on_existing_file
 
 ## ---
    private: true

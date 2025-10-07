@@ -14,6 +14,8 @@ import org.enso.tools.enso4igv.enso.EnsoActionProvider;
 import org.netbeans.api.project.Project;
 import org.netbeans.api.project.ProjectManager;
 import org.netbeans.api.project.ProjectUtils;
+import org.netbeans.api.project.SourceGroup;
+import org.netbeans.api.project.Sources;
 import org.netbeans.spi.project.ProjectContainerProvider;
 import org.netbeans.spi.project.ProjectState;
 import org.netbeans.spi.project.SubprojectProvider;
@@ -44,7 +46,8 @@ final class EnsoRootProject implements Project {
             this,
             new LogicalView(),
             new Subprojects(),
-            new BuiltDistributionEnsoBin()
+            new BuiltDistributionEnsoBin(),
+            new RootSources()
     );
   }
 
@@ -254,5 +257,21 @@ final class EnsoRootProject implements Project {
       }
       return null;
     }
+  }
+
+  private final class RootSources implements Sources {
+        @Override
+        public SourceGroup[] getSourceGroups(String type) {
+            return new SourceGroup[0];
+        }
+
+        @Override
+        public void addChangeListener(ChangeListener listener) {
+        }
+
+        @Override
+        public void removeChangeListener(ChangeListener listener) {
+        }
+
   }
 }

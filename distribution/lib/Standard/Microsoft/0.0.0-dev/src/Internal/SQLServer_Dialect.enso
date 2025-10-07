@@ -209,7 +209,7 @@ type SQLServer_Dialect
                 if value.is_nan || value.is_infinite then stmt.setNull i Java_Types.REAL else
                     stmt.setDouble i value
             # Fallback to default logic for everything else
-            _ -> fill_hole_default stmt i type_hint value
+            _ -> fill_hole_default stmt i type_hint value JDBCUtils
         Statement_Setter.Value custom_fill_hole
 
     ## ---

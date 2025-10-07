@@ -31,7 +31,7 @@ members = [
 [profile.dev]
 opt-level = 0
 lto = false
-debug = 0
+debug = true
 debug-assertions = true
 
 [profile.release]

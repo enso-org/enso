@@ -180,7 +180,7 @@ final class EnsoSbtClassPathProvider extends ProjectOpenedHook
       var dir = project.getProjectDirectory();
       var displayname = FileUtil.getFileDisplayName(dir);
       var icon = ImageUtilities.loadImageIcon("org/enso/tools/enso4igv/enso-duke.svg", true);
-      var genericGroup = GenericSources.group(project, dir, dir.getNameExt(), displayname, icon, icon);
+      var genericGroup = GenericSources.group(project, dir.getFileObject("src", false), dir.getNameExt(), displayname, icon, icon);
       return new SourceGroup[]{genericGroup};
     }
     return sources;
