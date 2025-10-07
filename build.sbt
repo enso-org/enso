@@ -6088,7 +6088,7 @@ lazy val `std-duckdb` = project
     },
     clean := Def.task {
       val _ = clean.value
-      IO.delete(`std-aws-polyglot-root`)
+      IO.delete(`std-duckdb-polyglot-root`)
     }.value
   )
   .dependsOn(`std-base` % "provided")
