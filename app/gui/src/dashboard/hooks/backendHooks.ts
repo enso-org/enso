@@ -403,15 +403,15 @@ export function useCanRunProjects() {
     // Local projects: Open normally
     // Cloud projects: Open in Hybrid
     locally: {
-      ['local']: localBackend != null,
-      ['remote']: localBackend != null,
+      local: localBackend != null,
+      remote: localBackend != null,
     },
     // Local projects can be run natively; only Team plans and above have access to Cloud execution.
     // Local projects: Open normally
     // Cloud projects: Open in Cloud VM
     natively: {
-      ['local']: localBackend != null,
-      ['remote']: enableCloudExecution && (user.plan === 'team' || user.plan === 'enterprise'),
+      local: localBackend != null,
+      remote: enableCloudExecution && (user.plan === 'team' || user.plan === 'enterprise'),
     },
   }
 }

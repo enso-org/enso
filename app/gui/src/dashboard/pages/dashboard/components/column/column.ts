@@ -63,11 +63,11 @@ export interface AssetColumn {
 export const COLUMN_RENDERER: Readonly<
   Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element | null>>
 > = {
-  ['name']: memo(NameColumn),
-  ['modified']: memo(ModifiedColumn),
-  ['sharedWith']: memo(SharedWithColumn),
-  ['labels']: memo(LabelsColumn),
-  ['accessedByProjects']: memo(PlaceholderColumn),
-  ['accessedData']: memo(PlaceholderColumn),
-  ['path']: memo(PathColumn),
+  name: memo(NameColumn),
+  modified: memo(ModifiedColumn),
+  sharedWith: memo(SharedWithColumn),
+  labels: memo(LabelsColumn),
+  accessedByProjects: memo(PlaceholderColumn),
+  accessedData: memo(PlaceholderColumn),
+  path: memo(PathColumn),
 }

@@ -18,11 +18,11 @@ export const COLUMN_HEADING: Readonly<
     React.MemoExoticComponent<(props: column.AssetColumnHeadingProps) => React.JSX.Element>
   >
 > = {
-  ['name']: memo(NameColumnHeading),
-  ['modified']: memo(ModifiedColumnHeading),
-  ['sharedWith']: memo(SharedWithColumnHeading),
-  ['labels']: memo(LabelsColumnHeading),
-  ['accessedByProjects']: memo(AccessedByProjectsColumnHeading),
-  ['accessedData']: memo(AccessedDataColumnHeading),
-  ['path']: memo(PathColumnHeading),
+  name: memo(NameColumnHeading),
+  modified: memo(ModifiedColumnHeading),
+  sharedWith: memo(SharedWithColumnHeading),
+  labels: memo(LabelsColumnHeading),
+  accessedByProjects: memo(AccessedByProjectsColumnHeading),
+  accessedData: memo(AccessedDataColumnHeading),
+  path: memo(PathColumnHeading),
 }

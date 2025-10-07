@@ -63,7 +63,7 @@ export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
 }
 
 export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData>> = {
-  ['account']: {
+  account: {
     nameId: 'accountSettingsTab',
     settingsTab: 'account',
     icon: 'settings',
@@ -241,7 +241,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  ['organization']: {
+  organization: {
     nameId: 'organizationSettingsTab',
     settingsTab: 'organization',
     icon: 'people_settings',
@@ -316,7 +316,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  ['local']: {
+  local: {
     nameId: 'localSettingsTab',
     settingsTab: 'local',
     icon: 'system',
@@ -421,7 +421,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  ['billing-and-plans']: {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'billing-and-plans': {
     nameId: 'billingAndPlansSettingsTab',
     settingsTab: 'billing-and-plans',
     icon: 'credit_card',
@@ -472,7 +473,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  ['members']: {
+  members: {
     nameId: 'membersSettingsTab',
     settingsTab: 'members',
     icon: 'people',
@@ -487,7 +488,8 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  ['user-groups']: {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'user-groups': {
     nameId: 'userGroupsSettingsTab',
     settingsTab: 'user-groups',
     icon: 'people_settings',

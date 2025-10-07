@@ -34,19 +34,19 @@ export type PaywallLevelValue =
 
 /** Paywall levels configuration. */
 export const PAYWALL_LEVELS: Record<PaywallLevelName, PaywallLevelValue> = {
-  ['free']: Object.assign(0, {
+  free: Object.assign(0, {
     name: 'free',
     label: 'freePlanName',
   } as const),
-  ['solo']: Object.assign(1, {
+  solo: Object.assign(1, {
     name: 'solo',
     label: 'soloPlanName',
   } as const),
-  ['team']: Object.assign(2, {
+  team: Object.assign(2, {
     name: 'team',
     label: 'teamPlanName',
   } as const),
-  ['enterprise']: Object.assign(3, {
+  enterprise: Object.assign(3, {
     name: 'enterprise',
     label: 'enterprisePlanName',
   } as const),

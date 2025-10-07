@@ -838,12 +838,12 @@ export const ASSET_TYPES = [
 ] as const
 
 export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
-  ['directory']: 'directoryAssetType',
-  ['project']: 'projectAssetType',
-  ['file']: 'fileAssetType',
-  ['secret']: 'secretAssetType',
-  ['specialUp']: 'specialUpAssetType',
-  ['datalink']: 'datalinkAssetType',
+  directory: 'directoryAssetType',
+  project: 'projectAssetType',
+  file: 'fileAssetType',
+  secret: 'secretAssetType',
+  specialUp: 'specialUpAssetType',
+  datalink: 'datalinkAssetType',
 } satisfies { [Type in AssetType]: `${Type}AssetType` }
 
 /** Asset types that can be replaced by a newer version. */
@@ -880,12 +880,12 @@ export interface SpecialAssetIdType {
  * in a directory listing.
  */
 export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
-  ['directory']: 0,
-  ['project']: -1,
-  ['file']: -2,
-  ['datalink']: -3,
-  ['secret']: -4,
-  ['specialUp']: 1,
+  directory: 0,
+  project: -1,
+  file: -2,
+  datalink: -3,
+  secret: -4,
+  specialUp: 1,
 }
 
 /** A state associated with a credential. */

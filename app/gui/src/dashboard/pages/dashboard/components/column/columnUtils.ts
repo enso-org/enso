@@ -26,13 +26,13 @@ export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
 export const COLUMN_ICONS: Readonly<Record<Column, SvgUseIcon | (string & {})>> = {
   /* The file column does not have an icon, however this does not matter as it is not
    * collapsible. */
-  ['name']: 'ghost',
-  ['modified']: 'time',
-  ['sharedWith']: 'people',
-  ['labels']: 'tag',
-  ['accessedByProjects']: 'accessed_by_projects',
-  ['accessedData']: 'accessed_data',
-  ['path']: 'folder',
+  name: 'ghost',
+  modified: 'time',
+  sharedWith: 'people',
+  labels: 'tag',
+  accessedByProjects: 'accessed_by_projects',
+  accessedData: 'accessed_data',
+  path: 'folder',
 }
 
 const COLUMN_CSS_CLASSES =
@@ -41,13 +41,13 @@ const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x py max-w-96 ${COLUMN_CSS_CLASSES}`
 
 /** CSS classes for every column. */
 export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
-  ['name']: `z-10 sticky left-1 bg-dashboard rounded-rows-skip-level min-w-80 max-w-80 h-full p-0 border-l-0 after:absolute after:right-0 after:top-0 after:bottom-0 after:border-r-[1.5px] after:border-primary/5 ${COLUMN_CSS_CLASSES}`,
-  ['modified']: `min-w-drive-modified-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
-  ['sharedWith']: `min-w-drive-shared-with-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
-  ['labels']: `min-w-drive-labels-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
-  ['accessedByProjects']: `min-w-drive-accessed-by-projects-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
-  ['accessedData']: `min-w-drive-accessed-data-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
-  ['path']: `min-w-drive-path-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
+  name: `z-10 sticky left-1 bg-dashboard rounded-rows-skip-level min-w-80 max-w-80 h-full p-0 border-l-0 after:absolute after:right-0 after:top-0 after:bottom-0 after:border-r-[1.5px] after:border-primary/5 ${COLUMN_CSS_CLASSES}`,
+  modified: `min-w-drive-modified-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
+  sharedWith: `min-w-drive-shared-with-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
+  labels: `min-w-drive-labels-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
+  accessedByProjects: `min-w-drive-accessed-by-projects-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
+  accessedData: `min-w-drive-accessed-data-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
+  path: `min-w-drive-path-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
 }
 
 /** Return the full list of columns given the relevant current state. */

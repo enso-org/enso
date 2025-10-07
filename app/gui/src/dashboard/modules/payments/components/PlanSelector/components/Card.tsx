@@ -32,17 +32,17 @@ export interface PropsForPlan {
 }
 
 const PROPS_FOR_PLAN: { readonly [PlanVariant in Plan]: PropsForPlan } = {
-  ['free']: {
+  free: {
     submitButton: (props) => <SubscribeButton {...props} isDisabled={true} />,
   },
-  ['solo']: {
+  solo: {
     submitButton: SubscribeButton,
   },
-  ['team']: {
+  team: {
     elevated: true,
     submitButton: SubscribeButton,
   },
-  ['enterprise']: {
+  enterprise: {
     submitButton: () => {
       // False positive
       // eslint-disable-next-line react-hooks/rules-of-hooks

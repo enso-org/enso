@@ -17,17 +17,19 @@ export type PermissionAction =
   | 'View_docs'
   | 'View_exec'
 
+/* eslint-disable camelcase */
+
 /** Whether each {@link PermissionAction} can execute a project. */
 export const PERMISSION_ACTION_CAN_EXECUTE: Readonly<Record<PermissionAction, boolean>> = {
-  ['Own']: true,
-  ['Admin']: true,
-  ['Edit']: true,
-  ['Read']: false,
-  ['Read_docs']: false,
-  ['Read_exec']: true,
-  ['View']: false,
-  ['View_docs']: false,
-  ['View_exec']: true,
+  Own: true,
+  Admin: true,
+  Edit: true,
+  Read: false,
+  Read_docs: false,
+  Read_exec: true,
+  View: false,
+  View_docs: false,
+  View_exec: true,
 }
 
 // ==================
@@ -39,76 +41,78 @@ export type Permission = 'owner' | 'admin' | 'edit' | 'read' | 'view' | 'delete'
 
 /** Precedences for each permission. A lower number means a higher priority. */
 export const PERMISSION_PRECEDENCE: Readonly<Record<Permission, number>> = {
-  ['owner']: 0,
-  ['admin']: 1,
-  ['edit']: 2,
-  ['read']: 3,
-  ['view']: 4,
-  ['delete']: 1000,
+  owner: 0,
+  admin: 1,
+  edit: 2,
+  read: 3,
+  view: 4,
+  delete: 1000,
 }
 
 /** Precedences for each permission action. A lower number means a higher priority. */
 export const PERMISSION_ACTION_PRECEDENCE: Readonly<Record<PermissionAction, number>> = {
-  ['Own']: 0,
-  ['Admin']: 1,
-  ['Edit']: 2,
-  ['Read']: 3,
-  ['Read_docs']: 4,
-  ['Read_exec']: 5,
-  ['View']: 6,
-  ['View_docs']: 7,
-  ['View_exec']: 8,
+  Own: 0,
+  Admin: 1,
+  Edit: 2,
+  Read: 3,
+  Read_docs: 4,
+  Read_exec: 5,
+  View: 6,
+  View_docs: 7,
+  View_exec: 8,
 }
 
 /** The corresponding {@link Permissions} for each {@link PermissionAction}. */
 export const FROM_PERMISSION_ACTION: Readonly<Record<PermissionAction, Permissions>> = {
-  ['Own']: { type: 'owner' },
-  ['Admin']: { type: 'admin' },
-  ['Edit']: { type: 'edit' },
-  ['Read']: {
+  Own: { type: 'owner' },
+  Admin: { type: 'admin' },
+  Edit: { type: 'edit' },
+  Read: {
     type: 'read',
     execute: false,
     docs: false,
   },
-  ['Read_docs']: {
+  Read_docs: {
     type: 'read',
     execute: false,
     docs: true,
   },
-  ['Read_exec']: {
+  Read_exec: {
     type: 'read',
     execute: true,
     docs: false,
   },
-  ['View']: {
+  View: {
     type: 'view',
     execute: false,
     docs: false,
   },
-  ['View_docs']: {
+  View_docs: {
     type: 'view',
     execute: false,
     docs: true,
   },
-  ['View_exec']: {
+  View_exec: {
     type: 'view',
     execute: true,
     docs: false,
   },
 }
+
+/* eslint-enable camelcase */
 
 /**
  * The corresponding {@link PermissionAction} for each {@link Permission}.
  * Assumes no docs sub-permission and no execute sub-permission.
  */
 export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, PermissionAction>> = {
-  ['owner']: 'Own',
-  ['admin']: 'Admin',
-  ['edit']: 'Edit',
-  ['read']: 'Read',
-  ['view']: 'View',
+  owner: 'Own',
+  admin: 'Admin',
+  edit: 'Edit',
+  read: 'Read',
+  view: 'View',
   // Should never happen, but provide a fallback just in case.
-  ['delete']: 'View',
+  delete: 'View',
 }
 
 /**
@@ -116,12 +120,12 @@ export const TYPE_TO_PERMISSION_ACTION: Readonly<Record<Permission, PermissionAc
  * Assumes no docs sub-permission and no execute sub-permission.
  */
 export const TYPE_TO_TEXT_ID: Readonly<Record<Permission, text.TextId>> = {
-  ['owner']: 'ownerPermissionType',
-  ['admin']: 'adminPermissionType',
-  ['edit']: 'editPermissionType',
-  ['read']: 'readPermissionType',
-  ['view']: 'viewPermissionType',
-  ['delete']: 'deletePermissionType',
+  owner: 'ownerPermissionType',
+  admin: 'adminPermissionType',
+  edit: 'editPermissionType',
+  read: 'readPermissionType',
+  view: 'viewPermissionType',
+  delete: 'deletePermissionType',
 } satisfies { [P in Permission]: `${P}PermissionType` }
 
 /** The equivalent backend `PermissionAction` for a `Permissions`. */

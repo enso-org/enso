@@ -11,12 +11,12 @@ export * from 'enso-common/src/utilities/permissions'
 
 /** CSS classes for each permission. */
 export const PERMISSION_CLASS_NAME: Readonly<Record<Permission, string>> = {
-  ['owner']: 'text-tag-text bg-permission-owner',
-  ['admin']: 'text-tag-text bg-permission-admin',
-  ['edit']: 'text-tag-text bg-permission-edit',
-  ['read']: 'text-tag-text bg-permission-read',
-  ['view']: 'text-tag-text-2 bg-permission-view',
-  ['delete']: 'text-tag-text bg-delete',
+  owner: 'text-tag-text bg-permission-owner',
+  admin: 'text-tag-text bg-permission-admin',
+  edit: 'text-tag-text bg-permission-edit',
+  read: 'text-tag-text bg-permission-read',
+  view: 'text-tag-text-2 bg-permission-view',
+  delete: 'text-tag-text bg-delete',
 }
 
 /** CSS classes for the docs permission. */
