@@ -350,7 +350,6 @@ class App {
         preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
         sandbox: true,
         spellcheck: false,
-        backgroundThrottling: false,
         ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
       }
       const windowPreferences: electron.BrowserWindowConstructorOptions = {
