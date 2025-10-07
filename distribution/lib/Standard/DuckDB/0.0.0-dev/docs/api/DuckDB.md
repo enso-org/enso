@@ -1,5 +1,5 @@
 ## Enso Signatures 1.0
-## module Standard.Database.Connection.DuckDB
+## module Standard.DuckDB.DuckDB
 - type DuckDB
     - From_File location:Standard.Base.System.File.File= schema:Standard.Base.Data.Text.Text= read_only:Standard.Base.Data.Boolean.Boolean=
     - In_Memory schema:Standard.Base.Data.Text.Text= read_only:Standard.Base.Data.Boolean.Boolean=

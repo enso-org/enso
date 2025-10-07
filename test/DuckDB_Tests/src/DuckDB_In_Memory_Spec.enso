@@ -7,8 +7,6 @@ from Standard.Test import all
 
 add_specs suite_builder =
     suite_builder.group "DuckDB_Parquet" group_builder->
-        data_file = enso_project.data / 'house-price.parquet'
-
         group_builder.specify "Connect to an In-Memory Database" <|
             connect = Database.connect DuckDB.In_Memory
             connect.database.should_equal "memory"
