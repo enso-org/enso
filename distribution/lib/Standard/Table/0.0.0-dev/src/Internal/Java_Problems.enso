@@ -13,6 +13,10 @@ polyglot java import org.enso.table.data.column.builder.LossOfBigDecimalPrecisio
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
+
+# reflection access to various class methods and fields 
+# is being performed on problem classes, hence listing them here
+# so EnsoLibraryFeature registers them for reflection
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
@@ -37,31 +41,31 @@ polyglot java import org.enso.table.util.problems.InvalidNames
    private: true
    ---
    Convert a Java problem into its Enso equivalent.
-translate_problem p = case p of
-    _ : InvalidAggregation ->
+translate_problem p = case p.problemType of
+    "InvalidAggregation" ->
         err = Invalid_Aggregation.Error p.getLocationName (Vector.from_polyglot_array p.getRows) p.getMessage
         Error.throw err
-    _ : ArithmeticError ->
+    "ArithmeticError" ->
         Arithmetic_Error.Error p.getMessage
-    _ : IllegalArgumentError ->
+    "IllegalArgumentError" ->
         Illegal_Argument.Error p.getMessage
-    _ : IgnoredNaN ->
+    "IgnoredNaN" ->
         Ignored_NaN_Values.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
-    _ : IgnoredNothing ->
+    "IgnoredNothing" ->
         Ignored_Nothing_Values.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
-    _ : FloatingPointGrouping ->
+    "FloatingPointGrouping" ->
         Floating_Point_Equality.Error p.getLocationName
-    _ : LossOfIntegerPrecision ->
+    "LossOfIntegerPrecision" ->
         Loss_Of_Integer_Precision.Warning p.getAffectedRowsCount p.getExampleValue p.getExampleValueConverted
-    _ : LossOfBigDecimalPrecision ->
+    "LossOfBigDecimalPrecision" ->
         Loss_Of_Decimal_Precision.Warning p.getAffectedRowsCount (java_to_enso p.getExampleValue) p.getExampleValueConverted
-    _ : ArithmeticOverflow ->
+    "ArithmeticOverflow" ->
         target_type = Storage.to_value_type p.targetType
         example_operands = case p.exampleOperands of
             Nothing -> Nothing
             array -> Vector.from_polyglot_array array
         Arithmetic_Overflow.Warning target_type p.affectedRowCount example_operands
-    _ : ConversionFailure ->
+    "ConversionFailure" ->
         examples = Vector.from_polyglot_array p.examples
         target_type = Storage.to_value_type p.targetType
         related_column = p.relatedColumn
@@ -70,23 +74,23 @@ translate_problem p = case p of
             if p.errorType == ConversionFailureType.TEXT_TOO_LONG then Conversion_Failure.Text_Too_Long else
                 Conversion_Failure.Error
         constructor target_type related_column affected_rows_count examples
-    _ : UnquotedCharactersInOutput ->
+    "UnquotedCharactersInOutput" ->
         Unquoted_Characters_In_Output.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
-    _ : UnquotedDelimiter ->
+    "UnquotedDelimiter" ->
         Unquoted_Delimiter.Error p.getLocationName (Vector.from_polyglot_array p.getRows)
-    _ : InvalidRow ->
+    "InvalidRow" ->
         Invalid_Row.Error p.source_row p.table_index (Vector.from_polyglot_array p.row) p.expected_length
-    _ : InvalidFixedWidthRow ->
+    "InvalidFixedWidthRow" ->
         Invalid_Fixed_Width_Row.Error p.source_line_number p.table_row_number p.line_length p.minimum_line_length
-    _ : InconsistentFixedWidthLengths ->
+    "InconsistentFixedWidthLengths" ->
         Inconsistent_Fixed_Width_Lengths.Error
-    _ : AdditionalInvalidRows ->
+    "AdditionalInvalidRows" ->
         Additional_Invalid_Rows.Error p.count
-    _ : DuplicateNames ->
+    "DuplicateNames" ->
         Duplicate_Output_Column_Names.Error (Vector.from_polyglot_array p.duplicatedNames)
-    _ : InvalidNames ->
+    "InvalidNames" ->
         Invalid_Column_Names.Error (Vector.from_polyglot_array p.invalidNames)
-    _ : InvalidFormat ->
+    "InvalidFormat" ->
         Invalid_Format.Error p.column p.expectedEnsoValueType p.count (Vector.from_polyglot_array p.cells)
     _ ->
         Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
