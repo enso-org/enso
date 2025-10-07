@@ -23,22 +23,20 @@ type MS365
         MS365.Service (MS365Service.new credentials_reference)
 
     user self =
-        _ms365_get self "https://www.strava.com/api/v3/athlete"
+        _ms365_get self (_base_url + "/me")
 
-    zones self =
-        _strava_get self "https://www.strava.com/api/v3/athlete/zones"
-
-    stats self =
-        id = self.user.decode_as_json.get "id"
-        _strava_get self "https://www.strava.com/api/v3/athletes/"+id.to_text+"/stats"
+    list_root self =
+        _ms365_get self (_base_url + "/me/drive/root/children")
 
     ## ---
        private: true
        ---
     to_js_object : JS_Object
     to_js_object self =
-        JS_Object.from_pairs [["type", "Strava"]]
+        JS_Object.from_pairs [["type", "MS365"]]
 
-private _strava_get strava url =
-    header = Header.authorization_bearer strava.strava_service.getAccessToken.token
+private _base_url = 'https://graph.microsoft.com/v1.0'
+
+private _ms365_get ms365 url =
+    header = Header.authorization_bearer ms365.ms365_service.getAccessToken.token
     HTTP.fetch url headers=[header]
