@@ -27,7 +27,7 @@
   "license": "MIT",
   "dependencies": {
     "@codemirror/autocomplete": "catalog:",
-    "@codemirror/lang-html": "^6.0.0",
+    "@codemirror/lang-html": "^6.4.10",
     "@codemirror/language": "catalog:",
     "@codemirror/state": "catalog:",
     "@codemirror/view": "catalog:",

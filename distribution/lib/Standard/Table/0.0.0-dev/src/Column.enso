@@ -2084,18 +2084,18 @@ type Column
        group: Standard.Base.Metadata
        icon: metadata
        ---
-       Returns the length of this column.
+       Returns the number of rows in this column.
 
        ## Examples
-       ### Get the length of a column.
+       ### Get the row count for a column.
 
        ```
              import Standard.Examples
 
-             example_length = Examples.text_column_2.length
+             example_row_count = Examples.text_column_2.row_count
        ```
-    length self -> Integer =
-        self.implementation.length self
+    row_count self -> Integer =
+        self.implementation.row_count self
 
     ## ---
        group: Standard.Base.Metadata

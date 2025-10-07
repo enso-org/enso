@@ -79,12 +79,10 @@ type Default_Comparator
    so, proceeds with the given action, and if not, throws `Incomparable_Values`
    error.
 assert_same_comparators : Any -> Any -> (Any -> Any) -> Any ! Incomparable_Values
-assert_same_comparators this that ~action =
-    comp_this = Comparable.from this
-    comp_that = Comparable.from that
+assert_same_comparators comp_this:Comparable comp_that:Comparable ~action =
     case Meta.is_same_object comp_this.comparator comp_that.comparator of
         True -> action comp_this.comparator
-        False -> Error.throw (Incomparable_Values.Error this that)
+        False -> Error.throw (Incomparable_Values.Error comp_this.value comp_that.value)
 
 compare_with_comparators this that -> Ordering ! Incomparable_Values =
     yield_an_error _ = Error.throw (Incomparable_Values.Error this that)

@@ -14,17 +14,17 @@ public class JsInteropTest {
   public void testDefaultJSPrint() {
     var src =
         """
-      from Standard.Base import Json
+        from Standard.Base import Json
 
-      main =
-        json = Json.parse <| '''
-          {
-            "inner": {
-              "a": 1
+        main =
+          json = Json.parse <| '''
+            {
+              "inner": {
+                "a": 1
+              }
             }
-          }
-        json.get "inner"
-      """;
+          json.get "inner"
+        """;
     Value res = ctxRule.evalModule(src);
     assertEquals("{\"a\":1}", res.toString());
   }

@@ -1,16 +1,17 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
-import project.Internal.In_Memory_Column_Implementation.apply_unary_operation
-import project.Internal.In_Memory_Column_Implementation.naming_helper
 import project.Value_Type.Value_Type
+from project.Internal.In_Memory_Column_Implementation import apply_unary_operation, naming_helper, _call_binary_operator, _java_other
 
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
+polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
 
 type In_Memory_Numeric_Column_Implementation
     abs (column : Column & In_Memory_Column) =
@@ -22,6 +23,13 @@ type In_Memory_Numeric_Column_Implementation
         Value_Type.expect_numeric column <|
             new_name = naming_helper.function_name "signum" [column]
             apply_unary_operation column SignumOperation.INSTANCE new_name
+
+    randbetween (column : Column & In_Memory_Column) limit seed:Integer=0 =
+        Value_Type.expect_numeric column <| Value_Type.expect_numeric limit <|
+            operation = RandBetweenOperation.create (column:In_Memory_Column).java_column (_java_other limit) seed
+            if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported randbetween operation.")
+            new_name = naming_helper.function_name "randbetween" [column, limit]
+            _call_binary_operator column limit new_name operation
 
 type In_Memory_Text_Column_Implementation
     to_case (column : Column & In_Memory_Column) case_option:Case=..Lower locale:Locale=Locale.default =

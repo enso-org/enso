@@ -1,7 +1,11 @@
 package org.enso.table.excel;
 
+import java.io.File;
 import java.io.IOException;
+import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
+import org.apache.poi.poifs.filesystem.NotOLE2FileException;
 import org.apache.poi.ss.usermodel.Name;
+import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
 
 /** Represents an Excel workbook. Wraps the underlying Apache POI Workbook object. */
 public interface ExcelWorkbook {
@@ -118,6 +122,20 @@ public interface ExcelWorkbook {
     @Override
     public void close() throws IOException {
       workbook.close();
+    }
+  }
+
+  static ExcelWorkbook getExcelWorkbook(File file, ExcelFileFormat format)
+      throws IOException, InterruptedException {
+    try {
+      ExcelWorkbook workbook =
+          format == ExcelFileFormat.XLSX
+              ? new XSSFReaderWorkbook(file.getAbsolutePath())
+              : ExcelWorkbook.forPOIUserModel(ExcelWriteHelper.openWorkbook(file, format, false));
+      return workbook;
+    } catch (OLE2NotOfficeXmlFileException | NotOLE2FileException e) {
+      throw new IOException(
+          "Invalid format encountered when opening the file " + file + " as " + format + ".", e);
     }
   }
 }

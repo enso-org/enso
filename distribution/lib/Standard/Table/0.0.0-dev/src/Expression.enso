@@ -49,23 +49,31 @@ type Expression
         ## Define callbacks for the java code
         _get_column name = table.at name
         _make_constant_column value = case value of
-                _ : Column -> value 
-                _ -> table.make_constant_column value
+            _ : Column -> value
+            _ -> table.make_constant_column value
         _is_column value = value.is_a Column
+
         ## Helper for the expression to tell it which functions needs a Vector
         var_args_functions = ['is_in', 'coalesce', 'min', 'max']
+
+        ## Define method resolvers for map functions
+        map_functions = ['uuid', 'rand']
+        column_map = fn-> table.at 0 . map skip_nothing=False fn
+
         ## Define which enso types we will look in to resolve methods in the expression
         mr1 = ExpressionVisitorImpl.newMethodResolver Expression_Statics_Module Expression_Statics isStaticMethod=True makeTypedColumn=Nothing
         mr2 = ExpressionVisitorImpl.newMethodResolver Column_Module Column isStaticMethod=False makeTypedColumn=c->c
         mr3 = ExpressionVisitorImpl.newMethodResolver Numeric_Column_Module Numeric_Column isStaticMethod=False makeTypedColumn=c->(c : Numeric_Column)
         method_resolvers = [mr1, mr2, mr3]
+
+        ## Define error handlers to convert java exceptions to Enso errors
         handle_parse_error = Panic.catch SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))
         handle_unsupported = handle_java_error UnsupportedOperationException Expression_Error.Unsupported_Operation
         handle_arguments = handle_java_error IllegalArgumentException Expression_Error.Argument_Mismatch
         handle_type_error = Panic.catch TypeErrorException handler=(cause-> Error.throw (Expression_Error.Type_Error cause.payload.getMessage))
 
         handle_parse_error <| handle_unsupported <| handle_arguments <| handle_type_error <|
-            ExpressionVisitorImpl.evaluate expression.expression _get_column _make_constant_column _is_column method_resolvers var_args_functions
+            ExpressionVisitorImpl.evaluate expression.expression _get_column _make_constant_column _is_column method_resolvers var_args_functions map_functions column_map
 
 type Expression_Error
     ## ---
