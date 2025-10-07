@@ -202,6 +202,7 @@ EXTRA_SYSTEM_PROPS = [
     "-Denso.BazelSupport.parser.javaSrcDir=$(location //lib/rust/parser:generate_java)",
     "-Denso.BazelSupport.parser.lib=$(location //lib/rust/parser/jni:enso_parser_jni)",
     "-Denso.BazelSupport.python.resourceDir=$(location //lib/java/python-extract:extract_python_resources)",
+    "-Denso.BazelSupport.smallJdkDir=built-small-jdk",
 ]
 
 ENV = {
@@ -219,6 +220,18 @@ run_sbt(
     ],
     env = ENV,
     out_dir = "built-distribution",
+    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
+    visibility = ["//visibility:public"],
+)
+
+run_sbt(
+    name = "sbt_build_small_jdk",
+    srcs = SRCS,
+    args = [
+        "buildSmallJdkForRelease",
+    ],
+    env = ENV,
+    out_dir = "built-small-jdk",
     system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
 )
