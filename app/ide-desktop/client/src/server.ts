@@ -86,7 +86,7 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
-const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
+// const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 // ==================
 // === fileExists ===
@@ -250,7 +250,7 @@ export class Server {
           },
           handler: this.process.bind(this),
         },
-        (err, { https: httpsServer, http: httpServer }) => {
+        (err, _) => {
           void (async () => {
             if (err) {
               logger.error(`Error creating server:`, err.http)
