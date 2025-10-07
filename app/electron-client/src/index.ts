@@ -84,7 +84,7 @@ class App {
     })
     const { args, fileToOpen, urlToOpen } = this.processArguments()
     if (args.version) {
-      await this.printVersion(args)
+      await this.printVersion()
       electron.app.quit()
     } else if (args.debug.info) {
       await electron.app.whenReady().then(async () => {
@@ -580,7 +580,7 @@ class App {
   }
 
   /** Print the version of the frontend and the backend. */
-  async printVersion(args: Options): Promise<void> {
+  async printVersion(): Promise<void> {
     const indent = '    '
     let maxNameLen = 0
     for (const name in debug.VERSION_INFO) {

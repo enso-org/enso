@@ -144,14 +144,6 @@ export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
 // === Config ===
 // ==============
 
-/** External functions for a {@link Server}. */
-export interface ExternalFunctions {
-  readonly runProjectManagerCommand: (
-    cliArguments: string[],
-    body?: NodeJS.ReadableStream,
-  ) => NodeJS.ReadableStream
-}
-
 /** Constructor parameter for the server configuration. */
 interface ConfigConfig {
   readonly dir: string
