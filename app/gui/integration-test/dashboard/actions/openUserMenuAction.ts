@@ -7,7 +7,7 @@ export function openUserMenuAction<
   T extends BaseActions<Context, ParentClass>,
   Context,
   ParentClass extends BaseActionsClass<Context>,
->(step: (name: string, callback: PageCallback<Context>) => T) {
+>(step: (name: string, callback: PageCallback<Context, T>) => T) {
   return step('Open user menu', (page) =>
     page.getByLabel(TEXT.userMenuLabel).locator('visible=true').click(),
   )

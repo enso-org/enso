@@ -22,6 +22,7 @@
     "ResizeObserver is not supported in vitest, so we need to stub it."
   ],
   "scripts": {
+    "compile": "vue-tsc --noEmit -p tsconfig.node.json",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build",
     "build-cloud": "cross-env ENSO_IDE_CLOUD_BUILD=true corepack pnpm run build",

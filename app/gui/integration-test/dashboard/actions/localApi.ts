@@ -321,7 +321,6 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
             }
             unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
             const result: OpenProject = {
-              engineVersion: '0.0.0-dev',
               languageServerBinaryAddress: { host: 'ws://localhost', port: 1234 },
               languageServerJsonAddress: { host: 'ws://localhost', port: 1235 },
               projectNamespace: 'local',

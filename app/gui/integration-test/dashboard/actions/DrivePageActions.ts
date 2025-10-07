@@ -1,4 +1,5 @@
 /** @file Actions for the "drive" page. */
+import type { WithImplicitCoercion } from 'node:buffer'
 import { expect, type Locator, type Page } from 'playwright/test'
 import type { LocatorCallback } from './BaseActions'
 import { contextMenuActions } from './contextMenuActions'

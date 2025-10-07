@@ -1,4 +1,5 @@
 /** @file Actions for the "account" tab of the "settings" page. */
+import type { WithImplicitCoercion } from 'node:buffer'
 import BaseSettingsTabActions from './BaseSettingsTabActions'
 import SettingsAccountFormActions from './SettingsAccountFormActions'
 import SettingsChangePasswordFormActions from './SettingsChangePasswordFormActions'
