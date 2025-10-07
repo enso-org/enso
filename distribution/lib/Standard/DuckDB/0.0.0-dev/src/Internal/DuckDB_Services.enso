@@ -1,7 +1,7 @@
 private
 
-import project.Connection.Database.Database_Connection_Details_SPI
-import project.Connection.DuckDB.DuckDB
+import Standard.Database.Connection.Database.Database_Connection_Details_SPI
+import project.DuckDB.DuckDB
 
 type Impl
 

@@ -1,8 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 
-import project.Connection.Connection_Options.Connection_Options
-import project.Connection.DuckDB_Connection.DuckDB_Connection
+import Standard.Database.Connection.Connection_Options.Connection_Options
+
+import project.DuckDB_Connection.DuckDB_Connection
 
 polyglot java import org.duckdb.DuckDBDriver
 

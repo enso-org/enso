@@ -6,7 +6,6 @@ export project.Connection.Client_Certificate.Client_Certificate
 export project.Connection.Connection_Options.Connection_Options
 export project.Connection.Credentials.Credentials
 export project.Connection.Database
-export project.Connection.DuckDB.DuckDB
 export project.Connection.Postgres.Postgres
 export project.Connection.SQLite.SQLite
 export project.Connection.SQLite_Format.SQLite_Format
@@ -21,6 +20,7 @@ export project.Extensions.Upload_Table.select_into_database_table
 export project.Extensions.Upload_Table.update_rows
 
 export project.SQL_Query.SQL_Query
+export project.SQL_Query.SQL_Query_With_Schema
 
 export project.Update_Action.Update_Action
 

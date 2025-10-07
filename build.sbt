@@ -146,6 +146,10 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution(
     "Saas",
     Distribution.sbtProjects(`std-saas`)
+  ),
+  makeStdLibDistribution(
+    "DuckDB",
+    Distribution.sbtProjects(`std-duckdb`)
   )
 )
 
@@ -400,6 +404,7 @@ lazy val enso = (project in file("."))
     `std-table`,
     `std-tableau`,
     `std-saas`,
+    `std-duckdb`,
     `sqlite-wrapper`,
     `syntax-rust-definition`,
     `tableau-wrapper`,
@@ -2852,6 +2857,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-microsoft` / Compile / packageBin)
       .dependsOn(`std-tableau` / Compile / packageBin)
       .dependsOn(`std-saas` / Compile / packageBin)
+      .dependsOn(`std-duckdb` / Compile / packageBin)
       .value
   )
   .dependsOn(`common-polyglot-core-utils`)
@@ -3931,6 +3937,9 @@ lazy val `engine-runner` = project
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
           `std-tableau-polyglot-root`
+            .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `std-duckdb-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++ (if (
                                             GraalVM.EnsoLauncher.disableMicrosoft
@@ -5025,6 +5034,10 @@ val `std-tableau-native-libs` =
   stdLibComponentRoot("Tableau") / "polyglot" / "lib"
 val `std-saas-polyglot-root` =
   stdLibComponentRoot("Saas") / "polyglot" / "java"
+val `std-duckdb-polyglot-root` =
+  stdLibComponentRoot("DuckDB") / "polyglot" / "java"
+val `std-duckdb-native-libs` =
+  stdLibComponentRoot("DuckDB") / "polyglot" / "lib"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -5673,8 +5686,7 @@ lazy val `std-database` = project
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided",
       "org.xerial"           % "sqlite-jdbc" % sqliteVersion,
-      "org.postgresql"       % "postgresql"  % postgresVersion,
-      "org.duckdb"           % "duckdb_jdbc" % duckdbVersion
+      "org.postgresql"       % "postgresql"  % postgresVersion
     ),
     // Extract native libraries from sqlite-jdbc-**.jar and put them under
     // Standard/Database/polyglot/lib directory. The minimized jar will be
@@ -6046,6 +6058,43 @@ lazy val `std-saas` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
+lazy val `std-duckdb` = project
+  .in(file("std-bits") / "duckdb")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `std-duckdb-polyglot-root` / "std-duckdb.jar",
+    libraryDependencies ++= Seq(
+      "org.duckdb" % "duckdb_jdbc" % duckdbVersion
+    ),
+    Compile / packageBin := {
+      val stdDuckDBJar      = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      StdBits
+        .copyDependencies(
+          `std-duckdb-polyglot-root`,
+          Seq("std-duckdb.jar"),
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedClasspath).value,
+          logger             = streams.value.log,
+          cacheStoreFactory
+        )
+      stdDuckDBJar
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-aws-polyglot-root`)
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
+
 lazy val fetchZipToUnmanaged =
   taskKey[Seq[Attributed[File]]](
     "Download zip file from an `unmanagedExternalZip` url and unpack jars to unmanaged libs directory"
@@ -6354,7 +6403,8 @@ val stdBitsProjects =
     "Microsoft",
     "Snowflake",
     "Table",
-    "Saas"
+    "Saas",
+    "DuckDB"
   ) ++ allStdBitsSuffix
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
@@ -6435,6 +6485,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-tableau` / Compile / packageBin).value
     case "Saas" =>
       (`std-saas` / Compile / packageBin).value
+    case "DuckDB" =>
+      (`std-duckdb` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -6452,6 +6504,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-microsoft` / Compile / packageBin).value
       (`std-tableau` / Compile / packageBin).value
       (`std-saas` / Compile / packageBin).value
+      (`std-duckdb` / Compile / packageBin).value
     case _ =>
   }
   val libs =
