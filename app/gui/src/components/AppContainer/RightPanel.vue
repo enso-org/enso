@@ -61,14 +61,11 @@ function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<void>>) {
 const contentElement = useTemplateRef('contentElement')
 const size = useResizeObserver(contentElement)
 const bounds = computed(() => new Rect(Vec2.Zero, size.value))
+const style = computed(() => (data.width == null ? {} : { '--panel-width': `${data.width}px` }))
 </script>
 
 <template>
-  <div
-    class="RightPanel withBackgroundColor bg-dashboard"
-    data-testid="right-panel"
-    :style="{ '--panel-width': `${data.width}px` }"
-  >
+  <div class="RightPanel withBackgroundColor bg-dashboard" data-testid="right-panel" :style="style">
     <SizeTransition width :duration="250">
       <div v-if="component != null" class="sizeWrapper">
         <div ref="contentElement" class="content">
@@ -123,10 +120,10 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   display: flex;
   justify-content: stretch;
   min-width: var(--min-panel-width);
+  /*noinspection CssUnresolvedCustomProperty*/
   width: var(--panel-width, var(--default-panel-width));
   max-width: var(--max-panel-width);
   height: 100%;
-  /* overflow: auto; */
 }
 
 /* This element's visible width will be overwritten by the size transition, but the inner content's

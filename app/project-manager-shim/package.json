@@ -9,6 +9,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./handler": {
+      "source": "./src/handler/index.ts",
+      "types": "./dist/handler/index.d.ts",
+      "import": "./dist/handler/index.js"
+    },
     "./projectService": {
       "source": "./src/projectService/index.ts",
       "types": "./dist/projectService/index.d.ts",
@@ -19,17 +24,21 @@
   "scripts": {
     "test:unit": "vitest run",
     "compile": "tsc",
-    "lint": "eslint . --cache --max-warnings=0"
+    "lint": "eslint . --cache --max-warnings=0",
+    "download-engine": "node scripts/download-engine.js"
   },
   "devDependencies": {
+    "@types/extract-zip": "^2.0.3",
     "@types/node": "catalog:",
     "@types/tar": "^6.1.13",
+    "extract-zip": "^2.0.1",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "dependencies": {
     "enso-common": "workspace:*",
     "tar": "^6.2.1",
+    "trash": "^9.0.0",
     "yaml": "^2.7.0"
   }
 }

@@ -3,11 +3,11 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Enso_Cloud.Data_Link_Helpers import Data_Link_Source_Metadata, parse_secure_value
 from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
-import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Internal.Data_Link_Setup.DB_Data_Link_Type
 import Standard.Database.Internal.DB_Data_Link_Helpers
 
 import project.Connection.SQLServer_Details.SQLServer_Details
+import project.Connection.SQLServer_Credentials.SQLServer_Credentials
 
 ## ---
    private: true
@@ -27,9 +27,23 @@ type SQLServer_Data_Link
         db_name = get_required_field "database_name" json expected_type=Text
 
         credentials_json = get_required_field "credentials" json
-        username = get_required_field "username" credentials_json |> parse_secure_value
-        password = get_required_field "password" credentials_json |> parse_secure_value
-        credentials = Credentials.Username_And_Password username password
+        credentials = if credentials_json.length == 0 then SQLServer_Credentials.None else
+            type_name = get_optional_field "type" credentials_json if_missing="UsernameAndPassword"
+            case type_name of
+                "UsernameAndPassword" ->
+                    username = get_required_field "username" credentials_json |> parse_secure_value
+                    password = get_required_field "password" credentials_json |> parse_secure_value
+                    SQLServer_Credentials.Username_And_Password username password
+                "ActiveDirectoryDefault" -> SQLServer_Credentials.Active_Directory_Default
+                "ActiveDirectoryIntegrated" -> SQLServer_Credentials.Active_Directory_Integrated
+                "ActiveDirectoryPassword" ->
+                    username = get_required_field "username" credentials_json |> parse_secure_value
+                    password = get_required_field "password" credentials_json |> parse_secure_value
+                    SQLServer_Credentials.Active_Directory_Password username password
+                "ActiveDirectoryServicePrincipal" ->
+                    id = get_required_field "id" credentials_json |> parse_secure_value
+                    secret = get_required_field "secret" credentials_json |> parse_secure_value
+                    SQLServer_Credentials.Active_Directory_Service_Principal id secret
 
         details = SQLServer_Details.SQLServer host=host credentials=credentials port=port database=db_name
         link_type = DB_Data_Link_Type.from_js (get_optional_field "table" json)

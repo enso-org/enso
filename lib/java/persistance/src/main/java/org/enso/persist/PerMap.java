@@ -19,8 +19,7 @@ final class PerMap {
     versionStamp = hash;
   }
 
-  private int registerPersistance(Persistance<?> orig, int hash) throws IllegalStateException {
-    var p = orig.newClone();
+  private int registerPersistance(Persistance<?> p, int hash) throws IllegalStateException {
     var prevId = ids.put(p.id, p);
     if (prevId != null) {
       throw new IllegalStateException(

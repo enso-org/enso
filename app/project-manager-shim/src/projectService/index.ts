@@ -8,32 +8,30 @@ import { UUID } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { Path } from 'enso-common/src/utilities/file'
 import * as crypto from 'node:crypto'
-import { EnsoRunner, findEnsoExecutable, type Runner } from './ensoRunner.js'
+import {
+  type LanguageServerSockets,
+  type Runner,
+  type Socket,
+  EnsoRunner,
+  findEnsoExecutable,
+} from './ensoRunner.js'
 import * as nameValidation from './nameValidation.js'
-import { ProjectFileRepository, type Project, type ProjectRepository } from './projectRepository.js'
+import {
+  type Project,
+  type ProjectMetadata,
+  type ProjectRepository,
+  ProjectFileRepository,
+} from './projectRepository.js'
 
 // ==================
 // === Data Types ===
 // ==================
 
 export interface RunningLanguageServerInfo {
-  readonly engineVersion: string // SemVer format
   readonly sockets: LanguageServerSockets
   readonly projectName: string
   readonly projectNormalizedName: string
   readonly projectNamespace: string
-}
-
-export interface LanguageServerSockets {
-  readonly jsonSocket: Socket
-  readonly secureJsonSocket?: Socket
-  readonly binarySocket: Socket
-  readonly secureBinarySocket?: Socket
-}
-
-export interface Socket {
-  readonly host: string
-  readonly port: number
 }
 
 export interface CloudParams {
@@ -56,6 +54,23 @@ export interface CreateProject {
   readonly projectName: string
   readonly projectNormalizedName: string
   readonly projectPath: Path
+}
+
+/** The return value of the "open project" endpoint. */
+export interface OpenProject {
+  readonly languageServerJsonAddress: Socket
+  readonly languageServerBinaryAddress: Socket
+  readonly projectName: string
+  readonly projectNormalizedName: string
+  readonly projectNamespace: string
+}
+
+/** The return value of the "duplicate project" endpoint. */
+export interface DuplicatedProject {
+  readonly projectId: UUID
+  readonly projectName: string
+  readonly projectPath: Path
+  readonly projectNormalizedName: string
 }
 
 // =======================
@@ -88,7 +103,6 @@ export class ProjectService {
   async createProject(
     projectName: string,
     projectsDirectory: Path,
-    engineVersion?: string,
     projectTemplate?: string,
   ): Promise<CreateProject> {
     const projectId = this.generateUUID()
@@ -117,7 +131,7 @@ export class ProjectService {
     }
 
     // Create project structure
-    await this.runner.createProject(projectPath, actualName, engineVersion, projectTemplate)
+    await this.runner.createProject(projectPath, actualName, projectTemplate)
 
     // Update metadata
     await repo.update(project)
@@ -132,44 +146,154 @@ export class ProjectService {
     }
   }
 
-  /** Deletes a user project. */
-  async deleteUserProject(_projectId: string, _projectsDirectory?: Path): Promise<void> {
-    // TODO: Implement deleteUserProject
-    throw new Error('deleteUserProject not implemented yet')
-  }
-
-  /** Renames a project. */
-  async renameProject(
-    _projectId: string,
-    _newName: string,
-    _projectsDirectory?: Path,
-  ): Promise<void> {
-    // TODO: Implement renameProject
-    throw new Error('renameProject not implemented yet')
-  }
-
   /** Opens a project and starts its language server. */
   async openProject(
-    _progressTracker: any,
-    _clientId: string,
-    _projectId: string,
-    _cloud?: CloudParams,
-    _projectsDirectory?: Path,
-  ): Promise<RunningLanguageServerInfo> {
-    // TODO: Implement openProject
-    throw new Error('openProject not implemented yet')
+    projectId: UUID,
+    projectsDirectory: Path,
+    cloud?: CloudParams,
+  ): Promise<OpenProject> {
+    this.logger.debug('Opening project', projectId)
+
+    // Get the project repository
+    const repo = this.getProjectRepository(projectsDirectory)
+
+    // Get the project from the repository
+    const project = await repo.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+
+    // Update the lastOpened timestamp
+    const openTime = toRfc3339(new Date())
+    const updatedProject = { ...project, lastOpened: openTime }
+    await repo.update(updatedProject)
+
+    // Prepare cloud environment variables if provided
+    const extraEnv: Array<[string, string]> = []
+    if (cloud) {
+      extraEnv.push(['ENSO_CLOUD_PROJECT_DIRECTORY_PATH', cloud.cloudProjectDirectoryPath])
+      extraEnv.push(['ENSO_CLOUD_PROJECT_ID', cloud.cloudProjectId])
+      extraEnv.push(['ENSO_CLOUD_PROJECT_SESSION_ID', cloud.cloudProjectSessionId])
+    }
+
+    // Start the language server
+    const sockets = await this.runner.openProject(
+      project.path,
+      projectId,
+      extraEnv.length > 0 ? extraEnv : undefined,
+    )
+
+    // Return the OpenProject response
+    return {
+      languageServerJsonAddress: sockets.jsonSocket,
+      languageServerBinaryAddress: sockets.binarySocket,
+      projectName: project.name,
+      projectNormalizedName: nameValidation.normalizedName(project.name),
+      projectNamespace: project.namespace,
+    }
   }
 
   /** Closes a project and stops its language server. */
-  async closeProject(_clientId: string, _projectId: string): Promise<void> {
-    // TODO: Implement closeProject
-    throw new Error('closeProject not implemented yet')
+  async closeProject(projectId: UUID): Promise<void> {
+    this.logger.debug('Closing project', projectId)
+    await this.runner.closeProject(projectId)
   }
 
-  /** Duplicates a user project. */
-  async duplicateUserProject(_projectId: string, _projectsDirectory?: Path): Promise<Project> {
-    // TODO: Implement duplicateUserProject
-    throw new Error('duplicateUserProject not implemented yet')
+  /** Deletes a user project. */
+  async deleteProject(projectId: UUID, projectsDirectory: Path): Promise<void> {
+    this.logger.debug('Deleting project', projectId)
+
+    const repo = this.getProjectRepository(projectsDirectory)
+    const project = await repo.findById(projectId)
+    if (!project) {
+      throw new Error(`Project '${projectId}' not found`)
+    }
+
+    try {
+      await repo.moveToTrash(project.path)
+      this.logger.debug('Project moved to trash', projectId)
+    } catch (error) {
+      // If moving to trash fails, permanently delete
+      await repo.delete(project.path)
+      this.logger.debug('Project permanently deleted', projectId, error)
+    }
+  }
+
+  /** Duplicates a project. */
+  async duplicateProject(projectId: UUID, projectsDirectory: Path): Promise<DuplicatedProject> {
+    this.logger.debug('Duplicating project', projectId)
+    const repo = this.getProjectRepository(projectsDirectory)
+    // Get the original project
+    const originalProject = await repo.findById(projectId)
+    if (!originalProject) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+    // Generate a suggested name for the duplicated project
+    const suggestedName = this.getNameForDuplicatedProject(originalProject.name)
+    // Get an available name (checking for conflicts)
+    const newName = await this.getNameForNewProject(suggestedName, repo)
+    // Validate the new name
+    await this.validateProjectName(newName)
+    // Create new metadata
+    const newProjectId = this.generateUUID()
+    const creationTime = toRfc3339(new Date())
+    const newMetadata: ProjectMetadata = {
+      id: newProjectId,
+      name: newName,
+      namespace: originalProject.namespace,
+      created: creationTime,
+    }
+    // Copy the project
+    const newProject = await repo.copyProject(originalProject, newName, newMetadata)
+    return {
+      projectId: newProject.id,
+      projectName: newProject.name,
+      projectNormalizedName: nameValidation.normalizedName(newProject.name),
+      projectPath: newProject.path,
+    }
+  }
+
+  /** Renames a project. */
+  async renameProject(projectId: UUID, newName: string, projectsDirectory: Path): Promise<void> {
+    this.logger.debug('Renaming project', projectId, 'to', newName)
+    // Validate the new project name
+    await this.validateProjectName(newName)
+    // Get the repository
+    const repo = this.getProjectRepository(projectsDirectory)
+    // Check if project exists
+    const project = await repo.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+    // Check if new name already exists
+    await this.checkIfNameExists(newName, repo)
+    // Get the old package name (normalized)
+    const oldNormalizedName = nameValidation.normalizedName(project.name)
+    // Get the namespace
+    const namespace = project.namespace
+    // Create new package name (normalized)
+    const newNormalizedName = nameValidation.normalizedName(newName)
+    // Rename in the repository (updates metadata)
+    await repo.rename(projectId, newName)
+    // Check if language server is running for this project
+    const isRunning = await this.runner.isProjectRunning(projectId)
+    if (isRunning) {
+      // Register a shutdown hook to rename the directory after the server stops
+      await this.runner.registerShutdownHook(projectId, 'rename-project-directory', async () => {
+        this.logger.info(`Executing deferred directory rename for project ${projectId}`)
+        try {
+          await repo.renameProjectDirectory(project.path, newNormalizedName)
+          this.logger.info(`Successfully renamed project directory for ${projectId}`)
+        } catch (error) {
+          this.logger.error(`Failed to rename project directory for ${projectId}:`, error)
+        }
+      })
+      // Send rename command to the running server
+      await this.runner.renameProject(projectId, namespace, oldNormalizedName, newNormalizedName)
+    } else {
+      // If server is not running, rename the directory immediately
+      await repo.renameProjectDirectory(project.path, newNormalizedName)
+    }
   }
 
   // ========================
@@ -217,5 +341,9 @@ export class ProjectService {
     if (exists) {
       throw new Error(`Project with name '${name}' already exists.`)
     }
+  }
+
+  private getNameForDuplicatedProject(projectName: string): string {
+    return `${projectName} (copy)`
   }
 }

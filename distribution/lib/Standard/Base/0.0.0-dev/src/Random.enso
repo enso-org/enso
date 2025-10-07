@@ -27,7 +27,7 @@ type Random
        Create a new `Random_Generator` with the specified seed.
 
        ## Arguments
-        - `seed`: The seed used to initialze the `Random_Generator`.
+        - `seed`: The seed used to initialize the `Random_Generator`.
 
        ## Examples
        ### Create a new `Random_Generator` and use it.

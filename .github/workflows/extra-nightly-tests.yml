@@ -242,7 +242,7 @@ jobs:
       REPORT_ALL_TESTS: "1"
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-std-cloud-related-linux-amd64:
+  stdlib-graal-vm-ce-std-cloud-related-linux-amd64:
     name: Standard Library Cloud Tests (GraalVM CE) (LinuxLatest)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-linux-amd64

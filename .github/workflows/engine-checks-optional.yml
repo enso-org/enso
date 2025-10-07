@@ -146,7 +146,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-standard-library-in-native-macos-amd64:
+  stdlib-graal-vm-ce-standard-library-in-native-macos-amd64:
     name: Standard Library Native Tests (GraalVM CE) (macos, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
@@ -230,7 +230,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-standard-library-macos-amd64:
+  stdlib-graal-vm-ce-standard-library-macos-amd64:
     name: Standard Library JVM Tests (GraalVM CE) (macos, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
@@ -314,7 +314,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-std-microsoft-macos-amd64:
+  stdlib-graal-vm-ce-std-microsoft-std-mock-dual-microsoft-macos-amd64:
     name: Standard Library Microsoft Tests (GraalVM CE) (macos, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
@@ -366,7 +366,7 @@ jobs:
         run: |-
           tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
-      - run: ./run backend test std-microsoft
+      - run: ./run backend test std-microsoft std-mock-dual-microsoft
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}

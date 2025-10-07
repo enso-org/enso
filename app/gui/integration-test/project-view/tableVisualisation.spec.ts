@@ -5,6 +5,7 @@ import { mockExpressionUpdate, mockMethodCallInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
+import { addMockClipboardInitScript } from './mockClipboard'
 import singleColumnDates from './table-vis-json/singleColumnDates.json' with { type: 'json' }
 import singleColumnDatetimes from './table-vis-json/singleColumnDatetimes.json' with { type: 'json' }
 import singleColumnTimes from './table-vis-json/singleColumnTimes.json' with { type: 'json' }
@@ -91,11 +92,11 @@ async function resizeCol(col: Locator): Promise<number> {
   return widthAfterResize
 }
 
-test('Copy/paste from Table Visualization', async ({ page, context }) => {
+test('Copy/paste from Table Visualization', async ({ page }) => {
+  await addMockClipboardInitScript(page)
   const expectClipboard = expect.poll(() =>
     page.evaluate(() => window.navigator.clipboard.readText()),
   )
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await actions.goToGraph(page)
 
   await actions.openVisualization(page, 'Table')
@@ -391,102 +392,106 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
    Remember to comment the write back out
 */
 
-test('Datetime test - sorting and copying', async ({ page, context }) => {
-  await loadData(page, singleColumnDatetimes)
-  await expectCellDataToBe(
-    page,
-    'Value',
-    '2025-01-02 12:13:14.123[MET]',
-    '2025-01-01 12:13:14.123[MET]',
-    '2025-01-03 12:13:14.123[MET]',
-  )
-  const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
-  await value.click() // Sort ascending
-  await expectCellDataToBe(
-    page,
-    'Value',
-    '2025-01-01 12:13:14.123[MET]',
-    '2025-01-02 12:13:14.123[MET]',
-    '2025-01-03 12:13:14.123[MET]',
-  )
-  await value.click() // Sort descending
-  await expectCellDataToBe(
-    page,
-    'Value',
-    '2025-01-03 12:13:14.123[MET]',
-    '2025-01-02 12:13:14.123[MET]',
-    '2025-01-01 12:13:14.123[MET]',
-  )
-  await value.click() // remove sort
-  await expectCellDataToBe(
-    page,
-    'Value',
-    '2025-01-02 12:13:14.123[MET]',
-    '2025-01-01 12:13:14.123[MET]',
-    '2025-01-03 12:13:14.123[MET]',
-  )
-  await expectCopyingColumnClipboardToBe(
-    page,
-    context,
-    'Value',
-    0,
-    1,
-    '2025-01-02 12:13:14.123[MET]\r\n2025-01-01 12:13:14.123[MET]',
-  )
-})
+test.describe('Table_Visualisation_Integration_Spec and clipboard', () => {
+  test('Datetime test - sorting and copying', async ({ page, context }) => {
+    await addMockClipboardInitScript(page)
+    await loadData(page, singleColumnDatetimes)
+    await expectCellDataToBe(
+      page,
+      'Value',
+      '2025-01-02 12:13:14.123[MET]',
+      '2025-01-01 12:13:14.123[MET]',
+      '2025-01-03 12:13:14.123[MET]',
+    )
+    const value = getHeaderLocator(page, { colHeaderName: 'Value' })
+    await value.click() // Sort ascending
+    await expectCellDataToBe(
+      page,
+      'Value',
+      '2025-01-01 12:13:14.123[MET]',
+      '2025-01-02 12:13:14.123[MET]',
+      '2025-01-03 12:13:14.123[MET]',
+    )
+    await value.click() // Sort descending
+    await expectCellDataToBe(
+      page,
+      'Value',
+      '2025-01-03 12:13:14.123[MET]',
+      '2025-01-02 12:13:14.123[MET]',
+      '2025-01-01 12:13:14.123[MET]',
+    )
+    await value.click() // remove sort
+    await expectCellDataToBe(
+      page,
+      'Value',
+      '2025-01-02 12:13:14.123[MET]',
+      '2025-01-01 12:13:14.123[MET]',
+      '2025-01-03 12:13:14.123[MET]',
+    )
+    await expectCopyingColumnClipboardToBe(
+      page,
+      context,
+      'Value',
+      0,
+      1,
+      '2025-01-02 12:13:14.123[MET]\r\n2025-01-01 12:13:14.123[MET]',
+    )
+  })
 
-test('Date test - sorting and copying', async ({ page, context }) => {
-  await loadData(page, singleColumnDates)
-  await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
-  const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
-  await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
-  await expectCellDataToBe(page, 'Value', '2025-01-01', '2025-01-02', '2025-01-03')
-  await value.click({ position: { x: 10, y: 10 } }) // Sort descending
-  await expectCellDataToBe(page, 'Value', '2025-01-03', '2025-01-02', '2025-01-01')
-  await value.click({ position: { x: 10, y: 10 } }) // remove sort
-  await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
-  await expectCopyingColumnClipboardToBe(page, context, 'Value', 0, 1, '2025-01-02\r\n2025-01-01')
-})
+  test('Date test - sorting and copying', async ({ page, context }) => {
+    await addMockClipboardInitScript(page)
+    await loadData(page, singleColumnDates)
+    await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
+    const value = getHeaderLocator(page, { colHeaderName: 'Value' })
+    await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
+    await expectCellDataToBe(page, 'Value', '2025-01-01', '2025-01-02', '2025-01-03')
+    await value.click({ position: { x: 10, y: 10 } }) // Sort descending
+    await expectCellDataToBe(page, 'Value', '2025-01-03', '2025-01-02', '2025-01-01')
+    await value.click({ position: { x: 10, y: 10 } }) // remove sort
+    await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
+    await expectCopyingColumnClipboardToBe(page, context, 'Value', 0, 1, '2025-01-02\r\n2025-01-01')
+  })
 
-test('Time test - sorting and copying', async ({ page, context }) => {
-  await loadData(page, singleColumnTimes)
-  await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
-  const value = await getHeaderLocator(page, { colHeaderName: 'Value' })
-  await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
-  await expectCellDataToBe(page, 'Value', '12:13:14.123004', '12:14:14.123004', '12:15:14.123004')
-  await value.click({ position: { x: 10, y: 10 } }) // Sort descending
-  await expectCellDataToBe(page, 'Value', '12:15:14.123004', '12:14:14.123004', '12:13:14.123004')
-  await value.click({ position: { x: 10, y: 10 } }) // remove sort
-  await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
-  await expectCopyingColumnClipboardToBe(
-    page,
-    context,
-    'Value',
-    0,
-    1,
-    '12:14:14.123004\r\n12:13:14.123004',
-  )
-})
+  test('Time test - sorting and copying', async ({ page, context }) => {
+    await addMockClipboardInitScript(page)
+    await loadData(page, singleColumnTimes)
+    await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
+    const value = getHeaderLocator(page, { colHeaderName: 'Value' })
+    await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
+    await expectCellDataToBe(page, 'Value', '12:13:14.123004', '12:14:14.123004', '12:15:14.123004')
+    await value.click({ position: { x: 10, y: 10 } }) // Sort descending
+    await expectCellDataToBe(page, 'Value', '12:15:14.123004', '12:14:14.123004', '12:13:14.123004')
+    await value.click({ position: { x: 10, y: 10 } }) // remove sort
+    await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
+    await expectCopyingColumnClipboardToBe(
+      page,
+      context,
+      'Value',
+      0,
+      1,
+      '12:14:14.123004\r\n12:13:14.123004',
+    )
+  })
 
-async function expectCopyingColumnClipboardToBe(
-  page: Page,
-  context: BrowserContext,
-  columnName: string,
-  startRow: number,
-  endRow: number,
-  expectedClipboardText: string,
-) {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-  await getCellLocator(page, columnName, startRow).click()
-  await page.keyboard.down('Shift')
-  await getCellLocator(page, columnName, endRow).click()
-  await page.keyboard.up('Shift')
-  await page.keyboard.press(`${CONTROL_KEY}+C`)
-  const expectClipboard = expect.poll(() =>
-    page.evaluate(() => window.navigator.clipboard.readText()),
-  )
-  await expectClipboard.toBe(expectedClipboardText)
-}
+  async function expectCopyingColumnClipboardToBe(
+    page: Page,
+    context: BrowserContext,
+    columnName: string,
+    startRow: number,
+    endRow: number,
+    expectedClipboardText: string,
+  ) {
+    await getCellLocator(page, columnName, startRow).click()
+    await page.keyboard.down('Shift')
+    await getCellLocator(page, columnName, endRow).click()
+    await page.keyboard.up('Shift')
+    await page.keyboard.press(`${CONTROL_KEY}+C`)
+    const expectClipboard = expect.poll(() =>
+      page.evaluate(() => window.navigator.clipboard.readText()),
+    )
+    await expectClipboard.toBe(expectedClipboardText)
+  }
+})
 
 async function loadData(page: Page, data: any) {
   await initGraph(page)

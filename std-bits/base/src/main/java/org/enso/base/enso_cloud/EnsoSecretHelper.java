@@ -28,16 +28,20 @@ import org.graalvm.collections.Pair;
 public final class EnsoSecretHelper extends SecretValueResolver {
   private static EnsoHTTPResponseCache cache;
 
-  /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
+  /**
+   * Gets a JDBC connection resolving EnsoKeyValuePair into the properties.
+   *
+   * @param properties properties in the form of {@code List<Pair<String, HideableValue>>}
+   */
   public static Connection getJDBCConnection(
       String url, List<Pair<String, HideableValue>> properties) throws SQLException {
     var javaProperties = new Properties();
     for (var pair : properties) {
       HideableValue value = pair.getRight();
       // Special handling for PrivateKey parameter.
-      if (value instanceof InterpretAsPrivateKey(HideableValue innerValue)) {
+      if (value instanceof HideableImpl.InterpretAsPrivateKey(HideableValue innerValue)) {
         String rawKey = resolveValue(innerValue);
-        PrivateKey key = InterpretAsPrivateKey.decodePrivateKey(rawKey);
+        PrivateKey key = HideableImpl.InterpretAsPrivateKey.decodePrivateKey(rawKey);
         javaProperties.put(pair.getLeft(), key);
       } else {
         javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));
@@ -228,6 +232,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   private static List<Pair<String, String>> withDefaultHeaders(List<Pair<String, String>> headers) {
     boolean hasAccept = false;
     boolean hasAcceptEncoding = false;
+    boolean hasUserAgent = false;
 
     for (Pair<String, String> h : headers) {
       String name = h.getLeft();
@@ -235,8 +240,10 @@ public final class EnsoSecretHelper extends SecretValueResolver {
         hasAccept = true;
       } else if ("accept-encoding".equalsIgnoreCase(name)) {
         hasAcceptEncoding = true;
+      } else if ("user-agent".equalsIgnoreCase(name)) {
+        hasUserAgent = true;
       }
-      if (hasAccept && hasAcceptEncoding) {
+      if (hasAccept && hasAcceptEncoding && hasUserAgent) {
         return headers;
       }
     }
@@ -247,6 +254,9 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     }
     if (!hasAcceptEncoding) {
       augmented.add(Pair.create("Accept-Encoding", "gzip"));
+    }
+    if (!hasUserAgent) {
+      augmented.add(Pair.create("User-Agent", "Enso-Client"));
     }
     return augmented;
   }

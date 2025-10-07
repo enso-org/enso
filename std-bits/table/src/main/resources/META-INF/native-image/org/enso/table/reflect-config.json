@@ -429,14 +429,6 @@
         ]
     },
     {
-        "name": "org.enso.table.excel.ReadOnlyExcelConnection",
-        "fields": [
-            {
-                "name": "record"
-            }
-        ]
-    },
-    {
         "name": "org.enso.table.excel.xssfreader.XSSFReaderWorkbook",
         "methods": [
             {
