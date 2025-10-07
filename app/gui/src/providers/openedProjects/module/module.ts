@@ -160,7 +160,7 @@ export function createModuleStore(
 
   /**
    * Try adding imports. Do not add those conflicting with existing imports - return
-   * `DectedConflict` in such case.
+   * {@link DetectedConflict} in such case.
    */
   function addMissingImports(
     edit: MutableModule,
