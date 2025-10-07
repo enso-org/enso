@@ -215,7 +215,7 @@ final class EnsoPolyglotJava {
     } else {
       var envJava = System.getenv("ENSO_JAVA");
       if (envJava == null) {
-        logger.log(Level.ERROR, "Using experimental OtherJvm support!");
+        logger.log(Level.INFO, "Initializing OtherJvm support!");
         var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
         var target = ctx.parseInternal(src);
         return target.call();
