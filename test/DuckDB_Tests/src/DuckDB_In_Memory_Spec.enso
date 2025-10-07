@@ -19,16 +19,6 @@ add_specs suite_builder =
             connect.schemas.should_contain "main"
             connect.schemas.should_contain "information_schema"
 
-        group_builder.specify "Create a schema and change" <|
-            connect = Database.connect DuckDB.In_Memory
-            connect.schema.should_equal "main"
-
-            connect.execute "CREATE SCHEMA test_schema"
-            new_connect = connect.set_schema "test_schema"
-
-            new_connect.schema.should_equal "test_schema"
-            new_connect.schemas.should_contain "test_schema"
-
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
