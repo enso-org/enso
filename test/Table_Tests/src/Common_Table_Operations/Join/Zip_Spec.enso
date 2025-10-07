@@ -216,7 +216,7 @@ add_specs suite_builder setup =
             c2 = column_builder ["Z", ['a']]
             # Workaround to easily create empty table until table builder allows that directly.
             empty = c2.to_table . filter "Z" Filter_Condition.Is_Nothing . at "Z"
-            empty.length . should_equal 0
+            empty.row_count . should_equal 0
 
             t3 = c1.zip empty
             expect_column_names ["X", "Z"] t3

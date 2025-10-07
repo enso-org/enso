@@ -4,7 +4,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Runtime.Context
 
-import project.SQL_Query.SQL_Query
 from project.Errors import Table_Already_Exists
 from project.Internal.Upload.Operations.Upload_Table import create_table_structure, resolve_temp_table_name
 
@@ -28,7 +27,7 @@ create_table_implementation connection table_name structure primary_key temporar
     resolved_table_name = resolve_temp_table_name connection temporary table_name
     table_naming_helper = connection.base_connection.table_naming_helper
     on_exists =
-        if allow_existing then connection.query (SQL_Query.Table_Name resolved_table_name) else Error.throw (Table_Already_Exists.Error resolved_table_name)
+        if allow_existing then connection.query (..Table_Name resolved_table_name) else Error.throw (Table_Already_Exists.Error resolved_table_name)
     table_naming_helper.verify_table_name resolved_table_name <|
         case connection.base_connection.table_exists resolved_table_name of
             True -> on_exists
@@ -47,7 +46,7 @@ create_table_implementation connection table_name structure primary_key temporar
                     create_table_structure connection effective_table_name structure primary_key effective_temporary on_problems
                 case created_table_name.is_error of
                     False ->
-                        if dry_run.not then connection.query (SQL_Query.Table_Name created_table_name) else
+                        if dry_run.not then connection.query (..Table_Name created_table_name) else
                             created_table = connection.base_connection.internal_allocate_dry_run_table created_table_name
                             warning = Dry_Run_Operation.Warning "Only a dry run of `create_table` has occurred, creating a temporary table ("+created_table_name.pretty+").  Press the Write button ▶ to create the actual one."
                             Warning.attach warning created_table

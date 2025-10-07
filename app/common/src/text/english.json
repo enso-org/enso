@@ -60,6 +60,7 @@
   "deleteUserConfirmation": "permanently delete user: '$0 ($1)'",
   "deleteUserAlert": "We will transfer all belonging assets to the organization admin account.",
   "anotherProjectIsBeingOpenedError": "Another project is currently being opened",
+  "syncingProjectFiles": "Synchronizing Project Files",
   "localBackendNotDetectedError": "Could not detect the local backend",
   "invalidInput": "Invalid input",
   "nameShouldBeUnique": "Name must be unique",

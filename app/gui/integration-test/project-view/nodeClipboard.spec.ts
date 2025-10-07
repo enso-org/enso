@@ -4,6 +4,7 @@ import { expect } from './customExpect'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { connectedEdgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
+import { addMockClipboardInitScript } from './mockClipboard'
 
 /**
  * Every edge consists of multiple parts.
@@ -11,22 +12,7 @@ import { connectedEdgesFromNodeWithBinding, edgesToNodeWithBinding } from './loc
  */
 const EDGE_PARTS = 2
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    class MockClipboard {
-      private contents: ClipboardItem[] = []
-      async read(): Promise<ClipboardItem[]> {
-        return [...this.contents]
-      }
-      async write(contents: ClipboardItem[]) {
-        this.contents = [...contents]
-      }
-    }
-    Object.assign(window.navigator, {
-      mockClipboard: new MockClipboard(),
-    })
-  })
-})
+test.beforeEach(({ page }) => addMockClipboardInitScript(page))
 
 test('Copy component with context menu', async ({ page }) => {
   await actions.goToGraph(page)

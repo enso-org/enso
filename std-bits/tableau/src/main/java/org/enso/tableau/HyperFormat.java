@@ -73,8 +73,8 @@ public class HyperFormat {
     } else {
       return switch (OSPlatform.CurrentPlatform) {
         case WINDOWS -> System.getenv("LocalAppData") + "/enso/hyper";
-        case MAC_ARM64, MAX_X64 -> System.getProperty("user.home")
-            + "/Library/Application Support/org.enso/hyper";
+        case MAC_ARM64, MAX_X64 ->
+            System.getProperty("user.home") + "/Library/Application Support/org.enso/hyper";
         case LINUX, OTHER -> System.getProperty("user.home") + "/.local/share/enso/hyper";
       };
     }
@@ -94,24 +94,28 @@ public class HyperFormat {
     try (var files = Files.list(HYPER_PATH)) {
       if (files.findAny().isEmpty()) {
         switch (OSPlatform.CurrentPlatform) {
-          case WINDOWS -> downloadHyper(
-              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/hyperd.exe",
-              "hyperd.exe",
-              false);
-          case MAC_ARM64 -> downloadHyper(
-              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-arm64/hyperd",
-              "hyperd",
-              true);
-          case MAX_X64 -> downloadHyper(
-              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-x64/hyperd",
-              "hyperd",
-              true);
-          case LINUX -> downloadHyper(
-              "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/linux/hyperd",
-              "hyperd",
-              true);
-          case OTHER -> throw new IOException(
-              "Unsupported platform: " + OSPlatform.CurrentPlatform);
+          case WINDOWS ->
+              downloadHyper(
+                  "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/hyperd.exe",
+                  "hyperd.exe",
+                  false);
+          case MAC_ARM64 ->
+              downloadHyper(
+                  "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-arm64/hyperd",
+                  "hyperd",
+                  true);
+          case MAX_X64 ->
+              downloadHyper(
+                  "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/macos-x64/hyperd",
+                  "hyperd",
+                  true);
+          case LINUX ->
+              downloadHyper(
+                  "https://enso-data-samples.s3.us-west-1.amazonaws.com/tableau/linux/hyperd",
+                  "hyperd",
+                  true);
+          case OTHER ->
+              throw new IOException("Unsupported platform: " + OSPlatform.CurrentPlatform);
         }
       }
     } catch (IOException
@@ -404,12 +408,12 @@ public class HyperFormat {
       case DateType t -> SqlType.date();
       case TimeOfDayType t -> SqlType.time();
       case DateTimeType t -> SqlType.timestampTz();
-        // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
-        // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
-        // values is often slower than processing 64-bit values, so it is advisable to use
-        // a sensible precision for the use case at hand instead of always using the maximum
-        // precision by default.
-        // TODO fix this after https://github.com/enso-org/enso/issues/13022
+      // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
+      // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
+      // values is often slower than processing 64-bit values, so it is advisable to use
+      // a sensible precision for the use case at hand instead of always using the maximum
+      // precision by default.
+      // TODO fix this after https://github.com/enso-org/enso/issues/13022
       case BigDecimalType t -> SqlType.numeric(18, 9);
       default -> throw new HyperUnsupportedTypeError(type.toString());
     };

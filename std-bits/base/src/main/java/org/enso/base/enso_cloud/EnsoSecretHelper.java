@@ -18,7 +18,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 import java.util.zip.GZIPInputStream;
-
 import org.enso.base.cache.ReloadDetector;
 import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.net.URISchematic;
@@ -29,16 +28,20 @@ import org.graalvm.collections.Pair;
 public final class EnsoSecretHelper extends SecretValueResolver {
   private static EnsoHTTPResponseCache cache;
 
-  /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
+  /**
+   * Gets a JDBC connection resolving EnsoKeyValuePair into the properties.
+   *
+   * @param properties properties in the form of {@code List<Pair<String, HideableValue>>}
+   */
   public static Connection getJDBCConnection(
       String url, List<Pair<String, HideableValue>> properties) throws SQLException {
     var javaProperties = new Properties();
     for (var pair : properties) {
       HideableValue value = pair.getRight();
       // Special handling for PrivateKey parameter.
-      if (value instanceof InterpretAsPrivateKey(HideableValue innerValue)) {
+      if (value instanceof HideableImpl.InterpretAsPrivateKey(HideableValue innerValue)) {
         String rawKey = resolveValue(innerValue);
-        PrivateKey key = InterpretAsPrivateKey.decodePrivateKey(rawKey);
+        PrivateKey key = HideableImpl.InterpretAsPrivateKey.decodePrivateKey(rawKey);
         javaProperties.put(pair.getLeft(), key);
       } else {
         javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));
@@ -173,7 +176,8 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     @Override
     public String hashKey() {
       // Include default headers in cache key to reflect actual request.
-      var sortedHeaders = withDefaultHeaders(resolvedHeaders).stream().sorted(headerNameComparator).toList();
+      var sortedHeaders =
+          withDefaultHeaders(resolvedHeaders).stream().sorted(headerNameComparator).toList();
       List<String> keyStrings = new ArrayList<>(sortedHeaders.size() + 1);
       keyStrings.add(resolvedURI.toString());
 
@@ -216,19 +220,19 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       Comparator.comparing((Pair<String, String> pair) -> pair.getLeft())
           .thenComparing(Comparator.comparing(pair -> pair.getRight()));
 
-  private static InputStream decodeContentEncoding(
-      InputStream stream, HttpHeaders headers) throws IOException {
+  private static InputStream decodeContentEncoding(InputStream stream, HttpHeaders headers)
+      throws IOException {
     String encoding = headers.firstValue("content-encoding").map(String::toLowerCase).orElse("");
     if ("gzip".equals(encoding)) {
-       return new GZIPInputStream(stream);
+      return new GZIPInputStream(stream);
     }
     return stream;
   }
 
-  private static List<Pair<String, String>> withDefaultHeaders(
-      List<Pair<String, String>> headers) {
+  private static List<Pair<String, String>> withDefaultHeaders(List<Pair<String, String>> headers) {
     boolean hasAccept = false;
     boolean hasAcceptEncoding = false;
+    boolean hasUserAgent = false;
 
     for (Pair<String, String> h : headers) {
       String name = h.getLeft();
@@ -236,8 +240,10 @@ public final class EnsoSecretHelper extends SecretValueResolver {
         hasAccept = true;
       } else if ("accept-encoding".equalsIgnoreCase(name)) {
         hasAcceptEncoding = true;
+      } else if ("user-agent".equalsIgnoreCase(name)) {
+        hasUserAgent = true;
       }
-      if (hasAccept && hasAcceptEncoding) {
+      if (hasAccept && hasAcceptEncoding && hasUserAgent) {
         return headers;
       }
     }
@@ -248,6 +254,9 @@ public final class EnsoSecretHelper extends SecretValueResolver {
     }
     if (!hasAcceptEncoding) {
       augmented.add(Pair.create("Accept-Encoding", "gzip"));
+    }
+    if (!hasUserAgent) {
+      augmented.add(Pair.create("User-Agent", "Enso-Client"));
     }
     return augmented;
   }

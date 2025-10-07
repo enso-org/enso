@@ -151,8 +151,8 @@ public class LookupJoin {
 
   private LookupOutputColumn prepareOutputColumn(LookupColumnDescription description) {
     return switch (description) {
-      case LookupColumnDescription.KeepOriginal keepOriginal -> new LookupOutputColumn.KeepOriginal(
-          keepOriginal.column());
+      case LookupColumnDescription.KeepOriginal keepOriginal ->
+          new LookupOutputColumn.KeepOriginal(keepOriginal.column());
       case LookupColumnDescription.MergeColumns mergeColumns -> {
         String name = mergeColumns.original().getName();
         if (allowUnmatchedRows) {
@@ -169,8 +169,8 @@ public class LookupJoin {
           yield new LookupOutputColumn.AddFromLookup(renamedLookup);
         }
       }
-      case LookupColumnDescription.AddNew addNew -> new LookupOutputColumn.AddFromLookup(
-          addNew.lookupColumn());
+      case LookupColumnDescription.AddNew addNew ->
+          new LookupOutputColumn.AddFromLookup(addNew.lookupColumn());
     };
   }
 

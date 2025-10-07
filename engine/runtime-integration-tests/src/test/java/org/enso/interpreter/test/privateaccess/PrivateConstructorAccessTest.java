@@ -45,10 +45,10 @@ public class PrivateConstructorAccessTest {
   public void accessMethodOnATypeWithAllPrivateConstructors() throws IOException {
     var codeA =
         """
-            type A
-                private Cons data
-                find d = A.Cons d
-            """;
+        type A
+            private Cons data
+            find d = A.Cons d
+        """;
     var codeUse =
         """
         import local.Proj_A
@@ -69,7 +69,8 @@ public class PrivateConstructorAccessTest {
 
   @Test
   public void privateConstructorIsNotExposedToPolyglot() throws Exception {
-    var mainSrc = """
+    var mainSrc =
+        """
         type My_Type
             private Cons data
         """;

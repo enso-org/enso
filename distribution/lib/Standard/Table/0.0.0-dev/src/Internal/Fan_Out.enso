@@ -256,7 +256,7 @@ fan_out_to_rows_and_columns_dynamic input_java_column function at_least_one_row 
       `on_problems` behavior.
 map_columns_to_multiple : Column -> (Any -> Vector Any) -> Integer | Nothing -> (Integer -> Any) -> Problem_Builder -> Vector Column
 map_columns_to_multiple input_column function column_count column_builder=make_string_builder problem_builder =
-    num_rows = input_column.length
+    num_rows = input_column.row_count
     input_java_column = (input_column:In_Memory_Column).java_column
 
     builders = case column_count of

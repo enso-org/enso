@@ -13,9 +13,14 @@ public class ForeignEvalNodeTest {
 
   @Test
   public void sourceWithoutHash() throws Exception {
-    var src = Source.newBuilder("epb", """
-    nonsensecontent
-    """, "simple.test").build();
+    var src =
+        Source.newBuilder(
+                "epb",
+                """
+                nonsensecontent
+                """,
+                "simple.test")
+            .build();
 
     var node = ForeignEvalNode.parse(null, src, Collections.emptyList());
     try {

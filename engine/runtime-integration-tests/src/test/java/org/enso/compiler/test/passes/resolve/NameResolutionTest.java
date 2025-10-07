@@ -51,18 +51,21 @@ public final class NameResolutionTest {
 
   @Test
   public void libraryNameIsResolved_InExpressionBlock() throws IOException {
-    var myMod = srcModule("My_Module", """
-        type My_Type
-        """);
+    var myMod =
+        srcModule(
+            "My_Module",
+            """
+            type My_Type
+            """);
     var mainMod =
         srcModule(
             "Main",
             """
-        import project.My_Module.My_Type
+            import project.My_Module.My_Type
 
-        main =
-            local.Proj.My_Module.My_Type
-        """);
+            main =
+                local.Proj.My_Module.My_Type
+            """);
     withProject(
         "Proj",
         Set.of(myMod, mainMod),
@@ -89,18 +92,21 @@ public final class NameResolutionTest {
 
   @Test
   public void importedNameIsResolved_AsType() throws Exception {
-    var myMod = srcModule("My_Module", """
-        type My_Type
-        """);
+    var myMod =
+        srcModule(
+            "My_Module",
+            """
+            type My_Type
+            """);
     var mainMod =
         srcModule(
             "Main",
             """
-        import project.My_Module.My_Type
+            import project.My_Module.My_Type
 
-        main =
-            My_Type
-        """);
+            main =
+                My_Type
+            """);
     withProject(
         "Proj",
         Set.of(myMod, mainMod),
@@ -127,19 +133,22 @@ public final class NameResolutionTest {
    */
   @Test
   public void nameIsResolved_InAscribedType() throws Exception {
-    var myMod = srcModule("My_Module", """
-        type My_Type
-            Cons
-        """);
+    var myMod =
+        srcModule(
+            "My_Module",
+            """
+            type My_Type
+                Cons
+            """);
     var mainMod =
         srcModule(
             "Main",
             """
-        import project.My_Module.My_Type
+            import project.My_Module.My_Type
 
-        foo : local.Proj.My_Module.My_Type
-        foo = My_Type.Cons
-        """);
+            foo : local.Proj.My_Module.My_Type
+            foo = My_Type.Cons
+            """);
     withProject(
         "Proj",
         Set.of(myMod, mainMod),
@@ -172,19 +181,19 @@ public final class NameResolutionTest {
         srcModule(
             "My_Module",
             """
-        type My_Type
-            Cons
-            method self = 42
-        """);
+            type My_Type
+                Cons
+                method self = 42
+            """);
     var mainMod =
         srcModule(
             "Main",
             """
-        import project.My_Module.My_Type
+            import project.My_Module.My_Type
 
-        foo (obj : local.Proj.My_Module.My_Type) =
-            obj.method
-        """);
+            foo (obj : local.Proj.My_Module.My_Type) =
+                obj.method
+            """);
     withProject(
         "Proj",
         Set.of(myMod, mainMod),
@@ -225,17 +234,18 @@ public final class NameResolutionTest {
                     method self = 42
                 """),
             srcModule(
-                "Main", """
+                "Main",
+                """
                 export project.My_Module.My_Type
                 """)),
         libDir);
     ProjectUtils.createProject(
         "Proj",
         """
-            from local.Lib import all
+        from local.Lib import all
 
-            foo (obj : local.Lib.My_Module.My_Type) = obj.method
-            """,
+        foo (obj : local.Lib.My_Module.My_Type) = obj.method
+        """,
         projDir);
     try (var ctx = createCtx(projDir)) {
       compileAllModules(ctx);
@@ -268,7 +278,9 @@ public final class NameResolutionTest {
     ProjectUtils.createProject(
         "Lib",
         Set.of(
-            srcModule("Data.Numbers", """
+            srcModule(
+                "Data.Numbers",
+                """
                 type Integer
                 """),
             srcModule(
@@ -280,11 +292,11 @@ public final class NameResolutionTest {
     ProjectUtils.createProject(
         "Proj",
         """
-            from local.Lib import all
+        from local.Lib import all
 
-            main =
-                local.Lib.Data.Numbers.Integer
-            """,
+        main =
+            local.Lib.Data.Numbers.Integer
+        """,
         projDir);
     try (var ctx = createCtx(projDir)) {
       compileAllModules(ctx);
@@ -315,7 +327,9 @@ public final class NameResolutionTest {
     ProjectUtils.createProject(
         "Lib",
         Set.of(
-            srcModule("Data.Numbers", """
+            srcModule(
+                "Data.Numbers",
+                """
                 type Integer
                 """),
             srcModule(
@@ -327,10 +341,10 @@ public final class NameResolutionTest {
     ProjectUtils.createProject(
         "Proj",
         """
-            from local.Lib import all
+        from local.Lib import all
 
-            foo (obj : local.Lib.Data.Numbers.Integer) = obj
-            """,
+        foo (obj : local.Lib.Data.Numbers.Integer) = obj
+        """,
         projDir);
     try (var ctx = createCtx(projDir)) {
       compileAllModules(ctx);
@@ -362,21 +376,24 @@ public final class NameResolutionTest {
    */
   @Test
   public void libNameIsResolved_InCaseBranch() throws Exception {
-    var myMod = srcModule("My_Module", """
-        type My_Type
-        """);
+    var myMod =
+        srcModule(
+            "My_Module",
+            """
+            type My_Type
+            """);
     var mainMod =
         srcModule(
             "Main",
             """
-        import project.My_Module.My_Type
+            import project.My_Module.My_Type
 
-        main =
-            x = 42
-            case x of
-                _ : local.Proj.My_Module.My_Type -> 21  # Case.Branch
-                _ -> 22
-        """);
+            main =
+                x = 42
+                case x of
+                    _ : local.Proj.My_Module.My_Type -> 21  # Case.Branch
+                    _ -> 22
+            """);
     withProject(
         "Proj",
         Set.of(myMod, mainMod),
@@ -418,11 +435,14 @@ public final class NameResolutionTest {
     ProjectUtils.createProject(
         "Lib",
         Set.of(
-            srcModule("My_Module", """
+            srcModule(
+                "My_Module",
+                """
                 type My_Type
                 """),
             srcModule(
-                "Main", """
+                "Main",
+                """
                 export project.My_Module.My_Type
                 """)),
         libDir);

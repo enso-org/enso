@@ -193,11 +193,6 @@ export enum ProjectState {
    * `openInProgress`, but has not yet been added to the backend.
    */
   placeholder = 'Placeholder',
-  /**
-   * A frontend-specific state, representing a project that should be displayed as `closed`,
-   * but is still in the process of shutting down.
-   */
-  closing = 'Closing',
 }
 
 /** Wrapper around a project state value. */
@@ -225,7 +220,6 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.hybridOpened]: false,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
 }
 
 export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
@@ -239,7 +233,6 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.hybridOpened]: true,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
@@ -1757,7 +1750,6 @@ export default abstract class Backend {
 
   /** Create a {@link LocalBackend}. */
   constructor(
-    private readonly logger: Logger,
     protected getText: GetText,
     private readonly client: HttpClient,
   ) {}
@@ -1780,7 +1772,7 @@ export default abstract class Backend {
     ...replacements: Replacements[K]
   ): Promise<never> {
     if (textId instanceof NetworkError) {
-      this.logger.error(textId.message)
+      console.error(textId.message)
 
       throw textId
     }
@@ -1791,7 +1783,7 @@ export default abstract class Backend {
       : await ((): Promise<Error> => response.json())()
 
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-    this.logger.error(message)
+    console.error(message)
 
     const status = response?.status
 
