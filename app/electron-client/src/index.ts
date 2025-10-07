@@ -32,7 +32,7 @@ import * as ipc from '@/ipc'
 import * as log from '@/log'
 import * as naming from '@/naming'
 import * as paths from '@/paths'
-import * as projectManager from '@/projectManager'
+import * as projectService from '@/projectService'
 import * as security from '@/security'
 import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
@@ -138,7 +138,7 @@ class App {
             console.log('Electron application is ready.')
 
             electron.protocol.handle('enso', (request) =>
-              projectManager.handleProjectProtocol(
+              projectService.handleProjectProtocol(
                 decodeURIComponent(request.url.replace('enso://', '')),
               ),
             )
@@ -302,7 +302,7 @@ class App {
     const backendJvmOpts = args.useJvm ? ['--jvm'] : []
     const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
 
-    projectManager.setupProjectService(backendOpts)
+    projectService.setupProjectService(backendOpts)
   }
 
   /** Start the content server, which will serve the application content (HTML) to the window. */
@@ -594,7 +594,7 @@ class App {
     }
     process.stdout.write('\n')
     process.stdout.write('Backend:\n')
-    const backend = await projectManager.version()
+    const backend = await projectService.version()
     const lines = backend.split(/\r?\n/).filter((line) => line.length > 0)
     for (const line of lines) {
       process.stdout.write(`${indent}${line}\n`)

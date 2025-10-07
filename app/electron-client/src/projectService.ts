@@ -1,4 +1,4 @@
-/** @file Project Manager bindings. */
+/** @file Project Manager Shim bindings. */
 
 import { net } from 'electron'
 import * as url from 'node:url'
