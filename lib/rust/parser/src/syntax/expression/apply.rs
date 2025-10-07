@@ -135,7 +135,7 @@ impl<'s> ApplyUnaryOperator<'s> {
 
     pub fn finish(self) -> MaybeSection<Tree<'s>> {
         let Self { token, rhs, error, warnings } = self;
-        MaybeSection::new(rhs).map(|rhs| {
+        MaybeSection::from(rhs).map(|rhs| {
             let mut tree = match rhs {
                 Some(rhs) => Tree::unary_opr_app(token, rhs),
                 None =>

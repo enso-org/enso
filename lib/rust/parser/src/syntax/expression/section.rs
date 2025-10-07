@@ -53,16 +53,6 @@ impl<'s> From<MaybeSection<Tree<'s>>> for Tree<'s> {
     }
 }
 
-impl<T> MaybeSection<Option<T>> {
-    /// Lift an option value to a potentially-elided operand.
-    pub fn new(value: Option<MaybeSection<T>>) -> Self {
-        match value {
-            None => Self { value: None, wildcards: default() },
-            Some(MaybeSection { value, wildcards }) => Self { value: Some(value), wildcards },
-        }
-    }
-}
-
 impl<T> MaybeSection<T> {
     /// Operate on the contained value without altering the elided-operand information.
     pub fn map<U>(self, f: impl FnOnce(T) -> U) -> MaybeSection<U> {
