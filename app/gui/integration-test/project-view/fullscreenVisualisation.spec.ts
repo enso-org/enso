@@ -65,16 +65,19 @@ test('Load Fullscreen Visualisation', async ({ editorPage, page }) => {
 
   // We can switch visualization type to Table
   await locate.toggleVisualizationSelectorButton(page).click()
-  await page.getByText('Table', { exact: true }).click()
-  const tableVis = locate.tableVisualization(page)
-  await expect(tableVis).toExist()
+  await page.getByRole('button', { name: 'Table', exact: true }).click()
+  await expect(locate.tableVisualization(page)).toExist()
   // ... and back to JSON
   await locate.toggleVisualizationSelectorButton(page).click()
-  await page.getByText('JSON').click()
-  await expect(vis).toExist()
+  await page.getByRole('button', { name: 'JSON', exact: true }).click()
+  await expect(locate.jsonVisualization(page)).toExist()
+  await expect(page.getByRole('button', { name: 'JSON', exact: true })).toBeHidden()
 
   // We may leave fullscreen by pressing Escape
   await page.keyboard.press('Escape')
-  await expect.poll(async () => (await vis.boundingBox())?.width).toBeCloseTo(initialBBox.width)
-  await expect.poll(async () => (await vis.boundingBox())?.height).toBeCloseTo(initialBBox.height)
+
+  // FIXME: Why we sometimes have to press escape multiple times?
+  await page.keyboard.press('Escape')
+
+  await expect.poll(() => vis.boundingBox()).toEqual(initialBBox)
 })

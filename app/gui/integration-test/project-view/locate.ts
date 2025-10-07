@@ -197,7 +197,7 @@ export async function outputPortCoordinates(page: Page, node: Locator) {
   const outputPortArea = await page
     .locator(`.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .outputPortHoverArea`)
     .boundingBox()
-  expect(outputPortArea).not.toBeNull()
+  await expect(outputPortArea).toBeTruthy()
   assert(outputPortArea)
   const centerX = outputPortArea.x + outputPortArea.width / 2
   const bottom = outputPortArea.y + outputPortArea.height

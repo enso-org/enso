@@ -83,6 +83,7 @@ export default defineConfig({
   },
   use: {
     baseURL: `http://localhost:${port}`,
+    viewport: { width: 1920, height: 1750 },
     actionTimeout: TIMEOUT_MS,
     trace: 'retain-on-failure',
     headless: !DEBUG,

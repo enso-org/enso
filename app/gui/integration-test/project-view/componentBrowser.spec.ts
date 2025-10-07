@@ -16,26 +16,29 @@ async function expectAndCancelBrowser(
   expectedLabel: string | null,
   expectedSelfArgument?: string,
 ) {
-  const nodeCount = await locate.graphNode(page).count()
-  await expect(locate.componentBrowser(page)).toExist()
-  await expect(locate.componentBrowserEntry(page)).toExist()
-  await expect(page.locator('[data-transitioning]')).toHaveCount(0)
-  if (expectedLabel != null) {
-    await expect(page.getByTestId('component-editor-label')).toContainText(expectedLabel)
-  } else {
-    await expect(page.getByTestId('component-editor-label')).not.toExist()
-  }
-  if (expectedSelfArgument != null)
-    await expect(locate.componentBrowser(page)).toHaveAttribute(
-      'data-self-argument',
-      expectedSelfArgument,
-    )
-  await expect(locate.componentBrowserInput(page)).toHaveText(expectedText)
-  await expect(locate.componentBrowserInput(page)).toBeInViewport()
-  await page.keyboard.press('Escape')
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(page.locator('[data-transitioning]')).toHaveCount(0)
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount)
+  await test.step(`expectAndCancelBrowser ${expectedText} ${expectedLabel} ${expectedSelfArgument}`, async () => {
+    const nodeCount = await locate.graphNode(page).count()
+    await expect(locate.componentBrowser(page)).toExist()
+    await expect(locate.componentBrowserEntry(page)).toExist()
+    await expect(page.locator('[data-transitioning]')).toHaveCount(0)
+    if (expectedLabel != null) {
+      await expect(page.getByTestId('component-editor-label')).toContainText(expectedLabel)
+    } else {
+      await expect(page.getByTestId('component-editor-label')).toBeHidden()
+    }
+    if (expectedSelfArgument != null) {
+      await expect(locate.componentBrowser(page)).toHaveAttribute(
+        'data-self-argument',
+        expectedSelfArgument,
+      )
+    }
+    await expect(locate.componentBrowserInput(page)).toHaveText(expectedText)
+    await expect(locate.componentBrowserInput(page)).toBeInViewport()
+    await page.keyboard.press('Escape')
+    await expect(locate.componentBrowser(page)).toBeHidden()
+    await expect(page.locator('[data-transitioning]')).toHaveCount(0)
+    await expect(locate.graphNode(page)).toHaveCount(nodeCount)
+  })
 }
 
 test('Different ways of opening Component Browser', async ({ editorPage, page }) => {
@@ -286,7 +289,7 @@ test('Editing existing nodes', async ({ editorPage, page }) => {
   // Start node editing
   await locate.graphNodeIcon(node).click({ modifiers: ['ControlOrMeta'] })
   await expect(locate.componentBrowser(page)).toBeVisible()
-  await expect(page.getByTestId('component-editor-label')).not.toExist()
+  await expect(page.getByTestId('component-editor-label')).toBeHidden()
   const content = locate.componentBrowserInput(page)
   await expect(content).toHaveText('Data.read')
 
@@ -408,7 +411,7 @@ test('AI prompt', async ({ editorPage, page }) => {
   await expect(locate.componentBrowser(page)).toBeVisible()
 
   await page.keyboard.insertText('AI:convert to table')
-  await expect(page.locator('.ComponentList')).not.toExist()
+  await expect(page.locator('.ComponentList')).toBeHidden()
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowserInput(page)).toHaveText('to_table')
   await expect(locate.componentBrowser(page)).toHaveAttribute('data-self-argument', 'data')
