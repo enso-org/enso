@@ -15,7 +15,74 @@
   },
   "name": "enso",
   "description": "Enso Data Processing Environment.",
-  "main": "index.mjs",
+  "main": "bundle/index.mjs",
+  "build": {
+    "appId": "org.enso",
+    "productName": "Enso",
+    "extraMetadata": {
+      "version": "2025.3.0-dev",
+      "installer": {}
+    },
+    "artifactName": "enso-${os}-${arch}-2025.3.0-dev.${ext}",
+    "protocols": [
+      {
+        "name": "Enso url",
+        "schemes": [
+          "enso"
+        ],
+        "role": "Editor"
+      }
+    ],
+    "mac": {
+      "target": "dmg",
+      "icon": "./assets/icons/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "darkModeSupport": true,
+      "type": "distribution",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "./entitlements.mac.plist",
+      "entitlementsInherit": "./entitlements.mac.plist"
+    },
+    "win": {
+      "target": "dir",
+      "icon": "./assets/icons/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "./assets/icons/icon.icns",
+      "category": "Development"
+    },
+    "files": [
+      "!**/node_modules/**/*",
+      {
+        "from": "gui/",
+        "to": "."
+      },
+      {
+        "from": "bundle/",
+        "to": "."
+      }
+    ],
+    "directories": {
+      "output": "ide-dist"
+    },
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
+    "nodeGypRebuild": false,
+    "msi": {
+      "runAfterFinish": false
+    },
+    "nsis": {
+      "differentialPackage": false,
+      "runAfterFinish": false
+    },
+    "dmg": {
+      "writeUpdateInfo": false,
+      "sign": false
+    },
+    "publish": null
+  },
   "dependencies": {
     "chalk": "^5.4.1",
     "commander": "^14.0.1",
@@ -58,7 +125,7 @@
     "esbuild-plugin-wasm": "^1.1.0",
     "fast-glob": "^3.3.2",
     "playwright": "catalog:",
-    "portfinder": "^1.0.32",
+    "portfinder": "^1.0.38",
     "vite": "catalog:",
     "vite-node": "3.0.0-beta.3"
   },

@@ -1,5 +1,6 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@env//:defs.bzl", "getenv")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
@@ -58,6 +59,12 @@ SRCS = [
     ],
     [ICON_GENERATED_DIR + "/**"],
 ) + npm_link_targets()
+
+npm_package(
+    name = "pkg",
+    srcs = SRCS,
+    visibility = ["//visibility:public"],
+)
 
 ENV_FILES = glob([".env*"])
 

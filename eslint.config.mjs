@@ -190,6 +190,7 @@ const config = [
       '**/generated',
       '**/*.json',
       'app/rust-ffi/pkg/',
+      'app/electron-client/pre-electron-builder.cjs',
     ],
   },
   {
@@ -218,6 +219,7 @@ const config = [
             'app/ydoc-shared/vitest.config.ts',
             'app/project-manager-shim/scripts/*.js',
             'app/ide-desktop/icons/src/index.js',
+            'app/electron-client/pre-electron-builder.cjs',
           ],
         },
       },

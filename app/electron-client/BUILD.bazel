@@ -1,9 +1,10 @@
-load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("@npm//app/electron-client:electron-builder/package_json.bzl", electron_builder_bin = "bin")
 
-npm_link_all_packages()
+npm_link_all_packages(name = "node_modules")
 
 ts_config(
     name = "tsconfig",
@@ -13,7 +14,7 @@ ts_config(
 )
 
 ts_project(
-    name = "ts_proj",
+    name = "tsc",
     srcs = glob(["src/*.ts"]),
     composite = True,
     declaration = True,
@@ -28,18 +29,54 @@ ts_project(
     deps = ["//:tsconfig"] + npm_link_targets(),
 )
 
-js_library(
-    name = "lib",
-    srcs = glob([
-        "src/*.js",
-        "src/*.d.ts",
-    ]) + ["package.json"],
+npm_package(
+    name = "package",
+    srcs = [":tsc"],
+    include_runfiles = False,
     visibility = ["//visibility:public"],
 )
 
-npm_package(
-    name = "package",
-    srcs = [":lib"],
-    include_runfiles = False,
+esbuild(
+    name = "bundle",
+    srcs = glob(["src/**/*.ts"]) + [
+        "buildInfo.ts",
+        "fileAssociations.ts",
+        "paths.ts",
+    ],
+    bundle = True,
+    config = ":esbuild.config.mjs",
+    entry_points = [
+        "src/index.ts",
+        "src/preload.ts",
+    ],
+    external = [
+        "electron",
+        "vite",
+        "lightningcss",
+        "bufferutil",
+        "utf-8-validate",
+        "encoding",
+    ],
+    output_dir = True,
+    sourcemap = "linked",
+    visibility = ["//visibility:public"],
+    deps = npm_link_targets(),
+)
+
+electron_builder_bin.electron_builder(
+    name = "electron_builder_run",
+    srcs = npm_link_targets() + [
+        "package.json",
+    ] + [":bundle"] + ["hdiutil"],
+    args = [
+        "build",
+    ],
+    chdir = package_name(),
+    env = {
+        # Disable Node fs patching for this target to avoid readlink issues on Bazel bin symlinks.
+        "JS_BINARY__PATCH_NODE_FS": "0",
+    },
+    # Run from BINDIR (default); rely on package.json "build" config.
+    out_dirs = ["ide-dist"],
     visibility = ["//visibility:public"],
 )
