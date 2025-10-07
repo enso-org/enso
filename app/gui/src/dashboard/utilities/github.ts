@@ -116,15 +116,15 @@ export async function getLatestRelease() {
 
 const appExtension = (() => {
   switch (detect.platform()) {
-    case 'macOS':
+    case 'macos':
       return '.dmg'
-    case 'Windows':
+    case 'windows':
       return '.exe'
-    case 'Unknown platform':
-    case 'Linux':
-    case 'Windows Phone':
-    case 'iPhone OS':
-    case 'Android':
+    case 'unknown':
+    case 'linux':
+    case 'windows-phone':
+    case 'iphone-os':
+    case 'android':
     default:
       // assume Unix-like.
       return '.AppImage'

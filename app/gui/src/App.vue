@@ -27,7 +27,7 @@ import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
-import { platform } from 'enso-common/src/detect'
+import { platform, type Platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { computed, shallowRef } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
@@ -75,15 +75,17 @@ const { globalEventRegistry } = provideGlobalEventRegistry()
 useEvent(window, 'keydown', bindingsHandlers)
 useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
 
-const platformClass = {
-  ['Windows']: 'onWindows',
-  ['macOS']: 'onMacOs',
-  ['Linux']: 'onLinux',
-  ['Windows Phone']: 'onWindowsPhone',
-  ['iPhone OS']: 'onIPhoneOs',
-  ['Android']: 'onAndroid',
-  ['Unknown platform']: undefined,
-}[platform()]
+const platformClass = (
+  {
+    windows: 'onWindows',
+    macos: 'onMacOs',
+    linux: 'onLinux',
+    'windows-phone': 'onWindowsPhone',
+    'iphone-os': 'onIPhoneOs',
+    android: 'onAndroid',
+    unknown: undefined,
+  } satisfies Record<Platform, string | undefined>
+)[platform()]
 
 const fullscreenRoot = shallowRef<HTMLElement>()
 
