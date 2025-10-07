@@ -4,10 +4,8 @@ import { net } from 'electron'
 import * as url from 'node:url'
 
 import * as paths from '@/paths'
-import type { Options } from 'enso-common/src/options'
 import { getProjectRoot } from 'project-manager-shim'
 import { ProjectService } from 'project-manager-shim/projectService'
-
 
 // =======================
 // === Project Service ===
