@@ -3850,7 +3850,7 @@ lazy val `engine-runner` = project
     }
   )
   .settings(
-    NativeImage.smallJdk := Some(buildSmallJdk.value),
+    NativeImage.smallJdk := Some((Bazel / smallJdkDir).value.get),
     NativeImage.additionalCp := {
       val runnerDeps =
         (Compile / fullClasspath).value.map(_.data.getAbsolutePath)
@@ -4113,15 +4113,15 @@ lazy val `engine-runner` = project
   .dependsOn(`polyglot-api`)
 
 lazy val buildSmallJdk =
-  taskKey[File]("Build a minimal JDK used for native image generation")
+  taskKey[Unit]("Build a minimal JDK used for native image generation")
 
 /** Command for building small JDK for the release.
   * Use as `buildSmallJdkForRelease <targetDir>`.
   */
 ThisBuild / commands += {
-  Command.single("buildSmallJdkForRelease") { (state, targetDir) =>
-    SmallJDK.buildSmallJDKForRelease(new File(targetDir))
-    state.log.info(s"Small JDK built in: $targetDir")
+  Command.single("buildSmallJdkForRelease") { (state) =>
+    SmallJDK.buildSmallJDKForRelease((Bazel / smallJdkDir).value.get)
+    state.log.info(s"Small JDK built in: ${(Bazel / smallJdkDir).value.get}")
     state
   }
 }

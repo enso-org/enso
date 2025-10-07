@@ -21,6 +21,7 @@ object BazelSupport extends AutoPlugin {
   val RUST_PARSER_JAVA_SRC_DIR_PROP   = "enso.BazelSupport.parser.javaSrcDir"
   val RUST_PARSER_LIB_PROP            = "enso.BazelSupport.parser.lib"
   val EXTRACTED_PYTHON_RESOURCES_PROP = "enso.BazelSupport.python.resourceDir"
+  val SMALL_JDK_DIR_PROP              = "enso.BazelSupport.smallJdkDir"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
@@ -49,6 +50,9 @@ object BazelSupport extends AutoPlugin {
     )
     lazy val extractedPythonResourceDir = taskKey[File](
       "Directory containing extracted Python resources"
+    )
+    lazy val smallJdkDir = settingKey[Option[File]](
+      "Directory containing the small JDK output"
     )
     lazy val Bazel = config("Bazel")
   }
@@ -148,6 +152,18 @@ object BazelSupport extends AutoPlugin {
           )
         }
         dir
+      },
+      Bazel / smallJdkDir := {
+        val prop = System.getProperty(SMALL_JDK_DIR_PROP)
+        if (prop == null) {
+          None
+        } else {
+          val dir = new File(prop)
+          if (!dir.exists()) {
+            IO.createDirectory(dir)
+          }
+          Some(dir)
+        }
       }
     )
   }
