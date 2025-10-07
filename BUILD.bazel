@@ -225,6 +225,18 @@ run_sbt(
     visibility = ["//visibility:public"],
 )
 
+run_sbt(
+    name = "sbt_build_small_jdk",
+    srcs = SRCS,
+    args = [
+        "buildSmallJdkForRelease",
+    ],
+    env = ENV,
+    out_dir = "built-small-jdk",
+    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
+    visibility = ["//visibility:public"],
+)
+
 # This is just a sanity check that runs equivalent of `enso --run test/Base_Tests/**/Maybe_Spec.enso`.
 run_enso(
     name = "run_enso_test",
