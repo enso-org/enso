@@ -294,12 +294,9 @@ impl HasOperatorProperties for variant::CommaOperator {
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum Precedence {
-    // syntactic / contextualizing operators
     Assignment = 1,
     TypeAnnotation,
     Arrow,
-
-    // runtime operators
     Not,
     Logical,
     Equality,
