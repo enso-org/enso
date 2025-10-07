@@ -6,7 +6,7 @@ import { merge } from 'enso-common/src/utilities/data/object'
 
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 
-import type { LaunchedProject, LaunchedProjectId } from '$/providers/container'
+import type { LaunchedProject } from '$/providers/container'
 import * as authProvider from '$/providers/react'
 import {
   useAddClosingProject,
@@ -32,21 +32,6 @@ import { useUploadsToCloudStore } from '$/providers/react/upload'
 import { useState } from 'react'
 import { z } from 'zod'
 import { useEnsureQueryData, useMutationCallback } from '../utilities/tanstackQuery'
-
-/** Default interval for refetching project status when the project is opened. */
-const OPENED_INTERVAL_MS = 30_000
-/**
- * Interval when we open a cloud project.
- * Since opening a cloud project is a long operation, we want to check the status less often.
- */
-const CLOUD_OPENING_INTERVAL_MS = 2_500
-/**
- * Interval when we open a local project or when we want to sync the project status as soon as
- * possible.
- */
-const LOCAL_OPENING_INTERVAL_MS = 100
-
-const DEFAULT_INTERVAL_MS = 120_000
 
 /** Options for {@link createGetProjectDetailsQuery}. */
 export interface CreateOpenedProjectQueryOptions {
@@ -154,70 +139,6 @@ export function getTimeoutBasedOnTheBackendType(backendType: backendModule.Backe
     }
   }
 }
-
-/** Project status query.  */
-export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOptions) {
-  const { assetId, backend } = options
-
-  const isLocal = backend.type === backendModule.BackendType.local
-
-  return reactQuery.queryOptions({
-    queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
-    queryFn: () => backend.getProjectDetails(assetId),
-    refetchIntervalInBackground: true,
-    refetchOnMount: true,
-    networkMode: backend.type === backendModule.BackendType.remote ? 'online' : 'always',
-    meta: { persist: false },
-    refetchInterval: (query): number | false => {
-      const { state } = query
-
-      const staticStates = STATIC_PROJECT_STATES
-
-      const openingStates = OPENING_PROJECT_STATES
-
-      const createdStates = CREATED_PROJECT_STATES
-
-      if (state.status === 'error') {
-        return false
-      }
-
-      if (state.data == null) {
-        return false
-      }
-
-      const currentState = state.data.state.type
-
-      if (isLocal) {
-        if (createdStates.has(currentState)) {
-          return LOCAL_OPENING_INTERVAL_MS
-        }
-
-        if (staticStates.has(state.data.state.type)) {
-          return OPENED_INTERVAL_MS
-        }
-
-        if (openingStates.has(state.data.state.type)) {
-          return LOCAL_OPENING_INTERVAL_MS
-        }
-      }
-
-      if (createdStates.has(currentState)) {
-        return CLOUD_OPENING_INTERVAL_MS
-      }
-
-      // Cloud project
-      if (staticStates.has(state.data.state.type)) {
-        return OPENED_INTERVAL_MS
-      }
-      if (openingStates.has(state.data.state.type)) {
-        return CLOUD_OPENING_INTERVAL_MS
-      }
-
-      return DEFAULT_INTERVAL_MS
-    },
-  })
-}
-createGetProjectDetailsQuery.getQueryKey = (id: LaunchedProjectId) => ['project', id] as const
 
 const OPEN_PROJECT_MUTATION_KEY = ['openProject'] as const
 
