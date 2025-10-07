@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "env.d.ts",
     "vite.config.*",
     "vite.test.config.*",
     "vitest.config.*",
@@ -33,8 +34,7 @@
     "src/project-view/util/iconMetadata/iconName.ts",
     "src/providers/session/constants.ts",
     "src/providers/featureFlags.ts",
-    "src/utils/zustand.ts",
-    "node.env.d.ts"
+    "src/utils/zustand.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",

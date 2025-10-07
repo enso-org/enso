@@ -40,7 +40,7 @@ export function useLocalBrowser({
   fileTypes: ToValue<FileType[] | undefined>
 }): ComputedRef<CustomDropdownItem[]> {
   async function openFileBrowser() {
-    if (!window.fileBrowserApi) {
+    if (!window.api) {
       console.error('File browser not supported!')
       return
     }
@@ -50,7 +50,7 @@ export function useLocalBrowser({
     const kind = rawKind === 'file' && toValue(write) ? 'filePath' : rawKind
     const fileTypes_ = toValue(fileTypes)
     const filters = fileTypes_ != null ? fileTypesToFileFilters(fileTypes_) : undefined
-    const selected = await window.fileBrowserApi.openFileBrowser(
+    const selected = await window.api.fileBrowser.openFileBrowser(
       kind,
       toValue(currentPath),
       filters,
