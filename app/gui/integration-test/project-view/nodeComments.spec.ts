@@ -1,5 +1,4 @@
 import { expect, test } from 'integration-test/base'
-import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
 test('Edit comment by click', async ({ editorPage, page }) => {
@@ -8,7 +7,7 @@ test('Edit comment by click', async ({ editorPage, page }) => {
   await expect(nodeComment).toHaveText('This node can be entered')
 
   await nodeComment.click()
-  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.keyboard.press(`ControlOrMeta+A`)
   const NEW_COMMENT = 'New comment text'
   await nodeComment.fill(NEW_COMMENT)
   await page.keyboard.press(`Enter`)
@@ -76,7 +75,7 @@ test('Delete comment by clearing text', async ({ editorPage, page }) => {
   await expect(nodeComment).toHaveText('This node can be entered')
 
   await nodeComment.click()
-  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.keyboard.press(`ControlOrMeta+A`)
   await page.keyboard.press(`Delete`)
   await page.keyboard.press(`Enter`)
   await expect(nodeComment).toBeHidden()
@@ -89,7 +88,7 @@ test('URL added to comment is rendered as link', async ({ editorPage, page, cont
   await expect(commentContent.locator('a')).toBeHidden()
 
   await commentContent.click()
-  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.keyboard.press(`ControlOrMeta+A`)
   const NEW_COMMENT = "Here's a URL: https://example.com"
   await commentContent.fill(NEW_COMMENT)
   await page.keyboard.press(`Enter`)
@@ -118,7 +117,7 @@ test('Long comment displays wrapped', async ({ editorPage, page }) => {
   const shortContentHeight = (await nodeComment.boundingBox())!.height
   await expect(nodeComment).toHaveText('This node can be entered')
   await nodeComment.click()
-  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.keyboard.press(`ControlOrMeta+A`)
   const NEW_COMMENT = 'long comment '.repeat(30)
   await nodeComment.fill(NEW_COMMENT)
   await page.keyboard.press(`Enter`)

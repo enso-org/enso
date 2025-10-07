@@ -1,9 +1,8 @@
 import { expect, test, type Page } from 'integration-test/base'
 import { mockExpressionUpdate } from './expressionUpdates'
-import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
-const ACCEPT_INPUT_SHORTCUT = `${CONTROL_KEY}+Enter`
+const ACCEPT_INPUT_SHORTCUT = `ControlOrMeta+Enter`
 
 async function deselectAllNodes(page: Page) {
   await page.keyboard.press('Escape')

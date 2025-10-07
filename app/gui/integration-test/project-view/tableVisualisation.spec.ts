@@ -3,7 +3,6 @@ import { expect, test, type BrowserContext, type Locator, type Page } from 'inte
 import type { MockLocalApi } from 'integration-test/mock/localApi'
 import * as actions from './actions'
 import { mockMethodCallInfo } from './expressionUpdates'
-import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
 import singleColumnDates from './table-vis-json/singleColumnDates.json' with { type: 'json' }
@@ -105,13 +104,13 @@ test('Copy/paste from Table Visualization', async ({ editorPage, page, context }
   await page.mouse.up()
 
   // Copy from table visualization
-  await page.keyboard.press(`${CONTROL_KEY}+C`)
+  await page.keyboard.press(`ControlOrMeta+C`)
   await expectClipboard.toMatch(/^0,0\t0,1\r\n1,0\t1,1\r\n2,0\t2,1$/)
 
   // Paste to Node.
   await actions.clickAtBackground(page)
   const nodesCount = await locate.graphNode(page).count()
-  await page.keyboard.press(`${CONTROL_KEY}+V`)
+  await page.keyboard.press(`ControlOrMeta+V`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount + 1)
   // Node binding would be `node1` for pasted node.
   const nodeBinding = 'node1'
@@ -131,7 +130,7 @@ test('Copy/paste from Table Visualization', async ({ editorPage, page, context }
   await expect(widget).toBeVisible()
   await widget.getByRole('button', { name: 'Add new column' }).click()
   await widget.locator('.valueCell').first().click()
-  await page.keyboard.press(`${CONTROL_KEY}+V`)
+  await page.keyboard.press(`ControlOrMeta+V`)
   await expectTableInputContent(page, node)
 
   // Copy from table input widget
@@ -139,7 +138,7 @@ test('Copy/paste from Table Visualization', async ({ editorPage, page, context }
   await page.mouse.down()
   await node.getByText('2,1').hover()
   await page.mouse.up()
-  await page.keyboard.press(`${CONTROL_KEY}+C`)
+  await page.keyboard.press(`ControlOrMeta+C`)
   await expectClipboard.toMatch(/^0,0\t0,1\r\n1,0\t1,1\r\n2,0\t2,1$/)
 
   // Copy from table input widget with headers
@@ -485,7 +484,7 @@ async function expectCopyingColumnClipboardToBe(
   await page.keyboard.down('Shift')
   await getCellLocator(page, columnName, endRow).click()
   await page.keyboard.up('Shift')
-  await page.keyboard.press(`${CONTROL_KEY}+C`)
+  await page.keyboard.press(`ControlOrMeta+C`)
   const expectClipboard = expect.poll(() =>
     page.evaluate(() => window.navigator.clipboard.readText()),
   )

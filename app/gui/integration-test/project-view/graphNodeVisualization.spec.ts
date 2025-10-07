@@ -3,10 +3,9 @@ import { expect, test } from 'integration-test/base'
 import * as actions from './actions'
 import { computedContent } from './css'
 import { mockExpressionUpdate } from './expressionUpdates'
-import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
-test('Node can open and load visualization', async ({ page }) => {
+test('Node can open and load visualization', async ({ editorPage, page }) => {
   await editorPage
   const node = locate.graphNodeByBinding(page, 'final')
   await node.click({ position: { x: 8, y: 8 } })
@@ -32,7 +31,7 @@ test('Node can open and load visualization', async ({ page }) => {
   await expect(nodeType).toHaveText('DifferentType')
 })
 
-test('Previewing visualization', async ({ page }) => {
+test('Previewing visualization', async ({ editorPage, page }) => {
   await editorPage
   const node = locate.graphNode(page).last()
   const port = await locate.outputPortCoordinates(page, node)
@@ -57,10 +56,10 @@ test('Previewing visualization', async ({ page }) => {
   await expect(locate.anyVisualization(page)).toBeHidden()
 })
 
-test('Warnings visualization', async ({ page }) => {
+test('Warnings visualization', async ({ editorPage, page }) => {
   await editorPage
   // Without centering the graph, menu sometimes goes out of the view.
-  await page.keyboard.press(`${CONTROL_KEY}+Shift+A`)
+  await page.keyboard.press(`ControlOrMeta+Shift+A`)
   // Create a node, attach a warning, open the warnings-visualization.
   await locate.addNewNodeButton(page).click()
 

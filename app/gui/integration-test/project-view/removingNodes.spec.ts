@@ -1,5 +1,5 @@
 import { expect, test } from 'integration-test/base'
-import { CONTROL_KEY, DELETE_KEY } from './keyboard'
+import { DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
 test('Deleting selected node with backspace key', async ({ editorPage, page }) => {
@@ -50,7 +50,7 @@ test('Deleting multiple nodes with context menu', async ({ editorPage, page }) =
 test('Graph can be empty', async ({ editorPage, page }) => {
   await editorPage
 
-  await locate.graphEditor(page).press(`${CONTROL_KEY}+A`)
+  await locate.graphEditor(page).press(`ControlOrMeta+A`)
   await locate.graphEditor(page).press(`${DELETE_KEY}`)
 
   await expect(locate.graphNode(page)).toHaveCount(0)
@@ -58,7 +58,7 @@ test('Graph can be empty', async ({ editorPage, page }) => {
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserInput(page)).toBeFocused()
   await page.keyboard.insertText('foo')
-  await page.keyboard.press(`${CONTROL_KEY}+Enter`)
+  await page.keyboard.press(`ControlOrMeta+Enter`)
   await expect(locate.graphNode(page)).toHaveCount(1)
   await expect(locate.graphNode(page).locator('.WidgetToken')).toHaveText(['foo'])
 })

@@ -1,6 +1,5 @@
-import { expect, test, type Page } from 'integration-test/base'
-import * as actions from './actions'
-import { CONTROL_KEY } from './keyboard'
+import type EditorPageActions from 'integration-test/actions/EditorPageActions'
+import { expect, test } from 'integration-test/base'
 import * as locate from './locate'
 import { edgesToNodeWithBinding, graphNodeByBinding, outputPortCoordinates } from './locate'
 
@@ -8,10 +7,8 @@ import { edgesToNodeWithBinding, graphNodeByBinding, outputPortCoordinates } fro
  * Prepare the graph for the tests. We drag the `ten` node to the right of the `sum` node for better access
  * to the edges.
  */
-async function initGraph(page: Page) {
-  await editorPage
-  await actions.dragNodeByBinding(page, 'ten', 400, 0)
-  await actions.dragNodeByBinding(page, 'sum', -400, 0)
+async function initGraph(editorPage: EditorPageActions) {
+  await editorPage.dragNode('ten', { x: 400, y: 0 }).dragNode('sum', { x: -400, y: 0 })
 }
 
 // For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.
@@ -20,8 +17,8 @@ const EDGE_PARTS = 2
 /**
   Scenario: We disconnect the `sum` parameter in the `prod` node by clicking on the edge and clicking on the background.
  */
-test('Disconnect an edge from a port', async ({ page }) => {
-  await initGraph(page)
+test('Disconnect an edge from a port', async ({ editorPage, page }) => {
+  await initGraph(editorPage)
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3 * EDGE_PARTS)
 
   const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
@@ -36,8 +33,8 @@ test('Disconnect an edge from a port', async ({ page }) => {
 })
 
 /** Scenario: We replace the `sum` parameter in the `prod` node` with the `ten` node. */
-test('Connect an node to a port', async ({ page }) => {
-  await initGraph(page)
+test('Connect an node to a port', async ({ editorPage, page }) => {
+  await initGraph(editorPage)
 
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3 * EDGE_PARTS)
   const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
@@ -56,8 +53,8 @@ test('Connect an node to a port', async ({ page }) => {
 })
 
 /** As above, but by dragging edge instead of clicking source and target separately. */
-test('Connect an node to a port via dragging the edge', async ({ page }) => {
-  await initGraph(page)
+test('Connect an node to a port via dragging the edge', async ({ editorPage, page }) => {
+  await initGraph(editorPage)
 
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3 * EDGE_PARTS)
   const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
@@ -70,7 +67,7 @@ test('Connect an node to a port via dragging the edge', async ({ page }) => {
   await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
 })
 
-test('Conditional ports: Disabled', async ({ page }) => {
+test('Conditional ports: Disabled', async ({ editorPage, page }) => {
   await editorPage
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
@@ -92,7 +89,7 @@ test('Conditional ports: Disabled', async ({ page }) => {
   await page.keyboard.press('Escape')
 })
 
-test('Conditional ports: Enabled', async ({ page }) => {
+test('Conditional ports: Enabled', async ({ editorPage, page }) => {
   await editorPage
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
@@ -100,7 +97,7 @@ test('Conditional ports: Enabled', async ({ page }) => {
   const outputPort = await outputPortCoordinates(page, graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
 
-  await page.keyboard.down(CONTROL_KEY)
+  await page.keyboard.down('ControlOrMeta')
   await expect(conditionalPort).toHaveClass(/enabled/)
 
   await conditionalPort.hover()
@@ -109,10 +106,10 @@ test('Conditional ports: Enabled', async ({ page }) => {
   await conditionalPort.click({ force: true })
   await expect(node.locator('.WidgetToken')).toHaveText(['final'])
 
-  await page.keyboard.up(CONTROL_KEY)
+  await page.keyboard.up('ControlOrMeta')
 })
 
-test('Edge drop prevents further handling of event', async ({ page }) => {
+test('Edge drop prevents further handling of event', async ({ editorPage, page }) => {
   await editorPage
 
   const outputPort = await locate.outputPortCoordinates(

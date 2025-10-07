@@ -16,7 +16,6 @@ import {
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
-export const CONTROL_KEY = os.platform() === 'darwin' ? 'Meta' : 'Control'
 const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
 
 const credentials = JSON.parse(

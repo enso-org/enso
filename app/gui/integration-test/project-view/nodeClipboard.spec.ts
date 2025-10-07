@@ -1,6 +1,5 @@
 import type EditorPageActions from 'integration-test/actions/EditorPageActions'
 import { expect, test, type Locator } from 'integration-test/base'
-import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 import { connectedEdgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 
@@ -34,7 +33,7 @@ test('Copy component with context menu', async ({ editorPage, page }) => {
   await nodeToCopy.click({ button: 'right' })
   await expect(nodeToCopy).toBeSelected()
   await page.locator('.ActionMenu').getByRole('button', { name: 'Copy Component' }).click()
-  await page.keyboard.press(`${CONTROL_KEY}+V`)
+  await page.keyboard.press(`ControlOrMeta+V`)
   await expect(nodeToCopy).not.toBeSelected()
   await expect(locate.selectedNodes(page)).toHaveCount(1)
   await expect(locate.graphNode(page)).toHaveCount(originalNodes + 1)
@@ -53,8 +52,8 @@ test('Copy component with comment', async ({ editorPage, page }) => {
   await nodeToCopy.click()
   await expect(nodeToCopy).toBeSelected()
   // Copy and paste it.
-  await page.keyboard.press(`${CONTROL_KEY}+C`)
-  await page.keyboard.press(`${CONTROL_KEY}+V`)
+  await page.keyboard.press(`ControlOrMeta+C`)
+  await page.keyboard.press(`ControlOrMeta+V`)
   await expect(nodeToCopy).not.toBeSelected()
   await expect(locate.selectedNodes(page)).toHaveCount(1)
 
@@ -79,7 +78,7 @@ async function testCopyMultiple(
 
     // Copy and paste.
     await copyNodes(node1, node2)
-    await page.keyboard.press(`${CONTROL_KEY}+V`)
+    await page.keyboard.press(`ControlOrMeta+V`)
     await expect(node1).not.toBeSelected()
     await expect(node2).not.toBeSelected()
     await expect(locate.selectedNodes(page)).toHaveCount(2)
@@ -107,7 +106,7 @@ test('Copy multiple components with keyboard shortcut', async ({ editorPage }) =
     await node2.click({ modifiers: ['Shift'] })
     await expect(node1).toBeSelected()
     await expect(node2).toBeSelected()
-    await editorPage.press(`${CONTROL_KEY}+C`)
+    await editorPage.press('Mod+C')
   })
 })
 

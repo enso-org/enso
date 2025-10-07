@@ -1,5 +1,5 @@
 import { expect, test, type Page } from 'integration-test/base'
-import { CONTROL_KEY, DELETE_KEY } from './keyboard'
+import { DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
 async function createNode(page: Page, expression: string) {
@@ -8,7 +8,7 @@ async function createNode(page: Page, expression: string) {
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserInput(page)).toBeFocused()
   await page.keyboard.insertText(expression)
-  await page.keyboard.press(`${CONTROL_KEY}+Enter`)
+  await page.keyboard.press(`ControlOrMeta+Enter`)
   await expectNodeCreated(page, newNodesCount, expression)
   return newNodesCount
 }
@@ -42,13 +42,13 @@ test('Adding new node', async ({ editorPage, page }) => {
   const nodesCount = await createNode(page, 'foo')
   const newNodeBBox = await locate.graphNode(page).last().boundingBox()
 
-  await page.keyboard.press(`${CONTROL_KEY}+Z`)
+  await page.keyboard.press(`ControlOrMeta+Z`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
   await expect(
     locate.graphNode(page).locator('.WidgetToken').filter({ hasText: 'foo' }),
   ).toHaveCount(0)
 
-  await page.keyboard.press(`${CONTROL_KEY}+Shift+Z`)
+  await page.keyboard.press(`ControlOrMeta+Shift+Z`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount)
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText(['foo'])
   const restoredBox = await locate.graphNode(page).last().boundingBox()
@@ -65,7 +65,7 @@ test('Removing node', async ({ editorPage, page }) => {
   await page.keyboard.press(DELETE_KEY)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
 
-  await page.keyboard.press(`${CONTROL_KEY}+Z`)
+  await page.keyboard.press(`ControlOrMeta+Z`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount)
   await expect(deletedNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'func1', 'prod'])
   await expect(locate.nodeCommentContent(deletedNode)).toHaveText('This node can be entered')
@@ -73,7 +73,7 @@ test('Removing node', async ({ editorPage, page }) => {
   const restoredBBox = await deletedNode.boundingBox()
   expect(restoredBBox).toEqual(deletedNodeBBox)
 
-  await page.keyboard.press(`${CONTROL_KEY}+Shift+Z`)
+  await page.keyboard.press(`ControlOrMeta+Shift+Z`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
   await expect(deletedNode).toBeHidden()
 })
