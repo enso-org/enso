@@ -36,6 +36,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
    * Creates instance of the class loader.
    *
    * @param language the language to associate objects loaded by this loader with
+   * @param polyglotBindings object to use as polyglot context
    * @param otherJvm normally we run in AOT mode but for debugging purposes we can also emulate the
    *     connection in a single JVM
    * @param ctx own context to execute code in
@@ -44,12 +45,15 @@ public final class OtherJvmClassLoader implements TruffleObject {
    * @throws URISyntaxException
    */
   public static OtherJvmClassLoader create(
-      Class<? extends TruffleLanguage> language, boolean otherJvm, TruffleContext ctx)
+      Class<? extends TruffleLanguage> language,
+      Object polyglotBindings,
+      boolean otherJvm,
+      TruffleContext ctx)
       throws IOException, URISyntaxException {
     var jvm = otherJvm ? initializeJvm() : null;
     var ch = Channel.create(jvm, OtherJvmPool.class);
     var pool = ch.getConfig();
-    pool.onEnterLeave(language, ctx::enter, ctx::leave);
+    pool.onEnterLeave(language, polyglotBindings, ctx::enter, ctx::leave);
     return new OtherJvmClassLoader(ch);
   }
 

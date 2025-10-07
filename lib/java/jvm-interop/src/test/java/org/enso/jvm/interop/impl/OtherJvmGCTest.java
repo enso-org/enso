@@ -34,6 +34,7 @@ public class OtherJvmGCTest {
         .getConfig()
         .onEnterLeave(
             null,
+            null,
             (__) -> {
               ctx.context().enter();
               return null;

@@ -10,8 +10,13 @@ final class JavaPolyglotNode {
   static GenericForeignNode create(EpbContext context) {
     try {
       var isAot = TruffleOptions.AOT;
+      var lang = context.getEnv().getInternalLanguages().get("enso");
+      assert null != lang;
+      var polyglotBindings = context.getEnv().getScopePublic(lang);
+      assert null != polyglotBindings;
       var loader =
-          OtherJvmClassLoader.create(EpbLanguage.class, isAot, context.getEnv().getContext());
+          OtherJvmClassLoader.create(
+              EpbLanguage.class, polyglotBindings, isAot, context.getEnv().getContext());
       var target = RootNode.createConstantNode(loader).getCallTarget();
       return new GenericForeignNode(target);
     } catch (URISyntaxException | IOException ex) {

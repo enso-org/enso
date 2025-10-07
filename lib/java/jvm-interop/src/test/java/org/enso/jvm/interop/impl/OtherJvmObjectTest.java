@@ -51,6 +51,7 @@ public class OtherJvmObjectTest {
         .getConfig()
         .onEnterLeave(
             FakeLanguage.class,
+            null,
             (__) -> {
               ctx.context().enter();
               return null;
