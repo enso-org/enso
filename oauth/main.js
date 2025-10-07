@@ -4,8 +4,15 @@ import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import https from 'https';
 import axios from 'axios';
 
-const tenant_id = '557a086b-ff83-4d39-a7d4-3cedd3e30b8c';
-const client_id = '225e3188-e3ec-4613-b8a5-4e0efac1694a';
+// greg.travis@enso.org dev app
+//const tenant_id = '557a086b-ff83-4d39-a7d4-3cedd3e30b8c';
+//const client_id = '225e3188-e3ec-4613-b8a5-4e0efac1694a';
+
+// greg.travis@sylwiabrodackaensoanalytics.onmicrosoft.com
+const tenant_id = '59c2b5a8-8575-4ce0-9ff5-be8f2b34ad63';
+const client_id = '087cad1c-ab83-476d-bb1b-47ed1c5be4ef';
+
+const me_scopes = 'openid profile offline_access https://graph.microsoft.com/mail.read https://graph.microsoft.com/User.Read https://graph.microsoft.com/Files.Read';
 
 (async () => {
     const client_secret = process.env.OAUTH_CLIENT_SECRET;
@@ -22,13 +29,13 @@ const client_id = '225e3188-e3ec-4613-b8a5-4e0efac1694a';
     async function get_authentication_code(worker) {
         return new Promise((resolve, reject) => {
           console.log("Starting oauth");
-          open(make_get(`https://login.microsoftonline.com/${tenant_id}/oauth2/v2.0/authorize`, {
+          open(make_get(`https://login.microsoftonline.com/common/oauth2/v2.0/authorize`, {
             client_id: client_id,
             response_type: 'code',
             //'redirect_uri': 'https://ensoanalytics.com/msoauthtest',
             redirect_uri: 'http://localhost:3000',
             response_mode: 'query',
-            scope: 'https://graph.microsoft.com/mail.read',
+            scope: me_scopes,
             state: '12345'
           }));
 
@@ -59,14 +66,14 @@ const client_id = '225e3188-e3ec-4613-b8a5-4e0efac1694a';
     }
 
     async function get_access_token(auth_code) {
-      const tokenEndpoint = `https://login.microsoftonline.com/${tenant_id}/oauth2/v2.0/token`;
+      const tokenEndpoint = `https://login.microsoftonline.com/common/oauth2/v2.0/token`;
       //const tokenEndpoint = 'https://login.microsoftonline.com/59c2b5a8-8575-4ce0-9ff5-be8f2b34ad63/oauth2/v2.0/token';
 
       const data = new URLSearchParams();
 
       data.append('client_id', client_id);
       //data.append('client_id', '087cad1c-ab83-476d-bb1b-47ed1c5be4ef');
-      data.append('scope', 'openid offline_access https://graph.microsoft.com/mail.read');
+      data.append('scope', me_scopes);
       data.append('code', auth_code);
       data.append('redirect_uri', 'http://localhost:3000');
       data.append('grant_type', 'authorization_code');
@@ -94,14 +101,14 @@ const client_id = '225e3188-e3ec-4613-b8a5-4e0efac1694a';
         const access_token = await get_access_token(authentication_code);
         //console.log('* access_token: ' + access_token);
 
-        const api_url = 'https://graph.microsoft.com/v1.0/me';
-        //const api_url = 'https://graph.microsoft.com/v1.0/me/drive/root/children';
+        //const api_url = 'https://graph.microsoft.com/v1.0/me';
+        const api_url = 'https://graph.microsoft.com/v1.0/me/drive/root/children';
         const headers = { 'Authorization': access_token };
         try {
           const response = await axios.get(api_url, { headers: headers });
-          console.log('Response Status:', response.status);
+          console.log('API call Response Status:', response.status);
           const data = response.data;
-          console.log('Response Data:', data);
+          console.log('API call Response Data:', data);
           //console.log('Response Headers:', response.headers);
         } catch (error) {
           console.error('Error fetching data:', error.message);
