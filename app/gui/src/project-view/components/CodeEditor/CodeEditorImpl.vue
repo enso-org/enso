@@ -22,7 +22,7 @@ import { highlightSelectionMatches } from '@codemirror/search'
 import { drawSelection, keymap } from '@codemirror/view'
 import { onMounted, toRef, useTemplateRef, type ComponentInstance } from 'vue'
 
-const { store: project, suggestionDb, module, graph } = useCurrentProject().storesRefs
+const { store: project, suggestionDb, module, graph } = useCurrentProject()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 

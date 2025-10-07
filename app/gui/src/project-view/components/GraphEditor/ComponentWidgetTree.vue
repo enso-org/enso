@@ -31,7 +31,7 @@ const props = defineProps<{
   extended: boolean
 }>()
 
-const { module, graph } = useCurrentProject().storesRefs
+const { module, graph } = useCurrentProject()
 const selection = injectGraphSelection()
 
 const baseIcon = computed(() => iconOfNode(props.nodeId, graph.value.db))

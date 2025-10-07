@@ -40,7 +40,7 @@ const emit = defineEmits<{
   updateDefault: [value: Ast.Owned<Ast.MutableExpression> | undefined]
 }>()
 type TreeProps = ComponentProps<typeof WidgetTreeRoot>
-const openedProject = useCurrentProject().ref
+const openedProject = useCurrentProject()
 
 function defaultWidget(ast: Ast.Token | Ast.Ast): TreeProps {
   return { input: WidgetInput.FromAst(ast), updateCallback }
@@ -101,11 +101,11 @@ function resolveType(typeExpr: Ast.Ast) {
   const tyCode = typeExpr.code()
   // Hack: We have to resolve the fully qualified type name ourselves based on present imports.
   // To avoid implementing that for now, we only look up types selectable from dropdown.
-  const matchingTypeEntry = openedProject.value?.suggestionDb.entries.selectableTypes.value.find(
+  const matchingTypeEntry = openedProject.suggestionDb.value.entries.selectableTypes.value.find(
     (ty) => ty.name === tyCode,
   )
   return matchingTypeEntry ?
-      openedProject.value?.names.printProjectPath(matchingTypeEntry.definitionPath)
+      openedProject.projectNames.value.printProjectPath(matchingTypeEntry.definitionPath)
     : undefined
 }
 

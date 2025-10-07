@@ -22,11 +22,15 @@ import {
   type RequiredImport,
 } from './imports'
 
+/**
+ * Module Store
+ *
+ * This store keeps the module AST and provides methods for analyzing and modifying it from
+ * "code" perspective. It does not manage graph's nodes and connections, although it exposes
+ * API for node and widgets metadata, as it is defined at AST level.
+ */
 export type ModuleStore = ReturnType<typeof createModuleStore>
 
-/**
- *
- */
 export function createModuleStore(
   proj: ProjectStore,
   projectNames: ProjectNameStore,
@@ -205,7 +209,7 @@ export function createModuleStore(
 
     const importsToAdd = filterOutRedundantImports(existingImports_, imports)
     if (!importsToAdd.length) return
-    addImports(edit.getVersion(topLevel), importsToAdd, projectNames)
+    addImports(topLevel, importsToAdd, projectNames)
   }
 
   function onBeforeEdit(f: (transaction: Y.Transaction) => void): { unregister: () => void } {
@@ -225,6 +229,5 @@ export function createModuleStore(
     mutableNodeMetadata,
     setWidgetMetadata,
     addMissingImports,
-    addMissingImportsDisregardConflicts,
   })
 }

@@ -38,7 +38,8 @@ export const WIDGETS_ENSO_PATH = ProjectPath.create(
 export function useWidgetFunctionCallInfo(
   input: ToValue<WidgetInput & { value: Ast.Expression }>,
   graphDb: ToValue<GraphDb>,
-  project: ToValue<Pick<ProjectStore, 'useVisualizationData' | 'moduleProjectPath'>>,
+  // Cannot be ToValue - see TODO next to visualizationData
+  project: Pick<ProjectStore, 'useVisualizationData' | 'moduleProjectPath'>,
   projectNames: ToValue<ProjectNameStore>,
 ) {
   const methodCallInfo = computed(() =>
@@ -117,10 +118,9 @@ export function useWidgetFunctionCallInfo(
     ]
 
     let modulePath: ProjectPath = WIDGETS_ENSO_PATH
-    const projectValue = toValue(project)
     const projectNamesValue = toValue(projectNames)
-    if (projectValue.moduleProjectPath?.ok) {
-      modulePath = projectValue.moduleProjectPath.value
+    if (project.moduleProjectPath?.ok) {
+      modulePath = project.moduleProjectPath.value
     }
     const moduleFqn = projectNamesValue.serializeProjectPathForBackend(modulePath)
 
@@ -172,8 +172,9 @@ export function useWidgetFunctionCallInfo(
     return undefined
   })
 
-  // TODO[ao]:
-  const visualizationData = toValue(project).useVisualizationData(visualizationConfig)
+  // TODO[ao]: This does not work with project change. Either useVisualizationData API must
+  //  change, or useCurrentRef should not return ref.
+  const visualizationData = project.useVisualizationData(visualizationConfig)
 
   const widgetConfiguration = computed(() => {
     const data = visualizationData.value

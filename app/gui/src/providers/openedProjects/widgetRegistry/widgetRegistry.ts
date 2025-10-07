@@ -271,7 +271,7 @@ export function applyWidgetUpdates(update: WidgetUpdate, module: ModuleStore) {
       return invalidOriginErr(origin)
     }
   } else {
-    const f = (edit: Ast.MutableModule) => {
+    const applyInEdit = (edit: Ast.MutableModule) => {
       if (update.portUpdate) {
         const { origin } = update.portUpdate
         if (Ast.isAstId(origin)) {
@@ -298,8 +298,8 @@ export function applyWidgetUpdates(update: WidgetUpdate, module: ModuleStore) {
       } else return Ok()
     }
 
-    if (update.edit) return f(update.edit)
-    else return module.edit(f)
+    if (update.edit) return applyInEdit(update.edit)
+    else return module.edit(applyInEdit)
   }
 }
 

@@ -213,14 +213,8 @@ export class MutableModule implements Module {
   private attachObserver() {
     if (this.yjsObserver) return
     this.yjsObserver = (events: Y.YEvent<any>[], transaction: Y.Transaction) => {
-      try {
-        const update = this.observeEvents(events, tryAsOrigin(transaction.origin))
-        for (const observer of this.updateObservers ?? []) observer(update)
-      } catch (err) {
-        console.error('AST observer caught an exception', err)
-        // We drop the exception here, because otherwise we may land with partially updated YDoc
-        // what may produce more confusing bugs.
-      }
+      const update = this.observeEvents(events, tryAsOrigin(transaction.origin))
+      for (const observer of this.updateObservers ?? []) observer(update)
     }
     this.nodes.observeDeep(this.yjsObserver)
   }

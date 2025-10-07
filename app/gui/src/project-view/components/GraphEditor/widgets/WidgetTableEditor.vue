@@ -32,7 +32,7 @@ import TableHeader, { type HeaderParams } from './WidgetTableEditor/TableHeader.
 import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const { suggestionDb, module } = useCurrentProject().storesRefs
+const { suggestionDb, module } = useCurrentProject()
 const grid = ref<
   ComponentInstance<typeof AgGridTableView<RowData, any>> &
     ComponentExposed<typeof AgGridTableView<RowData, any>>

@@ -15,7 +15,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()
 
 const application = computed(() => props.input[ArgumentApplicationKey])
-const { module } = useCurrentProject().storesRefs
+const { module } = useCurrentProject()
 
 const targetMaybePort = computed(() => {
   const target = application.value.target

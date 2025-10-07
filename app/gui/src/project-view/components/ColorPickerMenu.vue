@@ -13,7 +13,7 @@ const emit = defineEmits<{
 
 const { getNodeColor, getNodeColors } = injectNodeColors()
 const selection = injectGraphSelection()
-const { module, graph } = useCurrentProject().storesRefs
+const { module, graph } = useCurrentProject()
 
 const displayedColors = new Set<string>(
   iter.filterDefined(iter.map(selection.selected, getNodeColor)),

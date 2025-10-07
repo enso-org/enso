@@ -16,7 +16,7 @@ import { Ok } from 'ydoc-shared/util/data/result'
 
 const baseEditor = useTemplateRef('baseEditor')
 const props = defineProps(widgetProps(widgetDefinition))
-const currentProject = useCurrentProject().ref
+const { module } = useCurrentProject()
 
 function focusAndSelect() {
   baseEditor.value?.focusAndSelect()
@@ -26,9 +26,7 @@ const textContents = computed(() =>
   props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
 )
 function acceptValue(text: string): HandledUpdate {
-  const module = currentProject.value.module
-
-  return module.edit((edit) => {
+  return module.value.edit((edit) => {
     if (props.input.value instanceof Ast.TextLiteral) {
       const value = edit.getVersion(props.input.value)
       if (value.rawTextContent === text) return Ok()

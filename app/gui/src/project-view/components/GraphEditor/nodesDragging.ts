@@ -112,7 +112,7 @@ export class SnapGrid {
  * The `offset` is always based of the nodes' initial positions.
  */
 export function useNodesDragging() {
-  const { module, graph } = useCurrentProject().storesRefs
+  const { module, graph } = useCurrentProject()
   const selection = injectGraphSelection(true)
 
   // Logically, those fields could be inside CurrentDrag, but animations need component scope.

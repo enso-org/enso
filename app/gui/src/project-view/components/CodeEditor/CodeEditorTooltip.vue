@@ -12,7 +12,7 @@ const { nodeId, syntax, graphDb, suggestionDbStore } = defineProps<{
   suggestionDbStore: SuggestionDbStore
 }>()
 
-const { names: projectNames } = useCurrentProject().storesRefs
+const { projectNames: projectNames } = useCurrentProject()
 
 const expressionInfo = computed(() => nodeId && graphDb.getExpressionInfo(nodeId))
 const typeName = computed(() => {

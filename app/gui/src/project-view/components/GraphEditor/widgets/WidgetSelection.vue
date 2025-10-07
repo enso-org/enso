@@ -38,11 +38,7 @@ import type { ToValue } from '@/util/reactivity'
 import { computed, ref, shallowRef, toRef, toValue, useTemplateRef, type VNode } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const {
-  module,
-  names: projectNames,
-  suggestionDb: suggestionDbStore,
-} = useCurrentProject().storesRefs
+const { module, projectNames: projectNames, suggestionDb: suggestionDbStore } = useCurrentProject()
 
 const tree = injectWidgetTree()
 

@@ -17,11 +17,11 @@ import { computed, shallowRef, toRef, toValue, watchEffect, type WatchSource } f
 import { isAstId, MutableModule } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const project = useCurrentProject().ref
+const project = useCurrentProject()
 const tree = injectWidgetTree()
 
 function doEdit(editFn: (ast: Ast.MutableVector) => void) {
-  project.value.module.edit((edit) => {
+  project.module.value.edit((edit) => {
     if (props.input.value instanceof Ast.Vector) {
       editFn(edit.getVersion(props.input.value))
       return props.updateCallback({ edit, directInteraction: true })

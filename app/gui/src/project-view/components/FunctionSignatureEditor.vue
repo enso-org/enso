@@ -32,7 +32,7 @@ const { functionAst, methodPointer } = defineProps<{
 const rootElement = useTemplateRef('rootElement')
 providePopoverRoot(rootElement)
 
-const { suggestionDb, module } = useCurrentProject().storesRefs
+const { suggestionDb, module } = useCurrentProject()
 
 const docsString = useYText(() => functionAst.mutableDocumentationMarkdown())
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject, useProjectStore } from '$/components/WithCurrentProject.vue'
 import type { MethodCallInfo } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   Score,
@@ -30,7 +30,8 @@ import { computed } from 'vue'
 import { Err, Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const { names: projectNames, store: project, module, graph } = useCurrentProject().storesRefs
+const { projectNames: projectNames, module, graph } = useCurrentProject()
+const project = useProjectStore()
 
 const exprInfo = computed(() => graph.value.db.getExpressionInfo(props.input.value.externalId))
 const outputType = computed(() => exprInfo.value?.typeInfo?.primaryType)
@@ -89,7 +90,7 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
       directInteraction,
     } = update
 
-    const f = (edit: Ast.MutableModule) => {
+    const applyInEdit = (edit: Ast.MutableModule) => {
       // Find the updated argument by matching origin port/expression with the appropriate argument.
       // We are interested only in updates at the top level of the argument AST. Updates from nested
       // widgets do not need to be processed at the function application level.
@@ -212,8 +213,8 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
       }
       return Err('Unknown case for updating argument')
     }
-    if (update.edit) f(update.edit)
-    else module.value.edit(f)
+    if (update.edit) applyInEdit(update.edit)
+    else module.value.edit(applyInEdit)
   }
   // Any other case is handled by the default handler.
   return props.updateCallback(update)

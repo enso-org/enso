@@ -19,7 +19,7 @@ import { type LsUrls } from './openedProjects/project/project'
 /** All stores of a single opened project */
 export interface OpenedProject {
   store: ProjectStore
-  names: ProjectNameStore
+  projectNames: ProjectNameStore
   suggestionDb: SuggestionDbStore
   module: ModuleStore
   graph: GraphStore
@@ -86,7 +86,7 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
         const graph = createGraphStore(store, suggestionDb, names, module)
         const widgetRegistry = new WidgetRegistry(graph.db)
         projects.set(toValue(projectId), {
-          names,
+          projectNames: names,
           store,
           module,
           suggestionDb,

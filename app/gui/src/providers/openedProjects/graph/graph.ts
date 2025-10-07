@@ -126,10 +126,12 @@ function useAssociatedValue<K extends string, V>({
   return values
 }
 
-export type GraphStore = ReturnType<typeof createGraphStore>
 /**
  * A store containing state of currently displayed graph.
  */
+export type GraphStore = ReturnType<typeof createGraphStore>
+
+/** Constructor of {@link GraphStore} */
 export function createGraphStore(
   proj: ProjectStore,
   suggestionDb: SuggestionDbStore,

@@ -27,7 +27,7 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const { suggestionDb, module, graph } = useCurrentProject().storesRefs
+const { suggestionDb, module, graph } = useCurrentProject()
 
 const reprType = computed(() => props.input[ArgumentInfoKey]?.info?.reprType)
 

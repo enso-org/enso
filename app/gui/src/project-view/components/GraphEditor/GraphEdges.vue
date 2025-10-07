@@ -19,12 +19,12 @@ import { useToast } from '@/util/toast'
 import { computed } from 'vue'
 
 const {
-  names: projectNames,
+  projectNames: projectNames,
   store: project,
   module,
   graph,
   suggestionDb,
-} = useCurrentProject().storesRefs
+} = useCurrentProject()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
 const nodeSelection = injectGraphSelection(true)

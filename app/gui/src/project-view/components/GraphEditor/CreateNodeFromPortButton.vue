@@ -15,7 +15,7 @@ const emit = defineEmits<{
   newNodeClick: [portId: AstId, position: Vec2]
 }>()
 
-const { graph } = useCurrentProject().storesRefs
+const { graph } = useCurrentProject()
 const graphNavigator = injectGraphNavigator()
 
 const nodeRect = computed(() => graph.value?.nodeRects.get(nodeId))

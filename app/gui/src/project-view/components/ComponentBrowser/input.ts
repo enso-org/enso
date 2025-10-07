@@ -57,11 +57,8 @@ export type ComponentBrowserMode =
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
-  graphDb: ToValue<GraphDb> = toRef(useCurrentProject().storesRefs.graph.value, 'db'),
-  suggestionDb: ToValue<SuggestionDb> = toRef(
-    useCurrentProject().storesRefs.suggestionDb.value,
-    'entries',
-  ),
+  graphDb: ToValue<GraphDb> = toRef(useCurrentProject().graph.value, 'db'),
+  suggestionDb: ToValue<SuggestionDb> = toRef(useCurrentProject().suggestionDb.value, 'entries'),
   ai: { query(query: string, sourcePort: string): Promise<Result<string>> } = useAI(),
 ) {
   const text = ref('')

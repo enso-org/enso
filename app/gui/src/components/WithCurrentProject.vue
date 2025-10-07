@@ -21,16 +21,14 @@ const [provideCurrentProject, useCurrentProjectRaw] = createContextStore(
     return {
       maybeRef: project,
       /* Current project as a single ref  */
-      ref,
-      /* Current project's stores decomposed to separate refs. */
-      storesRefs: {
-        store: computed(() => ref.value.store),
-        names: computed(() => ref.value.names),
-        suggestionDb: computed(() => ref.value.suggestionDb),
-        module: computed(() => ref.value.module),
-        graph: computed(() => ref.value.graph),
-        widgetRegistry: computed(() => ref.value.widgetRegistry),
-      } satisfies ToRefs<{ [K in keyof OpenedProject]: OpenedProject[K] }>,
+      store: computed(() => ref.value.store),
+      projectNames: computed(() => ref.value.projectNames),
+      suggestionDb: computed(() => ref.value.suggestionDb),
+      module: computed(() => ref.value.module),
+      graph: computed(() => ref.value.graph),
+      widgetRegistry: computed(() => ref.value.widgetRegistry),
+    } satisfies ToRefs<{ [K in keyof OpenedProject]: OpenedProject[K] }> & {
+      maybeRef: Ref<OpenedProject | undefined>
     }
   },
 )
@@ -43,6 +41,8 @@ export function useCurrentProject(allowMissing?: boolean): CurrentProjectStore |
  *
  * Use `WithCurrentProject` component to provide which project is the current for entire component
  * tree (it injects context, makes sure the project is available, and sets proper css properties).
+ *
+ * The refs inside aren't proxied, so this store may be deconstructed.
  */
 export function useCurrentProject(allowMissing?: boolean) {
   const currentProjectStore = useCurrentProjectRaw(allowMissing)
@@ -79,7 +79,7 @@ function useStoreTemplate<K extends keyof OpenedProject>(
   storeKey: K,
 ): () => NonNullable<OpenedProject[K]> {
   return () => {
-    const currentProject = useCurrentProject().ref
+    const currentProject = useCurrentProject().maybeRef
     const store: Opt<OpenedProject[K]> = currentProject.value?.[storeKey]
     if (store == null) {
       throw new Error('Current Project missing, probably closed.')

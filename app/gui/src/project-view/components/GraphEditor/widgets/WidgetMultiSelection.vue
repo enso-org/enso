@@ -27,11 +27,7 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { computed, ref, toRef, useTemplateRef } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const {
-  module,
-  names: projectNames,
-  suggestionDb: suggestionDbStore,
-} = useCurrentProject().storesRefs
+const { module, projectNames: projectNames, suggestionDb: suggestionDbStore } = useCurrentProject()
 
 const tree = injectWidgetTree()
 

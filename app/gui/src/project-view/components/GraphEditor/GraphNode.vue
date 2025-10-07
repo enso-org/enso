@@ -80,7 +80,7 @@ const emit = defineEmits<{
 const nodeSelection = injectGraphSelection(true)
 const projectStore = useProjectStore()
 const graph = useGraphStore()
-const { module } = useCurrentProject().storesRefs
+const { module } = useCurrentProject()
 const navigator = injectGraphNavigator(true)
 const nodeExecution = useNodeExecution()
 

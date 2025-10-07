@@ -24,7 +24,7 @@ import { computed, watch } from 'vue'
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
 const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
 
-const { suggestionDb: db, names: projectNames } = useCurrentProject().storesRefs
+const { suggestionDb: db, projectNames } = useCurrentProject()
 
 const documentation = computed<Docs>(() => {
   if (props.aiMode)

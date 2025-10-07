@@ -7,7 +7,7 @@ import { Ok } from '@/util/data/result'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 
-const { names, module } = useCurrentProject().storesRefs
+const { projectNames: names, module } = useCurrentProject()
 
 const props = defineProps<{
   message: string

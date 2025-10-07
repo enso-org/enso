@@ -30,7 +30,7 @@ const emit = defineEmits<{
   newNodeClick: [portId: AstId, position: Vec2]
 }>()
 
-const { graph } = useCurrentProject().storesRefs
+const { graph } = useCurrentProject()
 
 const nodeRect = computed(() => graph.value?.nodeRects.get(props.nodeId))
 const nodeHovered = computed(

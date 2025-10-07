@@ -17,7 +17,7 @@ import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const { suggestionDb, module } = useCurrentProject().storesRefs
+const { suggestionDb, module } = useCurrentProject()
 
 const trueImport = computed(() =>
   requiredImportsByProjectPath(

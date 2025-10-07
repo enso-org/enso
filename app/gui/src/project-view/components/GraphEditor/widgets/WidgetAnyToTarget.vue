@@ -21,7 +21,7 @@ import { map } from 'enso-common/src/utilities/data/iter'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const { suggestionDb, names } = useCurrentProject().storesRefs
+const { suggestionDb, projectNames: names } = useCurrentProject()
 const { subjectInfo } = injectFunctionInfo()
 
 const sourceValueType = computed(() => {

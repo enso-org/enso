@@ -10,7 +10,7 @@ import { methodPointerEquals } from '@/util/methodPointer'
 import { ResultComponent } from '@/util/react'
 import { computed } from 'vue'
 
-const { store: project, graph } = useCurrentProject().storesRefs
+const { store: project, graph } = useCurrentProject()
 const projectId = computed(() => project.value.id)
 
 const currentMethodPointer = computed(() => unwrapOr(graph.value.currentMethod.pointer, undefined))
