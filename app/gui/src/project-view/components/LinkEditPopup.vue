@@ -1,24 +1,27 @@
 <script setup lang="ts">
 import { vueBackendQueryOptions } from '#/hooks/backendHooks'
 import { setModal } from '#/providers/ModalProvider'
-import { AssetType, IS_OPENING_OR_OPENED } from '#/services/Backend'
+import { AssetType } from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
 import { useBackends } from '$/providers/backends'
+import { useContainerData } from '$/providers/container'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { textEditorsBindings } from '@/bindings'
 import OpenProjectModal from '@/components/OpenProjectModal.vue'
 import { useOpenProjectLocally } from '@/composables/project'
 import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
 import { useQuery } from '@tanstack/vue-query'
-import { BackendType, EnsoPath,type RealAssetId } from 'enso-common/src/services/Backend'
+import { BackendType, EnsoPath } from 'enso-common/src/services/Backend'
 import { createElement } from 'react'
-import { computed, toRef, useTemplateRef } from 'vue'
+import { computed, toRef, useTemplateRef, watchEffect } from 'vue'
 
 const props = defineProps<{
   referenceElement: HTMLElement
   href: string
   popOut: boolean
 }>()
+
+const containerData = useContainerData()
 
 const path = computed(() => EnsoPath(props.href))
 
@@ -30,19 +33,37 @@ const resolveEnsoPathQuery = useQuery(
   vueBackendQueryOptions(backendForType(backendType.value), 'resolveEnsoPath', [path]),
 )
 const assetQuery = useQuery(
-  vueBackendQueryOptions(backendForType(backendType.value), 'getAssetDetails', [
-    computed(() => resolveEnsoPathQuery.data.value?.id as RealAssetId),
-    undefined,
-  ]),
+  vueBackendQueryOptions(
+    backendForType(backendType.value),
+    'getAssetDetails',
+    [
+      // This is UNSAFE, but `enabled` below ensures that this query will not run if the ID is undefined.
+      // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+      computed(() => resolveEnsoPathQuery.data.value?.id!),
+      undefined,
+    ],
+    {
+      enabled() {
+        // QueryKey: [backendType.value, 'getAssetDetails', resolveEnsoPathQuery.data.value?.id]
+        return !!this.queryKey?.[2]
+      },
+    },
+  ),
 )
 
 const isProject = computed(() => rightPanelData.focusedAsset?.type === AssetType.project)
 
 const shouldOpenProjectModal = computed(() => {
   if (!isProject.value) return false
-  const projectState = rightPanelData.focusedAsset?.projectState
-  if (!projectState) return false
-  return IS_OPENING_OR_OPENED[projectState.type]
+  if (containerData.openedProjects.some((project) => project.ensoPath === path.value)) {
+    // The project is already opened.
+    return false
+  }
+  for (const [otherPath] of containerData.openingProjects.values()) {
+    // The project is in the process of being opened.
+    if (otherPath === path.value) return false
+  }
+  return true
 })
 
 const OpenProjectModalReact = vueComponent(OpenProjectModal).default
@@ -64,6 +85,10 @@ const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatin
   strategy: () => (props.popOut ? 'fixed' : 'absolute'),
   middleware: [flip()],
   whileElementsMounted: autoUpdate,
+})
+
+watchEffect(() => {
+  console.log(shouldOpenProjectModal.value, isProject.value, props.href)
 })
 </script>
 
