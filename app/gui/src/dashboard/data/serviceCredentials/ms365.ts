@@ -1,3 +1,5 @@
+/**
+ * @file Definitions for the MS365 credentials integration.
  */
 import invariant from 'tiny-invariant'
 
