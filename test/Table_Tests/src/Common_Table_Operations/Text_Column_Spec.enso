@@ -61,13 +61,13 @@ add_text_columns_specs suite_builder setup =
         group_builder.specify "length works" <|
             column = build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]]] . at 0
             expected_column = build_sorted_table [["length([X])", [4, 5, 7, 4, 7]]] . at 0
-            result = column.length
+            result = column.length . cast (..Integer ..Bits_64)
             result.should_equal expected_column
 
         group_builder.specify "length works with whitespace and nothing" <|
             column = build_sorted_table [["X", ["Whitespace whispers", "", Nothing, " stays. "]]] . at 0
             expected_column = build_sorted_table [["length([X])", [19, 0, Nothing, 8]]] . at 0
-            result = column.length
+            result = column.length . cast (..Integer ..Bits_64)
             result.should_equal expected_column
 
         group_builder.specify "length returns graphene length, char_length returns UTF-16 code unit length" <|
@@ -76,13 +76,13 @@ add_text_columns_specs suite_builder setup =
             expected_column = case setup.is_database of
                 False -> build_sorted_table [["length([X])", [4, 1, 6, 2, 6, 5]]] . at 0
                 True  -> build_sorted_table [["length([X])", [4, 2, 6, 2, 6, 5]]] . at 0
-            result = column.length
+            result = column.length . cast (..Integer ..Bits_64)
             result.should_equal expected_column
 
             expected_column2 = case setup.is_database of
                 False -> build_sorted_table [["char_length([X])", [8, 2, 6, 2, 6, 5]]] . at 0
                 True  -> build_sorted_table [["char_length([X])", [4, 2, 6, 2, 6, 5]]] . at 0
-            result2 = column.char_length
+            result2 = column.char_length . cast (..Integer ..Bits_64)
             result2.should_equal expected_column2
 
         group_builder.specify "can be used inside a set component expression" <|     
@@ -90,7 +90,7 @@ add_text_columns_specs suite_builder setup =
             expected = build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]], ["length([X])", [4, 5, 7, 4, 7]], ["char_length([X])", [4, 5, 7, 4, 7]]]
 
             table_with_length = table.set (expr "length([X])")
-            result = table_with_length.set (expr "char_length([X])")
+            result = table_with_length.set (expr "char_length([X])") . cast [1, 2] (..Integer ..Bits_64)
             result.should_equal expected
 
         group_builder.specify "can be used inside a set component expression with constant arguments" <|     
@@ -100,7 +100,7 @@ add_text_columns_specs suite_builder setup =
                 True  -> build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]], ["length('❤️')", [2, 2, 2, 2, 2]], ["char_length('❤️')", [2, 2, 2, 2, 2]]]
 
             table_with_length = table.set (expr "length('❤️')")
-            result = table_with_length.set (expr "char_length('❤️')")
+            result = table_with_length.set (expr "char_length('❤️')") . cast [1, 2] (..Integer ..Bits_64)
             result.should_equal expected
 
         group_builder.specify "length and char_length error on non-text columns" <|
