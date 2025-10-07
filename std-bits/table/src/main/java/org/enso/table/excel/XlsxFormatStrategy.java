@@ -3,7 +3,6 @@ package org.enso.table.excel;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
@@ -42,8 +41,9 @@ public class XlsxFormatStrategy extends ExcelFormatStrategy {
   @Override
   public void saveInPlace() throws IOException {
     if (!(workbook instanceof XSSFWorkbook xssf)) {
-      throw new IllegalStateException("Expected XSSFWorkbook for XLSX saveInPlace, got: " +
-          (workbook == null ? "null" : workbook.getClass()));
+      throw new IllegalStateException(
+          "Expected XSSFWorkbook for XLSX saveInPlace, got: "
+              + (workbook == null ? "null" : workbook.getClass()));
     }
     try {
       xssf.write(null);
@@ -67,4 +67,3 @@ public class XlsxFormatStrategy extends ExcelFormatStrategy {
     }
   }
 }
-

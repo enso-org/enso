@@ -2,7 +2,6 @@ package org.enso.table.excel;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.NotOLE2FileException;
 import org.apache.poi.ss.usermodel.Name;

@@ -7,7 +7,6 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.function.Function;
-
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
@@ -50,7 +49,7 @@ public class ExcelWriter {
   }
 
   public static void writeTableToSheet(
-      File file, 
+      File file,
       ExcelFileFormat format,
       int sheetIndex,
       ExistingDataMode existingDataMode,
@@ -58,21 +57,20 @@ public class ExcelWriter {
       Table table,
       Long rowLimit,
       ExcelHeaders.HeaderBehavior headers)
-             throws IOException, InvalidLocationException,
+      throws IOException,
+          InvalidLocationException,
           RangeExceededException,
           ExistingDataException,
           IllegalStateException,
           ColumnNameMismatchException,
           ColumnCountMismatchException,
-          InterruptedException
-      {
-        ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
-        try (var workbook = strategy.openForWrite(file)) {
-        writeTableToSheet(workbook, sheetIndex, existingDataMode, firstRow, table, rowLimit, headers);
-        strategy.finaliseWrite();
-        }
-     }
-  
+          InterruptedException {
+    ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+    try (var workbook = strategy.openForWrite(file)) {
+      writeTableToSheet(workbook, sheetIndex, existingDataMode, firstRow, table, rowLimit, headers);
+      strategy.finaliseWrite();
+    }
+  }
 
   public static void writeTableToSheet(
       File file,
@@ -82,24 +80,24 @@ public class ExcelWriter {
       int firstRow,
       Table table,
       Long rowLimit,
-      ExcelHeaders.HeaderBehavior headers) 
-       throws IOException, InvalidLocationException,
+      ExcelHeaders.HeaderBehavior headers)
+      throws IOException,
+          InvalidLocationException,
           RangeExceededException,
           ExistingDataException,
           IllegalStateException,
           ColumnNameMismatchException,
           ColumnCountMismatchException,
-          InterruptedException
-     {
-        ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
-        try (var workbook = strategy.openForWrite(file)) {
-        writeTableToSheet(workbook, sheetName, existingDataMode, firstRow, table, rowLimit, headers);
-        strategy.finaliseWrite();
-        }
-     }
+          InterruptedException {
+    ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+    try (var workbook = strategy.openForWrite(file)) {
+      writeTableToSheet(workbook, sheetName, existingDataMode, firstRow, table, rowLimit, headers);
+      strategy.finaliseWrite();
+    }
+  }
 
   public static void writeTableToRange(
-      File file, 
+      File file,
       ExcelFileFormat format,
       String rangeNameOrAddress,
       ExistingDataMode existingDataMode,
@@ -107,20 +105,21 @@ public class ExcelWriter {
       Table table,
       Long rowLimit,
       ExcelHeaders.HeaderBehavior headers)
-             throws IOException, InvalidLocationException,
+      throws IOException,
+          InvalidLocationException,
           RangeExceededException,
           ExistingDataException,
           IllegalStateException,
           ColumnNameMismatchException,
           ColumnCountMismatchException,
-          InterruptedException
-      {
-        ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
-        try (var workbook = strategy.openForWrite(file)) {
-        writeTableToRange(workbook, rangeNameOrAddress, existingDataMode, skipRows, table, rowLimit, headers);
-        strategy.finaliseWrite();
-        }
-     }
+          InterruptedException {
+    ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+    try (var workbook = strategy.openForWrite(file)) {
+      writeTableToRange(
+          workbook, rangeNameOrAddress, existingDataMode, skipRows, table, rowLimit, headers);
+      strategy.finaliseWrite();
+    }
+  }
 
   public static void writeTableToSheet(
       Workbook workbook,

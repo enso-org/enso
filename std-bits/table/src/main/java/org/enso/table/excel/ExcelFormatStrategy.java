@@ -7,15 +7,14 @@ import java.io.OutputStream;
 import java.nio.file.AccessMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import org.apache.poi.ss.usermodel.Workbook;
 
 /**
  * Abstract base class for Excel format-specific operations that owns a {@link Workbook} instance.
  *
  * <p>Subclasses encapsulate how to open existing files, create new workbooks, persist data either
- * in-place or to an output stream, and perform any required cleanup (e.g. disposing temporary
- * files for streaming workbooks).
+ * in-place or to an output stream, and perform any required cleanup (e.g. disposing temporary files
+ * for streaming workbooks).
  */
 public abstract class ExcelFormatStrategy {
 
@@ -25,8 +24,9 @@ public abstract class ExcelFormatStrategy {
 
   /**
    * Creates a concrete strategy instance for the given Excel file format.
-     * @param format The format for the excel File
-     * @return The stratgey for the given option
+   *
+   * @param format The format for the excel File
+   * @return The stratgey for the given option
    */
   public static ExcelFormatStrategy createStrategy(ExcelFileFormat format) {
     switch (format) {
@@ -58,12 +58,14 @@ public abstract class ExcelFormatStrategy {
   /**
    * Opens a workbook for write. Detects whether the file already exists and is non-empty and
    * chooses between {@link #openExisting(File, boolean)} and {@link #createNew()} accordingly.
-     * @return 
+   *
+   * @return
    */
   public Workbook openForWrite(File file) throws IOException {
     verifyIsWritable(file);
     this.file = file;
-    this.preExistingFile = file.exists() && Files.exists(file.toPath()) && Files.size(file.toPath()) > 0;
+    this.preExistingFile =
+        file.exists() && Files.exists(file.toPath()) && Files.size(file.toPath()) > 0;
     if (preExistingFile) {
       openExisting(file, true);
     } else {

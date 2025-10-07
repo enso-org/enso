@@ -3,7 +3,6 @@ package org.enso.table.excel;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
@@ -39,8 +38,9 @@ public class XlsFormatStrategy extends ExcelFormatStrategy {
   @Override
   public void saveInPlace() throws IOException {
     if (!(workbook instanceof HSSFWorkbook hssf)) {
-      throw new IllegalStateException("Expected HSSFWorkbook for XLS saveInPlace, got: " +
-          (workbook == null ? "null" : workbook.getClass()));
+      throw new IllegalStateException(
+          "Expected HSSFWorkbook for XLS saveInPlace, got: "
+              + (workbook == null ? "null" : workbook.getClass()));
     }
     hssf.write();
   }
@@ -53,4 +53,3 @@ public class XlsFormatStrategy extends ExcelFormatStrategy {
     workbook.write(out);
   }
 }
-
