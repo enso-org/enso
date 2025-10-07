@@ -289,7 +289,6 @@ public final class AtomConstructor extends EnsoObject {
       instantiateNode.setSourceLocation(section.getCharIndex(), section.getCharLength());
     }
     BlockNode instantiateBlock = BlockNode.buildRoot(assignments, instantiateNode);
-    // FIXME: UUID
     RootNode rootNode =
         MethodRootNode.buildConstructor(
             language,
@@ -298,7 +297,7 @@ public final class AtomConstructor extends EnsoObject {
             instantiateBlock,
             section,
             this,
-            null);
+            null); // FIXME
     RootCallTarget callTarget = rootNode.getCallTarget();
     var schemaBldr = FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
     if (type.hasAllConstructorsPrivate()) {

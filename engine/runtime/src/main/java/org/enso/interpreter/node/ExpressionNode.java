@@ -38,6 +38,7 @@ import org.enso.polyglot.RuntimeID;
 public abstract class ExpressionNode extends BaseNode implements InstrumentableNode {
   private @CompilationFinal int sourceStartIndex;
   private @CompilationFinal int sourceLength;
+  private @CompilationFinal boolean runtimeTrack;
 
   public static boolean isWrapper(ExpressionNode node) {
     return node instanceof ExpressionNodeWrapper;
@@ -47,6 +48,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
   public ExpressionNode() {
     sourceLength = EnsoRootNode.NO_SOURCE;
     sourceStartIndex = EnsoRootNode.NO_SOURCE;
+    runtimeTrack = true;
   }
 
   /**
@@ -99,6 +101,14 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * @param id the ID for this node.
    */
   public abstract void setId(RuntimeID id);
+
+  public void disableRuntimeTracking() {
+    runtimeTrack = false;
+  }
+
+  public boolean isRuntimeTracking() {
+    return runtimeTrack;
+  }
 
   /**
    * Executes the current node and returns a result.

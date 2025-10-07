@@ -24,6 +24,7 @@ public class ApplicationNode extends ExpressionNode {
   @Child private InvokeCallableNode invokeCallableNode;
   @Child private ExpressionNode callable;
   private @CompilerDirectives.CompilationFinal RuntimeID id = null;
+  private @CompilerDirectives.CompilationFinal boolean runtimeTracking = true;
 
   private ApplicationNode(
       ExpressionNode callable,
@@ -117,5 +118,17 @@ public class ApplicationNode extends ExpressionNode {
 
   public void setCallableDirectId(RuntimeID id) {
     invokeCallableNode.setCallableID(id);
+  }
+
+  @Override
+  public boolean isRuntimeTracking() {
+    return runtimeTracking;
+  }
+
+  @Override
+  public void disableRuntimeTracking() {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.runtimeTracking = false;
+    invokeCallableNode.disableRuntimeTracking();
   }
 }

@@ -707,7 +707,7 @@ private[runtime] class IrToTruffle(
               closureName,
               true,
               false,
-              null
+              null // FIXME
             )
             new RuntimeAnnotation(
               annotation.name,

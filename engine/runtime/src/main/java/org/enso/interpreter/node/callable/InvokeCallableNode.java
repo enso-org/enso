@@ -100,6 +100,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Child private ThunkExecutorNode thatExecutor;
   @Child private InvokeCallableNode childDispatch;
   private @CompilerDirectives.CompilationFinal RuntimeID callableID = null;
+  private @CompilerDirectives.CompilationFinal boolean runtimeTracking = true;
 
   private final boolean canApplyThis;
   private final boolean canApplyThat;
@@ -259,7 +260,7 @@ public abstract class InvokeCallableNode extends BaseNode {
         arguments[thatArgumentPosition] = thatArgument;
       }
       RuntimeAnalysis runtimeAnalysis = EnsoContext.get(this).currentRuntimeAnalysis();
-      if (argIds != null) {
+      if (runtimeTracking && argIds != null) {
         runtimeAnalysis.registerCallableArg(this.argIds[thisArgumentPosition], getCallableID());
         runtimeAnalysis.registerCallableArg(this.argIds[thatArgumentPosition], getCallableID());
       }
@@ -268,7 +269,9 @@ public abstract class InvokeCallableNode extends BaseNode {
         return invokeConversionNode.execute(
             callerFrame, state, conversion, selfArgument, thatArgument, arguments);
       } finally {
-        runtimeAnalysis.exitNode(callableID);
+        if (runtimeTracking) {
+          runtimeAnalysis.exitNode(callableID);
+        }
       }
 
     } else {
@@ -311,7 +314,7 @@ public abstract class InvokeCallableNode extends BaseNode {
         arguments[thisArgumentPosition] = selfArgument;
       }
       RuntimeAnalysis runtimeAnalysis = EnsoContext.get(this).currentRuntimeAnalysis();
-      if (argIds != null) {
+      if (runtimeTracking && argIds != null) {
         // Ensures that changes to the underlying function invalidate the self argument,
         // meaning that a new Truffle node will be generated from IR.
         // If self argument was not invalidated on function body change, an outdated representation
@@ -323,7 +326,9 @@ public abstract class InvokeCallableNode extends BaseNode {
         runtimeAnalysis.enterNode(callableID);
         return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
       } finally {
-        runtimeAnalysis.exitNode(callableID);
+        if (runtimeTracking) {
+          runtimeAnalysis.exitNode(callableID);
+        }
       }
     } else {
       CompilerDirectives.transferToInterpreter();
@@ -503,6 +508,11 @@ public abstract class InvokeCallableNode extends BaseNode {
     if (childDispatch != null) {
       childDispatch.setCallableID(id);
     }
+  }
+
+  public void disableRuntimeTracking() {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    runtimeTracking = false;
   }
 
   public RuntimeID getCallableID() {

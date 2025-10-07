@@ -7890,7 +7890,6 @@ class RuntimeServerTest
     val moduleNameTypes = "Enso_Test.Test.Types"
     val metadata        = new Metadata
 
-
     val typesMetadata = new Metadata
     val codeTypes = typesMetadata.appendToCode(
       """type Base
@@ -7925,17 +7924,17 @@ class RuntimeServerTest
 
     val libFile = context.writeInSrcDir("Lib", codeLib)
 
-    val idA = metadata.addItem(50, 13, "aa")
-    val idB = metadata.addItem(72, 13, "bb")
-    val x = metadata.addItem(94, 12, "a1")
-    val y = metadata.addItem(115, 12, "a2")
-    val z = metadata.addItem(136, 5, "a3")
-    val xFoo = metadata.addItem(101, 5, "b1")
-    val yBar = metadata.addItem(122, 5, "b2")
+    val idA   = metadata.addItem(50, 13, "aa")
+    val idB   = metadata.addItem(72, 13, "bb")
+    val x     = metadata.addItem(94, 12, "a1")
+    val y     = metadata.addItem(115, 12, "a2")
+    val z     = metadata.addItem(136, 5, "a3")
+    val xFoo  = metadata.addItem(101, 5, "b1")
+    val yBar  = metadata.addItem(122, 5, "b2")
     val yBar2 = new UUID(0, 1)
     val xTest = metadata.addItem(96, 4, "c1")
     val yTest = metadata.addItem(117, 4, "c2")
-    val res = metadata.addItem(146, 1, "dd")
+    val res   = metadata.addItem(146, 1, "dd")
 
     val code =
       """from project.Lib import Singleton
@@ -7987,42 +7986,82 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receiveNIgnoreStdLib(
-      12, 10
+      12,
+      10
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idA,
+      TestMessages.update(
+        contextId,
+        idA,
         expressionType = "Enso_Test.Test.Lib.Singleton",
-        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameLib, "Enso_Test.Test.Lib.Singleton", "S"))
-        ),
-      TestMessages.update(contextId, idB,
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(moduleNameLib, "Enso_Test.Test.Lib.Singleton", "S")
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        idB,
         expressionType = "Enso_Test.Test.Lib.Singleton",
-        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameLib, "Enso_Test.Test.Lib.Singleton", "S"))
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(moduleNameLib, "Enso_Test.Test.Lib.Singleton", "S")
+        )
       ),
       TestMessages.update(contextId, xTest, Constants.UNRESOLVED_SYMBOL),
       TestMessages.update(contextId, yTest, Constants.UNRESOLVED_SYMBOL),
-      TestMessages.update(contextId, xFoo,
+      TestMessages.update(
+        contextId,
+        xFoo,
         expressionType = "Enso_Test.Test.Types.Base",
-        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameTypes, "Enso_Test.Test.Types.Base", "Foo"))
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(moduleNameTypes, "Enso_Test.Test.Types.Base", "Foo")
+        )
       ),
-      TestMessages.update(contextId, yBar,
+      TestMessages.update(
+        contextId,
+        yBar,
         expressionType = "Enso_Test.Test.Types.Base",
-        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameTypes, "Enso_Test.Test.Types.Base", "Bar"))
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(moduleNameTypes, "Enso_Test.Test.Types.Base", "Bar")
+        )
       ),
-      TestMessages.update(contextId, x,
+      TestMessages.update(
+        contextId,
+        x,
         expressionType = ConstantsGen.INTEGER,
-        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameLib, "Enso_Test.Test.Lib.Singleton", "test"))
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(
+            moduleNameLib,
+            "Enso_Test.Test.Lib.Singleton",
+            "test"
+          )
+        )
       ),
-      TestMessages.update(contextId, y,
+      TestMessages.update(
+        contextId,
+        y,
         expressionType = ConstantsGen.INTEGER,
-        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameLib, "Enso_Test.Test.Lib.Singleton", "test"))
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(
+            moduleNameLib,
+            "Enso_Test.Test.Lib.Singleton",
+            "test"
+          )
+        )
       ),
-      TestMessages.update(contextId, z,
+      TestMessages.update(
+        contextId,
+        z,
         expressionType = ConstantsGen.INTEGER,
-        methodCall = Api.MethodCall(Api.MethodPointer("Standard.Base.Data.Numbers", ConstantsGen.INTEGER, "+"))
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
       ),
-      TestMessages.update(contextId, res,
-        expressionType = ConstantsGen.INTEGER,
-      ),
+      TestMessages
+        .update(contextId, res, expressionType = ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
 
@@ -8037,27 +8076,59 @@ class RuntimeServerTest
             )
           ),
           execute = true,
-          idMap   = Some(
+          idMap = Some(
             model.IdMap(Vector(model.Span(122, 127) -> yBar2))
           )
         )
       )
     )
 
-    // FIXME: currently failing test
     context.receiveNIgnoreStdLib(
-      3, 10
+      6
     ) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, yBar, y, z, res), // Currently invalidates also `xTest` and `yTest`
-      TestMessages.update(contextId, yBar2,
+      TestMessages.pending(contextId, yBar, y, z, res),
+      TestMessages.update(
+        contextId,
+        yBar2,
         expressionType = "Enso_Test.Test.Types.Base",
-        methodCall = Api.MethodCall(Api.MethodPointer(moduleNameTypes, "Enso_Test.Test.Types.Base", "Foo"))
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(moduleNameTypes, "Enso_Test.Test.Types.Base", "Foo")
+        )
+      ),
+      TestMessages.update(
+        contextId,
+        y,
+        expressionType = ConstantsGen.INTEGER,
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(moduleNameLib, moduleNameLib + ".Singleton", "test")
+        ),
+        fromCache   = false,
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        z,
+        expressionType = ConstantsGen.INTEGER,
+        methodCall = Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        ),
+        fromCache   = false,
+        typeChanged = false
+      ),
+      TestMessages.update(
+        contextId,
+        res,
+        expressionType = ConstantsGen.INTEGER,
+        typeChanged    = false
       ),
       context.executionComplete(contextId)
     )
 
   }
-
 
 }
 object RuntimeServerTest {

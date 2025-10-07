@@ -215,7 +215,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
         Info info = new NodeInfo(frame.materialize(), context.getInstrumentedNode());
         var node = context.getInstrumentedNode();
-        var skipTracking = node instanceof FunctionCallInstrumentationNode;
+        var skipTracking = !needsRuntimeTracking(node);
         if (!info.getId().isExternal()) {
           setParentNode(info.getId(), skipTracking);
           return;
@@ -247,7 +247,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         var uuid = NodeInfo.getNodeID(node);
         assert uuid != null; // If it is instrumented, it has to have UUID.
 
-        var skipTracking = node instanceof FunctionCallInstrumentationNode;
+        var skipTracking = !needsRuntimeTracking(node);
         if (!uuid.isExternal()) {
           restoreParentNode(uuid, skipTracking);
           return;
@@ -286,6 +286,16 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         } else {
           restoreParentNode(uuid, skipTracking);
           resetExecutionEnvironment(uuid);
+        }
+      }
+
+      public boolean needsRuntimeTracking(Node node) {
+        if (node instanceof FunctionCallInstrumentationNode) {
+          return false;
+        } else if (node instanceof ExpressionNode expr) {
+          return expr.isRuntimeTracking();
+        } else {
+          return true;
         }
       }
 
