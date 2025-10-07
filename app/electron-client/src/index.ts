@@ -269,7 +269,7 @@ class App {
       // Note that we want to do all the actions synchronously, so when the window
       // appears, it serves the website immediately.
       await this.startContentServerIfEnabled(args)
-      await this.setupProjectService()
+      await this.setupProjectService(args)
       await this.createWindowIfEnabled(args)
       this.initIpc()
       await this.loadWindowContent(args)
@@ -293,18 +293,13 @@ class App {
     }
   }
 
-  /** Start the backend processes. */
-  async setupProjectService() {
-    const backendVerboseOpts = this.args.groups.debug.options.verbose.value ? ['-vv'] : []
-    const backendProfileTime =
-      this.args.groups.debug.options.profileTime.value ?
-        ['--profiling-time', String(this.args.groups.debug.options.profileTime.value)]
-      : ['--profiling-time', '120']
+  /** Setup the project service. */
+  async setupProjectService(args: Options) {
+    const backendVerboseOpts = args.debug.verbose ? ['-vv'] : []
+    const backendProfileTime = ['--profiling-time', String(args.debug.profileTime)]
     const backendProfileOpts =
-      this.args.groups.debug.options.profile.value ?
-        ['--profiling-path', 'profiling.npss', ...backendProfileTime]
-      : []
-    const backendJvmOpts = this.args.options.jvm.value ? ['--jvm'] : []
+      args.debug.profile ? ['--profiling-path', 'profiling.npss', ...backendProfileTime] : []
+    const backendJvmOpts = args.useJvm ? ['--jvm'] : []
     const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
 
     projectManager.setupProjectService(backendOpts)

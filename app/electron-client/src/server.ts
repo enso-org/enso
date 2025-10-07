@@ -302,7 +302,7 @@ export class Server {
   async process(request: http.IncomingMessage, response: http.ServerResponse) {
     const requestUrl = request.url
     if (requestUrl == null) {
-      logger.error('Request URL is null.')
+      console.error('Request URL is null.')
     } else if (isProjectServiceRequest(requestUrl)) {
       const headers = Object.fromEntries(COOP_COEP_CORP_HEADERS)
       handleProjectServiceRequest(
