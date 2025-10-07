@@ -7,6 +7,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import type { AssetColumnProps, AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import DatalinkNameColumn from '#/pages/dashboard/components/column/DatalinkNameColumn'
@@ -16,6 +17,7 @@ import ProjectNameColumn from '#/pages/dashboard/components/column/ProjectNameCo
 import SecretNameColumn from '#/pages/dashboard/components/column/SecretNameColumn'
 import Label from '#/pages/dashboard/components/Label'
 import PermissionDisplay from '#/pages/dashboard/components/PermissionDisplay'
+import { useSelectedAssets } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
 import {
   FALLBACK_COLOR,
@@ -28,18 +30,22 @@ import { mergeRefs } from '#/utilities/mergeRefs'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 export { PathColumn } from './PathColumn'
 
 /** A column listing the labels on this asset. */
 export function LabelsColumn(props: AssetColumnProps) {
-  const { item, state, labels } = props
+  const { item, labels } = props
 
-  const { backend } = state
-
+  const { associatedBackend: backend } = useCategoriesAPI()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const labelsByName = new Map(labels.map((label) => [label.value, label]))
+  const selectedAssets = useSelectedAssets()
+  const labelsItems = useMemo(
+    () => (selectedAssets.some((asset) => asset.id === item.id) ? selectedAssets : [item]),
+    [selectedAssets, item],
+  )
 
   const rootRef = useRef<HTMLDivElement>(null)
   const labelsListRef = useRef<HTMLDivElement>(null)
@@ -68,7 +74,12 @@ export function LabelsColumn(props: AssetColumnProps) {
   const labelsList = (item.labels ?? [])
     .filter((label) => labelsByName.has(label))
     .map((label) => (
-      <LabelInColumn label={label} color={labelsByName.get(label)?.color} doDelete={doDelete} />
+      <LabelInColumn
+        key={label}
+        label={label}
+        color={labelsByName.get(label)?.color}
+        doDelete={doDelete}
+      />
     ))
 
   return (
@@ -114,7 +125,7 @@ export function LabelsColumn(props: AssetColumnProps) {
                     tooltipPlacement="top"
                     icon="edit"
                   />
-                  <ManageLabelsModal backend={backend} item={item} />
+                  <ManageLabelsModal backend={backend} items={labelsItems} />
                 </Dialog.Trigger>
               </div>
             </Popover>
@@ -129,7 +140,7 @@ export function LabelsColumn(props: AssetColumnProps) {
             tooltipPlacement="top"
             icon="edit"
           />
-          <ManageLabelsModal backend={backend} item={item} />
+          <ManageLabelsModal backend={backend} items={labelsItems} />
         </Dialog.Trigger>
       </div>
     </div>

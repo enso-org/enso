@@ -1718,13 +1718,11 @@ export class NotAuthorizedError extends NetworkError {}
 export default abstract class Backend {
   abstract readonly type: BackendType
   abstract readonly baseUrl: URL
-  private readonly logger: Logger
   protected getText: GetText
   private readonly client: HttpClient
 
   /** Create a {@link LocalBackend}. */
-  constructor(logger: Logger, getText: GetText, client: HttpClient) {
-    this.logger = logger
+  constructor(getText: GetText, client: HttpClient) {
     this.getText = getText
     this.client = client
   }
@@ -1747,7 +1745,7 @@ export default abstract class Backend {
     ...replacements: Replacements[K]
   ): Promise<never> {
     if (textId instanceof NetworkError) {
-      this.logger.error(textId.message)
+      console.error(textId.message)
 
       throw textId
     }
@@ -1758,7 +1756,7 @@ export default abstract class Backend {
       : await ((): Promise<Error> => response.json())()
 
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-    this.logger.error(message)
+    console.error(message)
 
     const status = response?.status
 

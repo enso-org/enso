@@ -71,7 +71,7 @@ export interface DrivePastePayload {
 export type SelectedAssetInfo =
   AnyAsset extends infer T ?
     T extends T ?
-      Pick<T, keyof T & ('id' | 'parentId' | 'title' | 'type')>
+      Pick<T, keyof T & ('id' | 'labels' | 'parentId' | 'title' | 'type')>
     : never
   : never
 

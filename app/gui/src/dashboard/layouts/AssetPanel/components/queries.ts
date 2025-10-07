@@ -17,10 +17,7 @@ export interface AssetVersionsQueryOptions {
 export function assetVersionsQueryOptions(options: AssetVersionsQueryOptions) {
   const { enabled = true, assetId, backend } = options
 
-  return backendQueryOptions(backend, 'listAssetVersions', [assetId], {
-    enabled,
-    refetchOnWindowFocus: 'always',
-  })
+  return backendQueryOptions(backend, 'listAssetVersions', [assetId], { enabled })
 }
 
 /** Options for a query that fetches the details of an asset. */

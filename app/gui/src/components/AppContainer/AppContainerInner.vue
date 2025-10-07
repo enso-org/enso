@@ -112,7 +112,7 @@ function closeTab() {
 }
 
 onMounted(() => {
-  window.menuApi?.setMenuItemHandler('closeTab', closeTab)
+  window.api?.menu?.setMenuItemHandler('closeTab', closeTab)
 })
 
 const actionHandlers = registerHandlers({

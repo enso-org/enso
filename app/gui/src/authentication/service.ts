@@ -135,17 +135,19 @@ function loadAmplifyConfig(
   let urlOpener: ((url: string) => void) | null = null
   let saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null =
     null
-  if ('authenticationApi' in window) {
+  if (window.api != null) {
+    const { authentication } = window.api
     // When running on desktop we want to have option to save access token to a file,
     // so it can be reused later when issuing requests to the Cloud API.
     //
     // Note: Wrapping this function in an arrow function ensures that the current Authentication API
     // is always used.
     saveAccessToken = (accessToken: saveAccessTokenModule.AccessToken | null) => {
-      window.authenticationApi.saveAccessToken(accessToken)
+      authentication.saveAccessToken(accessToken)
     }
   }
-  if (supportsDeepLinks) {
+  if (supportsDeepLinks && window.api != null) {
+    const { authentication } = window.api
     // The default URL opener opens the URL in the desktop app, but the user should be sent to
     // their system browser instead, because:
     // - users trust their system browser with their credentials more than they trust the app;
@@ -155,7 +157,7 @@ function loadAmplifyConfig(
     // Note: Wrapping this function in an arrow function ensures that the current Authentication API
     // is always used.
     urlOpener = (url: string) => {
-      window.authenticationApi.openUrlInSystemBrowser(url)
+      authentication.openUrlInSystemBrowser(url)
     }
   }
   if (detect.isOnElectron()) {
@@ -202,7 +204,7 @@ function loadAmplifyConfig(
  * ignored by this handler.
  */
 function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
-  window.authenticationApi.setDeepLinkHandler((urlString: string) => {
+  window.api?.authentication.setDeepLinkHandler((urlString: string) => {
     const result = parseEnsoDeeplink(urlString)
     if (!result.ok) {
       logger.log(result.error.message())
