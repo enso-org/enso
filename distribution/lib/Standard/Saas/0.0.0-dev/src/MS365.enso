@@ -1,0 +1,44 @@
+from Standard.Base import all
+from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
+
+polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
+polyglot java import org.enso.saas.ms365.MS365Service
+
+type MS365
+    ## ---
+       private: true
+       ---
+    private Service (ms365_service:MS365Service)
+
+    ## ---
+       icon: cloud
+       ---
+       Initializes the MS365 instance using the given credentials file.
+
+       ## Arguments:
+        - `credentials`: a Cloud secret or a file containing MS365 credentials.
+    initialize : File|Enso_Secret -> MS365
+    initialize credentials =
+        credentials_reference = as_credential_reference credentials
+        MS365.Service (MS365Service.new credentials_reference)
+
+    user self =
+        _ms365_get self "https://www.strava.com/api/v3/athlete"
+
+    zones self =
+        _strava_get self "https://www.strava.com/api/v3/athlete/zones"
+
+    stats self =
+        id = self.user.decode_as_json.get "id"
+        _strava_get self "https://www.strava.com/api/v3/athletes/"+id.to_text+"/stats"
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Strava"]]
+
+private _strava_get strava url =
+    header = Header.authorization_bearer strava.strava_service.getAccessToken.token
+    HTTP.fetch url headers=[header]

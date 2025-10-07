@@ -190,8 +190,15 @@ export interface StravaCredentialInput {
   readonly scopes: readonly string[]
 }
 
+/** User settings for an MS365 credential. */
+export interface MS365CredentialInput {
+  readonly type: 'MS365'
+  readonly scopes: readonly string[]
+}
+
 /** User settings for an arbitrary credential. */
 export type CredentialInput =
   | SnowflakeCredentialInput
   | GoogleCredentialInput
   | StravaCredentialInput
+  | MS365CredentialInput
