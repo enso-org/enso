@@ -3,6 +3,7 @@ package org.enso.table.excel;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
@@ -27,6 +28,12 @@ public class XlsFormatStrategy extends ExcelFormatStrategy {
       throw new IOException("Invalid XLS format when opening file: " + file, e);
     }
     return workbook;
+  }
+
+  @Override
+  public ExcelWorkbookReader getExcelWorkbookReader(File file) throws IOException, InterruptedException {
+    openExisting(file, false);
+    return ExcelWorkbookReader.forPOIUserModel(workbook);
   }
 
   @Override

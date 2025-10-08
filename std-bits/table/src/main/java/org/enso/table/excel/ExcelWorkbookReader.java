@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.NotOLE2FileException;
 import org.apache.poi.ss.usermodel.Name;
-import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
 
 /** Represents an Excel workbook. Wraps the underlying Apache POI Workbook object. */
 public interface ExcelWorkbookReader {

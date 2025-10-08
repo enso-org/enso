@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import org.enso.base.cache.ReloadDetector;
 import org.enso.table.excel.ExcelFileFormat;
+import org.enso.table.excel.ExcelFormatStrategy;
 import org.enso.table.excel.ExcelWorkbookReader;
 import org.enso.table.util.FunctionWithException;
 import org.slf4j.Logger;
@@ -127,7 +128,8 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
     String key = getKeyForFile(file, format);
     var workbook = workbooksCache.get(key);
     if (workbook == null) {
-      workbook = ExcelWorkbookReader.getExcelWorkbook(file, format);
+      var strategy = ExcelFormatStrategy.createStrategy(format);
+      workbook = strategy.getExcelWorkbookReader(file);
       workbooksCache.put(key, workbook);
     }
     return workbook;

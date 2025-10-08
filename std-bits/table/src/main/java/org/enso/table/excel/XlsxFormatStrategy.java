@@ -3,6 +3,7 @@ package org.enso.table.excel;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JRuntimeException;
@@ -11,6 +12,7 @@ import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
 
 /** XLSX (XSSF/SXSSF) format strategy. */
 public class XlsxFormatStrategy extends ExcelFormatStrategy {
@@ -30,6 +32,11 @@ public class XlsxFormatStrategy extends ExcelFormatStrategy {
       throw new IOException("Invalid XLSX format when opening file: " + file, e);
     }
     return workbook;
+  }
+
+  @Override
+  public ExcelWorkbookReader getExcelWorkbookReader(File file) throws IOException, InterruptedException {
+    return new XSSFReaderWorkbook(file.getAbsolutePath());
   }
 
   @Override
