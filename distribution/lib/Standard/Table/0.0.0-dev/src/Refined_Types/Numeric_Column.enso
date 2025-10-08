@@ -40,3 +40,14 @@ type Numeric_Column
        ```
     signum self -> Column & Numeric_Column =
         self.operations_implementation.signum self.column
+
+    ## ---
+       group: Standard.Base.Random
+       icon: dice
+       ---
+       Creates a column with random numbers between the specified range.
+
+       The random numbers are uniformly distributed between `self` (inclusive)
+       and `limit` (exclusive).
+    randbetween self limit seed:Integer=0 -> Column & Numeric_Column =
+        self.operations_implementation.randbetween self.column limit seed

@@ -474,6 +474,18 @@ impl Processor {
                                 ]));
                             config.use_native_runner = true;
                         }
+                        Tests::StdMockDualMicrosoft => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Microsoft_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = false;
+                            config.extra_engine_runner_args = Some(vec![
+                                "--jvm".to_string(),
+                                "--vm.D=polyglot.enso.classLoading=Standard.Microsoft:guest,hosted"
+                                    .to_string(),
+                            ])
+                        }
                     }
                 }
                 let context = self.prepare_backend_context(config);

@@ -13,6 +13,7 @@
 - [When connecting to port a value with additional type, a necessary type cast
   is included][14028]
 - [Function docs in autocomplete in table expressions][14059]
+- [Many CLI arguments removed][14069]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -24,6 +25,7 @@
 [14028]: https://github.com/enso-org/enso/pull/14028
 [13976]: https://github.com/enso-org/enso/pull/13976
 [14059]: https://github.com/enso-org/enso/pull/14059
+[14069]: https://github.com/enso-org/enso/pull/14069
 
 #### Enso Standard Library
 
@@ -31,10 +33,14 @@
 - [Implement `Text_Column.to_case` for in-memory backend.][13769]
 - [Add support for gzip encoded return from web APIs][14026]
 - [Fixes for JDBC connection and schema support for SQL Server.][14039]
+- [Change Column.length to Column.row_count][14085]
+- [Add Text_Column.length and Text_Column.char_length][14091]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
 [14039]: https://github.com/enso-org/enso/pull/14039
+[14085]: https://github.com/enso-org/enso/pull/14085
+[14091]: https://github.com/enso-org/enso/pull/14091
 
 #### Enso Language & Runtime
 
@@ -100,6 +106,8 @@
   on macOS: <kbd>⌘</kbd> + <kbd>W</kbd>.
 - [Improved Graph Editor's Top Bar responsiveness to width change.][13726]
 - [Changed animation of tabs highlight.][13726]
+- [Fixed hybrid project progress being lost in some circumstances][14066]
+- [Add rand, uuid, tomorrow, yesterday and randbetween][14071]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -130,6 +138,8 @@
 [13479]: https://github.com/enso-org/enso/pull/13479
 [13604]: https://github.com/enso-org/enso/pull/13604
 [13726]: https://github.com/enso-org/enso/pull/13726
+[14066]: https://github.com/enso-org/enso/pull/14066
+[14071]: https://github.com/enso-org/enso/pull/14071
 
 #### Enso Standard Library
 

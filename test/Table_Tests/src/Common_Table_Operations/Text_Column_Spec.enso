@@ -1,14 +1,17 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 from Standard.Table import all
 from Standard.Table.Errors import all
+import Standard.Table.Expression.Expression_Error
 
 import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
+import enso_dev.Table_Tests.Util
 
-import project.Common_Table_Operations.Util
+import project.Common_Table_Operations.Util as Common_Table_Operations_Util
 from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
 
 type Lazy_Ref
@@ -21,19 +24,19 @@ add_specs suite_builder setup =
 
 add_text_columns_specs suite_builder setup =
     prefix = setup.prefix
-    build_sorted_table = Util.build_sorted_table setup
+    build_sorted_table = Common_Table_Operations_Util.build_sorted_table setup
 
-    db_pending = if setup.is_database then "Cot implemented for database backends" else Nothing
+    db_pending = if setup.is_database then "Not implemented for database backends" else Nothing
+    text_column = Lazy_Ref.Value <| build_sorted_table [["X", ["asdf", "ZXcv fFFf", "qwER gGgG", "XOMT"]]] . at "X"
 
     suite_builder.group prefix+"Text_Column" group_builder->
-        text_column = Lazy_Ref.Value <| build_sorted_table [["X", ["asdf", "ZXcv fFFf", "qwER gGgG", "XOMT"]]] . at "X"
-
         group_builder.specify "a text column can be cast to Text_Column" <|
             column = text_column.get
             column.value_type.is_text . should_be_true
             check_column_refinements column x->
                 (x:Text_Column)
 
+    suite_builder.group prefix+"Text_Column (to_case)" group_builder->
         group_builder.specify "to_case works" pending=db_pending <|
             column = text_column.get
             column.to_case ..Upper . to_vector . should_equal ["ASDF", "ZXCV FFFF", "QWER GGGG", "XOMT"]
@@ -53,3 +56,67 @@ add_text_columns_specs suite_builder setup =
                 column = text_column.get
                 Test.expect_panic Unimplemented <|
                     column.to_case ..Upper
+
+    suite_builder.group prefix+"Text_Column (length)" group_builder->
+        group_builder.specify "length works" <|
+            column = build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]]] . at 0
+            expected_column = build_sorted_table [["length([X])", [4, 5, 7, 4, 7]]] . at 0
+            result = column.length . cast (..Integer ..Bits_64)
+            result.should_equal expected_column
+
+        group_builder.specify "length works with whitespace and nothing" <|
+            column = build_sorted_table [["X", ["Whitespace whispers", "", Nothing, " stays. "]]] . at 0
+            expected_column = build_sorted_table [["length([X])", [19, 0, Nothing, 8]]] . at 0
+            result = column.length . cast (..Integer ..Bits_64)
+            result.should_equal expected_column
+
+        group_builder.specify "length returns graphene length, char_length returns UTF-16 code unit length" <|
+            column = build_sorted_table [["X", ["𝓣𝒆𝓍𝓽", "❤️", "breaks", "in", "hidden", "ways."]]] . at 0
+            
+            expected_column = case setup.is_database of
+                False -> build_sorted_table [["length([X])", [4, 1, 6, 2, 6, 5]]] . at 0
+                True  -> build_sorted_table [["length([X])", [4, 2, 6, 2, 6, 5]]] . at 0
+            result = column.length . cast (..Integer ..Bits_64)
+            result.should_equal expected_column
+
+            expected_column2 = case setup.is_database of
+                False -> build_sorted_table [["char_length([X])", [8, 2, 6, 2, 6, 5]]] . at 0
+                True  -> build_sorted_table [["char_length([X])", [4, 2, 6, 2, 6, 5]]] . at 0
+            result2 = column.char_length . cast (..Integer ..Bits_64)
+            result2.should_equal expected_column2
+
+        group_builder.specify "can be used inside a set component expression" <|     
+            table = build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]]]
+            expected = build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]], ["length([X])", [4, 5, 7, 4, 7]], ["char_length([X])", [4, 5, 7, 4, 7]]]
+
+            table_with_length = table.set (expr "length([X])")
+            result = table_with_length.set (expr "char_length([X])") . cast [1, 2] (..Integer ..Bits_64)
+            result.should_equal expected
+
+        group_builder.specify "can be used inside a set component expression with constant arguments" <|     
+            table = build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]]]
+            expected = case setup.is_database of
+                False -> build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]], ["length('❤️')", [1, 1, 1, 1, 1]], ["char_length('❤️')", [2, 2, 2, 2, 2]]]
+                True  -> build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]], ["length('❤️')", [2, 2, 2, 2, 2]], ["char_length('❤️')", [2, 2, 2, 2, 2]]]
+
+            table_with_length = table.set (expr "length('❤️')")
+            result = table_with_length.set (expr "char_length('❤️')") . cast [1, 2] (..Integer ..Bits_64)
+            result.should_equal expected
+
+        group_builder.specify "length and char_length error on non-text columns" <|
+            non_text_column = build_sorted_table [["X", [1, 2, 3, 4]]] . at 0
+            Test.expect_panic_with non_text_column.length No_Such_Method
+            Test.expect_panic_with non_text_column.char_length No_Such_Method
+
+            table = build_sorted_table [["X", [1, 2, 3, 4]]]
+            result = table.set (expr "length([X])") 
+            result.should_fail_with Expression_Error
+            result.catch.should_equal (Expression_Error.Type_Error "method 'length' expected first argument to be Text_Column, but got Column.")
+
+            result2 = table.set (expr "char_length([X])") 
+            result2.should_fail_with Expression_Error
+            result2.catch.should_equal (Expression_Error.Type_Error "method 'char_length' expected first argument to be Text_Column, but got Column.")
+
+            result3 = table.set (expr "char_length(42)") 
+            result3.should_fail_with Expression_Error
+            result3.catch.should_equal (Expression_Error.Type_Error "method 'char_length' expected first argument to be Text_Column, but got Column.")

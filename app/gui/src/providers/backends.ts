@@ -36,9 +36,9 @@ function initializeBackends(
     projectManager.value = pm
   })
   const localBackend = computed(() =>
-    projectManager.value ? new LocalBackend(console, getText, projectManager.value) : null,
+    projectManager.value ? new LocalBackend(getText, projectManager.value) : null,
   )
-  const remoteBackend = new RemoteBackend(console, getText, httpClient)
+  const remoteBackend = new RemoteBackend(getText, httpClient)
 
   watch(
     () => getText,
