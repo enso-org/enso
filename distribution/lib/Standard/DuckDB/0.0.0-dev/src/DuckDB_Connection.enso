@@ -49,9 +49,7 @@ type DuckDB_Connection
 
         java_connection = JDBC_Connection.handle_sql_errors <|
             props = properties_as_java_props properties
-            case schema == "" of
-                True  -> JDBCProxy.getConnection url props
-                False -> JDBCProxy.getConnection url props . setSchema schema
+            JDBCProxy.getConnectionWithCatalogSchema url props Nothing schema
         jdbc_connection = JDBC_Connection.from_java sql_exception=SQLException java_connection
 
         ## For initial work using DuckDB, we will use the Postgres dialect.
