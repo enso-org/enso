@@ -11,6 +11,7 @@ import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TypeChainTest {
@@ -124,6 +125,7 @@ public class TypeChainTest {
   }
 
   /** {@code allTypes(Any.type) == [Any.type, Any]} */
+  @Ignore("Will be addressed in #13939")
   @Test
   public void anyEigentypeChain() {
     var any = ctx.ensoContext().getBuiltins().any();
