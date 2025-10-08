@@ -2,7 +2,7 @@ import assert from 'assert'
 import { expect, test } from 'integration-test/base'
 import * as locate from './locate'
 
-test('Navigating with arrows', async ({ page }) => {
+test('Navigating with arrows', async ({ editorPage, page }) => {
   await editorPage
   // Make sure nothing else is focused right now.
   await locate.graphEditor(page).click({ position: { x: 400, y: 400 } })

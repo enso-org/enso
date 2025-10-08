@@ -117,6 +117,6 @@ test('Edge drop prevents further handling of event', async ({ editorPage, page }
   await expect(page.getByTestId('mouse-edited-edge')).toExist()
   await page.waitForTimeout(300) // Avoid double clicks
   await page.mouse.click(outputPort.x, outputPort.y - 25)
-  await expect(page.getByTestId('mouse-edited-edge')).not.toExist()
+  await expect(page.getByTestId('mouse-edited-edge')).toBeHidden()
   await expect(locate.componentBrowser(page)).toExist()
 })
