@@ -22,9 +22,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
-/**
- *
- */
+/** */
 public abstract class InvokeMethodNode extends BaseNode {
   protected static final int CACHE_SIZE = 10;
   protected final int argumentCount;
@@ -62,8 +60,7 @@ public abstract class InvokeMethodNode extends BaseNode {
   private static boolean isStaticMethodInvocation(CallArgumentInfo[] schema) {
     assert schema.length > 0;
     var firstArg = schema[0];
-    return firstArg.isNamed() &&
-        firstArg.getName().equals(ConstantsNames.SELF_ARGUMENT);
+    return firstArg.isNamed() && firstArg.getName().equals(ConstantsNames.SELF_ARGUMENT);
   }
 
   InvokeMethodNode(
@@ -118,9 +115,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     return function;
   }
 
-  /**
-   * Returns true if the first argument, which is {@code Any} type should be removed.
-   */
+  /** Returns true if the first argument, which is {@code Any} type should be removed. */
   public static boolean shouldRemoveSelfArg(FunctionSchema resolvedFuncSchema, int argumentCount) {
     var resolvedFuncArgCount = resolvedFuncSchema.getArgumentsCount();
     long argsWithDefaultValCount = 0;

@@ -57,11 +57,11 @@ import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
- * Node responsible for <i>instance method invocation</i>.
- * Instance method invocation is a method call without specified {@code self} argument at first position.
- * Such invocation will preapply the {@code self} argument, taken from the caller's {@link org.enso.interpreter.runtime.state.State},
- * to the method being called.
- * This is different to {@link StaticInvokeMethodNode static method invocation}.
+ * Node responsible for <i>instance method invocation</i>. Instance method invocation is a method
+ * call without specified {@code self} argument at first position. Such invocation will preapply the
+ * {@code self} argument, taken from the caller's {@link org.enso.interpreter.runtime.state.State},
+ * to the method being called. This is different to {@link StaticInvokeMethodNode static method
+ * invocation}.
  */
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
@@ -100,11 +100,11 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "typesLibrary.hasType(self)",
-          "!typesLibrary.hasSpecialDispatch(self)",
-          "cachedSymbol == symbol",
-          "cachedSelfTpe == typesLibrary.getType(self)",
-          "function != null"
+        "typesLibrary.hasType(self)",
+        "!typesLibrary.hasSpecialDispatch(self)",
+        "cachedSymbol == symbol",
+        "cachedSelfTpe == typesLibrary.getType(self)",
+        "function != null"
       },
       limit = "CACHE_SIZE")
   Object doFunctionalDispatchCachedSymbol(
@@ -118,7 +118,7 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("typesLibrary.getType(self)") Type cachedSelfTpe,
       @Cached("resolveFunction(cachedSymbol, self, cachedSelfTpe, methodResolverNode)")
-      Function function) {
+          Function function) {
     assert arguments.length == invokeFunctionNode.getSchema().length;
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
@@ -323,9 +323,9 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "warnings.hasWarnings(self)",
-          "resolvedFunction != null",
-          "resolvedFunction.getSchema() == cachedSchema"
+        "warnings.hasWarnings(self)",
+        "resolvedFunction != null",
+        "resolvedFunction.getSchema() == cachedSchema"
       })
   Object doWarningsCustom(
       VirtualFrame frame,
@@ -404,10 +404,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
   @ExplodeLoop
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!methods.hasType(self)",
-          "!methods.hasSpecialDispatch(self)",
-          "polyglotCallType.isInteropLibrary()",
+        "!warnings.hasWarnings(self)",
+        "!methods.hasType(self)",
+        "!methods.hasSpecialDispatch(self)",
+        "polyglotCallType.isInteropLibrary()",
       })
   Object doPolyglot(
       VirtualFrame frame,
@@ -420,7 +420,7 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode preResolveMethod,
       @Bind("getPolyglotCallType(self, symbol, interop, preResolveMethod)")
-      HostMethodCallNode.PolyglotCallType polyglotCallType,
+          HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached(value = "buildExecutors()") ThunkExecutorNode[] argExecutors,
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] profiles,
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] warningProfiles,
@@ -466,10 +466,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!types.hasType(self)",
-          "!types.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_BIG_INT"
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_BIG_INT"
       })
   Object doConvertNumber(
       VirtualFrame frame,
@@ -495,10 +495,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!types.hasType(self)",
-          "!types.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TEXT"
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TEXT"
       })
   Object doConvertText(
       VirtualFrame frame,
@@ -526,10 +526,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!types.hasType(self)",
-          "!types.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_ARRAY",
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_ARRAY",
       })
   Object doConvertArray(
       VirtualFrame frame,
@@ -550,10 +550,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!types.hasType(self)",
-          "!types.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_HASH_MAP",
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_HASH_MAP",
       })
   Object doConvertHashMap(
       VirtualFrame frame,
@@ -574,10 +574,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!types.hasType(self)",
-          "!types.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE"
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE"
       })
   Object doConvertDate(
       VirtualFrame frame,
@@ -604,10 +604,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!types.hasType(self)",
-          "!types.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE_TIME"
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE_TIME"
       })
   Object doConvertDateTime(
       VirtualFrame frame,
@@ -636,10 +636,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!types.hasType(self)",
-          "!types.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DURATION"
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DURATION"
       })
   Object doConvertDuration(
       VirtualFrame frame,
@@ -676,10 +676,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!types.hasType(self)",
-          "!types.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_ZONED_DATE_TIME"
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_ZONED_DATE_TIME"
       })
   Object doConvertZonedDateTime(
       VirtualFrame frame,
@@ -708,10 +708,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!types.hasType(self)",
-          "!types.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_ZONE"
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_ZONE"
       })
   Object doConvertZone(
       VirtualFrame frame,
@@ -738,10 +738,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!types.hasType(self)",
-          "!types.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_OF_DAY"
+        "!warnings.hasWarnings(self)",
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_TIME_OF_DAY"
       })
   Object doConvertTimeOfDay(
       VirtualFrame frame,
@@ -768,10 +768,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
 
   @Specialization(
       guards = {
-          "!warnings.hasWarnings(self)",
-          "!methods.hasType(self)",
-          "!methods.hasSpecialDispatch(self)",
-          "getPolyglotCallType(self, symbol, interop) == NOT_SUPPORTED"
+        "!warnings.hasWarnings(self)",
+        "!methods.hasType(self)",
+        "!methods.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop) == NOT_SUPPORTED"
       })
   Object doFallback(
       VirtualFrame frame,
@@ -809,5 +809,4 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
     }
     return result;
   }
-
 }
