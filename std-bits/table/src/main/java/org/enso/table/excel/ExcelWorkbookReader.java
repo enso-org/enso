@@ -56,10 +56,10 @@ public interface ExcelWorkbookReader {
    * Get a sheet by its index
    *
    * @param sheetIndex the index of the sheet (0 based)
-   * @return the sheet as an ExcelSheet object
+   * @return the sheet as an ExcelSheetReader object
    * @throws IllegalArgumentException if the sheet index is out of range.
    */
-  ExcelSheet getSheetAt(int sheetIndex);
+  ExcelSheetReader getSheetAt(int sheetIndex);
 
   /**
    * Close the underlying input resource (File or Stream), from which the Workbook was read.
@@ -115,8 +115,8 @@ public interface ExcelWorkbookReader {
     }
 
     @Override
-    public ExcelSheet getSheetAt(int sheetIndex) {
-      return ExcelSheet.forPOIUserModel(workbook, sheetIndex);
+    public ExcelSheetReader getSheetAt(int sheetIndex) {
+      return ExcelSheetReader.forPOIUserModel(workbook, sheetIndex);
     }
 
     @Override

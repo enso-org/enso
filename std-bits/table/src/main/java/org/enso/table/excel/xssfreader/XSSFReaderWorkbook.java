@@ -24,7 +24,7 @@ import org.apache.poi.ss.usermodel.RichTextString;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
 import org.apache.poi.xssf.model.SharedStrings;
 import org.apache.poi.xssf.usermodel.XSSFRelation;
-import org.enso.table.excel.ExcelSheet;
+import org.enso.table.excel.ExcelSheetReader;
 import org.enso.table.excel.ExcelWorkbookReader;
 import org.enso.table.util.ConsumerWithException;
 import org.w3c.dom.Document;
@@ -275,7 +275,7 @@ public class XSSFReaderWorkbook implements ExcelWorkbookReader {
   }
 
   @Override
-  public ExcelSheet getSheetAt(int sheetIndex) {
+  public ExcelSheetReader getSheetAt(int sheetIndex) {
     if (sheetIndex < 0 || sheetIndex >= sheetInfos.size()) {
       throw new IllegalArgumentException("Sheet index out of range: " + sheetIndex);
     }

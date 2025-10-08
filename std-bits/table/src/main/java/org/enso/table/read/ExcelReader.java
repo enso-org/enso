@@ -18,7 +18,7 @@ import org.enso.table.excel.ExcelFileFormat;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
-import org.enso.table.excel.ExcelSheet;
+import org.enso.table.excel.ExcelSheetReader;
 import org.enso.table.excel.ExcelWorkbookReader;
 import org.enso.table.excel.internal.ExcelConnectionPool;
 import org.enso.table.problems.ProblemAggregator;
@@ -347,7 +347,7 @@ public class ExcelReader {
       ProblemAggregator problemAggregator)
       throws InterruptedException {
 
-    ExcelSheet sheet = workbook.getSheetAt(sheetIndex);
+    ExcelSheetReader sheet = workbook.getSheetAt(sheetIndex);
 
     // Expand Single Cell
     if (excelRange != null && excelRange.isSingleCell()) {

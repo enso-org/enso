@@ -4,7 +4,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
 /** Wrapper class to handle Excel sheets. */
-public interface ExcelSheet {
+public interface ExcelSheetReader {
   /** Gets the index of the sheet within the workbook (0-based). */
   int getSheetIndex();
 
@@ -29,9 +29,9 @@ public interface ExcelSheet {
   Sheet getSheet();
 
   /** Gets the underlying Apache POI Sheet object. */
-  static ExcelSheet forPOIUserModel(Workbook workbook, int sheetIndex) {
+  static ExcelSheetReader forPOIUserModel(Workbook workbook, int sheetIndex) {
     var sheet = workbook.getSheetAt(sheetIndex);
-    return new ExcelSheetFromPOIUserModel(
+    return new ExcelSheetReaderFromPOIUserModel(
         sheet,
         sheetIndex,
         sheet.getSheetName(),
@@ -40,14 +40,14 @@ public interface ExcelSheet {
         ExcelUtils.is1904DateSystem(workbook));
   }
 
-  record ExcelSheetFromPOIUserModel(
+  record ExcelSheetReaderFromPOIUserModel(
       Sheet sheet,
       int sheetIndex,
       String sheetName,
       int firstRow,
       int lastRow,
       boolean use1904Format)
-      implements ExcelSheet {
+      implements ExcelSheetReader {
     @Override
     public int getSheetIndex() {
       return sheetIndex;
