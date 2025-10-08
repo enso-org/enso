@@ -5531,6 +5531,24 @@ lazy val `sqlite-wrapper` = project
     )
   )
 
+lazy val `duckdb-wrapper` = project
+  .in(file("lib/java/duckdb-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.duckdb" % "duckdb_jdbc" % duckdbVersion
+    ),
+    inputJar := "org.duckdb" % "duckdb_jdbc" % duckdbVersion,
+    jarExtractor := JarExtractor(
+      "libduckdb_java.so_linux_amd64"   -> PolyglotLib(LinuxAMD64),
+      "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSArm64),
+      "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSAMD64),
+      "libduckdb_java.so_windows_amd64" -> PolyglotLib(WindowsAMD64),
+      "META-INF/**"                     -> CopyToOutputJar,
+      "org/**/*.class"                  -> CopyToOutputJar
+    )
+  )
+
 lazy val `std-image` = project
   .in(file("std-bits") / "image")
   .settings(
@@ -6081,14 +6099,25 @@ lazy val `std-duckdb` = project
           ignoreScalaLibrary = true,
           libraryUpdates     = (Compile / update).value,
           unmanagedClasspath = (Compile / unmanagedClasspath).value,
-          logger             = streams.value.log,
-          cacheStoreFactory
+          polyglotLibDir     = Some(`std-duckdb-native-libs`),
+          ignoreDependencies = Some((fileName: String) => {
+            s"duckdb_jdbc-$duckdbVersion.jar" == fileName
+          }),
+          extractedNativeLibsDirs = Seq(
+            (`duckdb-wrapper` / extractedFilesDir).value
+          ),
+          extraJars = Seq(
+            (`duckdb-wrapper` / thinJarOutput).value
+          ),
+          logger            = streams.value.log,
+          cacheStoreFactory = cacheStoreFactory
         )
       stdDuckDBJar
     },
     clean := Def.task {
       val _ = clean.value
       IO.delete(`std-duckdb-polyglot-root`)
+      IO.delete(`std-duckdb-native-libs`)
     }.value
   )
   .dependsOn(`std-base` % "provided")
