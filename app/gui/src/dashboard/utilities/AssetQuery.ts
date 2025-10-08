@@ -44,8 +44,6 @@ export default class AssetQuery {
     ['types', 'type'],
     ['extensions', 'extension'],
     ['descriptions', 'description'],
-    // ['modifieds', 'modified'],
-    // ['labels', 'label'],
     ['owners', 'owner'],
   ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
   /** The subset of {@link AssetQuery.tagNames} that are applicable for the Local Backend. */
@@ -54,7 +52,6 @@ export default class AssetQuery {
     ['names', 'name'],
     ['types', 'type'],
     ['extensions', 'extension'],
-    // ['modifieds', 'modified'],
   ] as const satisfies readonly (readonly [keyof AssetQueryData, string | null])[]
 
   readonly query: string
@@ -79,7 +76,6 @@ export default class AssetQuery {
     modifieds: readonly string[],
     owners: readonly string[],
   ) {
-    this.query = query ?? this.toString()
     this.keywords = keywords
     this.names = names
     this.labels = labels
@@ -88,10 +84,11 @@ export default class AssetQuery {
     this.descriptions = descriptions
     this.modifieds = modifieds
     this.owners = owners
+    this.query = query ?? this.toString()
   }
 
   /** Return a list of {@link AssetQueryTerm}s found in the raw user input string. */
-  static terms(query: string): AssetQueryTerm[] {
+  static terms(query: string): readonly AssetQueryTerm[] {
     const terms: AssetQueryTerm[] = []
     for (const [, tag, valuesRaw = ''] of query.trim().matchAll(this.termsRegex)) {
       // Ignore values with a tag but without a value.
