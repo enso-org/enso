@@ -1,8 +1,7 @@
 packages:
   - app/common
   - app/gui
-  - app/ide-desktop/client
-  - app/ide-desktop/icons
+  - app/electron-client
   - app/lang-markdown
   - app/lezer-markdown
   - app/project-manager-shim

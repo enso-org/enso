@@ -82,7 +82,7 @@ export class Uploader {
     disableDirectRead: boolean,
     method: ExternalId,
   ): Uploader {
-    const filePath = window.systemApi?.getFilePath(file)
+    const filePath = window.api?.system.getFilePath(file)
     return new Uploader(
       projectStore,
       file,

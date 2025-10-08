@@ -4,29 +4,28 @@
 //! installer and uninstaller binaries.
 
 use enso_install_config::prelude::*;
-
-use enso_install_config::embed_resource_from_file;
 use enso_install_config::sanitize_and_expose_electron_builder_config;
-use enso_install_config::ResourceType;
-use enso_install_config::ENSO_ICON_ID;
 use ide_ci::programs::cargo::build_env::OUT_DIR;
 
-
-
-/// Build-script-time function that tries to embed the icon into the binary.
-///
-/// Works only on Windows, on other platforms this is effectively a no-op.
-fn try_embedding_icon() -> Result {
-    let config = enso_install_config::electron_builder_config_from_env()?;
-    embed_resource_from_file(ENSO_ICON_ID, ResourceType::Icon, &config.win.icon)
-}
+#[cfg(windows)]
+use enso_install_config::embed_resource_from_file;
+#[cfg(windows)]
+use enso_install_config::ResourceType;
+#[cfg(windows)]
+use enso_install_config::ENSO_ICON_ID;
 
 fn main() {
     setup_logging().ok();
     // Ignore error, not compiling the icon is not a big deal, especially if we compile to check, to
     // not generate final package. (Obtaining icon is a bit of a hassle, as it is generated
     // temporarily by the enso-build.)
-    if let Err(err) = try_embedding_icon() {
+    #[cfg(windows)]
+    if let Err(err) = embed_resource_from_file(
+        ENSO_ICON_ID,
+        ResourceType::Icon,
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../app/electron-client/assets/icons/icon.ico"),
+    ) {
         // We do not use `cargo:warning` here, as we do not want to pollute the output if the icon
         // is not available. Still, to enable debugging, we print to stderr, which is captured by
         // the cargo and stored in `target/debug/build/<pkg>/output`.

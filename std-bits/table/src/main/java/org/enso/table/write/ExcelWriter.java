@@ -2,9 +2,6 @@ package org.enso.table.write;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.AccessMode;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -29,12 +26,12 @@ import org.enso.table.error.ExistingDataException;
 import org.enso.table.error.InvalidLocationException;
 import org.enso.table.error.RangeExceededException;
 import org.enso.table.excel.ExcelFileFormat;
+import org.enso.table.excel.ExcelFormatStrategy;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
 import org.enso.table.excel.ExcelSheet;
 import org.enso.table.excel.ExcelUtils;
-import org.enso.table.excel.ExcelWriteHelper;
 import org.enso.table.util.ColumnMapper;
 import org.enso.table.util.NameDeduplicator;
 
@@ -51,24 +48,77 @@ public class ExcelWriter {
     }
   }
 
-  public static <T> T withWorkbook(
-      File file, ExcelFileFormat format, Function<ExcelWriteHelper, T> action)
-      throws IOException, InterruptedException {
-    verifyIsWritable(file);
-
-    ExcelWriteHelper helper = new ExcelWriteHelper(file, format);
-    return action.apply(helper);
+  public static void writeTableToSheet(
+      File file,
+      ExcelFileFormat format,
+      int sheetIndex,
+      ExistingDataMode existingDataMode,
+      int firstRow,
+      Table table,
+      Long rowLimit,
+      ExcelHeaders.HeaderBehavior headers)
+      throws IOException,
+          InvalidLocationException,
+          RangeExceededException,
+          ExistingDataException,
+          IllegalStateException,
+          ColumnNameMismatchException,
+          ColumnCountMismatchException,
+          InterruptedException {
+    ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+    try (var workbook = strategy.openForWrite(file)) {
+      writeTableToSheet(workbook, sheetIndex, existingDataMode, firstRow, table, rowLimit, headers);
+      strategy.finaliseWrite();
+    }
   }
 
-  private static void verifyIsWritable(File file) throws IOException {
-    Path path = file.toPath();
-
-    if (!Files.exists(path)) {
-      // If the file does not exist, we assume that we can create it.
-      return;
+  public static void writeTableToSheet(
+      File file,
+      ExcelFileFormat format,
+      String sheetName,
+      ExistingDataMode existingDataMode,
+      int firstRow,
+      Table table,
+      Long rowLimit,
+      ExcelHeaders.HeaderBehavior headers)
+      throws IOException,
+          InvalidLocationException,
+          RangeExceededException,
+          ExistingDataException,
+          IllegalStateException,
+          ColumnNameMismatchException,
+          ColumnCountMismatchException,
+          InterruptedException {
+    ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+    try (var workbook = strategy.openForWrite(file)) {
+      writeTableToSheet(workbook, sheetName, existingDataMode, firstRow, table, rowLimit, headers);
+      strategy.finaliseWrite();
     }
+  }
 
-    path.getFileSystem().provider().checkAccess(path, AccessMode.WRITE, AccessMode.READ);
+  public static void writeTableToRange(
+      File file,
+      ExcelFileFormat format,
+      String rangeNameOrAddress,
+      ExistingDataMode existingDataMode,
+      int skipRows,
+      Table table,
+      Long rowLimit,
+      ExcelHeaders.HeaderBehavior headers)
+      throws IOException,
+          InvalidLocationException,
+          RangeExceededException,
+          ExistingDataException,
+          IllegalStateException,
+          ColumnNameMismatchException,
+          ColumnCountMismatchException,
+          InterruptedException {
+    ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+    try (var workbook = strategy.openForWrite(file)) {
+      writeTableToRange(
+          workbook, rangeNameOrAddress, existingDataMode, skipRows, table, rowLimit, headers);
+      strategy.finaliseWrite();
+    }
   }
 
   public static void writeTableToSheet(

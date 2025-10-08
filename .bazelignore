@@ -2,17 +2,7 @@
 node_modules
 app/gui/node_modules
 app/common/node_modules
-app/ide-desktop/client/node_modules
-app/ide-desktop/icons/node_modules
-app/ide-desktop/lib/assets/node_modules
-app/ide-desktop/lib/client/node_modules
-app/ide-desktop/lib/common/node_modules
-app/ide-desktop/lib/content-config/node_modules
-app/ide-desktop/lib/dashboard/node_modules
-app/ide-desktop/lib/esbuild-plugin-copy-directories/node_modules
-app/ide-desktop/lib/icons/node_modules
-app/ide-desktop/lib/ts-plugin-namespace-auto-import/node_modules
-app/ide-desktop/node_modules
+app/electron-client/node_modules
 app/lang-markdown/node_modules
 app/lezer-markdown/node_modules
 app/project-manager-shim/node_modules
@@ -23,7 +13,6 @@ app/ydoc-server-nodejs/node_modules
 app/ydoc-server-polyglot/node_modules
 app/ydoc-shared/node_modules
 app/ydoc-shared/parser-codegen/node_modules
-lib/js/runner/node_modules
 
 #
 .bloop

@@ -671,6 +671,9 @@ class TailCallTest extends MiniPassTest {
             .asInstanceOf[Function.Lambda]
             .body
             .asInstanceOf[Expression.Block]
+          val metaOnMethodRef =
+            method.methodReference().getMetadata(TailCall.INSTANCE)
+          metaOnMethodRef shouldEqual None
 
           block.getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail

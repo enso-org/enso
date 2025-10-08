@@ -55,7 +55,11 @@ const logger = provideEventLogger(
 watch(
   toRef(props, 'projectId'),
   (_id, _oldId, onCleanup) => {
-    logger.send('ide_project_opened')
+    try {
+      logger.send('ide_project_opened')
+    } catch {
+      // Do nothing
+    }
     onCleanup(() => logger.send('ide_project_closed'))
   },
   { immediate: true },

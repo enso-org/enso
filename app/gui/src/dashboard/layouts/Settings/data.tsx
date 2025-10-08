@@ -345,13 +345,13 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             aliasesId: 'localRootPathButtonSettingsCustomEntryAliases',
             render: (context) => (
               <Button.Group className="grow-0">
-                {window.fileBrowserApi && (
+                {window.api && (
                   <Button
                     size="small"
                     variant="outline"
                     onPress={async () => {
                       const [newDirectory] =
-                        (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                        (await window.api?.fileBrowser.openFileBrowser('directory')) ?? []
                       if (newDirectory != null) {
                         setLocalRootDirectory(Path(normalizePath(newDirectory)))
                       }
@@ -391,13 +391,13 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             aliasesId: 'downloadDirectoryButtonSettingsCustomEntryAliases',
             render: (context) => (
               <Button.Group className="grow-0">
-                {window.fileBrowserApi && (
+                {window.api && (
                   <Button
                     size="small"
                     variant="outline"
                     onPress={async () => {
                       const [newDirectory] =
-                        (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                        (await window.api?.fileBrowser.openFileBrowser('directory')) ?? []
                       if (newDirectory != null) {
                         setDownloadDirectory(Path(normalizePath(newDirectory)))
                       }

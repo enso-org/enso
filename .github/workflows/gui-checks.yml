@@ -49,6 +49,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - uses: actions/cache/restore@v4
+        if: "${{ !(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')) }}"
         name: Download cache
         id: cache
         with:

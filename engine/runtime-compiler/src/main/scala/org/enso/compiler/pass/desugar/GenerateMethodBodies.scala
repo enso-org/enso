@@ -92,24 +92,26 @@ case object GenerateMethodBodies extends IRPass {
   ): definition.Method = {
     ir match {
       case ir: definition.Method.Explicit =>
-        ir.copy(
-          body = ir.body match {
-            case fun: Function => processBodyFunction(fun, ir.methodName)
-            case expression    => processBodyExpression(expression, ir.methodName)
-          }
-        )
+        val newBody = ir.body match {
+          case fun: Function => processBodyFunction(fun, ir.methodName)
+          case expression    => processBodyExpression(expression, ir.methodName)
+        }
+        ir.copyBuilder()
+          .bodyReference(Persistance.Reference.of(newBody))
+          .build()
       case ir: definition.Method.Conversion =>
-        ir.copy(
-          body = ir.body match {
-            case fun: Function =>
-              processBodyFunction(fun, ir.methodName)
-            case _ =>
-              throw new CompilerError(
-                "It should not be possible for a conversion method to have " +
-                "an arbitrary expression as a body."
-              )
-          }
-        )
+        val newBody = ir.body match {
+          case fun: Function =>
+            processBodyFunction(fun, ir.methodName)
+          case _ =>
+            throw new CompilerError(
+              "It should not be possible for a conversion method to have " +
+              "an arbitrary expression as a body."
+            )
+        }
+        ir.copyBuilder()
+          .body(newBody)
+          .build()
       case _: definition.Method.Binding =>
         throw new CompilerError(
           "Method definition sugar should not be present during method body " +

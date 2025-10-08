@@ -21,6 +21,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
+import org.enso.persist.Persistance
 
 /** Associates doc comments with the commented entities as metadata.
   *
@@ -168,9 +169,17 @@ case object DocumentationComments extends IRPass {
           "Union types should not yet be present in the compiler pipeline."
         )
       case method: definition.Method.Binding =>
-        method.copy(body = resolveExpression(method.body))
+        method
+          .copyBuilder()
+          .body(resolveExpression(method.body))
+          .build()
       case method: definition.Method.Explicit =>
-        method.copy(body = resolveExpression(method.body))
+        method
+          .copyBuilder()
+          .bodyReference(
+            Persistance.Reference.of(resolveExpression(method.body))
+          )
+          .build()
       case tpe: Definition.SugaredType =>
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))
       case doc: Comment.Documentation  => doc
