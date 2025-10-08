@@ -44,8 +44,10 @@ const assetQuery = useQuery(
     ],
     {
       enabled() {
-        // QueryKey: [backendType.value, 'getAssetDetails', resolveEnsoPathQuery.data.value?.id]
-        return !!this.queryKey?.[2]
+        // QueryKey: [backendType.value, 'getAssetDetails', args: [assetId: resolveEnsoPathQuery.data.value?.id, rootPath: undefined]]
+        const maybeArray = this.queryKey?.[2]
+        const array = Array.isArray(maybeArray) ? maybeArray : undefined
+        return !!array?.[0]
       },
     },
   ),
@@ -63,7 +65,8 @@ const shouldOpenProjectModal = computed(() => {
     // The project is in the process of being opened.
     if (otherPath === path.value) return false
   }
-  return true
+  // Only require the modal if there is at least one project already opened or being opened.
+  return containerData.openedProjects.length > 0 || containerData.openingProjects.size > 0
 })
 
 const OpenProjectModalReact = vueComponent(OpenProjectModal).default

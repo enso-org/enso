@@ -35,19 +35,35 @@ export function setupLogger() {
 
   window.console.log = (...args) => {
     originalConsoleLog.apply(window.console, args)
-    window.api?.log.log(args)
+    try {
+      window.api?.log.log(args)
+    } catch (error) {
+      originalConsoleError('Logging to file failed', serializeError(error))
+    }
   }
   window.console.info = (...args) => {
     originalConsoleInfo.apply(window.console, args)
-    window.api?.log.info(args)
+    try {
+      window.api?.log.info(args)
+    } catch (error) {
+      originalConsoleError('Logging to file failed', serializeError(error))
+    }
   }
   window.console.error = (...args) => {
     originalConsoleError.apply(window.console, args)
-    window.api?.log.error(args)
+    try {
+      window.api?.log.error(args)
+    } catch (error) {
+      originalConsoleError('Logging to file failed', serializeError(error))
+    }
   }
   window.console.warn = (...args) => {
     originalConsoleWarn.apply(window.console, args)
-    window.api?.log.warn(args)
+    try {
+      window.api?.log.warn(args)
+    } catch (error) {
+      originalConsoleError('Logging to file failed', serializeError(error))
+    }
   }
 
   window.addEventListener(

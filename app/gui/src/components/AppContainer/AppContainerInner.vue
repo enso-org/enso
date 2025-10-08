@@ -1,4 +1,5 @@
 <script lang="ts">
+import { ModalWrapper as ModalWrapperReact } from '#/components/ModalWrapper'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
 import { BackendType, EnsoPath, type ProjectId } from '#/services/Backend'
@@ -23,6 +24,7 @@ import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
 
 const UserBar = reactComponent(UserBarReact)
+const ModalWrapper = reactComponent(ModalWrapperReact)
 
 /**
  * A part of `AppContainer` which needs some hooks passed from react by `Dashboard.tsx`.
@@ -140,6 +142,7 @@ const onSignOut = () => {
 </script>
 
 <template>
+  <ModalWrapper />
   <RightPanelDataProviderForReact>
     <div class="bar">
       <div role="tablist" class="tablist">

@@ -232,7 +232,7 @@ export function Dashboard(props: DashboardProps) {
 
   return (
     <CategoriesProvider>
-      <Page hideInfoBar>
+      <Page hideInfoBar hideModalWrapper>
         <div
           className="flex min-h-full flex-col text-xs text-primary"
           onContextMenu={(event) => {
