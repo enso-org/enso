@@ -4,15 +4,18 @@ import com.oracle.truffle.api.TruffleOptions;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.function.Function;
 import org.enso.jvm.interop.api.OtherJvmClassLoader;
 
 final class JavaPolyglotNode {
   static GenericForeignNode create(EpbContext context) {
     try {
       var isAot = TruffleOptions.AOT;
-      var lang = context.getEnv().getInternalLanguages().get("enso");
-      assert null != lang;
-      var polyglotBindings = context.getEnv().getScopePublic(lang);
+      Function<String, Object> polyglotBindings =
+          (name) -> {
+            var lang = context.getEnv().getInternalLanguages().get(name);
+            return lang == null ? null : context.getEnv().getScopePublic(lang);
+          };
       assert null != polyglotBindings;
       var loader =
           OtherJvmClassLoader.create(

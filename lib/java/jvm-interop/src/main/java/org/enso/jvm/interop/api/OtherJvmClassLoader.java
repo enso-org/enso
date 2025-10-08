@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.jvm.channel.JVM;
 import org.enso.jvm.interop.impl.OtherJvmMessage;
@@ -36,7 +37,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
    * Creates instance of the class loader.
    *
    * @param language the language to associate objects loaded by this loader with
-   * @param polyglotBindings object to use as polyglot context
+   * @param polyglotBindings function to find polyglot context of a language
    * @param otherJvm normally we run in AOT mode but for debugging purposes we can also emulate the
    *     connection in a single JVM
    * @param ctx own context to execute code in
@@ -46,7 +47,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
    */
   public static OtherJvmClassLoader create(
       Class<? extends TruffleLanguage> language,
-      Object polyglotBindings,
+      Function<String, Object> polyglotBindings,
       boolean otherJvm,
       TruffleContext ctx)
       throws IOException, URISyntaxException {

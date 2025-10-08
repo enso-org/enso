@@ -194,10 +194,11 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
 
   /** Requests polyglot bindings from the other side. */
   @Persistable(id = 81912)
-  public static record PolyglotBindings() implements Function<Channel<OtherJvmPool>, Object> {
+  public static record PolyglotBindings(String name)
+      implements Function<Channel<OtherJvmPool>, Object> {
     @Override
     public Object apply(Channel<OtherJvmPool> t) {
-      return t.getConfig().getBindings();
+      return t.getConfig().getBindings(name);
     }
   }
 }

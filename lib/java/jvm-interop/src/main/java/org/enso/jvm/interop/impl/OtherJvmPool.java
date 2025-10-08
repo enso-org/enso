@@ -30,7 +30,7 @@ public final class OtherJvmPool extends Channel.Config {
   /** context to use when entering tests */
   private OtherJvmLoader loader;
 
-  private Object polyglotBindings;
+  private Function<String, Object> polyglotBindings;
   private Function<Node, Object> onEnter;
   private BiConsumer<Node, Object> onLeave;
   private Class<? extends TruffleLanguage> language;
@@ -38,7 +38,7 @@ public final class OtherJvmPool extends Channel.Config {
   /** Master Channel can be associated with actions on enter and on leave. */
   public final void onEnterLeave(
       Class<? extends TruffleLanguage> lang,
-      Object polyglotBindings,
+      Function<String, Object> polyglotBindings,
       Function<Node, Object> onEnter,
       BiConsumer<Node, Object> onLeave) {
     this.language = lang;
@@ -189,7 +189,7 @@ public final class OtherJvmPool extends Channel.Config {
               "ensoBindings",
               (ProxyExecutable)
                   (Value... arguments) -> {
-                    var msg = new OtherJvmMessage.PolyglotBindings();
+                    var msg = new OtherJvmMessage.PolyglotBindings("enso");
                     var res = channel.execute(Object.class, msg);
                     return res;
                   });
@@ -307,9 +307,8 @@ public final class OtherJvmPool extends Channel.Config {
     }
   }
 
-  Object getBindings() {
-    assert polyglotBindings != null;
-    return polyglotBindings;
+  final Object getBindings(String name) {
+    return polyglotBindings == null ? null : polyglotBindings.apply(name);
   }
 
   private static final class WhereAndCount extends Exception {
