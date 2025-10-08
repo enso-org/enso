@@ -13,7 +13,7 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Return_As_Table.Return_As_Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Column, Headers, Table
-from Standard.Table.Errors import Empty_Sheet, Invalid_Location, No_Rows
+from Standard.Table.Errors import Invalid_Location, No_Rows
 from Standard.Table.In_Memory_Table import from_java_table
 from Standard.Table.Internal.Table_Helpers import duplicate_rows
 
@@ -169,7 +169,7 @@ type Google_API_Error
     to_display_text self =
         self.details.at 'message'
 
-private _handle_exceptions ~action = Empty_Sheet.handle_java_exception <|
+private _handle_exceptions ~action =
     Panic.catch GoogleJsonResponseException action caught_panic->
         Error.throw (Google_API_Error.Error caught_panic.payload.getContent.parse_json)
 

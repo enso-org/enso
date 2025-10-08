@@ -41,7 +41,7 @@ public class GoogleSheetsForEnso {
     return new GoogleSheetsForEnso(builder.build());
   }
 
-  public Table getSheetRange(
+  public Object getSheetRange(
       String sheetId,
       String range,
       GoogleSheetsHeaders.HeaderBehavior headerBehavior,
@@ -67,7 +67,7 @@ public class GoogleSheetsForEnso {
       var emptySheetError = emptySheetType.invokeMember("Error");
       var errorType = EnsoMeta.getType("Standard.Base.Error", "Error");
       var error = errorType.invokeMember("throw", emptySheetError);
-      throw error.throwException();
+      return error;
     }
 
     final int firstRowIndex = Math.max(0, skip_rows);
