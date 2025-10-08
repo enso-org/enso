@@ -21,7 +21,6 @@ import { provideAppClassSet } from '@/providers/appClass'
 import { provideAsyncResources } from '@/providers/asyncResources'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
-import { injectGuiConfig } from '@/providers/guiConfig'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideBubblingKeyboard, provideKeyboard } from '@/providers/keyboard'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
@@ -30,7 +29,7 @@ import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { computed, onMounted, shallowRef } from 'vue'
+import { computed, shallowRef } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 
 const { projectViewOnly } = defineProps<{
@@ -41,7 +40,6 @@ const { projectViewOnly } = defineProps<{
 
 const LoadingScreen = reactComponent(LoadingScreenReact)
 
-const config = injectGuiConfig()
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()
 
@@ -87,11 +85,6 @@ const platformClass = {
   [Platform.unknown]: undefined,
 }[platform()]
 
-onMounted(() => {
-  if (config.params.window.vibrancy) {
-    document.body.classList.add('vibrancy')
-  }
-})
 const fullscreenRoot = shallowRef<HTMLElement>()
 
 useMounted(appOpenCloseCallback)

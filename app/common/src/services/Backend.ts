@@ -1759,7 +1759,6 @@ export default abstract class Backend {
 
   /** Create a {@link LocalBackend}. */
   constructor(
-    private readonly logger: Logger,
     protected getText: GetText,
     private readonly client: HttpClient,
   ) {}
@@ -1782,7 +1781,7 @@ export default abstract class Backend {
     ...replacements: Replacements[K]
   ): Promise<never> {
     if (textId instanceof NetworkError) {
-      this.logger.error(textId.message)
+      console.error(textId.message)
 
       throw textId
     }
@@ -1793,7 +1792,7 @@ export default abstract class Backend {
       : await ((): Promise<Error> => response.json())()
 
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-    this.logger.error(message)
+    console.error(message)
 
     const status = response?.status
 

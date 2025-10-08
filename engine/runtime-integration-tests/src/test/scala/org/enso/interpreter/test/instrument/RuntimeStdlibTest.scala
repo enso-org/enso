@@ -133,9 +133,6 @@ class RuntimeStdlibTest
       result.linesIterator.toList
     }
 
-    def analyzeJobFinished: Api.Response =
-      Api.Response(Api.AnalyzeModuleInScopeJobFinished())
-
   }
 
   def extractTypes(suggestion: Suggestion): Seq[QualifiedName] = {
@@ -161,6 +158,13 @@ class RuntimeStdlibTest
     context = new TestContext("Test")
     context.init()
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
+
+    context.send(
+      Api.Request(UUID.randomUUID(), Api.StartBackgroundProcessing())
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Api.BackgroundJobsStartedNotification())
+    )
   }
 
   override protected def afterEach(): Unit = {

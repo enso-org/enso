@@ -24,17 +24,17 @@ export const AboutModal = Object.assign(
     )
 
     const versionsEntries = [
-      ...(window.versionInfo != null ?
+      ...(window.api != null ?
         ([
-          ['version', window.versionInfo.version],
-          ['build', window.versionInfo.build],
-          ['electronVersion', window.versionInfo.electron],
-          ['chromeVersion', window.versionInfo.chrome],
+          ['version', window.api.versionInfo.version],
+          ['build', window.api.versionInfo.build],
+          ['electronVersion', window.api.versionInfo.electron],
+          ['chromeVersion', window.api.versionInfo.chrome],
         ] as const)
-      : [
+      : ([
           ...($config.VERSION == null ? [] : ([['version', $config.VERSION]] as const)),
           ...($config.COMMIT_HASH == null ? [] : ([['build', $config.COMMIT_HASH]] as const)),
-        ]),
+        ] as const)),
       ['userAgent', navigator.userAgent],
     ] satisfies readonly (readonly [TextId, string])[]
 
