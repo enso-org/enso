@@ -162,13 +162,13 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
             onPaste={onPaste}
             onBlur={(event) => {
               if (mode === 'onBlur') {
-                field.onChange(event.currentTarget.textContent ?? '')
+                field.onChange(event.currentTarget.textContent)
               }
               field.onBlur()
             }}
             onInput={(event) => {
               if (mode === 'onInput') {
-                field.onChange(event.currentTarget.textContent ?? '')
+                field.onChange(event.currentTarget.textContent)
               }
             }}
           />
