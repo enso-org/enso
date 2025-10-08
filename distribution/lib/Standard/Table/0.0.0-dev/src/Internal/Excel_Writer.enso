@@ -22,7 +22,6 @@ polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import org.enso.table.error.RangeExceededException
 polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ExcelWorkbook
-polyglot java import org.enso.table.excel.ExcelWriteHelper
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
 polyglot java import org.enso.table.write.ExistingDataMode
