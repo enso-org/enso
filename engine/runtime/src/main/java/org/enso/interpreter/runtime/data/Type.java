@@ -223,7 +223,7 @@ public final class Type extends EnsoObject {
     while (at < fill.length) {
       fill[at++] = self;
       if (self.supertype == null) {
-        if (self.builtin && self == ctx.getBuiltins().any()) {
+        if (self.builtin) {
           return at;
         }
         fill[at++] = ctx.getBuiltins().any();
