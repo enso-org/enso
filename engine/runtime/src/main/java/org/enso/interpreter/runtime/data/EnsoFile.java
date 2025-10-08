@@ -14,7 +14,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -36,7 +35,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import org.enso.common.Platform;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.BuiltinObject;
@@ -45,7 +43,6 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.graalvm.nativeimage.ImageInfo;
 
 /**
  * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
@@ -704,23 +701,9 @@ public final class EnsoFile extends BuiltinObject {
     }
   }
 
-  @TruffleBoundary
   private static void deleteRecursively(TruffleFile file) throws IOException {
-    var doRecursiveDelete = file.isDirectory(LinkOption.NOFOLLOW_LINKS);
-    if (ImageInfo.inImageRuntimeCode() && Platform.getOperatingSystem().isWindows()) {
-      try {
-        // do additional check with java.io.File to avoid
-        // https://github.com/enso-org/enso/pull/14019#issuecomment-3365799588
-        var realFile = new File(file.toUri());
-        var realChildren = realFile.list();
-        if (realChildren == null || realChildren.length == 0) {
-          doRecursiveDelete = false;
-        }
-      } catch (Throwable e) {
-      }
-    }
-    if (doRecursiveDelete) {
-      for (var child : file.list()) {
+    if (file.isDirectory(LinkOption.NOFOLLOW_LINKS)) {
+      for (TruffleFile child : file.list()) {
         deleteRecursively(child);
       }
     }
