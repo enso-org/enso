@@ -2,9 +2,7 @@ package org.enso.table.excel;
 
 import java.io.File;
 import java.io.IOException;
-import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
-import org.apache.poi.poifs.filesystem.NotOLE2FileException;
-import org.apache.poi.ss.usermodel.Name;
+
 
 /** Represents an Excel workbook. Wraps the underlying Apache POI Workbook object. */
 public interface ExcelWorkbookReader {
@@ -67,76 +65,4 @@ public interface ExcelWorkbookReader {
    * the Workbook.
    */
   void close() throws IOException;
-
-  /**
-   * Create an ExcelWorkbookReader object from an Apache POI Workbook object
-   *
-   * @param workbook the Apache POI Workbook object
-   * @return the ExcelWorkbookReader object
-   */
-  static ExcelWorkbookReader forPOIUserModel(org.apache.poi.ss.usermodel.Workbook workbook) {
-    return new ExcelWorkbookReaderFromPOIUserModel(workbook);
-  }
-
-  // ** Wrap a Workbook object in the interface. */
-  record ExcelWorkbookReaderFromPOIUserModel(org.apache.poi.ss.usermodel.Workbook workbook)
-      implements ExcelWorkbookReader {
-    @Override
-    public int getNumberOfSheets() {
-      return workbook.getNumberOfSheets();
-    }
-
-    @Override
-    public int getSheetIndex(String name) {
-      return workbook.getSheetIndex(name);
-    }
-
-    @Override
-    public String getSheetName(int sheet) {
-      return workbook.getSheetName(sheet);
-    }
-
-    @Override
-    public int getNumberOfNames() {
-      return workbook.getNumberOfNames();
-    }
-
-    @Override
-    public String[] getRangeNames() {
-      var names = workbook.getAllNames();
-      return names.stream().map(Name::getNameName).toArray(String[]::new);
-    }
-
-    @Override
-    public String getNameFormula(String name) {
-      var namedRange = workbook.getName(name);
-      return namedRange == null ? null : namedRange.getRefersToFormula();
-    }
-
-    @Override
-    public ExcelSheetReader getSheetAt(int sheetIndex) {
-      return ExcelSheetReader.forPOIUserModel(workbook, sheetIndex);
-    }
-
-    @Override
-    public void close() throws IOException {
-      workbook.close();
-    }
-  }
-
-  static ExcelWorkbookReader getExcelWorkbook(File file, ExcelFileFormat format)
-      throws IOException, InterruptedException {
-    try {
-      if (format == ExcelFileFormat.XLSX) {
-        return new XSSFReaderWorkbook(file.getAbsolutePath());
-      } else {
-        ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
-        var workbook = strategy.openExisting(file, false);
-        return ExcelWorkbookReader.forPOIUserModel(workbook);
-      }
-    } catch (OLE2NotOfficeXmlFileException | NotOLE2FileException e) {
-      throw new IOException(
-          "Invalid format encountered when opening the file " + file + " as " + format + ".", e);
-    }
-  }
 }
