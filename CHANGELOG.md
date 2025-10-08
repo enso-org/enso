@@ -34,11 +34,13 @@
 - [Add support for gzip encoded return from web APIs][14026]
 - [Fixes for JDBC connection and schema support for SQL Server.][14039]
 - [Change Column.length to Column.row_count][14085]
+- [Add Text_Column.length and Text_Column.char_length][14091]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
 [14039]: https://github.com/enso-org/enso/pull/14039
 [14085]: https://github.com/enso-org/enso/pull/14085
+[14091]: https://github.com/enso-org/enso/pull/14091
 
 #### Enso Language & Runtime
 

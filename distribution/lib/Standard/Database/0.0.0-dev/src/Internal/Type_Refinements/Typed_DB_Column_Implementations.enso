@@ -26,3 +26,13 @@ type DB_Text_Column_Implementation
     to_case column case_option:Case=..Lower locale:Locale=Locale.default =
         _ = [column, case_option, locale]
         Unimplemented.throw "to_case is not implemented for database backends."
+
+    length column =
+        Value_Type.expect_text column <|
+            new_name = (naming_helper column).function_name "length" [column]
+            make_unary_op column "LENGTH" new_name
+
+    char_length column =
+        Value_Type.expect_text column <|
+            new_name = (naming_helper column).function_name "char_length" [column]
+            make_unary_op column "LENGTH" new_name
