@@ -651,11 +651,7 @@ public final class EnsoFile extends BuiltinObject {
   @Builtin.Method
   @TruffleBoundary
   public boolean isWritable() {
-    try {
-      return this.truffleFile.isWritable();
-    } catch (NullPointerException ex) {
-      return false;
-    }
+    return this.truffleFile.isWritable();
   }
 
   @Builtin.Method(name = "name")
