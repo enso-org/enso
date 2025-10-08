@@ -659,12 +659,12 @@ impl RunContext {
         }
     }
 
-    fn short_path(&self, full: &PathBuf) -> PathBuf {
+    fn short_path(&self, full: &Path) -> PathBuf {
         let strip = full.strip_prefix(self.repo_root.path.clone());
         if let Ok(relative) = strip {
             relative.to_path_buf()
         } else {
-            full.clone()
+            full.to_path_buf()
         }
     }
 }
