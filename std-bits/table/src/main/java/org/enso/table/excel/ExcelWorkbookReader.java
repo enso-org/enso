@@ -8,7 +8,7 @@ import org.apache.poi.ss.usermodel.Name;
 import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
 
 /** Represents an Excel workbook. Wraps the underlying Apache POI Workbook object. */
-public interface ExcelWorkbook {
+public interface ExcelWorkbookReader {
   /**
    * Get the number of spreadsheets in the workbook
    *
@@ -70,18 +70,18 @@ public interface ExcelWorkbook {
   void close() throws IOException;
 
   /**
-   * Create an ExcelWorkbook object from an Apache POI Workbook object
+   * Create an ExcelWorkbookReader object from an Apache POI Workbook object
    *
    * @param workbook the Apache POI Workbook object
-   * @return the ExcelWorkbook object
+   * @return the ExcelWorkbookReader object
    */
-  static ExcelWorkbook forPOIUserModel(org.apache.poi.ss.usermodel.Workbook workbook) {
-    return new ExcelWorkbookFromPOIUserModel(workbook);
+  static ExcelWorkbookReader forPOIUserModel(org.apache.poi.ss.usermodel.Workbook workbook) {
+    return new ExcelWorkbookReaderFromPOIUserModel(workbook);
   }
 
   // ** Wrap a Workbook object in the interface. */
-  record ExcelWorkbookFromPOIUserModel(org.apache.poi.ss.usermodel.Workbook workbook)
-      implements ExcelWorkbook {
+  record ExcelWorkbookReaderFromPOIUserModel(org.apache.poi.ss.usermodel.Workbook workbook)
+      implements ExcelWorkbookReader {
     @Override
     public int getNumberOfSheets() {
       return workbook.getNumberOfSheets();
@@ -125,7 +125,7 @@ public interface ExcelWorkbook {
     }
   }
 
-  static ExcelWorkbook getExcelWorkbook(File file, ExcelFileFormat format)
+  static ExcelWorkbookReader getExcelWorkbook(File file, ExcelFileFormat format)
       throws IOException, InterruptedException {
     try {
       if (format == ExcelFileFormat.XLSX) {
@@ -133,7 +133,7 @@ public interface ExcelWorkbook {
       } else {
         ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
         var workbook = strategy.openExisting(file, false);
-        return ExcelWorkbook.forPOIUserModel(workbook);
+        return ExcelWorkbookReader.forPOIUserModel(workbook);
       }
     } catch (OLE2NotOfficeXmlFileException | NotOLE2FileException e) {
       throw new IOException(
