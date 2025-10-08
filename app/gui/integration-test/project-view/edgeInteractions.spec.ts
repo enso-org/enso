@@ -11,15 +11,12 @@ async function initGraph(editorPage: EditorPageActions) {
   await editorPage.dragNode('ten', { x: 400, y: 0 }).dragNode('sum', { x: -400, y: 0 })
 }
 
-// For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.
-const EDGE_PARTS = 2
-
 /**
   Scenario: We disconnect the `sum` parameter in the `prod` node by clicking on the edge and clicking on the background.
  */
 test('Disconnect an edge from a port', async ({ editorPage, page }) => {
   await initGraph(editorPage)
-  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3 * EDGE_PARTS)
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
 
   const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
 
@@ -29,14 +26,14 @@ test('Disconnect an edge from a port', async ({ editorPage, page }) => {
     force: true,
   })
   await page.mouse.click(500, -500)
-  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2)
 })
 
 /** Scenario: We replace the `sum` parameter in the `prod` node` with the `ten` node. */
 test('Connect an node to a port', async ({ editorPage, page }) => {
   await initGraph(editorPage)
 
-  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3 * EDGE_PARTS)
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
   const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.click({
@@ -56,7 +53,7 @@ test('Connect an node to a port', async ({ editorPage, page }) => {
 test('Connect an node to a port via dragging the edge', async ({ editorPage, page }) => {
   await initGraph(editorPage)
 
-  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3 * EDGE_PARTS)
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
   const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
   const targetPort = page.locator('span').filter({ hasText: /^sum$/ })
   // Hover over edge to the left of node with binding `ten`.

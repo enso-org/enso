@@ -122,6 +122,7 @@ export function useEventConditional(
     condition,
     (conditionMet, _, onCleanup) => {
       if (conditionMet) {
+        console.log('conditionMet')
         target.addEventListener(event, handler, options)
         onCleanup(() => target.removeEventListener(event, handler, options))
       }
@@ -651,9 +652,14 @@ export function useStateBeforePointerdown<T>(
   const stateBeforeClick = ref<T>()
 
   const { globalEventRegistryPre } = useGlobalEventRegistry()
-  useEvent(globalEventRegistryPre, 'pointerdown', (e) => {
-    if (unrefElement(element)?.contains(e.target as Node)) stateBeforeClick.value = getState()
-  })
+  useEvent(
+    globalEventRegistryPre,
+    'pointerdown',
+    (e) => {
+      if (unrefElement(element)?.contains(e.target as Node)) stateBeforeClick.value = getState()
+    },
+    { capture: true },
+  )
 
   return {
     /**

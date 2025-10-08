@@ -57,8 +57,22 @@ const bindingsHandlers = appBindings.handler(
 )
 
 const { globalEventRegistry } = globalEvents
-useEvent(globalEventRegistry, 'keydown', (event) => bindingsHandlers(event))
-useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
+useEvent(
+  globalEventRegistry,
+  'keydown',
+  (event) => {
+    console.log('App keydown', event.target, event.key)
+    bindingsHandlers(event)
+  },
+  { capture: true },
+)
+
+useEvent(window, 'keydown', (event) => {
+  console.log('App keydown WINDOW', event.target, event.key)
+})
+useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e), {
+  capture: true,
+})
 
 const platformClass = {
   [Platform.windows]: 'onWindows',

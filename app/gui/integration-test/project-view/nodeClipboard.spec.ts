@@ -3,12 +3,6 @@ import { expect, test, type Locator } from 'integration-test/base'
 import * as locate from './locate'
 import { connectedEdgesFromNodeWithBinding, edgesToNodeWithBinding } from './locate'
 
-/**
- * Every edge consists of multiple parts.
- * See edgeRendering.spec.ts for explanation.
- */
-const EDGE_PARTS = 2
-
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     class MockClipboard {
@@ -90,13 +84,13 @@ async function testCopyMultiple(
     // Check that two copied nodes are isolated, i.e. connected to each other, not original nodes.
     await expect(locate.graphNodeByBinding(page, 'prod1')).toBeVisible()
     await expect(locate.graphNodeByBinding(page, 'final1')).toBeVisible()
-    await expect(await connectedEdgesFromNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
-    await expect(await connectedEdgesFromNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
+    await expect(await connectedEdgesFromNodeWithBinding(page, 'sum')).toHaveCount(2)
+    await expect(await connectedEdgesFromNodeWithBinding(page, 'prod')).toHaveCount(1)
 
-    await expect(await edgesToNodeWithBinding(page, 'prod')).toHaveCount(1 * EDGE_PARTS)
-    await expect(await edgesToNodeWithBinding(page, 'final')).toHaveCount(1 * EDGE_PARTS)
-    await expect(await edgesToNodeWithBinding(page, 'prod1')).toHaveCount(1 * EDGE_PARTS)
-    await expect(await edgesToNodeWithBinding(page, 'final1')).toHaveCount(1 * EDGE_PARTS)
+    await expect(await edgesToNodeWithBinding(page, 'prod')).toHaveCount(1)
+    await expect(await edgesToNodeWithBinding(page, 'final')).toHaveCount(1)
+    await expect(await edgesToNodeWithBinding(page, 'prod1')).toHaveCount(1)
+    await expect(await edgesToNodeWithBinding(page, 'final1')).toHaveCount(1)
   })
 }
 

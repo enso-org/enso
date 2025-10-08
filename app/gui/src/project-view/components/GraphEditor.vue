@@ -73,6 +73,7 @@ import {
   useTemplateRef,
   watch,
   watchEffect,
+  watchSyncEffect,
 } from 'vue'
 
 const keyboard = injectKeyboard()
@@ -284,15 +285,13 @@ const actionHandlers = registerHandlers({
   'graph.startProfiling': { action: () => void projectStore.lsRpcConnection.profilingStart(true) },
   'graph.stopProfiling': { action: () => void projectStore.lsRpcConnection.profilingStop() },
   'graph.openComponentBrowser': {
-    action: () => {
-      if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
-        createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
-      }
-    },
+    enabled: () => graphNavigator.sceneMousePos != null && !componentBrowserOpened.value,
+    action: () => createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } }),
   },
   'graph.selectAll': { action: () => nodeSelection.selectAll() },
   'graph.deselectAll': {
     action: () => {
+      console.log('graph.deselectAll')
       nodeSelection.deselectAll()
       clearFocus()
       graphStore.undoManager.undoStackBoundary()
@@ -345,7 +344,11 @@ onActivated(() => (isActive.value = true))
 onDeactivated(() => (isActive.value = false))
 
 const { globalEventRegistry } = useGlobalEventRegistry()
+watchSyncEffect(() => {
+  console.log('isActive', isActive.value)
+})
 useEventConditional(globalEventRegistry, 'keydown', isActive, (e) => {
+  console.log('GraphEditor conditional keydown', e.key)
   return graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e)
 })
 

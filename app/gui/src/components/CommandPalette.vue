@@ -3,13 +3,10 @@ import { CATEGORIES } from '#/configurations/inputBindings'
 import KeyboardShortcutReact from '#/pages/dashboard/components/KeyboardShortcut'
 import { unsetModal } from '#/providers/ModalProvider'
 import { isTextInputEvent } from '#/utilities/event'
-import * as objects from '#/utilities/object'
 import { useActionsStore, type Action } from '$/providers/actions'
 import { useContainerData } from '$/providers/container'
 import { useText } from '$/providers/text'
-import { commandPaletteBindings } from '@/bindings'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { useEvent } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { reactComponent } from '@/util/react'
@@ -66,16 +63,16 @@ watchEffect(() => {
   }
 })
 
-useEvent(
-  window,
-  'keydown',
-  commandPaletteBindings.handler(
-    objects.mapEntries(
-      commandPaletteBindings.bindings,
-      (actionName) => actionHandlers[actionName].action,
-    ),
-  ),
-)
+// useEvent(
+//   window,
+//   'keydown',
+//   commandPaletteBindings.handler(
+//     objects.mapEntries(
+//       commandPaletteBindings.bindings,
+//       (actionName) => actionHandlers[actionName].action,
+//     ),
+//   ),
+// )
 
 function trigger(action: Action | undefined) {
   if (!action) return

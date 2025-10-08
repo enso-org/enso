@@ -22,34 +22,48 @@ export const [provideGlobalEventRegistry, useGlobalEventRegistry] = createContex
 )
 
 function eventRegistry(source?: EventTarget, pre?: EventTarget): WindowEventTarget {
-  const registry = new Map<keyof WindowEventMap, Set<(e: Event) => void>>()
+  const registryBubble = new Map<keyof WindowEventMap, Set<(e: Event) => void>>()
+  const registryCapture = new Map<keyof WindowEventMap, Set<(e: Event) => void>>()
 
   function addEventListener<K extends keyof WindowEventMap>(
     event: K,
     callback: (e: WindowEventMap[K]) => void,
+    options?: { capture: boolean },
   ) {
+    const registry = options?.capture ? registryCapture : registryBubble
+    console.log('addListener', event, options?.capture)
+    console.log('registryBubble', registryBubble.get(event))
+    console.log('registryCapture', registryCapture.get(event))
     const handlers = registry.get(event) ?? new Set()
     handlers.add(callback as any)
-    if (source && !registry.has(event))
-      source.addEventListener(event, dispatchEvent, { capture: true })
+    if (source && !registry.has(event)) {
+      console.log('Register ', event, !!options?.capture)
+      source.addEventListener(event, dispatchEvent, { capture: !!options?.capture })
+    }
     registry.set(event, handlers)
   }
 
   function removeEventListener<K extends keyof WindowEventMap>(
     event: K,
     callback: (e: WindowEventMap[K]) => void,
+    options?: { capture: boolean },
   ) {
+    const registry = options?.capture ? registryCapture : registryBubble
     const dispatcher = registry.get(event)
     dispatcher?.delete(callback as any)
     if (source && dispatcher?.size === 0) {
-      source.removeEventListener(event, dispatchEvent)
+      source.removeEventListener(event, dispatchEvent, { capture: !!options?.capture })
       registry.delete(event)
     }
   }
 
   function dispatchEvent(event: Event) {
+    const registry = event.eventPhase === Event.CAPTURING_PHASE ? registryCapture : registryBubble
     if (pre) pre.dispatchEvent(event)
     const handlers = registry.get(event.type as any)
+    console.log(
+      `dispatch ${event.eventPhase === Event.CAPTURING_PHASE ? 'capturing' : 'bubbling'} ${event.type} to ${handlers?.size} handlers`,
+    )
     for (const handler of handlers ?? []) handler(event)
     return !event.cancelable || !event.defaultPrevented
   }

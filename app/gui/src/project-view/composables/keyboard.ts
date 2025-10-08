@@ -1,4 +1,5 @@
 import { isMacLike, useEvent } from '@/composables/events'
+import { type GlobalEventRegistry, useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { type Ref, ref, toRef, watch } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
@@ -25,7 +26,15 @@ export function useGlobalKeyboard(
   const { state, updateState, resetState } = useKeyboardState()
   const { globalEventRegistryPre } = globalEventRegistry
 
-  useEvent(globalEventRegistryPre, 'keydown', updateState, { capture: true })
+  useEvent(
+    globalEventRegistryPre,
+    'keydown',
+    (event) => {
+      console.log('useGlobalKeyboard capture', event.key)
+      updateState(event)
+    },
+    { capture: true },
+  )
   useEvent(globalEventRegistryPre, 'keyup', updateState, { capture: true })
   useEvent(globalEventRegistryPre, 'blur', resetState, { capture: true })
 
