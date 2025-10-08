@@ -142,6 +142,16 @@ public class TypeChainTest {
         "allTypes(Any.type) == [Any.type, Any]", new Object[] {anyEigenType, anyTypeExpected}, all);
   }
 
+  @Test
+  public void errorChain() {
+    var errType = ctx.ensoContext().getBuiltins().dataflowError();
+    var all = errType.allTypes(ctx.ensoContext());
+
+    var exp1 = errType;
+    var exp2 = ctx.ensoContext().getBuiltins().any();
+    assertArrayEquals("allTypes(Error) == [Error, Any]", new Object[] {exp1, exp2}, all);
+  }
+
   /** {@code allTypes(Normal_Type) == [Normal_Type, Any]} */
   @Test
   public void normalTypeChain() {
