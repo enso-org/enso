@@ -73,7 +73,6 @@ import {
   useTemplateRef,
   watch,
   watchEffect,
-  watchSyncEffect,
 } from 'vue'
 
 const keyboard = injectKeyboard()
@@ -344,11 +343,7 @@ onActivated(() => (isActive.value = true))
 onDeactivated(() => (isActive.value = false))
 
 const { globalEventRegistry } = useGlobalEventRegistry()
-watchSyncEffect(() => {
-  console.log('isActive', isActive.value)
-})
 useEventConditional(globalEventRegistry, 'keydown', isActive, (e) => {
-  console.log('GraphEditor conditional keydown', e.key)
   return graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e)
 })
 

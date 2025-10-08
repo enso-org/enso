@@ -4,7 +4,7 @@ import { unsafeKeys } from 'enso-common/src/utilities/data/object'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
-const DEBUG_LOG = true
+const DEBUG_LOG = false
 
 // ======================
 // === Modifier flags ===
@@ -370,7 +370,6 @@ export function defineKeybinds<
         handled = handlers[DefaultHandler](event) !== false
       }
       if (handled) {
-        console.log('event handled', event)
         event.stopImmediatePropagation()
         // We don't prevent default on PointerEvents, because it may prevent emitting
         // mousedown/mouseup events, on which external libraries may rely (like AGGrid for hiding

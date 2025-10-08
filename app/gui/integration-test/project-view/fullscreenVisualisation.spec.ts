@@ -76,8 +76,5 @@ test('Load Fullscreen Visualisation', async ({ editorPage, page }) => {
   // We may leave fullscreen by pressing Escape
   await page.keyboard.press('Escape')
 
-  // FIXME: Why we sometimes have to press escape multiple times?
-  await page.keyboard.press('Escape')
-
   await expect.poll(() => vis.boundingBox()).toEqual(initialBBox)
 })

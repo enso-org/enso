@@ -275,6 +275,7 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
           const navigateButton = getRow(page, row).getByTestId('directory-row-navigate-button')
           await expect(navigateButton).toHaveAttribute('aria-label', TEXT.open)
           await navigateButton.click()
+          await page.mouse.move(0, 0) // prevent popup from appearing
         })
       },
       /** Open a project at a specific row. */
@@ -282,6 +283,7 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
         return self.step(`Open directory on drive table row ${row}`, async (page) => {
           const button = getRow(page, row).getByLabel(TEXT.openInEditor)
           await button.click()
+          await page.mouse.move(0, 0) // prevent popup from appearing
         })
       },
       /** Close a project at a specific row. */
@@ -289,6 +291,7 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
         return self.step(`Open directory on drive table row ${row}`, async (page) => {
           const button = getRow(page, row).getByLabel(TEXT.stopExecution)
           await button.click()
+          await page.mouse.move(0, 0) // prevent popup from appearing
         })
       },
       /**

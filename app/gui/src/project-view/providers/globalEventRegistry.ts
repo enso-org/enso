@@ -31,13 +31,9 @@ function eventRegistry(source?: EventTarget, pre?: EventTarget): WindowEventTarg
     options?: { capture: boolean },
   ) {
     const registry = options?.capture ? registryCapture : registryBubble
-    console.log('addListener', event, options?.capture)
-    console.log('registryBubble', registryBubble.get(event))
-    console.log('registryCapture', registryCapture.get(event))
     const handlers = registry.get(event) ?? new Set()
     handlers.add(callback as any)
     if (source && !registry.has(event)) {
-      console.log('Register ', event, !!options?.capture)
       source.addEventListener(event, dispatchEvent, { capture: !!options?.capture })
     }
     registry.set(event, handlers)
@@ -61,9 +57,6 @@ function eventRegistry(source?: EventTarget, pre?: EventTarget): WindowEventTarg
     const registry = event.eventPhase === Event.CAPTURING_PHASE ? registryCapture : registryBubble
     if (pre) pre.dispatchEvent(event)
     const handlers = registry.get(event.type as any)
-    console.log(
-      `dispatch ${event.eventPhase === Event.CAPTURING_PHASE ? 'capturing' : 'bubbling'} ${event.type} to ${handlers?.size} handlers`,
-    )
     for (const handler of handlers ?? []) handler(event)
     return !event.cancelable || !event.defaultPrevented
   }

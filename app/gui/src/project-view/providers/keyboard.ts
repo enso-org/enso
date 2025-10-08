@@ -1,5 +1,6 @@
 import { useGlobalKeyboard, useLocalKeyboard } from '@/composables/keyboard'
 import { createContextStore } from '@/providers'
+import { GlobalEventRegistry } from './globalEventRegistry'
 
 export const [provideKeyboard, injectKeyboard] = createContextStore(
   'Global keyboard modifier state',
