@@ -38,7 +38,7 @@ const INITIAL_CALLS_OBJECT = {
   getRootDirectory: array<object>(),
   getDownloadDirectory: array<object>(),
   downloadCloudProject: array<object>(),
-  downloadProject: array<{ uuid: UUID; projectsDirectory: Path }>(),
+  downloadProject: array<{ projectId: backend.ProjectId }>(),
   getFileContent: array<{ path: string }>(),
   createProject: array<CreateProjectParams>(),
   openProject: array<OpenProjectParams>(),
@@ -412,20 +412,16 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
       return route.fulfill({ body: filePath, contentType: 'text/plain' })
     })
 
-    await page.route('/api/project-manager/projects/**', async (route, request) => {
+    await page.route('/api/projects/**', async (route, request) => {
       const url = new URL(request.url())
-      const { uuid: uuidRaw } =
-        url.pathname.match(/^\/api\/project-manager\/projects\/(?<uuid>[^/]+)\/enso-project$/)
-          ?.groups ?? {}
-      const params = url.searchParams
-      const projectsDirectoryRaw = params.get('projectsDirectory')
-      if (request.method() !== 'GET' || uuidRaw == null || projectsDirectoryRaw == null) {
+      const { projectId: projectIdRaw } =
+        url.pathname.match(/^\/api\/projects\/(?<projectId>[^/]+)\/download$/)?.groups ?? {}
+      if (request.method() !== 'GET' || projectIdRaw == null) {
         return route.fulfill({ status: 400 })
       }
-      const uuid = UUID(uuidRaw)
-      const projectsDirectory = Path(projectsDirectoryRaw)
-      called('downloadProject', { uuid, projectsDirectory })
-      const response = `mock project body uuid='${uuid}' directory='${projectsDirectory}'`
+      const projectId = backend.ProjectId(projectIdRaw)
+      called('downloadProject', { projectId })
+      const response = `mock project body projectId='${projectId}'`
       return route.fulfill({
         contentType: 'text/plain',
         body: JSON.stringify(response),
