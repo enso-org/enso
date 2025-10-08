@@ -63,9 +63,14 @@ class PopContextCmd(
     val stack = ctx.contextManager.getStack(request.contextId)
     if (stack.nonEmpty) {
       val executable = Executable(request.contextId, stack)
+      ctx.state.executionHooks.add(
+        PopContextCmd.RetriggerVisualizations(request.contextId)(ctx)
+      )
       for {
         _ <- Future(requireMethodPointersSynchronization(stack))
-        _ <- Future(ctx.jobProcessor.run(EnsureCompiledJob(executable.stack)))
+        _ <- Future(
+          ctx.jobProcessor.run(EnsureCompiledJob(executable.stack))
+        ) // TODO: feels unncessary now?
         _ <- ctx.jobProcessor.run(ExecuteJob(executable, "pop context"))
       } yield ()
     } else {
@@ -79,4 +84,18 @@ class PopContextCmd(
     stack.foreach(_.syncState.clearMethodPointersState())
   }
 
+}
+
+object PopContextCmd {
+  sealed private case class RetriggerVisualizations(contextId: Api.ContextId)(
+    implicit ctx: RuntimeContext
+  ) extends Runnable {
+    override def run(): Unit = {
+      val stack = ctx.contextManager.getStack(contextId)
+      stack.headOption.map(_.cache).foreach { c =>
+        c.allCached()
+          .forEach(obs => obs.forceVisualizations(ctx.executionService))
+      }
+    }
+  }
 }

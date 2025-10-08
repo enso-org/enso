@@ -92,6 +92,23 @@ public class CachingObservable implements Observable {
   }
 
   @Override
+  public synchronized void forceVisualizations(GuestExecutionService executionService) {
+    if (value != null) {
+      visualizations
+          .values()
+          .forEach(
+              action -> {
+                try {
+                  executionService.submitExecution(action.execute(value));
+                } catch (Throwable e) {
+                  LOGGER.warn(
+                      "Failed to submit visualization " + action.getId() + " for execution", e);
+                }
+              });
+    }
+  }
+
+  @Override
   public boolean isExternal() {
     return true;
   }

@@ -50,6 +50,9 @@ public interface Observable {
     return false;
   }
 
+  default void forceVisualizations(GuestExecutionService executionService) {}
+  ;
+
   /**
    * Updates the underlying value carried by the observable, if the observable supports it. {@code
    * DataflowError} is never cached.
