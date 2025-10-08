@@ -4072,7 +4072,8 @@ lazy val `engine-runner` = project
               "com.tableau.hyperapi",
               // See https://github.com/HarrDevY/native-register-bouncy-castle
               "org.bouncycastle.jcajce.provider.drbg.DRBG$Default",
-              "org.bouncycastle.jcajce.provider.drbg.DRBG$NonceAndIV"
+              "org.bouncycastle.jcajce.provider.drbg.DRBG$NonceAndIV",
+              "org.duckdb"
             ),
             initializeAtBuildtime = NativeImage.defaultBuildTimeInitClasses ++
               Seq(
