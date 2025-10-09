@@ -4117,12 +4117,24 @@ lazy val buildSmallJdk =
 
 /** Command for building small JDK for the release.
   * Use as `buildSmallJdkForRelease <targetDir>`.
+  *
+  * If started from bazel, does not take an argument, small jdk will be
+  * built in [[BazelSupport.OUT_DIR_PROP]].
   */
 ThisBuild / commands += {
-  Command.single("buildSmallJdkForRelease") { (state) =>
-    SmallJDK.buildSmallJDKForRelease((Bazel / smallJdkDir).value.get)
-    state.log.info(s"Small JDK built in: ${(Bazel / smallJdkDir).value.get}")
-    state
+  if ((Bazel / wasStartedFromBazel).value) {
+    Command.command("buildSmallJdkForRelease") { state =>
+      val targetDir = (Bazel / outputDir).value.get
+      SmallJDK.buildSmallJDKForRelease(targetDir)
+      state.log.info(s"Small JDK built in: $targetDir")
+      state
+    }
+  } else {
+    Command.single("buildSmallJdkForRelease") { (state, targetDir) =>
+      SmallJDK.buildSmallJDKForRelease(new File(targetDir))
+      state.log.info(s"Small JDK built in: $targetDir")
+      state
+    }
   }
 }
 
