@@ -3981,13 +3981,14 @@ lazy val `engine-runner` = project
       core ++ stdLibsJars ++ extraNITestLibs.value
     },
     extraNITestLibs := Def.taskDyn {
-      if (GraalVM.EnsoLauncher.test) Def.task {
+      if (GraalVM.EnsoLauncher.dualTest) Def.task {
         val baseHelpers =
           (`enso-test-java-helpers` / Compile / packageBin).value
             .getAbsolutePath()
         val snowHelpers =
           (`snowflake-test-java-helpers` / Compile / packageBin).value
             .getAbsolutePath()
+
         if (GraalVM.EnsoLauncher.fast) {
           Seq(baseHelpers)
         } else {

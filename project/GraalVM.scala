@@ -26,11 +26,24 @@ object GraalVM {
       }
     }
 
-    private lazy val parsed
-      : (Boolean, Boolean, Boolean, Boolean, Boolean, Boolean, Boolean) = {
-      var shell                 = false
-      var native                = false
-      var test                  = false
+    private lazy val parsed: (
+      Boolean,
+      Boolean,
+      Boolean,
+      Boolean,
+      Boolean,
+      Boolean,
+      Boolean,
+      Boolean
+    ) = {
+      var shell  = false
+      var native = false
+      var test   = false
+      // something is broken on GraalVM25 & Windows
+      // with respect to dual JVM mode - disabling it for now on Windows
+      // otherwise it is on
+      // use ENSO_LAUNCHER=dualtest to enable it on Windows as well
+      var dualTest              = !Platform.isWindows
       var debug                 = false
       var fast                  = false
       var disableMicrosoft      = false
@@ -41,6 +54,11 @@ object GraalVM {
         case "test" => {
           native = true
           test   = true
+        }
+        case "dualtest" => {
+          native   = true
+          test     = true
+          dualTest = true
         }
         case "debug" => {
           native = true
@@ -78,7 +96,8 @@ object GraalVM {
         debug,
         fast,
         disableLanguageServer,
-        disableMicrosoft
+        disableMicrosoft,
+        test && dualTest
       )
     }
     def native                = parsed._2
@@ -87,6 +106,7 @@ object GraalVM {
     def fast                  = parsed._5
     def disableLanguageServer = parsed._6
     def disableMicrosoft      = parsed._7
+    def dualTest              = parsed._8
     def release =
       native && !test && !debug && !fast && !disableLanguageServer && !disableMicrosoft
   }
@@ -235,7 +255,8 @@ object GraalVM {
     "Oracle Corporation"
   )
 
-  private val downloadLink = s"https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-$version"
+  private val downloadLink =
+    s"https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-$version"
 
   /** Augments a state transition to do GraalVM version check.
     *
