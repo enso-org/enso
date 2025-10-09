@@ -40,7 +40,7 @@ const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest ===
 
 const selectedWidget = shallowRef<WidgetModule<WidgetInput> | undefined>()
 const updateSelection = withCtx(() => {
-  const registry = currentProject.ref.value?.widgetRegistry
+  const registry = currentProject.widgetRegistry.value
   selectedWidget.value = registry?.select(
     {
       input: props.input,

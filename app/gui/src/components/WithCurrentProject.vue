@@ -97,7 +97,7 @@ function useStoreTemplate<K extends keyof OpenedProject>(
 export const useProjectStore = useStoreTemplate('store')
 
 /** @deprecated it expects the current project will not change. Use {@link useCurrentProject} instead. */
-export const useProjectNames = useStoreTemplate('names')
+export const useProjectNames = useStoreTemplate('projectNames')
 
 /** @deprecated it expects the current project will not change. Use {@link useCurrentProject} instead. */
 export const useSuggestionDbStore = useStoreTemplate('suggestionDb')

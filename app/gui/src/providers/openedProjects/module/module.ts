@@ -31,6 +31,7 @@ import {
  */
 export type ModuleStore = ReturnType<typeof createModuleStore>
 
+/** Constructor of {@link ModuleStore} */
 export function createModuleStore(
   proj: ProjectStore,
   projectNames: ProjectNameStore,

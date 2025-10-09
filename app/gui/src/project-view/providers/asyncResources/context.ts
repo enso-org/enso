@@ -40,9 +40,9 @@ export function useCurrentProjectResourceContext(): ResourceContext {
   const currentProject = useCurrentProject(true)
   if (currentProject != null) {
     return {
-      project: () => currentProject.ref.value.store.id,
+      project: () => currentProject.store.value.id,
       basePathSegments: () => {
-        const fileName = currentProject.ref.value.store.observedFileName
+        const fileName = currentProject.store.value.observedFileName
         if (fileName) return ['src', ...fileName.split('/')]
       },
     }
