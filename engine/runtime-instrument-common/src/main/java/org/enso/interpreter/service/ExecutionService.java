@@ -50,6 +50,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
@@ -459,6 +460,8 @@ public final class ExecutionService implements GuestExecutionService {
               // the error originates in builtin node.
               var lang = getLanguage(ex);
               if (lang == null || lang.equals(LanguageInfo.ID)) {
+                var exForStacktrace =
+                    ex instanceof PanicSentinel sentinel ? sentinel.getPanic() : ex;
                 return Optional.of(
                     Runtime$Api$ExecutionResult$Diagnostic$.MODULE$.error(
                         VisualizationResult.findExceptionMessage(ex),
@@ -467,7 +470,7 @@ public final class ExecutionService implements GuestExecutionService {
                         section
                             .flatMap(sec -> LocationResolver.getExpressionId(sec, this))
                             .map(LocationResolver.ExpressionId::externalId),
-                        ErrorResolver.getStackTrace(ex, this)));
+                        ErrorResolver.getStackTrace(exForStacktrace, this)));
               }
             } else {
               return Optional.of(

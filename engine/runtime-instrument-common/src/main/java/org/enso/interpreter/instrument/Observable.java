@@ -66,6 +66,16 @@ public interface Observable {
   }
 
   /**
+   * Runs any visualizations associated with this Observable, without caching the value.
+   *
+   * @param value value to be passed to any associated visualizations
+   * @param executionService execution service to use for executing any visualizations
+   */
+  default void notify(Object value, GuestExecutionService executionService) {
+    throw new UnsupportedOperationException("Observable.notify is unsupported");
+  }
+
+  /**
    * Associates {@link ObservableVisualization} with this {@link Observable}. Action will be
    * triggered whenever a new value is recorded. An instance of {@link GuestExecutionService} is
    * needed in the case a value is already recorded at the time the action is being registered. In

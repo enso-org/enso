@@ -185,6 +185,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     if (!isPanic) {
       cache.offer(runtimeID, result);
       cache.putCall(nodeId, call);
+    } else {
+      // A visualization might still be subscribed to `runtimeID` and should be executed,
+      // even if it is not cached.
+      // TODO: investigate if the new runtime tracking makes this exception obsolete and
+      // we could cache Panics.
+      cache.notify(runtimeID, result);
     }
     cache.putType(nodeId, resultType);
 

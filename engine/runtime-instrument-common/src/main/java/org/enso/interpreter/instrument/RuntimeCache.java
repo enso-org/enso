@@ -69,6 +69,15 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     }
   }
 
+  @CompilerDirectives.TruffleBoundary
+  public void notify(RuntimeID key, Object value) {
+    var observable = cache.get(key.uuid());
+    assert observable != null;
+    if (observable.isExternal()) {
+      observable.notify(value, executionService);
+    }
+  }
+
   public Observable get(UUID key) {
     return cache.get(key);
   }
