@@ -419,16 +419,16 @@ result = 1..100 . each random . take 10 . sort
 An operator section is a nice shorthand for partially applying an operator. It
 works as follows:
 
-- When a binary operator is referred to without providing arguments, its value
-  is a method applying the operation two its two arguments (left followed by
-  right). This can be achieved either by wrapping the operator in parentheses,
-  or by using it in an unspaced expression without any operand:
+- When a binary operator is referred to without providing parameters, its value
+  is a function with two parameters (left followed by right). This can be
+  written either by wrapping the operator in parentheses, or by using it in an
+  unspaced expression without any operand:
   ```enso
   [1, 2, 3].reduce (+) . should_equal 6
   [1, 2, 3].reduce function=+ . should_equal 6
   ```
-- When a binary operator is applied to a single argument, the result is a
-  function accepting the argument.
+- When a binary operator is applied to a single parameter, the result is a
+  function accepting the parameter.
   ```enso
   [1, 2, 3].map (1 /) . should_equal [1.0, 0.5, 0.3333333333333333]
   [1, 2, 3].map (/ 1) . should_equal [1.0, 2.0, 3.0]
