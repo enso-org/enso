@@ -29,7 +29,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
 
   private final File file;
   XSSFBReader xssfbReader;
-  private  List<XlsbSheetContentsHandler> sheetHandlers = new ArrayList<>();
+  private final List<SheetHolder> sheets = new ArrayList<>();
 
   public XlsbExcelWorkbookReader(File file) throws IOException, InvalidFormatException {
     this.file = file;
@@ -50,9 +50,11 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
             System.out.println("No styles table found or error reading it: " + e.getMessage());
         }
 
-        Iterator<InputStream> sheetsData = xssfbReader.getSheetsData();           
-            while (sheetsData.hasNext()) {               
+        XSSFBReader.SheetIterator sheetsData = (XSSFBReader.SheetIterator) xssfbReader.getSheetsData();  
+        while (sheetsData.hasNext()) {
                 try (InputStream sheetInputStream = sheetsData.next()) {
+                    String sheetName = sheetsData.getSheetName();
+                    
                     // Create a custom sheet contents handler to capture cell data
                     XlsbSheetContentsHandler contentsHandler = new XlsbSheetContentsHandler();
                     
@@ -72,8 +74,8 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
                     
                     // Parse the sheet
                     sheetHandler.parse();
-
-                    sheetHandlers.add(contentsHandler);                   
+                    
+                    sheets.add(new SheetHolder(sheetName, contentsHandler));                   
                 } catch (Exception e) {
                     System.err.println("Error parsing sheet: " + e.getMessage());
                 }
@@ -88,22 +90,37 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
   @Override
   public int getNumberOfSheets() {
 
-    return sheetHandlers.size();
+    return sheets.size();
   }
 
   @Override
   public int getSheetIndex(String name) {
-    throw notImplemented();
+    for (int i = 0; i < sheets.size(); i++) {
+      if (sheets.get(i).name.equals(name)) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   @Override
   public String getSheetName(int sheet) {
-    return "Sheet" + (sheet + 1);
+    return sheets.get(sheet).name;
   }
 
   @Override
   public int getNumberOfNames() {
     throw notImplemented();
+  }
+
+  private static final class SheetHolder {
+    final String name;
+    final XlsbSheetContentsHandler handler;
+
+    SheetHolder(String name, XlsbSheetContentsHandler handler) {
+      this.name = name;
+      this.handler = handler;
+    }
   }
 
   @Override
