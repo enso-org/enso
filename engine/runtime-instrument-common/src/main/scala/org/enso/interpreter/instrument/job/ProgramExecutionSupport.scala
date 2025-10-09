@@ -42,7 +42,11 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import java.io.File
 import java.util.UUID
-import java.util.concurrent.{CompletionStage, ExecutionException}
+import java.util.concurrent.{
+  CompletionException,
+  CompletionStage,
+  ExecutionException
+}
 import java.util.function.{Consumer, Supplier}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
@@ -853,7 +857,14 @@ object ProgramExecutionSupport {
     ).thenApply(visualizationResult =>
       visualizationResultToBytes(visualizationResult)
         .fold(t => throw t, identity)
-    ).whenComplete((data, throwable) => {
+    ).whenComplete((data, throwable0) => {
+      // Unwrap CompletionException, as it automatically wraps abruptly interruptions when combining stages.
+      // It's a "feature" apparrently, according to
+      // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletionStage.html
+      val throwable = throwable0 match {
+        case t: CompletionException => t.getCause
+        case _                      => throwable0
+      }
       if (throwable != null) {
         throwable match {
           case _: ThreadInterruptedException =>
