@@ -29,7 +29,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
 
   private final File file;
   XSSFBReader xssfbReader;
-  protected List<XlsbSheetContentsHandler> sheets;
+  private  List<XlsbSheetContentsHandler> sheetHandlers = new ArrayList<>();
 
   public XlsbExcelWorkbookReader(File file) throws IOException, InvalidFormatException {
     this.file = file;
@@ -73,7 +73,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
                     // Parse the sheet
                     sheetHandler.parse();
 
-                    sheets.add(contentsHandler);                   
+                    sheetHandlers.add(contentsHandler);                   
                 } catch (Exception e) {
                     System.err.println("Error parsing sheet: " + e.getMessage());
                 }
@@ -88,7 +88,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
   @Override
   public int getNumberOfSheets() {
 
-    return sheets.size();
+    return sheetHandlers.size();
   }
 
   @Override
@@ -98,7 +98,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
 
   @Override
   public String getSheetName(int sheet) {
-    throw notImplemented();
+    return "Sheet" + (sheet + 1);
   }
 
   @Override
