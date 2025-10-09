@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Workbook;
 
 /** XLSB format strategy. Currently limited to read-only operations. */
@@ -37,8 +38,14 @@ public class XlsbFormatStrategy extends ExcelFormatStrategy {
     throw writeUnsupported();
   }
 
-    @Override
-    public ExcelWorkbookReader getExcelWorkbookReader(File file) throws IOException, InterruptedException {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
+  @Override
+  public ExcelWorkbookReader getExcelWorkbookReader(File file)
+      throws IOException, InterruptedException {
+        try {
+    return new XlsbExcelWorkbookReader(file);
+        } catch (IOException | InvalidFormatException e) {
+          throw new IOException(
+              "Invalid format encountered when opening the file " + file + " as XLSB.", e);
+        }
+  }
 }
