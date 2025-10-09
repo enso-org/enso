@@ -20,9 +20,9 @@ import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Wrapped_Error.Wrapped_Error
 import project.Internal.Array_Like_Helpers
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all

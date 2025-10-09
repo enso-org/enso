@@ -16,13 +16,13 @@ import project.Internal.Telemetry
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON
 from project.Data.Text.Extensions import all

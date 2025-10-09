@@ -21,8 +21,8 @@ import project.Errors.Common.Index_Out_Of_Bounds
 import project.Errors.Common.Not_Found
 import project.Errors.Empty_Error.Empty_Error
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.List.List import Cons, Nil
 from project.Internal.Predicate_Helpers import unify_condition_or_predicate, unify_condition_predicate_or_element
