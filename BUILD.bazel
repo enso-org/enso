@@ -202,7 +202,6 @@ EXTRA_SYSTEM_PROPS = [
     "-Denso.BazelSupport.parser.javaSrcDir=$(location //lib/rust/parser:generate_java)",
     "-Denso.BazelSupport.parser.lib=$(location //lib/rust/parser/jni:enso_parser_jni)",
     "-Denso.BazelSupport.python.resourceDir=$(location //lib/java/python-extract:extract_python_resources)",
-    "-Denso.BazelSupport.smallJdkDir=built-small-jdk",
 ]
 
 ENV = {
