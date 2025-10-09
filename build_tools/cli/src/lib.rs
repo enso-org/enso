@@ -430,12 +430,10 @@ impl Processor {
                         }
                         Tests::StandardLibraryInNative => {
                             config.test_standard_library =
-                                Some(StandardLibraryTestsSelection::whitelist(vec![
-                                    "Base_Tests".to_string(),
+                                Some(StandardLibraryTestsSelection::blacklist(vec![
+                                    "Microsoft_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
-                            config.add_engine_runner_arg("--log-level");
-                            config.add_engine_runner_arg("TRACE");
                         }
                         Tests::StdSnowflake => {
                             config.test_standard_library =
