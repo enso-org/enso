@@ -4166,7 +4166,7 @@ lazy val `engine-runner` = project
   .dependsOn(`ydoc-server-registration`)
 
 lazy val buildSmallJdk =
-  taskKey[Unit]("Build a minimal JDK used for native image generation")
+  taskKey[File]("Build a minimal JDK used for native image generation")
 
 /** Command for building small JDK for the release.
   * Use as `buildSmallJdkForRelease <targetDir>`.
