@@ -128,11 +128,13 @@ public interface ExcelWorkbook {
   static ExcelWorkbook getExcelWorkbook(File file, ExcelFileFormat format)
       throws IOException, InterruptedException {
     try {
-      ExcelWorkbook workbook =
-          format == ExcelFileFormat.XLSX
-              ? new XSSFReaderWorkbook(file.getAbsolutePath())
-              : ExcelWorkbook.forPOIUserModel(ExcelWriteHelper.openWorkbook(file, format, false));
-      return workbook;
+      if (format == ExcelFileFormat.XLSX) {
+        return new XSSFReaderWorkbook(file.getAbsolutePath());
+      } else {
+        ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+        var workbook = strategy.openExisting(file, false);
+        return ExcelWorkbook.forPOIUserModel(workbook);
+      }
     } catch (OLE2NotOfficeXmlFileException | NotOLE2FileException e) {
       throw new IOException(
           "Invalid format encountered when opening the file " + file + " as " + format + ".", e);

@@ -107,6 +107,8 @@ type SQLServer_Type_Mapping
                 "varbinary" -> Value_Type.Binary size=sql_type.precision variable_length=True
                 "binary" -> Value_Type.Binary size=sql_type.precision variable_length=False
                 _ -> on_unknown_type sql_type
+            Types.DECIMAL -> Value_Type.Decimal sql_type.precision sql_type.scale
+            Types.NUMERIC -> Value_Type.Decimal sql_type.precision sql_type.scale
             Types.NULL -> Value_Type.Null
             _ -> case sql_type.name of
                 "datetimeoffset" -> Value_Type.Date_Time with_timezone=True
