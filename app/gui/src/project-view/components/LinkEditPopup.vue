@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { vueBackendQueryOptions } from '#/hooks/backendHooks'
 import { setModal } from '#/providers/ModalProvider'
 import { AssetType } from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
@@ -10,7 +9,6 @@ import { textEditorsBindings } from '@/bindings'
 import OpenProjectModal from '@/components/OpenProjectModal.vue'
 import { useOpenProjectLocally } from '@/composables/project'
 import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
-import { useQuery } from '@tanstack/vue-query'
 import { BackendType, EnsoPath } from 'enso-common/src/services/Backend'
 import { createElement } from 'react'
 import { computed, toRef, useTemplateRef, watchEffect } from 'vue'
@@ -28,30 +26,6 @@ const path = computed(() => EnsoPath(props.href))
 const rightPanelData = useRightPanelData()
 const openProjectLocally = useOpenProjectLocally()
 const { backendForType } = useBackends()
-const backendType = computed(() => rightPanelData.context?.category?.backend ?? BackendType.remote)
-const resolveEnsoPathQuery = useQuery(
-  vueBackendQueryOptions(backendForType(backendType.value), 'resolveEnsoPath', [path]),
-)
-const assetQuery = useQuery(
-  vueBackendQueryOptions(
-    backendForType(backendType.value),
-    'getAssetDetails',
-    [
-      // This is UNSAFE, but `enabled` below ensures that this query will not run if the ID is undefined.
-      // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-      computed(() => resolveEnsoPathQuery.data.value?.id!),
-      undefined,
-    ],
-    {
-      enabled() {
-        // QueryKey: [backendType.value, 'getAssetDetails', args: [assetId: resolveEnsoPathQuery.data.value?.id, rootPath: undefined]]
-        const maybeArray = this.queryKey?.[2]
-        const array = Array.isArray(maybeArray) ? maybeArray : undefined
-        return !!array?.[0]
-      },
-    },
-  ),
-)
 
 const isProject = computed(() => rightPanelData.focusedAsset?.type === AssetType.project)
 
@@ -78,9 +52,12 @@ function openProjectModal() {
 }
 
 async function openProjectInNewTab() {
-  const maybeProject = await assetQuery.promise.value
-  if (maybeProject?.type !== AssetType.project) return
-  openProjectLocally({ ...maybeProject, ensoPath: path.value }, backendType.value)
+  const backendType = rightPanelData.context?.category?.backend ?? BackendType.remote
+  const backend = backendForType(backendType)
+  const resolvedAsset = await backend.resolveEnsoPath(path.value)
+  const asset = await backend.getAssetDetails(resolvedAsset.id, undefined)
+  if (asset?.type !== AssetType.project) return
+  openProjectLocally({ ...asset, ensoPath: path.value }, backendType)
 }
 
 const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatingElement, {
