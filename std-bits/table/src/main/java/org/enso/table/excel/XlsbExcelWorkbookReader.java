@@ -135,7 +135,12 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
 
   @Override
   public ExcelSheetReader getSheetAt(int sheetIndex) {
-    throw notImplemented();
+    if (sheetIndex < 0 || sheetIndex >= sheets.size()) {
+      throw new IndexOutOfBoundsException(
+          "Requested sheet index " + sheetIndex + " is out of bounds for workbook " + file);
+    }
+    var holder = sheets.get(sheetIndex);
+    return new XlsbExcelSheetReader(sheetIndex, holder.name);
   }
 
   @Override
