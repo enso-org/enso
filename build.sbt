@@ -3850,7 +3850,7 @@ lazy val `engine-runner` = project
     }
   )
   .settings(
-    NativeImage.smallJdk := Some((Bazel / smallJdkDir).value.get),
+    NativeImage.smallJdk := Some(buildSmallJdk.value),
     NativeImage.additionalCp := {
       val runnerDeps =
         (Compile / fullClasspath).value.map(_.data.getAbsolutePath)
