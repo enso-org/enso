@@ -8,6 +8,9 @@ import project.Column as Column_Module
 import project.Column.Column
 import project.Refined_Types.Numeric_Column as Numeric_Column_Module
 import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Refined_Types.Text_Column as Text_Column_Module
+import project.Refined_Types.Text_Column.Text_Column
+
 import project.Table.Table
 
 polyglot java import java.lang.IllegalArgumentException
@@ -64,7 +67,8 @@ type Expression
         mr1 = ExpressionVisitorImpl.newMethodResolver Expression_Statics_Module Expression_Statics isStaticMethod=True makeTypedColumn=Nothing
         mr2 = ExpressionVisitorImpl.newMethodResolver Column_Module Column isStaticMethod=False makeTypedColumn=c->c
         mr3 = ExpressionVisitorImpl.newMethodResolver Numeric_Column_Module Numeric_Column isStaticMethod=False makeTypedColumn=c->(c : Numeric_Column)
-        method_resolvers = [mr1, mr2, mr3]
+        mr4 = ExpressionVisitorImpl.newMethodResolver Text_Column_Module Text_Column isStaticMethod=False makeTypedColumn=c->(c : Text_Column)
+        method_resolvers = [mr1, mr2, mr3, mr4]
 
         ## Define error handlers to convert java exceptions to Enso errors
         handle_parse_error = Panic.catch SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))

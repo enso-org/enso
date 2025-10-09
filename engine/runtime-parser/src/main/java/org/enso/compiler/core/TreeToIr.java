@@ -254,7 +254,13 @@ final class TreeToIr {
         var args = translateArgumentsDefinition(fn.getArgs());
         var def = translateForeignFunction(fn);
         var binding =
-            new Method.Binding(methodRef, args, true, def, getIdentifiedLocation(inputAst), meta());
+            Method.Binding.builder()
+                .methodReference(methodRef)
+                .arguments(args)
+                .isPrivate(true)
+                .body(def)
+                .location(getIdentifiedLocation(inputAst))
+                .build();
         yield join(binding, appendTo);
       }
 
@@ -536,8 +542,15 @@ final class TreeToIr {
 
     String functionName = fn.getName().codeRepr();
     var ascribedBody = addTypeAscription(functionName, body, returnSignature, loc);
-    return join(
-        new Method.Binding(methodRef, args, isPrivate, ascribedBody, loc, meta()), appendTo);
+    var binding =
+        Method.Binding.builder()
+            .methodReference(methodRef)
+            .arguments(args)
+            .body(ascribedBody)
+            .isPrivate(isPrivate)
+            .location(loc)
+            .build();
+    return join(binding, appendTo);
   }
 
   private List<IR> translateTypeMethodBinding(Tree.Function fun, List<IR> appendTo) {

@@ -32,6 +32,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence
+import org.enso.persist.Persistance
 
 import java.util.UUID
 import scala.collection.immutable.ListSet
@@ -152,20 +153,25 @@ case object DataflowAnalysis extends IRPass {
         info.dependents.updateAt(bodyDep, Set(methodDep))
         info.dependencies.updateAt(methodDep, Set(bodyDep, sourceTypeDep))
 
-        m.copy(
-          body = analyseExpression(m.body, info),
-          sourceTypeName =
-            m.sourceTypeName.updateMetadata(new MetadataPair(this, info))
-        ).updateMetadata(new MetadataPair(this, info))
-      case method @ definition.Method
-            .Explicit(_, body, _, _, _) =>
+        m.copyBuilder()
+          .body(analyseExpression(m.body(), info))
+          .sourceTypeName(
+            m.sourceTypeName().updateMetadata(new MetadataPair(this, info))
+          )
+          .build()
+          .updateMetadata(new MetadataPair(this, info))
+      case method: definition.Method.Explicit =>
+        val body      = method.body()
         val bodyDep   = asStatic(body)
         val methodDep = asStatic(method)
         info.dependents.updateAt(bodyDep, Set(methodDep))
         info.dependencies.update(methodDep, Set(bodyDep))
-
         method
-          .copy(body = analyseExpression(body, info))
+          .copyBuilder()
+          .bodyReference(
+            Persistance.Reference.of(analyseExpression(body, info))
+          )
+          .build()
           .updateMetadata(new MetadataPair(this, info))
       case tp @ Definition.Type(_, params, members, _, _) =>
         val tpDep = asStatic(tp)

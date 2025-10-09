@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "env.d.ts",
     "vite.config.*",
     "vite.test.config.*",
     "vitest.config.*",
@@ -28,8 +29,7 @@
     "src/dashboard/utilities/zustand.ts",
     "src/project-view/util/equals.ts",
     "src/providers/session/constants.ts",
-    "src/utils/zustand.ts",
-    "node.env.d.ts"
+    "src/utils/zustand.ts"
   ],
   "compilerOptions": {
     "baseUrl": ".",
