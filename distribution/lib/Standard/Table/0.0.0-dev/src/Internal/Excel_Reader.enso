@@ -16,7 +16,6 @@ from project.In_Memory_Table import from_java_table
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.IOException
 polyglot java import org.enso.table.error.InvalidLocationException
-polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
 
