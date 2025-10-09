@@ -190,7 +190,10 @@ export class Server {
   private projectService: ProjectService
 
   /** Create a simple HTTP server. */
-  constructor(public config: Config, projectService: ProjectService) {
+  constructor(
+    public config: Config,
+    projectService: ProjectService,
+  ) {
     this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
     this.projectService = projectService
   }
