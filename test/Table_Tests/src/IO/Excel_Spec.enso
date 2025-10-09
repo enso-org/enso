@@ -1441,6 +1441,9 @@ add_specs suite_builder =
         group_builder.specify "should be able to read xlsb files" <|
             workbook = (enso_project.data / "products.xlsb") . read
             workbook.sheet_count . should_equal 1
+            sheet_data = workbook.read 1
+            sheet_data.should_be_a Table
+            sheet_data.row_count . should_equal 100
         
         group_builder.specify "should be able to write and read a big XLS file (>110MB)" pending="" <|
             IO.println "Generating big XLS file "+Time_Of_Day.now.to_text

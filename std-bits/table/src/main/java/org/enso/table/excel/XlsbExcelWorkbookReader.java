@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -140,7 +140,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
           "Requested sheet index " + sheetIndex + " is out of bounds for workbook " + file);
     }
     var holder = sheets.get(sheetIndex);
-    return new XlsbExcelSheetReader(sheetIndex, holder.name);
+    return new XlsbExcelSheetReader(sheetIndex, holder.name, holder.handler);
   }
 
   @Override
@@ -155,28 +155,43 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
   /**
      * Custom implementation of SheetContentsHandler to capture and display cell data from XLSB files.
      */
-    private static class XlsbSheetContentsHandler implements XSSFSheetXMLHandler.SheetContentsHandler {
-        private final List<List<String>> rows = new ArrayList<>();
+    static class XlsbSheetContentsHandler implements XSSFSheetXMLHandler.SheetContentsHandler {
+        private final List<RowData> rows = new ArrayList<>();
         private List<String> currentRow = new ArrayList<>();
         private int currentRowIndex = -1;
         private int maxColumns = 0;
+        private int firstRowIndex = -1;
+        private int lastRowIndex = -1;
+        private int currentRowFirstColumnIndex = Integer.MAX_VALUE;
+        private int currentRowLastColumnIndex = -1;
         
         @Override
         public void startRow(int rowNum) {
-            // If we skipped rows, add empty rows
             while (currentRowIndex + 1 < rowNum) {
-                rows.add(new ArrayList<>());
+                rows.add(null);
                 currentRowIndex++;
             }
-            
+
             currentRow = new ArrayList<>();
             currentRowIndex = rowNum;
+            currentRowFirstColumnIndex = Integer.MAX_VALUE;
+            currentRowLastColumnIndex = -1;
+
+            if (firstRowIndex == -1 || rowNum < firstRowIndex) {
+                firstRowIndex = rowNum;
+            }
+            if (rowNum > lastRowIndex) {
+                lastRowIndex = rowNum;
+            }
         }
         
         @Override
         public void endRow(int rowNum) {
-            rows.add(new ArrayList<>(currentRow));
-            maxColumns = Math.max(maxColumns, currentRow.size());
+            var rowCopy = Collections.unmodifiableList(new ArrayList<>(currentRow));
+            int firstColumn = currentRowLastColumnIndex >= 0 ? currentRowFirstColumnIndex + 1 : 0;
+            int lastColumn = currentRowLastColumnIndex >= 0 ? currentRowLastColumnIndex + 1 : 0;
+            rows.add(new RowData(rowCopy, firstColumn, lastColumn));
+            maxColumns = Math.max(maxColumns, rowCopy.size());
         }
         
         @Override
@@ -185,15 +200,15 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
                 formattedValue = "";
             }
             
-            // Parse cell reference to get column index
             int colIndex = getColumnIndex(cellReference);
-            
-            // Expand currentRow if necessary
+
             while (currentRow.size() <= colIndex) {
                 currentRow.add("");
             }
-            
+
             currentRow.set(colIndex, formattedValue);
+            currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
+            currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
         }
         
         @Override
@@ -201,9 +216,6 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
             // Not implemented for this example
         }
         
-        /**
-         * Extract column index from cell reference (e.g., "A1" -> 0, "B1" -> 1)
-         */
         private int getColumnIndex(String cellReference) {
             if (cellReference == null || cellReference.isEmpty()) {
                 return 0;
@@ -217,28 +229,68 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
                 }
                 colIndex = colIndex * 26 + (c - 'A' + 1);
             }
-            return colIndex - 1; // Convert to 0-based index
+            return colIndex - 1;
         }
         
-        /**
-         * Print the captured sheet data
-         */
+        int getFirstRowNumber() {
+            return firstRowIndex >= 0 ? firstRowIndex + 1 : 0;
+        }
+
+        int getLastRowNumber() {
+            return lastRowIndex >= 0 ? lastRowIndex + 1 : 0;
+        }
+
+        RowData getRowData(int rowNumber) {
+            int index = rowNumber - 1;
+            if (index < 0 || index >= rows.size()) {
+                return null;
+            }
+            return rows.get(index);
+        }
+
         public void printResults() {
             System.out.println("Number of rows: " + rows.size());
             
             for (int i = 0; i < rows.size(); i++) {
-                List<String> row = rows.get(i);
+                RowData row = rows.get(i);
+                if (row == null) {
+                    System.out.println("Row " + (i + 1) + ": <missing>");
+                    continue;
+                }
                 StringBuilder rowData = new StringBuilder();
-                rowData.append("Row ").append(i).append(": ");
+                rowData.append("Row ").append(i + 1).append(": ");
                 
-                // Print all columns up to maxColumns to maintain alignment
-                for (int j = 0; j < Math.max(row.size(), maxColumns); j++) {
-                    String cellValue = (j < row.size()) ? row.get(j) : "";
+                for (int j = 0; j < Math.max(row.values().size(), maxColumns); j++) {
+                    String cellValue = (j < row.values().size()) ? row.values().get(j) : "";
                     if (cellValue == null) cellValue = "";
                     rowData.append("[").append(cellValue).append("] ");
                 }
                 
                 System.out.println(rowData.toString());
+            }
+        }
+
+        static final class RowData {
+            private final List<String> values;
+            private final int firstColumn;
+            private final int lastColumn;
+
+            RowData(List<String> values, int firstColumn, int lastColumn) {
+                this.values = values;
+                this.firstColumn = firstColumn;
+                this.lastColumn = lastColumn;
+            }
+
+            List<String> values() {
+                return values;
+            }
+
+            int firstColumn() {
+                return firstColumn;
+            }
+
+            int lastColumn() {
+                return lastColumn;
             }
         }
     }

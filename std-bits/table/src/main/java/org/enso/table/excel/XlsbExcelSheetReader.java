@@ -11,10 +11,13 @@ public final class XlsbExcelSheetReader implements ExcelSheetReader {
 
   private final int sheetIndex;
   private final String sheetName;
+  private final XlsbExcelWorkbookReader.XlsbSheetContentsHandler handler;
 
-  public XlsbExcelSheetReader(int sheetIndex, String sheetName) {
+  public XlsbExcelSheetReader(
+      int sheetIndex, String sheetName, XlsbExcelWorkbookReader.XlsbSheetContentsHandler handler) {
     this.sheetIndex = sheetIndex;
     this.sheetName = sheetName;
+    this.handler = handler;
   }
 
   @Override
@@ -29,17 +32,26 @@ public final class XlsbExcelSheetReader implements ExcelSheetReader {
 
   @Override
   public int getFirstRow() throws InterruptedException {
-    throw notImplemented();
+    return handler.getFirstRowNumber();
   }
 
   @Override
   public int getLastRow() throws InterruptedException {
-    throw notImplemented();
+    return handler.getLastRowNumber();
   }
 
   @Override
   public ExcelRow get(int row) throws InterruptedException {
-    throw notImplemented();
+    if (row <= 0) {
+      return null;
+    }
+
+    var rowData = handler.getRowData(row);
+    if (rowData == null) {
+      return null;
+    }
+
+    return new XlsbExcelRow(rowData);
   }
 
   @Override
