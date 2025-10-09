@@ -9,6 +9,8 @@ import { z } from 'zod'
 import type { CredentialRecipe } from './types'
 import { getOauthRedirectUri } from './utilities'
 
+const EXTRA_SCOPES = ['openid', 'profile', 'offline_access']
+
 export const FORM_SCHEMA = z.object({
   name: z.string().min(1),
   scopes: z.array(z.string()).refine((scopes) => scopes.length > 0, {
@@ -26,7 +28,7 @@ export function submitForm(
   invariant($config.MS365_OAUTH_CLIENT_ID != null, 'MS365 OAuth client id is missing')
   const ms365OauthClientId = $config.MS365_OAUTH_CLIENT_ID
 
-  const oauthScopes: string[] = values.scopes
+  const oauthScopes: string[] = [...EXTRA_SCOPES, ...values.scopes]
   const input: MS365CredentialInput = {
     type: 'MS365',
     scopes: oauthScopes,
