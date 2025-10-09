@@ -154,6 +154,15 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
     })
   }
 
+  /** Expect only and exactly nodes with specified bindings to be selected. */
+  expectSelectedNodesExactly(nodeBindings: string[]) {
+    return this.do(async () => {
+      const bindings = await this.locateNodes('.selected').locator('.binding').all()
+      const bindingTexts = await Promise.all(bindings.map((b) => b.textContent()))
+      await expect(bindingTexts).toStrictEqual(nodeBindings)
+    })
+  }
+
   /** Expect an exact sequence of input nodes to exist within the graph, positioned in order from left to right. */
   expectInputNodesInOrder(expectedOrder: string[]) {
     return this.step('Expect input nodes in order', async () => {
@@ -228,9 +237,11 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
   }
 
   /** Locate a button or menu entry representing given action and click it. */
-  clickActionTrigger(actionName: string) {
+  clickActionTrigger(actionName: string, onlyContextMenu = false) {
     return this.step(`Click action ${actionName}`, async (page) => {
-      await page.getByTestId(`action:${actionName}`).click()
+      let locator = page.getByTestId(`action:${actionName}`)
+      if (onlyContextMenu) locator = locator.and(page.locator('.ContextMenuEntry'))
+      await locator.click()
     })
   }
 

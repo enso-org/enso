@@ -168,10 +168,23 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
     )
   }
 
-  /** Perform an action. */
-  step(name: string, callback: PageCallback<Context, this>) {
+  /**
+   * Perform an action, defer setup until right before the action.
+   */
+  defer(callback: (page: this) => void | Promise<void> | this): this {
     return this.do(async () => {
-      return await test.step(name, async () => await callback(this.page, this.context, this))
+      await callback(this)
+    })
+  }
+
+  /** Perform an action. */
+  step(name: string | (() => string), callback: PageCallback<Context, this>) {
+    return this.do(async () => {
+      const nameEvaluated = typeof name === 'function' ? name() : name
+      return await test.step(
+        nameEvaluated,
+        async () => await callback(this.page, this.context, this),
+      )
     })
   }
 

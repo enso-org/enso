@@ -2,7 +2,7 @@ import { expect, test } from 'integration-test/base'
 import { mockExpressionUpdate } from './expressionUpdates'
 import * as locate from './locate'
 
-test('graph can open and render nodes', async ({ page }) => {
+test('graph can open and render nodes', async ({ editorPage, page }) => {
   await editorPage
   await expect(locate.graphEditor(page)).toExist()
   await expect(locate.graphNode(page)).toExist()
@@ -16,7 +16,7 @@ test('graph can open and render nodes', async ({ page }) => {
   await expect(finalNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'func1', 'prod'])
 })
 
-test('Component icon indicates evaluation in progress', async ({ page }) => {
+test('Component icon indicates evaluation in progress', async ({ editorPage, page }) => {
   await editorPage
 
   const node = locate.graphNodeByBinding(page, 'final')
@@ -25,7 +25,7 @@ test('Component icon indicates evaluation in progress', async ({ page }) => {
   await expect(node.locator('.WidgetIcon .LoadingSpinner')).toBeVisible()
 })
 
-test('Menu is shown when component is hovered', async ({ page }) => {
+test('Menu is shown when component is hovered', async ({ editorPage, page }) => {
   await editorPage
   const node = locate.graphNodeByBinding(page, 'final')
   await node.hover({ position: { x: 100, y: 8 } })

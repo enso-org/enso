@@ -53,7 +53,9 @@ export function graphNode(page: Page | Locator): Node {
 }
 /** Node with given binding (name) */
 export function graphNodeByBinding(page: Locator | Page, binding: string): Node {
-  return graphNode(page).filter({ has: page.locator('.binding', { hasText: binding }) }) as Node
+  return graphNode(page).filter({
+    has: page.locator('.binding').getByText(binding, { exact: true }),
+  }) as Node
 }
 /** Icon inside the node */
 export function graphNodeIcon(node: Node) {
