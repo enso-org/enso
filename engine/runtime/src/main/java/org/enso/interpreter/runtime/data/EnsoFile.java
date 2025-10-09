@@ -593,7 +593,8 @@ public final class EnsoFile extends BuiltinObject {
    */
   private static FileSystemException replaceCreateDirectoriesGenericException(
       FileSystemException genericException) {
-    if (genericException.getReason().equals("Not a directory")) {
+    if (genericException.getReason() != null
+        && genericException.getReason().equals("Not a directory")) {
       var path = genericException.getFile();
       if (path == null) {
         return genericException;
