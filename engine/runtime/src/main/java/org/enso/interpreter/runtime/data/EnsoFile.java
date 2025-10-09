@@ -456,11 +456,13 @@ public final class EnsoFile extends BuiltinObject {
   @Builtin.Method(name = "resolve_builtin")
   @Builtin.WrapException(from = IllegalArgumentException.class)
   @Builtin.Specialize
+  @TruffleBoundary
   public static EnsoFile resolve(EnsoFile file, Text part) {
     return new EnsoFile(file.path.resolve(part.toString()));
   }
 
   @Builtin.Method
+  @TruffleBoundary
   public boolean exists() {
     return Files.exists(path.normalize());
   }
