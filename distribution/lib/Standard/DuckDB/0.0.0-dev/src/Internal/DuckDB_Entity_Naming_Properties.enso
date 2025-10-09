@@ -1,3 +1,5 @@
+private 
+
 from Standard.Base import all
 
 import Standard.Table.Internal.Naming_Properties.Enso_Length_Limited_Naming_Properties
