@@ -1408,7 +1408,7 @@ add_specs suite_builder =
             Date_Time.from_excel 60.45 . should_fail_with Illegal_Argument
 
         ci_pending = if Environment.get "CI" != Nothing then "This test takes a lot of time so it is disabled on CI."
-        group_builder.specify "should be able to write and read a big XLSX file (>110MB)" pending=ci_pending <|
+        group_builder.specify "should be able to write and read a big XLSX file (>110MB)" pending="" <|
             n = 10^6
             IO.println "Generating big XLSX file "+Time_Of_Day.now.to_text
             rng = RandomHelpers.new 123
@@ -1438,7 +1438,11 @@ add_specs suite_builder =
             workbook.close
             big_file.delete_if_exists . should_succeed
 
-        group_builder.specify "should be able to write and read a big XLS file (>110MB)" pending=ci_pending <|
+        group_builder.specify "should be able to read xlsb files" <|
+            workbook = (enso_project.data / "products.xlsb") . read
+            workbook.sheet_count . should_equal 1
+        
+        group_builder.specify "should be able to write and read a big XLS file (>110MB)" pending="" <|
             IO.println "Generating big XLS file "+Time_Of_Day.now.to_text
             rng = RandomHelpers.new 123
             # Here we instead create a 2D table, because XLS has a limit of 65536 rows and 16k columns.

@@ -10,6 +10,7 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Text_Input
 from Standard.Base.System.File_Format import parse_boolean_with_infer
 
+import project.Excel.Excel_File_Format.Excel_File_Format
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Workbook.Excel_Workbook
 import project.Headers.Headers
@@ -25,11 +26,11 @@ import project.Table.Table
    private: true
    ---
    Resolve the xls_format setting to a boolean.
-should_treat_as_xls_format : (Boolean|Infer) -> File_Format_Metadata -> Boolean ! Illegal_Argument
-should_treat_as_xls_format xls_format file:File_Format_Metadata =
-    if xls_format != Infer then xls_format else
-        inferred_xls_format = xls_format_from_metadata file
-        inferred_xls_format.if_nothing <|
+resolve_xl_format : (Excel_File_Format|Infer) -> File_Format_Metadata -> Excel_File_Format ! Illegal_Argument
+resolve_xl_format xl_format file:File_Format_Metadata =
+    if xl_format != Infer then xl_format else
+        inferred_xl_format = xl_format_from_metadata file
+        inferred_xl_format.if_nothing <|
             Error.throw (Illegal_Argument.Error ("File extension not recognized as Excel (" + file.name + "). Specify xls_format explicitly."))
 
 ## Read the file to a `Table` from an Excel file
@@ -43,7 +44,7 @@ type Excel_Format
         - `default_sheet`: The default sheet to use when writing a table to a
           file with these format settings.
     @default_sheet Text_Input
-    Workbook (xls_format : Boolean | Infer = Infer) (default_sheet : Text = "EnsoSheet")
+    Workbook (xls_format : Excel_File_Format | Infer = Infer) (default_sheet : Text = "EnsoSheet")
 
     ## Reads a sheet from an Excel file as a `Table`.
 
@@ -96,8 +97,8 @@ type Excel_Format
        instance.
     for_read : File_Format_Metadata -> Excel_Format | Nothing
     for_read file:File_Format_Metadata =
-        is_xls = xls_format_from_metadata file
-        is_xls.if_not_nothing <| Excel_Format.Workbook xls_format=is_xls
+        xl_format = xl_format_from_metadata file
+        xl_format.if_not_nothing <| Excel_Format.Workbook xls_format=xl_format
 
     ## ---
        private: true
@@ -121,7 +122,7 @@ type Excel_Format
        private: true
        ---
     get_name_patterns -> Vector File_Name_Pattern =
-        [File_Name_Pattern.Value "Excel" ["*.xls", "*.xlsx", "*.xlsm", "*.xlt"]]
+        [File_Name_Pattern.Value "Excel" ["*.xls", "*.xlsx", "*.xlsm", "*.xlt", "*.xlsb"]]
 
     ## ---
        private: true
@@ -130,7 +131,7 @@ type Excel_Format
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
-        format = should_treat_as_xls_format self.xls_format file
+        format = resolve_xl_format self.xls_format file
         case self of
             Excel_Format.Workbook _ _ ->
                 result = Excel_Workbook.new file format
@@ -150,9 +151,9 @@ type Excel_Format
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         xls_format = if self.xls_format != Infer then self.xls_format else
-            inferred_xls_format = xls_format_from_metadata metadata
-            # If still unable to infer it, we default to False
-            inferred_xls_format.if_nothing False
+            inferred_xl_format = xl_format_from_metadata metadata
+            # If still unable to infer it, we default to XLSX
+            inferred_xl_format.if_nothing Excel_File_Format.XLSX
 
         bad_format _ =
             message = case self.xls_format of
@@ -192,30 +193,32 @@ type Excel_Format
         - `on_problems`: What to do if there are problems reading the file.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> File
     write_table self file table on_existing_file match_columns on_problems:Problem_Behavior =
-        format = should_treat_as_xls_format self.xls_format file
+        format = resolve_xl_format self.xls_format file
         Excel_Writer.write_file file table on_existing_file (as_section self) match_columns on_problems format
 
 ## ---
    private: true
    ---
    This function returns:
-   - `True` if the file is an XLS format,
-   - `False` if the file is an XLSX format,
+   - `Excel_File_Format.XLS` if the file is an XLS format,
+   - `Excel_File_Format.XLSX` if the file is an XLSX format,
+   - `Excel_File_Format.XLSB` if the file is an XLSB format,
    - `Nothing` if the file is not an Excel format.
-xls_format_from_metadata : File_Format_Metadata -> Boolean | Nothing
-xls_format_from_metadata (metadata : File_Format_Metadata) =
+xl_format_from_metadata : File_Format_Metadata -> Excel_File_Format | Nothing
+xl_format_from_metadata (metadata : File_Format_Metadata) =
     content_type = metadata.interpret_content_type
     from_content_type = content_type.if_not_nothing <|
         case content_type.base_type of
-            "application/vnd.ms-excel" -> True
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> False
+            "application/vnd.ms-excel" -> Excel_File_Format.XLS
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> Excel_File_Format.XLSX
             _ -> Nothing
     from_content_type.if_nothing <|
         case metadata.guess_extension of
-            ".xlsx" -> False
-            ".xlsm" -> False
-            ".xls" -> True
-            ".xlt" -> True
+            ".xlsb" -> Excel_File_Format.XLSB
+            ".xlsx" -> Excel_File_Format.XLSX
+            ".xlsm" -> Excel_File_Format.XLSX
+            ".xls" -> Excel_File_Format.XLS
+            ".xlt" -> Excel_File_Format.XLS
             _ -> Nothing
 
 ## ---

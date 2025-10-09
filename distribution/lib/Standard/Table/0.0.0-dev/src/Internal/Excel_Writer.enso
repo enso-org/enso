@@ -6,6 +6,7 @@ import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.System.File import file_as_java
 
+import project.Excel.Excel_File_Format.Excel_File_Format
 import project.Excel.Excel_Range.Excel_Range
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Excel_Reader
@@ -20,8 +21,7 @@ polyglot java import org.enso.base.DryRunFileManager
 polyglot java import org.enso.table.error.ExistingDataException
 polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import org.enso.table.error.RangeExceededException
-polyglot java import org.enso.table.excel.ExcelFileFormat
-polyglot java import org.enso.table.excel.ExcelWorkbook
+polyglot java import org.enso.table.excel.ExcelWorkbookReader
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
 polyglot java import org.enso.table.write.ExistingDataMode
@@ -54,8 +54,8 @@ make_java_existing_file_behavior on_existing_file = case on_existing_file of
       `Ignore`, the operation proceeds without errors or warnings.
     - `xls_format`: If `true`, the file is written in the legacy XLS format.
       Otherwise, the file is written in the modern XLSX format.
-write_file : Writable_File -> Table -> Existing_File_Behavior -> Excel_Section -> Match_Columns -> Problem_Behavior -> Boolean -> File
-write_file (file : Writable_File) (table : Table) (on_existing_file : Existing_File_Behavior) (section : Excel_Section) (match_columns:Match_Columns) (on_problems:Problem_Behavior) (xls_format:Boolean) =
+write_file : Writable_File -> Table -> Existing_File_Behavior -> Excel_Section -> Match_Columns -> Problem_Behavior -> Excel_File_Format -> File
+write_file (file : Writable_File) (table : Table) (on_existing_file : Existing_File_Behavior) (section : Excel_Section) (match_columns:Match_Columns) (on_problems:Problem_Behavior) (xls_format:Excel_File_Format) =
     _ = on_problems
     # TODO if file is not a File, create a temporary local file, write to it and then transfer its input stream to the output stream of the actual backend
     if (on_existing_file == Existing_File_Behavior.Error) && file.exists then Error.throw (File_Error.Already_Exists file) else
@@ -71,7 +71,7 @@ write_file (file : Writable_File) (table : Table) (on_existing_file : Existing_F
    ---
 write_local_file (file:File) table on_existing_file section match_columns xls_format =
     java_file = file_as_java file
-    file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
+    file_format = xls_format.to_java
 
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
     is_dry_run = Context.Output.is_enabled.not

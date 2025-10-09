@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.nio.file.AccessMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
 import org.apache.poi.ss.usermodel.Workbook;
 
 /**
@@ -33,6 +34,9 @@ public abstract class ExcelFormatStrategy {
       case XLS -> {
         return new XlsFormatStrategy();
       }
+      case XLSB -> {
+        return new XlsbFormatStrategy();
+      }
       case XLSX, XLSX_FALLBACK -> {
         return new XlsxFormatStrategy();
       }
@@ -42,6 +46,9 @@ public abstract class ExcelFormatStrategy {
 
   /** Opens an existing Excel file using the given access mode and sets {@link #workbook}. */
   public abstract Workbook openExisting(File file, boolean writeAccess) throws IOException;
+
+  /** Returns a reader for the current workbook. */
+  public abstract ExcelWorkbookReader getExcelWorkbookReader(File file) throws IOException, InterruptedException;
 
   /** Creates a new empty workbook for this format and sets {@link #workbook}. */
   public abstract Workbook createNew();
