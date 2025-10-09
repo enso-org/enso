@@ -272,7 +272,7 @@ export class EnsoRunner implements Runner {
         await executeShutdownHooks()
         this.runningProjects.delete(projectId)
         resolve()
-      }, 30000)
+      }, 10000)
 
       // Listen for the process to exit
       process.on('exit', async () => {

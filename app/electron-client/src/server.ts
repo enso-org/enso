@@ -187,26 +187,19 @@ async function findPort(port: number): Promise<number> {
 export class Server {
   private projectsRootDirectory: string
   private devServer?: vite.ViteDevServer
-  private projectService?: ProjectService
+  private projectService: ProjectService
 
   /** Create a simple HTTP server. */
-  constructor(public config: Config) {
+  constructor(public config: Config, projectService: ProjectService) {
     this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
-  }
-
-  /** Get the project service. */
-  getProjectService(): ProjectService {
-    if (!this.projectService) {
-      this.projectService = ProjectService.default(paths.RESOURCES_PATH)
-    }
-    return this.projectService
+    this.projectService = projectService
   }
 
   /** Server constructor. */
-  static async create(config: Config): Promise<Server> {
+  static async create(config: Config, projectService: ProjectService): Promise<Server> {
     const localConfig = Object.assign({}, config)
     localConfig.port = await findPort(localConfig.port)
-    const server = new Server(localConfig)
+    const server = new Server(localConfig, projectService)
     await server.run()
     return server
   }
@@ -301,7 +294,7 @@ export class Server {
         request,
         response,
         requestUrl,
-        async () => this.getProjectService(),
+        async () => this.projectService,
         headers,
       )
     } else if (request.url?.startsWith('/api/')) {

@@ -269,7 +269,6 @@ class App {
       // Note that we want to do all the actions synchronously, so when the window
       // appears, it serves the website immediately.
       await this.startContentServerIfEnabled(args)
-      await this.setupProjectService(args)
       await this.createWindowIfEnabled(args)
       this.initIpc()
       await this.loadWindowContent(args)
@@ -294,15 +293,15 @@ class App {
   }
 
   /** Setup the project service. */
-  async setupProjectService(args: Options) {
-    const backendVerboseOpts = args.debug.verbose ? ['-vv'] : []
+  private createProjectService(args: Options) {
+    const backendVerboseOpts = args.debug.verbose ? ['--log-level', 'trace'] : []
     const backendProfileTime = ['--profiling-time', String(args.debug.profileTime)]
     const backendProfileOpts =
       args.debug.profile ? ['--profiling-path', 'profiling.npss', ...backendProfileTime] : []
     const backendJvmOpts = args.useJvm ? ['--jvm'] : []
     const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
 
-    projectService.setupProjectService(backendOpts)
+    return projectService.setupProjectService(backendOpts)
   }
 
   /** Start the content server, which will serve the application content (HTML) to the window. */
@@ -313,7 +312,8 @@ class App {
         dir: paths.ASSETS_PATH,
         port: args.server.port,
       })
-      this.server = await server.Server.create(serverCfg)
+      const projectService = this.createProjectService(args)
+      this.server = await server.Server.create(serverCfg, projectService)
       console.log('Content server started.')
     })
   }

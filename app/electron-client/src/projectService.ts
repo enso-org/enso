@@ -15,7 +15,7 @@ let projectService: ProjectService | null = null
 let extraArgs: string[] = []
 
 /** Get the project service. */
-export function getProjectService(): ProjectService {
+function getProjectService(): ProjectService {
   if (!projectService) {
     projectService = ProjectService.default(paths.RESOURCES_PATH, extraArgs)
   }
@@ -25,6 +25,10 @@ export function getProjectService(): ProjectService {
 /** Setup the project service.*/
 export function setupProjectService(args: string[]) {
   extraArgs = args
+  if (!projectService) {
+    projectService = ProjectService.default(paths.RESOURCES_PATH, args)
+  }
+  return projectService
 }
 
 /** Get the Project Manager version. */
