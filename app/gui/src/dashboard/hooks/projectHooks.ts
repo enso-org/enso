@@ -1,5 +1,5 @@
 /** @file Mutations related to project management. */
-import * as reactQuery from '@tanstack/react-query'
+import { queryOptions, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
 import { merge } from 'enso-common/src/utilities/data/object'
@@ -24,7 +24,19 @@ import { useUploadFile } from '#/hooks/backendUploadFilesHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useLogger } from '#/providers/LoggerProvider'
 import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  EnsoPath,
+  IS_OPENING_OR_OPENED,
+  ProjectState,
+  type Asset,
+  type AssetId,
+  type DirectoryId,
+  type ListDirectoryResponseBody,
+  type Project,
+  type ProjectAsset,
+} from '#/services/Backend'
 import { assert } from '#/utilities/error'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useBackends, useText } from '$/providers/react'
@@ -45,28 +57,30 @@ const CLOUD_OPENING_INTERVAL_MS = 2_500
  * possible.
  */
 const LOCAL_OPENING_INTERVAL_MS = 100
-
 const DEFAULT_INTERVAL_MS = 120_000
+const OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA = z.object({
+  state: z.object({ type: z.literal(ProjectState.openInProgress) }),
+})
 
 /** Options for {@link createGetProjectDetailsQuery}. */
 export interface CreateOpenedProjectQueryOptions {
-  readonly assetId: backendModule.Asset<backendModule.AssetType.project>['id']
+  readonly assetId: Asset<AssetType.project>['id']
   readonly backend: Backend
 }
 
 /** Return a function to update a project asset in the TanStack Query cache. */
 function useSetProjectAsset() {
-  const queryClient = reactQuery.useQueryClient()
+  const queryClient = useQueryClient()
   return eventCallbacks.useEventCallback(
     (
-      backendType: backendModule.BackendType,
-      assetId: backendModule.AssetId,
-      parentId: backendModule.DirectoryId,
-      transform: (asset: backendModule.ProjectAsset) => backendModule.ProjectAsset,
+      backendType: BackendType,
+      assetId: AssetId,
+      parentId: DirectoryId,
+      transform: (asset: ProjectAsset) => ProjectAsset,
     ) => {
       const listDirectoryQuery = queryClient
         .getQueryCache()
-        .find<backendModule.ListDirectoryResponseBody | undefined>({
+        .find<ListDirectoryResponseBody | undefined>({
           queryKey: [backendType, 'listDirectory', parentId, { infinite: false }],
           exact: false,
         })
@@ -75,16 +89,14 @@ function useSetProjectAsset() {
         listDirectoryQuery.setData({
           ...listDirectoryQuery.state.data,
           assets: listDirectoryQuery.state.data.assets.map((child) =>
-            child.id === assetId && child.type === backendModule.AssetType.project ?
-              transform(child)
-            : child,
+            child.id === assetId && child.type === AssetType.project ? transform(child) : child,
           ),
         })
       }
 
       const listDirectoryInfiniteQuery = queryClient
         .getQueryCache()
-        .find<reactQuery.InfiniteData<backendModule.ListDirectoryResponseBody> | undefined>({
+        .find<InfiniteData<ListDirectoryResponseBody> | undefined>({
           queryKey: [backendType, 'listDirectory', parentId, { infinite: true }],
           exact: false,
         })
@@ -95,9 +107,7 @@ function useSetProjectAsset() {
           pages: listDirectoryInfiniteQuery.state.data.pages.map((page) => ({
             ...page,
             assets: page.assets.map((child) =>
-              child.id === assetId && child.type === backendModule.AssetType.project ?
-                transform(child)
-              : child,
+              child.id === assetId && child.type === AssetType.project ? transform(child) : child,
             ),
           })),
         })
@@ -107,24 +117,18 @@ function useSetProjectAsset() {
 }
 
 export const OPENING_PROJECT_STATES = new Set([
-  backendModule.ProjectState.provisioned,
-  backendModule.ProjectState.scheduled,
-  backendModule.ProjectState.openInProgress,
+  ProjectState.provisioned,
+  ProjectState.scheduled,
+  ProjectState.openInProgress,
 ])
-export const OPENED_PROJECT_STATES = new Set([backendModule.ProjectState.opened])
-export const CLOSED_PROJECT_STATES = new Set([backendModule.ProjectState.closed])
-export const STATIC_PROJECT_STATES = new Set([
-  backendModule.ProjectState.opened,
-  backendModule.ProjectState.closed,
-])
-export const CREATED_PROJECT_STATES = new Set([
-  backendModule.ProjectState.created,
-  backendModule.ProjectState.new,
-])
+export const OPENED_PROJECT_STATES = new Set([ProjectState.opened])
+export const CLOSED_PROJECT_STATES = new Set([ProjectState.closed])
+export const STATIC_PROJECT_STATES = new Set([ProjectState.opened, ProjectState.closed])
+export const CREATED_PROJECT_STATES = new Set([ProjectState.created, ProjectState.new])
 export const BUSY_PROJECT_STATES = new Set([
   ...Array.from(OPENING_PROJECT_STATES),
-  backendModule.ProjectState.opened,
-  backendModule.ProjectState.hybridOpened,
+  ProjectState.opened,
+  ProjectState.hybridOpened,
 ])
 
 /** Stale time for local projects, set to 10 seconds. */
@@ -140,12 +144,12 @@ export const CLOUD_PROJECT_OPEN_TIMEOUT_MS = 5 * 60 * 1_000
  * @throws If the backend type is not supported.
  * @returns The timeout in milliseconds.
  */
-export function getTimeoutBasedOnTheBackendType(backendType: backendModule.BackendType) {
+export function getTimeoutBasedOnTheBackendType(backendType: BackendType) {
   switch (backendType) {
-    case backendModule.BackendType.local: {
+    case BackendType.local: {
       return LOCAL_PROJECT_OPEN_TIMEOUT_MS
     }
-    case backendModule.BackendType.remote: {
+    case BackendType.remote: {
       return CLOUD_PROJECT_OPEN_TIMEOUT_MS
     }
 
@@ -159,71 +163,43 @@ export function getTimeoutBasedOnTheBackendType(backendType: backendModule.Backe
 export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOptions) {
   const { assetId, backend } = options
 
-  const isLocal = backend.type === backendModule.BackendType.local
+  const isLocal = backend.type === BackendType.local
 
-  return reactQuery.queryOptions({
-    queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
+  return queryOptions({
+    queryKey: getProjectDetailsQueryKey(assetId),
     queryFn: () => backend.getProjectDetails(assetId),
     refetchIntervalInBackground: true,
     refetchOnMount: true,
-    networkMode: backend.type === backendModule.BackendType.remote ? 'online' : 'always',
+    networkMode: backend.type === BackendType.remote ? 'online' : 'always',
     meta: { persist: false },
-    refetchInterval: (query): number | false => {
-      const { state } = query
-
-      const staticStates = STATIC_PROJECT_STATES
-
-      const openingStates = OPENING_PROJECT_STATES
-
-      const createdStates = CREATED_PROJECT_STATES
-
-      if (state.status === 'error') {
+    refetchInterval: ({ state }): number | false => {
+      if (state.status === 'error' || !state.data) {
         return false
       }
-
-      if (state.data == null) {
-        return false
+      if (CREATED_PROJECT_STATES.has(state.data.state.type)) {
+        return isLocal ? LOCAL_OPENING_INTERVAL_MS : CLOUD_OPENING_INTERVAL_MS
       }
-
-      const currentState = state.data.state.type
-
-      if (isLocal) {
-        if (createdStates.has(currentState)) {
-          return LOCAL_OPENING_INTERVAL_MS
-        }
-
-        if (staticStates.has(state.data.state.type)) {
-          return OPENED_INTERVAL_MS
-        }
-
-        if (openingStates.has(state.data.state.type)) {
-          return LOCAL_OPENING_INTERVAL_MS
-        }
-      }
-
-      if (createdStates.has(currentState)) {
-        return CLOUD_OPENING_INTERVAL_MS
-      }
-
-      // Cloud project
-      if (staticStates.has(state.data.state.type)) {
+      if (STATIC_PROJECT_STATES.has(state.data.state.type)) {
         return OPENED_INTERVAL_MS
       }
-      if (openingStates.has(state.data.state.type)) {
-        return CLOUD_OPENING_INTERVAL_MS
+      if (OPENING_PROJECT_STATES.has(state.data.state.type)) {
+        return isLocal ? LOCAL_OPENING_INTERVAL_MS : CLOUD_OPENING_INTERVAL_MS
       }
-
       return DEFAULT_INTERVAL_MS
     },
   })
 }
-createGetProjectDetailsQuery.getQueryKey = (id: LaunchedProjectId) => ['project', id] as const
+
+/** Create a query key for `getProjectDetails`. */
+export function getProjectDetailsQueryKey(id: LaunchedProjectId) {
+  return ['project', id] as const
+}
 
 const OPEN_PROJECT_MUTATION_KEY = ['openProject'] as const
 
 /** A mutation to open a project in backend. */
 export function useOpenProjectMutation() {
-  const client = reactQuery.useQueryClient()
+  const client = useQueryClient()
   const session = authProvider.useFullUserSession()
   const { remoteBackend, localBackend } = useBackends()
   const setProjectAsset = useSetProjectAsset()
@@ -231,7 +207,7 @@ export function useOpenProjectMutation() {
   const removeOpeningProject = useRemoveOpeningProject()
   const { closingProjects } = useContainerData()
 
-  return reactQuery.useMutation({
+  return useMutation({
     mutationKey: OPEN_PROJECT_MUTATION_KEY,
     networkMode: 'always',
     mutationFn: async ({
@@ -245,11 +221,10 @@ export function useOpenProjectMutation() {
     }: LaunchedProject & { inBackground?: boolean; suppressHybridProjectOpen?: boolean }) => {
       assert(() => !closingProjects.has(id))
       addOpeningProject(hybrid?.cloudProjectId ?? id, ensoPath)
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
+      const backend = type === BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
 
-      const openHybridProjectParameters = hybrid ? { ...hybrid } : null
       await backend
         .openProject(
           id,
@@ -262,7 +237,7 @@ export function useOpenProjectMutation() {
               expireAt: session.expireAt,
               refreshUrl: session.refreshUrl,
             },
-            openHybridProjectParameters,
+            openHybridProjectParameters: hybrid ?? null,
           },
           title,
         )
@@ -271,12 +246,12 @@ export function useOpenProjectMutation() {
         })
     },
     onMutate: ({ type, id, parentId }) => {
-      const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
+      const queryKey = getProjectDetailsQueryKey(id)
 
-      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
+      client.setQueryData(queryKey, { state: { type: ProjectState.openInProgress } })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
-        projectState: { ...asset.projectState, type: backendModule.ProjectState.openInProgress },
+        projectState: { ...asset.projectState, type: ProjectState.openInProgress },
       }))
     },
     onSuccess: async (_data, { title, hybrid, suppressHybridProjectOpen = false }) => {
@@ -299,9 +274,9 @@ export function useOpenProjectMutation() {
 
 /** Mutation to close a project. */
 export function useCloseProjectMutation() {
-  const { getText } = useText()
-  const client = reactQuery.useQueryClient()
   const logger = useLogger()
+  const { getText } = useText()
+  const client = useQueryClient()
   const { remoteBackend, localBackend } = useBackends()
   const uploadFile = useUploadFile(remoteBackend, { updateProgress: false })
   const [isHybridPending, setIsHybridPending] = useState(false)
@@ -318,30 +293,25 @@ export function useCloseProjectMutation() {
       title,
       hybrid,
     }: Pick<LaunchedProject, 'hybrid' | 'id' | 'parentId' | 'title' | 'type'>) => {
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
-
+      const backend = type === BackendType.remote ? remoteBackend : localBackend
       invariant(backend != null, 'Backend is null')
-
       if (hybrid) {
         await remoteBackend.closeProject(hybrid.cloudProjectId, title)
       }
-
       return backend.closeProject(id, title)
     },
     onMutate: ({ hybrid, id }) => {
-      const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
-
+      const queryKey = getProjectDetailsQueryKey(id)
       if (hybrid) {
         setIsHybridPending(true)
         addClosingProject(hybrid.cloudProjectId)
       } else {
         addClosingProject(id)
       }
-
       void client.cancelQueries({ queryKey })
     },
     onSuccess: async (_, { type, id, parentId, hybrid }) => {
-      await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.resetQueries({ queryKey: getProjectDetailsQueryKey(id) })
 
       if (hybrid) {
         const fileName = 'project_root.enso-project'
@@ -366,7 +336,7 @@ export function useCloseProjectMutation() {
         removeClosingProject(id)
       }
 
-      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.invalidateQueries({ queryKey: getProjectDetailsQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
     onError: async (_, { type, id, parentId, hybrid }) => {
@@ -391,16 +361,16 @@ export function useCloseProjectMutation() {
         removeClosingProject(hybrid.cloudProjectId)
         setIsHybridPending(false)
         await client.invalidateQueries({
-          queryKey: createGetProjectDetailsQuery.getQueryKey(hybrid.cloudProjectId),
+          queryKey: getProjectDetailsQueryKey(hybrid.cloudProjectId),
         })
         await client.invalidateQueries({
-          queryKey: [backendModule.BackendType.remote, 'listDirectory', hybrid.cloudParentId],
+          queryKey: [BackendType.remote, 'listDirectory', hybrid.cloudParentId],
         })
       } else {
         removeClosingProject(id)
       }
 
-      await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
+      await client.invalidateQueries({ queryKey: getProjectDetailsQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
     meta: {
@@ -413,7 +383,7 @@ export function useCloseProjectMutation() {
 /** Mutation to rename a project. */
 export function useRenameProjectMutation() {
   const updateLaunchedProjects = useUpdateLaunchedProjects()
-  const client = reactQuery.useQueryClient()
+  const client = useQueryClient()
 
   return useMutationCallback({
     mutationKey: ['renameProject'],
@@ -431,19 +401,13 @@ export function useRenameProjectMutation() {
       return backend.updateProject(id, { projectName: newName }, title)
     },
     onMutate: async ({ newName, project }) => {
-      const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
-      await client.cancelQueries({
-        queryKey,
-      })
+      const queryKey = getProjectDetailsQueryKey(project.id)
+      await client.cancelQueries({ queryKey })
       // Optimistically update the project name.
-      client.setQueryData<backendModule.Project>(queryKey, (data) => {
+      client.setQueryData<Project>(queryKey, (data) => {
         if (data == null) return undefined
-        return {
-          ...data,
-          name: newName,
-        }
+        return { ...data, name: newName }
       })
-
       return { queryKey }
     },
     onError: (_err, _variables, context) => {
@@ -466,13 +430,9 @@ export function useRenameProjectMutation() {
   })
 }
 
-const OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA = z.object({
-  state: z.object({ type: z.literal(backendModule.ProjectState.openInProgress) }),
-})
-
 /** A callback to open a project. */
 function useOpenProject() {
-  const client = reactQuery.useQueryClient()
+  const client = useQueryClient()
   const containerData = useContainerData()
   const addOpeningProject = useAddOpeningProject()
   const removeOpeningProject = useRemoveOpeningProject()
@@ -480,7 +440,6 @@ function useOpenProject() {
   const removeLaunchedProject = useRemoveLaunchedProject()
   const closeAllProjects = useCloseAllProjects()
   const openProjectMutation = useOpenProjectMutation()
-
   const enableMultitabs = useFeatureFlag('enableMultitabs')
 
   return eventCallbacks.useEventCallback(async (project: LaunchedProject) => {
@@ -491,8 +450,8 @@ function useOpenProject() {
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
 
     if (!isOpeningTheSameProject) {
-      const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
-      client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
+      const queryKey = getProjectDetailsQueryKey(project.id)
+      client.setQueryData(queryKey, { state: { type: ProjectState.openInProgress } })
 
       addOpeningProject(project.hybrid?.cloudProjectId ?? project.id, project.ensoPath)
 
@@ -513,7 +472,7 @@ function useOpenProject() {
           const newData = client.getQueryData(queryKey)
           // If state has not changed from optimistic state, then:
           if (OPEN_IN_PROGRESS_PROJECT_STATE_SCHEMA.safeParse(newData).success) {
-            client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.closed } })
+            client.setQueryData(queryKey, { state: { type: ProjectState.closed } })
             void client.invalidateQueries({ queryKey: ['project'] })
           }
         })
@@ -545,7 +504,7 @@ function useOpenHybridProject() {
   const removeOpeningProject = useRemoveOpeningProject()
 
   return eventCallbacks.useEventCallback(
-    async (asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
+    async (asset: Pick<ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>) => {
       let launchedProject: LaunchedProject | undefined
 
       try {
@@ -553,7 +512,7 @@ function useOpenHybridProject() {
         addOpeningProject(asset.id, asset.ensoPath)
         const projectSessionId = await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
         const localProject = await remoteBackend.downloadProject(asset.id)
-        const cloudProjectDirectoryPath = backendModule.EnsoPath(
+        const cloudProjectDirectoryPath = EnsoPath(
           asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/')),
         )
 
@@ -569,7 +528,7 @@ function useOpenHybridProject() {
             pageSize: null,
             recentProjects: false,
           })
-          project = assets.filter((item) => item.type === backendModule.AssetType.project).at(0)
+          project = assets.filter((item) => item.type === AssetType.project).at(0)
           if (project) {
             break
           }
@@ -581,7 +540,7 @@ function useOpenHybridProject() {
           title: asset.title,
           parentId: project.parentId,
           ensoPath: asset.ensoPath,
-          type: backendModule.BackendType.local,
+          type: BackendType.local,
           hybrid: {
             cloudProjectId: asset.id,
             cloudProjectSessionId: projectSessionId,
@@ -594,7 +553,7 @@ function useOpenHybridProject() {
       } catch (error) {
         toastAndLog('openProjectError', error, asset.title)
         await Promise.allSettled([
-          closeProject({ ...asset, type: backendModule.BackendType.remote }),
+          closeProject({ ...asset, type: BackendType.remote }),
           ...(launchedProject ? [closeProject(launchedProject)] : []),
         ])
       } finally {
@@ -625,8 +584,8 @@ export function useOpenProjectNatively() {
 
   return eventCallbacks.useEventCallback(
     async (
-      asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>,
-      backendType: backendModule.BackendType,
+      asset: Pick<ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>,
+      backendType: BackendType,
     ) => {
       if (!canRunProjects.natively[backendType]) {
         return
@@ -644,13 +603,13 @@ export function useOpenProjectLocally() {
 
   return eventCallbacks.useEventCallback(
     async (
-      asset: Pick<backendModule.ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>,
-      backendType: backendModule.BackendType,
+      asset: Pick<ProjectAsset, 'ensoPath' | 'id' | 'parentId' | 'title'>,
+      backendType: BackendType,
     ) => {
       if (!canRunProjects.locally[backendType]) {
         return
       }
-      const isCloud = backendType === backendModule.BackendType.remote
+      const isCloud = backendType === BackendType.remote
       if (isCloud) {
         await openHybridProject(asset)
       } else {
@@ -662,7 +621,7 @@ export function useOpenProjectLocally() {
 
 /** A function to close a project. */
 export function useCloseProject() {
-  const client = reactQuery.useQueryClient()
+  const client = useQueryClient()
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = useRemoveLaunchedProject()
 
@@ -710,13 +669,11 @@ export function useCloseAllProjects() {
   const ensureQueryData = useEnsureQueryData()
 
   return eventCallbacks.useEventCallback(async () => {
-    const launchedProjects = containerData.openedProjects
-
     await Promise.all(
-      launchedProjects.map(async (project) => {
+      containerData.openedProjects.map(async (project) => {
         if (project.state === 'launched') {
           const backend =
-            project.type === backendModule.BackendType.remote || project.hybrid != null ?
+            project.type === BackendType.remote || project.hybrid != null ?
               remoteBackend
             : localBackend
           invariant(backend != null, 'Backend must not be async null')
@@ -726,7 +683,7 @@ export function useCloseAllProjects() {
               backend,
             }),
           )
-          if (backendModule.IS_OPENING_OR_OPENED[projectDetails.state.type]) {
+          if (IS_OPENING_OR_OPENED[projectDetails.state.type]) {
             await closeProject(project)
           } else {
             removeLaunchedProject(project.id)
