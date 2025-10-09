@@ -148,7 +148,7 @@ object BazelSupport extends AutoPlugin {
           )
         }
         dir
-      },
+      }
     )
   }
 }
