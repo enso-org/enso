@@ -35,12 +35,14 @@
 - [Fixes for JDBC connection and schema support for SQL Server.][14039]
 - [Change Column.length to Column.row_count][14085]
 - [Add Text_Column.length and Text_Column.char_length][14091]
+- [Microsoft 365 OAuth support.][14135]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
 [14039]: https://github.com/enso-org/enso/pull/14039
 [14085]: https://github.com/enso-org/enso/pull/14085
 [14091]: https://github.com/enso-org/enso/pull/14091
+[14135]: https://github.com/enso-org/enso/pull/14135
 
 #### Enso Language & Runtime
 
