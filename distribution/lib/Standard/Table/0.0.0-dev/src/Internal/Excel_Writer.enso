@@ -22,7 +22,6 @@ polyglot java import org.enso.table.error.InvalidLocationException
 polyglot java import org.enso.table.error.RangeExceededException
 polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ExcelWorkbook
-polyglot java import org.enso.table.excel.ExcelWriteHelper
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
 polyglot java import org.enso.table.write.ExistingDataMode
@@ -75,10 +74,9 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
     file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
 
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
-    modification_strategy = prepare_file_modification_strategy table section on_existing_file match_columns
     is_dry_run = Context.Output.is_enabled.not
 
-    modification_strategy.if_not_error <| Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
+    Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
         possible_backup_file = if on_existing_file == Existing_File_Behavior.Backup then file_as_java (find_bak_file file) else Nothing
         possible_dry_run_file = if is_dry_run.not then Nothing else
             preexisting_dry_run_file = DryRunFileManager.preExistingTemporaryFile file.absolute.normalize.path
@@ -97,9 +95,8 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
             doesn't exist we also ensure that the temp file is not polluted with data from previous (dry-run) writes.
         Context.Output.with_enabled <| Panic.rethrow <|
             if file.exists then (file.copy_to temp_file replace_existing=True) else (temp_file.delete_if_exists)
-
-        ExcelWriter.withWorkbook (file_as_java temp_file) file_format write_helper->
-            write_helper.writeWorkbook modification_strategy
+        
+        write_to_workbook (file_as_java temp_file) file_format table section on_existing_file match_columns
 
         Context.Output.with_enabled <|
             result_file = if is_dry_run then temp_file else
@@ -137,23 +134,20 @@ find_bak_file base_file =
 ## ---
    private: true
    ---
-prepare_file_modification_strategy : Table -> Excel_Section -> Existing_File_Behavior -> Match_Columns -> (ExcelWorkbook -> Nothing)
-prepare_file_modification_strategy table section on_existing_file match_columns =
+write_to_workbook java_file format table section on_existing_file match_columns =
     existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
     case section of
         Excel_Section.Worksheet sheet headers skip_rows row_limit ->
             java_headers = Excel_Reader.make_java_headers headers
             java_limit = row_limit.rows_to_write
-            workbook_to_modify->
-                ExcelWriter.writeTableToSheet workbook_to_modify sheet existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
+            ExcelWriter.writeTableToSheet java_file format sheet existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
         Excel_Section.Cell_Range address headers skip_rows row_limit ->
             java_headers = Excel_Reader.make_java_headers headers
             java_limit = row_limit.rows_to_write
             java_range = case address of
                 _ : Excel_Range -> address.java_range
                 _ : Text -> address
-            workbook_to_modify->
-                ExcelWriter.writeTableToRange workbook_to_modify java_range existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
+            ExcelWriter.writeTableToRange java_file format java_range existing_data_mode skip_rows (table:In_Memory_Table).java_table java_limit java_headers
 
 ## ---
    private: true

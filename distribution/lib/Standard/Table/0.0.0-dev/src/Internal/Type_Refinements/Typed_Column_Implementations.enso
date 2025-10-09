@@ -11,6 +11,8 @@ from project.Internal.In_Memory_Column_Implementation import apply_unary_operati
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
+polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
+polyglot java import org.enso.table.data.column.operation.unary.TextCharLengthOperation
 polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
 
 type In_Memory_Numeric_Column_Implementation
@@ -36,4 +38,16 @@ type In_Memory_Text_Column_Implementation
         Value_Type.expect_text column <|
             new_name = naming_helper.function_name "to_case" [column, case_option.to_text]
             operation = CaseOperation.new case_option.to_java locale.java_locale
+            apply_unary_operation column operation new_name
+
+    length (column : Column & In_Memory_Column) =
+        Value_Type.expect_text column <|
+            new_name = naming_helper.function_name "length" [column]
+            operation = TextLengthOperation.INSTANCE
+            apply_unary_operation column operation new_name
+
+    char_length (column : Column & In_Memory_Column) =
+        Value_Type.expect_text column <|
+            new_name = naming_helper.function_name "char_length" [column]
+            operation = TextCharLengthOperation.INSTANCE
             apply_unary_operation column operation new_name

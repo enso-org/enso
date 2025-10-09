@@ -73,6 +73,7 @@ type R
     private private_static_method v = R.V "private" v
 
 Text.from (that:R) = that.a
+Text.from (that:My_Type) = "foo:"+that.foo.to_text+" bar:"+that.bar.to_text+" baz:"+that.baz.to_text
 Integer.from (that:R) = that.i
 
 add_specs suite_builder =
@@ -458,22 +459,34 @@ add_specs suite_builder =
             (Test_Type.Value a)==(Test_Type.Value b) . should_be_true
             (Test_Type.Value a)==(Test_Type.Value c) . should_be_false
 
-        group_builder.specify "get annotations" <|
+        group_builder.specify "get annotations on type" <|
             Meta.get_annotation Meta_Spec .test_method "a" . should_equal 7
             Meta.get_annotation Meta_Spec .test_method "b" . should_equal (Test_Type.Value 49)
             Meta.get_annotation Meta_Spec .test_method "c" . should_fail_with Text
             Meta.get_annotation Meta_Spec .test_method "c" . catch . should_equal "Error Value"
             Meta.get_annotation Meta_Spec .test_method "x" . should_equal Nothing
 
-            value = My_Type.Value 99 "bar" True
+
+        assert_get_annotation_on value =
             Meta.get_annotation value .first_method "param" . should_equal 11
             Meta.get_annotation value .second_method "param" . should_equal Nothing
             Meta.get_annotation value .third_method "param" . should_equal Nothing
             Meta.get_annotation value .other_method "a" 7 . should_equal 12
             Meta.get_annotation value .other_method "b" value . should_equal 99
             Meta.get_annotation value .other_method "c" . should_equal Nothing
-
             Meta.get_annotation value .my_method "self" . should_equal "self"
+
+        group_builder.specify "get annotations on value" <|
+            value = My_Type.Value 99 "bar" True
+            assert_get_annotation_on value
+
+        group_builder.specify "get annotations on multi value (1st)" <|
+            value -> My_Type&Text = My_Type.Value 99 "bar" True
+            assert_get_annotation_on value
+
+        group_builder.specify "get annotations on multi value (2nd)" <|
+            value -> Text&My_Type = My_Type.Value 99 "bar" True
+            assert_get_annotation_on value
 
         group_builder.specify "no constructor annotations on value" <|
             value = My_Type.Value 99 "bar" True

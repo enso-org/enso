@@ -150,24 +150,18 @@ case object FunctionBinding extends IRPass {
         )
 
       // Conversion methods cannot be specified as private
-      case meth @ definition.Method.Binding(
-            methRef,
-            _,
-            isPrivate,
-            _,
-            _,
-            _
-          ) if isPrivate && methRef.methodName.name == conversionMethodName =>
+      case meth: definition.Method.Binding
+          if meth.isPrivate && meth
+            .methodReference()
+            .methodName
+            .name == conversionMethodName =>
         errors.Conversion(meth, errors.Conversion.DeclaredAsPrivate)
 
-      case methodBinding @ definition.Method.Binding(
-            methRef,
-            args,
-            isPrivate,
-            body,
-            _,
-            _
-          ) =>
+      case methodBinding: definition.Method.Binding =>
+        val methRef    = methodBinding.methodReference()
+        val args       = methodBinding.arguments
+        val body       = methodBinding.body
+        val isPrivate  = methodBinding.isPrivate
         val methodName = methRef.methodName.name
 
         if (methodName != conversionMethodName) {
@@ -181,7 +175,7 @@ case object FunctionBinding extends IRPass {
                 .build()
             )
 
-          new definition.Method.Explicit(methodBinding, newBody)
+          definition.Method.Explicit.fromMethodBinding(methodBinding, newBody)
         } else {
           if (args.isEmpty)
             errors.Conversion(methodBinding, errors.Conversion.MissingArgs)
@@ -278,7 +272,7 @@ case object FunctionBinding extends IRPass {
                         .build()
                     )
                   Right(
-                    new definition.Method.Conversion(
+                    definition.Method.Conversion.fromMethodBinding(
                       methodBinding,
                       firstArgumentType,
                       newBody

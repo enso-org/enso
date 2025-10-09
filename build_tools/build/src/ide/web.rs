@@ -14,7 +14,6 @@ use ide_ci::programs::node::PnpmCommand;
 use ide_ci::programs::Pnpm;
 use sha2::Digest;
 use std::process::Stdio;
-use tempfile::TempDir;
 
 
 
@@ -31,7 +30,6 @@ pub mod env {
         ENSO_BUILD_IDE, PathBuf;
         ENSO_BUILD_PROJECT_MANAGER, PathBuf;
         ENSO_BUILD_GUI, PathBuf;
-        ENSO_BUILD_ICONS, PathBuf;
         ENSO_BUILD_SIGN, bool;
         /// List of files that should be copied to the Gui.
         ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
@@ -123,7 +121,7 @@ pub fn unpacked_dir(output_path: impl AsRef<Path>, os: OS, arch: Arch) -> PathBu
 
 /// Computes the SHA-256 checksum of a file and writes it to a file.
 ///
-/// This is a Rust equivalent of the `app/ide-desktop/client/tasks/computeHashes.ts`.
+/// This is a Rust equivalent of the `app/electron-client/tasks/computeHashes.ts`.
 pub fn store_sha256_checksum(file: impl AsRef<Path>, checksum_file: impl AsRef<Path>) -> Result {
     let mut hasher = sha2::Sha256::new();
     let mut file = ide_ci::fs::open(&file)?;
@@ -131,16 +129,6 @@ pub fn store_sha256_checksum(file: impl AsRef<Path>, checksum_file: impl AsRef<P
     let hash = hasher.finalize();
     ide_ci::fs::write(&checksum_file, format!("{hash:x}"))?;
     Ok(())
-}
-
-#[derive(Clone, Debug)]
-pub struct IconsArtifacts(pub PathBuf);
-
-impl FallibleManipulator for IconsArtifacts {
-    fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
-        command.set_env(env::ENSO_BUILD_ICONS, &self.0)?;
-        Ok(())
-    }
 }
 
 /// Get a relative path to the Project Manager executable in the PM bundle.
@@ -235,15 +223,6 @@ impl IdeDesktop {
         Ok(command)
     }
 
-    pub async fn build_icons(&self, output_path: impl AsRef<Path>) -> Result<IconsArtifacts> {
-        self.pnpm()?
-            .set_env(env::ENSO_BUILD_ICONS, output_path.as_ref())?
-            .run("build:icons")
-            .run_ok()
-            .await?;
-        Ok(IconsArtifacts(output_path.as_ref().into()))
-    }
-
     /// Build the full Electron package, using the electron-builder.
     #[allow(clippy::too_many_arguments)]
     #[tracing::instrument(name="Preparing distribution of the IDE.", skip_all, fields(
@@ -293,11 +272,6 @@ impl IdeDesktop {
             .run_ok()
             .await?;
 
-        let icons_dist = TempDir::new()?;
-        let icons_dist = icons_dist.into_path();
-        let icons_build = self.build_icons(&icons_dist);
-        let icons = icons_build.await?;
-
         let target_args = match target {
             Some(target) => vec!["--target".to_string(), target],
             None => vec![],
@@ -305,7 +279,6 @@ impl IdeDesktop {
 
 
         self.pnpm()?
-            .try_applying(&icons)?
             .apply(&RemoveEmptyCscEnvVars)
             .set_env(env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
             .set_env(env::ENSO_IDE_VERSION, &version_string)?

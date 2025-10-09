@@ -50,7 +50,7 @@ LocalStorage.registerKey('loginRedirect', {
   schema: z.string(),
 })
 
-window.menuApi?.setMenuItemHandler('about', () => {
+window.api?.menu.setMenuItemHandler('about', () => {
   AboutModal.open()
 })
 
