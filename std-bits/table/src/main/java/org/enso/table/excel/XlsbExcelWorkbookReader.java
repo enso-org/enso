@@ -214,6 +214,9 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
         @Override
         public void doubleCell(String cellReference, double value, XSSFComment comment) {
             int colIndex = getColumnIndex(cellReference);
+            while (currentRow.size() <= colIndex) {
+                currentRow.add("");
+            }
             currentRow.set(colIndex, value);
         }
         
