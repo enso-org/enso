@@ -2013,17 +2013,20 @@ lazy val `ydoc-server` = project
       )
       args
     },
-    Compile / resourceGenerators +=
-      Def
-        .task(
-          Ydoc.generateJsBundle(
-            (ThisBuild / baseDirectory).value,
-            baseDirectory.value,
-            (Compile / resourceManaged).value,
-            streams.value
-          )
+    Compile / resourceGenerators += Def.taskIf {
+      if ((Bazel / wasStartedFromBazel).value) {
+        Seq(
+          (Bazel / ydocServerPolyglotMainJs).value
         )
-        .taskValue
+      } else {
+        Ydoc.generateJsBundle(
+          (ThisBuild / baseDirectory).value,
+          baseDirectory.value,
+          (Compile / resourceManaged).value,
+          streams.value
+        )
+      }
+    }
   )
   .settings(
     NativeImage.smallJdk := None,
