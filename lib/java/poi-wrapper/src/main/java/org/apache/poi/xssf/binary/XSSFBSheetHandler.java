@@ -144,7 +144,12 @@ public class XSSFBSheetHandler extends XSSFBParser {
         beforeCellValue(data);
         //xNum
         double val = LittleEndian.getDouble(data, XSSFBCellHeader.length);
-        handleCellValue(formatVal(val, cellBuffer.getStyleIdx()));
+        CellAddress cellAddress = new CellAddress(currentRow, cellBuffer.getColNum());
+        XSSFBComment comment = null;
+        if (comments != null) {
+            comment = comments.get(cellAddress);
+        }
+        handler.doubleCell(cellAddress.formatAsString(), val, comment);
     }
 
     private void handleCellSt(byte[] data) {
@@ -194,7 +199,12 @@ public class XSSFBSheetHandler extends XSSFBParser {
     private void handleCellRk(byte[] data) {
         beforeCellValue(data);
         double val = rkNumber(data, XSSFBCellHeader.length);
-        handleCellValue(formatVal(val, cellBuffer.getStyleIdx()));
+        CellAddress cellAddress = new CellAddress(currentRow, cellBuffer.getColNum());
+        XSSFBComment comment = null;
+        if (comments != null) {
+            comment = comments.get(cellAddress);
+        }
+        handler.doubleCell(cellAddress.formatAsString(), val, comment);
     }
 
     private String formatVal(double val, int styleIdx) {

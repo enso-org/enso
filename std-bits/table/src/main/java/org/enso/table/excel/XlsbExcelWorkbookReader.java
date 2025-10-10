@@ -218,6 +218,8 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
                 currentRow.add("");
             }
             currentRow.set(colIndex, value);
+            currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
+            currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
         }
         
         @Override

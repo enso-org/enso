@@ -1441,9 +1441,10 @@ add_specs suite_builder =
         group_builder.specify "should be able to read xlsb files" <|
             workbook = (enso_project.data / "products.xlsb") . read
             workbook.sheet_count . should_equal 1
-            sheet_data = workbook.read 1
+            sheet_data = workbook.read 1 ..Has_Headers
             sheet_data.should_be_a Table
-            sheet_data.row_count . should_equal 100
+            sheet_data.row_count . should_equal 99
+            IO.println sheet_data.column_info.pretty
 
             sheet_data2 = workbook.read "products"
             sheet_data2.should_be_a Table
