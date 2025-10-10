@@ -44,6 +44,7 @@
 
 #### Enso Language & Runtime
 
+- [Enso is "conversion and equality oriented" language][14133]
 - [Moving >, >=, <, <= to types where such operators make sense][14017]
 - [Moving warning releated methods outside of `Any`][13978]
 - [Moving error relelated methods outside of `Any`][14003]
@@ -55,6 +56,7 @@
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
 
+[14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
 [14003]: https://github.com/enso-org/enso/pull/14003
 [13978]: https://github.com/enso-org/enso/pull/13978
