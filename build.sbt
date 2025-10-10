@@ -5536,10 +5536,13 @@ lazy val `duckdb-wrapper` = project
   .in(file("lib/java/duckdb-wrapper"))
   .enablePlugins(JarExtractPlugin)
   .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
     libraryDependencies ++= Seq(
       "org.duckdb" % "duckdb_jdbc" % duckdbVersion
     ),
     inputJar := "org.duckdb" % "duckdb_jdbc" % duckdbVersion,
+    version := "0.1",
     jarExtractor := JarExtractor(
       "libduckdb_java.so_linux_amd64"   -> PolyglotLib(LinuxAMD64),
       "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSArm64),
@@ -5547,7 +5550,11 @@ lazy val `duckdb-wrapper` = project
       "libduckdb_java.so_windows_amd64" -> PolyglotLib(WindowsAMD64),
       "META-INF/**"                     -> CopyToOutputJar,
       "org/**/*.class"                  -> CopyToOutputJar
-    )
+    ),
+    inputJarResolved := assembly.value,
+    assemblyMergeStrategy := { case _ =>
+      MergeStrategy.preferProject
+    }
   )
 
 lazy val `std-image` = project
@@ -6088,7 +6095,7 @@ lazy val `std-duckdb` = project
     Compile / packageBin / artifactPath :=
       `std-duckdb-polyglot-root` / "std-duckdb.jar",
     libraryDependencies ++= Seq(
-      "org.duckdb" % "duckdb_jdbc" % duckdbVersion
+      "org.duckdb" % "duckdb_jdbc" % duckdbVersion % "provided"
     ),
     Compile / packageBin := {
       val stdDuckDBJar      = (Compile / packageBin).value
@@ -6101,9 +6108,7 @@ lazy val `std-duckdb` = project
           libraryUpdates     = (Compile / update).value,
           unmanagedClasspath = (Compile / unmanagedClasspath).value,
           polyglotLibDir     = Some(`std-duckdb-native-libs`),
-          ignoreDependencies = Some((fileName: String) => {
-            s"duckdb_jdbc-$duckdbVersion.jar" == fileName
-          }),
+          ignoreDependencies = None,
           extractedNativeLibsDirs = Seq(
             (`duckdb-wrapper` / extractedFilesDir).value
           ),
