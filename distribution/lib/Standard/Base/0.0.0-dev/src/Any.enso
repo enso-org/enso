@@ -1,9 +1,7 @@
 import project.Meta
-import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
-from project.Function import const
 import project.Errors.Common.No_Such_Conversion
 from project.Metadata import Widget
 
