@@ -14,9 +14,9 @@ import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.xssf.binary.XSSFBSharedStringsTable;
 import org.apache.poi.xssf.binary.XSSFBSheetHandler;
+import org.apache.poi.xssf.binary.XSSFBSheetHandler.TypedSheetContentsHandler;
 import org.apache.poi.xssf.binary.XSSFBStylesTable;
 import org.apache.poi.xssf.eventusermodel.XSSFBReader;
-import org.apache.poi.xssf.eventusermodel.XSSFSheetXMLHandler;
 import org.apache.poi.xssf.model.SharedStrings;
 import org.apache.poi.xssf.usermodel.XSSFComment;
 
@@ -155,9 +155,9 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
   /**
      * Custom implementation of SheetContentsHandler to capture and display cell data from XLSB files.
      */
-    static class XlsbSheetContentsHandler implements XSSFSheetXMLHandler.SheetContentsHandler {
+    static class XlsbSheetContentsHandler implements TypedSheetContentsHandler {
         private final List<RowData> rows = new ArrayList<>();
-        private List<String> currentRow = new ArrayList<>();
+        private List<Object> currentRow = new ArrayList<>();
         private int currentRowIndex = -1;
         private int maxColumns = 0;
         private int firstRowIndex = -1;
@@ -210,6 +210,12 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
             currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
             currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
         }
+
+        @Override
+        public void doubleCell(String cellReference, double value, XSSFComment comment) {
+            int colIndex = getColumnIndex(cellReference);
+            currentRow.set(colIndex, value);
+        }
         
         @Override
         public void headerFooter(String text, boolean isHeader, String tagName) {
@@ -248,40 +254,18 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
             return rows.get(index);
         }
 
-        public void printResults() {
-            System.out.println("Number of rows: " + rows.size());
-            
-            for (int i = 0; i < rows.size(); i++) {
-                RowData row = rows.get(i);
-                if (row == null) {
-                    System.out.println("Row " + (i + 1) + ": <missing>");
-                    continue;
-                }
-                StringBuilder rowData = new StringBuilder();
-                rowData.append("Row ").append(i + 1).append(": ");
-                
-                for (int j = 0; j < Math.max(row.values().size(), maxColumns); j++) {
-                    String cellValue = (j < row.values().size()) ? row.values().get(j) : "";
-                    if (cellValue == null) cellValue = "";
-                    rowData.append("[").append(cellValue).append("] ");
-                }
-                
-                System.out.println(rowData.toString());
-            }
-        }
-
         static final class RowData {
-            private final List<String> values;
+            private final List<Object> values;
             private final int firstColumn;
             private final int lastColumn;
 
-            RowData(List<String> values, int firstColumn, int lastColumn) {
+            RowData(List<Object> values, int firstColumn, int lastColumn) {
                 this.values = values;
                 this.firstColumn = firstColumn;
                 this.lastColumn = lastColumn;
             }
 
-            List<String> values() {
+            List<Object> values() {
                 return values;
             }
 

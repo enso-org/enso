@@ -8,7 +8,7 @@ import org.graalvm.polyglot.Context;
 /** Simple row wrapper backed by the parsed XLSB cell values. */
 public final class XlsbExcelRow implements ExcelRow {
 
-  private final List<String> values;
+  private final List<Object> values;
   private final int firstColumn;
   private final int lastColumn;
 
@@ -35,7 +35,7 @@ public final class XlsbExcelRow implements ExcelRow {
     }
 
     var value = values.get(column - 1);
-    return (value == null || value.isEmpty()) ? null : value;
+    return (value == null) ? null : value; // || value.isEmpty()
   }
 
   @Override
@@ -45,7 +45,7 @@ public final class XlsbExcelRow implements ExcelRow {
     }
 
     var value = values.get(column - 1);
-    return value == null ? "" : value;
+    return value == null ? "" : value.toString();
   }
 
   @Override
@@ -60,7 +60,7 @@ public final class XlsbExcelRow implements ExcelRow {
     }
 
     var value = values.get(column - 1);
-    return value == null || value.isEmpty();
+    return value == null; // || value.isEmpty();
   }
 
   @Override
@@ -82,7 +82,7 @@ public final class XlsbExcelRow implements ExcelRow {
         output[column - startCol] = "";
       } else {
         var value = values.get(column - 1);
-        output[column - startCol] = value == null ? "" : value;
+        output[column - startCol] = value == null ? "" : value.toString();
       }
       context.safepoint();
     }
