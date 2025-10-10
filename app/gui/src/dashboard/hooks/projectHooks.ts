@@ -28,6 +28,7 @@ import {
   AssetType,
   BackendType,
   EnsoPath,
+  extractTypeAndPath,
   IS_OPENING_OR_OPENED,
   ProjectState,
   type Asset,
@@ -534,7 +535,10 @@ function useOpenHybridProject() {
           }
         }
 
-        invariant(project, 'Downloaded cloud project does not exist in Local Backend.')
+        invariant(
+          project,
+          `Downloaded cloud project does not exist in Local Backend (checked path ${extractTypeAndPath(localProject.parentId).path}).`,
+        )
         launchedProject = {
           id: project.id,
           title: asset.title,

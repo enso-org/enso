@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { vueBackendQueryOptions } from '#/hooks/backendHooks'
 import { unsetModal } from '#/providers/ModalProvider'
-import { AssetType, BackendType, EnsoPath, ProjectId } from '#/services/Backend'
+import { AssetType, BackendType, EnsoPath } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import StandaloneButton from '@/components/StandaloneButton.vue'
 import { useOpenProjectLocally } from '@/composables/project'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import { useQuery } from '@tanstack/vue-query'
 import { computed, onMounted } from 'vue'
 
 const props = defineProps<{ href: string }>()
@@ -18,24 +16,12 @@ const interaction = injectInteractionHandler()
 const openProjectLocally = useOpenProjectLocally()
 const rightPanelData = useRightPanelData()
 const { backendForType } = useBackends()
-const backendType = computed(() => rightPanelData.context?.category?.backend ?? BackendType.remote)
-const resolveEnsoPathQuery = useQuery(
-  vueBackendQueryOptions(backendForType(backendType.value), 'resolveEnsoPath', [path]),
-)
-const assetQuery = useQuery(
-  vueBackendQueryOptions(backendForType(backendType.value), 'getAssetDetails', [
-    computed(() => resolveEnsoPathQuery.data.value?.id as ProjectId),
-    undefined,
-  ]),
-)
 
 const modalInteraction: Interaction = {
   cancel() {
-    console.log(':(', modalInteraction)
     unsetModal()
   },
   end() {
-    console.log(':( 2', modalInteraction)
     unsetModal()
   },
 }
@@ -50,9 +36,12 @@ onMounted(() => {
 
 async function openProjectInNewTab() {
   closeModal()
-  const maybeProject = await assetQuery.promise.value
-  if (maybeProject?.type !== AssetType.project) return
-  openProjectLocally({ ...maybeProject, ensoPath: path.value }, backendType.value)
+  const backendType = rightPanelData.context?.category?.backend ?? BackendType.remote
+  const backend = backendForType(backendType)
+  const resolvedAsset = await backend.resolveEnsoPath(path.value)
+  const asset = await backend.getAssetDetails(resolvedAsset.id, undefined)
+  if (asset?.type !== AssetType.project) return
+  openProjectLocally({ ...asset, ensoPath: path.value }, backendType)
 }
 </script>
 

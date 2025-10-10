@@ -11,7 +11,7 @@ import { useOpenProjectLocally } from '@/composables/project'
 import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
 import { BackendType, EnsoPath } from 'enso-common/src/services/Backend'
 import { createElement } from 'react'
-import { computed, toRef, useTemplateRef, watchEffect } from 'vue'
+import { computed, toRef, useTemplateRef } from 'vue'
 
 const props = defineProps<{
   referenceElement: HTMLElement
@@ -29,18 +29,20 @@ const { backendForType } = useBackends()
 
 const isProject = computed(() => rightPanelData.focusedAsset?.type === AssetType.project)
 
-const shouldOpenProjectModal = computed(() => {
-  if (!isProject.value) return false
+const openLinkAction = computed(() => {
+  if (!isProject.value) return 'default'
   if (containerData.openedProjects.some((project) => project.ensoPath === path.value)) {
     // The project is already opened.
-    return false
+    return 'switch-tab'
   }
   for (const [otherPath] of containerData.openingProjects.values()) {
     // The project is in the process of being opened.
-    if (otherPath === path.value) return false
+    if (otherPath === path.value) return 'switch-tab'
   }
   // Only require the modal if there is at least one project already opened or being opened.
-  return containerData.openedProjects.length > 0 || containerData.openingProjects.size > 0
+  return containerData.openedProjects.length > 0 || containerData.openingProjects.size > 0 ?
+      'open-modal'
+    : 'open-new-project'
 })
 
 const OpenProjectModalReact = vueComponent(OpenProjectModal).default
@@ -60,23 +62,30 @@ async function openProjectInNewTab() {
   openProjectLocally({ ...asset, ensoPath: path.value }, backendType)
 }
 
+function switchTabToProject() {
+  containerData.tab = path.value
+}
+
 const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatingElement, {
   placement: 'top-start',
   strategy: () => (props.popOut ? 'fixed' : 'absolute'),
   middleware: [flip()],
   whileElementsMounted: autoUpdate,
 })
-
-watchEffect(() => {
-  console.log(shouldOpenProjectModal.value, isProject.value, props.href)
-})
 </script>
 
 <template>
   <teleport to="#floatingLayer">
     <div ref="floating" class="LinkEditPopup" :style="floatingStyles" @pointerdown.stop.prevent>
-      <a v-if="shouldOpenProjectModal" class="link" @click="openProjectModal">Follow link</a>
-      <a v-else-if="isProject" class="link" @click="openProjectInNewTab">Follow link</a>
+      <a v-if="openLinkAction === 'open-modal'" class="link" @click="openProjectModal"
+        >Follow link</a
+      >
+      <a v-else-if="openLinkAction === 'open-new-project'" class="link" @click="openProjectInNewTab"
+        >Follow link</a
+      >
+      <a v-else-if="openLinkAction === 'switch-tab'" class="link" @click="switchTabToProject"
+        >Follow link</a
+      >
       <a v-else class="link" :href="href" target="_blank" rel="noopener,noreferrer">Follow link</a>
       ({{ textEditorsBindings.bindings.openLink.humanReadable }})
     </div>

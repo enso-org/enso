@@ -5,6 +5,7 @@ import Backend, {
   AssetType,
   BackendType,
   EnsoPath,
+  extractTypeAndPath,
   IS_OPENING_OR_OPENED,
   Plan,
   ProjectState,
@@ -573,7 +574,7 @@ function useOpenProject() {
         EnsoPath(project.ensoPath),
       )
 
-      if (!enableMultitabs) {
+      if (!enableMultitabs.value) {
         // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
         // The current project is opened as launched above.
         if (containerData.openedProjects.length > 0) {
@@ -647,7 +648,10 @@ function useOpenHybridProject() {
         }
       }
 
-      invariant(project, 'Downloaded cloud project does not exist in Local Backend.')
+      invariant(
+        project,
+        `Downloaded cloud project does not exist in Local Backend (checked path ${extractTypeAndPath(localProject.parentId).path}).`,
+      )
       launchedProject = {
         id: project.id,
         title: asset.title,

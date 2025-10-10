@@ -42,7 +42,7 @@
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
     "git-clean": "git clean -xfd --exclude='.env*'",
     "bazel-clean": "bazel clean --expunge_async",
-    "postinstall": "bazel run //:write_all --verbose_failures"
+    "postinstall": "/nix/store/0dnwlnh1i9bih81z4788frnpzx6kvj3p-bazel-8.2.1/bin/bazel run //:write_all --verbose_failures"
   },
   "//": "To completely ignore deep dependencies, see .pnpmfile.cjs",
   "pnpm": {
