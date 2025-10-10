@@ -461,6 +461,8 @@ pub struct RunOptions {
     pub ports:             HashMap<u16, u16>,
     pub network:           Option<Network>,
     pub storage_size_gb:   Option<usize>,
+    /// Size of /dev/shm for the container, e.g. "1gb". Passed as --shm-size.
+    pub shm_size:          Option<OsString>,
     /// Proxy all received signals to the process (non-TTY mode only).
     pub sig_proxy:         Option<bool>,
 }
@@ -478,6 +480,7 @@ impl RunOptions {
             ports: default(),
             network: default(),
             storage_size_gb: default(),
+            shm_size: Some(OsString::from("1gb")),
             sig_proxy: default(),
         }
     }
@@ -511,6 +514,11 @@ impl RunOptions {
 
     pub fn storage_size_gb(&mut self, storage_size_in_gb: usize) -> &mut Self {
         self.storage_size_gb = Some(storage_size_in_gb);
+        self
+    }
+
+    pub fn shm_size(&mut self, size: impl Into<OsString>) -> &mut Self {
+        self.shm_size = Some(size.into());
         self
     }
 
@@ -563,6 +571,11 @@ impl RunOptions {
             // e.g. --storage-opt size=120G
             ret.push("--storage-opt".into());
             ret.push(format!("size={storage_size_gb}G").into());
+        }
+
+        if let Some(shm_size) = self.shm_size.as_ref() {
+            ret.push("--shm-size".into());
+            ret.push(shm_size.clone());
         }
 
         if let Some(sig_proxy) = self.sig_proxy {
