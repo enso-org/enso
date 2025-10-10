@@ -180,8 +180,13 @@ public class XSSFBSheetHandler extends XSSFBParser {
 
     private void handleBoolean(byte[] data) {
         beforeCellValue(data);
-        String formattedVal = (data[XSSFBCellHeader.length] == 1) ? "TRUE" : "FALSE";
-        handleCellValue(formattedVal);
+        boolean val = data[XSSFBCellHeader.length] == 1;
+        CellAddress cellAddress = new CellAddress(currentRow, cellBuffer.getColNum());
+        XSSFBComment comment = null;
+        if (comments != null) {
+            comment = comments.get(cellAddress);
+        }
+        handler.booleanCell(cellAddress.formatAsString(), val, comment);
     }
 
     private void handleCellReal(byte[] data) {
@@ -367,6 +372,8 @@ public class XSSFBSheetHandler extends XSSFBParser {
       void cell(String cellReference, String formattedValue, XSSFComment comment);
 
       void doubleCell(String cellReference, double value, XSSFComment comment);
+
+      void booleanCell(String cellReference, boolean value, XSSFComment comment);
 
       /** A header or footer has been encountered */
       default void headerFooter(String text, boolean isHeader, String tagName) {}
