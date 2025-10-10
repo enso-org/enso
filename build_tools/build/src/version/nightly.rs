@@ -163,8 +163,6 @@ impl From<Nightly> for Version {
 )]
 #[strum(serialize_all = "lowercase")]
 pub enum YdocVariant {
-    /// Node.js Ydoc.
-    Nodejs,
     /// Polyglot Ydoc.
     Polyglot,
 }
