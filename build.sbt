@@ -3981,7 +3981,7 @@ lazy val `engine-runner` = project
       core ++ stdLibsJars ++ extraNITestLibs.value
     },
     extraNITestLibs := Def.taskDyn {
-      if (GraalVM.EnsoLauncher.dualTest) Def.task {
+      if (!GraalVM.EnsoLauncher.dualTest) Def.task {
         val baseHelpers =
           (`enso-test-java-helpers` / Compile / packageBin).value
             .getAbsolutePath()
