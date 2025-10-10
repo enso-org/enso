@@ -20,7 +20,6 @@ import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
 import project.Runtime.Ref.Ref
@@ -31,6 +30,7 @@ from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Public_Utils import get_required_field
 from project.Error import all
 from project.Logging import all
+from project.Nothing import all
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 
