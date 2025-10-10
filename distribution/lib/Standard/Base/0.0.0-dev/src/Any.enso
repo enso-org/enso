@@ -1,7 +1,4 @@
-import project.Meta
-from project.Data.Boolean import Boolean, False, True
-from project.Data.Ordering import all
-from project.Data.Range.Extensions import all
+from project.Data.Boolean import Boolean
 import project.Errors.Common.No_Such_Conversion
 from project.Metadata import Widget
 
