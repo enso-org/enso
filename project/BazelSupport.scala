@@ -21,6 +21,7 @@ object BazelSupport extends AutoPlugin {
   val RUST_PARSER_JAVA_SRC_DIR_PROP   = "enso.BazelSupport.parser.javaSrcDir"
   val RUST_PARSER_LIB_PROP            = "enso.BazelSupport.parser.lib"
   val EXTRACTED_PYTHON_RESOURCES_PROP = "enso.BazelSupport.python.resourceDir"
+  val C_COMPILER_PATH                 = "enso.BazelSupport.CCompilerPath"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
@@ -49,6 +50,9 @@ object BazelSupport extends AutoPlugin {
     )
     lazy val extractedPythonResourceDir = taskKey[File](
       "Directory containing extracted Python resources"
+    )
+    lazy val cCompilerPath = taskKey[File](
+      "Path to the C Compiler. Will be passed to native-image."
     )
     lazy val Bazel = config("Bazel")
   }
@@ -148,6 +152,23 @@ object BazelSupport extends AutoPlugin {
           )
         }
         dir
+      },
+      Bazel / cCompilerPath := {
+        val logger = streams.value.log
+        val prop   = System.getProperty(C_COMPILER_PATH)
+        if (prop == null) {
+          logger.error(
+            s"C Compiler path not set in ${C_COMPILER_PATH} property."
+          )
+        }
+        val compiler = new File(prop)
+        if (!compiler.exists()) {
+          logger.warn(
+            s"C Compiler not found at $compiler. " +
+            "Make sure to provide a valid C Compiler."
+          )
+        }
+        compiler
       }
     )
   }

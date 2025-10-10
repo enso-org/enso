@@ -204,6 +204,10 @@ EXTRA_SYSTEM_PROPS = [
     "-Denso.BazelSupport.python.resourceDir=$(location //lib/java/python-extract:extract_python_resources)",
 ]
 
+NI_SYS_PROPS = [
+    "-Denso.BazelSupport.CCompilerPath=$(CC_PATH)",
+]
+
 ENV = {
     "JAVA_HOME": "$(JAVABASE)",
     "PATH": "$(FLATC_PATH):$(JAVABASE)/bin:$$PATH",
@@ -239,7 +243,7 @@ run_sbt(
     ],
     env = NATIVE_IMAGE_ENV,
     out_dir = "built-distribution-native",
-    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
+    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS + NI_SYS_PROPS,
     visibility = ["//visibility:public"],
 )
 

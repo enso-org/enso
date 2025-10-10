@@ -3999,6 +3999,13 @@ lazy val `engine-runner` = project
               "-Dnic=nic"
             )
           else Seq()
+        val cCompilerOpts = if ((Bazel / wasStartedFromBazel).value) {
+          Seq(
+            "-H:CCompilerPath=" + (Bazel / cCompilerPath).value.getAbsolutePath
+          )
+        } else {
+          Seq()
+        }
         val mp = (Runtime / modulePath).value.map(_.getAbsolutePath)
         NativeImage
           .buildNativeImage(
@@ -4029,7 +4036,7 @@ lazy val `engine-runner` = project
               "--add-opens=org.graalvm.nativeimage.builder/com.oracle.svm.core.jdk=ALL-UNNAMED",
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
               "--add-opens=java.base/java.nio=ALL-UNNAMED"
-            ) ++ enableHeapDumpOpts ++ debugOpts,
+            ) ++ enableHeapDumpOpts ++ debugOpts ++ cCompilerOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
