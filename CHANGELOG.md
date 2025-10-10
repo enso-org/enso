@@ -34,17 +34,20 @@
 - [Add support for gzip encoded return from web APIs][14026]
 - [Fixes for JDBC connection and schema support for SQL Server.][14039]
 - [Change Column.length to Column.row_count][14085]
+- [Add Text_Column.length and Text_Column.char_length][14091]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
 [14039]: https://github.com/enso-org/enso/pull/14039
 [14085]: https://github.com/enso-org/enso/pull/14085
+[14091]: https://github.com/enso-org/enso/pull/14091
 
 #### Enso Language & Runtime
 
 - [Moving >, >=, <, <= to types where such operators make sense][14017]
 - [Moving warning releated methods outside of `Any`][13978]
 - [Moving error relelated methods outside of `Any`][14003]
+- [Defining to_text & co. as extension methods](14050)
 - [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [Removal of --no-global-cache option][13909]
@@ -55,6 +58,7 @@
 [14017]: https://github.com/enso-org/enso/pull/14017
 [14003]: https://github.com/enso-org/enso/pull/14003
 [13978]: https://github.com/enso-org/enso/pull/13978
+[14050]: https://github.com/enso-org/enso/pull/14050
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13909]: https://github.com/enso-org/enso/pull/13909

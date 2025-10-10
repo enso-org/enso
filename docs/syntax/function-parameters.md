@@ -1,46 +1,46 @@
 ---
 layout: developer-doc
-title: Function Arguments
+title: Function Parameters
 category: syntax
 tags: [syntax, functions]
 order: 11
 ---
 
-# Function Arguments
+# Function Parameters
 
-One of the biggest usability innovations of Enso is the set of argument types
-that it supports. The combination of named and defaulted arguments with a
+One of the biggest usability innovations of Enso is the set of parameter types
+that it supports. The combination of named and defaulted parameters with a
 curried language creates a tool in which it is very clear to express even
 complex APIs.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Positional Arguments](#positional-arguments)
-- [Named Arguments](#named-arguments)
-- [Defaulted Arguments](#defaulted-arguments)
-- [Optional Arguments](#optional-arguments)
-- [Splats Arguments \(Variadics\)](#splats-arguments-variadics)
+- [Positional Parameters](#positional-parameters)
+- [Named Parameters](#named-parameters)
+- [Defaulted Parameters](#defaulted-parameters)
+- [Optional Parameters](#optional-parameters)
+- [Splats Parameters \(Variadics\)](#splats-parameters-variadics)
 - [Type Applications](#type-applications)
-- [Underscore Arguments](#underscore-arguments)
+- [Underscore Parameters](#underscore-parameters)
 
 <!-- /MarkdownTOC -->
 
-## Positional Arguments
+## Positional Parameters
 
 Much like most programming languages, functions in Enso can be called with their
-arguments provided positionally. This is the simple case that everybody is
+parameters provided positionally. This is the simple case that everybody is
 familiar with.
 
-## Named Arguments
+## Named Parameters
 
-All arguments in Enso are defined with a name. Like all programming languages,
-this is necessary for that argument to be used. However, what Enso allows is for
-users to then _call_ those arguments by name.
+All parameters in Enso are defined with a name. Like all programming languages,
+this is necessary for that parameter to be used. However, what Enso allows is
+for users to then _call_ those parameters by name.
 
-- An argument is called by name using the syntax `(name = value)` (or one may
+- A parameter is called by name using the syntax `(name = value)` (or one may
   also take advantage of the operator precedence to write `name=value`).
 - Named arguments are applied in the order they are given. This means that if
-  you positionally apply to an argument `foo` and then try to later apply to it
+  you positionally apply to a parameter `foo` and then try to later apply to it
   by name, this will fail due to currying of functions.
 - Named arguments _cannot_ be used while using operator syntax. This means that
   an expression of the form `a + b` cannot apply arguments by name. However,
@@ -48,27 +48,29 @@ users to then _call_ those arguments by name.
   indeed be used (`a.+ (that = b)`).
 
 This is a great usability boon as in complex APIs it can often be difficult to
-remember the order or arguments.
+remember the order or parameters.
 
-## Defaulted Arguments
+## Defaulted Parameters
 
 Enso also allows users to define their functions with _defaults_ for the
-function's arguments. This is very useful for complex APIs as it allows users to
-experiment and iterate quickly by only providing the arguments that they want to
-customise.
+function's parameters. This is very useful for complex APIs as it allows users
+to experiment and iterate quickly by only providing the parameters that they
+want to customise.
 
-- An argument is defined with a default using the syntax `(name = default_val)`,
+- A parameter is defined with a default using the syntax `(name = default_val)`,
   which, as above, accounts for precedence rules.
-- Argument defaults are applied to the function if no argument value is provided
-  by position or name for that argument.
-- Argument defaults are evaluated lazily if the function is lazy in that
-  argument.
+- Parameter defaults are applied to the function if no argument value is
+  provided by position or name for that parameter.
+- Parameter defaults are evaluated lazily if the function is lazy in that
+  parameter.
 - We provide a `...` operator which suspends application of the default
-  arguments for the purposes of currying.
+  parameters for the purposes of currying.
 
-## Optional Arguments
+## Optional Parameters
 
-There are certain cases where the type information for an argument may be able
+> [!WARNING] Not implemented.
+
+There are certain cases where the type information for an parameter may be able
 to be inferred by the compiler. This is best explained by example. Consider the
 implementation of a `read` function that reads text and outputs a value of a
 particular type.
@@ -94,7 +96,7 @@ read : Text -> (t=t) -> t
 read text (this=this) = t.fromText text
 ```
 
-This allows users both to provide the argument explicitly or leave it out. In
+This allows users both to provide the parameter explicitly or leave it out. In
 the case where it is not provided, the compiler will attempt to infer it from
 usage. If this is impossible, an error would be raised.
 
@@ -106,15 +108,17 @@ read : Text -> t? -> t
 read text this? = t.fromText text
 ```
 
-## Splats Arguments (Variadics)
+## Splats parameters (Variadics)
+
+> [!WARNING] Not implemented.
 
 Enso provides users with the ability to define variadic functions, or _splats_
 functions in our terminology. These are very useful for defining expressive APIs
 and flexible code.
 
-- These work for both positional and keyword arguments.
+- These work for both positional and keyword parameters.
 - They are defined using the syntax `name...`, where `name` is an arbitrary
-  argument name.
+  parameter name.
 
 > The actionables for this section are:
 >
@@ -123,25 +127,27 @@ and flexible code.
 
 ## Type Applications
 
+> [!WARNING] Not implemented.
+
 There are sometimes cases where the user wants to explicitly refine the type of
-an argument at the _call_ site of a function. This can be useful for debugging,
-and for writing ad-hoc code. Much like the named-arguments in applications
+an parameter at the _call_ site of a function. This can be useful for debugging,
+and for writing ad-hoc code. Much like the named-parameters in applications
 above, Enso also provides a syntax for refining types at the application site.
 
-- To refine an argument type by name at the application site, use the `:=`
+- To refine an parameter type by name at the application site, use the `:=`
   operator (e.g. `arg_name := T`).
 - This _will_ be type-checked by the compiler, and so `T` must be a valid
   subtype for the type inferred for (or defined for) the function being called.
 
-## Underscore Arguments
+## Underscore parameters
 
-Enso provides the `_` argument as a quick way to create a lambda from a function
-call. It obeys the following rules.
+Enso provides the `_` parameter as a quick way to create a lambda from a
+function call. It obeys the following rules.
 
-- Replacing any function argument with `_` will create a lambda that accepts an
-  argument and passes it in the place of the underscore. All other function
-  arguments are applied as normal.
+- Replacing any function parameter with `_` will create a lambda that accepts an
+  parameter and passes it in the place of the underscore. All other function
+  parameters are applied as normal.
 - This works both by name and positionally.
-- When a function is provided multiple `_` arguments, they are desugared left to
-  right as the arguments would be applied to the function definition, creating
-  nested lambdas.
+- When a function is provided multiple `_` parameters, they are desugared left
+  to right as the parameters would be applied to the function definition,
+  creating nested lambdas.

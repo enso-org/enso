@@ -422,8 +422,8 @@ works as follows.
 - Where an argument is not applied to an operator, the missing argument is
   replaced by an implicit `_`.
 - The application is then translated based upon the rules for
-  [underscore arguments](./function-arguments.md#underscore-arguments) described
-  later.
+  [underscore parameters](./function-parameters.md#underscore-parameters)
+  described later.
 - The whitespace-based precedence rules discussed above also apply to operator
   sections.
 

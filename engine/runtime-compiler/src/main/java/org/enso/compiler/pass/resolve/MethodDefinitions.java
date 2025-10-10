@@ -124,16 +124,11 @@ public final class MethodDefinitions implements MiniPassFactory {
                         case Method.Explicit explicitMethod -> {
                           var isStatic = computeIsStatic(explicitMethod.body());
                           var resolvedMethod =
-                              explicitMethod.copy(
-                                  resolvedMethodRef,
-                                  explicitMethod.body(),
-                                  isStatic,
-                                  explicitMethod.isPrivate(),
-                                  explicitMethod.isStaticWrapperForInstanceMethod(),
-                                  explicitMethod.location(),
-                                  explicitMethod.passData(),
-                                  explicitMethod.diagnostics(),
-                                  explicitMethod.id());
+                              explicitMethod
+                                  .copyBuilder()
+                                  .methodReference(resolvedMethodRef)
+                                  .isStatic(isStatic)
+                                  .build();
                           yield resolvedMethod;
                         }
                         case Method.Conversion conversionMethod -> {
@@ -148,14 +143,11 @@ public final class MethodDefinitions implements MiniPassFactory {
                                         new MetadataStorage());
                               };
                           var resolvedMethod =
-                              conversionMethod.copy(
-                                  resolvedMethodRef,
-                                  resolvedName,
-                                  conversionMethod.body(),
-                                  conversionMethod.location(),
-                                  conversionMethod.passData(),
-                                  conversionMethod.diagnostics(),
-                                  conversionMethod.id());
+                              conversionMethod
+                                  .copyBuilder()
+                                  .methodReference(resolvedMethodRef)
+                                  .sourceTypeName(resolvedName)
+                                  .build();
                           yield resolvedMethod;
                         }
                         default ->
@@ -229,16 +221,11 @@ public final class MethodDefinitions implements MiniPassFactory {
         // e.g. `My_Type.method instance`.
         // We add a type check to it to ensure only `instance` of `My_Type` can be passed to it.
         var staticMethod =
-            dup.copy(
-                dup.methodReference(),
-                newBody,
-                true,
-                dup.isPrivate(),
-                true,
-                dup.location(),
-                dup.passData(),
-                dup.diagnostics(),
-                dup.id());
+            dup.copyBuilder()
+                .bodyReference(Persistance.Reference.of(newBody))
+                .isStatic(true)
+                .isStaticWrapperForInstanceMethod(true)
+                .build();
         return staticMethod;
       }
       return null;
