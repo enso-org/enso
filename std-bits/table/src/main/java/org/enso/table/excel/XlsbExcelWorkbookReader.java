@@ -203,7 +203,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
             int colIndex = getColumnIndex(cellReference);
 
             while (currentRow.size() <= colIndex) {
-                currentRow.add("");
+                currentRow.add(null);
             }
 
             currentRow.set(colIndex, formattedValue);
@@ -215,7 +215,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
         public void doubleCell(String cellReference, double value, XSSFComment comment) {
             int colIndex = getColumnIndex(cellReference);
             while (currentRow.size() <= colIndex) {
-                currentRow.add("");
+                currentRow.add(null);
             }
             currentRow.set(colIndex, value);
             currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
@@ -226,7 +226,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
         public void booleanCell(String cellReference, boolean value, XSSFComment comment) {
             int colIndex = getColumnIndex(cellReference);
             while (currentRow.size() <= colIndex) {
-                currentRow.add("");
+                currentRow.add(null);
             }
             currentRow.set(colIndex, value);
             currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
