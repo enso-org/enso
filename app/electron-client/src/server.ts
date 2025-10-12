@@ -13,7 +13,6 @@ import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
-import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as projectManagement from 'project-manager-shim'
 import {
   handleFilesystemCommand,
@@ -145,32 +144,21 @@ export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
 // === Config ===
 // ==============
 
-/** External functions for a {@link Server}. */
-export interface ExternalFunctions {
-  readonly runProjectManagerCommand: (
-    cliArguments: string[],
-    body?: NodeJS.ReadableStream,
-  ) => NodeJS.ReadableStream
-}
-
 /** Constructor parameter for the server configuration. */
 interface ConfigConfig {
   readonly dir: string
   readonly port: number
-  readonly externalFunctions: ExternalFunctions
 }
 
 /** Server configuration. */
 export class Config {
   dir: string
   port: number
-  externalFunctions: ExternalFunctions
 
   /** Create a server configuration. */
   constructor(cfg: ConfigConfig) {
     this.dir = path.resolve(cfg.dir)
     this.port = cfg.port
-    this.externalFunctions = cfg.externalFunctions
   }
 }
 
@@ -199,26 +187,22 @@ async function findPort(port: number): Promise<number> {
 export class Server {
   private projectsRootDirectory: string
   private devServer?: vite.ViteDevServer
-  private projectService?: ProjectService
+  private projectService: ProjectService
 
   /** Create a simple HTTP server. */
-  constructor(public config: Config) {
+  constructor(
+    public config: Config,
+    projectService: ProjectService,
+  ) {
     this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
-  }
-
-  /** Get the project service. */
-  getProjectService(): ProjectService {
-    if (!this.projectService) {
-      this.projectService = ProjectService.default()
-    }
-    return this.projectService
+    this.projectService = projectService
   }
 
   /** Server constructor. */
-  static async create(config: Config): Promise<Server> {
+  static async create(config: Config, projectService: ProjectService): Promise<Server> {
     const localConfig = Object.assign({}, config)
     localConfig.port = await findPort(localConfig.port)
-    const server = new Server(localConfig)
+    const server = new Server(localConfig, projectService)
     await server.run()
     return server
   }
@@ -307,34 +291,13 @@ export class Server {
     const requestUrl = request.url
     if (requestUrl == null) {
       console.error('Request URL is null.')
-    } else if (requestUrl.startsWith('/api/project-manager/')) {
-      const actualUrl = new URL(
-        requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
-      )
-      request.pipe(
-        http.request(
-          actualUrl,
-          { headers: request.headers, method: request.method },
-          (actualResponse) => {
-            response.writeHead(
-              // This is SAFE. The documentation says:
-              // Only valid for response obtained from ClientRequest.
-              actualResponse.statusCode!,
-              actualResponse.statusMessage,
-              actualResponse.headers,
-            )
-            actualResponse.pipe(response, { end: true })
-          },
-        ),
-        { end: true },
-      )
     } else if (isProjectServiceRequest(requestUrl)) {
       const headers = Object.fromEntries(COOP_COEP_CORP_HEADERS)
       handleProjectServiceRequest(
         request,
         response,
         requestUrl,
-        async () => this.getProjectService(),
+        async () => this.projectService,
         headers,
       )
     } else if (request.url?.startsWith('/api/')) {
@@ -1099,48 +1062,23 @@ export class Server {
         .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
         .end('Command arguments must be an array of strings.')
     } else {
-      // Check if it's a filesystem command
-      if (cliArguments[0]?.startsWith('--filesystem-')) {
-        const result = await handleFilesystemCommand(cliArguments, request)
+      const result = await handleFilesystemCommand(cliArguments, request)
 
-        if (typeof result === 'string') {
-          const resultData = Buffer.from(result)
-          response
-            .writeHead(HTTP_STATUS_OK, {
-              'Content-Length': String(resultData.byteLength),
-              'Content-Type': 'application/json',
-              ...COOP_COEP_CORP_HEADERS,
-            })
-            .end(resultData)
-        } else {
-          const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
-            'Content-Type': 'application/octet-stream',
+      if (typeof result === 'string') {
+        const resultData = Buffer.from(result)
+        response
+          .writeHead(HTTP_STATUS_OK, {
+            'Content-Length': String(resultData.byteLength),
+            'Content-Type': 'application/json',
             ...COOP_COEP_CORP_HEADERS,
           })
-          result.pipe(responseWithHead, { end: true })
-        }
+          .end(resultData)
       } else {
-        // For non-filesystem commands, fallback to the project manager
-        const commandOutput = (() => {
-          try {
-            return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
-          } catch {
-            const readableStream = new stream.Readable()
-            readableStream.push(
-              JSON.stringify({
-                error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
-              }),
-            )
-            readableStream.push(null)
-            return readableStream
-          }
-        })()
-
-        response.writeHead(HTTP_STATUS_OK, [
-          ['Content-Type', 'application/json'],
+        const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
+          'Content-Type': 'application/octet-stream',
           ...COOP_COEP_CORP_HEADERS,
-        ])
-        commandOutput.pipe(response, { end: true })
+        })
+        result.pipe(responseWithHead, { end: true })
       }
     }
   }
