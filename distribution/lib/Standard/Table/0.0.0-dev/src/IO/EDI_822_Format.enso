@@ -1,0 +1,171 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Runtime.Ref.Ref
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.System.File_Format.File_Name_Pattern
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Logging import all
+
+## Read EDI 822 Format into an In-Memory Table
+type EDI_822_Format
+    ## Read EDI 822 Format into an In-Memory Table
+
+       ## Arguments
+       - `segment_end`: The segment terminator character(s). If empty will
+          auto-detect by looking for the character before `GS*` in the file.
+    EDI_822 (segment_end:Text="")
+
+    ## ---
+       private: true
+       ---
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> EDI_822_Format | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:EDI_822_Format) _->Nothing
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       If the File_Format supports reading from the file, return a configured
+       instance.
+    for_read : File_Format_Metadata -> EDI_822_Format | Nothing
+    for_read file:File_Format_Metadata =
+        case file.guess_extension of
+            ".edi" -> EDI_822_Format.EDI_822
+            ".822" -> EDI_822_Format.EDI_822
+            _      -> Nothing
+
+    ## ---
+       private: true
+       ---
+       If this File_Format should be used for writing to that file, return a
+       configured instance.
+    for_file_write : Writable_File -> EDI_822_Format | Nothing
+    for_file_write file =
+        _ = file
+        Nothing
+
+    ## ---
+       private: true
+       ---
+    get_dropdown_options : Vector Option
+    get_dropdown_options =
+        [Option "EDI 822" "..EDI_822"]
+
+    ## ---
+       private: true
+       ---
+    get_name_patterns -> Vector File_Name_Pattern =
+        [File_Name_Pattern.Value "EDI 822" ["*.edi", "*.822"]]
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems:Problem_Behavior =
+        raw_text = Plain_Text_Format.Plain_Text.read file on_problems
+        parse_text_to_table raw_text separator=self.segment_end
+
+    ## ---
+       private: true
+       ---
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
+        raw_text = Plain_Text_Format.Plain_Text.read_stream stream metadata
+        parse_text_to_table raw_text separator=self.segment_end
+
+## EDI Document Structure
+   The initial segments of each section, is called Header, and the final segment is called Trailer:
+
+   ISA – Interchange Control Header – this is the segment that defines the sender and recipient.
+       GS – Functional Group Header – this segment defines the type of document(s) that are included in this group.
+           ST – Transaction Set Header – this segment starts the document and is used to assign a control number.
+           SE – Transaction Set Trailer – the segment defines the end of the document.
+       GE – Functional Group Trailer– defines the end of the data that was started by the GS segment.
+   IEA – Interchange Control Trailer – is ending the Interchange segment.
+private parse_text_to_table input:Text separator:Text -> Any =
+    stripped = case separator of
+        '\n' -> input.replace '\r' ''
+        _  -> input.replace Named_Pattern.Newlines ''
+
+    used_sep = if separator!='' then separator else
+        index = stripped.index_of "GS*" 1 . if_nothing (stripped.index_of "ST*" 1)
+        if index.is_nothing then '~' else stripped.get index-1
+
+    raw_segments = stripped.split used_sep . map_with_index parse_segment . filter s->s.first!=""
+    raw_tree = raw_segments.running_fold Dictionary.empty walk_tree
+    merged = raw_segments.map_with_index i->s-> raw_tree.at i . get (merge_key s.first) . if_nothing i
+
+    dict = raw_segments.length.down_to 0 . fold Dictionary.empty current->i->
+        raw_segment = raw_segments.at i
+        segment_dict = if current.contains_key i == False then
+
+        target = merged.at i
+
+
+        data = segment.second
+        if current.contains_key key . not then current.insert key data else
+            existing = current.at key
+            case key != segment.first of
+                True  ->
+                    merged = existing.to_vector + data.to_vector
+                    current.insert key (Dictionary.from_vector merged False)
+                False ->
+                    as_vector = if existing.is_a Vector then existing else [existing]
+                    current.insert key (as_vector + [data])
+
+    merged
+
+## Split a segment into a dictionary of fields
+   Return as a pair of segment code and dictionary of data
+private parse_segment index:Integer segment:Text =
+    trimmed = segment.split '*' . map .trim
+    segment_code = trimmed.get 0 ""
+    segment_data =  if trimmed.length<=1 then Dictionary.empty else
+        pairs = trimmed.drop 1 . map_with_index i->t->[trimmed.first + " " + (i+1).to_text, t] . filter p->(p.second.if_nothing "")!=''
+        Dictionary.from_vector pairs
+    [segment_code, segment_data, index]
+
+## Processes the EDI tree structure
+walk_tree current segment =
+    code = segment.first
+    i = segment.at 2
+    case code of
+        "ISA" -> current.insert "ISA" i
+        "GS" -> current.insert "GS" i
+        "ST" -> current.insert "ST" i
+        "N1" -> current.insert "N1" i
+        "RTE" -> current.insert "RTE" i
+        "ENT" -> current.insert "ENT" i
+        "ACT" -> current.insert "ACT" i
+        "RTE" -> current.insert "RTE" i
+        "LX" -> current.insert "RTE" i
+        "SER" -> current.insert "RTE" i
+        _ -> current
+
+## Merges segments into their parent segments
+private parent_key segment_key = case segment_key of
+    "SE" -> "ST"
+    "GE" -> "GS"
+    "IEA" -> "ISA"
+    "N1" -> "ENT"
+    "N2" -> "N1"
+    "N3" -> "N1"
+    "N4" -> "N1"
+    "PER" -> "N1"
+    "CUR" -> "ACT"
+    "ADJ" -> "ACT"
+    "DTM" -> "RTE"
+    "BLN" -> "RTE"
+    "CTP" -> "RTE"
+    "ACT" -> "ENT"
+    "RTE" -> "ACT"
+    "LX" -> "ACT"
+    "SER" -> "ACT"
+    _ -> Nothing
