@@ -7,7 +7,4 @@
     - if_nothing self ~other:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - is_nothing self -> Standard.Base.Any.Any
     - map_nothing self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - pretty self -> Standard.Base.Any.Any
     - to self target_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - to_display_text self -> Standard.Base.Any.Any
-    - to_text self -> Standard.Base.Any.Any

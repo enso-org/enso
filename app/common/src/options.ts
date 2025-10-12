@@ -31,8 +31,6 @@ export const OptionsSchema = z.object({
     .default({}),
   engine: z
     .object({
-      projectManagerPath: z.string().default(''),
-      projectManagerUrl: z.string().default(''),
       ydocUrl: z.string().default(''),
     })
     .default({}),
@@ -64,7 +62,6 @@ export const PASS_TO_WEB: ReadonlySet<string> = new Set([
   'startup.displayedProjectName',
   'authentication.enabled',
   'authentication.email',
-  'engine.projectManagerUrl',
   'engine.ydocUrl',
 ])
 

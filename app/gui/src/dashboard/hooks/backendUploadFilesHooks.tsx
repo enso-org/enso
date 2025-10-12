@@ -31,7 +31,6 @@ import {
   AssetType,
   escapeSpecialCharacters,
   extractProjectExtension,
-  extractTypeAndPath,
   fileIsProject,
   S3_CHUNK_SIZE_BYTES,
   stripProjectExtension,
@@ -461,13 +460,7 @@ export function useUploadFileToCloud() {
             const fileData = await (async () => {
               switch (asset.type) {
                 case AssetType.project: {
-                  // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
-                  const parentDirectoryPath = extractTypeAndPath(asset.parentId).path
-
-                  const id = localBackend.getProjectId(extractTypeAndPath(asset.id).path)
-                  const projectResponse = await httpClient.get(
-                    `/api/project-manager/projects/${id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
-                  )
+                  const projectResponse = await httpClient.get(`/api/projects/${asset.id}/download`)
 
                   if (!projectResponse.ok) {
                     throw new Error('Something went wrong, please try again')

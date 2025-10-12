@@ -28,7 +28,6 @@
     "download-engine": "node scripts/download-engine.js"
   },
   "devDependencies": {
-    "@types/extract-zip": "^2.0.3",
     "@types/node": "catalog:",
     "@types/tar": "^6.1.13",
     "extract-zip": "^2.0.1",
@@ -37,6 +36,7 @@
   },
   "dependencies": {
     "enso-common": "workspace:*",
+    "portfinder": "^1.0.32",
     "tar": "^6.2.1",
     "trash": "^9.0.0",
     "yaml": "^2.7.0"

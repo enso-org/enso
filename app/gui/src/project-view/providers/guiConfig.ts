@@ -19,14 +19,8 @@ export const injectGuiConfig = createGlobalState(() => {
     () => (paramsFull.value.engine.ydocUrl || resolveEnvUrl($config.YDOC_SERVER_URL)) ?? null,
   )
 
-  const projectManagerUrl = computed(
-    () =>
-      (paramsFull.value.engine.projectManagerUrl || resolveEnvUrl($config.PROJECT_MANAGER_URL)) ??
-      null,
-  )
   return proxyRefs({
     params: paramsFull,
     ydocUrl,
-    projectManagerUrl,
   })
 })
