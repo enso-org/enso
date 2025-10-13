@@ -5,9 +5,11 @@ polyglot java import org.enso.table.excel.ExcelFileFormat as Java_Excel_File_For
 type Excel_File_Format
     XLS
     XLSX
+    XLSB
 
     to_java self = case self of
         Excel_File_Format.XLS  -> Java_Excel_File_Format.XLS
         Excel_File_Format.XLSX -> Java_Excel_File_Format.XLSX
+        Excel_File_Format.XLSB -> Java_Excel_File_Format.XLSB
 
 Excel_File_Format.from (that:Boolean) = if that then Excel_File_Format.XLS else Excel_File_Format.XLSX
