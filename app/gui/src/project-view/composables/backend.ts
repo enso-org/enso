@@ -58,11 +58,12 @@ export function backendQueryOptions<Method extends BackendQueryMethod, B extends
   }
 }
 
-type MutationOptions<Method extends BackendMutationMethod> = ToValue<
+type MutationOptions<Method extends BackendMutationMethod, B extends Backend | null> = ToValue<
   Omit<
     UnwrapRef<
       UseMutationOptions<
-        Awaited<ReturnType<Backend[Method]>> | undefined,
+        B extends Backend ? Awaited<ReturnType<Backend[Method]>>
+        : Awaited<ReturnType<Backend[Method]>> | null,
         Error,
         Parameters<Backend[Method]>
       >
@@ -77,7 +78,16 @@ type MutationOptions<Method extends BackendMutationMethod> = ToValue<
 export function backendMutationOptions<
   Method extends BackendMutationMethod,
   B extends Backend | null,
->(method: Method, backend: ToValue<B>, options?: MutationOptions<Method>) {
+>(
+  method: Method,
+  backend: ToValue<B>,
+  options?: MutationOptions<Method, B>,
+): UseMutationOptions<
+  B extends Backend ? Awaited<ReturnType<Backend[Method]>>
+  : Awaited<ReturnType<Backend[Method]>> | null,
+  Error,
+  Parameters<Backend[Method]>
+> {
   return computed(() => {
     const opts = toValue(options)
     const backendVal = toValue(backend)
@@ -93,12 +103,8 @@ export function backendMutationOptions<
       ...backendBaseOptions(backendVal),
       ...opts,
       mutationKey: [backendVal?.type, method, ...(toValue(opts?.mutationKey) ?? [])],
-      mutationFn: (
-        args: Parameters<B[Method]>,
-      ): Promise<
-        B extends Backend ? Awaited<ReturnType<Backend[Method]>>
-        : Awaited<ReturnType<Backend[Method]>> | null
-      > => (backendVal ? (backendVal[method] as any)(...args) : (Promise.resolve(null) as any)),
+      mutationFn: (args) =>
+        backendVal ? (backendVal[method] as any)(...args) : (Promise.resolve(null) as any),
       meta: {
         invalidates,
         awaitInvalidates: true,
@@ -120,7 +126,7 @@ export function backendMutationOptions<
 export function useBackend(which: 'remote' | 'project') {
   const queryClient = useQueryClient()
   const { localBackend: project, remoteBackend: remote } = useBackends()
-  const backend = which === 'project' ? project : remote
+  const backend: Backend | null = which === 'project' ? project : remote
 
   /** Perform the specified query, and keep the result up-to-date if the provided arguments change. */
   function query<Method extends BackendQueryMethod>(
@@ -155,9 +161,9 @@ export function useBackend(which: 'remote' | 'project') {
 
   function mutation<Method extends BackendMutationMethod>(
     method: Method,
-    options?: MutationOptions<Method>,
+    options?: MutationOptions<Method, Backend | null>,
   ): UseMutationReturnType<
-    Awaited<ReturnType<Backend[Method]>> | undefined,
+    Awaited<ReturnType<Backend[Method]>> | null,
     Error,
     Parameters<Backend[Method]>,
     unknown

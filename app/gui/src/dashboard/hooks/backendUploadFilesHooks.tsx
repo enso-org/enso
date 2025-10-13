@@ -1,5 +1,9 @@
 /** @file Hooks for uploading files. */
-import { listDirectoryQueryOptions, useEnsureListDirectory } from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  listDirectoryQueryOptions,
+  useEnsureListDirectory,
+} from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
@@ -11,11 +15,13 @@ import {
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import type LocalBackend from '#/services/LocalBackend'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
 import { useUploadsToCloudStore } from '$/providers/react/upload'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   AssetType,
+  BackendType,
   escapeSpecialCharacters,
   extractProjectExtension,
   fileIsProject,
@@ -26,6 +32,7 @@ import {
   type DirectoryId,
   type FileId,
   type ProjectId,
+  type UploadFileRequestParams,
 } from 'enso-common/src/services/Backend'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
@@ -37,11 +44,38 @@ declare module 'enso-common/src/queryClient' {
   }
 }
 
+/**
+ * Function for uploading files to Local Backend. It requires less hassle than multipart
+ * upload to Cloud.
+ */
+function useUploadLocally(backend: Backend) {
+  const localUploadFileStart = useMutationCallback(
+    backendMutationOptions(backend, 'uploadFileStart'),
+  )
+  const uploadFileEnd = useMutationCallback(backendMutationOptions(backend, 'uploadFileEnd'))
+
+  return async (file: File, params: UploadFileRequestParams) => {
+    const { uploadId, sourcePath } = await localUploadFileStart([params, file])
+    return uploadFileEnd([
+      {
+        uploadId,
+        sourcePath,
+        parts: [],
+        assetId: params.fileId,
+        ...params,
+      },
+    ])
+  }
+}
+
 /** A function to upload files. */
 export function useUploadFiles(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const uploads = useUploadsToCloudStore()
+  const uploadLocally = useUploadLocally(backend)
   const setSelectedAssets = useSetSelectedAssets()
+  const uploadFile =
+    backend.type === BackendType.local ? uploadLocally : uploads.uploadFile.bind(uploads)
 
   return useEventCallback(async (filesToUpload: readonly File[], parentId: DirectoryId) => {
     const reversedFiles = Array.from(filesToUpload).reverse()
@@ -73,50 +107,46 @@ export function useUploadFiles(backend: Backend, category: Category) {
         const { extension } = extractProjectExtension(file.name)
         title = escapeSpecialCharacters(stripProjectExtension(title))
 
-        await uploads
-          .uploadFile(
-            file,
-            {
-              fileId,
-              fileName: `${title}.${extension}`,
-              parentDirectoryId: parentId,
-            },
-            'requestedByUser',
-          )
-          .then((result) => {
-            if (result.jobId != null) {
-              return
-            }
-            addToSelection({
-              type: AssetType.project,
-              // This is SAFE, because it is guarded behind `assetIsProject`.
-              // eslint-disable-next-line no-restricted-syntax
-              id: result.id as ProjectId,
-              parentId,
-              title,
-            })
+        await uploadFile(
+          file,
+          {
+            fileId,
+            fileName: `${title}.${extension}`,
+            parentDirectoryId: parentId,
+          },
+          'requestedByUser',
+        ).then((result) => {
+          if (result.jobId != null) {
+            return
+          }
+          addToSelection({
+            type: AssetType.project,
+            // This is SAFE, because it is guarded behind `assetIsProject`.
+            // eslint-disable-next-line no-restricted-syntax
+            id: result.id as ProjectId,
+            parentId,
+            title,
           })
+        })
       } else {
         title = escapeSpecialCharacters(title)
-        await uploads
-          .uploadFile(
-            file,
-            { fileId, fileName: title, parentDirectoryId: parentId },
-            'requestedByUser',
-          )
-          .then((result) => {
-            if (result.jobId != null) {
-              return
-            }
-            addToSelection({
-              type: AssetType.file,
-              // This is SAFE, because it is guarded behind `assetIsFile`.
-              // eslint-disable-next-line no-restricted-syntax
-              id: result.id as FileId,
-              parentId,
-              title,
-            })
+        await uploadFile(
+          file,
+          { fileId, fileName: title, parentDirectoryId: parentId },
+          'requestedByUser',
+        ).then((result) => {
+          if (result.jobId != null) {
+            return
+          }
+          addToSelection({
+            type: AssetType.file,
+            // This is SAFE, because it is guarded behind `assetIsFile`.
+            // eslint-disable-next-line no-restricted-syntax
+            id: result.id as FileId,
+            parentId,
+            title,
           })
+        })
       }
     }
 

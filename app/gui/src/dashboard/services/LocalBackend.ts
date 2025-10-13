@@ -714,7 +714,7 @@ export default class LocalBackend extends Backend {
   }
 
   /** Finish uploading a large file. */
-  override uploadFileEnd(body: backend.UploadFileEndRequestBody): Promise<backend.UploadedAsset> {
+  override uploadFileEnd(body: { uploadId: string }): Promise<backend.UploadedAsset> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
     const file = this.uploadedFiles.get(body.uploadId)
     invariant(file, 'Uploaded file not found')
