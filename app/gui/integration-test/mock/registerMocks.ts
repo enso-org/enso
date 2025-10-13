@@ -12,7 +12,7 @@ export async function registerMocks(
     mockDate(page),
     mockUnneededUrls(page),
     mockFeatureFlags(page, featureFlags),
-    mockFileBrowser(page),
+    mockElectronApi(page),
   ])
 }
 
@@ -46,11 +46,39 @@ async function mockFeatureFlags(page: Page, featureFlags: Partial<FeatureFlags>)
 }
 
 // Mock FileBrowserApi that is usually provided by Electron.
-async function mockFileBrowser(page: Page) {
-  await test.step('Mock fileBrowserApi', () => {
+async function mockElectronApi(page: Page) {
+  await test.step('Mock electron API', () => {
     return page.addInitScript(() => {
-      Object.defineProperty(window, 'fileBrowserApi', {
-        value: { openFileBrowser: async () => ['/path/to/some/mock/file'] },
+      Object.defineProperty(window, 'api', {
+        value: {
+          authentication: {
+            openUrlInSystemBrowser: () => {},
+            setDeepLinkHandler: () => {},
+            saveAccessToken: () => {},
+          },
+          navigation: {
+            goBack: () => {},
+            goForward: () => {},
+          },
+          menu: { setMenuItemHandler: () => {} },
+          system: {
+            downloadURL: () => Promise.resolve(),
+            showItemInFolder: () => {},
+            getFilePath: (item: File) => '/mock/path/' + item.name,
+          },
+          fileBrowser: { openFileBrowser: async () => ['/path/to/some/mock/file'] },
+          mapBoxApiToken: () => 'mock-mapbox-token',
+          log: console,
+          projectManagement: {
+            setOpenProjectHandler: () => {},
+          },
+          versionInfo: {
+            version: 'MOCK-version',
+            build: 'MOCK-build',
+            electron: 'MOCK-electron-version',
+            chrome: 'MOCK-chrome-version',
+          },
+        }, // satisfies import('$/electronApi').ElectronApi,
       })
     })
   })

@@ -148,9 +148,9 @@ export interface YjsSocket {
     | typeof WebSocket.CLOSING
     | typeof WebSocket.CLOSED
   on(event: 'close', listener: (code: number, reason: Buffer) => void): this
-  on(event: 'message', listener: (data: ArrayBuffer, isBinary: boolean) => void): this
+  on(event: 'message', listener: (data: ArrayBuffer | Buffer, isBinary: boolean) => void): this
   on(event: 'ping' | 'pong', listener: (data: Buffer) => void): this
-  send(data: ArrayBuffer, cb?: (err?: Error) => void): void
+  send(data: Uint8Array, cb?: (err?: Error) => void): void
   ping(): void
   close(): void
 }
@@ -168,7 +168,9 @@ export class YjsConnection extends ObservableV2<{ close(): void }> {
     this.wsDoc = wsDoc
     const isLoaded = wsDoc.conns.size > 0
     wsDoc.conns.set(this, new Set())
-    ws.on('message', (message: ArrayBuffer) => this.messageListener(new Uint8Array(message)))
+    ws.on('message', (message: ArrayBuffer | Buffer) =>
+      this.messageListener(new Uint8Array(message)),
+    )
     ws.on('close', () => this.close())
     if (!isLoaded) wsDoc.doc.load()
     this.initPing()

@@ -380,7 +380,7 @@ export async function mockLocalApi(page: Page) {
       readyState = WebSocket.OPEN
       constructor(private wsRoute: WebSocketRoute) {}
       on(event: 'close', listener: (code: number, reason: Buffer) => void): this
-      on(event: 'message', listener: (data: ArrayBuffer, isBinary: boolean) => void): this
+      on(event: 'message', listener: (data: ArrayBuffer | Buffer, isBinary: boolean) => void): this
       on(event: 'ping' | 'pong', listener: (data: Buffer) => void): this
       on(event: unknown, listener: unknown): this {
         switch (event) {
@@ -392,8 +392,8 @@ export async function mockLocalApi(page: Page) {
             return this
           case 'message':
             this.wsRoute.onMessage((data) => {
-              const _listener = listener as (data: ArrayBuffer, isBinary: boolean) => void
-              _listener(Buffer.from(data).buffer, true)
+              const _listener = listener as (data: ArrayBuffer | Buffer, isBinary: boolean) => void
+              _listener(Buffer.from(data), true)
             })
             return this
           case 'ping':
@@ -402,7 +402,7 @@ export async function mockLocalApi(page: Page) {
         }
         throw new Error(`Event ${event} not implemented.`)
       }
-      send(data: ArrayBuffer, cb?: (err?: Error) => void): void {
+      send(data: Uint8Array, cb?: (err?: Error) => void): void {
         this.wsRoute.send(Buffer.from(data))
         if (cb) Promise.resolve().then(() => cb())
       }
