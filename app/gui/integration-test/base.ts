@@ -11,11 +11,6 @@ import { registerMocks } from './mock/registerMocks'
 
 export type * from 'playwright/test'
 
-export interface PageCtx {
-  // readonly cloudApi: MockCloudApi
-  // readonly localApi: MockLocalApi
-}
-
 export const test = base.extend<{
   featureFlags: Partial<FeatureFlags>
   setupApi: {

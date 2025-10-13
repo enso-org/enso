@@ -1,5 +1,5 @@
 import { isMacLike, useEvent } from '@/composables/events'
-import { type GlobalEventRegistry, useGlobalEventRegistry } from '@/providers/globalEventRegistry'
+import { useGlobalEventRegistry, type GlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { ref, toRef, watch, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'

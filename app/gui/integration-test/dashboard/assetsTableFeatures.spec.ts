@@ -140,7 +140,7 @@ test.describe(() => {
     },
   })
 
-  test("can't start an already running by another user", async ({ drivePage }) => {
+  test("can't start a project that's opened by another user", async ({ drivePage }) => {
     await drivePage.goToCategory.cloud().driveTable.withRows(async (rows) => {
       const row = rows.first()
       const startProjectButton = row.getByTestId('open-project')
