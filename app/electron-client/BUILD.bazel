@@ -67,7 +67,9 @@ electron_builder_bin.electron_builder(
     name = "electron_builder_run",
     srcs = npm_link_targets() + [
         "package.json",
-    ] + [":bundle"] + ["hdiutil"],
+        "//:sbt_build_engine_distribution",
+        "//:sbt_build_small_jdk",
+    ] + [":bundle"],
     args = [
         "build",
     ],

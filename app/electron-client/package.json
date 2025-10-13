@@ -34,7 +34,7 @@
       }
     ],
     "mac": {
-      "target": "dmg",
+      "target": "dir",
       "icon": "./assets/icons/icon.icns",
       "category": "public.app-category.developer-tools",
       "darkModeSupport": true,
@@ -62,6 +62,19 @@
       {
         "from": "bundle/",
         "to": "."
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "../../built-distribution/enso-engine-0.0.0-dev-macos-aarch64/enso-0.0.0-dev/",
+        "to": "enso/dist/0.0.0-dev",
+        "filter": [
+          "!THIRD-PARTY{,/**/*}"
+        ]
+      },
+      {
+        "from": "../../built-small-jdk/",
+        "to": "enso/runtime"
       }
     ],
     "directories": {
