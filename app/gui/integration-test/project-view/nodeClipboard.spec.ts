@@ -37,6 +37,7 @@ test('Copy component with comment', async ({ editorPage, page }) => {
   await editorPage
 
   // Remember state before operation.
+  await expect(locate.nodeCommentContent(page)).toExist()
   const originalNodes = await editorPage.nodeCount()
   const originalNodeComments = await locate.nodeCommentContent(page).count()
 

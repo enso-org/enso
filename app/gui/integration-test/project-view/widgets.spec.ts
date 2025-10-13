@@ -1,6 +1,9 @@
 import type EditorPageActions from 'integration-test/actions/EditorPageActions'
 import { expect, test, type Locator, type Page } from 'integration-test/base'
-import { resetMockWidgetConfigurations } from 'integration-test/mock/lsHandler'
+import {
+  clearMockWidgetConfigurations,
+  restoreMockWidgetConfigurations,
+} from 'integration-test/mock/lsHandler'
 import * as actions from './actions'
 import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
@@ -301,10 +304,8 @@ async function dataReadNodeWithMethodCallInfo(editorPage: EditorPageActions): Pr
 }
 
 test.describe('Dynamic configuration updates', () => {
-  test.beforeEach(async ({ editorPage }) => {
-    await resetMockWidgetConfigurations()
-    await editorPage
-  })
+  test.beforeEach(clearMockWidgetConfigurations)
+  test.afterEach(restoreMockWidgetConfigurations)
 
   /**
    * Check that dynamic dropdowns (with items provided by widget configuration) are not shown
@@ -438,9 +439,8 @@ test.describe('Dynamic configuration updates', () => {
    * Inherited config has a priority even if newer configuration for the child expression arrives.
    * We are using `aggregated` node to test this.
    */
-  test('Inherited configuration', async ({ page, localApi }) => {
-    const node = locate.graphNodeByBinding(page, 'aggregated')
-    await mockMethodCallInfo(page, 'aggregated', {
+  test('Inherited configuration', async ({ page, localApi, editorPage }) => {
+    await editorPage.mockMethodCallInfo('aggregated', {
       methodPointer: {
         module: 'Standard.Table.Table',
         definedOnType: 'Standard.Table.Table.Table',
@@ -448,6 +448,7 @@ test.describe('Dynamic configuration updates', () => {
       },
       notAppliedArguments: [1, 2, 3, 4],
     })
+    const node = locate.graphNodeByBinding(page, 'aggregated')
     await node.click()
     await expect(node.locator('.WidgetTopLevelArgument')).toHaveCount(4)
     // Top-level configuration, including configuration for child widgets.
@@ -797,14 +798,13 @@ test.describe('Table expression', () => {
     await expect(ac.option('false')).toBeVisible()
   })
 
-  // FIXME: only first test calling getTableNodeExprAutocomplete in the same run passes for some reason
-  test.skip('Autocomplete: Column methods', async ({ editorPage }) => {
+  test('Autocomplete: Column methods', async ({ editorPage }) => {
     await prepare(editorPage)
     const ac = await getTableNodeExprAutocomplete(editorPage)
     await expect(ac.option('is_nan')).toBeVisible()
   })
 
-  test.skip('Autocomplete: Table columns', async ({ page, editorPage }) => {
+  test('Autocomplete: Table columns', async ({ page, editorPage }) => {
     await prepare(editorPage)
     // Column data is requested asynchronously, and the menu options list is not reactive, so we
     // retry in case the menu is opened before the data has been received.
@@ -853,7 +853,7 @@ test('Manage aggregates in `aggregate` node', async ({ editorPage, page }) => {
 
   await editorPage
     // Check initially visible arguments
-    .expectNodeTopLevelArgumentCount('aggregated', 2)
+    .expectNodeTopLevelArgumentCount('aggregated', 1)
     .selectSingleNode('aggregated')
     // Check arguments after selecting node
     .expectNodeTopLevelArgumentCount('aggregated', 3)

@@ -221,7 +221,7 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
     'Standard.Visualization.Widgets.column_names_json': encodeJSON(['Column A', 'Column B']),
   }
 
-const mockWidgetConfigurations: Map<string, Uint8Array> = new Map([
+const initialMockWidgetConfigurations: Map<string, Uint8Array> = new Map([
   [
     '.read',
     encodeJSON([
@@ -395,9 +395,16 @@ const mockWidgetConfigurations: Map<string, Uint8Array> = new Map([
   ],
 ])
 
+let mockWidgetConfigurations: Map<string, Uint8Array> = new Map(initialMockWidgetConfigurations)
+
 /** Clear standard widget configurations. Use `updateMockWidgetConfiguration` to set a specific configuration needed for test. */
-export function resetMockWidgetConfigurations() {
+export function clearMockWidgetConfigurations() {
   mockWidgetConfigurations.clear()
+}
+
+/** Restore standard mocks of widget configurations. */
+export function restoreMockWidgetConfigurations() {
+  mockWidgetConfigurations = new Map(initialMockWidgetConfigurations)
 }
 
 function mockWidgetConfiguration(method: string | undefined) {
