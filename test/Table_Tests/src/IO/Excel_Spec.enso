@@ -1408,7 +1408,7 @@ add_specs suite_builder =
             Date_Time.from_excel 60.45 . should_fail_with Illegal_Argument
 
         ci_pending = if Environment.get "CI" != Nothing then "This test takes a lot of time so it is disabled on CI."
-        group_builder.specify "should be able to write and read a big XLSX file (>110MB)" pending="" <|
+        group_builder.specify "should be able to write and read a big XLSX file (>110MB)" pending=ci_pending <|
             n = 10^6
             IO.println "Generating big XLSX file "+Time_Of_Day.now.to_text
             rng = RandomHelpers.new 123
