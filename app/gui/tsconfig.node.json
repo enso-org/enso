@@ -1,9 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "env.d.ts",
     "eslint.config.js",
     "integration-test/**/*",
-    "node.env.d.ts",
     "playwright.config.*",
     "project-manager-shim-middleware/*.ts",
     "src/dashboard/components/types.ts",
