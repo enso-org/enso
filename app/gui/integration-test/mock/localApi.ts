@@ -306,10 +306,12 @@ export async function mockLocalApi(page: Page) {
       }
       unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
       const result: OpenProject = {
-        languageServerBinaryAddress: { host: 'ws://localhost', port: 1234 },
-        languageServerJsonAddress: { host: 'ws://localhost', port: 1235 },
+        languageServerBinaryAddress,
+        languageServerJsonAddress,
+        languageServerYdocAddress,
         projectNamespace: 'local',
-        ...project.metadata,
+        projectName: project.metadata.projectName,
+        projectNormalizedName: project.metadata.projectNormalizedName,
       }
       openProjects.set(params.projectId, {
         state: backend.ProjectState.opened,
@@ -391,7 +393,7 @@ export async function mockLocalApi(page: Page) {
           case 'message':
             this.wsRoute.onMessage((data) => {
               const _listener = listener as (data: ArrayBuffer, isBinary: boolean) => void
-              _listener(Buffer.from(data), true)
+              _listener(Buffer.from(data).buffer, true)
             })
             return this
           case 'ping':
