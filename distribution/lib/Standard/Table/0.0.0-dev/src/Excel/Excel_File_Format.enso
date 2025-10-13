@@ -10,4 +10,5 @@ type Excel_File_Format
         Excel_File_Format.XLS  -> Java_Excel_File_Format.XLS
         Excel_File_Format.XLSX -> Java_Excel_File_Format.XLSX
 
+## For compatibility with the old API that used a boolean to distinguish between XLS and XLSX.
 Excel_File_Format.from (that:Boolean) = if that then Excel_File_Format.XLS else Excel_File_Format.XLSX
