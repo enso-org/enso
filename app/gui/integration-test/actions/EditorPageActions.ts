@@ -178,7 +178,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
     return this.step('Expect input nodes in order', async () => {
       const inputNodes = await this.locateNodes(locate.INPUT_NODE_FILTER).all()
       const inputNodePositions = await Promise.all(
-        inputNodes.map(async (node, i) => {
+        inputNodes.map(async (node) => {
           const nodeText = (await node.locator('.WidgetToken').allTextContents())[0]
           const bbox = await node.boundingBox()
           expect(nodeText).toBeDefined()

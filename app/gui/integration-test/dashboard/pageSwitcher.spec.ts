@@ -15,7 +15,7 @@ function locateDriveView(page: Page) {
 
 test.describe(() => {
   test.use({ featureFlags: { enableCloudExecution: true } })
-  test('page switcher', async ({ drivePage, cloudApi }) => {
+  test('page switcher', async ({ drivePage }) => {
     await drivePage.goToCategory
       .cloud()
 
