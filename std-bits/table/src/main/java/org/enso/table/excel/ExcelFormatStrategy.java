@@ -34,9 +34,6 @@ public abstract class ExcelFormatStrategy {
       case XLS -> {
         return new XlsFormatStrategy();
       }
-      case XLSB -> {
-        return new XlsbFormatStrategy();
-      }
       case XLSX, XLSX_FALLBACK -> {
         return new XlsxFormatStrategy();
       }
