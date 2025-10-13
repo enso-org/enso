@@ -139,9 +139,12 @@ const hasWindow = typeof window !== 'undefined'
 const platform = hasWindow ? (window.navigator?.platform ?? '') : ''
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
 
+/** Platform-dependant property name for Mod modifier key. */
+export const modKeyProp = isMacLike ? 'metaKey' : 'ctrlKey'
+
 /** Check if `mod` key (ctrl or cmd) appropriate for current platform is used */
 export function modKey(e: KeyboardEvent | MouseEvent): boolean {
-  return isMacLike ? e.metaKey : e.ctrlKey
+  return e[modKeyProp]
 }
 
 /**

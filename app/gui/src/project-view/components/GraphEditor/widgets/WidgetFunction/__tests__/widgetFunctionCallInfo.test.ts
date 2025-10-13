@@ -1,10 +1,11 @@
 import {
   GET_WIDGETS_METHOD,
   WIDGETS_ENSO_MODULE,
-  useWidgetFunctionCallInfo,
-} from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
+} from '@/components/GraphEditor/widgets/WidgetFunction/consts'
+import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { parseWithSpans } from '@/stores/graph/__tests__/graphDatabase.test'
+import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import { mockProjectNameStore } from '@/stores/projectNames'
@@ -102,13 +103,14 @@ test.each`
             }
           }
         },
-      },
+      } as GraphDb,
       {
         useVisualizationData(config) {
           expect(visConfig, 'Only one visualization is expected').toBeUndefined()
           visConfig = config
           return ref(null)
         },
+        moduleProjectPath: undefined,
       },
       projectNames,
     )

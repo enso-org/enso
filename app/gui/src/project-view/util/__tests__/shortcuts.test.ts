@@ -1,3 +1,4 @@
+import { modKeyProp } from '@/composables/events'
 import {
   decomposeKeybindString,
   defineKeybinds,
@@ -78,7 +79,7 @@ test.each([
     expectPropagation: true,
   },
   {
-    event: new MouseEvent('click', { ctrlKey: true }),
+    event: new MouseEvent('click', { [modKeyProp]: true }),
     handlers: ['mouse', 'mouseWithModifier', 'mouseWithAllModifiers'],
     expected: ['mouseWithModifier'],
   },
@@ -89,7 +90,7 @@ test.each([
     expectPropagation: true,
   },
   {
-    event: new MouseEvent('click', { altKey: true, ctrlKey: true, metaKey: true, shiftKey: true }),
+    event: new MouseEvent('click', { altKey: true, [modKeyProp]: true, shiftKey: true }),
     handlers: ['mouse', 'mouseWithModifier', 'mouseWithAllModifiers'],
     expected: ['mouseWithAllModifiers'],
   },
