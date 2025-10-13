@@ -157,8 +157,8 @@ type Excel_Format
                 Infer ->
                     tried = if xls_format then "xls" else "xlsx"
                     "Cannot infer xls_format from a stream (tried "+tried+")."
-                True -> "Stream was not in the expected format (xls)."
-                False -> "Stream was not in the expected format (xlsx)."
+                Excel_File_Format.XLS -> "Stream was not in the expected format (xls)."
+                Excel_File_Format.XLSX -> "Stream was not in the expected format (xlsx)."
             Error.throw (Illegal_Argument.Error message)
 
         Excel_Reader.handle_bad_format_with_handler bad_format <|

@@ -124,7 +124,7 @@ type Excel_Workbook
     set_database self database:(Text | File) =
         if database == self.database then self else
             file = File.new database
-            if file.exists && file.is_directory.not then Excel_Workbook.new file self.xls_format else
+            if file.exists && file.is_directory.not then Excel_Workbook.new file self.internal_xl_format else
                 Error.throw (Illegal_Argument.Error "The specified file ('"+file.path+"') does not exist.")
 
     ## ---
