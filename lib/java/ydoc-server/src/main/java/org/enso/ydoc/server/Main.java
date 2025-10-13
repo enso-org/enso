@@ -29,7 +29,7 @@ public final class Main {
 
       var now = System.currentTimeMillis();
       var took = now - then;
-      log.warn("Ydoc server at {}:{} started in {} ms", hostname, port, took);
+      log.debug("Ydoc server at {}:{} started in {} ms", hostname, port, took);
     } else {
       var hostname = System.getenv(ENSO_YDOC_HOST);
       var port = System.getenv(ENSO_YDOC_PORT);
