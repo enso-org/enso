@@ -30,7 +30,7 @@ export interface ContextMenuActions<T extends BaseActions<Context>, Context> {
 
 /** Generate actions for the context menu. */
 export function contextMenuActions<T extends BaseActions<Context>, Context>(
-  step: (name: string, callback: PageCallback<Context>) => T,
+  step: (name: string, callback: PageCallback<Context, T>) => T,
 ): ContextMenuActions<T, Context> {
   return {
     open: () =>

@@ -5,6 +5,7 @@ import project.Data.Ordering.Comparable
 import project.Data.Text.Normalization.Normalization
 import project.Errors.Common.Type_Error
 import project.Panic.Panic
+from project.Nothing import all
 from project.Data.Boolean import Boolean
 
 polyglot java import org.enso.base.Text_Utils

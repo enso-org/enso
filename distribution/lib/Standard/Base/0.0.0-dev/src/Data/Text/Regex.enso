@@ -19,9 +19,9 @@ import project.Errors.Common.Syntax_Error
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Polyglot
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import sort_and_merge_ranges
 from project.Data.Range.Extensions import all

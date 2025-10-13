@@ -7,14 +7,12 @@ import * as backend from '#/services/Backend'
 import { getFileName, getFolderPath } from '#/utilities/fileInfo'
 import { omit } from '#/utilities/object'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
-import { getFeatureFlag } from '$/providers/featureFlags'
 import { normalizeName } from '@/util/nameValidation'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import invariant from 'tiny-invariant'
 import {
   MissingComponentAction,
   Path,
-  PROJECT_MANAGER_LOADING_FAILED_EVENT,
   type CloseProjectParams,
   type CreateProject,
   type CreateProjectParams,
@@ -22,7 +20,6 @@ import {
   type DuplicatedProject,
   type DuplicateProjectParams,
   type FileSystemEntry,
-  type JSONRPCError,
   type JSONRPCResponse,
   type OpenProject,
   type OpenProjectParams,
@@ -30,11 +27,6 @@ import {
   type RenameProjectParams,
   type UUID,
 } from './types'
-
-/** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
-const RETRY_INTERVAL_MS = 1000
-/** The maximum amount of time for which the {@link ProjectManager} should try loading. */
-const MAXIMUM_DELAY_MS = 10_000
 
 /** A project with its path provided instead of its id. */
 type WithProjectPath<T> = Omit<T, 'projectId' | 'projectsDirectory'> & {
@@ -52,90 +44,9 @@ export class ProjectManager {
   private readonly directories = new Map<Path, readonly FileSystemEntry[]>()
   private readonly projects = new Map<UUID, ProjectState>()
   private readonly projectIds = new Map<Path, UUID>()
-  private id = 0
-  private reconnecting = false
-  private resolvers = new Map<number, (value: never) => void>()
-  private rejecters = new Map<number, (reason?: JSONRPCError) => void>()
-  private socketPromise: Promise<WebSocket> | null = null
 
   /** Create a {@link ProjectManager} */
-  constructor(
-    private readonly connectionUrl: string,
-    public readonly rootDirectory: Path,
-  ) {
-    if (!getFeatureFlag('enableProjectService')) {
-      this.socketPromise = this.reconnect()
-    }
-  }
-
-  /** Begin reconnecting the {@link WebSocket}. */
-  reconnect() {
-    if (this.reconnecting && this.socketPromise) {
-      return this.socketPromise
-    }
-    this.reconnecting = true
-    const firstConnectionStartMs = Number(new Date())
-    let lastConnectionStartMs = 0
-    let justErrored = false
-    const reconnect = () => {
-      lastConnectionStartMs = Number(new Date())
-      this.resolvers = new Map()
-      const oldRejecters = this.rejecters
-      this.rejecters = new Map()
-      for (const reject of oldRejecters.values()) {
-        reject()
-      }
-      return new Promise<WebSocket>((resolve, reject) => {
-        const socket = new WebSocket(this.connectionUrl)
-        socket.onmessage = (event) => {
-          // There is no way to avoid this as `JSON.parse` returns `any`.
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
-          const message: JSONRPCResponse<never> = JSON.parse(event.data)
-          if ('result' in message) {
-            this.resolvers.get(message.id)?.(message.result)
-          } else {
-            this.rejecters.get(message.id)?.(message.error)
-          }
-        }
-        socket.onopen = () => {
-          this.reconnecting = false
-          resolve(socket)
-        }
-        socket.onerror = (event) => {
-          event.preventDefault()
-          justErrored = true
-          if (Number(new Date()) - firstConnectionStartMs > MAXIMUM_DELAY_MS) {
-            document.dispatchEvent(new Event(PROJECT_MANAGER_LOADING_FAILED_EVENT))
-            reject(new Error())
-          } else {
-            const delay = RETRY_INTERVAL_MS - (Number(new Date()) - lastConnectionStartMs)
-            window.setTimeout(
-              () => {
-                void reconnect().then(resolve)
-              },
-              Math.max(0, delay),
-            )
-          }
-        }
-        socket.onclose = () => {
-          if (!justErrored) {
-            this.socketPromise = reconnect()
-          }
-          justErrored = false
-        }
-      })
-    }
-    this.socketPromise = reconnect()
-    return this.socketPromise
-  }
-
-  /** Dispose of the {@link ProjectManager}. */
-  async dispose() {
-    if (this.socketPromise) {
-      const socket = await this.socketPromise
-      socket.close()
-    }
-  }
+  constructor(public readonly rootDirectory: Path) {}
 
   /** Get the state of a project given its path. */
   getProjectId(projectPath: Path) {
@@ -161,12 +72,10 @@ export class ProjectManager {
     if (cached) {
       return cached.data
     } else {
-      let promise: Promise<OpenProject>
-      if (getFeatureFlag('enableProjectService')) {
-        promise = this.runProjectServiceCommandJson('project/open', fullParams)
-      } else {
-        promise = this.sendRequest<OpenProject>('project/open', fullParams)
-      }
+      const promise: Promise<OpenProject> = this.runProjectServiceCommand(
+        'project/open',
+        fullParams,
+      )
       this.projects.set(fullParams.projectId, {
         state: backend.ProjectState.openInProgress,
         data: promise,
@@ -199,24 +108,15 @@ export class ProjectManager {
     }
     const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
     this.projects.delete(fullParams.projectId)
-    if (getFeatureFlag('enableProjectService')) {
-      return this.runProjectServiceCommandJson('project/close', fullParams)
-    } else {
-      return this.sendRequest('project/close', fullParams)
-    }
+    return this.runProjectServiceCommand('project/close', fullParams)
   }
 
   /** Create a new project. */
   async createProject(params: CreateProjectParams): Promise<CreateProject> {
-    let result: Omit<CreateProject, 'projectPath'>
-    if (getFeatureFlag('enableProjectService')) {
-      result = await this.runProjectServiceCommandJson('project/create', { ...params })
-    } else {
-      result = await this.sendRequest('project/create', {
-        missingComponentAction: MissingComponentAction.install,
-        ...params,
-      })
-    }
+    const result: Omit<CreateProject, 'projectPath'> = await this.runProjectServiceCommand(
+      'project/create',
+      { ...params },
+    )
     const directoryPath = params.projectsDirectory ?? this.rootDirectory
     // Update `internalDirectories` by listing the project's parent directory, because the
     // directory name of the project is unknown. Deleting the directory is not an option because
@@ -243,11 +143,7 @@ export class ProjectManager {
   /** Rename a project. */
   async renameProject(params: WithProjectPath<RenameProjectParams>): Promise<void> {
     const fullParams: RenameProjectParams = this.paramsWithPathToWithId(params)
-    if (getFeatureFlag('enableProjectService')) {
-      await this.runProjectServiceCommandJson('project/rename', fullParams)
-    } else {
-      await this.sendRequest('project/rename', fullParams)
-    }
+    await this.runProjectServiceCommand('project/rename', fullParams)
     const state = this.projects.get(fullParams.projectId)
     if (state?.state === backend.ProjectState.opened) {
       this.projects.set(fullParams.projectId, {
@@ -270,12 +166,10 @@ export class ProjectManager {
     params: WithProjectPath<DuplicateProjectParams>,
   ): Promise<DuplicatedProject> {
     const fullParams: DuplicateProjectParams = this.paramsWithPathToWithId(params)
-    let result: Omit<DuplicatedProject, 'projectPath'>
-    if (getFeatureFlag('enableProjectService')) {
-      result = await this.runProjectServiceCommandJson('project/duplicate', fullParams)
-    } else {
-      result = await this.sendRequest('project/duplicate', fullParams)
-    }
+    const result: Omit<DuplicatedProject, 'projectPath'> = await this.runProjectServiceCommand(
+      'project/duplicate',
+      fullParams,
+    )
     // Update `internalDirectories` by listing the project's parent directory, because the
     // directory name of the project is unknown. Deleting the directory is not an option because
     // that will prevent ALL descendants of the parent directory from being updated.
@@ -296,11 +190,7 @@ export class ProjectManager {
     if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
       await this.closeProject({ projectPath: params.projectPath })
     }
-    if (getFeatureFlag('enableProjectService')) {
-      await this.runProjectServiceCommandJson('project/delete', fullParams)
-    } else {
-      await this.sendRequest('project/delete', fullParams)
-    }
+    await this.runProjectServiceCommand('project/delete', fullParams)
     this.projectIds.delete(params.projectPath)
     this.projects.delete(fullParams.projectId)
     const siblings = this.directories.get(fullParams.projectsDirectory)
@@ -461,12 +351,6 @@ export class ProjectManager {
     }
   }
 
-  /** Remove all handlers for a specified request ID. */
-  private cleanup(id: number) {
-    this.resolvers.delete(id)
-    this.rejecters.delete(id)
-  }
-
   /**
    * Convert {@link WithProjectPath<T>} to `T`.
    * @throws {Error} when the `id` is not cached.
@@ -483,26 +367,6 @@ export class ProjectManager {
       projectId: id,
       projectsDirectory: directoryPath,
     }
-  }
-
-  /** Send a JSON-RPC request to the project manager. */
-  private async sendRequest<T = void>(method: string, params: unknown): Promise<T> {
-    // Initialize socket lazily if not already initialized
-    this.socketPromise ??= this.reconnect()
-    const socket = await this.socketPromise
-    const id = this.id++
-    socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))
-    return new Promise<T>((resolve, reject) => {
-      this.resolvers.set(id, (value) => {
-        this.cleanup(id)
-        resolve(value)
-      })
-      this.rejecters.set(id, (value) => {
-        this.cleanup(id)
-        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-        reject(value)
-      })
-    })
   }
 
   /** Run the Project Manager binary with the given command-line arguments. */
@@ -536,10 +400,7 @@ export class ProjectManager {
   }
 
   /** Run the Project Manager binary with the given command-line arguments. */
-  private async runProjectServiceCommandJson<T = void>(
-    name: string,
-    body: object | null,
-  ): Promise<T> {
+  private async runProjectServiceCommand<T = void>(name: string, body: object | null): Promise<T> {
     const response = await fetch(`/api/project-service/${name}`, {
       method: 'POST',
       body: body && JSON.stringify(body),

@@ -198,7 +198,6 @@ impl HasOperatorProperties for variant::TypeAnnotationOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
             binary_infix_precedence: Some(Precedence::TypeAnnotation),
-            lhs_section_termination: Some(SectionTermination::Reify),
             is_compile_time: true,
             rhs_is_non_expression: true,
             ..default()

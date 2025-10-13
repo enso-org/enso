@@ -792,6 +792,9 @@ importers:
       enso-common:
         specifier: workspace:*
         version: link:../common
+      portfinder:
+        specifier: ^1.0.32
+        version: 1.0.32
       tar:
         specifier: ^6.2.1
         version: 6.2.1
@@ -802,9 +805,6 @@ importers:
         specifier: ^2.7.0
         version: 2.7.0
     devDependencies:
-      '@types/extract-zip':
-        specifier: ^2.0.3
-        version: 2.0.3
       '@types/node':
         specifier: 'catalog:'
         version: 24.2.1
@@ -3030,10 +3030,6 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
-
-  '@types/extract-zip@2.0.3':
-    resolution: {integrity: sha512-yrO7h+0qOIGxHCmBeL5fKFzR+PBafh9LG6sOLBFFi2JuN+Hj663TAxfnqJh5vkQn963VimrhBF1GZzea3A+4Ig==}
-    deprecated: This is a stub types definition. extract-zip provides its own type definitions, so you do not need this installed.
 
   '@types/fs-extra@9.0.13':
     resolution: {integrity: sha512-nEnwB++1u5lVDM2UI4c1+5R+FYaKfaAzS4OococimjVm3nQw3TuzH5UNsocrcTBbhnerblyHj4A49qXbIiZdpA==}
@@ -10439,12 +10435,6 @@ snapshots:
     optional: true
 
   '@types/estree@1.0.8': {}
-
-  '@types/extract-zip@2.0.3':
-    dependencies:
-      extract-zip: 2.0.1
-    transitivePeerDependencies:
-      - supports-color
 
   '@types/fs-extra@9.0.13':
     dependencies:

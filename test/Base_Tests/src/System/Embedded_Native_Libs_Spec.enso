@@ -62,7 +62,7 @@ collect_jars_with_native_libs root_dir:File jar_files_filter:Text -> Dictionary 
     all_jars.is_empty . should_be_false
 
     should_include_entry entry_name =
-        entry_name.ends_with ".so" || entry_name.ends_with ".dll" || entry_name.ends_with ".dylib"
+        entry_name.match "^.+\.so.*$" || entry_name.ends_with ".dll" || entry_name.ends_with ".dylib"
 
     # Maps Jar paths to list of invalid entries
     dict = all_jars.fold Dictionary.empty \acc jar ->

@@ -15,7 +15,7 @@ import project.Errors.Common.Not_Found
 import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
-import project.Nothing.Nothing
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Internal.Predicate_Helpers import unify_condition_or_predicate, unify_condition_predicate_or_element

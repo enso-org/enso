@@ -151,32 +151,21 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub close:  Option<token::CloseSymbol<'s>>,
         },
         /// Application of an operator, like `a + b`. The left or right operands might be missing,
-        /// thus creating an operator section like `a +`, `+ b`, or simply `+`. See the
-        /// [`OprSectionBoundary`] variant to learn more about operator section scope.
+        /// thus creating an operator section like `a +`, `+ b`, or simply `+`.
         OprApp {
             pub lhs: Option<Tree<'s>>,
             pub opr: OperatorOrError<'s>,
             pub rhs: Option<Tree<'s>>,
         },
-        /// Application of a unary operator, like `-a` or `~handler`. It is a syntax error for `rhs`
-        /// to be `None`.
+        /// Application of a unary operator, like `-a` or `~handler`, to an operand.
         UnaryOprApp {
             pub opr: token::UnaryOperator<'s>,
-            pub rhs: Option<Tree<'s>>,
+            pub rhs: Tree<'s>,
         },
         /// Application of the autoscope operator to an identifier, e.g. `..True`.
         AutoscopedIdentifier {
             pub opr: token::AutoscopeOperator<'s>,
             pub ident: token::Ident<'s>,
-        },
-        /// Defines the point where operator sections should be expanded to lambdas. Let's consider
-        /// the expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum 1)`, not to
-        /// `map ((x -> x.sum) 1)`. The expression `.sum` will be parsed as operator section
-        /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
-        /// around the whole `.sum 1` expression.
-        OprSectionBoundary {
-            pub arguments: u32,
-            pub ast:       Tree<'s>,
         },
         TemplateFunction {
             pub arguments: u32,

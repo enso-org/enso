@@ -16,10 +16,7 @@ import * as pathModule from 'node:path'
 import process from 'node:process'
 
 import * as electron from 'electron'
-import * as portfinder from 'portfinder'
-
 import * as common from 'enso-common'
-import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import {
   buildWebAppURLSearchParamsFromArgs,
   defaultOptions,
@@ -35,7 +32,7 @@ import * as ipc from '@/ipc'
 import * as log from '@/log'
 import * as naming from '@/naming'
 import * as paths from '@/paths'
-import * as projectManager from '@/projectManager'
+import * as projectService from '@/projectService'
 import * as security from '@/security'
 import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
@@ -70,8 +67,6 @@ class App {
   window: electron.BrowserWindow | null = null
   server: server.Server | null = null
   webOptions: Options = defaultOptions()
-  projectManagerHost: string | null = null
-  projectManagerPort: number | null = null
   isQuitting = false
 
   /** Initialize and run the Electron application. */
@@ -89,7 +84,7 @@ class App {
     })
     const { args, fileToOpen, urlToOpen } = this.processArguments()
     if (args.version) {
-      await this.printVersion(args)
+      await this.printVersion()
       electron.app.quit()
     } else if (args.debug.info) {
       await electron.app.whenReady().then(async () => {
@@ -143,7 +138,7 @@ class App {
             console.log('Electron application is ready.')
 
             electron.protocol.handle('enso', (request) =>
-              projectManager.handleProjectProtocol(
+              projectService.handleProjectProtocol(
                 decodeURIComponent(request.url.replace('enso://', '')),
               ),
             )
@@ -274,7 +269,6 @@ class App {
       // Note that we want to do all the actions synchronously, so when the window
       // appears, it serves the website immediately.
       await this.startContentServerIfEnabled(args)
-      await this.startBackendIfEnabled(args)
       await this.createWindowIfEnabled(args)
       this.initIpc()
       await this.loadWindowContent(args)
@@ -298,31 +292,16 @@ class App {
     }
   }
 
-  /** Start the backend processes. */
-  async startBackendIfEnabled(args: Options) {
-    await this.runIfEnabled(args.engineEnabled, async () => {
-      // The first return value is the original string, which is not needed.
-      // These all cannot be null as the format is known at runtime.
-      const [, projectManagerHost, projectManagerPort] =
-        GLOBAL_CONFIG.projectManagerEndpoint.match(/^ws:\/\/(.+):(.+)$/)!
-      this.projectManagerHost ??= projectManagerHost!
-      this.projectManagerPort ??= await portfinder.getPortPromise({
-        port: parseInt(projectManagerPort!),
-      })
-      const projectManagerUrl = `ws://${this.projectManagerHost}:${this.projectManagerPort}`
-      this.webOptions.engine.projectManagerUrl = projectManagerUrl
-      const backendVerboseOpts = args.debug.verbose ? ['-vv'] : []
-      const backendProfileTime = ['--profiling-time', String(args.debug.profileTime)]
-      const backendProfileOpts =
-        args.debug.profile ? ['--profiling-path', 'profiling.npss', ...backendProfileTime] : []
-      const backendJvmOpts = args.useJvm ? ['--jvm'] : []
-      const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
-      const backendEnv = Object.assign({}, process.env, {
-        SERVER_HOST: this.projectManagerHost,
-        SERVER_PORT: `${this.projectManagerPort}`,
-      })
-      projectManager.spawn(args, backendOpts, backendEnv)
-    })
+  /** Setup the project service. */
+  private createProjectService(args: Options) {
+    const backendVerboseOpts = args.debug.verbose ? ['--log-level', 'trace'] : []
+    const backendProfileTime = ['--profiling-time', String(args.debug.profileTime)]
+    const backendProfileOpts =
+      args.debug.profile ? ['--profiling-path', 'profiling.npss', ...backendProfileTime] : []
+    const backendJvmOpts = args.useJvm ? ['--jvm'] : []
+    const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
+
+    return projectService.setupProjectService(backendOpts)
   }
 
   /** Start the content server, which will serve the application content (HTML) to the window. */
@@ -332,12 +311,9 @@ class App {
       const serverCfg = new server.Config({
         dir: paths.ASSETS_PATH,
         port: args.server.port,
-        externalFunctions: {
-          runProjectManagerCommand: (cliArguments, body?: NodeJS.ReadableStream) =>
-            projectManager.runCommand(args, cliArguments, body),
-        },
       })
-      this.server = await server.Server.create(serverCfg)
+      const projectService = this.createProjectService(args)
+      this.server = await server.Server.create(serverCfg, projectService)
       console.log('Content server started.')
     })
   }
@@ -604,7 +580,7 @@ class App {
   }
 
   /** Print the version of the frontend and the backend. */
-  async printVersion(args: Options): Promise<void> {
+  async printVersion(): Promise<void> {
     const indent = '    '
     let maxNameLen = 0
     for (const name in debug.VERSION_INFO) {
@@ -618,14 +594,10 @@ class App {
     }
     process.stdout.write('\n')
     process.stdout.write('Backend:\n')
-    const backend = await projectManager.version(args)
-    if (backend == null) {
-      process.stdout.write(`${indent}No backend available.\n`)
-    } else {
-      const lines = backend.split(/\r?\n/).filter((line) => line.length > 0)
-      for (const line of lines) {
-        process.stdout.write(`${indent}${line}\n`)
-      }
+    const backend = await projectService.version()
+    const lines = backend.split(/\r?\n/).filter((line) => line.length > 0)
+    for (const line of lines) {
+      process.stdout.write(`${indent}${line}\n`)
     }
   }
 

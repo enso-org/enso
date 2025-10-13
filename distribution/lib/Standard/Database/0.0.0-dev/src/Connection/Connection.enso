@@ -596,6 +596,20 @@ make_table_name_selector connection =
 ## ---
    private: true
    ---
+make_table_name_with_schema_selector connection schema_black_list=[] =
+    schema = connection.schema
+    schema_text sch = if sch == schema then "" else sch+"."
+    tables = connection.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
+    table_name_values = tables.rows.map r->
+        name = r.at "Name"
+        sch = r.at "Schema"
+        Option ((schema_text sch) + name) "(..Table_Name "+name.pretty+(if sch == schema then "" else " "+sch.pretty)+")"
+    values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
+    Single_Choice display=..Always values=values
+
+## ---
+   private: true
+   ---
 make_structure_creator : Widget
 make_structure_creator =
     item_editor = Single_Choice display=Display.Always values=[Option "new column" "(Column_Description.Value)"]

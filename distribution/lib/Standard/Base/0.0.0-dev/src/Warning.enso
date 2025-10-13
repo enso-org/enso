@@ -7,9 +7,9 @@ import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Meta
-import project.Nothing.Nothing
 import project.Runtime
 import project.Runtime.Stack_Trace_Element
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False
 from project.Error import all
 from project.Function import flip
