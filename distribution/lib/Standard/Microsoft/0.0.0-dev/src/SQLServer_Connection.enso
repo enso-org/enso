@@ -18,7 +18,7 @@ import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL_Query.SQL_Query
-from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_types_selector
+from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_with_schema_selector, make_table_types_selector
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 
@@ -199,7 +199,7 @@ type SQLServer_Connection
           is raised.
         - If provided with a `Table_Name` or a text short-hand and the table is
           not found, a `Table_Not_Found` error is raised.
-    @query make_table_name_selector
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
     query : (SQLServer_Query | SQL_Query) -> Text -> Table & DB_Table ! Table_Not_Found
     query self query:(SQLServer_Query | SQL_Query) alias="" =
         used_query = case query of
@@ -228,15 +228,11 @@ type SQLServer_Connection
        it is provided with a DML query. Usually it is preferred to use
        `execute_update` for DML queries, or if they are supposed to return
        results, the `read` should be wrapped in an execution context check.
-    @query make_table_name_selector
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
     @limit Rows_To_Read.default_widget
     read : (SQLServer_Query | SQL_Query) -> Rows_To_Read -> Table ! Table_Not_Found
     read self query:(SQLServer_Query | SQL_Query) (limit : Rows_To_Read = ..First_With_Warning 1000) =
-        used_query = case query of
-            SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
-            SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql
-            _ : SQLServer_Query -> query
-        self.connection.read used_query limit
+        self.query query . read limit
 
     ## ---
        group: Standard.Base.Output
@@ -418,17 +414,3 @@ Table_Viz_Data.from (that:SQLServer_Connection) =
    ---
 schema_black_list =
     ["INFORMATION_SCHEMA", "sys", "db_accessadmin", "db_backupoperator", "db_datareader", "db_datawriter", "db_ddladmin", "db_denydatareader", "db_denydatawriter", "db_owner", "db_securityadmin"]
-
-## ---
-   private: true
-   ---
-make_table_name_selector connection =
-    schema = connection.schema
-    schema_text sch = if sch == schema then "" else sch+"."
-    tables = connection.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
-    table_name_values = tables.rows.map r->
-        name = r.at "Name"
-        sch = r.at "Schema"
-        Option ((schema_text sch) + name) "(..Table_Name "+name.pretty+(if sch == schema then "" else " "+sch.pretty)+")"
-    values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
-    Single_Choice display=..Always values=values

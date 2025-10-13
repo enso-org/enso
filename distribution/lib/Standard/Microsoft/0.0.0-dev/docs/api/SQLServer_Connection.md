@@ -24,6 +24,5 @@
     - tables self name_like:Standard.Base.Data.Text.Text= database:Standard.Base.Data.Text.Text= schema:Standard.Base.Data.Text.Text= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - truncate_table self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- make_table_name_selector connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - schema_black_list -> Standard.Base.Any.Any
 - Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.Microsoft.SQLServer_Connection.SQLServer_Connection -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data

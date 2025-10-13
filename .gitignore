@@ -115,6 +115,9 @@ bench-report*.xml
 *.pdb
 *.so
 *.jar
+*.so_linux_amd64
+*.so_osx_universal
+*.so_windows_amd64
 
 
 #########

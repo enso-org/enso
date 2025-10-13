@@ -23,10 +23,10 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
-import project.Nothing.Nothing
 from project.Data.Boolean import False, True
 from project.Data.Text.Extensions import all
 from project.Error import all
+from project.Nothing import all
 
 polyglot java import org.enso.base.enso_cloud.CloudAPI
 polyglot java import org.enso.base.enso_cloud.CloudRequestCache

@@ -89,6 +89,31 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           labels: -libs-API-change-Database
+  stdlib-api-check-DuckDB-linux-amd64:
+    name: DuckDB-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: DuckDB-changed-files
+        name: DuckDB-changed-files
+        uses: step-security/changed-files@v45
+        with:
+          files: distribution/lib/Standard/DuckDB/**/docs/api/**/**.md
+      - name: List all changed files in DuckDB
+        run: "\n        if [[ \"${{ steps.DuckDB-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.DuckDB-changed-files.outputs.all_changed_files }}
+      - if: steps.DuckDB-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-DuckDB label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-DuckDB
   stdlib-api-check-Generic_JDBC-linux-amd64:
     name: Generic_JDBC-change-labels
     runs-on:

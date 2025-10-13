@@ -1,0 +1,445 @@
+{
+  "reflection": [
+  ],
+  "resources": [
+  ],
+  "bundles": [],
+  "jni": [
+    {
+      "type": "java.lang.Boolean",
+      "methods": [
+        {
+          "name": "booleanValue",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Byte",
+      "methods": [
+        {
+          "name": "byteValue",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Class",
+      "methods": [
+        {
+          "name": "getClassLoader",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.ClassLoader",
+      "methods": [
+        {
+          "name": "loadClass",
+          "parameterTypes": [
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Double",
+      "methods": [
+        {
+          "name": "doubleValue",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Float",
+      "methods": [
+        {
+          "name": "floatValue",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Integer",
+      "methods": [
+        {
+          "name": "intValue",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Long",
+      "methods": [
+        {
+          "name": "longValue",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Object",
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Short",
+      "methods": [
+        {
+          "name": "shortValue",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.lang.String",
+      "methods": [
+        {
+          "name": "getBytes",
+          "parameterTypes": [
+            "java.nio.charset.Charset"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Throwable",
+      "methods": [
+        {
+          "name": "getMessage",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.math.BigDecimal",
+      "methods": [
+        {
+          "name": "longValue",
+          "parameterTypes": []
+        },
+        {
+          "name": "precision",
+          "parameterTypes": []
+        },
+        {
+          "name": "scale",
+          "parameterTypes": []
+        },
+        {
+          "name": "scaleByPowerOfTen",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "toPlainString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.ByteBuffer",
+      "methods": [
+        {
+          "name": "order",
+          "parameterTypes": [
+            "java.nio.ByteOrder"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.nio.ByteOrder",
+      "fields": [
+        {
+          "name": "LITTLE_ENDIAN"
+        }
+      ]
+    },
+    {
+      "type": "java.nio.CharBuffer",
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.nio.charset.Charset",
+      "methods": [
+        {
+          "name": "decode",
+          "parameterTypes": [
+            "java.nio.ByteBuffer"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.nio.charset.StandardCharsets",
+      "fields": [
+        {
+          "name": "UTF_8"
+        }
+      ]
+    },
+    {
+      "type": "java.sql.Array",
+      "methods": [
+        {
+          "name": "getArray",
+          "parameterTypes": []
+        },
+        {
+          "name": "getBaseTypeName",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.sql.SQLException"
+    },
+    {
+      "type": "java.sql.SQLTimeoutException"
+    },
+    {
+      "type": "java.sql.Struct",
+      "methods": [
+        {
+          "name": "getAttributes",
+          "parameterTypes": []
+        },
+        {
+          "name": "getSQLTypeName",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.Iterator",
+      "methods": [
+        {
+          "name": "hasNext",
+          "parameterTypes": []
+        },
+        {
+          "name": "next",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.List",
+      "methods": [
+        {
+          "name": "iterator",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.Map",
+      "methods": [
+        {
+          "name": "entrySet",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.Map$Entry",
+      "methods": [
+        {
+          "name": "getKey",
+          "parameterTypes": []
+        },
+        {
+          "name": "getValue",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.Set",
+      "methods": [
+        {
+          "name": "iterator",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.util.UUID",
+      "methods": [
+        {
+          "name": "getLeastSignificantBits",
+          "parameterTypes": []
+        },
+        {
+          "name": "getMostSignificantBits",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.duckdb.DuckDBArray",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "org.duckdb.DuckDBVector",
+            "int",
+            "int"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.duckdb.DuckDBDate",
+      "methods": [
+        {
+          "name": "getDaysSinceEpoch",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "org.duckdb.DuckDBHugeInt",
+      "fields": [
+        {
+          "name": "lower"
+        },
+        {
+          "name": "upper"
+        }
+      ]
+    },
+    {
+      "type": "org.duckdb.DuckDBResultSetMetaData",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int",
+            "java.lang.String[]",
+            "java.lang.String[]",
+            "java.lang.String[]",
+            "java.lang.String",
+            "java.lang.String[]",
+            "java.lang.String[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.duckdb.DuckDBStruct",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String[]",
+            "org.duckdb.DuckDBVector[]",
+            "int",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.duckdb.DuckDBTime"
+    },
+    {
+      "type": "org.duckdb.DuckDBTimestamp",
+      "methods": [
+        {
+          "name": "getMicrosEpoch",
+          "parameterTypes": []
+        },
+        {
+          "name": "valueOf",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.duckdb.DuckDBTimestampTZ"
+    },
+    {
+      "type": "org.duckdb.DuckDBVector",
+      "fields": [
+        {
+          "name": "constlen_data"
+        },
+        {
+          "name": "varlen_data"
+        }
+      ],
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.String",
+            "int",
+            "boolean[]"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.duckdb.ProfilerPrintFormat",
+      "fields": [
+        {
+          "name": "GRAPHVIZ"
+        },
+        {
+          "name": "HTML"
+        },
+        {
+          "name": "JSON"
+        },
+        {
+          "name": "NO_OUTPUT"
+        },
+        {
+          "name": "QUERY_TREE"
+        },
+        {
+          "name": "QUERY_TREE_OPTIMIZER"
+        }
+      ]
+    },
+    {
+      "type": "org.duckdb.QueryProgress",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "double",
+            "long",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "org.duckdb.user.DuckDBMap",
+      "methods": [
+        {
+          "name": "getSQLTypeName",
+          "parameterTypes": []
+        }
+      ]
+    }
+  ]
+}

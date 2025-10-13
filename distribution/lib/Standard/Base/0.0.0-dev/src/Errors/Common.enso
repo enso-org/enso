@@ -7,10 +7,10 @@ import project.Errors.Common.Arithmetic_Error
 import project.Function.Function
 import project.Internal.Meta_Helpers
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime
 import project.Runtime.Source_Location.Source_Location
+from project.Nothing import all
 from project.Data.Boolean import False, True
 from project.Data.Json import JS_Object
 
