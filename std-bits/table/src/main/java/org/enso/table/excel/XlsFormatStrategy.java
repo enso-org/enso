@@ -3,7 +3,6 @@ package org.enso.table.excel;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
@@ -32,7 +31,8 @@ public class XlsFormatStrategy extends ExcelFormatStrategy {
   }
 
   @Override
-  public ExcelWorkbookReader getExcelWorkbookReader(File file) throws IOException, InterruptedException {
+  public ExcelWorkbookReader getExcelWorkbookReader(File file)
+      throws IOException, InterruptedException {
     openExisting(file, false);
     return new ExcelWorkbookReaderFromPOIUserModel(workbook);
   }
@@ -60,7 +60,7 @@ public class XlsFormatStrategy extends ExcelFormatStrategy {
     }
     workbook.write(out);
   }
-  
+
   // ** Wrap a Workbook object in the interface. */
   record ExcelWorkbookReaderFromPOIUserModel(org.apache.poi.ss.usermodel.Workbook workbook)
       implements ExcelWorkbookReader {

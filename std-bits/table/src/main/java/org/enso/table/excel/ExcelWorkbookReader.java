@@ -1,8 +1,6 @@
 package org.enso.table.excel;
 
-import java.io.File;
 import java.io.IOException;
-
 
 /** Represents an Excel workbook. Wraps the underlying Apache POI Workbook object. */
 public interface ExcelWorkbookReader {

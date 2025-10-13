@@ -470,8 +470,8 @@ public class ExcelWriter {
    * @param sheet Sheet containing the range.
    * @return True if range is empty and clear is False, otherwise returns False.
    */
-  private static boolean rangeIsNotEmpty(Workbook workbook, ExcelRange range, ExcelSheetReader sheet)
-      throws InterruptedException {
+  private static boolean rangeIsNotEmpty(
+      Workbook workbook, ExcelRange range, ExcelSheetReader sheet) throws InterruptedException {
     ExcelRange fullRange = range.getAbsoluteRange(workbook);
     for (int row = fullRange.getTopRow(); row <= fullRange.getBottomRow(); row++) {
       ExcelRow excelRow = sheet.get(row);
@@ -636,7 +636,8 @@ public class ExcelWriter {
    * @return EXCEL_COLUMN_NAMES if the range has headers, otherwise USE_FIRST_ROW_AS_HEADERS.
    */
   private static ExcelHeaders.HeaderBehavior shouldWriteHeaders(
-      ExcelSheetReader excelSheet, int topRow, int startCol, int endCol) throws InterruptedException {
+      ExcelSheetReader excelSheet, int topRow, int startCol, int endCol)
+      throws InterruptedException {
     ExcelRow row = excelSheet.get(topRow);
 
     // If the first row is missing or empty, should write headers.

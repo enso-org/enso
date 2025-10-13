@@ -7,7 +7,6 @@ import java.io.OutputStream;
 import java.nio.file.AccessMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import org.apache.poi.ss.usermodel.Workbook;
 
 /**
@@ -45,7 +44,8 @@ public abstract class ExcelFormatStrategy {
   public abstract Workbook openExisting(File file, boolean writeAccess) throws IOException;
 
   /** Returns a reader for the current workbook. */
-  public abstract ExcelWorkbookReader getExcelWorkbookReader(File file) throws IOException, InterruptedException;
+  public abstract ExcelWorkbookReader getExcelWorkbookReader(File file)
+      throws IOException, InterruptedException;
 
   /** Creates a new empty workbook for this format and sets {@link #workbook}. */
   public abstract Workbook createNew();
