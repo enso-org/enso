@@ -104,7 +104,8 @@ private parse_text_to_table input:Text separator:Text -> Any =
         if index.is_nothing then '~' else stripped.get index-1
 
     segments = stripped.split used_sep . map parse_segment . filter s->s.name!=""
-    segments.map .toJson . join ',\n' '[\n' ']\n'
+    dict = EDIReader.parse segments
+    Table.from_rows dict.keys [dict.values]
 
 ## Split a segment into a dictionary of fields
    Return as a pair of segment code and dictionary of data
