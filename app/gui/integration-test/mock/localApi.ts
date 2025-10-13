@@ -45,7 +45,7 @@ const INITIAL_CALLS_OBJECT = {
   getRootDirectory: array<object>(),
   getDownloadDirectory: array<object>(),
   downloadCloudProject: array<object>(),
-  downloadProject: array<{ uuid: UUID; projectsDirectory: Path }>(),
+  downloadProject: array<{ projectId: backend.ProjectId }>(),
   getFileContent: array<{ path: string }>(),
   createProject: array<CreateProjectParams>(),
   openProject: array<OpenProjectParams>(),
@@ -61,18 +61,6 @@ type TrackedCallsInternal = {
 }
 
 export interface LocalTrackedCalls extends TrackedCallsInternal {}
-
-interface JSONRPCRequest<Method extends string, Params> {
-  jsonrpc: '2.0'
-  id: number
-  method: Method
-  params: Params
-}
-
-type ProjectManagerJsonRpcRequest =
-  | JSONRPCRequest<'project/create', CreateProjectParams>
-  | JSONRPCRequest<'project/open', OpenProjectParams>
-  | JSONRPCRequest<'project/close', CloseProjectParams>
 
 type DirectoryEntryWithData = {
   type: 'DirectoryEntry'
@@ -256,90 +244,96 @@ export async function mockLocalApi(page: Page) {
   let languageServerBinaryWs: WebSocketRoute | null = null
 
   await test.step('Mock Local API', async () => {
-    await page.routeWebSocket('ws://localhost:30535/', (ws) => {
-      ws.onMessage(async (messageRaw) => {
-        const message: ProjectManagerJsonRpcRequest = JSON.parse(messageRaw.toString('utf-8'))
+    const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
+      jsonrpc: '2.0',
+      id: 0,
+      result,
+    })
+    const toJSONRPCError = (errorMessage: string): JSONRPCResponse<unknown> => ({
+      jsonrpc: '2.0',
+      id: 0,
+      error: { code: 0, message: errorMessage },
+    })
 
-        let delay = 0
-        let response: JSONRPCResponse<unknown>
-        const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
-          jsonrpc: '2.0',
-          id: message.id,
-          result,
+    await page.route('/api/project-service/project/create', async (route, request) => {
+      if (request.method() !== 'POST') {
+        return route.fulfill({ status: 400 })
+      }
+      const params: CreateProjectParams = JSON.parse(request.postData() ?? '{}')
+      called('createProject', params)
+      const parentPath = params.projectsDirectory ?? ROOT_PATH
+      const path = Path(`${parentPath}/${params.name}`)
+      const id = UUID(uuidv4())
+      const metadata: ProjectEntryWithData['metadata'] = {
+        projectName: params.name,
+        projectNormalizedName: params.name,
+      }
+      const result: CreateProject = { projectId: id, projectPath: path, ...metadata }
+      addProject({
+        path,
+        metadata: {
+          id,
+          name: metadata.projectName,
+          namespace: 'local',
+          created: toRfc3339(new Date()),
+        },
+      })
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(toJSONRPCResult(result)),
+      })
+    })
+
+    await page.route('/api/project-service/project/open', async (route, request) => {
+      if (request.method() !== 'POST') {
+        return route.fulfill({ status: 400 })
+      }
+      const params: OpenProjectParams = JSON.parse(request.postData() ?? '{}')
+      called('openProject', params)
+      const parentDirectory = fileSystem.get(params.projectsDirectory ?? ROOT_PATH)
+      const project =
+        parentDirectory?.type === 'DirectoryEntry' ?
+          parentDirectory.children.find(
+            (entry) =>
+              entry.type === 'ProjectEntry' && entry.entry.metadata.id === params.projectId,
+          )
+        : null
+      if (project?.type !== 'ProjectEntry') {
+        return route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify(toJSONRPCError(`No project with UUID '${params.projectId}'`)),
         })
-        const toJSONRPCError = (errorMessage: string): JSONRPCResponse<unknown> => ({
-          jsonrpc: '2.0',
-          id: message.id,
-          error: { code: 0, message: errorMessage },
-        })
+      }
+      unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
+      const result: OpenProject = {
+        languageServerBinaryAddress: { host: 'ws://localhost', port: 1234 },
+        languageServerJsonAddress: { host: 'ws://localhost', port: 1235 },
+        projectNamespace: 'local',
+        ...project.metadata,
+      }
+      openProjects.set(params.projectId, {
+        state: backend.ProjectState.opened,
+        data: result,
+      })
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1_000)
+      })
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(toJSONRPCResult(result)),
+      })
+    })
 
-        switch (message.method) {
-          case 'project/create': {
-            const params = message.params
-            called('createProject', params)
-            const project = addProject({
-              metadata: {
-                id: UUID(uuidv4()),
-                name: params.name,
-                namespace: 'local',
-                created: toRfc3339(new Date()),
-              },
-            })
-            response = toJSONRPCResult({
-              projectId: project.entry.metadata.id,
-              projectPath: project.entry.path,
-              projectName: project.metadata.projectName,
-              projectNormalizedName: project.metadata.projectNormalizedName,
-            } satisfies CreateProject)
-            break
-          }
-          case 'project/open': {
-            const params = message.params
-            called('openProject', params)
-            const parentDirectory = fileSystem.get(params.projectsDirectory ?? ROOT_PATH)
-            const project =
-              parentDirectory?.type === 'DirectoryEntry' ?
-                parentDirectory.children.find(
-                  (entry) =>
-                    entry.type === 'ProjectEntry' && entry.entry.metadata.id === params.projectId,
-                )
-              : null
-            if (project?.type !== 'ProjectEntry') {
-              response = toJSONRPCError(`No project with UUID '${params.projectId}'`)
-              break
-            }
-            unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
-            const result: OpenProject = {
-              engineVersion: '0.0.0-dev',
-              languageServerBinaryAddress,
-              languageServerJsonAddress,
-              languageServerYdocAddress,
-              projectNamespace: 'local',
-              projectName: project.metadata.projectName,
-              projectNormalizedName: project.metadata.projectNormalizedName,
-            }
-            openProjects.set(params.projectId, {
-              state: backend.ProjectState.opened,
-              data: result,
-            })
-            delay = 1_000
-            response = toJSONRPCResult(result)
-            break
-          }
-          case 'project/close': {
-            const params = message.params
-            called('closeProject', params)
-            openProjects.delete(params.projectId)
-            response = toJSONRPCResult({})
-            break
-          }
-        }
-
-        await new Promise((resolve) => {
-          setTimeout(resolve, delay)
-        })
-
-        ws.send(JSON.stringify(response))
+    await page.route('/api/project-service/project/close', async (route, request) => {
+      if (request.method() !== 'POST') {
+        return route.fulfill({ status: 400 })
+      }
+      const params: CloseProjectParams = JSON.parse(request.postData() ?? '{}')
+      called('closeProject', params)
+      openProjects.delete(params.projectId)
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(toJSONRPCResult(null)),
       })
     })
 
@@ -494,20 +488,16 @@ export async function mockLocalApi(page: Page) {
       return route.fulfill({ body: filePath, contentType: 'text/plain' })
     })
 
-    await page.route('/api/project-manager/projects/**', async (route, request) => {
+    await page.route('/api/projects/**', async (route, request) => {
       const url = new URL(request.url())
-      const { uuid: uuidRaw } =
-        url.pathname.match(/^\/api\/project-manager\/projects\/(?<uuid>[^/]+)\/enso-project$/)
-          ?.groups ?? {}
-      const params = url.searchParams
-      const projectsDirectoryRaw = params.get('projectsDirectory')
-      if (request.method() !== 'GET' || uuidRaw == null || projectsDirectoryRaw == null) {
+      const { projectId: projectIdRaw } =
+        url.pathname.match(/^\/api\/projects\/(?<projectId>[^/]+)\/download$/)?.groups ?? {}
+      if (request.method() !== 'GET' || projectIdRaw == null) {
         return route.fulfill({ status: 400 })
       }
-      const uuid = UUID(uuidRaw)
-      const projectsDirectory = Path(projectsDirectoryRaw)
-      called('downloadProject', { uuid, projectsDirectory })
-      const response = `mock project body uuid='${uuid}' directory='${projectsDirectory}'`
+      const projectId = backend.ProjectId(projectIdRaw)
+      called('downloadProject', { projectId })
+      const response = `mock project body projectId='${projectId}'`
       return route.fulfill({
         contentType: 'text/plain',
         body: JSON.stringify(response),

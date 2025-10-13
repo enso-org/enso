@@ -143,22 +143,25 @@ public abstract class DataQualityMetrics {
     return switch (resolvedStorage.getType()) {
       case NullType nullType -> new NullQualityMetrics(resolvedStorage);
       case TextType textType -> new StringQualityMetrics(textType.asTypedStorage(resolvedStorage));
-      case FloatType floatType -> NumericQualityMetrics.forDouble(
-          floatType.asTypedStorage(resolvedStorage));
-      case IntegerType integerType -> NumericQualityMetrics.forLong(
-          integerType.asTypedStorage(resolvedStorage));
-      case BigIntegerType bigIntegerType -> NumericQualityMetrics.forBigInteger(
-          bigIntegerType.asTypedStorage(resolvedStorage));
-      case BigDecimalType bigDecimalType -> NumericQualityMetrics.forBigDecimal(
-          bigDecimalType.asTypedStorage(resolvedStorage));
-      case DateType dateType -> new MinMaxQualityMetrics<>(
-          dateType.asTypedStorage(resolvedStorage), LocalDate::compareTo);
-      case TimeOfDayType timeType -> new MinMaxQualityMetrics<>(
-          timeType.asTypedStorage(resolvedStorage), LocalTime::compareTo);
-      case DateTimeType dateTimeType -> new MinMaxQualityMetrics<>(
-          dateTimeType.asTypedStorage(resolvedStorage), ZonedDateTime::compareTo);
-      case AnyObjectType anyObjectType -> new AnyObjectQualityMetric(
-          anyObjectType.asTypedStorage(resolvedStorage));
+      case FloatType floatType ->
+          NumericQualityMetrics.forDouble(floatType.asTypedStorage(resolvedStorage));
+      case IntegerType integerType ->
+          NumericQualityMetrics.forLong(integerType.asTypedStorage(resolvedStorage));
+      case BigIntegerType bigIntegerType ->
+          NumericQualityMetrics.forBigInteger(bigIntegerType.asTypedStorage(resolvedStorage));
+      case BigDecimalType bigDecimalType ->
+          NumericQualityMetrics.forBigDecimal(bigDecimalType.asTypedStorage(resolvedStorage));
+      case DateType dateType ->
+          new MinMaxQualityMetrics<>(
+              dateType.asTypedStorage(resolvedStorage), LocalDate::compareTo);
+      case TimeOfDayType timeType ->
+          new MinMaxQualityMetrics<>(
+              timeType.asTypedStorage(resolvedStorage), LocalTime::compareTo);
+      case DateTimeType dateTimeType ->
+          new MinMaxQualityMetrics<>(
+              dateTimeType.asTypedStorage(resolvedStorage), ZonedDateTime::compareTo);
+      case AnyObjectType anyObjectType ->
+          new AnyObjectQualityMetric(anyObjectType.asTypedStorage(resolvedStorage));
       default -> new BaseQualityMetrics(resolvedStorage);
     };
   }

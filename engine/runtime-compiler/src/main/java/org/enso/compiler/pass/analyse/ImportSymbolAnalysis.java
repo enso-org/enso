@@ -176,24 +176,26 @@ public final class ImportSymbolAnalysis implements MiniPassFactory {
         Import imp, BindingsMap.ImportTarget importTarget, Name.Literal unresolvedSymbol) {
       ImportExport.Reason errorReason =
           switch (importTarget) {
-            case BindingsMap.ResolvedModule resMod -> new ImportExport.SymbolDoesNotExist(
-                unresolvedSymbol.name(), resMod.module().getName().toString());
-            case BindingsMap.ResolvedType resType -> new ImportExport.NoSuchConstructor(
-                resType.tp().name(), unresolvedSymbol.name());
-            case BindingsMap.ResolvedConstructor resCons -> new ImportExport.NoSuchConstructor(
-                resCons.cons().name(), unresolvedSymbol.name());
-            case BindingsMap.ResolvedModuleMethod resMethod -> new ImportExport.NoSuchModuleMethod(
-                resMethod.method().name(), unresolvedSymbol.name());
-            case BindingsMap.ResolvedExtensionMethod extMethod -> new ImportExport
-                .NoSuchStaticMethod(
-                extMethod.module().getName().toString(),
-                extMethod.staticMethod().tpName(),
-                unresolvedSymbol.name());
-            case BindingsMap.ResolvedConversionMethod convMethod -> new ImportExport
-                .NoSuchConversionMethod(
-                convMethod.module().getName().toString(),
-                convMethod.conversionMethod().targetTpName(),
-                convMethod.conversionMethod().sourceTpName());
+            case BindingsMap.ResolvedModule resMod ->
+                new ImportExport.SymbolDoesNotExist(
+                    unresolvedSymbol.name(), resMod.module().getName().toString());
+            case BindingsMap.ResolvedType resType ->
+                new ImportExport.NoSuchConstructor(resType.tp().name(), unresolvedSymbol.name());
+            case BindingsMap.ResolvedConstructor resCons ->
+                new ImportExport.NoSuchConstructor(resCons.cons().name(), unresolvedSymbol.name());
+            case BindingsMap.ResolvedModuleMethod resMethod ->
+                new ImportExport.NoSuchModuleMethod(
+                    resMethod.method().name(), unresolvedSymbol.name());
+            case BindingsMap.ResolvedExtensionMethod extMethod ->
+                new ImportExport.NoSuchStaticMethod(
+                    extMethod.module().getName().toString(),
+                    extMethod.staticMethod().tpName(),
+                    unresolvedSymbol.name());
+            case BindingsMap.ResolvedConversionMethod convMethod ->
+                new ImportExport.NoSuchConversionMethod(
+                    convMethod.module().getName().toString(),
+                    convMethod.conversionMethod().targetTpName(),
+                    convMethod.conversionMethod().sourceTpName());
             default -> throw new IllegalStateException("Unexpected value: " + importTarget);
           };
       return new ImportExport(imp, errorReason, new MetadataStorage());

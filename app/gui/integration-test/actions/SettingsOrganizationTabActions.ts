@@ -1,4 +1,5 @@
 /** @file Actions for the "organization" tab of the "settings" page. */
+import type { WithImplicitCoercion } from 'node:buffer'
 import BaseSettingsTabActions from './BaseSettingsTabActions'
 import SettingsOrganizationFormActions from './SettingsOrganizationFormActions'
 import { goToSettingsTabActions, type GoToSettingsTabActions } from './gotoSettingsTabActions'

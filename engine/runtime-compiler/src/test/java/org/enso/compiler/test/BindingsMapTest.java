@@ -26,13 +26,13 @@ public final class BindingsMapTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Lib.A.A"),
         """
-            static_method x = x
-            """);
+        static_method x = x
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Lib.Main"),
         """
-            export project.A.A
-            """);
+        export project.A.A
+        """);
     var projMainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),

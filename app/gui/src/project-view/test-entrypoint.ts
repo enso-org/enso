@@ -18,9 +18,11 @@ import { createApp } from 'vue'
 
 const window_ = window as any
 // Mock FileBrowserApi that is usually provided by Electron.
-window_.fileBrowserApi = {
-  openFileBrowser: async () => {
-    return ['/path/to/some/mock/file']
+window_.api = {
+  fileBrowser: {
+    openFileBrowser: async () => {
+      return ['/path/to/some/mock/file']
+    },
   },
 }
 

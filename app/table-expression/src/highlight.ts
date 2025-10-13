@@ -6,7 +6,7 @@ export const highlight = styleTags({
   Regex: t.quote,
   LiteralKeyword: t.keyword,
   Date: t.string,
-  Column: t.string,
+  Column: t.variableName,
   String: t.string,
   Atom: t.atom,
   TypeOp: t.typeOperator,

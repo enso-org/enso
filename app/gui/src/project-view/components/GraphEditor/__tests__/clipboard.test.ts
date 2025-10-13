@@ -3,14 +3,14 @@ import {
   isSpreadsheetTsv,
   nodesFromClipboardContent,
   nodesToClipboardData,
-} from '@/components/GraphEditor/clipboard'
-import { type Node } from '@/stores/graph'
+} from '@/components/GraphEditor/graphClipboard'
+import type { Node } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { nodeDocumentationText, nodeFromAst } from '@/util/ast/node'
 import { Blob } from 'node:buffer'
 import { expect, test } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
-import { type VisualizationMetadata } from 'ydoc-shared/yjsModel'
+import type { VisualizationMetadata } from 'ydoc-shared/yjsModel'
 
 class MockClipboardItem {
   readonly types: ReadonlyArray<string>

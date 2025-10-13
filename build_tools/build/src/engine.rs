@@ -100,6 +100,9 @@ pub enum Tests {
 
     /// Run Microsoft tests.
     StdMicrosoft,
+
+    /// Run Microsoft tests in dual JVM mode
+    StdMockDualMicrosoft,
 }
 
 /// Configuration for how the binary inside the engine distribution should be built.

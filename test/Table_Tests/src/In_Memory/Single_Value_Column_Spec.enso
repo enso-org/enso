@@ -94,7 +94,7 @@ add_specs suite_builder =
 
         group_builder.specify "should still allow all column operations and preserve its single-value-ness" <|
             c1 = Column.from_vector "c1" [23]
-            c1.length . should_equal 1
+            c1.row_count . should_equal 1
             c1.count_nothing . should_equal 0
             c1.value_type . should_equal Value_Type.Integer
             c1.at 0 . should_equal 23

@@ -1,24 +1,9 @@
 import type EditorPageActions from 'integration-test/actions/EditorPageActions'
 import { expect, test } from 'integration-test/base'
 import * as locate from './locate'
+import { addMockClipboardInitScript } from './mockClipboard'
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    class MockClipboard {
-      private contents: ClipboardItem[] = []
-      async read(): Promise<ClipboardItem[]> {
-        return [...this.contents]
-      }
-      async write(contents: ClipboardItem[]) {
-        console.log('write clipboard', contents[0])
-        this.contents = [...contents]
-      }
-    }
-    Object.assign(window.navigator, {
-      mockClipboard: new MockClipboard(),
-    })
-  })
-})
+test.beforeEach(({ page }) => addMockClipboardInitScript(page))
 
 test('Copy component with context menu', async ({ editorPage, page }) => {
   await editorPage

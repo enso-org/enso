@@ -6,6 +6,7 @@
     "node.env.d.ts",
     "playwright.config.*",
     "project-manager-shim-middleware/*.ts",
+    "src/dashboard/components/types.ts",
     "src/dashboard/hooks/storeHooks.ts",
     "src/dashboard/modules/payments/constants.ts",
     "src/dashboard/services/Backend.ts",

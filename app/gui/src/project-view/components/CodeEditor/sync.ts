@@ -1,5 +1,5 @@
-import { type GraphStore } from '@/stores/graph'
-import { type ProjectStore } from '@/stores/project'
+import type { GraphStore } from '@/stores/graph'
+import type { ProjectStore } from '@/stores/project'
 import { changeSetToTextEdits } from '@/util/codemirror/text'
 import { useToast } from '@/util/toast'
 import {
@@ -12,8 +12,8 @@ import {
 import { EditorView } from '@codemirror/view'
 import { createDebouncer } from 'lib0/eventloop'
 import { onUnmounted, watch } from 'vue'
-import { type SourceRangeEdit, textChangeToEdits } from 'ydoc-shared/util/data/text'
-import { type Origin } from 'ydoc-shared/yjsModel'
+import { textChangeToEdits, type SourceRangeEdit } from 'ydoc-shared/util/data/text'
+import type { Origin } from 'ydoc-shared/yjsModel'
 
 // Indicates a change updating the text to correspond to the given module state.
 const synchronizedModule = Annotation.define<true>()

@@ -41,9 +41,11 @@ public class ExportedSymbolsTest {
   @Test
   public void exportedSymbolsFromSingleModule() throws IOException {
     var mainSrcMod =
-        new SourceModule(QualifiedName.fromString("Main"), """
-        type A_Type
-        """);
+        new SourceModule(
+            QualifiedName.fromString("Main"),
+            """
+            type A_Type
+            """);
     ProjectUtils.createProject("Proj", Set.of(mainSrcMod), projDir);
     try (var ctx = createCtx(projDir)) {
       compile(ctx);
@@ -58,16 +60,18 @@ public class ExportedSymbolsTest {
   @Test
   public void transitivelyExportedSymbols() throws IOException {
     var aMod =
-        new SourceModule(QualifiedName.fromString("A_Module"), """
-        type A_Type
-        """);
+        new SourceModule(
+            QualifiedName.fromString("A_Module"),
+            """
+            type A_Type
+            """);
     var mainSrcMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.A_Module.A_Type
-        type B_Type
-        """);
+            export project.A_Module.A_Type
+            type B_Type
+            """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainSrcMod), projDir);
     try (var ctx = createCtx(projDir)) {
       compile(ctx);
@@ -83,13 +87,15 @@ public class ExportedSymbolsTest {
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.B_Module.B_Type
-        type A_Type
-        """);
+            export project.B_Module.B_Type
+            type A_Type
+            """);
     var bMod =
-        new SourceModule(QualifiedName.fromString("B_Module"), """
-        type B_Type
-        """);
+        new SourceModule(
+            QualifiedName.fromString("B_Module"),
+            """
+            type B_Type
+            """);
     ProjectUtils.createProject("Proj", Set.of(mainMod, bMod), projDir);
     try (var ctx = createCtx(projDir)) {
       compile(ctx);
@@ -102,15 +108,17 @@ public class ExportedSymbolsTest {
   @Test
   public void exportRenamedSymbol() throws IOException {
     var aMod =
-        new SourceModule(QualifiedName.fromString("A_Module"), """
-        type A_Type
-        """);
+        new SourceModule(
+            QualifiedName.fromString("A_Module"),
+            """
+            type A_Type
+            """);
     var mainSrcMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.A_Module.A_Type as Foo
-        """);
+            export project.A_Module.A_Type as Foo
+            """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainSrcMod), projDir);
     try (var ctx = createCtx(projDir)) {
       compile(ctx);
@@ -126,14 +134,14 @@ public class ExportedSymbolsTest {
         new SourceModule(
             QualifiedName.fromString("Synthetic_Module.A_Module"),
             """
-        type A_Module
-        """);
+            type A_Module
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        import project.Synthetic_Module
-        """);
+            import project.Synthetic_Module
+            """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     try (var ctx = createCtx(projDir)) {
       compile(ctx);
@@ -151,15 +159,16 @@ public class ExportedSymbolsTest {
   public void exportTypeFromModuleWithSameName() throws IOException {
     var aMod =
         new SourceModule(
-            QualifiedName.fromString("A_Module"), """
-        type A_Module
-        """);
+            QualifiedName.fromString("A_Module"),
+            """
+            type A_Module
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.A_Module.A_Module
-        """);
+            export project.A_Module.A_Module
+            """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     try (var ctx = createCtx(projDir)) {
       compile(ctx);
@@ -177,14 +186,16 @@ public class ExportedSymbolsTest {
   public void exportModuleWithTypeWithSameName() throws IOException {
     var aMod =
         new SourceModule(
-            QualifiedName.fromString("A_Module"), """
-        type A_Module
-        """);
+            QualifiedName.fromString("A_Module"),
+            """
+            type A_Module
+            """);
     var mainMod =
         new SourceModule(
-            QualifiedName.fromString("Main"), """
-        export project.A_Module
-        """);
+            QualifiedName.fromString("Main"),
+            """
+            export project.A_Module
+            """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     try (var ctx = createCtx(projDir)) {
       compile(ctx);
@@ -204,14 +215,14 @@ public class ExportedSymbolsTest {
         new SourceModule(
             QualifiedName.fromString("Synthetic_Module.A_Module"),
             """
-        type A_Type
-        """);
+            type A_Type
+            """);
     var mainMod =
         new SourceModule(
             QualifiedName.fromString("Main"),
             """
-        export project.Synthetic_Module
-        """);
+            export project.Synthetic_Module
+            """);
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
     try (var ctx = createCtx(projDir)) {
       compile(ctx);

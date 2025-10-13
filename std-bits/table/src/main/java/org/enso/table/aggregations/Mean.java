@@ -40,8 +40,8 @@ public class Mean extends KnownTypeAggregator {
       case BigIntegerType bigIntegerType -> BigDecimalType.INSTANCE;
       case BigDecimalType bigDecimalType -> BigDecimalType.INSTANCE;
       case NullType nullType -> nullType;
-      default -> throw new IllegalStateException(
-          "Unexpected input type for Mean aggregate: " + inputType);
+      default ->
+          throw new IllegalStateException("Unexpected input type for Mean aggregate: " + inputType);
     };
   }
 
@@ -59,8 +59,8 @@ public class Mean extends KnownTypeAggregator {
       case FloatType floatType -> new FloatMeanAccumulator();
       case BigDecimalType bigDecimalType -> new BigDecimalMeanAccumulator();
       case NullType nullType -> new NullAccumulator();
-      default -> throw new IllegalStateException(
-          "Unexpected output type in Mean aggregate: " + getType());
+      default ->
+          throw new IllegalStateException("Unexpected output type in Mean aggregate: " + getType());
     };
   }
 

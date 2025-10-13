@@ -44,12 +44,12 @@ public class RootNamesTest {
           Source.newBuilder(
                   "js",
                   """
-      insight.on('enter', (ctx, frame) => {
-          print(`ENTER: ${ctx.name}`);
-      }, {
-          roots : true
-      });
-      """,
+                  insight.on('enter', (ctx, frame) => {
+                      print(`ENTER: ${ctx.name}`);
+                  }, {
+                      roots : true
+                  });
+                  """,
                   "trace.js")
               .build();
     } catch (IOException e) {

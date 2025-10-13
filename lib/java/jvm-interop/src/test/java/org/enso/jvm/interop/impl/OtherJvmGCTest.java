@@ -33,6 +33,7 @@ public class OtherJvmGCTest {
     CHANNEL
         .getConfig()
         .onEnterLeave(
+            null,
             (__) -> {
               ctx.context().enter();
               return null;

@@ -1,10 +1,21 @@
 package org.enso.interpreter.runtime.scope;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-
 import org.enso.common.MethodNames;
 import org.enso.compiler.PackageRepository;
 import org.enso.editions.LibraryName;
@@ -20,20 +31,6 @@ import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
-
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleFile;
-import com.oracle.truffle.api.dsl.Bind;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import com.oracle.truffle.api.library.ExportLibrary;
-import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
-
 import scala.Option;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
@@ -179,7 +176,8 @@ public final class TopLevelScope extends EnsoObject {
       var libname = arguments[0].toString();
       var pkgRepo = context.getPackageRepository();
       for (var pkg : pkgRepo.getLoadedPackagesJava()) {
-        var libPath = NativeLibraryFinder.findNativeLibrary(libname, pkg, TruffleFileSystem.INSTANCE);
+        var libPath =
+            NativeLibraryFinder.findNativeLibrary(libname, pkg, TruffleFileSystem.INSTANCE);
         if (libPath != null) {
           return libPath;
         }
@@ -208,11 +206,12 @@ public final class TopLevelScope extends EnsoObject {
       switch (arguments.length) {
         case 2 -> {
           shouldCompileDependencies = Boolean.TRUE.equals(arguments[0]);
-          generateDocs = switch (arguments[1]) {
-            case Boolean b when !b -> Option.empty();
-            case String s -> Option.apply(s);
-            default -> Option.empty();
-          };
+          generateDocs =
+              switch (arguments[1]) {
+                case Boolean b when !b -> Option.empty();
+                case String s -> Option.apply(s);
+                default -> Option.empty();
+              };
         }
         default -> {
           shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
@@ -235,8 +234,7 @@ public final class TopLevelScope extends EnsoObject {
     }
 
     @Specialization
-    static Object doInvoke(
-        TopLevelScope scope, String member, Object[] arguments, @Bind Node node)
+    static Object doInvoke(TopLevelScope scope, String member, Object[] arguments, @Bind Node node)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       var ctx = EnsoContext.get(node);
       switch (member) {

@@ -1,5 +1,7 @@
 package org.enso.table.write;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
@@ -23,7 +25,13 @@ import org.enso.table.error.ColumnNameMismatchException;
 import org.enso.table.error.ExistingDataException;
 import org.enso.table.error.InvalidLocationException;
 import org.enso.table.error.RangeExceededException;
-import org.enso.table.excel.*;
+import org.enso.table.excel.ExcelFileFormat;
+import org.enso.table.excel.ExcelFormatStrategy;
+import org.enso.table.excel.ExcelHeaders;
+import org.enso.table.excel.ExcelRange;
+import org.enso.table.excel.ExcelRow;
+import org.enso.table.excel.ExcelSheet;
+import org.enso.table.excel.ExcelUtils;
 import org.enso.table.util.ColumnMapper;
 import org.enso.table.util.NameDeduplicator;
 
@@ -37,6 +45,79 @@ public class ExcelWriter {
   public static void setEnsoToTextCallbackIfUnset(Function<Object, String> callback) {
     if (ensoToTextCallback == null) {
       ensoToTextCallback = callback;
+    }
+  }
+
+  public static void writeTableToSheet(
+      File file,
+      ExcelFileFormat format,
+      int sheetIndex,
+      ExistingDataMode existingDataMode,
+      int firstRow,
+      Table table,
+      Long rowLimit,
+      ExcelHeaders.HeaderBehavior headers)
+      throws IOException,
+          InvalidLocationException,
+          RangeExceededException,
+          ExistingDataException,
+          IllegalStateException,
+          ColumnNameMismatchException,
+          ColumnCountMismatchException,
+          InterruptedException {
+    ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+    try (var workbook = strategy.openForWrite(file)) {
+      writeTableToSheet(workbook, sheetIndex, existingDataMode, firstRow, table, rowLimit, headers);
+      strategy.finaliseWrite();
+    }
+  }
+
+  public static void writeTableToSheet(
+      File file,
+      ExcelFileFormat format,
+      String sheetName,
+      ExistingDataMode existingDataMode,
+      int firstRow,
+      Table table,
+      Long rowLimit,
+      ExcelHeaders.HeaderBehavior headers)
+      throws IOException,
+          InvalidLocationException,
+          RangeExceededException,
+          ExistingDataException,
+          IllegalStateException,
+          ColumnNameMismatchException,
+          ColumnCountMismatchException,
+          InterruptedException {
+    ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+    try (var workbook = strategy.openForWrite(file)) {
+      writeTableToSheet(workbook, sheetName, existingDataMode, firstRow, table, rowLimit, headers);
+      strategy.finaliseWrite();
+    }
+  }
+
+  public static void writeTableToRange(
+      File file,
+      ExcelFileFormat format,
+      String rangeNameOrAddress,
+      ExistingDataMode existingDataMode,
+      int skipRows,
+      Table table,
+      Long rowLimit,
+      ExcelHeaders.HeaderBehavior headers)
+      throws IOException,
+          InvalidLocationException,
+          RangeExceededException,
+          ExistingDataException,
+          IllegalStateException,
+          ColumnNameMismatchException,
+          ColumnCountMismatchException,
+          InterruptedException {
+    ExcelFormatStrategy strategy = ExcelFormatStrategy.createStrategy(format);
+    try (var workbook = strategy.openForWrite(file)) {
+      writeTableToRange(
+          workbook, rangeNameOrAddress, existingDataMode, skipRows, table, rowLimit, headers);
+      strategy.finaliseWrite();
     }
   }
 
@@ -271,8 +352,8 @@ public class ExcelWriter {
           InterruptedException {
     Table mappedTable =
         switch (existingDataMode) {
-          case APPEND_BY_INDEX -> ColumnMapper.mapColumnsByPosition(
-              table, expanded.getColumnCount());
+          case APPEND_BY_INDEX ->
+              ColumnMapper.mapColumnsByPosition(table, expanded.getColumnCount());
           case APPEND_BY_NAME -> {
             if (headers == ExcelHeaders.HeaderBehavior.EXCEL_COLUMN_NAMES) {
               throw new IllegalArgumentException(
@@ -285,10 +366,11 @@ public class ExcelWriter {
             yield ColumnMapper.mapColumnsByName(
                 table, NameDeduplicator.createIgnoringProblems().makeUniqueArray(currentHeaders));
           }
-          default -> throw new IllegalArgumentException(
-              "Internal Error: appendRangeWithTable called with illegal existing data mode '"
-                  + existingDataMode
-                  + "'.");
+          default ->
+              throw new IllegalArgumentException(
+                  "Internal Error: appendRangeWithTable called with illegal existing data mode '"
+                      + existingDataMode
+                      + "'.");
         };
 
     if (range.isSingleCell()) {

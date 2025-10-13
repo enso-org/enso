@@ -816,19 +816,20 @@ test.describe('Table expression', () => {
   })
 
   async function getTableNodeExprAutocomplete(editorPage: EditorPageActions) {
-    const exprText = editorPage.locateNodes('table').locator('.WidgetText')
+    const node = editorPage.locateNodes('table')
+    const exprText = node.locator('.WidgetText')
     await expect(exprText).toHaveAttribute('data-text-syntax', 'enso-table-expression')
     await exprText.click()
     await expect(exprText.getByTestId('widget-text-content')).toBeFocused()
-    return await AutocompleteMenu.ForEditor(exprText)
+    return await AutocompleteMenu.ForEditorInNode(node)
   }
 })
 
 class AutocompleteMenu {
   private constructor(private readonly root: Locator) {}
 
-  static async ForEditor(editor: Locator): Promise<AutocompleteMenu> {
-    const root = editor.locator('.cm-tooltip-autocomplete')
+  static async ForEditorInNode(node: Locator): Promise<AutocompleteMenu> {
+    const root = node.locator('.cm-tooltip-autocomplete')
     await expect(root).toBeVisible()
     return new AutocompleteMenu(root)
   }
@@ -990,7 +991,7 @@ test('Manage aggregates in `aggregate` node', async ({ editorPage, page }) => {
 // Test that autoscoped constructors provide argument placeholders.
 // This test can be removed when `aggregate` inserts autoscoped constructors by default,
 // so this behavior will be tested in regular `aggregate` tests.
-test('Autoscoped constructors', async ({ editorPage, page }) => {
+test('Autoscoped constructors', async ({ editorPage }) => {
   await editorPage
     .mockMethodCallInfo('autoscoped', {
       methodPointer: {

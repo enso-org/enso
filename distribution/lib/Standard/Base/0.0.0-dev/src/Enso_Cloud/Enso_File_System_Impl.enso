@@ -1,7 +1,7 @@
 private
 
-import project.System.File.File_System_SPI
 import project.Enso_Cloud.Enso_File.Enso_File
+import project.System.File.File_System_SPI
 
 type Enso_File_System_Impl
 

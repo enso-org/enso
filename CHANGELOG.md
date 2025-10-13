@@ -2,6 +2,7 @@
 
 #### Enso IDE
 
+- [Resizing the right panel no longer causes content reflow][13976].
 - [Allow selecting target type for Any.to method][13685].
 - [Command Palette to search for arbitrary actions][13658]
 - [Fix mouse interactions with JSON visualization][13971]
@@ -9,6 +10,10 @@
 - [The documentation panel opens to the scroll position at last close][13647]
 - [Autocompletion for Column methods in table expressions][13797]
 - [Autocompletion for Column names in table expressions][13848]
+- [When connecting to port a value with additional type, a necessary type cast
+  is included][14028]
+- [Function docs in autocomplete in table expressions][14059]
+- [Many CLI arguments removed][14069]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -17,18 +22,33 @@
 [13647]: https://github.com/enso-org/enso/pull/13647
 [13797]: https://github.com/enso-org/enso/pull/13797
 [13848]: https://github.com/enso-org/enso/pull/13848
+[14028]: https://github.com/enso-org/enso/pull/14028
+[13976]: https://github.com/enso-org/enso/pull/13976
+[14059]: https://github.com/enso-org/enso/pull/14059
+[14069]: https://github.com/enso-org/enso/pull/14069
 
 #### Enso Standard Library
 
 - [Implement `Text_Column` for in-memory backend.][13769]
 - [Implement `Text_Column.to_case` for in-memory backend.][13769]
+- [Add support for gzip encoded return from web APIs][14026]
+- [Fixes for JDBC connection and schema support for SQL Server.][14039]
+- [Change Column.length to Column.row_count][14085]
+- [Add Text_Column.length and Text_Column.char_length][14091]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
+[14026]: https://github.com/enso-org/enso/pull/14026
+[14039]: https://github.com/enso-org/enso/pull/14039
+[14085]: https://github.com/enso-org/enso/pull/14085
+[14091]: https://github.com/enso-org/enso/pull/14091
 
 #### Enso Language & Runtime
 
+- [Enso is "conversion and equality oriented" language][14133]
+- [Moving >, >=, <, <= to types where such operators make sense][14017]
 - [Moving warning releated methods outside of `Any`][13978]
 - [Moving error relelated methods outside of `Any`][14003]
+- [Defining to_text & co. as extension methods](14050)
 - [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [Removal of --no-global-cache option][13909]
@@ -36,8 +56,11 @@
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
 
+[14133]: https://github.com/enso-org/enso/pull/14133
+[14017]: https://github.com/enso-org/enso/pull/14017
 [14003]: https://github.com/enso-org/enso/pull/14003
 [13978]: https://github.com/enso-org/enso/pull/13978
+[14050]: https://github.com/enso-org/enso/pull/14050
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13909]: https://github.com/enso-org/enso/pull/13909
@@ -87,6 +110,8 @@
   on macOS: <kbd>⌘</kbd> + <kbd>W</kbd>.
 - [Improved Graph Editor's Top Bar responsiveness to width change.][13726]
 - [Changed animation of tabs highlight.][13726]
+- [Fixed hybrid project progress being lost in some circumstances][14066]
+- [Add rand, uuid, tomorrow, yesterday and randbetween][14071]
 
 [12774]: https://github.com/enso-org/enso/pull/12774
 [12778]: https://github.com/enso-org/enso/pull/12778
@@ -117,6 +142,8 @@
 [13479]: https://github.com/enso-org/enso/pull/13479
 [13604]: https://github.com/enso-org/enso/pull/13604
 [13726]: https://github.com/enso-org/enso/pull/13726
+[14066]: https://github.com/enso-org/enso/pull/14066
+[14071]: https://github.com/enso-org/enso/pull/14071
 
 #### Enso Standard Library
 

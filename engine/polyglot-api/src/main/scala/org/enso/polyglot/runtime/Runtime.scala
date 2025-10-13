@@ -1421,10 +1421,6 @@ object Runtime {
         ")"
     }
 
-    /** A notification about the finished background analyze job. */
-    @named("analyzeModuleInScopeJobFinished")
-    final case class AnalyzeModuleInScopeJobFinished() extends ApiNotification
-
     /** A request to invalidate the indexed flag of the modules. */
     @named("invalidateModulesIndexRequest")
     final case class InvalidateModulesIndexRequest() extends ApiRequest

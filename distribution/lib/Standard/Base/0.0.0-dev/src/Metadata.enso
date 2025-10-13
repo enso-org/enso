@@ -149,7 +149,7 @@ type Widget
             values_json = if values.length == 0 then '[]' else '[' + (values.map v-> v.to_json).join ',' + ']'
             '{"constructor":"Single_Choice","values":' + values_json + (if label.is_nothing then ',"label":null' else ',"label":' + label.to_json) + ',"display":' + display.to_json + '}'
         Widget.Vector_Editor item_editor item_default _ display ->
-            '{"constructor":"Vector_Editor","item_editor":' + item_editor.to_json + (if item_default.is_nothing then ',"item_default":"_"' else ',"item_default":' + item_default.to_json) + ',"display":' + display.to_json + '}'
+            '{"constructor":"Vector_Editor","item_editor":' + item_editor.to_json + (if item_default==Nothing then ',"item_default":"_"' else ',"item_default":' + item_default.to_json) + ',"display":' + display.to_json + '}'
         Widget.Multiple_Choice values label display _ ->
             values_json = if values.length == 0 then '[]' else '[' + (values.map v-> v.to_json).join ',' + ']'
             '{"constructor":"Multiple_Choice","values":' + values_json + (if label.is_nothing then ',"label":null' else ',"label":' + label.to_json) + ',"display":' + display.to_json + '}'

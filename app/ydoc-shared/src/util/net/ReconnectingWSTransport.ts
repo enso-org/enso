@@ -9,7 +9,7 @@ import { ERR_UNKNOWN } from '@open-rpc/client-js/build/Error.js'
 import {
   getBatchRequests,
   getNotifications,
-  JSONRPCRequestData,
+  type JSONRPCRequestData,
 } from '@open-rpc/client-js/build/Request.js'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport.js'
 import WS from 'modern-isomorphic-ws'

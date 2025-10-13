@@ -8,18 +8,18 @@ import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.
 import {
   defineWidget,
   Score,
-  UpdateResult,
   WidgetInput,
   widgetProps,
+  type UpdateResult,
 } from '@/providers/widgetRegistry'
 import { usePersisted } from '@/stores/persisted'
 import { Ast } from '@/util/ast'
 import { Err, Ok } from '@/util/data/result'
-import { type MethodPointer } from '@/util/methodPointer'
-import { type IdentifierOrOperatorIdentifier } from '@/util/qualifiedName'
+import type { MethodPointer } from '@/util/methodPointer'
+import type { IdentifierOrOperatorIdentifier } from '@/util/qualifiedName'
 import { computed } from 'vue'
 import { PropertyAccess } from 'ydoc-shared/ast'
-import { type ExpressionId } from 'ydoc-shared/languageServerTypes'
+import type { ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))

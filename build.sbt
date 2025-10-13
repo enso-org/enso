@@ -146,6 +146,10 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution(
     "Saas",
     Distribution.sbtProjects(`std-saas`)
+  ),
+  makeStdLibDistribution(
+    "DuckDB",
+    Distribution.sbtProjects(`std-duckdb`)
   )
 )
 
@@ -400,6 +404,7 @@ lazy val enso = (project in file("."))
     `std-table`,
     `std-tableau`,
     `std-saas`,
+    `std-duckdb`,
     `sqlite-wrapper`,
     `syntax-rust-definition`,
     `tableau-wrapper`,
@@ -2852,6 +2857,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-microsoft` / Compile / packageBin)
       .dependsOn(`std-tableau` / Compile / packageBin)
       .dependsOn(`std-saas` / Compile / packageBin)
+      .dependsOn(`std-duckdb` / Compile / packageBin)
       .value
   )
   .dependsOn(`common-polyglot-core-utils`)
@@ -3927,18 +3933,23 @@ lazy val `engine-runner` = project
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
           `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-          `std-microsoft-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
           `std-snowflake-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
           `std-tableau-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
-          `std-saas-polyglot-root`
+          `std-duckdb-polyglot-root`
             .listFiles("*.jar")
-            .map(_.getAbsolutePath())
+            .map(_.getAbsolutePath()) ++ (if (
+                                            GraalVM.EnsoLauncher.disableMicrosoft
+                                          ) {
+                                            Seq()
+                                          } else {
+                                            `std-microsoft-polyglot-root`
+                                              .listFiles("*.jar")
+                                              .map(_.getAbsolutePath())
+                                          })
         }
       }
       core ++ stdLibsJars ++ extraNITestLibs.value
@@ -3964,10 +3975,15 @@ lazy val `engine-runner` = project
           "org.enso.microsoft.nativeimage.AzureNativeImageFeature"
         val databaseFeature =
           "org.enso.database.nativeimage.SqliteJdbcPatchedFeature"
-        val features = Seq(
+        var features = Seq(
           "org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature"
-        ) ++ (if (areStdlibsIncluded) Seq(databaseFeature, azureFeature)
-              else Seq())
+        )
+        if (areStdlibsIncluded) {
+          features = features ++ Seq(databaseFeature)
+          if (!GraalVM.EnsoLauncher.disableMicrosoft) {
+            features = features ++ Seq(azureFeature)
+          }
+        }
         // heapdump monitoring is not supported on Windows
         val enableHeapDumpOpts =
           if (!GraalVM.EnsoLauncher.release && !Platform.isWindows)
@@ -4056,7 +4072,8 @@ lazy val `engine-runner` = project
               "com.tableau.hyperapi",
               // See https://github.com/HarrDevY/native-register-bouncy-castle
               "org.bouncycastle.jcajce.provider.drbg.DRBG$Default",
-              "org.bouncycastle.jcajce.provider.drbg.DRBG$NonceAndIV"
+              "org.bouncycastle.jcajce.provider.drbg.DRBG$NonceAndIV",
+              "org.duckdb"
             ),
             initializeAtBuildtime = NativeImage.defaultBuildTimeInitClasses ++
               Seq(
@@ -5018,6 +5035,10 @@ val `std-tableau-native-libs` =
   stdLibComponentRoot("Tableau") / "polyglot" / "lib"
 val `std-saas-polyglot-root` =
   stdLibComponentRoot("Saas") / "polyglot" / "java"
+val `std-duckdb-polyglot-root` =
+  stdLibComponentRoot("DuckDB") / "polyglot" / "java"
+val `std-duckdb-native-libs` =
+  stdLibComponentRoot("DuckDB") / "polyglot" / "lib"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -5509,6 +5530,31 @@ lazy val `sqlite-wrapper` = project
       "org/**/*.class"                        -> CopyToOutputJar,
       "sqlite-jdbc.properties"                -> CopyToOutputJar
     )
+  )
+
+lazy val `duckdb-wrapper` = project
+  .in(file("lib/java/duckdb-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    libraryDependencies ++= Seq(
+      "org.duckdb" % "duckdb_jdbc" % duckdbVersion
+    ),
+    inputJar := "org.duckdb" % "duckdb_jdbc" % duckdbVersion,
+    version := "0.1",
+    jarExtractor := JarExtractor(
+      "libduckdb_java.so_linux_amd64"   -> PolyglotLib(LinuxAMD64),
+      "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSArm64),
+      "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSAMD64),
+      "libduckdb_java.so_windows_amd64" -> PolyglotLib(WindowsAMD64),
+      "META-INF/**"                     -> CopyToOutputJar,
+      "org/**/*.class"                  -> CopyToOutputJar
+    ),
+    inputJarResolved := assembly.value,
+    assemblyMergeStrategy := { case _ =>
+      MergeStrategy.preferProject
+    }
   )
 
 lazy val `std-image` = project
@@ -6038,6 +6084,52 @@ lazy val `std-saas` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
+lazy val `std-duckdb` = project
+  .in(file("std-bits") / "duckdb")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `std-duckdb-polyglot-root` / "std-duckdb.jar",
+    libraryDependencies ++= Seq(
+      "org.duckdb" % "duckdb_jdbc" % duckdbVersion % "provided"
+    ),
+    Compile / packageBin := {
+      val stdDuckDBJar      = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      StdBits
+        .copyDependencies(
+          `std-duckdb-polyglot-root`,
+          Seq("std-duckdb.jar"),
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedClasspath).value,
+          polyglotLibDir     = Some(`std-duckdb-native-libs`),
+          ignoreDependencies = None,
+          extractedNativeLibsDirs = Seq(
+            (`duckdb-wrapper` / extractedFilesDir).value
+          ),
+          extraJars = Seq(
+            (`duckdb-wrapper` / thinJarOutput).value
+          ),
+          logger            = streams.value.log,
+          cacheStoreFactory = cacheStoreFactory
+        )
+      stdDuckDBJar
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-duckdb-polyglot-root`)
+      IO.delete(`std-duckdb-native-libs`)
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
+
 lazy val fetchZipToUnmanaged =
   taskKey[Seq[Attributed[File]]](
     "Download zip file from an `unmanagedExternalZip` url and unpack jars to unmanaged libs directory"
@@ -6227,7 +6319,7 @@ ThisBuild / shouldBuildNativeImage := {
 }
 
 ThisBuild / NativeImage.additionalOpts := {
-  if (GraalVM.EnsoLauncher.shell) {
+  if (!GraalVM.EnsoLauncher.native) {
     Seq()
   } else {
     var opts = if (GraalVM.EnsoLauncher.release) {
@@ -6346,7 +6438,8 @@ val stdBitsProjects =
     "Microsoft",
     "Snowflake",
     "Table",
-    "Saas"
+    "Saas",
+    "DuckDB"
   ) ++ allStdBitsSuffix
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
@@ -6427,6 +6520,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-tableau` / Compile / packageBin).value
     case "Saas" =>
       (`std-saas` / Compile / packageBin).value
+    case "DuckDB" =>
+      (`std-duckdb` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -6444,6 +6539,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-microsoft` / Compile / packageBin).value
       (`std-tableau` / Compile / packageBin).value
       (`std-saas` / Compile / packageBin).value
+      (`std-duckdb` / Compile / packageBin).value
     case _ =>
   }
   val libs =

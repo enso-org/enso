@@ -12,7 +12,6 @@ import {
   areCategoriesEqual,
   ASSETS_DATA_TRANSFER_PAYLOAD,
   canTransferBetweenCategories,
-  dropOperationBetweenCategories,
   useTransferBetweenCategories,
   type Category,
 } from '#/layouts/Drive/Categories'
@@ -150,10 +149,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     <aria.DropZone
       aria-label={dropZoneLabel}
       getDropOperation={(types) => {
-        if (acceptedDragTypes.some((type) => types.has(type))) {
-          return dropOperationBetweenCategories(currentCategory, category)
-        }
-
+        if (acceptedDragTypes.some((type) => types.has(type))) return 'move'
         return 'cancel'
       }}
       className="group relative flex w-full min-w-0 flex-auto items-start rounded-full drop-target-after"
@@ -348,7 +344,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
           </div>
         ))}
 
-      {directories != null && window.fileBrowserApi && (
+      {directories != null && window.api && (
         <div className="flex">
           <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
 
@@ -359,7 +355,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             loaderPosition="icon"
             onPress={async () => {
               const [newDirectory] =
-                (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                (await window.api?.fileBrowser.openFileBrowser('directory')) ?? []
 
               if (newDirectory != null) {
                 const addedDirectory = directories.find(

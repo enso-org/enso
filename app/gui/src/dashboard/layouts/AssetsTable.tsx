@@ -3,7 +3,6 @@ import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
 import { Button } from '#/components/Button'
 import type { ContextMenuApi } from '#/components/ContextMenu'
-import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { Scroller } from '#/components/Scroller'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
@@ -29,8 +28,8 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
-import { AssetsTableContextMenu } from '#/layouts/AssetsTableContextMenu'
-import { type Category } from '#/layouts/CategorySwitcher/Category'
+import { AssetsTableCombinedContextMenu } from '#/layouts/AssetsTableCombinedContextMenu'
+import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
@@ -52,8 +51,8 @@ import { BindingFocusScopeContext } from '#/providers/BindingFocusScopeProvider'
 import {
   setDriveLocation,
   useDriveStore,
+  useSetAssetToRename,
   useSetCanDownload,
-  useSetNewestFolderId,
   useSetPasteData,
   useSetSelectedAssets,
   useSetVisuallySelectedKeys,
@@ -88,14 +87,7 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import {
-  useBackends,
-  useFullUserSession,
-  useLocalStorage,
-  useRightPanelData,
-  useText,
-} from '$/providers/react'
-import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
+import { useFullUserSession, useLocalStorage, useRightPanelData, useText } from '$/providers/react'
 import { useLaunchedProjects } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
@@ -151,7 +143,6 @@ interface DragSelectionInfo {
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
   readonly backend: Backend
-  readonly currentDirectoryId: DirectoryId
   readonly scrollContainerRef: RefObject<HTMLElement>
   readonly category: Category
   readonly sortInfo: SortInfo<AssetSortExpression> | null
@@ -159,15 +150,7 @@ export interface AssetsTableState {
   readonly query: AssetQuery
   readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
   readonly hideColumn: (column: Column) => void
-  readonly doCopy: () => void
-  readonly doCut: () => void
-  readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
   readonly getAssetNodeById: (id: AssetId) => AnyAsset | null
-}
-
-/** Data associated with a {@link AssetRow}, used for rendering. */
-export interface AssetRowState {
-  readonly isEditingName: boolean
 }
 
 /** Props for a {@link AssetsTable}. */
@@ -188,8 +171,6 @@ function AssetsTable(props: AssetsTableProps) {
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const { reconnectToProjectManager } = useBackends()
-  const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const localStorage = useLocalStorage()
   const { getText } = useText()
@@ -215,7 +196,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const [sortInfo, setSortInfo] = useState<SortInfo<AssetSortExpression> | null>(null)
   const driveStore = useDriveStore()
-  const setNewestFolderId = useSetNewestFolderId()
+  const setNewestFolderId = useSetAssetToRename()
   const setSelectedAssets = useSetSelectedAssets()
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const setPasteData = useSetPasteData()
@@ -223,10 +204,6 @@ function AssetsTable(props: AssetsTableProps) {
   const uploadFiles = useUploadFiles(backend, category)
   const updateSecretMutation = useMutationCallback(backendMutationOptions(backend, 'updateSecret'))
   const paste = usePaste(category)
-
-  const isSingleSelectedItem = useStore(driveStore, (state) => state.selectedIds.size === 1, {
-    unsafeEnableTransition: true,
-  })
 
   const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const { data: userGroups } = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
@@ -296,7 +273,10 @@ function AssetsTable(props: AssetsTableProps) {
         pageSize,
       }),
     initialPageParam: ((): PaginationToken | null => null)(),
-    getNextPageParam: (lastPage) => lastPage.paginationToken,
+    getNextPageParam: (lastPage) =>
+      lastPage.assets.length === pageSize && category.type !== 'recent' ?
+        lastPage.paginationToken
+      : null,
     retry: () => {
       if (queryDirectoryId === queryDirectoryIdRef.current) {
         setDriveLocation(null, category.id)
@@ -708,18 +688,7 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
-  const renameAssetMutationCallback = useMutationCallback(
-    backendMutationOptions(backend, 'updateAsset'),
-  )
-  const closeProjectMutationCallback = useCloseProject()
-
-  const doRenameAsset = useEventCallback((assetId: AssetId, newTitle: string) => {
-    return renameAssetMutationCallback([
-      assetId,
-      { title: newTitle, parentDirectoryId: null, description: null },
-      assetId,
-    ])
-  })
+  const closeProject = useCloseProject()
 
   const doOpenProject = useEventCallback((projectId: ProjectId) => {
     const project = assets.find((asset) => asset.id === projectId)
@@ -777,19 +746,6 @@ function AssetsTable(props: AssetsTableProps) {
     setPasteData(null)
   })
 
-  const contextMenu =
-    isSingleSelectedItem ? null : (
-      <AssetsTableContextMenu
-        ref={contextMenuRef}
-        backend={backend}
-        category={category}
-        currentDirectoryId={currentDirectoryId}
-        doCopy={doCopy}
-        doCut={doCut}
-        doPaste={doPaste}
-      />
-    )
-
   const onDropzoneDragOver = (event: DragEvent<Element>) => {
     const payload = ASSET_ROWS.lookup(event)
     // Unconditionally handle drag event even if drop target is invalid
@@ -809,9 +765,8 @@ function AssetsTable(props: AssetsTableProps) {
   })
 
   const state = useMemo<AssetsTableState>(
-    () => ({
+    (): AssetsTableState => ({
       backend,
-      currentDirectoryId,
       scrollContainerRef: rootRef,
       category,
       sortInfo,
@@ -819,24 +774,9 @@ function AssetsTable(props: AssetsTableProps) {
       query,
       setQuery,
       hideColumn,
-      doCopy,
-      doCut,
-      doPaste,
       getAssetNodeById,
     }),
-    [
-      backend,
-      category,
-      currentDirectoryId,
-      doCopy,
-      doCut,
-      doPaste,
-      getAssetNodeById,
-      hideColumn,
-      query,
-      setQuery,
-      sortInfo,
-    ],
+    [backend, category, getAssetNodeById, hideColumn, query, setQuery, sortInfo],
   )
 
   const calculateNewSelection = useEventCallback(
@@ -1159,6 +1099,7 @@ function AssetsTable(props: AssetsTableProps) {
             return (
               <AssetRow
                 key={item.id + item.virtualParentsPath}
+                contextMenuRef={contextMenuRef}
                 isPlaceholder={false}
                 isOpened={isOpenedByYou || isOpenedOnTheBackend}
                 columns={columns}
@@ -1177,8 +1118,7 @@ function AssetsTable(props: AssetsTableProps) {
                 onDragStart={onRowDragStart}
                 onDragEnd={endAutoScroll}
                 onDrop={onRowDrop}
-                renameAsset={doRenameAsset}
-                closeProject={closeProjectMutationCallback}
+                closeProject={closeProject}
                 openProject={doOpenProject}
               />
             )
@@ -1245,19 +1185,16 @@ function AssetsTable(props: AssetsTableProps) {
     </Scroller>
   )
 
-  if (!isCloud && didLoadingProjectManagerFail) {
-    return (
-      <ErrorDisplay
-        error={getText('couldNotConnectToPM')}
-        resetErrorBoundary={reconnectToProjectManager}
-      />
-    )
-  }
-
   return (
     <BindingFocusScopeContext.Provider value={rootRef}>
       <div className="relative grow contain-strict">
-        {contextMenu}
+        <AssetsTableCombinedContextMenu
+          ref={contextMenuRef}
+          currentDirectoryId={currentDirectoryId}
+          doCopy={doCopy}
+          doCut={doCut}
+          doPaste={doPaste}
+        />
 
         {hiddenColumns.length !== 0 && (
           <div

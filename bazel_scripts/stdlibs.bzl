@@ -6,6 +6,7 @@ STDLIB_NAMES = [
     "AWS",
     "Base",
     "Database",
+    "DuckDB",
     "Examples",
     "Generic_JDBC",
     "Geo",

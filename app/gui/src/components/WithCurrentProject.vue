@@ -5,9 +5,9 @@ import { injectOpenedProjects, type OpenedProject } from '$/providers/openedProj
 import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
 import { colorFromString } from '@/util/colors'
-import { Opt } from '@/util/data/opt'
-import { ToValue } from '@/util/reactivity'
-import { computed, ToRefs, toValue, watch } from 'vue'
+import type { Opt } from '@/util/data/opt'
+import type { ToValue } from '@/util/reactivity'
+import { computed, toValue, watch, type ToRefs } from 'vue'
 
 /**
  * A context of a single opened project.

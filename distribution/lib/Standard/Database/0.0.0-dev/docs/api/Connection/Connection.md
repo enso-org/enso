@@ -18,11 +18,11 @@
     - internal_allocate_dry_run_table self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - maybe_run_maintenance self -> Standard.Base.Any.Any
     - new jdbc_connection:Standard.Database.Internal.JDBC_Connection.JDBC_Connection dialect:Standard.Base.Any.Any entity_naming_properties:Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties data_link_setup:(Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup|Standard.Base.Nothing.Nothing)= try_large_update:Standard.Base.Data.Boolean.Boolean= -> Standard.Database.Connection.Connection.Connection
-    - query self query:Standard.Database.SQL_Query.SQL_Query alias:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - read self query:Standard.Database.SQL_Query.SQL_Query limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
+    - query self query:Standard.Base.Any.Any alias:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - read self query:Standard.Base.Any.Any limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
     - read_statement self statement:Standard.Base.Any.Any column_types:Standard.Base.Any.Any= last_row_only:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - read_text_column self query:Standard.Base.Any.Any column_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - save_as_data_link self destination:Standard.Base.Any.Any on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
+    - save_as_data_link self path:Standard.Base.Enso_Cloud.Enso_File.Enso_File on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
     - schema self -> Standard.Base.Any.Any
     - schemas self -> Standard.Base.Any.Any
     - set_database self database:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -37,4 +37,5 @@
 - make_schema_selector connection:Standard.Base.Any.Any include_any:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_structure_creator -> Standard.Base.Any.Any
 - make_table_name_selector connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_table_name_with_schema_selector connection:Standard.Base.Any.Any schema_black_list:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - make_table_types_selector connection:Standard.Base.Any.Any -> Standard.Base.Any.Any

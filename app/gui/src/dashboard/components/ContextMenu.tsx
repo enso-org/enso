@@ -24,6 +24,7 @@ export interface ContextMenuProps {
   readonly 'aria-label': string
   readonly entries: readonly (MenuEntryProps | false | null | undefined)[]
   readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
+  readonly onClose?: () => void
 }
 
 /** Imperative API for {@link ContextMenu}. */
@@ -37,17 +38,14 @@ export const ContextMenu = forwardRef(function ContextMenu(
   props: ContextMenuProps,
   ref: ForwardedRef<ContextMenuApi>,
 ) {
-  const { entries, initialPosition } = props
+  const { entries, initialPosition, onClose } = props
 
   const inputBindings = useInputBindings()
   const root = usePortalContext()
   const popoverRef = useRef<HTMLElement>(null)
   const [isOpen, setIsOpen] = useState(initialPosition != null)
   const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'>>(
-    initialPosition ?? {
-      pageX: 0,
-      pageY: 0,
-    },
+    initialPosition ?? { pageX: 0, pageY: 0 },
   )
 
   useImperativeHandle(ref, () => ({
@@ -118,6 +116,7 @@ export const ContextMenu = forwardRef(function ContextMenu(
         isOpen={isOpen}
         onOpenChange={setIsOpen}
         onClose={() => {
+          onClose?.()
           setIsOpen(false)
         }}
       >
