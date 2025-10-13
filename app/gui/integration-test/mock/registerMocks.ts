@@ -68,7 +68,12 @@ async function mockElectronApi(page: Page) {
           },
           fileBrowser: { openFileBrowser: async () => ['/path/to/some/mock/file'] },
           mapBoxApiToken: () => 'mock-mapbox-token',
-          log: console,
+          log: {
+            log: () => {},
+            info: () => {},
+            warn: () => {},
+            error: () => {},
+          },
           projectManagement: {
             setOpenProjectHandler: () => {},
           },
