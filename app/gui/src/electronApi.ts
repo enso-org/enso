@@ -29,7 +29,7 @@ export interface DownloadUrlOptions {
 }
 
 export interface SystemApi {
-  readonly downloadURL?: (options: DownloadUrlOptions) => Promise<void>
+  readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
   readonly getFilePath: (item: File) => string
 }
