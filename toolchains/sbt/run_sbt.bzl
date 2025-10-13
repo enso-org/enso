@@ -11,6 +11,8 @@ def _run_sbt_impl(ctx):
     sbt_bin = ctx.toolchains["@//toolchains/sbt:toolchain_type"].sbt_info.sbt_bin
     java_runtime = ctx.attr._java_runtime
     java_executable_path = java_runtime[java_common.JavaRuntimeInfo].java_executable_exec_path
+    cc_toolchain = ctx.toolchains["@bazel_tools//tools/cpp:toolchain_type"]
+    cc_path = cc_toolchain.cc.compiler_executable
 
     out_dir = ctx.actions.declare_directory(ctx.attr.out_dir)
     outputs = [out_dir]
@@ -25,6 +27,7 @@ def _run_sbt_impl(ctx):
     inputs = depset(ctx.files.srcs, transitive = [java_runtime.files])
     system_props = [
         "-Denso.BazelSupport.outDir=" + out_dir.path,
+        "-Denso.BazelSupport.CCompilerPath=" + cc_path,
     ]
     for p in ctx.attr.system_props:
         system_props = system_props + split_args(expand_variables(ctx, ctx.expand_location(p, targets = ctx.attr.srcs), outs = outputs))
@@ -48,6 +51,7 @@ run_sbt = rule(
         "@//toolchains/sbt:toolchain_type",
         "@//toolchains/flatc:toolchain_type",
         "@bazel_tools//tools/jdk:runtime_toolchain_type",
+        "@bazel_tools//tools/cpp:toolchain_type"
     ],
     attrs = {
         "args": attr.string_list(
