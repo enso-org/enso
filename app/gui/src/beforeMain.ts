@@ -31,33 +31,4 @@ DEV: {
       return fetch(`${_baseUrl}/__open-in-editor?file=${encodeURIComponent(fileLocation)}`)
     }
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface Object {
-    /**
-     * Quick and convenient way to `console.debug` the proceeding expression without affecting its output.
-     * Note that this has a noticeable overhead due to processing stack traces.
-     *
-     * ```ts
-     * $dbg[complicated.expression] || $dbg[other]
-     * ```
-     */
-    $dbg: this
-  }
-
-  Object.defineProperty(Object.prototype, '$dbg', {
-    get: function get() {
-      const { stackTraceLimit } = Error
-      try {
-        Error.stackTraceLimit = 0
-        const error = new Error()
-        Error.stackTraceLimit = 2
-        Error.captureStackTrace(Error, get)
-        console.log(error.stack, this)
-        return this
-      } finally {
-        Error.stackTraceLimit = stackTraceLimit
-      }
-    },
-  })
 }

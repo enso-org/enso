@@ -1,5 +1,5 @@
 /** @file Playwright browser testing configuration. */
-import { defineConfig } from 'integration-test/base'
+import { defineConfig } from 'playwright/test'
 
 export default defineConfig({
   testDir: './tests',

@@ -373,10 +373,6 @@ const listsHandler = listBindings.handler({
   'list.moveUp': actions['list.moveUp'].action,
   'list.moveDown': actions['list.moveDown'].action,
 })
-
-function logKeydown(event: KeyboardEvent) {
-  console.log('ComponentBrowser keydown', event.key)
-}
 </script>
 
 <template>
@@ -387,7 +383,7 @@ function logKeydown(event: KeyboardEvent) {
     :data-self-argument="input.selfArgument"
     tabindex="-1"
     @focusout="handleDefocus"
-    @keydown="(logKeydown($event), handler($event) !== false || listsHandler($event))"
+    @keydown="handler($event) !== false || listsHandler($event)"
     @pointerdown.stop.prevent
     @pointerup.stop.prevent
     @click.stop.prevent

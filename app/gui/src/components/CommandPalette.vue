@@ -63,16 +63,16 @@ watchEffect(() => {
   }
 })
 
-// useEvent(
-//   window,
-//   'keydown',
-//   commandPaletteBindings.handler(
-//     objects.mapEntries(
-//       commandPaletteBindings.bindings,
-//       (actionName) => actionHandlers[actionName].action,
-//     ),
-//   ),
-// )
+useEvent(
+  window,
+  'keydown',
+  commandPaletteBindings.handler(
+    objects.mapEntries(
+      commandPaletteBindings.bindings,
+      (actionName) => actionHandlers[actionName].action,
+    ),
+  ),
+)
 
 function trigger(action: Action | undefined) {
   if (!action) return

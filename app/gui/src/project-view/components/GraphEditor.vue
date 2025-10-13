@@ -290,7 +290,6 @@ const actionHandlers = registerHandlers({
   'graph.selectAll': { action: () => nodeSelection.selectAll() },
   'graph.deselectAll': {
     action: () => {
-      console.log('graph.deselectAll')
       nodeSelection.deselectAll()
       clearFocus()
       graphStore.undoManager.undoStackBoundary()

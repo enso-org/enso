@@ -60,28 +60,22 @@ test.describe(() => {
       .organizationForm()
       .fillEmail(INVALID_EMAIL)
       .save(false)
-      .step('Setting invalid email should fail', () => {
-        expect(cloudApi.currentOrganization()?.email).toBe('')
-      })
+      .step('Setting invalid email should fail', () =>
+        expect(cloudApi.currentOrganization()?.email).toBe(''),
+      )
       .organizationForm()
       .fillEmail(NEW_EMAIL)
       .save(true)
-      .step('Set email', () => {
-        expect(cloudApi.currentOrganization()?.email).toBe(NEW_EMAIL)
-      })
+      .step('Set email', () => expect(cloudApi.currentOrganization()?.email).toBe(NEW_EMAIL))
       .organizationForm()
       .fillWebsite(NEW_WEBSITE)
       .save(true)
       // NOTE: It is not yet possible to unset the website or the location.
-      .step('Set website', () => {
-        expect(cloudApi.currentOrganization()?.website).toBe(NEW_WEBSITE)
-      })
+      .step('Set website', () => expect(cloudApi.currentOrganization()?.website).toBe(NEW_WEBSITE))
       .organizationForm()
       .fillLocation(NEW_LOCATION)
       .save(true)
-      .step('Set website', () => {
-        expect(cloudApi.currentOrganization()?.address).toBe(NEW_LOCATION)
-      })
+      .step('Set website', () => expect(cloudApi.currentOrganization()?.address).toBe(NEW_LOCATION))
   })
 
   test('upload organization profile picture', async ({ drivePage, cloudApi }) => {
@@ -94,8 +88,8 @@ test.describe(() => {
         PROFILE_PICTURE_CONTENT,
         PROFILE_PICTURE_MIMETYPE,
       )
-      .step('Profile picture should be updated', () => {
-        expect(cloudApi.currentOrganizationProfilePicture()).toEqual(PROFILE_PICTURE_CONTENT)
-      })
+      .step('Profile picture should be updated', () =>
+        expect(cloudApi.currentOrganizationProfilePicture()).toEqual(PROFILE_PICTURE_CONTENT),
+      )
   })
 })
