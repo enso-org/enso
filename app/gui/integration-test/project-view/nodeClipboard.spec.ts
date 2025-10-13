@@ -1,9 +1,6 @@
 import type EditorPageActions from 'integration-test/actions/EditorPageActions'
 import { expect, test } from 'integration-test/base'
 import * as locate from './locate'
-import { addMockClipboardInitScript } from './mockClipboard'
-
-test.beforeEach(({ page }) => addMockClipboardInitScript(page))
 
 test('Copy component with context menu', async ({ editorPage, page }) => {
   await editorPage

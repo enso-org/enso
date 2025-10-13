@@ -13,6 +13,7 @@ export async function registerMocks(
     mockUnneededUrls(page),
     mockFeatureFlags(page, featureFlags),
     mockElectronApi(page),
+    addMockClipboardInitScript(page),
   ])
 }
 
@@ -61,11 +62,6 @@ async function mockElectronApi(page: Page) {
             goForward: () => {},
           },
           menu: { setMenuItemHandler: () => {} },
-          system: {
-            downloadURL: () => Promise.resolve(),
-            showItemInFolder: () => {},
-            getFilePath: (item: File) => '/mock/path/' + item.name,
-          },
           fileBrowser: { openFileBrowser: async () => ['/path/to/some/mock/file'] },
           mapBoxApiToken: () => 'mock-mapbox-token',
           log: {
@@ -200,5 +196,37 @@ async function mockUnneededUrls(page: Page) {
         }),
       ),
     ])
+  })
+}
+
+/** Adds an init script to the page that sets up a mock clipboard. */
+async function addMockClipboardInitScript(page: Page): Promise<void> {
+  await test.step('Mock Clipboard', async () => {
+    await page.addInitScript(() => {
+      function useMockClipboard() {
+        let contents: ClipboardItem[] = []
+        return {
+          read: async (): Promise<ClipboardItem[]> => {
+            return [...contents]
+          },
+          write: async (items: ClipboardItem[]) => {
+            contents = [...items]
+          },
+          readText: async (): Promise<string> => {
+            for (const item of contents) {
+              if (item.types.includes('text/plain')) {
+                const blob = await item.getType('text/plain')
+                return blob.text()
+              }
+            }
+            return ''
+          },
+          writeText: async (data: string): Promise<void> => {
+            contents = [new ClipboardItem({ 'text/plain': data })]
+          },
+        }
+      }
+      Object.assign(window.navigator.clipboard, useMockClipboard())
+    })
   })
 }

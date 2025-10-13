@@ -29,7 +29,7 @@ export interface DownloadUrlOptions {
 }
 
 export interface SystemApi {
-  readonly downloadURL: (options: DownloadUrlOptions) => Promise<void>
+  readonly downloadURL?: (options: DownloadUrlOptions) => Promise<void>
   readonly showItemInFolder: (fullPath: string) => void
   readonly getFilePath: (item: File) => string
 }
@@ -71,7 +71,7 @@ export interface ElectronApi {
   readonly authentication: AuthenticationApi
   readonly navigation: NavigationApi
   readonly menu: MenuApi
-  readonly system: SystemApi
+  readonly system?: SystemApi
   readonly projectManagement: ProjectManagementApi
   readonly fileBrowser: FileBrowserApi
   readonly versionInfo: VersionInfo

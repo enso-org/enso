@@ -5,7 +5,6 @@ import * as actions from './actions'
 import { mockMethodCallInfo } from './expressionUpdates'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
-import { addMockClipboardInitScript } from './mockClipboard'
 import singleColumnDates from './table-vis-json/singleColumnDates.json' with { type: 'json' }
 import singleColumnDatetimes from './table-vis-json/singleColumnDatetimes.json' with { type: 'json' }
 import singleColumnTimes from './table-vis-json/singleColumnTimes.json' with { type: 'json' }
@@ -90,12 +89,10 @@ async function resizeCol(col: Locator): Promise<number> {
 }
 
 test('Copy/paste from Table Visualization', async ({ page, editorPage }) => {
-  await addMockClipboardInitScript(page)
   const expectClipboard = expect.poll(() =>
     page.evaluate(() => window.navigator.clipboard.readText()),
   )
   await editorPage
-
   await actions.openVisualization(page, 'Table')
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
@@ -397,7 +394,6 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
 
 test.describe('Table_Visualisation_Integration_Spec and clipboard', () => {
   test('Datetime test - sorting and copying', async ({ editorPage, localApi, page, context }) => {
-    await addMockClipboardInitScript(page)
     await loadData(editorPage, localApi, singleColumnDatetimes)
     await expectCellDataToBe(
       page,
@@ -442,7 +438,6 @@ test.describe('Table_Visualisation_Integration_Spec and clipboard', () => {
   })
 
   test('Date test - sorting and copying', async ({ editorPage, localApi, page, context }) => {
-    await addMockClipboardInitScript(page)
     await loadData(editorPage, localApi, singleColumnDates)
     await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
     const value = getHeaderLocator(page, { colHeaderName: 'Value' })
@@ -463,7 +458,6 @@ test.describe('Table_Visualisation_Integration_Spec and clipboard', () => {
   })
 
   test('Time test - sorting and copying', async ({ editorPage, localApi, page, context }) => {
-    await addMockClipboardInitScript(page)
     await loadData(editorPage, localApi, singleColumnTimes)
     await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
     const value = getHeaderLocator(page, { colHeaderName: 'Value' })
