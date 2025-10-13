@@ -4,6 +4,7 @@ import { test } from 'integration-test/base'
 test.describe(() => {
   test.use({
     setupApi: {
+      addDefaultProject: false,
       cloud: (cloudApi) => {
         const samplesDir = cloudApi.addDirectory({ title: 'Samples' })
         cloudApi.addProject({

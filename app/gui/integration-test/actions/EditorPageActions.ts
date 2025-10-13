@@ -86,6 +86,16 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
     }
   }
 
+  /**
+   * Assert for specific number of top-level method arguments present on a node.
+   * Only counts currently visible arguments, which might be different if node is expanded or collapsed.
+   */
+  expectNodeTopLevelArgumentCount(bindingOrFilter: string, count: number) {
+    return this.withNode(bindingOrFilter, async (node) => {
+      await expect(node.locator('.WidgetTopLevelArgument')).toHaveCount(count)
+    })
+  }
+
   /** Check for existence or absence of edges that match given source/target specification. */
   expectEdgesFromTo(
     sourceNode: string | undefined,

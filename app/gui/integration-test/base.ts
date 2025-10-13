@@ -18,7 +18,11 @@ export interface PageCtx {
 
 export const test = base.extend<{
   featureFlags: Partial<FeatureFlags>
-  setupApi: { cloud?: (api: MockCloudApi) => void; local?: (api: MockLocalApi) => void }
+  setupApi: {
+    cloud?: (api: MockCloudApi) => void
+    local?: (api: MockLocalApi) => void
+    addDefaultProject?: boolean
+  }
   cloudApi: MockCloudApi
   localApi: MockLocalApi
   loginPage: LoginPageActions
@@ -34,14 +38,17 @@ export const test = base.extend<{
   },
   localApi: async ({ page, setupApi }, use) => {
     const api = await mockLocalApi(page)
-    api.addProject({
-      metadata: {
-        id: UUID('135af445-bcfb-42fe-aa74-96f95e99c28b'),
-        name: 'Mock Project',
-        namespace: 'local',
-        created: toRfc3339(new Date()),
-      },
-    })
+    if (setupApi?.addDefaultProject ?? true) {
+      api.addProject({
+        metadata: {
+          id: UUID('135af445-bcfb-42fe-aa74-96f95e99c28b'),
+          name: 'Mock Project',
+          namespace: 'local',
+          created: toRfc3339(new Date()),
+        },
+      })
+    }
+
     setupApi.local?.(api)
     return use(api)
   },

@@ -8,7 +8,12 @@ export async function registerMocks(
   page: Page,
   featureFlags: Partial<FeatureFlags>,
 ): Promise<void> {
-  await Promise.all([mockDate(page), mockUnneededUrls(page), mockFeatureFlags(page, featureFlags)])
+  await Promise.all([
+    mockDate(page),
+    mockUnneededUrls(page),
+    mockFeatureFlags(page, featureFlags),
+    mockFileBrowser(page),
+  ])
 }
 
 /** A placeholder date for visual regression testing. */
@@ -37,6 +42,17 @@ async function mockFeatureFlags(page: Page, featureFlags: Partial<FeatureFlags>)
         })
       }
     }, flags)
+  })
+}
+
+// Mock FileBrowserApi that is usually provided by Electron.
+async function mockFileBrowser(page: Page) {
+  await test.step('Mock fileBrowserApi', () => {
+    return page.addInitScript(() => {
+      Object.defineProperty(window, 'fileBrowserApi', {
+        value: { openFileBrowser: async () => ['/path/to/some/mock/file'] },
+      })
+    })
   })
 }
 

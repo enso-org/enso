@@ -1,5 +1,5 @@
 /** @file The base class from which all `Actions` classes are derived. */
-import type { AutocompleteKeybind, ModifierKey } from '@/util/shortcuts'
+import type { AutocompleteKeybind, Modifier } from '@/util/shortcuts'
 import { expect, test, type Locator, type Page } from 'integration-test/base'
 
 /** `Meta` (`Cmd`) on macOS, and `Control` on all other platforms. */
@@ -192,7 +192,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
    * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms.
    */
-  press<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+  press<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | Modifier) {
     return this.do((page) =>
       BaseActions.withNormalizedKey(
         page,
@@ -207,7 +207,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
    * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms.
    */
-  down<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+  down<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | Modifier) {
     return this.do((page) =>
       BaseActions.withNormalizedKey(
         page,
@@ -222,7 +222,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
    * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms.
    */
-  up<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+  up<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | Modifier) {
     return this.do((page) =>
       BaseActions.withNormalizedKey(
         page,
