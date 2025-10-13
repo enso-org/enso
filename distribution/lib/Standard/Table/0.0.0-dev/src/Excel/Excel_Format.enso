@@ -38,9 +38,8 @@ type Excel_Format
     ## Reads an Excel file as a connection to an `Excel_Workbook`.
 
        ## Arguments
-        - `xls_format`:  If set to `True`, the file is read as an Excel 95-2003
-          format. If set to `False`, the file is read as an Excel 2007+ format.
-          `Infer` will attempt to deduce this from the extension of the filename.
+        - `xls_format`: The Excel file format. XLSX for Excel 2007 and later, XLS for
+           Excel 97-2003. `Infer` will attempt to deduce this from the extension of the filename.
         - `default_sheet`: The default sheet to use when writing a table to a
           file with these format settings.
     @default_sheet Text_Input
@@ -56,12 +55,11 @@ type Excel_Format
           appended to disambiguate them.
         - `skip_rows`: The number of rows to skip before reading the data.
         - `row_limit`: The maximum number of rows to read.
-        - `xls_format`:  If set to `True`, the file is read as an Excel 95-2003
-          format. If set to `False`, the file is read as an Excel 2007+ format.
-          `Infer` will attempt to deduce this from the extension of the filename.
+        - `xls_format`: The Excel file format. XLSX for Excel 2007 and later, XLS for
+           Excel 97-2003. `Infer` will attempt to deduce this from the extension of the filename.
     @sheet (Text_Input display=Display.Always)
     @row_limit Rows_To_Read.default_widget
-    Sheet (sheet:(Integer|Text)=1) (headers:Headers=..Detect_Headers) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (xls_format:Boolean|Infer=Infer)
+    Sheet (sheet:(Integer|Text)=1) (headers:Headers=..Detect_Headers) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (xls_format:Excel_File_Format|Infer=Infer)
 
     ## Reads a range from an Excel file as a `Table`.
 
@@ -74,12 +72,11 @@ type Excel_Format
           appended to disambiguate them.
         - `skip_rows`: The number of rows to skip before reading the data.
         - `row_limit`: The maximum number of rows to read.
-        - `xls_format`:  If set to `True`, the file is read as an Excel 95-2003
-          format. If set to `False`, the file is read as an Excel 2007+ format.
-          `Infer` will attempt to deduce this from the extension of the filename.
+        - `xls_format`:  The Excel file format. XLSX for Excel 2007 and later, XLS for
+           Excel 97-2003. `Infer` will attempt to deduce this from the extension of the filename.
     @address Text_Input
     @row_limit Rows_To_Read.default_widget
-    Range (address:(Text|Excel_Range)=(Missing_Argument.throw 'address')) (headers:Headers=..Detect_Headers) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (xls_format : Boolean | Infer = Infer)
+    Range (address:(Text|Excel_Range)=(Missing_Argument.throw 'address')) (headers:Headers=..Detect_Headers) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (xls_format : Excel_File_Format | Infer = Infer)
 
     ## ---
        private: true
