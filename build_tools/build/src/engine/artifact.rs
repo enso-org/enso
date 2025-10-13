@@ -8,9 +8,7 @@ use octocrab::models::repos::Asset;
 #[derive(Clone, Copy, Debug)]
 pub enum ArtifactKind {
     EnginePackage,
-    ProjectManagerPackage,
     LauncherPackage,
-    ProjectManagerBundle,
     LauncherBundle,
 }
 
@@ -52,23 +50,6 @@ impl IsArtifact for crate::paths::generated::EnginePackage {
     }
 }
 
-impl IsArtifact for crate::paths::generated::ProjectManagerPackage {
-    fn kind(&self) -> ArtifactKind {
-        ArtifactKind::ProjectManagerPackage
-    }
-    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
-        self
-    }
-}
-
-impl IsArtifact for crate::paths::generated::ProjectManagerBundle {
-    fn kind(&self) -> ArtifactKind {
-        ArtifactKind::ProjectManagerBundle
-    }
-    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
-        self
-    }
-}
 
 impl IsArtifact for crate::paths::generated::LauncherPackage {
     fn kind(&self) -> ArtifactKind {

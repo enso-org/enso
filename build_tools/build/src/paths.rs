@@ -2,7 +2,6 @@ use crate::prelude::*;
 
 use crate::version::Versions;
 
-use std::env::consts::EXE_EXTENSION;
 use std::env::consts::EXE_SUFFIX;
 
 
@@ -93,9 +92,6 @@ impl Display for TargetTriple {
 #[derive(Clone, Debug)]
 pub struct Paths {
     pub repo_root: generated::RepoRoot,
-    // pub launcher:        ComponentPaths,
-    // pub engine:          ComponentPaths,
-    // pub project_manager: ComponentPaths,
     pub triple:    TargetTriple,
 }
 
@@ -205,13 +201,6 @@ pub fn data_directory() -> PathBuf {
 /// Get the place where global IR caches are stored.
 pub fn cache_directory() -> PathBuf {
     data_directory().join("cache")
-}
-
-pub fn project_manager(base_path: impl AsRef<Path>) -> PathBuf {
-    base_path
-        .as_ref()
-        .join_iter(["enso", "bin", "project-manager"])
-        .with_appended_extension(EXE_EXTENSION)
 }
 
 /// The path to the first `Cargo.toml` above the given path.

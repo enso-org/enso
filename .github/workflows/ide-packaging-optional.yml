@@ -57,15 +57,15 @@ jobs:
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Archive project-manager
-        run: tar -cvf project-manager.tar -C dist/backend .
-      - name: Upload project-manager
+      - name: Archive backend
+        run: tar -cvf backend.tar -C dist/backend .
+      - name: Upload backend
         uses: actions/upload-artifact@v4
         with:
-          name: project-manager-macos
-          path: project-manager.tar
+          name: backend-macos
+          path: backend.tar
       - name: Cleanup
-        run: rm project-manager.tar
+        run: rm backend.tar
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
@@ -177,14 +177,14 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download project-manager
+      - name: Download backend
         uses: actions/download-artifact@v4
         with:
-          name: project-manager-macos
+          name: backend-macos
           path: dist/backend
       - run: |-
-          tar -xvf dist/backend/project-manager.tar -C dist/backend
-          rm dist/backend/project-manager.tar
+          tar -xvf dist/backend/backend.tar -C dist/backend
+          rm dist/backend/backend.tar
       - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}

@@ -190,9 +190,8 @@ pub struct BuildConfigurationFlags {
     /// Build the Ydoc Native Image
     pub build_native_ydoc: bool,
     pub build_launcher_package: bool,
-    pub build_project_manager_package: bool,
+    pub build_backend_package: bool,
     pub build_launcher_bundle: bool,
-    pub build_project_manager_bundle: bool,
     pub generate_java_from_rust: bool,
     pub test_java_generated_from_rust: bool,
     /// Verify License Packages in Distributions.
@@ -266,8 +265,8 @@ impl BuildConfigurationResolved {
             config.build_engine_package = true;
         }
 
-        if config.build_project_manager_bundle {
-            config.build_project_manager_package = true;
+        // Building the backend package requires the engine package to exist.
+        if config.build_backend_package {
             config.build_engine_package = true;
         }
 
@@ -305,10 +304,6 @@ impl BuildConfigurationResolved {
 impl BuildConfigurationFlags {
     pub fn has_native_runner(&self) -> bool {
         self.build_native_runner || self.use_native_runner
-    }
-
-    pub fn build_project_manager_package(&self) -> bool {
-        self.build_project_manager_package || self.build_project_manager_bundle
     }
 
     pub fn build_launcher_package(&self) -> bool {
@@ -350,9 +345,8 @@ impl Default for BuildConfigurationFlags {
             use_native_runner: false,
             build_native_runner: false,
             build_native_ydoc: false,
-            build_project_manager_package: false,
+            build_backend_package: false,
             build_launcher_bundle: false,
-            build_project_manager_bundle: false,
             generate_java_from_rust: false,
             test_java_generated_from_rust: false,
             verify_packages: false,
@@ -390,11 +384,9 @@ pub enum Operation {
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct BuiltArtifacts {
-    pub engine_package:          Option<generated::EnginePackage>,
-    pub launcher_package:        Option<generated::LauncherPackage>,
-    pub project_manager_package: Option<generated::ProjectManagerPackage>,
-    pub launcher_bundle:         Option<generated::LauncherBundle>,
-    pub project_manager_bundle:  Option<generated::ProjectManagerBundle>,
+    pub engine_package:   Option<generated::EnginePackage>,
+    pub launcher_package: Option<generated::LauncherPackage>,
+    pub launcher_bundle:  Option<generated::LauncherBundle>,
 }
 
 impl BuiltArtifacts {
@@ -406,9 +398,6 @@ impl BuiltArtifacts {
         if let Some(launcher) = &self.launcher_package {
             packages.push(launcher);
         }
-        if let Some(project_manager) = &self.project_manager_package {
-            packages.push(project_manager);
-        }
         packages
     }
 
@@ -416,9 +405,6 @@ impl BuiltArtifacts {
         let mut bundles = Vec::<&dyn IsBundle>::new();
         if let Some(launcher) = &self.launcher_bundle {
             bundles.push(launcher);
-        }
-        if let Some(project_manager) = &self.project_manager_bundle {
-            bundles.push(project_manager);
         }
         bundles
     }

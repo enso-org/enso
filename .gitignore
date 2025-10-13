@@ -105,7 +105,6 @@ bench-report*.xml
 /built-distribution/
 /enso
 /ensoup
-/project-manager
 /enso.exp
 /enso.lib
 

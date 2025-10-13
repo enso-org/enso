@@ -41,7 +41,6 @@ declare global {
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly npm_package_name?: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly PROJECT_MANAGER_IN_BUNDLE_PATH: string
 
       // === Integration test variables ===
 

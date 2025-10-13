@@ -141,7 +141,6 @@ SRCS = STDLIB_SOURCES + [
     "lib/scala/pkg/src/**",
     "lib/scala/process-utils/src/**",
     "lib/scala/profiling-utils/src/**",
-    "lib/scala/project-manager/src/**",
     "lib/scala/refactoring-utils/src/**",
     "lib/scala/runtime-version-manager/src/**",
     "lib/scala/searcher/src/**",
