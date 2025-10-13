@@ -74,15 +74,10 @@ type MutationOptions<Method extends BackendMutationMethod> = ToValue<
 /**
  * Create Tanstack Query mutation options for given backend method call.
  */
-export function backendMutationOptions<Method extends BackendMutationMethod>(
-  method: Method,
-  backend: ToValue<Backend | null>,
-  options?: MutationOptions<Method>,
-): UseMutationOptions<
-  Awaited<ReturnType<Backend[Method]>> | undefined,
-  Error,
-  Parameters<Backend[Method]>
-> {
+export function backendMutationOptions<
+  Method extends BackendMutationMethod,
+  B extends Backend | null,
+>(method: Method, backend: ToValue<B>, options?: MutationOptions<Method>) {
   return computed(() => {
     const opts = toValue(options)
     const backendVal = toValue(backend)
@@ -98,11 +93,19 @@ export function backendMutationOptions<Method extends BackendMutationMethod>(
       ...backendBaseOptions(backendVal),
       ...opts,
       mutationKey: [backendVal?.type, method, ...(toValue(opts?.mutationKey) ?? [])],
-      mutationFn: (args) => (backendVal ? (backendVal[method] as any)(...args) : undefined),
+      mutationFn: (
+        args: Parameters<B[Method]>,
+      ): Promise<
+        B extends Backend ? Awaited<ReturnType<Backend[Method]>>
+        : Awaited<ReturnType<Backend[Method]>> | null
+      > => (backendVal ? (backendVal[method] as any)(...args) : (Promise.resolve(null) as any)),
       meta: {
         invalidates,
         awaitInvalidates: true,
-        refetchType: invalidates.some((key) => key[1] === 'listDirectory') ? 'all' : 'active',
+        refetchType:
+          invalidates.some((key) => key[1] === 'listDirectory') ?
+            ('all' as const)
+          : ('active' as const),
         ...opts?.meta,
       },
     }

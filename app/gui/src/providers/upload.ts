@@ -1,5 +1,7 @@
 import type Backend from '#/services/Backend'
 import type { HttpsUrl, UploadFileRequestParams } from '#/services/Backend'
+import { backendMutationOptions } from '@/composables/backend'
+import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import { ConditionVariable } from 'enso-common/src/utilities/ConditionVariable'
 import { reactive } from 'vue'
@@ -8,6 +10,7 @@ import { useFeatureFlag } from './featureFlags'
 
 /** The delay, in milliseconds, before query data for a file being uploaded is cleared. */
 const CLEAR_PROGRESS_DELAY_MS = 5_000
+const RETRIES = 3
 
 export type UploadKind = 'requestedByUser' | 'hybridSync'
 
@@ -19,16 +22,22 @@ export interface OngoingUpload {
   abortController: AbortController
 }
 
-export type UploadsToCloudStore = ReturnType<typeof createUploadsToCloudStore>
+export type UploadsToCloudStore = ReturnType<typeof createUploadsStore>
 
 /** Constructor of UploadsToCloudStore. see {@link useUploadsToCloudStore}  docs. */
-export function createUploadsToCloudStore(
-  backend: Pick<Backend, 'uploadFileStart' | 'uploadFileChunk' | 'uploadFileEnd'>,
-) {
+export function createUploadsStore(backend: Backend) {
   const uploads = reactive(new Map<string, OngoingUpload>())
   const chunkUploadPoolSize = useFeatureFlag('fileChunkUploadPoolSize')
   let chunksBeingUploaded = 0
   const chunkUploadCondVar = new ConditionVariable()
+
+  const uploadFileStart = vueQuery.useMutation(backendMutationOptions('uploadFileStart', backend))
+  const uploadFileChunk = vueQuery.useMutation(
+    backendMutationOptions('uploadFileChunk', backend, { retry: RETRIES }),
+  )
+  const uploadFileEnd = vueQuery.useMutation(
+    backendMutationOptions('uploadFileEnd', backend, { retry: RETRIES }),
+  )
 
   async function uploadChunk(url: HttpsUrl, file: File, index: number, abort: AbortSignal) {
     while (chunkUploadPoolSize.value > 0 && chunksBeingUploaded >= chunkUploadPoolSize.value) {
@@ -36,7 +45,7 @@ export function createUploadsToCloudStore(
       abort.throwIfAborted()
     }
     chunksBeingUploaded += 1
-    return backend.uploadFileChunk(url, file, index, abort).finally(() => {
+    return uploadFileChunk.mutateAsync([url, file, index, abort]).finally(() => {
       chunksBeingUploaded -= 1
       chunkUploadCondVar.notifyOne()
     })
@@ -44,11 +53,11 @@ export function createUploadsToCloudStore(
 
   async function uploadFile(file: File, params: UploadFileRequestParams, kind?: UploadKind) {
     const abortController = new AbortController()
-    const { sourcePath, uploadId, presignedUrls } = await backend.uploadFileStart(
+    const { sourcePath, uploadId, presignedUrls } = await uploadFileStart.mutateAsync([
       params,
       file,
       abortController.signal,
-    )
+    ])
 
     const data: OngoingUpload = reactive({
       kind,
@@ -67,7 +76,7 @@ export function createUploadsToCloudStore(
         }),
       ),
     )
-    const result = await backend.uploadFileEnd(
+    const result = await uploadFileEnd.mutateAsync([
       {
         parentDirectoryId: params.parentDirectoryId,
         parts,
@@ -77,7 +86,7 @@ export function createUploadsToCloudStore(
         fileName: params.fileName,
       },
       abortController.signal,
-    )
+    ])
     data.finished = true
     setTimeout(() => {
       uploads.delete(uploadId)
@@ -98,5 +107,5 @@ export function createUploadsToCloudStore(
  */
 export const useUploadsToCloudStore = createGlobalState(() => {
   const { remoteBackend } = useBackends()
-  return createUploadsToCloudStore(remoteBackend)
+  return createUploadsStore(remoteBackend)
 })
