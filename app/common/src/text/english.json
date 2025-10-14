@@ -344,7 +344,7 @@
   "stravaCredentialScopesEmptyError": "Please select at least one scope for the integration.",
   "stravaCredentialReadScope": "Read",
   "stravaCredentialActivityReadScope": "Read Activity",
-  "ms365CredentialType": "MS365",
+  "ms365CredentialType": "Microsoft 365",
   "ms365CredentialScopes": "Scopes",
   "ms365CredentialScopesEmptyError": "Please select at least one scope for the integration.",
   "ms365CredentialUserReadScope": "Read Profile",
