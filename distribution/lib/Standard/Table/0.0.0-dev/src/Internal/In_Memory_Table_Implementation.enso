@@ -690,7 +690,7 @@ type In_Memory_Table_Implementation
                     if is_write.not then Panic.throw caught_panic else
                         Error.throw (File_Error.Unsupported_Output_Type resolved_format Table)
                 Panic.catch No_Such_Method handler=handle_no_write_method <|
-                    if (path:File_Like).parent.exists.not then Error.throw (File_Error.Not_Found (path:File_Like).parent) else
+                    if (path:File_Like).can_write_into_parent.not then Error.throw (File_Error.Not_Found (path:File_Like).parent) else
                         to_write = if Context.Output.is_enabled then this_table else this_table.take 1000
                         resolved_format.write_table path to_write on_existing_file match_columns on_problems
 

@@ -40,6 +40,11 @@ type File_Like
        ---
     exists self = self.underlying.exists
 
+    ## ---
+       private: true
+       ---
+    can_write_into_parent self = self.underlying.can_write_into_parent
+
 ## ---
    private: true
    ---
