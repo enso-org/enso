@@ -15,7 +15,7 @@ def _run_enso_impl(ctx):
         content = """#!/bin/bash
         export JAVA_HOME="{java_home}"
         export PATH="$JAVA_HOME/bin:$PATH"
-        binary_path=built-distribution/enso-engine-*/enso-*/bin/enso
+        binary_path={dist}/enso-engine-*/enso-*/bin/enso
         if [ ! -f $binary_path ]; then
             echo "Error: Could not find enso binary in {dist}"
             exit 1
