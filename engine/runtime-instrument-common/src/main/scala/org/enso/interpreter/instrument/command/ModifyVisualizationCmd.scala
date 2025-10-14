@@ -56,25 +56,30 @@ class ModifyVisualizationCmd(
         }
 
       case Some(expressionId) =>
-        ctx.endpoint.sendToClient(
-          Api.Response(maybeRequestId, Api.VisualizationModified())
-        )
         val maybeFutureExecutable =
           ctx.jobProcessor.run(
             new UpsertVisualizationJob(
               maybeRequestId,
               request.visualizationId,
               expressionId,
-              request.visualizationConfig
+              request.visualizationConfig,
+              existingVisualization.map(_.arguments)
             )
           )
+
+            maybeFutureExecutable.foreach { _ =>
+            ctx.endpoint.sendToClient(
+              Api.Response(maybeRequestId, Api.VisualizationModified())
+            )
+          }
+
         maybeFutureExecutable flatMap {
           case None =>
             Future.successful(())
 
           case Some(exec) =>
             for {
-              _ <- ctx.jobProcessor.run(EnsureCompiledJob(exec.stack))
+              _ <- ctx.jobProcessor.run(EnsureCompiledJob(exec.stack)) // redundant?
               _ <- ctx.jobProcessor.run(
                 ExecuteJob(
                   exec,

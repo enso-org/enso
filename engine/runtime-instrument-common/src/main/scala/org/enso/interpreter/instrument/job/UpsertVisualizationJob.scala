@@ -3,20 +3,14 @@ package org.enso.interpreter.instrument.job
 import org.slf4j.LoggerFactory
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.module.scope.{definition, Definition}
+import org.enso.compiler.core.ir.module.scope.{Definition, definition}
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
-import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
-  EvaluationFailed,
-  EvaluationResult,
-  ModuleNotFound,
-  RequiresCompilation
-}
-import org.enso.interpreter.instrument.{
-  InstrumentFrame,
-  ObservableVisualization,
-  RuntimeCache,
-  Visualization
-}
+import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{EvaluationFailed, EvaluationResult, ModuleNotFound, RequiresCompilation}
+import org.enso.interpreter.instrument.{InstrumentFrame, ObservableInvalidation, ObservableVisualization, RuntimeCache, Visualization}
+import org.enso.interpreter.node.ClosureRootNode
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode
+import org.enso.interpreter.node.callable.function.BlockNode
+import org.enso.interpreter.node.scope.AssignmentNode
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
@@ -24,6 +18,7 @@ import org.enso.polyglot.ExternalUUID
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
+import scala.jdk.CollectionConverters.IterableHasAsJava
 //import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 import scala.annotation.unused
@@ -41,7 +36,8 @@ class UpsertVisualizationJob(
   @unused requestId: Option[Api.RequestId],
   val visualizationId: Api.VisualizationId,
   val expressionId: Api.ExpressionId,
-  config: Api.VisualizationConfiguration
+  config: Api.VisualizationConfiguration,
+  prevArguments: Option[Vector[AnyRef]] = None
 ) extends Job[Option[Executable]](
       List(config.executionContextId),
       false,
@@ -161,6 +157,31 @@ class UpsertVisualizationJob(
     val runtimeCache = stack.headOption
       .flatMap(frame => Option(frame.cache))
       .getOrElse(new RuntimeCache(ctx.executionService))
+
+    prevArguments.foreach { prev =>
+      val changed = (prev zip arguments).zipWithIndex.filter(v => v._1._1 != v._1._2).map(_._2)
+      callable match {
+        case call: FunctionCallInstrumentationNode.FunctionCall if changed.nonEmpty =>
+          call.getFunction.getCallTarget.getRootNode match {
+            case closure: ClosureRootNode =>
+              closure.getBody match {
+                case bodyNode: BlockNode =>
+                  val invalidUUIDs = changed.flatMap { idx =>
+                    bodyNode.getStatementNode(idx + 2) match { // 0 - self, 1 - value, the rest is arguments
+                      case assignmend: AssignmentNode =>
+                        Option(assignmend.getRhsID).map(_.uuid())
+                      case _ => None
+                    }
+                  }
+                  val stackJ = new java.util.Stack[InstrumentFrame]
+                  stack.toList.reverse.foreach(stackJ.push)
+                  ObservableInvalidation.invalidateAffectedIDs(invalidUUIDs.asJava, stackJ)
+              }
+            case _ =>
+          }
+        case _ =>
+      }
+    }
 
     val visualization =
       UpsertVisualizationJob.updateAttachedVisualization(

@@ -132,6 +132,14 @@ public class BlockNode extends ExpressionNode {
     return this.id;
   }
 
+  public ExpressionNode getStatementNode(int index) {
+    if (statements.length < index || index < 0) {
+      return null;
+    } else {
+      return statements[index];
+    }
+  }
+
   @Override
   public void setId(RuntimeID id) {
     CompilerDirectives.transferToInterpreterAndInvalidate();

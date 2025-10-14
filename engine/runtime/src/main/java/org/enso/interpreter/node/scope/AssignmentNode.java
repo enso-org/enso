@@ -17,10 +17,13 @@ import org.enso.polyglot.RuntimeID;
 public abstract class AssignmentNode extends ExpressionNode {
 
   private @CompilerDirectives.CompilationFinal RuntimeID id = null;
+  private @Child ExpressionNode rhsNode;
   private final int frameSlotIdx;
+  private final RuntimeID rhsID;
 
-  AssignmentNode(int frameSlotIdx) {
+  AssignmentNode(int frameSlotIdx, RuntimeID rhsID) {
     this.frameSlotIdx = frameSlotIdx;
+    this.rhsID = rhsID;
   }
 
   /**
@@ -31,7 +34,7 @@ public abstract class AssignmentNode extends ExpressionNode {
    * @return a node representing an assignment
    */
   public static AssignmentNode build(ExpressionNode expression, int frameSlotIdx) {
-    return AssignmentNodeGen.create(frameSlotIdx, expression);
+    return AssignmentNodeGen.create(frameSlotIdx, expression.getId(), expression);
   }
 
   /**
@@ -79,4 +82,9 @@ public abstract class AssignmentNode extends ExpressionNode {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     this.id = id;
   }
+
+  public RuntimeID getRhsID() {
+    return rhsID;
+  }
+
 }

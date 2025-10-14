@@ -2,6 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
+import org.enso.polyglot.runtime.Runtime.Api.InvalidatedExpressions
 
 import org.enso.pkg.QualifiedName
 import org.enso.common.RuntimeOptions
@@ -399,7 +400,12 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, Some(Api.InvalidatedExpressions.Expressions(Vector(idMainRes), "")), None, Seq())
+          Api.RecomputeContextRequest(
+            contextId,
+            Some(Api.InvalidatedExpressions.Expressions(Vector(idMainRes), "")),
+            None,
+            Seq()
+          )
         )
       )
 
@@ -407,9 +413,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       recomputeResponses should contain allOf (
         Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
         TestMessages.pending(contextId, idMainRes),
-        TestMessages.update(contextId, idMainRes,
+        TestMessages.update(
+          contextId,
+          idMainRes,
           expressionType = ConstantsGen.INTEGER,
-          typeChanged = false
+          typeChanged    = false
         ),
         context.executionComplete(contextId)
       )
@@ -1021,7 +1029,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val editFileResponse = context.receiveNIgnorePendingExpressionUpdates(6)
+      val editFileResponse =
+        context.receiveNIgnorePendingExpressionUpdates(6, timeoutSeconds = 10)
       editFileResponse should contain allOf (
         TestMessages.update(
           contextId,
@@ -1517,7 +1526,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(requestId, Api.PushContextRequest(contextId, item1))
       )
-      val pushResponses = context.receiveNIgnorePendingExpressionUpdates(6, 30)
+      val pushResponses = context.receiveNIgnorePendingExpressionUpdates(6, 10)
       pushResponses should contain allOf (
         Api.Response(requestId, Api.PushContextResponse(contextId)),
         context.Main.Update.mainX(contextId),
@@ -2576,9 +2585,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      context.receiveNIgnorePendingExpressionUpdates(
-        4
-      ) should contain theSameElementsAs Seq(
+      val receiveAll = context.receiveNIgnorePendingExpressionUpdates(
+        5,
+        10
+      )
+      receiveAll should contain theSameElementsAs Seq(
         Api.Response(requestId, Api.VisualizationAttached()),
         TestMessages.panic(
           contextId,
@@ -2932,7 +2943,12 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None, Seq())
+          Api.RecomputeContextRequest(
+            contextId,
+            Some(Api.InvalidatedExpressions.Expressions(Vector(idMainRes), "")),
+            None,
+            Seq()
+          )
         )
       )
 
@@ -3106,7 +3122,12 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None, Seq())
+          Api.RecomputeContextRequest(
+            contextId,
+            Some(InvalidatedExpressions.Expressions(Vector(idMainRes), "")),
+            None,
+            Seq()
+          )
         )
       )
 
@@ -3245,7 +3266,12 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None, Seq())
+          Api.RecomputeContextRequest(
+            contextId,
+            Some(InvalidatedExpressions.Expressions(Vector(idMainRes), "")),
+            None,
+            Seq()
+          )
         )
       )
 
@@ -3429,7 +3455,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None, Seq())
+          Api.RecomputeContextRequest(contextId, Some(InvalidatedExpressions.Expressions(Vector(idMainRes), "")), None, Seq())
         )
       )
 

@@ -106,7 +106,11 @@ public class ClosureRootNode extends EnsoRootNode {
     }
   }
 
-  final ExpressionNode getBody() {
+  public RuntimeID getId() {
+    return id;
+  }
+
+  public final ExpressionNode getBody() {
     return body;
   }
 
