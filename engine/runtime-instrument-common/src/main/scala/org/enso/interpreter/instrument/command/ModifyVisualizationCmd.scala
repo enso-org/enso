@@ -67,11 +67,11 @@ class ModifyVisualizationCmd(
             )
           )
 
-            maybeFutureExecutable.foreach { _ =>
-            ctx.endpoint.sendToClient(
-              Api.Response(maybeRequestId, Api.VisualizationModified())
-            )
-          }
+        maybeFutureExecutable.foreach { _ =>
+          ctx.endpoint.sendToClient(
+            Api.Response(maybeRequestId, Api.VisualizationModified())
+          )
+        }
 
         maybeFutureExecutable flatMap {
           case None =>
@@ -79,7 +79,9 @@ class ModifyVisualizationCmd(
 
           case Some(exec) =>
             for {
-              _ <- ctx.jobProcessor.run(EnsureCompiledJob(exec.stack)) // redundant?
+              _ <- ctx.jobProcessor.run(
+                EnsureCompiledJob(exec.stack)
+              ) // redundant?
               _ <- ctx.jobProcessor.run(
                 ExecuteJob(
                   exec,

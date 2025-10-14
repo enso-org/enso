@@ -86,5 +86,4 @@ public abstract class AssignmentNode extends ExpressionNode {
   public RuntimeID getRhsID() {
     return rhsID;
   }
-
 }

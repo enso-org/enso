@@ -75,17 +75,19 @@ public class CachingObservable implements Observable {
 
   @Override
   public synchronized void notify(Object value, GuestExecutionService executionService) {
-    visualizations
-        .values()
-        .forEach(
-            action -> {
-              try {
-                executionService.submitExecution(action.execute(value));
-              } catch (Throwable e) {
-                LOGGER.warn(
-                    "Failed to submit visualization " + action.getId() + " for execution", e);
-              }
-            });
+    if (value != null) {
+      visualizations
+          .values()
+          .forEach(
+              action -> {
+                try {
+                  executionService.submitExecution(action.execute(value));
+                } catch (Throwable e) {
+                  LOGGER.warn(
+                      "Failed to submit visualization " + action.getId() + " for execution", e);
+                }
+              });
+    }
   }
 
   public CompletionStage<Boolean> registerAction(

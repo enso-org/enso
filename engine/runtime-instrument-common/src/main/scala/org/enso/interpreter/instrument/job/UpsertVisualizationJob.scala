@@ -3,10 +3,21 @@ package org.enso.interpreter.instrument.job
 import org.slf4j.LoggerFactory
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
-import org.enso.compiler.core.ir.module.scope.{Definition, definition}
+import org.enso.compiler.core.ir.module.scope.{definition, Definition}
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
-import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{EvaluationFailed, EvaluationResult, ModuleNotFound, RequiresCompilation}
-import org.enso.interpreter.instrument.{InstrumentFrame, ObservableInvalidation, ObservableVisualization, RuntimeCache, Visualization}
+import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
+  EvaluationFailed,
+  EvaluationResult,
+  ModuleNotFound,
+  RequiresCompilation
+}
+import org.enso.interpreter.instrument.{
+  InstrumentFrame,
+  ObservableInvalidation,
+  ObservableVisualization,
+  RuntimeCache,
+  Visualization
+}
 import org.enso.interpreter.node.ClosureRootNode
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode
 import org.enso.interpreter.node.callable.function.BlockNode
@@ -159,15 +170,19 @@ class UpsertVisualizationJob(
       .getOrElse(new RuntimeCache(ctx.executionService))
 
     prevArguments.foreach { prev =>
-      val changed = (prev zip arguments).zipWithIndex.filter(v => v._1._1 != v._1._2).map(_._2)
+      val changed = (prev zip arguments).zipWithIndex
+        .filter(v => v._1._1 != v._1._2)
+        .map(_._2)
       callable match {
-        case call: FunctionCallInstrumentationNode.FunctionCall if changed.nonEmpty =>
+        case call: FunctionCallInstrumentationNode.FunctionCall
+            if changed.nonEmpty =>
           call.getFunction.getCallTarget.getRootNode match {
             case closure: ClosureRootNode =>
               closure.getBody match {
                 case bodyNode: BlockNode =>
                   val invalidUUIDs = changed.flatMap { idx =>
-                    bodyNode.getStatementNode(idx + 2) match { // 0 - self, 1 - value, the rest is arguments
+                    bodyNode
+                      .getStatementNode(idx + 2) match { // 0 - self, 1 - value, the rest is arguments
                       case assignmend: AssignmentNode =>
                         Option(assignmend.getRhsID).map(_.uuid())
                       case _ => None
@@ -175,7 +190,10 @@ class UpsertVisualizationJob(
                   }
                   val stackJ = new java.util.Stack[InstrumentFrame]
                   stack.toList.reverse.foreach(stackJ.push)
-                  ObservableInvalidation.invalidateAffectedIDs(invalidUUIDs.asJava, stackJ)
+                  ObservableInvalidation.invalidateAffectedIDs(
+                    invalidUUIDs.asJava,
+                    stackJ
+                  )
               }
             case _ =>
           }

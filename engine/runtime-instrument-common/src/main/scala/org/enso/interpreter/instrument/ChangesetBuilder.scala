@@ -118,26 +118,54 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         }
       }
 
-    Changeset(source, ir, simpleUpdateOption, compute(edits.map(_.edit)), idMap)
+    Changeset(
+      source,
+      ir,
+      simpleUpdateOption,
+      compute(edits.map(_.edit), idMap),
+      idMap
+    )
   }
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
-    * using the [[DataflowAnalysis]] information.
+    * using the runtime dependency tracking information.
     *
     * @param edits the text edits
+    * @param idMapOpt the idMap updates
     * @throws CompilerError if the IR is missing DataflowAnalysis metadata
     * @return the set of all IR nodes affected by the edit
     */
   @throws[CompilerError]
-  def compute(edits: Seq[TextEdit]): Set[UUID] = {
-    val nodeIds = invalidateExact(edits)
+  def compute(edits: Seq[TextEdit], idMapOpt: Option[IdMap]): Set[UUID] = {
+    val nodeIds = invalidateExact(edits, idMapOpt)
     nodeIds.map(_.id)
   }
 
   private def invalidateExact(
-    edits: Seq[TextEdit]
+    edits: Seq[TextEdit],
+    idMapOpt: Option[IdMap]
   ): Set[ChangesetBuilder.NodeId] = {
     val allEdits = edits.toSet
+
+    @scala.annotation.tailrec
+    def analyzeIdMapChanges(
+      tree: ChangesetBuilder.Tree,
+      values: Seq[(org.enso.compiler.core.ir.Location, UUID)],
+      ids: mutable.Set[ChangesetBuilder.NodeId]
+    ): mutable.Set[ChangesetBuilder.NodeId] = {
+      if (values.isEmpty) {
+        ids
+      } else {
+        val head = values.head
+        val invalidated = ChangesetBuilder.invalidated(
+          tree,
+          head._1,
+          false,
+          false
+        )
+        analyzeIdMapChanges(tree, values.tail, ids ++= invalidated.map(_.id))
+      }
+    }
 
     @scala.annotation.tailrec
     def go(
@@ -175,7 +203,16 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       }
     }
     val tree = ChangesetBuilder.buildTreeOfExternalIDs(ir)
-    go(tree, source, mutable.Queue.from(edits), mutable.HashSet())
+    val invalidatedByIdMap = idMapOpt
+      .map(
+        _.values.map(v =>
+          (new org.enso.compiler.core.ir.Location(v._1.start, v._1.end), v._2)
+        )
+      )
+      .getOrElse(Seq.empty)
+    val initial =
+      analyzeIdMapChanges(tree, invalidatedByIdMap, mutable.HashSet())
+    go(tree, source, mutable.Queue.from(edits), initial)
   }
 
   /** Traverses the IR and returns a list of the most specific (the innermost)
