@@ -247,7 +247,7 @@ run_sbt(
 run_enso(
     name = "run_enso_test",
     src = "//test/Base_Tests:maybe_spec",
-    distribution = ":sbt_build_engine_distribution",
+    distribution = ":sbt_build_native_engine_distribution",
     run_args = [
         "--no-ir-caches",
     ],
