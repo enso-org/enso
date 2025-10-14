@@ -42,6 +42,53 @@ def _run_enso_impl(ctx):
         runfiles = all_runfiles,
     )]
 
+
+def _ensure_native_enso_impl(ctx):
+    """ Runs enso executable with `--version` argument to ensure it was built with native image """
+    distribution = ctx.attr.distribution[DefaultInfo].files
+    binary = ctx.actions.declare_file(ctx.label.name + ".sh")
+    dist_dir = distribution.to_list()[0].basename
+    ctx.actions.write(
+        output = binary,
+        content = """#!/bin/bash
+        binary_path={dist}/enso-engine-*/enso-*/bin/enso
+        if [ ! -f $binary_path ]; then
+            echo "Error: Could not find enso binary in {dist}"
+            exit 1
+        fi
+        $PWD/$binary_path --version
+        $PWD/$binary_path --version | grep Substrate > /dev/null
+        if [ $? -ne 0 ]; then
+            echo "Error: enso binary is not a native image build"
+            exit 1
+        fi
+        """.format(
+            dist = dist_dir
+        ),
+        is_executable = True,
+    )
+
+    all_runfiles = ctx.runfiles(
+        files = distribution.to_list()
+    )
+
+    return [DefaultInfo(
+        executable = binary,
+        runfiles = all_runfiles,
+    )]
+
+
+ensure_native_enso = rule(
+    implementation = _ensure_native_enso_impl,
+    attrs = {
+        "distribution": attr.label(
+            mandatory = True,
+            allow_files = True
+        )
+    },
+    executable = True
+)
+
 run_enso = rule(
     implementation = _run_enso_impl,
     toolchains = [

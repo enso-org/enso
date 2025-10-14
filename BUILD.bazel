@@ -2,7 +2,7 @@ load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("//:bazel_scripts/run_engine_distribution.bzl", "run_enso")
+load("//:bazel_scripts/run_engine_distribution.bzl", "run_enso", "ensure_native_enso")
 load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
@@ -235,7 +235,7 @@ run_sbt(
     name = "sbt_build_native_engine_distribution",
     srcs = SRCS,
     args = [
-        "engine-runner/rebuildNativeImage"
+        "buildEngineDistribution"
     ],
     env = NATIVE_IMAGE_ENV,
     out_dir = "built-distribution-native",
@@ -251,4 +251,11 @@ run_enso(
     run_args = [
         "--no-ir-caches",
     ],
+)
+
+# Sanity check that ensure that the distribution was built with native image.
+ensure_native_enso(
+    name = "ensure_native_enso",
+    distribution = ":sbt_build_native_engine_distribution",
+    visibility = ["//visibility:public"],
 )
