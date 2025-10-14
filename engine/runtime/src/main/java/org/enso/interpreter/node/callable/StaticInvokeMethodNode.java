@@ -17,8 +17,7 @@ import org.enso.interpreter.runtime.state.State;
  * Such invocation will not preapply the {@code self} argument, but will pass it directly to the method.
  * This is different to {@link InstanceInvokeMethodNode instance method invocation}.
  *
- * TODO: HTML link to GH
- * @see `docs/types/dynamic-dispatch.md`
+ * @see <a href="https://github.com/enso-org/enso/blob/169c8a51e782fb72ee7c7a209b587c9e52dd0425/docs/types/dynamic-dispatch.md#method-invocation">Method invocation specification</a>
  */
 abstract class StaticInvokeMethodNode extends InvokeMethodNode {
 
