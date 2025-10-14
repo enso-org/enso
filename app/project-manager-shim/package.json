@@ -35,6 +35,7 @@
     "vitest": "catalog:"
   },
   "dependencies": {
+    "chokidar": "^4.0.3",
     "enso-common": "workspace:*",
     "portfinder": "^1.0.32",
     "tar": "^6.2.1",
