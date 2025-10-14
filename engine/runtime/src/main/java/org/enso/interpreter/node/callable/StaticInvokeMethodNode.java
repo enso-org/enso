@@ -1,10 +1,12 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.library.CachedLibrary;
 import java.util.UUID;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.Type;
@@ -21,6 +23,8 @@ import org.enso.interpreter.runtime.state.State;
  */
 abstract class StaticInvokeMethodNode extends InvokeMethodNode {
 
+  private @Child InvokeFunctionNode invokeFunctionNode;
+
   StaticInvokeMethodNode(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -28,11 +32,13 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
       int thisArgumentPosition,
       boolean onBoundary) {
     super(schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition, onBoundary);
+    this.invokeFunctionNode =
+        InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
   @Override
   public void setId(UUID id) {
-
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @Specialization
@@ -42,9 +48,14 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @CachedLibrary(limit = "3") TypesLibrary typesLib) {
+      @CachedLibrary(limit = "3") TypesLibrary typesLib,
+      @Cached MethodResolverNode methodResolverNode) {
     if (self instanceof Type type) {
-      type.get
+      var method = methodResolverNode.executeResolution(type, symbol);
+      if (method == null) {
+        throw methodNotFound(this, onBoundary, symbol, self);
+      }
+      return invokeFunctionNode.execute(method, frame, state, arguments);
     }
     return null;
   }
