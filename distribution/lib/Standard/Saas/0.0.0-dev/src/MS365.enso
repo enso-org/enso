@@ -39,4 +39,4 @@ private _base_url = 'https://graph.microsoft.com/v1.0'
 
 private _ms365_get ms365 url =
     header = Header.authorization_bearer ms365.ms365_service.getAccessToken.token
-    HTTP.fetch url headers=[header]
+    HTTP.fetch url headers=[header] . decode_as_json
