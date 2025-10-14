@@ -17,6 +17,10 @@ type Excel_File_Format
         Excel_File_Format.XLS  -> Java_Excel_File_Format.XLS
         Excel_File_Format.XLSX -> Java_Excel_File_Format.XLSX
 
+    to_text self = case self of
+        Excel_File_Format.XLS  -> "XLS"
+        Excel_File_Format.XLSX -> "XLSX"
+
 ## ---
    private: true
    ---
