@@ -13,22 +13,24 @@ import project.Table.Table
 polyglot java import org.enso.table.read.EDIReader
 polyglot java import org.enso.table.read.EDIReader.EDISegment
 
-## Read EDI 822 Format into an In-Memory Table
-type EDI_822_Format
-    ## Read EDI 822 Format into an In-Memory Table
+## Read ANSI X12 Electronic Data Interchange (EDI) Format
+type EDI_Format
+    ## Read EDI Format into an In-Memory Table
 
        ## Arguments
        - `segment_end`: The segment terminator character(s). If empty will
           auto-detect by looking for the character before `GS*` in the file.
-    EDI_822 (segment_end:Text="")
+       - `definition`: The EDI format specification.
+       - `map_fields`: If true, map fields to human-readable names where possible.
+    EDI (segment_end:Text="") (definition:EDI_Definition=..EDI_822) (map_fields:Boolean=True)
 
     ## ---
        private: true
        ---
        Resolve an unresolved constructor to the actual type.
-    resolve : Function -> EDI_822_Format | Nothing
+    resolve : Function -> EDI_Format | Nothing
     resolve constructor =
-        Panic.catch Type_Error (constructor:EDI_822_Format) _->Nothing
+        Panic.catch Type_Error (constructor:EDI_Format) _->Nothing
 
     ## ---
        private: true
@@ -36,11 +38,11 @@ type EDI_822_Format
        ---
        If the File_Format supports reading from the file, return a configured
        instance.
-    for_read : File_Format_Metadata -> EDI_822_Format | Nothing
+    for_read : File_Format_Metadata -> EDI_Format | Nothing
     for_read file:File_Format_Metadata =
         case file.guess_extension of
-            ".edi" -> EDI_822_Format.EDI_822
-            ".822" -> EDI_822_Format.EDI_822
+            ".edi" -> EDI_Format.EDI
+            ".822" -> EDI_Format.EDI
             _      -> Nothing
 
     ## ---
@@ -48,7 +50,7 @@ type EDI_822_Format
        ---
        If this File_Format should be used for writing to that file, return a
        configured instance.
-    for_file_write : Writable_File -> EDI_822_Format | Nothing
+    for_file_write : Writable_File -> EDI_Format | Nothing
     for_file_write file =
         _ = file
         Nothing
@@ -58,13 +60,13 @@ type EDI_822_Format
        ---
     get_dropdown_options : Vector Option
     get_dropdown_options =
-        [Option "EDI 822" "..EDI_822"]
+        [Option "EDI X12" "..EDI"]
 
     ## ---
        private: true
        ---
     get_name_patterns -> Vector File_Name_Pattern =
-        [File_Name_Pattern.Value "EDI 822" ["*.edi", "*.822"]]
+        [File_Name_Pattern.Value "EDI X12" ["*.edi", "*.822"]]
 
     ## ---
        private: true
@@ -85,6 +87,57 @@ type EDI_822_Format
         raw_text = Plain_Text_Format.Plain_Text.read_stream stream metadata
         parse_text_to_table raw_text separator=self.segment_end
 
+## EDI Definitions
+   The definition specifies the structure of the EDI document.
+   The default is ANSI X12 822 (Account Analysis).
+type EDI_Definition
+    ## Predefined EDI 822 (Account Analysis)
+       Based on EdiNation.X12.ASC.007040 [https://edination.com/edi-formats.html]
+    EDI_822
+
+    ## Load a custom EDI definition from a JSON string
+
+       For example:
+       ```json
+       {
+         "structure": "[ISA,GS,ST,ORI,[REF],[OOI],BDE,SE,GE,IEA]",
+         "field_map": {
+            "ISA": ["Authorization Information Qualifier", "Authorization Information", "Security Information Qualifier", "Security Information", "Interchange ID Qualifier 1", "Interchange Sender ID", "Interchange ID Qualifier 2", "Interchange Receiver ID", "Interchange Date", "Interchange Time", "Interchange Control Standards", "Interchange Control Version Number", "Interchange Control Number", "Acknowledgment Requested", "Test Indicator", "Sub-element Separator"],
+            "GS": ["Segment Identifier", "Functional Identifier Code", "Application Sender's Code", "Application Receiver's Code", "Date", "Time", "Group Control Number", "Responsible Agency Code", "Version / Release / Industry Identifier Code"],
+            "ST": ["Transaction Set Identifier Code", "Transaction Set Control Number", "Implementation Convention Preference"],
+            "ORI": ["Associated Object Reference Identification"],
+            "REF": ["Reference Identification Qualifier", "Reference Identification", "Description"],
+            "OOI": ["Object Identification Group"],
+            "BDE": ["Beginning Segment for Order Status Inquiry", "Reference Identification", "Date", "Time", "Time Code"],
+            "SE": ["Number of Included Segments", "Transaction Set Control Number"],
+            "GE": ["Number of Transaction Sets Included", "Group Control Number"],
+            "IEA": ["Number of Included Functional Groups", "Interchange Control Number"]
+         }
+       }
+       ```
+    From_Json file:Text
+
+    ## Structure is a definition of the loops within the document.
+       Use square brackets `[]` for arrays, curly braces `{}` for objects.
+    Custom structure:Text (field_map:(Dictionary Text (Vector Text))=Dictionary.empty)
+
+    ## ---
+       private: true
+       ---
+    as_custom self = case self of
+        EDI_Definition.Custom _ _ -> self
+        EDI_Definition.EDI_822 -> _
+        EDI_Definition.From_Json json ->
+            parsed = Data.read json
+            structure = parsed.get "structure" ""
+            field_map = parsed.get "field_map" Dictionary.empty
+            EDI_Definition.Custom structure field_map
+
+    ## ---
+       private: true
+       ---
+
+
 ## EDI Document Structure
    The initial segments of each section, is called Header, and the final segment is called Trailer:
 
@@ -104,8 +157,8 @@ private parse_text_to_table input:Text separator:Text -> Any =
         if index.is_nothing then '~' else stripped.get index-1
 
     segments = stripped.split used_sep . map parse_segment . filter s->s.name!=""
-    dict = EDIReader.parse segments
-    Table.from_rows dict.keys [dict.values]
+    array = EDIReader.parse segments "[ISA,GS,ST,BGN,[DTM],CUR,{N1,[N2],[N3],N4,[PER]},[RTE,DTM],[ENT,[N1,[N2],[N3],N4,[PER]],[ACT,CUR,[ADJ],[RTE,DTM],[LX,[BLN],[DTM]],[SER,[CTP],DTM]]],SE,GE,IEA]"
+    Table.new [["ISA", Vector.from_polyglot_array array]] . expand_column "ISA" prefix=..None
 
 ## Split a segment into a dictionary of fields
    Return as a pair of segment code and dictionary of data

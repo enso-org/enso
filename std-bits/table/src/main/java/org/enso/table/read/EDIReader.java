@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class EDIReader {
+public final class EDIReader {
   public record EDISegment(String name, List<String> values) {
     public String toJson() {
       var vals =
@@ -18,72 +18,71 @@ public class EDIReader {
     }
   }
 
-  public static HashMap<String, Object> parse(List<EDISegment> data) {
-    EDIField output = new EDIField.Dictionary("", new HashMap<>());
+  public static Object parse(List<EDISegment> data, String structureDef) {
+    var structure = EDIStructure.parse(structureDef);
 
-    var path = "";
+    EDIField output = structure.isArray
+            ? new EDIField.Array(structure.name, new ArrayList<>(), null)
+            : new EDIField.Dictionary("", new HashMap<>(), null);
+
+    var level = structure;
     var current = output;
 
     for (EDISegment segment : data) {
       var name = segment.name();
 
-      var newPath = enterLoop(path, name);
-      if (newPath != null) {
-        if (newPath.isEmpty()) {
-          current = output;
-          path = "";
-        } else {
-          var parts = newPath.split("/");
-          current = output;
-          for (var part : parts) {
-            // Walk into the structure, creating as we go
-            current = current.getKey(part);
-          }
-          path = newPath;
-        }
-      }
-
+      // Make a new segment
       var vals = segment.values();
-      var dict =
-          IntStream.range(0, vals.size())
-              .mapToObj(i -> new EDIField.Value(name + " " + (i + 1), vals.get(i)))
-              .filter(v -> v.value != null && !v.value.isEmpty())
-              .collect(Collectors.toMap(EDIField::name, v -> (EDIField)v));
-      var segmentField = new EDIField.Dictionary(name, dict);
+      var dict = IntStream.range(0, vals.size())
+              .mapToObj(i -> (EDIField)new EDIField.Value(name + " " + (i + 1), vals.get(i)))
+              .collect(Collectors.toMap(EDIField::name, v -> v));
 
-      if (name.equals(current.name())) {
-        current.append(segmentField);
+      // We are in an array of this segment type, so just append
+      if (current.name().equals(name)) {
+        if (current instanceof EDIField.Array) {
+          var segmentField = new EDIField.Dictionary(name, dict, current);
+          current.append(segmentField);
+        } else {
+          throw new IllegalArgumentException("Current is not an array but matches current segment name: " + current);
+        }
       } else {
-        // Append in as a key
+        // See if we can find the segment in the current level
+        var child = level.child(name);
+
+        // If not found, lets search in parent's.
+        while (child == null && level.parent() != null) {
+          level = level.parent();
+          current = current.parent();
+          child = level.child(name);
+        }
+
+        // If we still didn't find it, then it's an error
+        if (child == null) {
+          throw new IllegalArgumentException("Cannot find segment " + name + " in structure at level " + level.name());
+        }
+
+        // Append Child to current
+        var segmentField = child.isArray
+                ? new EDIField.Array(name, new ArrayList<>(List.of(new EDIField.Dictionary(name, dict, current))), current)
+                : new EDIField.Dictionary(name, dict, current);
+
         current.appendKey(name, segmentField);
+        if (child.isArray() || child.isObject()) {
+          level = child;
+          current = segmentField;
+        }
       }
     }
 
-    @SuppressWarnings("unchecked")
-    var result = (HashMap<String, Object>) output.value();
-    return result;
+    return output.value();
   }
 
-  private static String enterLoop(String path, String key) {
-    return switch (key) {
-      case "ISA" -> "ISA"; // Start of interchange
-      case "IEA" -> "ISA/IEA"; // End of interchange, reset to root
-      case "GS" -> "ISA/GS"; // Start of group
-      case "GE" -> "ISA/GE"; // End of group, reset to root
-      case "ST" -> "ISA/ST"; // Start of message
-      case "SE" -> "ISA/SE"; // End of message, reset to root
-      case "ENT" -> "ISA/ENT";
-      case "N1" -> path.endsWith("N1") ? path : (path.equals("ISA/ENT") ? "ISA/ENT/N1" : "ISA/N1");
-      case "ACT" -> "ISA/ENT/ACT";
-      case "RTE" -> path.endsWith("RTE") ? path : (path.equals("ISA/ENT/ACT") ? "ISA/ENT/ACT/RTE" : "ISA/RTE");
-      case "LX" -> "ISA/ENT/ACT/LX";
-      case "SER" -> "ISA/ENT/ACT/SER";
-      default -> null;
-    };
-  }
-
-  private sealed interface EDIField permits EDIField.Value, EDIField.Array, EDIField.Dictionary {
+  public sealed interface EDIField permits EDIField.Value, EDIField.Array, EDIField.Dictionary {
     String name();
+
+    default EDIField parent() {
+      return null;
+    }
 
     default EDIField append(EDIField field) {
       throw new UnsupportedOperationException();
@@ -99,12 +98,17 @@ public class EDIReader {
 
     Object value();
 
-    record Value(String name, String value) implements EDIField {}
+    record Value(String name, String value) implements EDIField {
+      @Override
+      public String toString() {
+        return "Value{" + name + ':' + value + '}';
+      }
+    }
 
-    record Dictionary(String name, Map<String, EDIField> fields) implements EDIField {
+    record Dictionary(String name, Map<String, EDIField> fields, EDIField parent) implements EDIField {
       @Override
       public EDIField append(EDIField field) {
-        var result = new Array(name, new ArrayList<>());
+        var result = new Array(name, new ArrayList<>(), parent);
         result.append(this);
         result.append(field);
         return result;
@@ -112,7 +116,7 @@ public class EDIReader {
 
       @Override
       public EDIField getKey(String key) {
-        return fields.computeIfAbsent(key, k -> new Array(key, new ArrayList<>()));
+        return fields.computeIfAbsent(key, k -> new Array(key, new ArrayList<>(), parent));
       }
 
       public void appendKey(String key, EDIField field) {
@@ -128,9 +132,14 @@ public class EDIReader {
         return fields.entrySet().stream()
             .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().value()));
       }
+
+      @Override
+      public String toString() {
+        return "Dictionary{" + name + ':' + fields.values() + '}';
+      }
     }
 
-    record Array(String name, List<EDIField> fields) implements EDIField {
+    record Array(String name, List<EDIField> fields, EDIField parent) implements EDIField {
       @Override
       public String name() {
         return name;
@@ -147,7 +156,7 @@ public class EDIReader {
         if (fields.isEmpty()) {
           throw new IllegalArgumentException("Cannot append an empty array");
         }
-        var last = fields.get(fields.size() - 1);
+        var last = fields.getLast();
         last.appendKey(key, value);
       }
 
@@ -156,13 +165,18 @@ public class EDIReader {
         if (fields.isEmpty()) {
           throw new IllegalArgumentException("Cannot append an empty array");
         }
-        var last = fields.get(fields.size() - 1);
+        var last = fields.getLast();
         return last.getKey(key);
       }
 
       @Override
       public Object value() {
         return fields.stream().map(EDIField::value).collect(Collectors.toList());
+      }
+
+      @Override
+      public String toString() {
+        return "Array{" + name + ':' + fields + '}';
       }
     }
   }

@@ -304,7 +304,8 @@ parse_type_selector include_auto=True =
    ---
    Selector for writing a table to a file.
 write_table_selector : Widget
-write_table_selector =
+write_table_selector table =
+    _ = table
     can_write type = if type == JSON_Format then True else
         Meta.meta type . methods . contains "write_table"
     all_types = [Auto_Detect] + (File_Format_SPI.get_types.filter can_write)
