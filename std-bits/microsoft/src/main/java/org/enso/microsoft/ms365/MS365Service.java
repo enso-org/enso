@@ -1,4 +1,4 @@
-package org.enso.saas.ms365;
+package org.enso.microsoft.ms365;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
