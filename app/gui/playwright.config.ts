@@ -51,11 +51,7 @@ function checkAvailablePort(port: number) {
 }
 
 const portFromEnv = parseInt(process.env.PLAYWRIGHT_PORT ?? '', 10)
-const port =
-  Number.isFinite(portFromEnv) ? portFromEnv
-    // : viteServerKind === 'dev' ?
-    //   5173 // Vite dev server port
-  : await findFreePortInRange(5300, 5999)
+const port = Number.isFinite(portFromEnv) ? portFromEnv : await findFreePortInRange(5300, 5999)
 
 if (!Number.isFinite(portFromEnv) || !Number.isFinite(port)) {
   // Avoid spamming this log in each worker thread.
@@ -133,8 +129,6 @@ export default defineConfig({
     {
       command: runVite(...viteServerKind.split('|')),
       timeout: 480 * 1000,
-      // When in dev mode, reuse dev server if it is already running.
-      // reuseExistingServer: viteServerKind === 'dev',
       gracefulShutdown: { signal: 'SIGTERM', timeout: 500 },
       port,
     },

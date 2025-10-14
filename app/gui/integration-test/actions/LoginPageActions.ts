@@ -4,7 +4,7 @@ import BaseActions, { type LocatorCallback } from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import ForgotPasswordPageActions from './ForgotPasswordPageActions'
 import RegisterPageActions from './RegisterPageActions'
-import { passAgreementsDialog, TEXT, VALID_EMAIL, VALID_PASSWORD } from './utilities'
+import { TEXT, VALID_EMAIL, VALID_PASSWORD } from './utilities'
 
 /** Wait for the page to load. */
 export async function waitForLoaded(page: Page) {
@@ -48,24 +48,24 @@ export default class LoginPageActions<Context = object> extends BaseActions<Cont
       await expect(page.getByTestId('content-not-allowed')).toHaveCount(0, { timeout: 10_000 })
       const agreementModalVisible = (await page.locator('#agreements-modal').count()) > 0
       if (agreementModalVisible) {
-        await passAgreementsDialog(page)
+        await this.passAgreementsDialog()
       }
     }).into(DrivePageActions<Context>)
   }
 
   /** Perform a successful login. */
   login(email = VALID_EMAIL, password = VALID_PASSWORD) {
-    return this.step('Login', async (page) => {
+    return this.step('Login', async () => {
       await this.loginInternal(email, password)
-      await passAgreementsDialog(page)
+      await this.passAgreementsDialog()
     }).into(DrivePageActions<Context>)
   }
 
   /** Perform a login as a new user (a user that does not yet have a username). */
   loginAsNewUser(email = VALID_EMAIL, password = VALID_PASSWORD) {
-    return this.step('Login (as new user)', async (page) => {
+    return this.step('Login (as new user)', async () => {
       await this.loginInternal(email, password)
-      await passAgreementsDialog(page)
+      await this.passAgreementsDialog()
     }).into(DrivePageActions<Context>)
   }
 
@@ -126,5 +126,20 @@ export default class LoginPageActions<Context = object> extends BaseActions<Cont
       await expect(this.page.getByText(TEXT.loginToYourAccount)).toBeHidden()
       await expect(this.page.getByText(TEXT.loadingAppMessage)).toBeHidden()
     }
+  }
+
+  private passAgreementsDialog() {
+    return test.step('Accept Terms and Conditions', async () => {
+      await this.page.waitForSelector('#agreements-modal')
+      await this.page
+        .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
+        .getByText(TEXT.licenseAgreementCheckbox)
+        .click()
+      await this.page
+        .getByRole('group', { name: TEXT.privacyPolicyCheckbox })
+        .getByText(TEXT.privacyPolicyCheckbox)
+        .click()
+      await this.page.getByRole('button', { name: TEXT.accept }).click()
+    })
   }
 }

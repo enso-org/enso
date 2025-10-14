@@ -277,6 +277,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
   mockExpressionUpdate(expression: ExpressionLocator, update: Partial<ExpressionUpdate>) {
     return this.step('Mock expression update', (page) =>
       page.evaluate(
+        // TODO: use mock API call to issue the expression update instead.
         ({ expression, update }) => (window as any)._mockExpressionUpdate(expression, update),
         { expression, update },
       ),
@@ -286,6 +287,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
   /** Add an entry to the suggestion database. */
   mockSuggestion(update: SuggestionEntry) {
     return this.step('Mock suggestion', async (page) => {
+      // TODO: use mock API call to issue the suggestion update instead.
       await page.evaluate(({ update }) => (window as any)._mockSuggestion(update), { update })
     })
   }

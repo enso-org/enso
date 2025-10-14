@@ -214,6 +214,7 @@ const onSignOut = () => {
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: space-between;
   height: 3rem;
   min-height: 3rem;
   position: relative;
