@@ -1,21 +1,21 @@
-import {
-  GET_WIDGETS_METHOD,
-  WIDGETS_ENSO_MODULE,
-  useWidgetFunctionCallInfo,
-} from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
-import { WidgetInput } from '@/providers/widgetRegistry'
-import { parseWithSpans } from '@/stores/graph/__tests__/graphDatabase.test'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
-import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
-import { mockProjectNameStore } from '@/stores/projectNames'
-import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
+import { parseWithSpans } from '$/providers/openedProjects/graph/__tests__/graphDatabase.test'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import { type NodeVisualizationConfiguration } from '$/providers/openedProjects/project/executionContext'
+import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { entryMethodPointer } from '$/providers/openedProjects/suggestionDatabase/entry'
 import {
   makeArgument,
   makeConstructor,
   makeMethod,
   makeModuleMethod,
   makeStaticMethod,
-} from '@/stores/suggestionDatabase/mockSuggestion'
+} from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
+import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
+import {
+  GET_WIDGETS_METHOD,
+  WIDGETS_ENSO_MODULE,
+  useWidgetFunctionCallInfo,
+} from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { expect, test } from 'vitest'

@@ -1,8 +1,8 @@
+import { type GraphStore } from '$/providers/openedProjects/graph'
+import { type SuggestionDbStore } from '$/providers/openedProjects/suggestionDatabase'
 import CodeEditorTooltip from '@/components/CodeEditor/CodeEditorTooltip.vue'
 import { astProp } from '@/components/CodeEditor/ensoSyntax'
-import type { VueHost } from '@/components/VueHostRender.vue'
-import type { GraphStore } from '@/stores/graph'
-import type { SuggestionDbStore } from '@/stores/suggestionDatabase'
+import { type VueHost } from '@/components/VueHostRender.vue'
 import { Ast } from '@/util/ast'
 import type { ToValue } from '@/util/reactivity'
 import { syntaxTree } from '@codemirror/language'
@@ -51,8 +51,8 @@ function codeEditorTooltip(vueHost: VueHost, props: typeof CodeEditorTooltip.pro
 
 /** @returns A CodeMirror extension that creates tooltips containing type and syntax information for Enso code. */
 export function ensoHoverTooltip(
-  graphStore: Pick<GraphStore, 'moduleSource' | 'db'>,
-  suggestionDbStore: SuggestionDbStore,
+  graphStore: ToValue<Pick<GraphStore, 'db'>>,
+  suggestionDbStore: ToValue<SuggestionDbStore>,
   vueHost: ToValue<VueHost | undefined>,
 ) {
   return hoverTooltip((syn) => {
@@ -61,14 +61,15 @@ export function ensoHoverTooltip(
       console.error('Cannot render tooltip without Vue host.')
       return
     }
+    const graph = toValue(graphStore)
     const enclosingAstNodes = iter.map(syntaxNodeAncestors(syn), (syn) => syn.tree?.prop(astProp))
     const enclosingAsts = iter.filter(enclosingAstNodes, (node) => node instanceof Ast.Ast)
     const enclosingExternalIds = iter.map(enclosingAsts, ({ externalId }) => externalId)
-    const nodeId = iter.find(enclosingExternalIds, graphStore.db.isNodeId.bind(graphStore.db))
+    const nodeId = iter.find(enclosingExternalIds, graph.db.isNodeId.bind(graph.db))
     return codeEditorTooltip(vueHostValue, {
       nodeId,
       syntax: syn.name,
-      graphDb: graphStore.db,
+      graphDb: graph.db,
       suggestionDbStore,
     })
   })

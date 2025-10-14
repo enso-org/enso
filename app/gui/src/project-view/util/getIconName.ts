@@ -1,12 +1,15 @@
-import type { NodeId } from '@/stores/graph'
-import type { GraphDb } from '@/stores/graph/graphDatabase'
-import { evaluationProgress } from '@/stores/project/computedValueRegistry'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import type { Icon } from '@/util/iconMetadata/iconName'
-import type { MethodPointer } from '@/util/methodPointer'
-import type { ProjectPath } from '@/util/projectPath'
-import type { QualifiedName } from '@/util/qualifiedName'
-import type { ToValue } from '@/util/reactivity'
+import { type NodeId } from '$/providers/openedProjects/graph'
+import { type GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
+import { evaluationProgress } from '$/providers/openedProjects/project/computedValueRegistry'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+} from '$/providers/openedProjects/suggestionDatabase/entry'
+import { type Icon } from '@/util/iconMetadata/iconName'
+import { type MethodPointer } from '@/util/methodPointer'
+import { type ProjectPath } from '@/util/projectPath'
+import { type QualifiedName } from '@/util/qualifiedName'
+import { type ToValue } from '@/util/reactivity'
 import { computed, toValue, type ComputedRef } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 import type { AnyIcon, AnyWidgetIcon } from './icons'
@@ -81,7 +84,7 @@ export function iconOfNode(node: NodeId, graphDb: GraphDb) {
  * representing its current status.
  */
 export function useDisplayedIcon(
-  graphDb: GraphDb,
+  graphDb: ToValue<GraphDb>,
   externalId: ToValue<ExternalId | undefined>,
   baseIcon: ToValue<AnyIcon>,
 ): {
@@ -89,7 +92,7 @@ export function useDisplayedIcon(
 } {
   return {
     displayedIcon: computed(() =>
-      evaluationProgress(graphDb.getExpressionInfo(toValue(externalId))) == null ?
+      evaluationProgress(toValue(graphDb).getExpressionInfo(toValue(externalId))) == null ?
         toValue(baseIcon)
       : '$evaluating',
     ),

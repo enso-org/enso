@@ -5,14 +5,14 @@
  * This way aliasing analysis for connections still works as intended, but we have a nice port around the whole thing.
  * It also makes the updates affecting entire typecast, not only inner expression.
  */
-import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   defineWidget,
   Score,
   WidgetInput,
   widgetProps,
   type WidgetUpdate,
-} from '@/providers/widgetRegistry'
+} from '$/providers/openedProjects/widgetRegistry'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 
@@ -51,7 +51,7 @@ export const widgetDefinition = defineWidget(
 )
 
 export const IsTypeCastKey: unique symbol = Symbol.for('WidgetInput:IsTypeCast')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [IsTypeCastKey]?: true | undefined
   }

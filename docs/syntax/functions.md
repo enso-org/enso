@@ -417,15 +417,26 @@ result = 1..100 . each random . take 10 . sort
 ### Sections
 
 An operator section is a nice shorthand for partially applying an operator. It
-works as follows.
+works as follows:
 
-- Where an argument is not applied to an operator, the missing argument is
-  replaced by an implicit `_`.
-- The application is then translated based upon the rules for
-  [underscore parameters](./function-parameters.md#underscore-parameters)
-  described later.
-- The whitespace-based precedence rules discussed above also apply to operator
-  sections.
+- When a binary operator is referred to without providing parameters, its value
+  is a function with two parameters (left followed by right). This can be
+  written either by wrapping the operator in parentheses, or by using it in an
+  unspaced expression without any operand:
+  ```enso
+  [1, 2, 3].reduce (+) . should_equal 6
+  [1, 2, 3].reduce function=+ . should_equal 6
+  ```
+- When a binary operator is applied to a single parameter, the result is a
+  function accepting the parameter.
+  ```enso
+  [1, 2, 3].map (1 /) . should_equal [1.0, 0.5, 0.3333333333333333]
+  [1, 2, 3].map (/ 1) . should_equal [1.0, 2.0, 3.0]
+  [1, 2, 3].map function=1/ . should_equal [1.0, 0.5, 0.3333333333333333]
+  [1, 2, 3].map function=/1 . should_equal [1.0, 2.0, 3.0]
+  [1, 2, 3].map 1/ . should_equal [1.0, 0.5, 0.3333333333333333]
+  [1, 2, 3].map /1 . should_equal [1.0, 2.0, 3.0]
+  ```
 
 ## Mixfix Functions
 

@@ -1,6 +1,6 @@
+import { type PrimaryApplication } from '$/providers/openedProjects/graph/graphDatabase'
+import { type WidgetEditHandlerRoot } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { createContextStore } from '@/providers'
-import type { WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
-import type { PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import type { Opt } from '@/util/data/opt'
 import { proxyRefs } from '@/util/reactivity'

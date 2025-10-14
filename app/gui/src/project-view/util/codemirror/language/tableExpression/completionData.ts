@@ -2,7 +2,7 @@
  * @file This module supports maintaining a collection of CodeMirror completions, based on provided
  * method information and the rules of the syntax.
  */
-import type { MethodSuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import type { MethodSuggestionEntry } from '$/providers/openedProjects/suggestionDatabase/entry'
 import type { Completion } from '@codemirror/autocomplete'
 import { record } from 'enso-common/src/utilities/data/object'
 import { computed } from 'vue'

@@ -1,7 +1,7 @@
-import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { type NodeId } from '$/providers/openedProjects/graph'
 import { useApproach } from '@/composables/animation'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import type { NodeId } from '@/stores/graph'
 import { partitionPoint } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -112,7 +112,7 @@ export class SnapGrid {
  * The `offset` is always based of the nodes' initial positions.
  */
 export function useNodesDragging() {
-  const graphStore = useGraphStore()
+  const { module, graph } = useCurrentProject()
   const selection = injectGraphSelection(true)
 
   // Logically, those fields could be inside CurrentDrag, but animations need component scope.
@@ -141,7 +141,7 @@ export function useNodesDragging() {
       function* draggedNodes(): Generator<[NodeId, DraggedNode]> {
         const ids = selection?.isSelected(movedId) ? selection.selected : [movedId]
         for (const id of ids) {
-          const node = graphStore.db.nodeIdToNode.get(id)
+          const node = graph.value.db.nodeIdToNode.get(id)
           if (node != null) yield [id, { initialPos: node.position, currentPos: node.position }]
         }
       }
@@ -161,8 +161,8 @@ export function useNodesDragging() {
       const oldSnappedOffset = snappedOffset.value
       const rects: Rect[] = []
       for (const [id, { initialPos }] of this.draggedNodes) {
-        const rect = graphStore.nodeRects.get(id)
-        const node = graphStore.db.nodeIdToNode.get(id)
+        const rect = graph.value.nodeRects.get(id)
+        const node = graph.value.db.nodeIdToNode.get(id)
         if (rect != null && node != null) rects.push(new Rect(initialPos.add(newOffset), rect.size))
       }
       const snap = this.grid.snappedMany(rects, DRAG_SNAP_THRESHOLD)
@@ -200,25 +200,25 @@ export function useNodesDragging() {
     private createSnapGrid() {
       const nonDraggedRects = computed(() => {
         const nonDraggedNodes = iter.filter(
-          graphStore.db.nodeIds(),
+          graph.value.db.nodeIds(),
           (id) => !this.draggedNodes.has(id),
         )
-        return Array.from(nonDraggedNodes, (id) => graphStore.nodeRects.get(id)!)
+        return Array.from(nonDraggedNodes, (id) => graph.value.nodeRects.get(id)!)
       })
       return new SnapGrid(nonDraggedRects)
     }
 
     private updateNodesPosition() {
-      graphStore.batchEdits(() => {
+      module.value.batchEdits(() => {
         for (const [id, dragged] of this.draggedNodes) {
-          const node = graphStore.db.nodeIdToNode.get(id)
+          const node = graph.value.db.nodeIdToNode.get(id)
           if (node == null) continue
           // If node was moved in other way than current dragging, we want to stop dragging it.
           if (node.position.distanceSquared(dragged.currentPos) > 1.0) {
             this.draggedNodes.delete(id)
           } else {
             dragged.currentPos = dragged.initialPos.add(snappedOffset.value)
-            graphStore.setNodePosition(id, dragged.currentPos)
+            graph.value.setNodePosition(id, dragged.currentPos)
           }
         }
       })

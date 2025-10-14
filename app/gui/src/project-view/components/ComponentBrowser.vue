@@ -4,6 +4,8 @@ import {
   useProjectNames,
   useSuggestionDbStore,
 } from '$/components/WithCurrentProject.vue'
+import type { RequiredImport } from '$/providers/openedProjects/module/imports'
+import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { componentBrowserBindings, listBindings } from '@/bindings'
 import ActionButton from '@/components/ActionButton.vue'
 import type { Component } from '@/components/ComponentBrowser/component'
@@ -17,8 +19,6 @@ import { groupColorStyle } from '@/composables/nodeColors'
 import { registerHandlers, toggledAction, type Action } from '@/providers/action'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import type { RequiredImport } from '@/stores/graph/imports'
-import type { Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import { isNodeOutside, targetIsOutside } from '@/util/autoBlur'
 import { tryGetIndex } from '@/util/data/array'
