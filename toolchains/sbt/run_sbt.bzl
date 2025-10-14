@@ -13,6 +13,7 @@ def _run_sbt_impl(ctx):
     java_executable_path = java_runtime[java_common.JavaRuntimeInfo].java_executable_exec_path
     cc_toolchain = ctx.toolchains["@bazel_tools//tools/cpp:toolchain_type"]
     cc_path = cc_toolchain.cc.compiler_executable
+    cc_deps = cc_toolchain.cc.all_files
 
     out_dir = ctx.actions.declare_directory(ctx.attr.out_dir)
     outputs = [out_dir]
@@ -24,7 +25,7 @@ def _run_sbt_impl(ctx):
     for k, v in ctx.attr.env.items():
         envs[k] = expand_variables(ctx, ctx.expand_location(v, targets = ctx.attr.srcs), outs = outputs, attribute_name = "env")
 
-    inputs = depset(ctx.files.srcs, transitive = [java_runtime.files])
+    inputs = depset(ctx.files.srcs, transitive = [java_runtime.files, cc_deps])
     system_props = [
         "-Denso.BazelSupport.outDir=" + out_dir.path,
         "-Denso.BazelSupport.CCompilerPath=" + cc_path,
