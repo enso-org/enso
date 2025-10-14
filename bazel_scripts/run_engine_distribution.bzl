@@ -5,7 +5,7 @@ Simple rule that runs Enso distribution via a shell script.
 def _run_enso_impl(ctx):
     distribution = ctx.attr.distribution[DefaultInfo].files
     binary = ctx.actions.declare_file(ctx.label.name + ".sh")
-    dist_dir = distribution.to_list()[0].path
+    dist_dir = distribution.to_list()[0].basename
     src_file = ctx.file.src.path
     java_toolchain_type = ctx.toolchains["@bazel_tools//tools/jdk:runtime_toolchain_type"]
     java_home = java_toolchain_type.java_runtime.java_home_runfiles_path
