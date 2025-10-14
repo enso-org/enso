@@ -194,14 +194,6 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  static PanicException methodNotFound(
-      Node where, boolean onBoundary, UnresolvedSymbol symbol, Object self) throws PanicException {
-    var cause = onBoundary ? UnknownIdentifierException.create(symbol.getName()) : null;
-    var ctx = EnsoContext.get(where);
-    var payload = ctx.getBuiltins().error().makeNoSuchMethod(self, symbol);
-    throw new PanicException(ctx, payload, cause, where);
-  }
-
   @Specialization
   Object doMultiValue(
       VirtualFrame frame,

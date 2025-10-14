@@ -148,6 +148,12 @@ public abstract class InvokeMethodNode extends BaseNode {
     throw new PanicException(ctx, payload, cause, where);
   }
 
+  static PanicException methodNotInvocable(Node where, UnresolvedSymbol symbol, Object self) throws PanicException {
+    var ctx = EnsoContext.get(where);
+    var payload = ctx.getBuiltins().error().makeNotInvokable(symbol);
+    throw new PanicException(ctx, payload, null, where);
+  }
+
   /**
    * Resolves symbol to a Warning method, if possible.
    *
