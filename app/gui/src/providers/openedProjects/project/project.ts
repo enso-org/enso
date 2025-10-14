@@ -56,38 +56,6 @@ const VISUALIZATION_PREPROCESSOR_PATH = ProjectPath.create(
   'Preprocessor' as Identifier,
 )
 
-function resolveYDocUrl(rpcUrl: string, url: string): URL {
-  let resolved
-  if (url == '') {
-    resolved = new URL(location.origin)
-    resolved.protocol = location.protocol.replace(/^http/, 'ws')
-  } else if (URL.canParse(url)) {
-    resolved = new URL(url)
-  } else {
-    resolved = new URL(rpcUrl)
-    resolved.port = '5976'
-  }
-  resolved.pathname = '/project'
-  return resolved
-}
-
-function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): LanguageServer {
-  const transport = createRpcTransport(url)
-  const connection = new LanguageServer(clientId, transport)
-  abort.onAbort(() => {
-    connection.stopReconnecting()
-    connection.release()
-  })
-  return connection
-}
-
-function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope) {
-  const client = createDataWebsocket(url, 'arraybuffer')
-  const connection = new DataServer(clientId, client, abort)
-  onScopeDispose(() => connection.dispose())
-  return connection
-}
-
 export type ProjectStore = ReturnType<typeof createProjectStore>
 
 /**
@@ -515,7 +483,7 @@ function resolveYDocUrl(rpcUrl: string, url: string): URL {
     resolved = new URL(url)
   } else {
     resolved = new URL(rpcUrl)
-    resolved.port = '1234'
+    resolved.port = '5976'
   }
   resolved.pathname = '/project'
   return resolved
