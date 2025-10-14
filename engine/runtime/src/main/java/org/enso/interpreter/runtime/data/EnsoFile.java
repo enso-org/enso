@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.CopyOption;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
@@ -543,8 +544,36 @@ public final class EnsoFile extends BuiltinObject {
       Files.createDirectories(file.path);
     } catch (NoSuchFileException e) {
       throw replaceCreateDirectoriesNoSuchFileException(e);
+    } catch (AccessDeniedException e) {
+      if (file.path.toString().contains("read_many_test")) {
+        System.out.println("[mylog] AccessDeniedException caught: " + e.getMessage());
+        System.out.println("[mylog] e.file: " + e.getFile());
+        System.out.println("[mylog] === begin stacktrace ===");
+        e.printStackTrace(System.out);
+        System.out.println("[mylog] === end stacktrace ===");
+        printInfo(file.path);
+      }
+      throw e;
     } catch (FileSystemException e) {
       throw replaceCreateDirectoriesGenericException(e);
+    }
+  }
+
+  private static void printInfo(Path path) {
+    try {
+      System.out.println("[mylog] === begin info for " + path + "===");
+      Files.readAttributes(path, "*")
+          .forEach((k, v) -> System.out.println("[mylog] Attr " + k + ": " + v));
+      System.out.println("[mylog] Path: " + path);
+      System.out.println("[mylog] Absolute path: " + path.toAbsolutePath());
+      System.out.println("[mylog] Exists: " + Files.exists(path));
+      System.out.println("[mylog] Is directory: " + Files.isDirectory(path));
+      System.out.println("[mylog] Parent: " + path.getParent());
+      System.out.println("[mylog] Root: " + path.getRoot());
+      System.out.println("[mylog] File name: " + path.getFileName());
+      System.out.println("[mylog] === end info for " + path + "===");
+    } catch (Exception ex) {
+      System.out.println("[mylog] Exception while printing path info: " + ex.getMessage());
     }
   }
 
