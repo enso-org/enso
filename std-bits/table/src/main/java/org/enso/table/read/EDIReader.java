@@ -66,15 +66,18 @@ public class EDIReader {
 
   private static String enterLoop(String path, String key) {
     return switch (key) {
-      case "IEA" -> ""; // End of interchange, reset to root
-      case "GE" -> ""; // End of group, reset to root
-      case "SE" -> ""; // End of message, reset to root
-      case "ENT" -> "ENT";
-      case "N1" -> path.endsWith("N1") ? path : path + "/N1";
-      case "ACT" -> "ENT/ACT";
-      case "RTE" -> path.endsWith("RTE") ? path : (path.endsWith("ACT") ? path + "/RTE" : "RTE");
-      case "LX" -> "ENT/ACT/LX";
-      case "SER" -> "ENT/ACT/SER";
+      case "ISA" -> "ISA"; // Start of interchange
+      case "IEA" -> "ISA/IEA"; // End of interchange, reset to root
+      case "GS" -> "ISA/GS"; // Start of group
+      case "GE" -> "ISA/GE"; // End of group, reset to root
+      case "ST" -> "ISA/ST"; // Start of message
+      case "SE" -> "ISA/SE"; // End of message, reset to root
+      case "ENT" -> "ISA/ENT";
+      case "N1" -> path.endsWith("N1") ? path : (path.equals("ISA/ENT") ? "ISA/ENT/N1" : "ISA/N1");
+      case "ACT" -> "ISA/ENT/ACT";
+      case "RTE" -> path.endsWith("RTE") ? path : (path.equals("ISA/ENT/ACT") ? "ISA/ENT/ACT/RTE" : "ISA/RTE");
+      case "LX" -> "ISA/ENT/ACT/LX";
+      case "SER" -> "ISA/ENT/ACT/SER";
       default -> null;
     };
   }
@@ -160,6 +163,138 @@ public class EDIReader {
       @Override
       public Object value() {
         return fields.stream().map(EDIField::value).collect(Collectors.toList());
+      }
+    }
+  }
+
+  /**
+   * A representation of the structure of an EDI message, parsed from a string definition.
+   *
+   * <p>For example, the definition "[ISA,GS,[ST,SE],GE,IEA]" represents a message with an ISA
+   * segment containing a GS segment, which contains multiple ST segments (each ending with an SE),
+   * followed by GE and IEA segments.
+   */
+  static class EDIStructure {
+    static EDIStructure parse(String definition) {
+      // Parse the structure definition into a tree of EDIStructure
+      return innerParse(definition, 0, null);
+    }
+
+    private static EDIStructure innerParse(String definition, int start, EDIStructure parent) {
+      // Parse from the start index, returning the structure and the end index
+      if (definition.charAt(start) == '[') {
+        // Array
+        var name = findName(definition, start + 1);
+        var array = new EDIStructure(name, true, false, parent);
+        parseChildren(definition, start, name, array);
+        return array;
+      } else if (definition.charAt(start) == '{') {
+        // Object
+        var name = findName(definition, start + 1);
+        var structure = new EDIStructure(name, false, true, parent);
+        parseChildren(definition, start, name, structure);
+        return structure;
+      } else {
+        // Field
+        var name = findName(definition, start);
+        return new EDIStructure(name, false, false, parent);
+      }
+    }
+
+    private static void parseChildren(String definition, int start, String name, EDIStructure parent) {
+      var current = start + 1 + name.length();
+      while (definition.charAt(current) == ',') {
+        var child = innerParse(definition, current + 1, parent);
+        parent.addField(child);
+        current += 1 + child.charLength();
+      }
+    }
+
+    private static String findName(String definition, int start) {
+      var current = definition.charAt(start);
+      int end = start + 1;
+      while (current != ',' && current != ']' && current != '}' && end < definition.length()) {
+        current = definition.charAt(end);
+        end++;
+      }
+
+      if (current == ',' || current == ']' || current == '}') {
+        end--;
+      }
+
+      return definition.substring(start, end);
+    }
+
+    private final String name;
+    private final boolean isArray;
+    private final boolean isObject;
+    private final EDIStructure parent;
+    private final List<String> fieldOrder;
+    private final Map<String, EDIStructure> fields;
+
+    EDIStructure(String name, boolean isArray, boolean isObject, EDIStructure parent) {
+      this.name = name;
+      this.isArray = isArray;
+      this.isObject = isObject;
+      this.parent = parent;
+      this.fieldOrder = new ArrayList<>();
+      this.fieldOrder.add(name);
+      this.fields = new HashMap<>();
+    }
+
+    public String name() {
+      return name;
+    }
+
+    public boolean isArray() {
+      return isArray;
+    }
+
+    public boolean isObject() {
+      return isObject;
+    }
+
+    public EDIStructure parent() {
+      return parent;
+    }
+
+    public List<String> fieldOrder() {
+      return fieldOrder;
+    }
+
+    public EDIStructure child(String name) {
+      if (name.equals(this.name())) {
+        // Mock child of self
+        return new EDIStructure(name, false, false, parent);
+      }
+
+      return fields.get(name);
+    }
+
+    private void addField(EDIStructure field) {
+      if (fields.containsKey(field.name())) {
+        throw new IllegalArgumentException("Duplicate field name: " + field.name());
+      }
+
+      fields.put(field.name(), field);
+      fieldOrder.add(field.name());
+    }
+
+    int charLength() {
+      // Field Length
+      var fieldLength = fieldOrder.stream().reduce(1, (a, b) -> a + (b.equals(name) ? name.length() : fields.get(b).charLength()) + 1, Integer::sum);
+      return fieldLength - (isArray || isObject ? 0 : 2);
+    }
+
+    @Override
+    public String toString() {
+      var body = fieldOrder.stream().map(f -> f.equals(name) ? name : fields.get(f).toString()).collect(Collectors.joining(","));
+      if (isArray) {
+        return "[" + body + "]";
+      } else if (isObject) {
+        return "{" + body + "}";
+      } else {
+        return body;
       }
     }
   }
