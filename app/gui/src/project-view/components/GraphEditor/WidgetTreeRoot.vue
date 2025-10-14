@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import {
+  emptyPrimaryApplication,
+  type PrimaryApplication,
+} from '$/providers/openedProjects/graph/graphDatabase'
+import { type UpdateHandler, WidgetInput } from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandlerParent } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
 import { useLayoutAnimationsState } from '@/providers/animationCounter'
-import { WidgetInput, type UpdateHandler } from '@/providers/widgetRegistry'
-import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
-import { emptyPrimaryApplication, type PrimaryApplication } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import type { Opt } from '@/util/data/opt'
 import { templateRef } from '@vueuse/core'

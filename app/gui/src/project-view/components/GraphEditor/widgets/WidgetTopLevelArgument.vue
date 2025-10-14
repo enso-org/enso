@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { provideTopLevelArgument } from '@/providers/topLevelArgument'
-import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
 import { useTemplateRef } from 'vue'
 

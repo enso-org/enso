@@ -1,5 +1,6 @@
 import { ProjectId } from '#/services/Backend'
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { useRightPanelData } from '$/providers/rightPanel'
 import type { ToValue } from '@/util/reactivity'
 import { toValue } from 'vue'
 
@@ -31,20 +32,25 @@ export function captureResourceContext(context: ResourceContext): ResourceContex
 }
 
 /**
- * Assemble resource context based on `currentProject` structure present in Vue's context.
+ * Assemble resource context based on available project information in Vue's context.
+ *
+ * It will check `currentProject` from `WithCurrentProject` component first, and then `focusedAsset` in container.
  */
 export function useCurrentProjectResourceContext(): ResourceContext {
   const currentProject = useCurrentProject(true)
+  if (currentProject != null) {
+    return {
+      project: () => currentProject.store.value.id,
+      basePathSegments: () => {
+        const fileName = currentProject.store.value.observedFileName
+        if (fileName) return ['src', ...fileName.split('/')]
+      },
+    }
+  }
+  const rightPanel = useRightPanelData(true)
   return {
-    project: () => currentProject?.id.value ?? undefined,
-    basePathSegments: () => {
-      if (!currentProject) return
-      const openedProjectStore = currentProject.storesRefs.store.value
-      // When project is not opened, we assume that all image access is relative to main module.
-      if (!openedProjectStore) return ['src', 'Main.enso']
-
-      const fileName = openedProjectStore.observedFileName
-      if (fileName) return ['src', ...fileName.split('/')]
-    },
+    project: () => rightPanel?.focusedProject,
+    // We display documentation of `main` function, so image access is relative to the main module.
+    basePathSegments: ['src', 'Main.enso'],
   }
 }

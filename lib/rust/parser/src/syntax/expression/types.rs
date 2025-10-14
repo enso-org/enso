@@ -212,12 +212,8 @@ pub enum OperandMaybeNamed<'s> {
 
 /// Operator-section/template-function termination behavior of an operator with regard to an
 /// operand.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SectionTermination {
-    /// If the operand is an operator-section/template-function, indicate it by wrapping it in a
-    /// suitable node.
-    #[default]
-    Reify,
     /// Discard any operator-section/template-function properties associated with the operand.
     Unwrap,
 }

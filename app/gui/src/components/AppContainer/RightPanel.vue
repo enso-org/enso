@@ -6,11 +6,10 @@ import {
   ProjectSessions,
 } from '$/components/AppContainer/reactTabs'
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
-import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
 import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
 import DescriptionEditor from '@/components/DescriptionEditor.vue'
-import DocumentationEditor from '@/components/DocumentationEditor.vue'
+import DocumentationEditor from '@/components/DocumentationEditor'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
@@ -70,11 +69,9 @@ const style = computed(() => (data.width == null ? {} : { '--panel-width': `${da
       <div v-if="component != null" class="sizeWrapper">
         <div ref="contentElement" class="content">
           <WithFullscreenMode v-model="data.fullscreen">
-            <WithCurrentProject :id="data.focusedProject">
-              <div class="contentInner withBackgroundColor">
-                <component :is="component" />
-              </div>
-            </WithCurrentProject>
+            <div class="contentInner withBackgroundColor">
+              <component :is="component" />
+            </div>
           </WithFullscreenMode>
           <ResizeHandles left :modelValue="bounds" @update:modelValue="data.width = $event.width" />
         </div>

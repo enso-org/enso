@@ -1,4 +1,4 @@
-import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
+import type { SuggestionId } from '$/providers/openedProjects/suggestionDatabase/entry'
 import type { ComputedRef, Ref } from 'vue'
 import { computed, reactive, ref } from 'vue'
 

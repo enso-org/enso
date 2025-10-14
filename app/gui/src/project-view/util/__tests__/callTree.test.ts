@@ -1,12 +1,11 @@
-import * as widgetCfg from '@/providers/widgetRegistry/configuration'
-import { GraphDb } from '@/stores/graph/graphDatabase'
+import { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   ComputedValueRegistry,
   TypeInfo,
   type ExpressionInfo,
-} from '@/stores/project/computedValueRegistry'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+} from '$/providers/openedProjects/project/computedValueRegistry'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import { type SuggestionEntry } from '$/providers/openedProjects/suggestionDatabase/entry'
 import {
   makeArgument,
   makeConstructor,
@@ -14,7 +13,8 @@ import {
   makeModule,
   makeModuleMethod,
   makeType,
-} from '@/stores/suggestionDatabase/mockSuggestion'
+} from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
+import * as widgetCfg from '$/providers/openedProjects/widgetRegistry/configuration'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import {

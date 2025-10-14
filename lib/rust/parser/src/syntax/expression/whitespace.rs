@@ -83,7 +83,6 @@ fn tree_starts_new_no_space_group(tree: &Tree) -> bool {
             | OprApp(_)
             | UnaryOprApp(_)
             | AutoscopedIdentifier(_)
-            | OprSectionBoundary(_)
             | TemplateFunction(_)
             | MultiSegmentApp(_)
             | TypeDef(_)

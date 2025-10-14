@@ -240,10 +240,9 @@ class Abstractor {
         node = Wildcard.concrete(this.module, token)
         break
       }
-      // These expression types are (or will be) used for backend analysis.
-      // The frontend can ignore them, avoiding some problems with expressions sharing spans
-      // (which makes it impossible to give them unique IDs in the current IdMap format).
-      case RawAst.Tree.Type.OprSectionBoundary:
+      // This expression type is not yet consistent with the backend's semantics.
+      // The frontend can ignore it, avoiding some problems with expressions sharing spans
+      // (which makes it impossible to give assign unique IDs in the current IdMap format).
       case RawAst.Tree.Type.TemplateFunction:
         return { whitespace, node: this.abstractExpression(tree.ast).node }
       case RawAst.Tree.Type.Invalid: {
