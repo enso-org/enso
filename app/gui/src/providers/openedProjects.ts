@@ -1,6 +1,7 @@
 import Backend, {
   AssetType,
   BackendType,
+  DirectoryId,
   EnsoPath,
   ProjectId,
   ProjectSessionId,
@@ -24,11 +25,14 @@ import { injectGuiConfig } from '@/providers/guiConfig'
 import { assert, assertDefined } from '@/util/assert'
 import { useToast } from '@/util/toast'
 import * as vueQuery from '@tanstack/vue-query'
-import { computed, EffectScope, effectScope, shallowReactive, toValue, type Ref } from 'vue'
+import { computed, EffectScope, effectScope, shallowReactive, type Ref } from 'vue'
 import { useBackends } from './backends'
 import { createModuleStore } from './openedProjects/module'
 import { useSession } from './session'
 import { useText } from './text'
+import { useUploadsToCloudStore } from './upload'
+
+const CLOSE_REASON = 'closing'
 
 type RunningMode = 'local' | 'cloud' | 'hybrid'
 
@@ -46,7 +50,7 @@ export interface Task<NextState> {
 export interface Requested {
   status: 'opening'
   mode: RunningMode
-  id: ProjectId
+  asset: ProjectAsset
   task: Task<HybridDownloaded | Opened>
 }
 
@@ -55,10 +59,11 @@ export interface HybridDownloaded extends Omit<Requested, 'status' | 'mode' | 't
   mode: 'hybrid'
   runningId: ProjectId
   hybridSessionId: ProjectSessionId
+  localParentId: DirectoryId
   task: Task<Opened>
 }
 
-export interface Opened extends Omit<Requested | HybridDownloaded, 'status' | 'task'> {
+export interface Opened extends Omit<HybridDownloaded | Requested, 'status' | 'task'> {
   status: 'initializing'
   runningId: ProjectId
   runDetails: Ref<ProjectDetails>
@@ -77,12 +82,17 @@ export interface Initialized extends Omit<Opened, 'status' | 'task'> {
   widgetRegistry: WidgetRegistry
 }
 
-export interface Dismissed extends Omit<Initialized, 'status'> {
+export interface Dismissed {
   status: 'closing'
   closingTask: Promise<void>
 }
 
-type LaunchedProject = Requested | HybridDownloaded | Opened | Initialized | Dismissed
+export interface Error {
+  status: 'error'
+  error: Error
+}
+
+type LaunchedProject = Requested | HybridDownloaded | Opened | Initialized
 
 /**
  * A type for Opened Project Store.
@@ -102,45 +112,42 @@ export type OpenedProjectsStore = ReturnType<typeof useOpenedProjects>
 export const [provideOpenedProjects, useOpenedProjects] = createContextStore(
   'opened-projects',
   () => {
-    const projects = shallowReactive(new Map<ProjectId, LaunchedProject>())
+    const projects = shallowReactive(new Map<ProjectId, LaunchedProject | Dismissed>())
     const states = useProjectStates()
     const errorToast = useToast.error()
 
-    function openProject(id: ProjectId, path: EnsoPath, mode: RunningMode, title: string) {
-      const newProjectState = states.openProject(id, path, mode, title)
-      projects.set(id, newProjectState)
+    function openProject(asset: ProjectAsset, mode: RunningMode) {
+      const newProjectState = states.openProject(asset, mode)
+      projects.set(asset.id, newProjectState)
       // Do not await updates.
-      setupStateUpdates(newProjectState)
-      return computed(() => projects.get(id))
+      setupStateUpdates(newProjectState, 'open project')
+      return computed(() => projects.get(asset.id))
     }
 
     async function setupStateUpdates(project: LaunchedProject, processDesc: string) {
       try {
         while ('task' in project) {
           project = await project.task.promise
-          projects.set(project.id, project)
+          projects.set(project.asset.id, project)
         }
       } catch (error) {
-        errorToast.show(`Failed to ${processDesc}: ${error}`)
-        closeProject(project.id)
+        if (error === CLOSE_REASON) {
+          console.log(`Aborted "${processDesc}" task beacuse the project is closed.`)
+        } else {
+          errorToast.show(`Failed to ${processDesc}: ${error}`)
+          closeProject(project.asset.id)
+        }
       }
     }
 
     async function closeProject(id: ProjectId) {
       const state = projects.get(id)
-      if (state == null) return
-      switch (state.status) {
-        case 'opening':
-        case 'hybrid-opening':
-        case 'initializing':
-        case 'running':
-
-        case 'closing':
-          return
-      }
+      if (state == null || state.status === 'closing') return
+      const closingState = states.closeProject(state)
+      projects.set(id, closingState)
     }
 
-    function get(id: ProjectId): LaunchedProject | undefined {
+    function get(id: ProjectId): LaunchedProject | Dismissed | undefined {
       return projects.get(id)
     }
 
@@ -161,8 +168,9 @@ function useProjectStates() {
   const session = useSession()
   const text = useText()
   const config = injectGuiConfig()
+  const uploads = useUploadsToCloudStore()
 
-  function openProject(id: ProjectId, path: EnsoPath, mode: RunningMode, title: string): Requested {
+  function openProject(asset: ProjectAsset, mode: RunningMode): Requested {
     if (session.session == null) throw Error('No user session')
     const cognitoCredentials = {
       accessToken: session.session.accessToken,
@@ -171,102 +179,119 @@ function useProjectStates() {
       expireAt: session.session.expireAt,
       refreshUrl: session.session.refreshUrl,
     }
+    const abort = new AbortController()
     return {
       status: 'opening',
       mode,
-      id,
-      openTask: (async () => {
-        const scope = effectScope()
-        switch (mode) {
-          case 'local': {
-            if (!backends.localBackend)
-              throw Error('Cannot open local project: Local Backend missing.')
-            await backends.localBackend.openProject(
-              id,
-              {
-                executeAsync: false,
-                cognitoCredentials: null,
-                openHybridProjectParameters: null,
-              },
-              title,
-            )
-            const project = {
-              status: 'initializing' as const,
-              mode,
-              id,
-              runningId: id,
-              ...(await getProjectDetails(backends.localBackend, id, scope)),
-              scope,
+      asset,
+      task: {
+        abort,
+        promise: (async () => {
+          const scope = effectScope()
+
+          switch (mode) {
+            case 'local': {
+              if (!backends.localBackend)
+                throw Error('Cannot open local project: Local Backend missing.')
+              await backends.localBackend.openProject(
+                asset.id,
+                {
+                  executeAsync: false,
+                  cognitoCredentials: null,
+                  openHybridProjectParameters: null,
+                },
+                asset.title,
+              )
+              const project = {
+                status: 'initializing' as const,
+                mode,
+                asset,
+                runningId: asset.id,
+                ...(await getProjectDetails(backends.localBackend, asset.id, scope)),
+                scope,
+              }
+              return { ...project, task: { promise: initializeProject(project, abort), abort } }
             }
-            return { ...project, initializeTask: initializeProject(project) }
-          }
-          case 'cloud': {
-            backends.remoteBackend.openProject(
-              id,
-              {
-                executeAsync: false,
-                cognitoCredentials,
-                openHybridProjectParameters: null,
-              },
-              title,
-            )
-            const project = {
-              status: 'initializing' as const,
-              mode,
-              id,
-              runningId: id,
-              ...(await getProjectDetails(backends.remoteBackend, id, scope)),
-              scope,
+            case 'cloud': {
+              backends.remoteBackend.openProject(
+                asset.id,
+                {
+                  executeAsync: false,
+                  cognitoCredentials,
+                  openHybridProjectParameters: null,
+                },
+                asset.title,
+              )
+              const project = {
+                status: 'initializing' as const,
+                mode,
+                asset,
+                runningId: asset.id,
+                ...(await getProjectDetails(backends.remoteBackend, asset.id, scope)),
+                scope,
+              }
+              return { ...project, task: { promise: initializeProject(project, abort), abort } }
             }
-            return { ...project, initializeTask: initializeProject(project) }
-          }
-          case 'hybrid': {
-            if (!backends.localBackend)
-              throw Error('Cannot open hybrid project: Local Backend missing.')
-            const hybridSessionId = await backends.remoteBackend.setHybridOpenInProgress(id, title)
-            const localProject = await backends.remoteBackend.downloadProject(id)
-            let localProjectAsset: ProjectAsset | undefined
-            // TODO[ao]: Apparently, the only way to get local project id is to list directory, because
-            // "downloadProject" does not return it. To discuss.
-            for (const parentId of [localProject.parentId, localProject.projectRootId]) {
-              const { assets } = await backends.localBackend.listDirectory({
-                parentId: parentId,
-                filterBy: null,
-                labels: null,
-                sortExpression: null,
-                sortDirection: null,
-                from: null,
-                pageSize: null,
-                recentProjects: false,
-              })
-              localProjectAsset = assets.filter((item) => item.type === AssetType.project).at(0)
-              if (localProjectAsset) {
-                break
+            case 'hybrid': {
+              if (!backends.localBackend)
+                throw Error('Cannot open hybrid project: Local Backend missing.')
+              const hybridSessionId = await backends.remoteBackend.setHybridOpenInProgress(
+                asset.id,
+                asset.title,
+              )
+              abort.signal.throwIfAborted()
+              const localProject = await backends.remoteBackend.downloadProject(asset.id)
+              abort.signal.throwIfAborted()
+              let localProjectAsset: ProjectAsset | undefined
+              // TODO[ao]: Apparently, the only way to get local project id is to list directory, because
+              // "downloadProject" does not return it. To discuss.
+              for (const parentId of [localProject.parentId, localProject.projectRootId]) {
+                const { assets } = await backends.localBackend.listDirectory({
+                  parentId: parentId,
+                  filterBy: null,
+                  labels: null,
+                  sortExpression: null,
+                  sortDirection: null,
+                  from: null,
+                  pageSize: null,
+                  recentProjects: false,
+                })
+                abort.signal.throwIfAborted()
+                localProjectAsset = assets.filter((item) => item.type === AssetType.project).at(0)
+                if (localProjectAsset) {
+                  break
+                }
+              }
+              if (!localProjectAsset) throw Error('Cannot find downloaded local project.')
+              const project = {
+                status: 'hybrid-opening' as const,
+                mode,
+                asset,
+                hybridSessionId,
+                localParentId: localProjectAsset.parentId,
+                runningId: localProjectAsset.id,
+              }
+              const cloudParentPath = EnsoPath(
+                asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/')),
+              )
+              return {
+                ...project,
+                task: {
+                  promise: openLocalVersionOfHybridProject(project, cloudParentPath, abort),
+                  abort,
+                },
               }
             }
-            if (!localProjectAsset) throw Error('Cannot find downloaded local project.')
-            const project = {
-              status: 'hybrid-opening' as const,
-              mode,
-              id,
-              hybridSessionId,
-              runningId: localProjectAsset.id,
-            }
-            const cloudParentPath = EnsoPath(path.slice(0, path.lastIndexOf('/')))
-            return {
-              ...project,
-              openLocalTask: openLocalVersionOfHybridProject(project, cloudParentPath, title),
-            }
           }
-        }
-      })(),
+        })(),
+      },
     }
   }
 
   async function openLocalVersionOfHybridProject(
-    project: Omit<HybridDownloaded, 'openLocalTask'>,
+    project: Omit<HybridDownloaded, 'task'>,
     cloudParentPath: EnsoPath,
-    title: string,
+    abort: AbortController,
   ): Promise<Opened> {
     if (!backends.localBackend) throw Error('Cannot open local project: Local Backend missing.')
     const scope = effectScope()
@@ -277,16 +302,18 @@ function useProjectStates() {
         cognitoCredentials: null,
         openHybridProjectParameters: {
           cloudProjectDirectoryPath: cloudParentPath,
-          cloudProjectId: project.id,
+          cloudProjectId: project.asset.id,
           cloudProjectSessionId: project.hybridSessionId,
         },
       },
-      title,
+      project.asset.title,
     )
+    abort.signal.throwIfAborted()
     const [localDetails, cloudDetails] = await Promise.all([
       getProjectDetails(backends.localBackend, project.runningId, scope),
-      getProjectDetails(backends.remoteBackend, project.id, scope),
+      getProjectDetails(backends.remoteBackend, project.asset.id, scope),
     ])
+    abort.signal.throwIfAborted()
     const next = {
       ...project,
       status: 'initializing' as const,
@@ -294,10 +321,13 @@ function useProjectStates() {
       name: cloudDetails.name,
       scope,
     }
-    return { ...next, initializeTask: initializeProject(next) }
+    return { ...next, task: { promise: initializeProject(next, abort), abort } }
   }
 
-  async function initializeProject(project: Omit<Opened, 'initializeTask'>): Promise<Initialized> {
+  async function initializeProject(
+    project: Omit<Opened, 'task'>,
+    abort: AbortController,
+  ): Promise<Initialized> {
     return project.scope.run(() => {
       const names = createProjectNameStore({
         projectNamespace: undefined, // TODO[ao]: we should get project's namespace from cloud. This never worked in old Editor.tsx
@@ -312,7 +342,8 @@ function useProjectStates() {
       const store = createProjectStore(
         {
           projectId: project.runningId,
-          renameProject: toValue(props.renameProject),
+          //TODO[ao]: fix before merge.
+          renameProject: () => Promise.resolve(),
           engine: {
             rpcUrl,
             dataUrl,
@@ -326,6 +357,7 @@ function useProjectStates() {
       const graph = createGraphStore(store, suggestionDb, names, module)
       const widgetRegistry = new WidgetRegistry(graph.db)
       return {
+        ...project,
         status: 'running',
         store,
         names,
@@ -333,19 +365,59 @@ function useProjectStates() {
         graph,
         widgetRegistry,
         mode: 'local',
-        id: project.id,
-        runningId: project.runningId,
-        runDetails: project.runDetails,
-        name: project.name,
-        scope: project.scope,
       }
     })!
   }
 
-  function closeProject(project: Initialized) {}
+  function closeProject(project: LaunchedProject): Dismissed {
+    if ('task' in project) {
+      project.task.abort.abort(CLOSE_REASON)
+    }
+
+    return {
+      status: 'closing',
+      closingTask: (async () => {
+        if (project.status === 'running' && project.mode === 'hybrid') {
+          if (backends.localBackend == null) {
+            throw Error('Cannot close Hybrid Project without local backend')
+          }
+          assert('localParentId' in project)
+          const fileName = 'project_root.enso-project'
+          const file = await backends.remoteBackend.getProjectArchive(
+            project.localParentId as DirectoryId,
+            fileName,
+          )
+          await uploads.uploadFile(
+            file,
+            {
+              fileId: project.asset.id,
+              fileName,
+              parentDirectoryId: project.asset.parentId,
+            },
+            'hybridSync',
+          )
+
+          await backends.localBackend.deleteAsset(
+            project.localParentId as DirectoryId,
+            { force: true },
+            null,
+          )
+        }
+
+        const closePromise =
+          project.mode === 'cloud' ?
+            backends.remoteBackend.closeProject(project.asset.id, '')
+          : backends.localBackend?.closeProject(project.asset.id, null)
+        await closePromise?.catch((err) =>
+          console.warn('Could not close project in backend: ', err),
+        )
+      })(),
+    }
+  }
 
   return {
     openProject,
+    closeProject,
   }
 }
 
