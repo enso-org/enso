@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts">
 import { setModal } from '#/providers/ModalProvider'
 import { AssetType } from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
@@ -11,6 +11,10 @@ import { EnsoPath } from 'enso-common/src/services/Backend'
 import { createElement } from 'react'
 import { computed, toRef, useTemplateRef } from 'vue'
 
+const OpenProjectModalReact = vueComponent(OpenProjectModal).default
+</script>
+
+<script setup lang="ts">
 const props = defineProps<{
   referenceElement: HTMLElement
   href: string
@@ -36,8 +40,6 @@ const openLinkAction = computed(() => {
       'open-modal'
     : 'upsert-tab'
 })
-
-const OpenProjectModalReact = vueComponent(OpenProjectModal).default
 
 const floatingElement = useTemplateRef<HTMLElement>('floating')
 
