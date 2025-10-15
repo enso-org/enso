@@ -129,7 +129,8 @@ public final class EDIReader {
         EDIField segmentField = new EDIField.Dictionary(name, dict, current);
         if (child.isArray()) {
           if (current.getKey(name) == null) {
-            segmentField = new EDIField.Array(
+            segmentField =
+                new EDIField.Array(
                     name,
                     new ArrayList<>(List.of(new EDIField.Dictionary(name, dict, current))),
                     current);
