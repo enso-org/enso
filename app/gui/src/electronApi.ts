@@ -71,7 +71,7 @@ export interface ElectronApi {
   readonly authentication: AuthenticationApi
   readonly navigation: NavigationApi
   readonly menu: MenuApi
-  readonly system: SystemApi
+  readonly system?: SystemApi
   readonly projectManagement: ProjectManagementApi
   readonly fileBrowser: FileBrowserApi
   readonly versionInfo: VersionInfo

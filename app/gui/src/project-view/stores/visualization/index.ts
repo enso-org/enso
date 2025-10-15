@@ -1,3 +1,5 @@
+import { type ProjectStore } from '$/providers/openedProjects/project'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import * as geoMapVisualization from '@/components/visualizations/GeoMapVisualization.vue'
 import * as imageBase64Visualization from '@/components/visualizations/ImageBase64Visualization.vue'
 import * as jsonVisualization from '@/components/visualizations/JSONVisualization'
@@ -6,7 +8,6 @@ import * as sqlVisualization from '@/components/visualizations/SQLVisualization.
 import * as tableVisualization from '@/components/visualizations/TableVisualization.vue'
 import * as warningsVisualization from '@/components/visualizations/WarningsVisualization.vue'
 import { createContextStore } from '@/providers'
-import type { ProjectStore } from '@/stores/project'
 import {
   compile,
   currentProjectProtocol,
@@ -30,7 +31,6 @@ import { computed, reactive } from 'vue'
 import { ErrorCode, LsRpcError, RemoteRpcError } from 'ydoc-shared/languageServer'
 import type { Event as LSEvent, VisualizationConfiguration } from 'ydoc-shared/languageServerTypes'
 import type { ExternalId, VisualizationIdentifier } from 'ydoc-shared/yjsModel'
-import { TypeInfo } from '../project/computedValueRegistry'
 
 /** The directory in the project under which custom visualizations can be found. */
 const customVisualizationsDirectory = 'visualizations'

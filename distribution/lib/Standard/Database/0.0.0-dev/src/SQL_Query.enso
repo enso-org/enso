@@ -34,10 +34,42 @@ type SQL_Query
             connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|
                 make_table_from_query connection raw_sql alias
 
+## Enhanced SQL_Query that also carries schema information.
+type SQL_Query_With_Schema
+    ## Query a whole table or view.
+    Table_Name (name : Text = Missing_Argument.throw "name") (schema : Text = "")
+
+    ## Raw SQL query statement.
+    Raw_SQL (sql : Text = Missing_Argument.throw "sql")
+
+    ## ---
+       private: true
+       ---
+    to_db_table self connection:Connection alias:Text = alias.if_not_error <| case self of
+        SQL_Query_With_Schema.Table_Name name schema ->
+            table_naming_helper = connection.base_connection.table_naming_helper
+            table_naming_helper.verify_table_name name <|
+                make_table_for_name connection name schema alias
+        SQL_Query_With_Schema.Raw_SQL raw_sql -> handle_sql_errors <|
+            connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|
+                make_table_from_query connection raw_sql alias
+
 ## ---
    private: true
    ---
 SQL_Query.from (that:Text) = SQL_Query.Table_Name that
+
+## ---
+   private: true
+   ---
+SQL_Query_With_Schema.from (that:Text) = SQL_Query_With_Schema.Table_Name that
+
+## ---
+   private: true
+   ---
+SQL_Query_With_Schema.From (that:SQL_Query) = case that of
+    SQL_Query.Table_Name name -> SQL_Query_With_Schema.Table_Name name ""
+    SQL_Query.Raw_SQL sql -> SQL_Query_With_Schema.Raw_SQL sql
 
 ## ---
    private: true

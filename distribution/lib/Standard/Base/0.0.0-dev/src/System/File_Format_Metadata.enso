@@ -2,10 +2,10 @@ import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Nothing.Nothing
 import project.System.File.File
 from project.Data.Text.Extensions import all
 from project.Error import all
+from project.Nothing import all
 from project.System.File import find_extension_from_name
 
 ## ---

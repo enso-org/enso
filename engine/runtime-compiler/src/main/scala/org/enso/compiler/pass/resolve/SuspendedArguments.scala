@@ -22,6 +22,7 @@ import org.enso.compiler.pass.desugar.ComplexType
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.TypeSignatures.Signature
+import org.enso.persist.Persistance
 
 /** This pass is responsible for analysing type signatures to determine which
   * arguments in a function definition are suspended.
@@ -128,12 +129,15 @@ case object SuspendedArguments extends IRPass {
                     )
                   )
                 } else {
-                  method.copy(body =
-                    lam.copyWithArgumentsAndBody(
-                      args.head :: newArgs,
-                      resolveExpression(body)
+                  method
+                    .copyBuilder()
+                    .body(
+                      lam.copyWithArgumentsAndBody(
+                        args.head :: newArgs,
+                        resolveExpression(body)
+                      )
                     )
-                  )
+                    .build()
                 }
               case None =>
                 args match {
@@ -152,9 +156,10 @@ case object SuspendedArguments extends IRPass {
                       )
                     )
                   case _ =>
-                    method.copy(
-                      body = lam.copyWithBody(resolveExpression(body))
-                    )
+                    method
+                      .copyBuilder()
+                      .body(lam.copyWithBody(resolveExpression(body)))
+                      .build()
                 }
             }
           case _ =>
@@ -162,8 +167,8 @@ case object SuspendedArguments extends IRPass {
               "Method bodies must be lambdas at this point."
             )
         }
-      case explicit @ definition.Method.Explicit(_, body, _, _, _) =>
-        body match {
+      case explicit: definition.Method.Explicit =>
+        explicit.body() match {
           case lam: Function.Lambda =>
             val args    = lam.arguments()
             val lamBody = lam.body()
@@ -174,16 +179,26 @@ case object SuspendedArguments extends IRPass {
                   signature
                 )
 
-                explicit.copy(body =
-                  lam.copyWithArgumentsAndBody(
-                    args.head :: newArgs,
-                    resolveExpression(lamBody)
+                explicit
+                  .copyBuilder()
+                  .bodyReference(
+                    Persistance.Reference.of(
+                      lam.copyWithArgumentsAndBody(
+                        args.head :: newArgs,
+                        resolveExpression(lamBody)
+                      )
+                    )
                   )
-                )
+                  .build()
               case None =>
-                explicit.copy(
-                  body = lam.copyWithBody(resolveExpression(lamBody))
-                )
+                explicit
+                  .copyBuilder()
+                  .bodyReference(
+                    Persistance.Reference.of(
+                      lam.copyWithBody(resolveExpression(lamBody))
+                    )
+                  )
+                  .build()
             }
           case _ =>
             throw new CompilerError(

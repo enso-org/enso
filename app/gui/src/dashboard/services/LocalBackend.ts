@@ -96,11 +96,6 @@ export default class LocalBackend extends Backend {
     )
   }
 
-  /** Tell the {@link projectManager.ProjectManager} to reconnect. */
-  async reconnectProjectManager() {
-    await this.projectManager.reconnect()
-  }
-
   /** Return the ID of the root directory. */
   override rootDirectoryId(
     _user: backend.User,
@@ -375,7 +370,10 @@ export default class LocalBackend extends Backend {
         name: cachedProject.projectName,
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
-        ydocAddress: null,
+        ydocAddress:
+          cachedProject.languageServerYdocAddress ?
+            ipWithSocketToAddress(cachedProject.languageServerYdocAddress)
+          : null,
         organizationId: backend.OrganizationId('organization-'),
         packageName: cachedProject.projectNormalizedName,
         projectId,
@@ -681,7 +679,7 @@ export default class LocalBackend extends Backend {
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
-    const sourcePath = body.filePath ?? window.api?.system.getFilePath(file)
+    const sourcePath = body.filePath ?? window.api?.system?.getFilePath(file)
     const searchParams = new URLSearchParams([
       ['directory', newDirectoryId(parentPath)],
       ['file_name', body.fileName],

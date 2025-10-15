@@ -28,41 +28,28 @@ function serializeError(err: unknown) {
  * - `console.warn`
  */
 export function setupLogger() {
-  const originalConsoleLog = window.console.log
-  const originalConsoleInfo = window.console.info
-  const originalConsoleError = window.console.error
-  const originalConsoleWarn = window.console.warn
+  if (window.api) {
+    const logApi = window.api.log
+    const originalConsoleLog = window.console.log
+    const originalConsoleInfo = window.console.info
+    const originalConsoleError = window.console.error
+    const originalConsoleWarn = window.console.warn
 
-  window.console.log = (...args) => {
-    originalConsoleLog.apply(window.console, args)
-    try {
-      window.api?.log.log(args)
-    } catch (error) {
-      originalConsoleError('Logging to file failed', serializeError(error))
+    window.console.log = (...args) => {
+      originalConsoleLog.apply(window.console, args)
+      logApi.log(args)
     }
-  }
-  window.console.info = (...args) => {
-    originalConsoleInfo.apply(window.console, args)
-    try {
-      window.api?.log.info(args)
-    } catch (error) {
-      originalConsoleError('Logging to file failed', serializeError(error))
+    window.console.info = (...args) => {
+      originalConsoleInfo.apply(window.console, args)
+      logApi.info(args)
     }
-  }
-  window.console.error = (...args) => {
-    originalConsoleError.apply(window.console, args)
-    try {
-      window.api?.log.error(args)
-    } catch (error) {
-      originalConsoleError('Logging to file failed', serializeError(error))
+    window.console.error = (...args) => {
+      originalConsoleError.apply(window.console, args)
+      logApi.error(args)
     }
-  }
-  window.console.warn = (...args) => {
-    originalConsoleWarn.apply(window.console, args)
-    try {
-      window.api?.log.warn(args)
-    } catch (error) {
-      originalConsoleError('Logging to file failed', serializeError(error))
+    window.console.warn = (...args) => {
+      originalConsoleWarn.apply(window.console, args)
+      logApi.warn(args)
     }
   }
 

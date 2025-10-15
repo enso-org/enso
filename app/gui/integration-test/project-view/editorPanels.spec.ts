@@ -1,40 +1,42 @@
 /** @file Tests for the multiline CodeMirror editor panels: documentation editor and code editor. */
-import type { Page } from 'playwright/test'
-import { test, type Locator } from 'playwright/test'
-import * as actions from './actions'
-import { expect } from './customExpect'
+import type EditorPageActions from 'integration-test/actions/EditorPageActions'
+import type { Page } from 'integration-test/base'
+import { expect, type Locator, test } from 'integration-test/base'
 import { mockMethodCallInfo, mockUserDefinedFunctionInfo } from './expressionUpdates'
-import { CONTROL_KEY, DELETE_KEY } from './keyboard'
+import { DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
-async function goToGraphAndGetDocs(page: Page) {
-  await actions.goToGraph(page)
-  const docsContent = page.getByTestId('documentation-editor-content')
-  const docsScroller = page.getByTestId('documentation-editor-scroller')
-  await expect(docsContent.locator('.cm-line')).toExist()
-  return { docsContent, docsScroller }
+async function goToGraphAndGetDocs(editorPage: EditorPageActions) {
+  let docsContent: Locator
+  let docsScroller: Locator
+  await editorPage.do(async (page) => {
+    docsContent = page.getByTestId('documentation-editor-content')
+    docsScroller = page.getByTestId('documentation-editor-scroller')
+    await expect(docsContent.locator('.cm-line')).toExist()
+  })
+  return { docsContent: docsContent!, docsScroller: docsScroller! }
 }
 
 test.describe('Main method documentation rendering', () => {
-  test('Text', async ({ page }) => {
-    const { docsContent } = await goToGraphAndGetDocs(page)
+  test('Text', async ({ editorPage }) => {
+    const { docsContent } = await goToGraphAndGetDocs(editorPage)
     await expect(docsContent).toContainText('The main method')
   })
 
-  test('Images', async ({ page }) => {
-    const { docsContent } = await goToGraphAndGetDocs(page)
+  test('Images', async ({ editorPage }) => {
+    const { docsContent } = await goToGraphAndGetDocs(editorPage)
     await expect(docsContent.getByAltText('Image')).toHaveCount(3)
     for (const img of await docsContent.getByAltText('Image').all())
       await expect(img).toHaveJSProperty('naturalWidth', 3)
   })
 
-  test('Video', async ({ page }) => {
-    const { docsContent } = await goToGraphAndGetDocs(page)
+  test('Video', async ({ editorPage }) => {
+    const { docsContent } = await goToGraphAndGetDocs(editorPage)
     await expect(docsContent.locator('.DocumentationVideo')).toHaveCount(1)
   })
 
-  test('Lists', async ({ page }) => {
-    const { docsContent } = await goToGraphAndGetDocs(page)
+  test('Lists', async ({ editorPage }) => {
+    const { docsContent } = await goToGraphAndGetDocs(editorPage)
 
     // Nested lists are rendered with hierarchical indentation
     const listItemPos = (text: string) =>
@@ -52,8 +54,8 @@ test.describe('Main method documentation rendering', () => {
     expect(listLevel1!.x).toBeLessThan(listLevel2!.x)
   })
 
-  test('Link (rendered and interactive)', async ({ page, context }) => {
-    const { docsContent } = await goToGraphAndGetDocs(page)
+  test('Link (rendered and interactive)', async ({ editorPage, page, context }) => {
+    const { docsContent } = await goToGraphAndGetDocs(editorPage)
     await expect(docsContent.locator('a')).toHaveAccessibleDescription(
       /Click to edit.*Click to open link/,
     )
@@ -73,14 +75,14 @@ test.describe('Main method documentation rendering', () => {
 })
 
 test.describe('Panels', () => {
-  test('Doc panel: Close with hotkey', async ({ page }) => {
-    const { docsContent } = await goToGraphAndGetDocs(page)
-    await page.keyboard.press(`${CONTROL_KEY}+D`)
+  test('Doc panel: Close with hotkey', async ({ editorPage, page }) => {
+    const { docsContent } = await goToGraphAndGetDocs(editorPage)
+    await page.keyboard.press(`ControlOrMeta+D`)
     await expect(docsContent).toBeHidden()
   })
 
-  test('Doc panel focus (regression #10471)', async ({ page }) => {
-    const { docsContent } = await goToGraphAndGetDocs(page)
+  test('Doc panel focus (regression #10471)', async ({ editorPage, page }) => {
+    const { docsContent } = await goToGraphAndGetDocs(editorPage)
 
     // Open and focus code editor.
     const { codeEditor, getCodeEditorContent } = await openCodeEditor(page)
@@ -91,11 +93,7 @@ test.describe('Panels', () => {
       const docStart = codeEditorApi.indexOf('The main method')
       codeEditorApi.placeCursor(docStart + 8)
     })
-    await page.keyboard.press('Space')
-    await page.keyboard.press('T')
-    await page.keyboard.press('E')
-    await page.keyboard.press('S')
-    await page.keyboard.press('T')
+    await page.keyboard.type(' TEST')
 
     const content = await getCodeEditorContent()
     expect(content.includes('The main TEST method')).toBe(true)
@@ -103,9 +101,10 @@ test.describe('Panels', () => {
   })
 
   test('Code editor with wide content does not take space from doc editor (#12476)', async ({
+    editorPage,
     page,
   }) => {
-    await goToGraphAndGetDocs(page)
+    await goToGraphAndGetDocs(editorPage)
     const rightDock = locate.rightDock(page)
 
     const getDocX = async () => {
@@ -113,7 +112,7 @@ test.describe('Panels', () => {
       return (await rightDock.boundingBox())!.x
     }
     const docPosWithoutCodeEditor = await getDocX()
-    await page.keyboard.press(`${CONTROL_KEY}+\``)
+    await page.keyboard.press(`ControlOrMeta+\``)
     const codeEditor = page.locator('.CodeEditor')
     await expect(codeEditor).toBeVisible()
     const docPosWithCodeEditor = await getDocX()
@@ -123,8 +122,8 @@ test.describe('Panels', () => {
     expect(docPosWithCodeEditor).toBe(docPosWithoutCodeEditor)
   })
 
-  test('Remember scroll position when closed and reopened', async ({ page }) => {
-    const { docsContent, docsScroller } = await goToGraphAndGetDocs(page)
+  test('Remember scroll position when closed and reopened', async ({ editorPage, page }) => {
+    const { docsContent, docsScroller } = await goToGraphAndGetDocs(editorPage)
     const { getCodeEditorContent } = await openCodeEditor(page)
 
     await setDocumentationText('Some text\n'.repeat(200), {
@@ -139,10 +138,10 @@ test.describe('Panels', () => {
     await docsContent.elementHandle().then((el) => el!.waitForElementState('stable'))
     await expect.poll(() => docsScroller.evaluate((e) => e.scrollTop)).toBe(400)
 
-    await page.keyboard.press(`${CONTROL_KEY}+D`)
+    await page.keyboard.press(`ControlOrMeta+D`)
     await expect(docsContent).toBeHidden()
 
-    await page.keyboard.press(`${CONTROL_KEY}+D`)
+    await page.keyboard.press(`ControlOrMeta+D`)
     await expect(docsContent).toBeVisible()
     await expect
       .poll(async () => Math.abs(400 - (await docsScroller.evaluate((e) => e.scrollTop))))
@@ -163,7 +162,7 @@ async function setDocumentationText(
   },
 ) {
   await docsContent.focus()
-  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.keyboard.press(`ControlOrMeta+A`)
   await page.keyboard.press(DELETE_KEY)
   await docsContent.fill(text)
   const codeAfterSettingNewDocs = await getCodeEditorContent()
@@ -174,7 +173,7 @@ async function setDocumentationText(
 }
 
 async function openCodeEditor(page: Page) {
-  await page.keyboard.press(`${CONTROL_KEY}+\``)
+  await page.keyboard.press(`ControlOrMeta+\``)
   const codeEditor = page.locator('.CodeEditor')
   await expect(codeEditor).toBeVisible()
   const getCodeEditorContent = () =>
@@ -183,8 +182,8 @@ async function openCodeEditor(page: Page) {
   return { codeEditor, getCodeEditorContent, codeScroller }
 }
 
-test('Component help', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Component help', async ({ editorPage, page }) => {
+  await editorPage
 
   await page.getByRole('tab', { name: 'Help' }).click()
   await expect(locate.rightDock(page)).toHaveText(/Select a single component/)
@@ -211,8 +210,8 @@ test.describe('User-defined component documentation', () => {
     await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1'])
   }
 
-  test('Entering function', async ({ page }) => {
-    const { docsContent } = await goToGraphAndGetDocs(page)
+  test('Entering function', async ({ editorPage, page }) => {
+    const { docsContent } = await goToGraphAndGetDocs(editorPage)
     await enterUdc(page)
     await expect(docsContent).toHaveText('A User Defined Function')
   })
@@ -269,22 +268,22 @@ test.describe('User-defined component documentation', () => {
       const item = items.getByText(behaviour)
       await item.click()
       await this.expectMissingBehaviour(behaviour)
-      await expect(dropdown).not.toBeVisible()
+      await expect(dropdown).toBeHidden()
       await this.expectMissingBehaviour(behaviour)
     }
   }
 
-  test('Changing argument default', async ({ page }) => {
-    await goToGraphAndGetDocs(page)
+  test('Changing argument default', async ({ editorPage, page }) => {
+    await goToGraphAndGetDocs(editorPage)
     await enterUdc(page)
     const fse = await FunctionSignatureEditor.new(locate.rightDock(page))
     const [arg] = await fse.expectArguments(1)
     await arg!.expectMissingBehaviour('optional')
-    await expect(arg!.defaultValue).not.toBeVisible()
+    await expect(arg!.defaultValue).toBeHidden()
     await arg!.setMissingBehaviour('required')
-    await expect(arg!.defaultValue).not.toBeVisible()
+    await expect(arg!.defaultValue).toBeHidden()
     await arg!.setMissingBehaviour('optional')
-    await expect(arg!.defaultValue).not.toBeVisible()
+    await expect(arg!.defaultValue).toBeHidden()
     await arg!.setMissingBehaviour('default')
     await expect(arg!.defaultValue).toBeVisible()
 
@@ -296,13 +295,13 @@ test.describe('User-defined component documentation', () => {
   })
 })
 
-test('Insert link button inserts link and focuses editor', async ({ page }) => {
-  const { docsContent } = await goToGraphAndGetDocs(page)
+test('Insert link button inserts link and focuses editor', async ({ editorPage, page }) => {
+  const { docsContent } = await goToGraphAndGetDocs(editorPage)
   const rightDock = locate.rightDock(page)
 
   // Delete all text and defocus the editor
   await docsContent.locator('.cm-line').first().click()
-  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.keyboard.press(`ControlOrMeta+A`)
   await page.keyboard.press(DELETE_KEY)
   await expect(docsContent.locator('.cm-line')).toBeEmpty()
   await docsContent.blur()
@@ -315,8 +314,8 @@ test('Insert link button inserts link and focuses editor', async ({ page }) => {
   await expect(page.locator('.LinkEditPopup')).toExist()
 })
 
-test('Documentation editor: Editing with keyboard', async ({ page }) => {
-  const { docsContent } = await goToGraphAndGetDocs(page)
+test('Documentation editor: Editing with keyboard', async ({ editorPage, page }) => {
+  const { docsContent } = await goToGraphAndGetDocs(editorPage)
   const { getCodeEditorContent } = await openCodeEditor(page)
 
   await docsContent
@@ -325,13 +324,13 @@ test('Documentation editor: Editing with keyboard', async ({ page }) => {
     .click()
   await expect(docsContent).toBeFocused()
 
-  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.keyboard.press(`ControlOrMeta+A`)
   const NEW_DOCS = 'New main method documentation'
   await page.keyboard.type(NEW_DOCS)
   const codeAfterSettingNewDocs = await getCodeEditorContent()
   expect(codeAfterSettingNewDocs).toContain(`## ${NEW_DOCS}`)
 
-  await page.keyboard.press(`${CONTROL_KEY}+Alt+1`)
+  await page.keyboard.press(`ControlOrMeta+Alt+1`)
   const codeAfterHeaderCommand = await getCodeEditorContent()
   expect(codeAfterHeaderCommand).toContain(`## # ${NEW_DOCS}`)
 
@@ -348,13 +347,13 @@ function getScrollbarState(locator: Locator) {
   }))
 }
 
-test('Scrollbars in editor panels', async ({ page }) => {
-  const { docsContent, docsScroller } = await goToGraphAndGetDocs(page)
+test('Scrollbars in editor panels', async ({ editorPage, page }) => {
+  const { docsContent, docsScroller } = await goToGraphAndGetDocs(editorPage)
   await docsContent
     .locator('.cm-line')
     .getByText(/The main method/)
     .click()
-  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await editorPage.press('Mod+A')
   const NEW_DOCS = ('very long documentation '.repeat(12) + '\n').repeat(35)
   await docsContent.fill(NEW_DOCS)
   await expect(docsContent).toHaveText(NEW_DOCS)
@@ -367,9 +366,10 @@ test('Scrollbars in editor panels', async ({ page }) => {
 })
 
 test.skip('Code editor: Copy and paste (clipboard cannot be used in CI but test can be run locally)', async ({
+  editorPage,
   page,
 }) => {
-  await actions.goToGraph(page)
+  await editorPage
   const { codeEditor, getCodeEditorContent } = await openCodeEditor(page)
   await codeEditor.click()
   await page.evaluate(() => {
@@ -378,9 +378,9 @@ test.skip('Code editor: Copy and paste (clipboard cannot be used in CI but test 
     const plusTen = codeEditor.indexOf(PLUS_TEN)
     codeEditor.select(plusTen, plusTen + PLUS_TEN.length)
   })
-  await page.keyboard.press(`${CONTROL_KEY}+C`)
-  await page.keyboard.press(`${CONTROL_KEY}+V`)
-  await page.keyboard.press(`${CONTROL_KEY}+V`)
+  await editorPage.press('Mod+C')
+  await editorPage.press('Mod+V')
+  await editorPage.press('Mod+V')
   const codeAfterEdit = await getCodeEditorContent()
   expect(codeAfterEdit).toContain(' + ten + ten')
 })

@@ -5,13 +5,13 @@
  */
 
 import { JSONRPCError } from '@open-rpc/client-js'
-import { ERR_UNKNOWN } from '@open-rpc/client-js/build/Error'
+import { ERR_UNKNOWN } from '@open-rpc/client-js/build/Error.js'
 import {
   getBatchRequests,
   getNotifications,
   type JSONRPCRequestData,
-} from '@open-rpc/client-js/build/Request'
-import { Transport } from '@open-rpc/client-js/build/transports/Transport'
+} from '@open-rpc/client-js/build/Request.js'
+import { Transport } from '@open-rpc/client-js/build/transports/Transport.js'
 import WS from 'modern-isomorphic-ws'
 import type { Options } from 'partysocket/ws'
 import ReconnectingWebSocket, { type WebSocketEventMap } from 'partysocket/ws'

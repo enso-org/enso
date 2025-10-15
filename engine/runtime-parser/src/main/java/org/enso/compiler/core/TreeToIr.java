@@ -254,7 +254,13 @@ final class TreeToIr {
         var args = translateArgumentsDefinition(fn.getArgs());
         var def = translateForeignFunction(fn);
         var binding =
-            new Method.Binding(methodRef, args, true, def, getIdentifiedLocation(inputAst), meta());
+            Method.Binding.builder()
+                .methodReference(methodRef)
+                .arguments(args)
+                .isPrivate(true)
+                .body(def)
+                .location(getIdentifiedLocation(inputAst))
+                .build();
         yield join(binding, appendTo);
       }
 
@@ -536,8 +542,15 @@ final class TreeToIr {
 
     String functionName = fn.getName().codeRepr();
     var ascribedBody = addTypeAscription(functionName, body, returnSignature, loc);
-    return join(
-        new Method.Binding(methodRef, args, isPrivate, ascribedBody, loc, meta()), appendTo);
+    var binding =
+        Method.Binding.builder()
+            .methodReference(methodRef)
+            .arguments(args)
+            .body(ascribedBody)
+            .isPrivate(isPrivate)
+            .location(loc)
+            .build();
+    return join(binding, appendTo);
   }
 
   private List<IR> translateTypeMethodBinding(Tree.Function fun, List<IR> appendTo) {
@@ -1140,7 +1153,6 @@ final class TreeToIr {
             .build();
       }
       case Tree.Function fun -> translateFunction(fun);
-      case Tree.OprSectionBoundary bound -> translateExpression(bound.getAst(), false);
       case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->
           switch (translateExpression(un.getRhs(), false)) {
             case Literal.Number n ->
@@ -1167,8 +1179,6 @@ final class TreeToIr {
                   .location(getIdentifiedLocation(un))
                   .build();
             }
-            case null ->
-                translateSyntaxError(tree, new Syntax.UnsupportedSyntax("Strange unary -"));
           };
       case Tree.TemplateFunction templ -> translateExpression(templ.getAst(), false);
       case Tree.Wildcard wild -> new Name.Blank(getIdentifiedLocation(wild), meta());
@@ -1387,7 +1397,6 @@ final class TreeToIr {
               yield tree;
             }
             case Tree.UnaryOprApp app -> app.getRhs();
-            case Tree.OprSectionBoundary section -> section.getAst();
             case Tree.TemplateFunction function -> function.getAst();
             case Tree.AnnotatedBuiltin annotated -> annotated.getExpression();
             case Tree.ExpressionStatement statement -> statement.getExpression();

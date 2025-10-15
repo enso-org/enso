@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import type { MethodSuggestionEntry } from '$/providers/openedProjects/suggestionDatabase/entry'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
-import type { MethodSuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { useStringSync } from '@/util/codemirror'
 import { computed } from 'vue'
 

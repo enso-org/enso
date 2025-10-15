@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import {
-  useGraphStore,
-  useProjectNames,
-  useProjectStore,
-  useSuggestionDbStore,
-} from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { type NodeId } from '$/providers/openedProjects/graph'
+import { requiredImports } from '$/providers/openedProjects/module/imports'
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
@@ -13,23 +10,25 @@ import type { GraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
-import type { NodeId } from '@/stores/graph'
-import { requiredImports } from '@/stores/graph/imports'
 import { Ast } from '@/util/ast'
 import { isAstId, type AstId } from '@/util/ast/abstract'
-import { unwrapOr, unwrapOrWithLog } from '@/util/data/result'
+import { Err, Ok, unwrapOr, unwrapOrWithLog } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { ProjectPath } from '@/util/projectPath'
-import { toast } from 'react-toastify'
+import { useToast } from '@/util/toast'
 import { computed } from 'vue'
 
-const project = useProjectStore()
-const projectNames = useProjectNames()
-const graph = useGraphStore()
-const suggestionDb = useSuggestionDbStore()
+const {
+  projectNames: projectNames,
+  store: project,
+  module,
+  graph,
+  suggestionDb,
+} = useCurrentProject()
 const selection = injectGraphSelection(true)
 const interaction = injectInteractionHandler()
 const nodeSelection = injectGraphSelection(true)
+const connectionToast = useToast.error()
 
 const props = defineProps<{
   navigator: GraphNavigator
@@ -44,8 +43,8 @@ const emit = defineEmits<{
 const MIN_DRAG_MOVE = 10
 
 const editingEdge: Interaction = {
-  cancel: () => (graph.mouseEditedEdge = undefined),
-  end: () => (graph.mouseEditedEdge = undefined),
+  cancel: () => (graph.value.mouseEditedEdge = undefined),
+  end: () => (graph.value.mouseEditedEdge = undefined),
   pointerdown: (e: PointerEvent) => {
     if (edgeInteractionClick()) {
       e.preventDefault()
@@ -59,7 +58,7 @@ useEventConditional(
   'pointerup',
   () => interaction.getCurrent() === editingEdge,
   (e: PointerEvent) => {
-    const originEvent = graph.mouseEditedEdge?.event
+    const originEvent = graph.value.mouseEditedEdge?.event
     if (originEvent?.type === 'pointerdown') {
       const delta = new Vec2(e.screenX, e.screenY).sub(
         new Vec2(originEvent.screenX, originEvent.screenY),
@@ -73,113 +72,126 @@ useEventConditional(
 )
 
 function edgeInteractionClick() {
-  if (graph.mouseEditedEdge == null) return false
+  if (graph.value.mouseEditedEdge == null) return false
   let source: AstId | undefined
   let sourceNode: NodeId | undefined
-  if (graph.mouseEditedEdge.source) {
-    source = graph.mouseEditedEdge.source
-    sourceNode = graph.db.getPatternExpressionNodeId(source)
+  if (graph.value.mouseEditedEdge.source) {
+    source = graph.value.mouseEditedEdge.source
+    sourceNode = graph.value.db.getPatternExpressionNodeId(source)
   } else if (selection?.hoveredNode) {
     sourceNode = selection.hoveredNode
-    source = graph.db.getNodeFirstOutputPort(sourceNode)
+    source = graph.value.db.getNodeFirstOutputPort(sourceNode)
   }
-  const target = graph.mouseEditedEdge.target ?? selection?.hoveredPort
-  const targetNode = target && graph.getPortNodeId(target)
-  graph.batchEdits(() => {
-    if (source != null && sourceNode != targetNode) {
-      if (target == null) {
-        if (graph.mouseEditedEdge?.disconnectedEdgeTarget != null)
-          disconnectEdge(graph.mouseEditedEdge.disconnectedEdgeTarget)
-        emit('createNodeFromEdge', source, props.navigator.sceneMousePos ?? Vec2.Zero)
-      } else {
-        createEdge(source, target)
-      }
-    } else if (source == null && target != null) {
-      disconnectEdge(target)
+  const target = graph.value.mouseEditedEdge.target ?? selection?.hoveredPort
+  const targetNode = target && graph.value.getPortNodeId(target)
+  if (source != null && sourceNode != targetNode) {
+    if (target == null) {
+      if (graph.value.mouseEditedEdge?.disconnectedEdgeTarget != null)
+        disconnectEdge(graph.value.mouseEditedEdge.disconnectedEdgeTarget)
+      emit('createNodeFromEdge', source, props.navigator.sceneMousePos ?? Vec2.Zero)
+    } else {
+      createEdge(source, target)
     }
-    graph.mouseEditedEdge = undefined
-  })
+  } else if (source == null && target != null) {
+    disconnectEdge(target)
+  }
+  graph.value.mouseEditedEdge = undefined
   return true
 }
 
-interaction.setWhen(() => graph.mouseEditedEdge != null, editingEdge)
+interaction.setWhen(() => graph.value.mouseEditedEdge != null, editingEdge)
 
-function disconnectEdge(target: PortId) {
-  graph.edit((edit) => {
-    if (!graph.updatePortValue(edit, target, undefined, false)) {
+async function disconnectEdge(target: PortId) {
+  const result = await module.value.edit(async (edit) => {
+    const updateResult = await graph.value.updatePortValue(target, undefined, edit, false)
+    if (!updateResult.ok) {
       if (isAstId(target)) {
         console.warn(`Failed to disconnect edge from port ${target}, falling back to direct edit.`)
         edit.replaceValue(target, Ast.Wildcard.new(edit))
-      } else {
-        console.error(`Failed to disconnect edge from port ${target}, no fallback possible.`)
+        return Ok()
       }
     }
+    return updateResult
   })
+  if (!result.ok) result.error.log(`Failed to disconnect edge from port ${target}`)
 }
 
-function createEdge(source: AstId, target: PortId) {
-  const ident = graph.db.getOutputPortIdentifier(source)
+async function createEdge(source: AstId, target: PortId) {
+  const graph_ = graph.value
+  const ident = graph_.db.getOutputPortIdentifier(source)
   if (ident == null) return
 
-  const sourceNode = graph.getSourceNodeId(source)
-  const targetNode = graph.getPortNodeId(target)
+  const sourceNode = graph_.getSourceNodeId(source)
+  const targetNode = graph_.getPortNodeId(target)
   if (sourceNode == null || targetNode == null) {
     return console.error(`Failed to connect edge, source or target node not found.`)
   }
 
-  const edit = graph.startEdit()
-  const reorderResult = graph.ensureCorrectNodeOrder(edit, sourceNode, targetNode)
-  if (reorderResult === 'circular') {
-    // Creating this edge would create a circular dependency. Prevent that and display error.
-    toast.error('Could not connect due to circular dependency.')
-  } else {
-    const identAst = Ast.parseExpression(ident, edit)!
-    const expectedType = unwrapOr(
-      projectNames.parseProjectPathRaw(graph.getPortExpectedType(target) ?? ''),
-      undefined,
-    )
-    const connectionType = project.computedValueRegistry.getExpressionInfo(sourceNode)?.typeInfo
-    // Check if type cast to the target type is both possible and necessary.
-    const findCompatibleType = (
-      list: ProjectPath[] | undefined,
-      withType: ProjectPath | undefined,
-    ) => {
-      return list
-        ?.flatMap((type) =>
-          unwrapOrWithLog(suggestionDb.entries.getTypeAndItsParentsEntries(type), []),
-        )
-        .find((type) => withType?.equals(type.definitionPath))
-    }
-    const castNeeded = findCompatibleType(connectionType?.visibleTypes, expectedType) == null
-    const targetType = castNeeded && findCompatibleType(connectionType?.hiddenTypes, expectedType)
-    let portValueToSet = undefined
-    if (targetType) {
-      graph.addMissingImports(edit, requiredImports(suggestionDb.entries, targetType))
-      if (!Ast.isIdentifier(targetType.name)) {
-        console.error(
-          'SuggestionDB has a type which is not an identifier:',
-          targetType.definitionPath,
-        )
-      } else {
-        portValueToSet = Ast.TypeAnnotated.new(edit, identAst, Ast.Ident.new(edit, targetType.name))
+  const result = await module.value.edit(async (edit) => {
+    const reorderResult = graph_.ensureCorrectNodeOrder(edit, sourceNode, targetNode)
+    if (reorderResult === 'circular') {
+      // Creating this edge would create a circular dependency. Prevent that and display error.
+      const err = Err('Could not connect due to circular dependency')
+      connectionToast.show(err.error.payload)
+      return err
+    } else {
+      const identAst = Ast.parseExpression(ident, edit)!
+      const expectedType = unwrapOr(
+        projectNames.value.parseProjectPathRaw(graph_.getPortExpectedType(target) ?? ''),
+        undefined,
+      )
+      const connectionType =
+        project.value.computedValueRegistry.getExpressionInfo(sourceNode)?.typeInfo
+      // Check if type cast to the target type is both possible and necessary.
+      const findCompatibleType = (
+        list: ProjectPath[] | undefined,
+        withType: ProjectPath | undefined,
+      ) => {
+        return list
+          ?.flatMap((type) =>
+            unwrapOrWithLog(suggestionDb.value.entries.getTypeAndItsParentsEntries(type), []),
+          )
+          .find((type) => withType?.equals(type.definitionPath))
       }
-    }
-    portValueToSet = portValueToSet ?? identAst
+      const castNeeded = findCompatibleType(connectionType?.visibleTypes, expectedType) == null
+      const targetType = castNeeded && findCompatibleType(connectionType?.hiddenTypes, expectedType)
+      let portValueToSet = undefined
+      if (targetType) {
+        module.value.addMissingImports(
+          edit,
+          requiredImports(suggestionDb.value.entries, targetType),
+        )
+        if (!Ast.isIdentifier(targetType.name)) {
+          console.error(
+            'SuggestionDB has a type which is not an identifier:',
+            targetType.definitionPath,
+          )
+        } else {
+          portValueToSet = Ast.TypeAnnotated.new(
+            edit,
+            identAst,
+            Ast.Ident.new(edit, targetType.name),
+          )
+        }
+      }
+      portValueToSet = portValueToSet ?? identAst
 
-    if (!graph.updatePortValue(edit, target, portValueToSet)) {
-      if (isAstId(target)) {
-        console.warn(`Failed to connect edge to port ${target}, falling back to direct edit.`)
-        edit.replaceValue(target, portValueToSet)
-        graph.commitEdit(edit)
-      } else {
-        console.error(`Failed to connect edge to port ${target}, no fallback possible.`)
+      const updateResult = await graph_.updatePortValue(target, portValueToSet, edit)
+      if (!updateResult.ok) {
+        if (isAstId(target)) {
+          console.warn(`Failed to connect edge to port ${target}, falling back to direct edit.`)
+          edit.replaceValue(target, portValueToSet)
+          return Ok()
+        }
       }
+      return updateResult
     }
-  }
+  })
+  if (!result.ok) result.error.log(`Failed to connect edge to port ${target}`)
 }
 
 const nodeIdsWithOutputPorts = computed(() =>
-  [...graph.db.nodeOutputPorts.allForward()].map(([id]) => id),
+  [...graph.value.db.nodeOutputPorts.allForward()].map(([id]) => id),
 )
 
 function onNewNodeClick(id: NodeId, position: Vec2) {

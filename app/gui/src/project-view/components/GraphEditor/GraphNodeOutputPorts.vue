@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import type { NodeId } from '$/providers/openedProjects/graph'
 import CreateNodeFromPortButton from '@/components/GraphEditor/CreateNodeFromPortButton.vue'
 import { useApproach } from '@/composables/animation'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphEditorState } from '@/providers/graphEditorState'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import type { NodeId } from '@/stores/graph'
 import type { Vec2 } from '@/util/data/vec2'
 import { isDef } from '@vueuse/core'
 import { setsIntersect } from 'enso-common/src/utilities/data/set'
@@ -30,7 +30,7 @@ const emit = defineEmits<{
   newNodeClick: [portId: AstId, position: Vec2]
 }>()
 
-const { graph } = useCurrentProject().storesRefs
+const { graph } = useCurrentProject()
 
 const nodeRect = computed(() => graph.value?.nodeRects.get(props.nodeId))
 const nodeHovered = computed(

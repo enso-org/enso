@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {
-  useGraphStore,
-  useProjectStore,
-  useSuggestionDbStore,
-} from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { useEnsoDiagnostics } from '@/components/CodeEditor/diagnostics'
 import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
 import { useEnsoSourceSync } from '@/components/CodeEditor/sync'
@@ -26,9 +22,7 @@ import { highlightSelectionMatches } from '@codemirror/search'
 import { drawSelection, keymap } from '@codemirror/view'
 import { onMounted, toRef, useTemplateRef, type ComponentInstance } from 'vue'
 
-const projectStore = useProjectStore()
-const graphStore = useGraphStore()
-const suggestionDbStore = useSuggestionDbStore()
+const { store: project, suggestionDb, module, graph } = useCurrentProject()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
@@ -47,8 +41,8 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     foldGutter(),
     lintGutter(),
     highlightSelectionMatches(),
-    ensoSyntax(toRef(graphStore, 'moduleRoot')),
-    ensoHoverTooltip(graphStore, suggestionDbStore, vueHost),
+    ensoSyntax(toRef(module.value, 'root')),
+    ensoHoverTooltip(graph, suggestionDb, vueHost),
     () => (editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : []),
   ],
   vueHost: () => vueHost,
@@ -56,12 +50,8 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
 })
 ;(window as any).__codeEditorApi = testSupport(editorView)
 useAutoBlur(editorView.dom)
-const { updateListener, connectModuleListener } = useEnsoSourceSync(
-  projectStore,
-  graphStore,
-  editorView,
-)
-const ensoDiagnostics = useEnsoDiagnostics(projectStore, graphStore, editorView)
+const { updateListener, connectModuleListener } = useEnsoSourceSync(project, module, editorView)
+const ensoDiagnostics = useEnsoDiagnostics(project, module, graph, editorView)
 setExtraExtensions([updateListener, ensoDiagnostics])
 connectModuleListener()
 

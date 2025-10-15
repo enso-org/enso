@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import {
+  rewritePortValueUpdate,
+  WidgetInput,
+  type UpdateHandler,
+  type WidgetUpdate,
+} from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { EnsoExpression } from '@/components/GraphEditor/widgets/WidgetEnsoExpression.vue'
 import {
   createDefaultExpressionOfKind,
@@ -9,15 +16,8 @@ import {
 import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import { EnsoTypeExpression } from '@/components/GraphEditor/widgets/WidgetTypeExpression.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { syntheticPortId, type PortId } from '@/providers/portInfo'
-import {
-  rewritePortValueUpdate,
-  WidgetInput,
-  type UpdateHandler,
-  type WidgetUpdate,
-} from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
 import { mapOrUndefined, type Opt } from '@/util/data/opt'
 import { Err, Ok } from '@/util/data/result'
@@ -40,7 +40,7 @@ const emit = defineEmits<{
   updateDefault: [value: Ast.Owned<Ast.MutableExpression> | undefined]
 }>()
 type TreeProps = ComponentProps<typeof WidgetTreeRoot>
-const openedProject = useCurrentProject().ref
+const openedProject = useCurrentProject()
 
 function defaultWidget(ast: Ast.Token | Ast.Ast): TreeProps {
   return { input: WidgetInput.FromAst(ast), updateCallback }
@@ -101,11 +101,11 @@ function resolveType(typeExpr: Ast.Ast) {
   const tyCode = typeExpr.code()
   // Hack: We have to resolve the fully qualified type name ourselves based on present imports.
   // To avoid implementing that for now, we only look up types selectable from dropdown.
-  const matchingTypeEntry = openedProject.value?.suggestionDb.entries.selectableTypes.value.find(
+  const matchingTypeEntry = openedProject.suggestionDb.value.entries.selectableTypes.value.find(
     (ty) => ty.name === tyCode,
   )
   return matchingTypeEntry ?
-      openedProject.value?.names.printProjectPath(matchingTypeEntry.definitionPath)
+      openedProject.projectNames.value.printProjectPath(matchingTypeEntry.definitionPath)
     : undefined
 }
 

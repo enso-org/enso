@@ -143,6 +143,8 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
             (Some(_), Some(_)) => None,
         };
         let properties = token.operator_properties().unwrap();
+        // The spacing logic here only affects some error representations, except in the `._` case,
+        // which is not implemented and will probably be made a syntax error.
         let reify_rhs_section = properties.can_form_section()
             && (lhs == Some(Spacing::Spaced) || rhs == Some(Spacing::Spaced));
         let is_value_operation = missing.is_none() && properties.is_value_operation();

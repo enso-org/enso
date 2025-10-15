@@ -1,18 +1,13 @@
 import { BackendType } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
-import {
-  Path,
-  PROJECT_MANAGER_LOADING_FAILED_EVENT,
-  ProjectManager,
-} from '#/services/ProjectManager'
+import { Path, ProjectManager } from '#/services/ProjectManager'
 import RemoteBackend from '#/services/RemoteBackend'
-import { useEvent } from '@/composables/events'
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import invariant from 'tiny-invariant'
-import { computed, inject, readonly, ref, toValue, watch, watchEffect } from 'vue'
+import { computed, inject, ref, toValue, watch, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText, type GetText } from './text'
 
@@ -23,16 +18,14 @@ function initializeBackends(
   rootDirPath: ToValue<string | undefined>,
   getText: GetText,
 ) {
-  const createProjectManager = (rootPath: string | undefined, projectManagerUrl: string | null) => {
+  const createProjectManager = (rootPath: string | undefined) => {
     if (!rootPath) return
-    if (projectManagerUrl == null) return
     const rootDirectory = Path(rootPath)
-    return new ProjectManager(projectManagerUrl, rootDirectory)
+    return new ProjectManager(rootDirectory)
   }
   const projectManager = ref<ProjectManager>()
-  watchEffect((onCleanup) => {
-    const pm = createProjectManager(toValue(rootDirPath), toValue(config).projectManagerUrl)
-    onCleanup(() => pm?.dispose())
+  watchEffect(() => {
+    const pm = createProjectManager(toValue(rootDirPath))
     projectManager.value = pm
   })
   const localBackend = computed(() =>
@@ -62,23 +55,10 @@ function initializeBackends(
     }
   }
 
-  const didLoadingProjectManagerFail = ref(false)
-  useEvent(document, PROJECT_MANAGER_LOADING_FAILED_EVENT, () => {
-    didLoadingProjectManagerFail.value = true
-  })
-
-  const reconnectToProjectManager = () => {
-    // To avoid race conditions, when someone try to reconnect twice in a row.
-    invariant(didLoadingProjectManagerFail.value)
-    didLoadingProjectManagerFail.value = false
-    localBackend.value?.reconnectProjectManager()
-  }
   return proxyRefs({
     localBackend,
     remoteBackend,
     backendForType,
-    didLoadingProjectManagerFail: readonly(didLoadingProjectManagerFail),
-    reconnectToProjectManager,
   })
 }
 

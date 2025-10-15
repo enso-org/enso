@@ -1,15 +1,15 @@
+import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
+import type { WidgetConfiguration } from '$/providers/openedProjects/widgetRegistry/configuration'
+import * as widgetCfg from '$/providers/openedProjects/widgetRegistry/configuration'
+import { DisplayMode } from '$/providers/openedProjects/widgetRegistry/configuration'
 import { syntheticPortId, type PortId } from '@/providers/portInfo'
-import { WidgetInput } from '@/providers/widgetRegistry'
-import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
-import * as widgetCfg from '@/providers/widgetRegistry/configuration'
-import { DisplayMode } from '@/providers/widgetRegistry/configuration'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { GraphDb, MethodCallInfo } from '@/stores/graph/graphDatabase'
+import { type GraphDb, type MethodCallInfo } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   isRequiredArgument,
   type CallableSuggestionEntry,
   type SuggestionEntryArgument,
-} from '@/stores/suggestionDatabase/entry'
+} from '$/providers/openedProjects/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
@@ -562,7 +562,7 @@ export function getMethodCallInfoRecursively(
 
 export const ArgumentApplicationKey: unique symbol = Symbol.for('WidgetInput:ArgumentApplication')
 export const ArgumentInfoKey: unique symbol = Symbol.for('WidgetInput:ArgumentInfo')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [ArgumentApplicationKey]?: ArgumentApplication
     [ArgumentInfoKey]?: {

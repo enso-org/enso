@@ -9,7 +9,7 @@ import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { until } from '@vueuse/core'
 import { encoding } from 'lib0'
 import { computed, toValue } from 'vue'
-import type { GraphStore } from './graph'
+import { type GraphStore } from '../../providers/openedProjects/graph'
 
 export type PersistedStore = ReturnType<typeof usePersisted>
 

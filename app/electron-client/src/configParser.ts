@@ -42,14 +42,6 @@ const OPTIONS_META: Readonly<Record<string, { flag: string; description: string 
     flag: '--server.port',
     description: 'Port to use (fallbacks to next available if busy)',
   },
-  'engine.projectManagerPath': {
-    flag: '--engine.projectManagerPath <path>',
-    description: 'Path to local project manager executable',
-  },
-  'engine.projectManagerUrl': {
-    flag: '--engine.projectManagerUrl <url>',
-    description: 'Project Manager service URL',
-  },
   'engine.ydocUrl': {
     flag: '--engine.ydocUrl <url>',
     description: 'Ydoc server URL',
