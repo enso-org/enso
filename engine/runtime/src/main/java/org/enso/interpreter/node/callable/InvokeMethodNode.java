@@ -57,7 +57,6 @@ public abstract class InvokeMethodNode extends BaseNode {
   }
 
   private static boolean isStaticMethodInvocation(CallArgumentInfo[] schema) {
-    assert schema.length > 0;
     return namedSelfArgPosition(schema) >= 0;
   }
 
