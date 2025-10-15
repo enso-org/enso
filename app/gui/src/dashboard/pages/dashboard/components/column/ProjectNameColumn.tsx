@@ -66,11 +66,11 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           event.stopPropagation()
         }
       }}
-      onClick={async (event) => {
+      onClick={(event) => {
         if (isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
         } else if (isDoubleClick(event) && canExecute) {
-          await openProject(item.id)
+          openProject(item.id)
         }
       }}
     >

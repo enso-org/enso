@@ -4,7 +4,7 @@ import { EnsoPath } from '#/services/Backend'
 import CommandPalette from '$/components/CommandPalette.vue'
 import { useBackends } from '$/providers/backends'
 import { provideContainerData } from '$/providers/container'
-import { provideOpenedProjects } from '$/providers/openedProjects'
+import { useOpenedProjects } from '$/providers/openedProjects'
 import { ContainerDataProviderForReact } from '$/providers/react/container'
 import type { DataLoader } from '$/router/dataLoader'
 import { backendQueryOptions } from '@/composables/backend'
@@ -51,8 +51,7 @@ export const dataLoader: DataLoader<DashboardProps> = {
 <script setup lang="ts">
 const props = defineProps<DashboardProps>()
 
-const openedProjectsStore = provideOpenedProjects()
-provideAsyncResources(openedProjectsStore)
+provideAsyncResources(useOpenedProjects())
 provideContainerData()
 </script>
 

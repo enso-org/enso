@@ -1,7 +1,6 @@
 import Backend, { AssetType, Plan, type User } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
-import LocalStorage from '#/utilities/LocalStorage'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { injectGuiConfig } from '@/providers/guiConfig'
@@ -76,8 +75,8 @@ async function shouldOpenInitialProject(
   const navigatedInDrive =
     window.localStorage.getItem('enso-category-id') ||
     window.localStorage.getItem('enso-current-directory-id')
-  const anyProjectLaunched = LocalStorage.getInstance().get('launchedProjects')
-  if (navigatedInDrive || anyProjectLaunched) return false
+  // const anyProjectLaunched = LocalStorage.getInstance().get('launchedProjects')
+  if (navigatedInDrive /*|| anyProjectLaunched*/) return false
 
   const homeDirQuery = {
     parentId: null,

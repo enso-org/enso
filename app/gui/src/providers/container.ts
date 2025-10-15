@@ -1,75 +1,11 @@
-import { BackendType, DirectoryId, EnsoPath, ProjectId, ProjectSessionId } from '#/services/Backend'
-import LocalStorage from '#/utilities/LocalStorage'
+import { EnsoPath } from '#/services/Backend'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
-import { computed, reactive, watchEffect, type Ref } from 'vue'
+import { filter } from 'enso-common/src/utilities/data/iter'
+import { computed, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import * as z from 'zod'
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly isAssetPanelVisible: boolean
-    readonly launchedProjects: z.infer<typeof LAUNCHED_PROJECT_SCHEMA>
-  }
-}
-
-const PROJECT_ID_SCHEMA = z.custom<ProjectId>(
-  (x) => typeof x === 'string' && x.startsWith('project-'),
-)
-const PROJECT_SESSION_ID_SCHEMA = z.custom<ProjectSessionId>(
-  (x) => typeof x === 'string' && x.startsWith('projectsession-'),
-)
-const DIRECTORY_ID_SCHEMA = z.custom<DirectoryId>(
-  (x) => typeof x === 'string' && x.startsWith('directory-'),
-)
-const ENSO_PATH_SCHEMA = z.custom<EnsoPath>((x) => typeof x === 'string')
-const PROJECT_SCHEMA = z
-  .object({
-    id: PROJECT_ID_SCHEMA,
-    parentId: DIRECTORY_ID_SCHEMA,
-    title: z.string(),
-    ensoPath: z.string(),
-    type: z.nativeEnum(BackendType),
-    hybrid: z.optional(
-      z.object({
-        cloudProjectId: PROJECT_ID_SCHEMA,
-        cloudProjectSessionId: PROJECT_SESSION_ID_SCHEMA,
-        cloudParentId: DIRECTORY_ID_SCHEMA,
-        parentId: DIRECTORY_ID_SCHEMA,
-        cloudProjectDirectoryPath: ENSO_PATH_SCHEMA,
-      }),
-    ),
-  })
-  .readonly()
-const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()
-
-/** Launched project information. */
-export type LaunchedProject = z.infer<typeof PROJECT_SCHEMA>
-/** Launched project ID. */
-export type LaunchedProjectId = ProjectId
-
-LocalStorage.registerKey('launchedProjects', {
-  isUserSpecific: true,
-  schema: LAUNCHED_PROJECT_SCHEMA,
-})
-
-/**
- * A project opened by user
- *
- * State "opening" means that we still do some processing before actually opening
- * (like downloading project for hybrid run). Usually we don't have all information to construct
- * {@link LaunchedProject} at this stage.
- *
- * State "launched" is a state where {@link LaunchedProject} is available. The project may still
- * be initializing, though.
- */
-// TODO[ao]: this is convoluted and shall be improved in https://github.com/enso-org/enso/issues/13491
-export type OpenedProject = (
-  | { state: 'opening'; id: ProjectId; ensoPath: string }
-  | ({ state: 'launched' } & LaunchedProject)
-) & { shown: Ref<boolean> }
+import { useOpenedProjects } from './openedProjects'
 
 /** Tab identifier, equal to the path of the view's URL. */
 export type TabId = 'drive' | 'settings' | EnsoPath
@@ -92,36 +28,28 @@ export const [provideContainerData, useContainerData] = createContextStore(
   (fallbackTab: TabId = 'drive') => {
     const router = useRouter()
     const route = useRoute()
-    const localStorage = LocalStorage.getInstance()
+    const openedProjects = useOpenedProjects()
 
-    const launchedProjects = computed(() => localStorage.get('launchedProjects') ?? [])
-
-    const openingProjects = reactive(new Map<ProjectId, EnsoPath>())
-    // Projects still in the process of shutting down. They cannot be opened right away.
-    const closingProjects = reactive(new Set<ProjectId>())
-
-    const openedProjects = computed<OpenedProject[]>(() => {
-      const launched = launchedProjects.value.map(
-        (project) => ({ state: 'launched', ...project }) as Omit<OpenedProject, 'shown'>,
-      )
-      const opened = [...openingProjects.entries()]
-        .map(
-          ([id, ensoPath]) => ({ state: 'opening', id, ensoPath }) as Omit<OpenedProject, 'shown'>,
-        )
-        .filter(({ ensoPath }) => launched.find((project) => project.ensoPath === ensoPath) == null)
-      return launched.concat(opened).map(
-        (project) =>
-          ({
-            ...project,
-            shown: computed(() => tab.value === project.ensoPath),
-          }) as OpenedProject,
-      )
-    })
+    const projectTabs = computed(() =>
+      Array.from(
+        filter(
+          openedProjects.listProjects(),
+          (project) =>
+            project.state.status !== 'not-opened' &&
+            project.state.status !== 'hybrid-closed' &&
+            project.state.status !== 'hybrid-uploaded',
+        ),
+        (project) => ({
+          ...project,
+          shown: computed(() => tab.value === project.state.info.ensoPath),
+        }),
+      ),
+    )
 
     const isValidTab = (name: string | undefined): name is TabId =>
       name === 'drive' ||
       name === 'settings' ||
-      openedProjects.value.find((p) => p.ensoPath === name) != null
+      projectTabs.value.find((p) => p.state.info.ensoPath === name) != null
 
     const tab = computed<TabId>({
       get: () => {
@@ -141,30 +69,9 @@ export const [provideContainerData, useContainerData] = createContextStore(
       }
     })
 
-    const addLaunchedProject = (project: LaunchedProject) => {
-      updateLaunchedProjects((current) => [...current, project])
-    }
-    const removeLaunchedProject = (projectId: LaunchedProjectId) => {
-      updateLaunchedProjects((current) =>
-        current.filter(
-          ({ id, hybrid }) => id !== projectId && hybrid?.cloudProjectId !== projectId,
-        ),
-      )
-    }
-    const updateLaunchedProjects = (
-      update: (projects: readonly LaunchedProject[]) => readonly LaunchedProject[],
-    ) => {
-      localStorage.set('launchedProjects', update(localStorage.get('launchedProjects') ?? []))
-    }
-
     return proxyRefs({
-      openedProjects,
-      openingProjects,
-      closingProjects,
       tab,
-      addLaunchedProject,
-      removeLaunchedProject,
-      updateLaunchedProjects,
+      projectTabs,
     })
   },
 )

@@ -4,7 +4,6 @@ import StopIcon from '#/assets/stop.svg'
 import { Button } from '#/components/Button'
 import { Spinner } from '#/components/Spinner'
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
-import { useCanRunProjects } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
 import {
@@ -16,14 +15,13 @@ import {
   type ProjectId,
 } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
-import type { LaunchedProject } from '$/providers/container'
 import { useFullUserSession, useText } from '$/providers/react'
 import {
   useAreOtherProjectsOpening,
   useIsProjectClosing,
   useIsProjectOpening,
-  useLaunchedProject,
-} from '$/providers/react/container'
+  useOpenedProjects,
+} from '$/providers/react/openedProjects'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: ProjectState.closed } as const
@@ -68,8 +66,8 @@ export interface ProjectIconProps {
   readonly isDisabled: boolean
   readonly isOpened: boolean
   readonly item: ProjectAsset
-  readonly closeProject: (project: LaunchedProject) => Promise<void>
-  readonly openProject: (projectId: ProjectId) => Promise<void>
+  readonly closeProject: (project: ProjectId) => void
+  readonly openProject: (projectId: ProjectId) => void
 }
 
 /** An interactive icon indicating the status of a project. */
@@ -84,8 +82,8 @@ export default function ProjectIcon(props: ProjectIconProps) {
     openProject,
   } = props
 
-  const launched = useLaunchedProject(item.id)
-  const isUnconditionallyDisabled = !useCanRunProjects().locally[backend.type]
+  const openedProjects = useOpenedProjects()
+  const isUnconditionallyDisabled = !openedProjects.canOpenProjectLocally(backend.type)
 
   const { user } = useFullUserSession()
   const { getText } = useText()
@@ -144,17 +142,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
   })()
 
   const doOpenProject = useEventCallback(() => {
-    // The "open project" icon should never be in the loading state.
-    void openProject(item.id)
+    openProject(item.id)
   })
 
   const doCloseProject = useEventCallback(() => {
-    if (launched != null) {
-      // This may be a hybrid project; use "launched" information to close properly.
-      return closeProject(launched)
-    } else {
-      return closeProject({ ...item, type: backend.type })
-    }
+    return closeProject(item.id)
   })
 
   const getTooltip = (defaultTooltip: string) =>

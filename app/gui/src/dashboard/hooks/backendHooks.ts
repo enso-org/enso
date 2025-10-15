@@ -1,6 +1,5 @@
 /** @file Hooks for interacting with the backend. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
@@ -17,8 +16,10 @@ import {
 } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { flagsStore } from '$/providers/featureFlags'
-import { useBackends, useFullUserSession } from '$/providers/react'
+import type { ProjectInfo } from '$/providers/openedProjects/projectStates'
+import { useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
 import {
   queryOptions,
   useMutationState,
@@ -393,32 +394,6 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
   })
 }
 
-/** Whether the user can run projects. */
-export function useCanRunProjects() {
-  const { user } = useFullUserSession()
-  const { localBackend } = useBackends()
-  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
-
-  return {
-    // All projects can be run locally.
-    // Local projects: Open normally
-    // Cloud projects: Open in Hybrid
-    locally: {
-      [BackendType.local]: localBackend != null,
-      [BackendType.remote]: localBackend != null,
-    },
-    // Local projects can be run natively; only Team plans and above have access to Cloud execution.
-    // Local projects: Open normally
-    // Cloud projects: Open in Cloud VM
-    natively: {
-      [BackendType.local]: localBackend != null,
-      [BackendType.remote]:
-        enableCloudExecution &&
-        (user.plan === backendModule.Plan.team || user.plan === backendModule.Plan.enterprise),
-    },
-  }
-}
-
 /** The type of directory listings in the React Query cache. */
 type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
 
@@ -534,9 +509,7 @@ export function useNewFolder(backend: Backend, category: Category) {
 /** A function to create a new project. */
 export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const openProjectLocally = useOpenProjectLocally()
-  const openProjectNatively = useOpenProjectNatively()
-  const canRunProjects = useCanRunProjects()
+  const { openProjectLocally } = useOpenedProjects()
   const deleteAsset = useDeleteAsset(backend, category)
 
   const createProject = useMutationCallback(backendMutationOptions(backend, 'createProject'))
@@ -551,7 +524,6 @@ export function useNewProject(backend: Backend, category: Category) {
         ensoPath?: string | null | undefined
       },
       parentId: DirectoryId,
-      runLocally = true,
     ) => {
       const siblings = await ensureListDirectory(parentId)
       const projectName = (() => {
@@ -583,17 +555,8 @@ export function useNewProject(backend: Backend, category: Category) {
             parentId: placeholderItem.parentId,
             title: createdProject.name,
             ensoPath: createdProject.ensoPath,
-          } satisfies Partial<backendModule.ProjectAsset>
-          if (runLocally) {
-            if (canRunProjects.locally[backend.type]) {
-              // Open in background.
-              void openProjectLocally(openProjectParams, backend.type)
-            }
-          } else {
-            if (canRunProjects.natively[backend.type]) {
-              void openProjectNatively(openProjectParams, backend.type)
-            }
-          }
+          } satisfies Omit<ProjectInfo, 'mode'>
+          openProjectLocally(openProjectParams, backend.type)
 
           return createdProject
         })

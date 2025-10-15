@@ -9,7 +9,6 @@ import { useBackendMutationState } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
@@ -36,9 +35,9 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import type { LaunchedProject } from '$/providers/container'
+import { BUSY_PROJECT_STATES } from '$/providers/openedProjects/projectStates'
 import { useFullUserSession } from '$/providers/react'
-import { useIsProjectClosing } from '$/providers/react/container'
+import { useIsProjectClosing } from '$/providers/react/openedProjects'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -77,8 +76,8 @@ export interface AssetRowProps {
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
-  readonly closeProject: (project: LaunchedProject) => Promise<void>
-  readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
+  readonly closeProject: (projectId: backendModule.ProjectId) => void
+  readonly openProject: (projectId: backendModule.ProjectId) => void
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */

@@ -1,25 +1,21 @@
 <script lang="ts">
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
-import { BackendType, EnsoPath, type ProjectId } from '#/services/Backend'
-import {
-  useContainerData,
-  type LaunchedProject,
-  type OpenedProject,
-  type TabId,
-} from '$/providers/container'
+import { useContainerData } from '$/providers/container'
+import { useOpenedProjects, type Project } from '$/providers/openedProjects'
 import { RightPanelDataProviderForReact } from '$/providers/react/container'
 import { provideRightPanelData } from '$/providers/rightPanel'
 import { appContainerBindings } from '@/bindings'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { useEvent } from '@/composables/events'
+import ProjectView from '@/ProjectView.vue'
 import { registerHandlers } from '@/providers/action'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { reactComponent } from '@/util/react'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { onMounted, reactive, shallowRef, toRefs, watch } from 'vue'
-import { Drive, Editor, Settings } from './reactTabs'
+import { onMounted, shallowRef, toRefs } from 'vue'
+import { Drive, Settings } from './reactTabs'
 import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
 
@@ -38,60 +34,18 @@ const props = defineProps<{
   isFeatureUnderPaywall(feature: PaywallFeatureName): boolean
 }>()
 
-const emit = defineEmits<{
-  closeProject: [project: LaunchedProject]
-  closeAllProjects: []
-}>()
-
 // NOTE: This cannot be `useTemplateRef`, because that creates a **readonly** ref, and it interferes
 // with veaury's ref assignment implementation that runs during parent React component lifecycle.
 const fullscreenRoot = shallowRef<HTMLElement>()
 
-const { tab, openingProjects, openedProjects } = toRefs(useContainerData())
+const openedProjects = useOpenedProjects()
+const { tab, projectTabs } = toRefs(useContainerData())
 provideRightPanelData(tab, props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
 
-const readyProjects = reactive(new Set<ProjectId>())
-const projectNames = reactive(new Map<ProjectId, string>())
-
-function setProjectReady(project: ProjectId, projectTab: TabId, ready: boolean) {
-  if (ready) {
-    readyProjects.add(project)
-    tab.value = projectTab
-  } else {
-    readyProjects.delete(project)
-  }
+function loadingProjectSpinnerPhase(project: Project) {
+  return project.state.info.mode === 'cloud' ? 'loading-slow' : 'loading-fast'
 }
-
-function loadingProjectSpinnerPhase(project: OpenedProject) {
-  return (
-      project.state === 'launched' && (project.hybrid != null || project.type === BackendType.local)
-    ) ?
-      'loading-fast'
-    : 'loading-slow'
-}
-
-function closeOpenedProject(project: OpenedProject) {
-  if (project.state === 'launched') {
-    emit('closeProject', project)
-  } else {
-    openingProjects.value.delete(project.id)
-  }
-}
-
-watch(openedProjects, (openedProjectsList) => {
-  const openedProjectsSet = new Set(openedProjectsList.map((proj) => proj.id))
-  for (const proj of readyProjects) {
-    if (!openedProjectsSet.has(proj)) {
-      readyProjects.delete(proj)
-    }
-  }
-  for (const proj of projectNames.keys()) {
-    if (!openedProjectsSet.has(proj)) {
-      projectNames.delete(proj)
-    }
-  }
-})
 
 function closeSettingsTab() {
   // The settings tab autohide when not selected.
@@ -107,8 +61,8 @@ function closeTab() {
       break
     default: {
       // project id
-      const project = openedProjects.value.find((proj) => proj.ensoPath === tab.value)
-      if (project) closeOpenedProject(project)
+      const project = projectTabs.value.find((proj) => proj.state.info.ensoPath === tab.value)
+      if (project) openedProjects.closeProject(project.state.info.id)
       break
     }
   }
@@ -137,7 +91,7 @@ useEvent(globalEventRegistry, 'keydown', (event) => {
 })
 
 const onSignOut = () => {
-  emit('closeAllProjects')
+  openedProjects.closeAllProjects()
 }
 </script>
 
@@ -152,17 +106,21 @@ const onSignOut = () => {
           @update:selected="$event && (tab = 'drive')"
         />
         <SelectableTab
-          v-for="project in openedProjects"
-          :key="project.id"
+          v-for="project in projectTabs"
+          :key="project.state.info.id"
           data-testid="editor-tab-button"
           :selected="project.shown.value"
-          :icon="readyProjects.has(project.id) ? 'graph_editor' : undefined"
-          :label="projectNames.get(project.id)"
-          @update:selected="$event && (tab = EnsoPath(project.ensoPath))"
-          @close="closeOpenedProject(project)"
+          :icon="project.state.status === 'initialized' ? 'graph_editor' : undefined"
+          :label="
+            project.state.status === 'initialized' ?
+              project.state.name.value
+            : project.state.info.title
+          "
+          @update:selected="$event && (tab = project.state.info.ensoPath)"
+          @close="openedProjects.closeProject(project.state.info.id)"
         >
           <GrowingSpinner
-            v-if="!readyProjects.has(project.id)"
+            v-if="project.state.status !== 'initialized'"
             :phase="loadingProjectSpinnerPhase(project)"
             :size="16"
           />
@@ -182,22 +140,12 @@ const onSignOut = () => {
         <KeepAlive>
           <Drive v-if="tab === 'drive'" />
         </KeepAlive>
-        <template v-for="project in openedProjects">
-          <div
-            v-if="project.state === 'launched'"
-            :key="project.id"
-            class="editor"
-            :class="{ hidden: !project.shown.value }"
-          >
-            <Editor
-              :hidden="!project.shown.value"
-              :project="project"
-              @readyUpdate="setProjectReady(project.id, EnsoPath(project.ensoPath), $event)"
-              @nameUpdate="projectNames.set(project.id, $event)"
-            />
-          </div>
-        </template>
-
+        <KeepAlive v-for="project in projectTabs" :key="project.state.info.id">
+          <ProjectView
+            v-if="tab === project.state.info.ensoPath"
+            :projectId="project.state.info.id"
+          />
+        </KeepAlive>
         <KeepAlive>
           <Settings v-if="tab === 'settings'" />
         </KeepAlive>

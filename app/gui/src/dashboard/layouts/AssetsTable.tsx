@@ -22,7 +22,6 @@ import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useDerivedDebouncedState } from '#/hooks/debounceCallbackHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -88,8 +87,8 @@ import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useFullUserSession, useLocalStorage, useRightPanelData, useText } from '$/providers/react'
-import { useLaunchedProjects } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import {
   Children,
@@ -165,8 +164,8 @@ function AssetsTable(props: AssetsTableProps) {
 
   const contextMenuRef = useRef<ContextMenuApi>(null)
   const { category, associatedBackend: backend } = useCategoriesAPI()
-  const openedProjects = useLaunchedProjects()
-  const openProjectLocally = useOpenProjectLocally()
+  const openedProjects = useOpenedProjects()
+  const { openProjectLocally, closeProject } = useOpenedProjects()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
 
@@ -688,8 +687,6 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
-  const closeProject = useCloseProject()
-
   const doOpenProject = useEventCallback((projectId: ProjectId) => {
     const project = assets.find((asset) => asset.id === projectId)
 
@@ -1093,7 +1090,9 @@ function AssetsTable(props: AssetsTableProps) {
 
         <tbody ref={bodyRef} className="isolate">
           {assets.map((item) => {
-            const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
+            const isOpenedByYou = [...openedProjects.listProjects()].some(
+              (project) => item.id === project.state.info.id,
+            )
             const isOpenedOnTheBackend =
               item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
             return (

@@ -11,7 +11,6 @@ import type {
   ProjectId,
 } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
-import type { LaunchedProject } from '$/providers/container'
 import { Column } from './columnUtils'
 import {
   LabelsColumn,
@@ -34,8 +33,8 @@ export interface AssetColumnProps {
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
   readonly labels: readonly Label[]
-  readonly closeProject: (project: LaunchedProject) => Promise<void>
-  readonly openProject: (projectId: ProjectId) => Promise<void>
+  readonly closeProject: (project: ProjectId) => void
+  readonly openProject: (projectId: ProjectId) => void
 }
 
 /** Props for the name column of an arbitrary variant of {@link Asset}. */
