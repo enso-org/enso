@@ -10,7 +10,7 @@ defineProps<{
   disabled?: boolean | undefined
   title?: string | undefined
   extraClickZone?: number | undefined
-  variant?: 'accent' | 'submit' | undefined
+  variant?: 'submit' | undefined
 }>()
 const emit = defineEmits<{ activate: [] }>()
 </script>
@@ -46,11 +46,6 @@ const emit = defineEmits<{ activate: [] }>()
 
 .variant-submit {
   background-color: var(--color-submit);
-  color: var(--color-text-light);
-}
-
-.variant-accent {
-  background-color: var(--color-accent);
   color: var(--color-text-light);
 }
 </style>

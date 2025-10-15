@@ -2,14 +2,12 @@
 import { setModal } from '#/providers/ModalProvider'
 import { AssetType } from '#/services/Backend'
 import { vueComponent } from '#/utilities/vue'
-import { useBackends } from '$/providers/backends'
 import { useContainerData } from '$/providers/container'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { textEditorsBindings } from '@/bindings'
 import OpenProjectModal from '@/components/OpenProjectModal.vue'
-import { useOpenProjectLocally } from '@/composables/project'
 import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
-import { BackendType, EnsoPath } from 'enso-common/src/services/Backend'
+import { EnsoPath } from 'enso-common/src/services/Backend'
 import { createElement } from 'react'
 import { computed, toRef, useTemplateRef } from 'vue'
 
@@ -20,29 +18,23 @@ const props = defineProps<{
 }>()
 
 const containerData = useContainerData()
-
+const rightPanelData = useRightPanelData()
 const path = computed(() => EnsoPath(props.href))
 
-const rightPanelData = useRightPanelData()
-const openProjectLocally = useOpenProjectLocally()
-const { backendForType } = useBackends()
-
-const isProject = computed(() => rightPanelData.focusedAsset?.type === AssetType.project)
-
 const openLinkAction = computed(() => {
-  if (!isProject.value) return 'default'
+  if (rightPanelData.focusedAsset?.type !== AssetType.project) return 'default'
   if (containerData.openedProjects.some((project) => project.ensoPath === path.value)) {
     // The project is already opened.
-    return 'switch-tab'
+    return 'upsert-tab'
   }
   for (const [otherPath] of containerData.openingProjects.values()) {
     // The project is in the process of being opened.
-    if (otherPath === path.value) return 'switch-tab'
+    if (otherPath === path.value) return 'upsert-tab'
   }
   // Only require the modal if there is at least one project already opened or being opened.
   return containerData.openedProjects.length > 0 || containerData.openingProjects.size > 0 ?
       'open-modal'
-    : 'open-new-project'
+    : 'upsert-tab'
 })
 
 const OpenProjectModalReact = vueComponent(OpenProjectModal).default
@@ -53,16 +45,7 @@ function openProjectModal() {
   setModal(createElement(OpenProjectModalReact, { href: props.href }))
 }
 
-async function openProjectInNewTab() {
-  const backendType = rightPanelData.context?.category?.backend ?? BackendType.remote
-  const backend = backendForType(backendType)
-  const resolvedAsset = await backend.resolveEnsoPath(path.value)
-  const asset = await backend.getAssetDetails(resolvedAsset.id, undefined)
-  if (asset?.type !== AssetType.project) return
-  openProjectLocally({ ...asset, ensoPath: path.value }, backendType)
-}
-
-function switchTabToProject() {
+function upsertTab() {
   containerData.tab = path.value
 }
 
@@ -80,12 +63,7 @@ const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatin
       <a v-if="openLinkAction === 'open-modal'" class="link" @click="openProjectModal"
         >Follow link</a
       >
-      <a v-else-if="openLinkAction === 'open-new-project'" class="link" @click="openProjectInNewTab"
-        >Follow link</a
-      >
-      <a v-else-if="openLinkAction === 'switch-tab'" class="link" @click="switchTabToProject"
-        >Follow link</a
-      >
+      <a v-else-if="openLinkAction === 'upsert-tab'" class="link" @click="upsertTab">Follow link</a>
       <a v-else class="link" :href="href" target="_blank" rel="noopener,noreferrer">Follow link</a>
       ({{ textEditorsBindings.bindings.openLink.humanReadable }})
     </div>

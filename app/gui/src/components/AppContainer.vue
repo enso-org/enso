@@ -1,4 +1,5 @@
 <script lang="ts">
+import { ModalWrapper as ModalWrapperReact } from '#/components/ModalWrapper'
 import { Dashboard as DashboardReact, type DashboardProps } from '#/pages/dashboard/Dashboard'
 import { EnsoPath } from '#/services/Backend'
 import CommandPalette from '$/components/CommandPalette.vue'
@@ -22,6 +23,7 @@ import {
 } from 'enso-common/src/services/Backend'
 
 const Dashboard = reactComponent(DashboardReact)
+const ModalWrapper = reactComponent(ModalWrapperReact)
 
 export const dataLoader: DataLoader<DashboardProps> = {
   async beforeRouteEnter(to) {
@@ -60,6 +62,7 @@ provideContainerData()
   <div class="TabView">
     <CommandPalette />
     <ContainerDataProviderForReact>
+      <ModalWrapper />
       <Dashboard v-bind="props" />
     </ContainerDataProviderForReact>
   </div>

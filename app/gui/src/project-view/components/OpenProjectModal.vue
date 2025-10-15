@@ -1,30 +1,18 @@
 <script setup lang="ts">
 import { unsetModal } from '#/providers/ModalProvider'
-import { AssetType, BackendType, EnsoPath } from '#/services/Backend'
-import { useBackends } from '$/providers/backends'
-import { useRightPanelData } from '$/providers/rightPanel'
+import { EnsoPath } from '#/services/Backend'
+import { useContainerData } from '$/providers/container'
 import StandaloneButton from '@/components/StandaloneButton.vue'
-import { useOpenProjectLocally } from '@/composables/project'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { computed, onMounted } from 'vue'
 
 const props = defineProps<{ href: string }>()
 
 const path = computed(() => EnsoPath(props.href))
-
+const containerData = useContainerData()
 const interaction = injectInteractionHandler()
-const openProjectLocally = useOpenProjectLocally()
-const rightPanelData = useRightPanelData()
-const { backendForType } = useBackends()
 
-const modalInteraction: Interaction = {
-  cancel() {
-    unsetModal()
-  },
-  end() {
-    unsetModal()
-  },
-}
+const modalInteraction: Interaction = { cancel: unsetModal, end: unsetModal }
 
 function closeModal() {
   interaction.end(modalInteraction)
@@ -34,20 +22,14 @@ onMounted(() => {
   interaction.setCurrent(modalInteraction)
 })
 
-async function openProjectInNewTab() {
-  closeModal()
-  const backendType = rightPanelData.context?.category?.backend ?? BackendType.remote
-  const backend = backendForType(backendType)
-  const resolvedAsset = await backend.resolveEnsoPath(path.value)
-  const asset = await backend.getAssetDetails(resolvedAsset.id, undefined)
-  if (asset?.type !== AssetType.project) return
-  openProjectLocally({ ...asset, ensoPath: path.value }, backendType)
+function upsertTab() {
+  containerData.tab = path.value
 }
 </script>
 
 <template>
   <teleport to="#floatingLayer">
-    <div class="modal" @keydown.esc="closeModal" @mousedown.self.prevent="closeModal">
+    <div class="OpenProjectModal" @keydown.esc="closeModal" @mousedown.self.prevent="closeModal">
       <div class="modal-container" @mousedown.stop.prevent>
         <h2>Open Project</h2>
         <p>
@@ -56,7 +38,7 @@ async function openProjectInNewTab() {
         </p>
         <div class="button-bar">
           <StandaloneButton label="Cancel" @activate="closeModal" />
-          <StandaloneButton label="Open" variant="submit" @activate="openProjectInNewTab" />
+          <StandaloneButton label="Open" variant="submit" @activate="upsertTab" />
         </div>
       </div>
     </div>
@@ -64,27 +46,7 @@ async function openProjectInNewTab() {
 </template>
 
 <style scoped>
-.LinkEditPopup {
-  font-family: var(--font-sans);
-  color: gray;
-  border-radius: var(--radius-default);
-  backdrop-filter: var(--blur-app-bg);
-  background-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-  padding: 8px;
-  width: max-content;
-}
-
-.link {
-  cursor: pointer;
-  color: blue;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-.modal {
+.OpenProjectModal {
   position: absolute;
   top: 0;
   left: 0;
@@ -92,6 +54,8 @@ async function openProjectInNewTab() {
   height: 100vh;
   cursor: pointer;
   max-height: 100vh;
+  display: grid;
+  place-items: center;
 
   &::before {
     content: '';
@@ -103,10 +67,6 @@ async function openProjectInNewTab() {
   }
 
   > .modal-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     background-color: var(--color-app-bg);
     border-radius: var(--radius-default);
     backdrop-filter: blur(8px);
