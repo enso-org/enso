@@ -16,7 +16,7 @@ import type { CredentialFormProps } from './types'
 /** Dialog for a MS365 credential. */
 export function MS365CredentialsForm(props: CredentialFormProps) {
   const { createCredentials } = props
-        const { getText } = useText()
+  const { getText } = useText()
   const toastAndLog = useToastAndLog()
 
   return (
@@ -40,9 +40,7 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
           <Input form={form} name="name" label={getText('name')} />
           <Checkbox.Group form={form} name="scopes" label={getText('ms365CredentialScopes')}>
             <Checkbox value="User.Read">{getText('ms365CredentialUserReadScope')}</Checkbox>
-            <Checkbox value="Files.Read">
-              {getText('ms365CredentialFilesReadScope')}
-            </Checkbox>
+            <Checkbox value="Files.Read">{getText('ms365CredentialFilesReadScope')}</Checkbox>
           </Checkbox.Group>
           <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
         </>
