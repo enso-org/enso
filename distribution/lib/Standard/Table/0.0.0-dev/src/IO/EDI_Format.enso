@@ -13,6 +13,7 @@ import project.Table.Table
 
 polyglot java import org.enso.table.read.EDIReader
 
+
 ## Read ANSI X12 Electronic Data Interchange (EDI) Format
 type EDI_Format
     ## Read EDI Format into an In-Memory Table
@@ -142,7 +143,7 @@ type EDI_Definition
                 _ -> Dictionary.from_vector field_js.to_vector
             EDI_Definition.Custom structure field_map
 
-private parse_text_to_table input:Text separator:Text definition:EDI_Definition map_fields:Boolean -> Any =
+private parse_text_to_table input:Text separator:Text definition:EDI_Definition map_fields:Boolean -> Any = Illegal_Argument.handle_java_exception <|
     case definition of
         EDI_Definition.Raw_Segments ->
             java_list = EDIReader.parseSegments input separator
@@ -150,8 +151,6 @@ private parse_text_to_table input:Text separator:Text definition:EDI_Definition 
             Table.from_rows ["Segment", "Elements"] structure
         _ ->
             custom_def = definition.as_custom
-
             field_map = if map_fields then custom_def.field_map else Dictionary.empty
             array = EDIReader.parse input separator custom_def.structure field_map
-
             Table.new [["ISA", Vector.from_polyglot_array array]] . expand_column "ISA" prefix=..None

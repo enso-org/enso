@@ -1,6 +1,10 @@
 package org.enso.table.read;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -61,7 +65,9 @@ public final class EDIReader {
     var level = structure;
     var current = output;
 
+    int segmentIndex = -1;
     for (String[] segment : data) {
+      segmentIndex++;
       var name = segment[0];
 
       // Make a new segment
@@ -82,8 +88,13 @@ public final class EDIReader {
           var segmentField = new EDIField.Dictionary(name, dict, current);
           current.append(segmentField);
         } else {
-          throw new IllegalArgumentException(
-              "Current is not an array but matches current segment name: " + current);
+          var path = name;
+          var parent = current;
+          while (parent != null) {
+            path = parent.name() + "/" + path;
+            parent = parent.parent();
+          }
+          throw new IllegalArgumentException(name + " is not an array (segment=" + segmentIndex + ") at " + path);
         }
       } else {
         // See if we can find the segment in the current level
@@ -98,11 +109,15 @@ public final class EDIReader {
           child = level.child(name);
         }
 
-        // If we still didn't find it, then append to current level
+        // If we still didn't find it, report an error
         if (child == null) {
-          level = oldLevel;
-          current = oldCurrent;
-          child = new EDIStructure(name, true, false, level);
+          var path = name;
+          var parent = oldCurrent;
+          while (parent != null) {
+            path = parent.name() + "/" + path;
+            parent = parent.parent();
+          }
+          throw new IllegalArgumentException(name + " could not be placed in structure (segment=" + segmentIndex + ") at " + path);
         }
 
         // Append Child to current
