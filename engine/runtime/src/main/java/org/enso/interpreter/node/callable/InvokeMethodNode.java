@@ -96,24 +96,6 @@ public abstract class InvokeMethodNode extends BaseNode {
   public static Function resolveFunction(
       UnresolvedSymbol symbol, Object self, Type selfTpe, MethodResolverNode methodResolverNode) {
     Function function = methodResolverNode.executeResolution(selfTpe, symbol);
-    if (function == null) {
-      return null;
-    }
-
-    if (selfTpe.getDefinitionScope().getAssociatedType() != selfTpe) {
-      var where = function.getCallTarget().getRootNode();
-      // If both Any and the type where `function` is declared, define `symbol`
-      // and the method is invoked statically, i.e. type of self is the eigentype,
-      // then we want to disambiguate method resolution by always resolved to the one in Any.
-      var ctx = EnsoContext.get(methodResolverNode);
-      if (where instanceof MethodRootNode node && typeCanOverride(node, ctx)) {
-        Type any = ctx.getBuiltins().any();
-        Function anyFun = symbol.getScope().lookupMethodDefinition(any, symbol.getName());
-        if (anyFun != null) {
-          function = anyFun;
-        }
-      }
-    }
     return function;
   }
 
