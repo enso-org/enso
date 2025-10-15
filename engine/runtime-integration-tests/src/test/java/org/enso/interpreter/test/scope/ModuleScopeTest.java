@@ -250,6 +250,26 @@ public class ModuleScopeTest {
     }
   }
 
+  @Test
+  public void instanceMethod_OnSingletonType_IsRegisteredToEigenType() throws IOException {
+    var mainSrc =
+        Source.newBuilder(
+                LanguageInfo.ID,
+                """
+                type Singleton_Type
+                    method self = 42
+                """,
+                "test.enso")
+            .build();
+    var mainMod = ctxRule.eval(mainSrc);
+    var mainRuntimeMod = (Module) ctxRule.unwrapValue(mainMod);
+    var scope = mainRuntimeMod.getScope();
+    var singletonType = scope.getType("Singleton_Type", true);
+    assertThat(singletonType.isEigenType(), is(true));
+    var method = scope.getMethodForType(singletonType, "method");
+    assertThat(method, is(notNullValue()));
+  }
+
   /**
    * See <a href="https://github.com/enso-org/enso/issues/11686">#11686</a>
    *
