@@ -4,6 +4,7 @@
     - Custom structure:Standard.Base.Data.Text.Text field_map:(Standard.Base.Data.Dictionary.Dictionary Standard.Base.Data.Text.Text Standard.Base.Any.Any)=
     - EDI_822
     - From_Json path:Standard.Base.Any.Any
+    - Raw_Segments
     - as_custom self -> Standard.Base.Any.Any
 - type EDI_Format
     - EDI segment_end:Standard.Base.Data.Text.Text= definition:Standard.Table.IO.EDI_Format.EDI_Definition= map_fields:Standard.Base.Data.Boolean.Boolean=

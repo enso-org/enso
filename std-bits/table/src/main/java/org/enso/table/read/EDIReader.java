@@ -77,7 +77,7 @@ public final class EDIReader {
               .filter(i -> segment[i] != null && !segment[i].isEmpty())
               .mapToObj(
                   i -> {
-                    var fieldName = i < mapping.size() ? mapping.get(i - 1) : name + "-" + i;
+                    var fieldName = i - 1 < mapping.size() ? mapping.get(i - 1) : name + "-" + i;
                     return (EDIField) new EDIField.Value(fieldName, segment[i]);
                   })
               .collect(Collectors.toMap(EDIField::name, v -> v));
