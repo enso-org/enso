@@ -71,7 +71,7 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
     var argsWithoutFirst = removeFirstArg(arguments);
     assert invokeFunctionNode.getSchema().length == argsWithoutFirst.length
         : "After removing implicit self argument, the number of arguments must match the function"
-              + " schema.";
+            + " schema.";
     return invokeFunctionNode.execute(method, frame, state, argsWithoutFirst);
   }
 
@@ -82,7 +82,8 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
     throw methodNotInvocable(this, symbol, self, cause);
   }
 
-  private Function resolveMethod(UnresolvedSymbol symbol, Type self, MethodResolverNode methodResolverNode) {
+  private Function resolveMethod(
+      UnresolvedSymbol symbol, Type self, MethodResolverNode methodResolverNode) {
     var method = methodResolverNode.executeResolution(self, symbol);
     if (method != null) {
       return method;
