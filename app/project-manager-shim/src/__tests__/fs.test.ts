@@ -26,6 +26,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 100,
+      timeout: 1000,
       callback,
     })
 
@@ -52,6 +53,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 100,
+      timeout: 1000,
       callback,
     })
 
@@ -78,6 +80,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 100,
+      timeout: 1000,
       callback,
     })
 
@@ -100,6 +103,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 200,
+      timeout: 1000,
       callback,
     })
 
@@ -139,6 +143,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 100,
+      timeout: 1000,
       callback,
     })
 
@@ -172,6 +177,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 100,
+      timeout: 1000,
       callback,
     })
 
@@ -199,6 +205,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 100,
+      timeout: 1000,
       callback,
     })
 
@@ -232,6 +239,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 100,
+      timeout: 1000,
       callback,
     })
 
@@ -256,6 +264,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 300,
+      timeout: 1000,
       callback,
     })
 
@@ -283,6 +292,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 100,
+      timeout: 1000,
       callback,
     })
 
@@ -300,6 +310,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 100,
+      timeout: 1000,
       callback,
     })
 
@@ -325,6 +336,7 @@ describe('watch', () => {
     const watcher = watch({
       directory: testDir,
       delay: 500,
+      timeout: 1000,
       callback,
     })
 
@@ -336,6 +348,129 @@ describe('watch', () => {
 
     // Close immediately after change, before callback can execute
     await new Promise((resolve) => setTimeout(resolve, 50))
+    const isDirty = await watcher.close()
+
+    expect(isDirty).toBe(true)
+    expect(callback).not.toHaveBeenCalled()
+  })
+
+  test('should force callback execution after timeout even with continuous changes', async () => {
+    const callback = vi.fn(async () => {})
+    const watcher = watch({
+      directory: testDir,
+      delay: 200,
+      timeout: 500,
+      callback,
+    })
+
+    // Wait for watcher to initialize
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    // Create rapid continuous changes that would normally reset the debounce
+    const filePath = path.join(testDir, 'test.txt')
+    await fs.writeFile(filePath, 'content1')
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    await fs.writeFile(filePath, 'content2')
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    await fs.writeFile(filePath, 'content3')
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    await fs.writeFile(filePath, 'content4')
+
+    // Wait for timeout to force execution (timeout is 500ms from first change)
+    // Total time: 200 (init) + 100 + 100 + 100 = 500ms since first change
+    await new Promise((resolve) => setTimeout(resolve, 250))
+
+    // Callback should have been called once due to timeout, despite continuous changes
+    expect(callback).toHaveBeenCalledTimes(1)
+
+    await watcher.close()
+  })
+
+  test('should reset timeout timer after callback execution from debounce', async () => {
+    const callback = vi.fn(async () => {})
+    const watcher = watch({
+      directory: testDir,
+      delay: 100,
+      timeout: 500,
+      callback,
+    })
+
+    // Wait for watcher to initialize
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    const filePath = path.join(testDir, 'test.txt')
+
+    // First change - should execute after debounce delay
+    await fs.writeFile(filePath, 'content1')
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    expect(callback).toHaveBeenCalledTimes(1)
+
+    // Second change after callback has executed - should start new timeout
+    await fs.writeFile(filePath, 'content2')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    await fs.writeFile(filePath, 'content3')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    await fs.writeFile(filePath, 'content4')
+
+    // Wait for timeout to force execution
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    // Should have been called twice total
+    expect(callback).toHaveBeenCalledTimes(2)
+
+    await watcher.close()
+  })
+
+  test('should clear timeout timer when debounce executes first', async () => {
+    const callback = vi.fn(async () => {})
+    const watcher = watch({
+      directory: testDir,
+      delay: 150,
+      timeout: 1000,
+      callback,
+    })
+
+    // Wait for watcher to initialize
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    // Single change that will execute via debounce before timeout
+    await fs.writeFile(path.join(testDir, 'test.txt'), 'content')
+
+    // Wait for debounce to execute
+    await new Promise((resolve) => setTimeout(resolve, 250))
+
+    // Should have been called once
+    expect(callback).toHaveBeenCalledTimes(1)
+
+    // Wait longer to ensure timeout doesn't trigger again
+    await new Promise((resolve) => setTimeout(resolve, 900))
+
+    // Still should have been called only once
+    expect(callback).toHaveBeenCalledTimes(1)
+
+    await watcher.close()
+  })
+
+  test('should return true when closed with pending timeout', async () => {
+    const callback = vi.fn(async () => {})
+    const watcher = watch({
+      directory: testDir,
+      delay: 300,
+      timeout: 600,
+      callback,
+    })
+
+    // Wait for watcher to initialize
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    // Create changes to start timeout
+    const filePath = path.join(testDir, 'test.txt')
+    await fs.writeFile(filePath, 'content1')
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    await fs.writeFile(filePath, 'content2')
+
+    // Close while timeout is pending (but before it executes)
+    await new Promise((resolve) => setTimeout(resolve, 100))
     const isDirty = await watcher.close()
 
     expect(isDirty).toBe(true)

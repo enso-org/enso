@@ -9,6 +9,8 @@ export interface WatchOptions {
   directory: string
   /** Debounce delay in milliseconds before executing the callback */
   delay: number
+  /** Maximum time in milliseconds to wait before forcing callback execution, regardless of new events */
+  timeout: number
   /** Async callback to execute when changes are detected */
   callback: () => Promise<void>
 }
@@ -27,9 +29,10 @@ export interface Watcher {
  * @returns A watcher instance with a close method to stop watching
  */
 export function watch(options: WatchOptions): Watcher {
-  const { directory, delay, callback } = options
+  const { directory, delay, timeout, callback } = options
 
   let debounceTimer: NodeJS.Timeout | null = null
+  let timeoutTimer: NodeJS.Timeout | null = null
   let isExecuting = false
   let pendingExecution = false
 
@@ -58,14 +61,31 @@ export function watch(options: WatchOptions): Watcher {
   }
 
   const scheduleCallback = () => {
-    // Cancel any previously scheduled callback
+    // Cancel any previously scheduled debounce callback
     if (debounceTimer) {
       clearTimeout(debounceTimer)
     }
 
-    // Schedule the callback after the delay
+    // If this is the first event, start the timeout timer
+    if (!timeoutTimer) {
+      timeoutTimer = setTimeout(() => {
+        timeoutTimer = null
+        if (debounceTimer) {
+          clearTimeout(debounceTimer)
+          debounceTimer = null
+        }
+        executeCallback()
+      }, timeout)
+    }
+
+    // Schedule the debounced callback after the delay
     debounceTimer = setTimeout(() => {
       debounceTimer = null
+      // Clear the timeout timer since we're executing now
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer)
+        timeoutTimer = null
+      }
       executeCallback()
     }, delay)
   }
@@ -91,12 +111,16 @@ export function watch(options: WatchOptions): Watcher {
   return {
     close: async () => {
       // Check if there's a scheduled callback that hasn't executed yet
-      const isDirty = debounceTimer !== null
+      const isDirty = debounceTimer !== null || timeoutTimer !== null
 
-      // Cancel any pending scheduled callback
+      // Cancel any pending scheduled callbacks
       if (debounceTimer) {
         clearTimeout(debounceTimer)
         debounceTimer = null
+      }
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer)
+        timeoutTimer = null
       }
 
       // Close the watcher
