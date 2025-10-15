@@ -75,9 +75,9 @@ public class ModuleScopeTest {
         Source.newBuilder(
                 LanguageInfo.ID,
                 """
-                    type My_Type
-                        Value x
-                method self = self.x
+                type My_Type
+                    Value x
+                    method self = self.x
                 """,
                 "test.enso")
             .build();
@@ -103,11 +103,12 @@ public class ModuleScopeTest {
     var mainMod = ctxRule.eval(mainSrc);
     var mainRuntimeMod = (Module) ctxRule.unwrapValue(mainMod);
     var scope = mainRuntimeMod.getScope();
-    var myType = scope.getType("My_Type", true).getEigentype();
-    var myEigenType = myType.getEigentype();
+    var myType = scope.getType("My_Type", true);
+    assertThat(myType.isEigenType(), is(false));
     var method = scope.getMethodForType(myType, "method");
     assertThat("My_Type.method is registered", method, is(notNullValue()));
     assertOnlyFirstArgumentIsSelf(method);
+    var myEigenType = myType.getEigentype();
     var eigenMethod = scope.getMethodForType(myEigenType, "method");
     assertThat("My_Type.type.method is not registered", eigenMethod, is(nullValue()));
   }
@@ -119,6 +120,7 @@ public class ModuleScopeTest {
                 LanguageInfo.ID,
                 """
                 type My_Type
+                    Value x
                     static_method = 42
                 """,
                 "test.enso")
@@ -127,6 +129,7 @@ public class ModuleScopeTest {
     var mainRuntimeMod = (Module) ctxRule.unwrapValue(mainMod);
     var scope = mainRuntimeMod.getScope();
     var myType = scope.getType("My_Type", true);
+    assertThat(myType.isEigenType(), is(false));
     var myEigenType = myType.getEigentype();
     var staticMethod = scope.getMethodForType(myEigenType, "static_method");
     assertOnlyFirstArgumentIsSelf(staticMethod);
