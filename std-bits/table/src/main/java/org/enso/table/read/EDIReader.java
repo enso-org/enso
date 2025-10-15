@@ -13,8 +13,6 @@ public final class EDIReader {
   /**
    * Parses EDI segments from a text input.
    *
-   * <p>This is a placeholder implementation. The actual parsing logic should be implemented here.
-   *
    * @param text the EDI text input
    * @param separator the segment separator (e.g., "~", "\n", "\r\n"). If empty, the method will
    *     attempt to auto-detect it.
