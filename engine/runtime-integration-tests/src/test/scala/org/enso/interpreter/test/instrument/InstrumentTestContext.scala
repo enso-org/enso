@@ -185,6 +185,10 @@ abstract class InstrumentTestContext(packageName: String) {
     messageQueue.clear()
   }
 
+  def flushOldMessages(): Unit = {
+    messageQueue.clear()
+  }
+
 }
 
 object InstrumentTestContext {

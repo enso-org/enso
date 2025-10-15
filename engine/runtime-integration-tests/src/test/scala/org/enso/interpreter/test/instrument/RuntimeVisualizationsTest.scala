@@ -5731,12 +5731,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       }
       new String(data, StandardCharsets.UTF_8) shouldEqual "[1]"
 
+      val visualizationId2 = UUID.randomUUID()
       // attach visualization
       context.send(
         Api.Request(
           requestId,
           Api.AttachVisualization(
-            visualizationId,
+            visualizationId2,
             idVector3Self,
             Api.VisualizationConfiguration(
               contextId,
@@ -5752,16 +5753,18 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       val attachVisualizationResponses3 =
-        context.receiveNIgnoreExpressionUpdates(2)
-      attachVisualizationResponses3 should contain(
-        Api.Response(requestId, Api.VisualizationAttached())
+        context.receiveNIgnoreExpressionUpdates(3)
+
+      attachVisualizationResponses3 should contain allOf (
+        Api.Response(requestId, Api.VisualizationAttached()),
+        context.executionComplete(contextId)
       )
       val Some(data3) = attachVisualizationResponses3.collectFirst {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
                 Api.VisualizationContext(
-                  `visualizationId`,
+                  `visualizationId2`,
                   `contextId`,
                   `idVector3Self`
                 ),
@@ -5771,6 +5774,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
       new String(data3, StandardCharsets.UTF_8) shouldEqual "[1, 2, 3, 4]"
+
+      // Helps with avoiding dealing with old messages later
+      context.flushOldMessages()
 
       val idVector4     = UUID.randomUUID()
       val idVector4Self = UUID.randomUUID()
@@ -5805,27 +5811,33 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // Includes a warning about unused variable
-      val editFileResponse = context.receiveNIgnoreExpressionUpdates(3)
+      val editFileResponse = context.receiveNIgnoreExpressionUpdates(4)
       editFileResponse should contain(
         context.executionComplete(contextId)
       )
 
-      val Some(data4) = attachVisualizationResponses3.collectFirst {
+      val data4 = editFileResponse.collect {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
                 Api.VisualizationContext(
-                  `visualizationId`,
+                  visId,
                   `contextId`,
-                  `idVector3Self`
+                  _
                 ),
                 data
               )
             ) =>
-          data
+          (new String(data, StandardCharsets.UTF_8), visId)
       }
 
-      new String(data4, StandardCharsets.UTF_8) shouldEqual "[1, 2, 3, 4]"
+      data4 shouldEqual List(
+        ("[1, 2, 3, 4]", visualizationId2),
+        ("[1]", visualizationId)
+      )
+
+      // Helps with avoiding dealing with old messages later
+      context.flushOldMessages()
 
       // Modify the file by providing the smallest possible edits.
       // There are more efficient ways to do it but this mimics GUI requests and
@@ -5884,7 +5896,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // Includes a warning about unused variable
-      val editFileResponse2 = context.receiveNIgnoreExpressionUpdates(4)
+      val editFileResponse2 = context.receiveNIgnoreExpressionUpdates(5)
       editFileResponse2 should contain allOf (
         Api.Response(
           Api.ExecutionUpdate(
@@ -5902,38 +5914,22 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // will fail in #12957
-      val Some(dataSelf) = editFileResponse2.collectFirst {
+      val data5 = editFileResponse2.collect {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
                 Api.VisualizationContext(
-                  `visualizationId`,
+                  visId,
                   `contextId`,
-                  `idVector3Self`
+                  _
                 ),
                 data
               )
             ) =>
-          data
+          (new String(data, StandardCharsets.UTF_8), visId)
       }
 
-      val Some(dataUpdated) = editFileResponse2.collectFirst {
-        case Api.Response(
-              None,
-              Api.VisualizationUpdate(
-                Api.VisualizationContext(
-                  `visualizationId`,
-                  `contextId`,
-                  `idVector3`
-                ),
-                data
-              )
-            ) =>
-          data
-      }
-
-      new String(dataSelf, StandardCharsets.UTF_8) shouldEqual "[4]"
-      new String(dataUpdated, StandardCharsets.UTF_8) shouldEqual "[]"
+      data5 shouldEqual List(("[4]", visualizationId2), ("[]", visualizationId))
   }
 
 }
