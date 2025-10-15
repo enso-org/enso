@@ -56,11 +56,11 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
       Type self,
       Object[] arguments,
       @Cached MethodResolverNode methodResolverNode) {
-    var method = methodResolverNode.executeResolution(self, symbol);
+    var method = resolveMethod(symbol, self, methodResolverNode);
     if (method == null) {
       throw methodNotFound(this, onBoundary, symbol, self);
     }
-    if (!isFirstParameterNamedSelf(method)) {
+    if (!isValidStaticCallTarget(method)) {
       var cause =
           new IllegalArgumentException(
               "Method "
@@ -82,6 +82,17 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
     throw methodNotInvocable(this, symbol, self, cause);
   }
 
+  private Function resolveMethod(UnresolvedSymbol symbol, Type self, MethodResolverNode methodResolverNode) {
+    var method = methodResolverNode.executeResolution(self, symbol);
+    if (method != null) {
+      return method;
+    }
+    if (self != self.getEigentype()) {
+      return methodResolverNode.executeResolution(self.getEigentype(), symbol);
+    }
+    return null;
+  }
+
   /** Verifies that the given call argument schema corresponds to static method invocation. */
   private static void verifyCallSchema(CallArgumentInfo[] schema) {
     assert schema.length >= 2
@@ -99,7 +110,7 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
    *
    * @return true if the first parameter of the method is named {@code self}, false otherwise.
    */
-  private static boolean isFirstParameterNamedSelf(Function method) {
+  private static boolean isValidStaticCallTarget(Function method) {
     var argInfos = method.getSchema().getArgumentInfos();
     if (argInfos.length > 0) {
       var name = argInfos[0].getName();
