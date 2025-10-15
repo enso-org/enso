@@ -105,7 +105,12 @@ public final class EDIReader {
         while (child == null && level.parent() != null) {
           level = level.parent();
           current = current.parent();
-          child = level.child(name);
+          if (level.name.equals(name)) {
+            child = level;
+            current = current.parent();
+          } else {
+            child = level.child(name);
+          }
         }
 
         // If we still didn't find it, report an error
@@ -121,15 +126,22 @@ public final class EDIReader {
         }
 
         // Append Child to current
-        var segmentField =
-            child.isArray
-                ? new EDIField.Array(
+        EDIField segmentField = new EDIField.Dictionary(name, dict, current);
+        if (child.isArray()) {
+          if (current.getKey(name) == null) {
+            segmentField = new EDIField.Array(
                     name,
                     new ArrayList<>(List.of(new EDIField.Dictionary(name, dict, current))),
-                    current)
-                : new EDIField.Dictionary(name, dict, current);
+                    current);
+            current.appendKey(name, segmentField);
+          } else {
+            current.getKey(name).append(segmentField);
+            segmentField = current.getKey(name);
+          }
+        } else {
+          current.appendKey(name, segmentField);
+        }
 
-        current.appendKey(name, segmentField);
         if (child.isArray() || child.isObject()) {
           level = child;
           current = segmentField;
@@ -180,7 +192,7 @@ public final class EDIReader {
 
       @Override
       public EDIField getKey(String key) {
-        return fields.computeIfAbsent(key, k -> new Array(key, new ArrayList<>(), parent));
+        return fields.getOrDefault(key, null);
       }
 
       public void appendKey(String key, EDIField field) {
@@ -227,7 +239,7 @@ public final class EDIReader {
       @Override
       public EDIField getKey(String key) {
         if (fields.isEmpty()) {
-          throw new IllegalArgumentException("Cannot append an empty array");
+          return null;
         }
         var last = fields.get(fields.size() - 1);
         return last.getKey(key);
