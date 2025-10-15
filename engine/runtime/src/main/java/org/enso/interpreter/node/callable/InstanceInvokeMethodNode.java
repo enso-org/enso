@@ -125,11 +125,6 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
   public static Function resolveFunction(
       UnresolvedSymbol symbol, Object self, Type selfTpe, MethodResolverNode methodResolverNode) {
     Function function = methodResolverNode.executeResolution(selfTpe, symbol);
-    if (function == null && selfTpe.isEigenType()) {
-      // Try to resolve one more type, this time, not on eigen type, but on normal type.
-      assert self instanceof Type;
-      function = methodResolverNode.executeResolution((Type) self, symbol);
-    }
     if (function == null) {
       return null;
     }
