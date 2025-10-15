@@ -37,7 +37,6 @@ public abstract class InvokeMethodNode extends BaseNode {
    * @param schema a description of the arguments being applied to the callable
    * @param defaultsExecutionMode the defaulted arguments handling mode for this call
    * @param argumentsExecutionMode the arguments execution mode for this call
-   * @param thisArgumentPosition position
    * @param onBoundary shall we emit plain {@code PanicException} or also attach {@code
    *     UnknownIdentifierException} cause
    * @return a new invoke method node
@@ -59,8 +58,17 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   private static boolean isStaticMethodInvocation(CallArgumentInfo[] schema) {
     assert schema.length > 0;
-    var firstArg = schema[0];
-    return firstArg.isNamed() && firstArg.getName().equals(ConstantsNames.SELF_ARGUMENT);
+    return namedSelfArgPosition(schema) >= 0;
+  }
+
+  private static int namedSelfArgPosition(CallArgumentInfo[] schema) {
+    for (int i = 0; i < schema.length; i++) {
+      var arg = schema[i];
+      if (arg.isNamed() && arg.getName().equals(ConstantsNames.SELF_ARGUMENT)) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   InvokeMethodNode(
@@ -148,10 +156,11 @@ public abstract class InvokeMethodNode extends BaseNode {
     throw new PanicException(ctx, payload, cause, where);
   }
 
-  static PanicException methodNotInvocable(Node where, UnresolvedSymbol symbol, Object self) throws PanicException {
+  static PanicException methodNotInvocable(
+      Node where, UnresolvedSymbol symbol, Object self, Throwable cause) throws PanicException {
     var ctx = EnsoContext.get(where);
     var payload = ctx.getBuiltins().error().makeNotInvokable(symbol);
-    throw new PanicException(ctx, payload, null, where);
+    throw new PanicException(ctx, payload, cause, where);
   }
 
   /**
