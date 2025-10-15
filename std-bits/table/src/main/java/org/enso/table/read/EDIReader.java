@@ -94,7 +94,8 @@ public final class EDIReader {
             path = parent.name() + "/" + path;
             parent = parent.parent();
           }
-          throw new IllegalArgumentException(name + " is not an array (segment=" + segmentIndex + ") at " + path);
+          throw new IllegalArgumentException(
+              name + " is not an array (segment=" + segmentIndex + ") at " + path);
         }
       } else {
         // See if we can find the segment in the current level
@@ -117,7 +118,8 @@ public final class EDIReader {
             path = parent.name() + "/" + path;
             parent = parent.parent();
           }
-          throw new IllegalArgumentException(name + " could not be placed in structure (segment=" + segmentIndex + ") at " + path);
+          throw new IllegalArgumentException(
+              name + " could not be placed in structure (segment=" + segmentIndex + ") at " + path);
         }
 
         // Append Child to current
@@ -220,7 +222,7 @@ public final class EDIReader {
         if (fields.isEmpty()) {
           throw new IllegalArgumentException("Cannot append an empty array");
         }
-        var last = fields.getLast();
+        var last = fields.get(fields.size() - 1);
         last.appendKey(key, value);
       }
 
@@ -229,7 +231,7 @@ public final class EDIReader {
         if (fields.isEmpty()) {
           throw new IllegalArgumentException("Cannot append an empty array");
         }
-        var last = fields.getLast();
+        var last = fields.get(fields.size() - 1);
         return last.getKey(key);
       }
 
