@@ -1,44 +1,76 @@
 package org.enso.table.read;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public final class EDIReader {
-  public record EDISegment(String name, List<String> values) {
-    public String toJson() {
-      var vals =
-          values.stream()
-              .map(v -> "\"" + v.replace("\"", "\\\"") + "\"")
-              .collect(Collectors.joining(", "));
-      return "[\"" + name + "\", [" + vals + "]]";
+  /**
+   * Parses EDI segments from a text input.
+   *
+   * <p>This is a placeholder implementation. The actual parsing logic should be implemented here.
+   *
+   * @param text the EDI text input
+   * @param separator the segment separator (e.g., "~", "\n", "\r\n"). If empty, the method will
+   *     attempt to auto-detect it.
+   * @return a list of segments, where each segment is represented as an array of strings
+   */
+  public static List<String[]> parseSegments(String text, String separator) {
+    // Strip new lines and carriage returns
+    if (!separator.equals("\r\n")) {
+      text = separator.equals("\n") ? text : text.replace("\n", "");
+      text = separator.equals("\r") ? text : text.replace("\r", "");
     }
+
+    // Find the segment terminator
+    if (separator.isEmpty()) {
+      var index = text.indexOf("GS", 1);
+      separator = index == -1 ? "~" : text.substring(index - 1, index);
+    }
+
+    var escaped = Pattern.quote(separator);
+    var segments = text.split(escaped);
+    return Arrays.stream(segments).map(s -> s.split("\\s*\\*")).collect(Collectors.toList());
   }
 
-  public static Object parse(List<EDISegment> data, String structureDef, Map<String, List<String>> fieldMappings) {
+  /**
+   * Parses EDI text into a structured object based on the provided structure definition and field
+   * mappings.
+   *
+   * @param text the EDI text input
+   * @param separator the segment separator (e.g., "~", "\n", "\r\n"). If empty, the method will
+   *     attempt to auto-detect it.
+   * @param structureDef the structure definition string (e.g., "[ISA,GS,[ST,SE],GE,IEA]")
+   * @param fieldMappings a map of segment names to their corresponding field names
+   * @return a structured object representing the parsed EDI data
+   */
+  public static Object parse(
+      String text, String separator, String structureDef, Map<String, List<String>> fieldMappings) {
+    var data = parseSegments(text, separator);
     var structure = EDIStructure.parse(structureDef);
 
-    EDIField output = structure.isArray
+    EDIField output =
+        structure.isArray
             ? new EDIField.Array(structure.name, new ArrayList<>(), null)
             : new EDIField.Dictionary("", new HashMap<>(), null);
 
     var level = structure;
     var current = output;
 
-    for (EDISegment segment : data) {
-      var name = segment.name();
+    for (String[] segment : data) {
+      var name = segment[0];
 
       // Make a new segment
-      var vals = segment.values();
       var mapping = fieldMappings.getOrDefault(name, List.of());
-      var dict = IntStream.range(0, vals.size())
-              .mapToObj(i -> {
-                var fieldName = i < mapping.size() ? mapping.get(i) : name + "-" + (i + 1);
-                return (EDIField)new EDIField.Value(fieldName, vals.get(i));
-              })
+      var dict =
+          IntStream.range(1, segment.length)
+              .filter(i -> segment[i] != null && !segment[i].isEmpty())
+              .mapToObj(
+                  i -> {
+                    var fieldName = i < mapping.size() ? mapping.get(i) : name + "-" + (i + 1);
+                    return (EDIField) new EDIField.Value(fieldName, segment[i]);
+                  })
               .collect(Collectors.toMap(EDIField::name, v -> v));
 
       // We are in an array of this segment type, so just append
@@ -47,7 +79,8 @@ public final class EDIReader {
           var segmentField = new EDIField.Dictionary(name, dict, current);
           current.append(segmentField);
         } else {
-          throw new IllegalArgumentException("Current is not an array but matches current segment name: " + current);
+          throw new IllegalArgumentException(
+              "Current is not an array but matches current segment name: " + current);
         }
       } else {
         // See if we can find the segment in the current level
@@ -62,12 +95,17 @@ public final class EDIReader {
 
         // If we still didn't find it, then it's an error
         if (child == null) {
-          throw new IllegalArgumentException("Cannot find segment " + name + " in structure at level " + level.name());
+          throw new IllegalArgumentException(
+              "Cannot find segment " + name + " in structure at level " + level.name());
         }
 
         // Append Child to current
-        var segmentField = child.isArray
-                ? new EDIField.Array(name, new ArrayList<>(List.of(new EDIField.Dictionary(name, dict, current))), current)
+        var segmentField =
+            child.isArray
+                ? new EDIField.Array(
+                    name,
+                    new ArrayList<>(List.of(new EDIField.Dictionary(name, dict, current))),
+                    current)
                 : new EDIField.Dictionary(name, dict, current);
 
         current.appendKey(name, segmentField);
@@ -109,7 +147,8 @@ public final class EDIReader {
       }
     }
 
-    record Dictionary(String name, Map<String, EDIField> fields, EDIField parent) implements EDIField {
+    record Dictionary(String name, Map<String, EDIField> fields, EDIField parent)
+        implements EDIField {
       @Override
       public EDIField append(EDIField field) {
         var result = new Array(name, new ArrayList<>(), parent);
@@ -219,7 +258,8 @@ public final class EDIReader {
       }
     }
 
-    private static void parseChildren(String definition, int start, String name, EDIStructure parent) {
+    private static void parseChildren(
+        String definition, int start, String name, EDIStructure parent) {
       var current = start + 1 + name.length();
       while (definition.charAt(current) == ',') {
         var child = innerParse(definition, current + 1, parent);
@@ -300,13 +340,21 @@ public final class EDIReader {
 
     int charLength() {
       // Field Length
-      var fieldLength = fieldOrder.stream().reduce(1, (a, b) -> a + (b.equals(name) ? name.length() : fields.get(b).charLength()) + 1, Integer::sum);
+      var fieldLength =
+          fieldOrder.stream()
+              .reduce(
+                  1,
+                  (a, b) -> a + (b.equals(name) ? name.length() : fields.get(b).charLength()) + 1,
+                  Integer::sum);
       return fieldLength - (isArray || isObject ? 0 : 2);
     }
 
     @Override
     public String toString() {
-      var body = fieldOrder.stream().map(f -> f.equals(name) ? name : fields.get(f).toString()).collect(Collectors.joining(","));
+      var body =
+          fieldOrder.stream()
+              .map(f -> f.equals(name) ? name : fields.get(f).toString())
+              .collect(Collectors.joining(","));
       if (isArray) {
         return "[" + body + "]";
       } else if (isObject) {

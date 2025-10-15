@@ -12,7 +12,6 @@ from Standard.Base.Logging import all
 import project.Table.Table
 
 polyglot java import org.enso.table.read.EDIReader
-polyglot java import org.enso.table.read.EDIReader.EDISegment
 
 ## Read ANSI X12 Electronic Data Interchange (EDI) Format
 type EDI_Format
@@ -92,6 +91,9 @@ type EDI_Format
    The definition specifies the structure of the EDI document.
    The default is ANSI X12 822 (Account Analysis).
 type EDI_Definition
+    ## Return as raw segements (no structure or field mapping)
+    Raw_Segments
+
     ## Predefined EDI 822 (Account Analysis)
        Based on EdiNation.X12.ASC.007040 [https://edination.com/edi-formats.html]
     EDI_822
@@ -141,26 +143,15 @@ type EDI_Definition
             EDI_Definition.Custom structure field_map
 
 private parse_text_to_table input:Text separator:Text definition:EDI_Definition map_fields:Boolean -> Any =
-    stripped = case separator of
-        '\n' -> input.replace '\r' ''
-        _  -> input.replace Named_Pattern.Newlines ''
+    case definition of
+        EDI_Definition.Raw_Segments ->
+            java_list = EDIReader.parseSegments input separator
+            structure = java_list.map a-> [a.first, a.drop 1 . to_vector]
+            Table.from_rows ["Segment", "Elements"] structure
+        _ ->
+            custom_def = definition.as_custom
 
-    used_sep = if separator!='' then separator else
-        index = stripped.index_of "GS*" 1 . if_nothing (stripped.index_of "ST*" 1)
-        if index.is_nothing then '~' else stripped.get index-1
+            field_map = if map_fields then custom_def.field_map else Dictionary.empty
+            array = EDIReader.parse input separator custom_def.structure field_map
 
-    segments = stripped.split used_sep . map parse_segment . filter s->s.name!=""
-
-    custom_def = definition.as_custom
-
-    field_map = if map_fields then custom_def.field_map else Dictionary.empty
-    array = EDIReader.parse segments custom_def.structure field_map
-
-    Table.new [["ISA", Vector.from_polyglot_array array]] . expand_column "ISA" prefix=..None
-
-## Split a segment into a dictionary of fields
-   Return as a pair of segment code and dictionary of data
-private parse_segment segment:Text =
-    trimmed = segment.split '*' . map .trim
-    segment_code = trimmed.get 0 ""
-    EDISegment.new segment_code (trimmed.drop 1)
+            Table.new [["ISA", Vector.from_polyglot_array array]] . expand_column "ISA" prefix=..None
