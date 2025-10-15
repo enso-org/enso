@@ -165,6 +165,24 @@ public class TypeChainTest {
         "allTypes(Normal_Type) == [Normal_Type, Any]", new Object[] {exp1, exp2}, all);
   }
 
+  /**
+   * {@code allTypes(Normal_Type.type) == [Normal_Type.type, Any]}
+   */
+  @Test
+  public void normalEigenTypeChain() {
+    var normalTypeType = typeOf.execute(normalType);
+    var raw = (Type) ctx.unwrapValue(normalTypeType);
+    assertThat("Is eigen type", raw.isEigenType(), is(true));
+    var all = raw.allTypes(ctx.ensoContext());
+
+    var exp1 = raw;
+    var exp2 = ctx.ensoContext().getBuiltins().any();
+    assertArrayEquals(
+        "allTypes(Normal_Type.type) == [Normal_Type.type, Any]",
+        new Object[] {exp1, exp2},
+        all);
+  }
+
   @Test
   public void singletonTypeChain() {
     var raw = (Type) ctx.unwrapValue(singletonType);
