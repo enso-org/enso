@@ -714,6 +714,14 @@ type S3_File
     ## ---
        private: true
        ---
+    can_write_into_parent self -> Boolean =
+        path = S3_Path.parse self.uri
+        bucket = path.bucket
+        (S3_File.Value bucket).exists
+
+    ## ---
+       private: true
+       ---
        Return the absolute path of this S3_File.
     to_text : Text
     to_text self = self.uri
