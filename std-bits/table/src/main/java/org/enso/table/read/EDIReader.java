@@ -31,7 +31,10 @@ public final class EDIReader {
 
     var escaped = Pattern.quote(separator);
     var segments = text.split(escaped);
-    return Arrays.stream(segments).map(s -> s.split("\\s*\\*")).collect(Collectors.toList());
+    return Arrays.stream(segments)
+        .filter(s -> s != null && !s.trim().isEmpty())
+        .map(s -> s.trim().split("\\s*\\*"))
+        .collect(Collectors.toList());
   }
 
   /**
@@ -68,7 +71,7 @@ public final class EDIReader {
               .filter(i -> segment[i] != null && !segment[i].isEmpty())
               .mapToObj(
                   i -> {
-                    var fieldName = i < mapping.size() ? mapping.get(i) : name + "-" + (i + 1);
+                    var fieldName = i < mapping.size() ? mapping.get(i - 1) : name + "-" + i;
                     return (EDIField) new EDIField.Value(fieldName, segment[i]);
                   })
               .collect(Collectors.toMap(EDIField::name, v -> v));
@@ -87,16 +90,19 @@ public final class EDIReader {
         var child = level.child(name);
 
         // If not found, lets search in parent's.
+        var oldLevel = level;
+        var oldCurrent = current;
         while (child == null && level.parent() != null) {
           level = level.parent();
           current = current.parent();
           child = level.child(name);
         }
 
-        // If we still didn't find it, then it's an error
+        // If we still didn't find it, then append to current level
         if (child == null) {
-          throw new IllegalArgumentException(
-              "Cannot find segment " + name + " in structure at level " + level.name());
+          level = oldLevel;
+          current = oldCurrent;
+          child = new EDIStructure(name, true, false, level);
         }
 
         // Append Child to current

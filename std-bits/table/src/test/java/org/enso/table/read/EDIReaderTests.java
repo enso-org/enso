@@ -2,6 +2,7 @@ package org.enso.table.read;
 
 import static org.junit.Assert.*;
 
+import java.util.HashMap;
 import org.junit.Test;
 
 public class EDIReaderTests {
@@ -219,5 +220,17 @@ public class EDIReaderTests {
     assertEquals(">~", segmentsNL.get(0)[16]);
     assertEquals(5, segmentsNL.get(4).length);
     assertEquals("N4", segmentsNL.get(7)[0]);
+  }
+
+  @Test
+  public void testEDI822Read() {
+    var data =
+        "ISA*00*          *00*          *12*BANKOFEXAMPLE  *12*CUSTOMERCO  "
+            + " *20251009*0013*U*00401*000000001*0*P*>~\n"
+            + "GS*AN*BANKOFEXAMPLE*CUSTOMERCO*20251009*0013*1*X*004010~\n"
+            + "ST*822*0001~\n"
+            + "BTA*20251009*100000*CC*AB~";
+    var segments = EDIReader.parse(data, "\n", "[ISA,GS,ST,BTA]", new HashMap<>());
+    assertNotNull(segments);
   }
 }
