@@ -1,25 +1,16 @@
 <script setup lang="ts">
 import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
-import { EnsoPath } from '#/services/Backend'
-import RightPanel from '$/components/AppContainer/RightPanel.vue'
 import { useAppTitle } from '$/composables/appTitle'
 import { useAuth } from '$/providers/auth'
-import { provideContainerData } from '$/providers/container'
-import { provideOpenedProjects } from '$/providers/openedProjects'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
-import { provideRightPanelData } from '$/providers/rightPanel'
-import { useText } from '$/providers/text'
 import ReactRoot from '$/ReactRoot'
 import { appOpenCloseCallback } from '$/utils/analytics'
 import '@/assets/base.css'
 import { appBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
 import { useEvent, useMounted } from '@/composables/events'
-import ProjectView from '@/ProjectView.vue'
 import { initializeActions, registerHandlers } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
-import { provideAsyncResources } from '@/providers/asyncResources'
-import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideBubblingKeyboard, provideKeyboard } from '@/providers/keyboard'
@@ -29,14 +20,7 @@ import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { computed, shallowRef } from 'vue'
-import type { ComponentProps } from 'vue-component-type-helpers'
-
-const { projectViewOnly } = defineProps<{
-  // Used in Project View integration tests. Once both test projects will be merged, this should be
-  // removed
-  projectViewOnly?: { options: ComponentProps<typeof ProjectView> } | null
-}>()
+import { computed } from 'vue'
 
 const LoadingScreen = reactComponent(LoadingScreenReact)
 
@@ -50,9 +34,9 @@ const auth = useAuth()
 const userSession = computed(() => auth.session)
 
 useAppTitle(userSession)
-
-provideKeyboard()
-provideBubblingKeyboard()
+const globalEvents = provideGlobalEventRegistry()
+provideKeyboard(globalEvents)
+provideBubblingKeyboard(globalEvents)
 const interaction = provideInteractionHandler()
 const actions = initializeActions()
 registerAutoBlurHandler()
@@ -70,10 +54,12 @@ const bindingsHandlers = appBindings.handler(
   objects.mapEntries(appBindings.bindings, (actionName) => actionHandlers[actionName].action),
 )
 
-const { globalEventRegistry } = provideGlobalEventRegistry()
+const { globalEventRegistry } = globalEvents
+useEvent(globalEventRegistry, 'keydown', (event) => bindingsHandlers(event), { capture: true })
 
-useEvent(window, 'keydown', bindingsHandlers)
-useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e))
+useEvent(globalEventRegistry, 'pointerdown', (e) => interaction.handlePointerDown(e), {
+  capture: true,
+})
 
 const platformClass = {
   [Platform.windows]: 'onWindows',
@@ -85,28 +71,12 @@ const platformClass = {
   [Platform.unknown]: undefined,
 }[platform()]
 
-const fullscreenRoot = shallowRef<HTMLElement>()
-
 useMounted(appOpenCloseCallback)
-
-// Mock external context in Project View integration tests. Once both test projects will be merged,
-// this should be removed
-if (projectViewOnly) {
-  const openedProjects = provideOpenedProjects()
-  provideAsyncResources(openedProjects)
-  provideContainerData(EnsoPath(projectViewOnly.options.projectPath))
-  provideRightPanelData(EnsoPath(projectViewOnly.options.projectPath), () => false, useText())
-  provideFullscreenRoot(fullscreenRoot)
-}
 </script>
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <div v-if="projectViewOnly" ref="fullscreenRoot" class="mainView">
-      <ProjectView v-bind="projectViewOnly.options" />
-      <RightPanel />
-    </div>
-    <ContextsForReactProvider v-else>
+    <ContextsForReactProvider>
       <ReactRootWrapper :queryClient="queryClient">
         <RouterView v-slot="{ Component }">
           <component :is="Component" v-if="Component" />

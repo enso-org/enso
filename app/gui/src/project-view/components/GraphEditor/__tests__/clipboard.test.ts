@@ -1,10 +1,10 @@
+import { type Node } from '$/providers/openedProjects/graph'
 import testCases from '@/components/GraphEditor/__tests__/clipboardTestCases.json' with { type: 'json' }
 import {
   isSpreadsheetTsv,
   nodesFromClipboardContent,
   nodesToClipboardData,
 } from '@/components/GraphEditor/graphClipboard'
-import type { Node } from '@/stores/graph'
 import { Ast } from '@/util/ast'
 import { nodeDocumentationText, nodeFromAst } from '@/util/ast/node'
 import { Blob } from 'node:buffer'

@@ -1,6 +1,10 @@
-import type { BrowserItem } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
-import type { CustomDropdownItem } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
-import { isExtensions, isFileTypes, type FileType } from '@/providers/widgetRegistry/configuration'
+import {
+  isExtensions,
+  isFileTypes,
+  type FileType,
+} from '$/providers/openedProjects/widgetRegistry/configuration'
+import { type BrowserItem } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
+import { type CustomDropdownItem } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { assert } from '@/util/assert'
 import type { FileFilter } from '@/util/fileFilter'
 import type { ToValue } from '@/util/reactivity'

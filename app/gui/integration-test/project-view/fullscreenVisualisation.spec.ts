@@ -1,8 +1,6 @@
 import assert from 'assert'
-import { test } from 'playwright/test'
-import * as actions from './actions'
+import { expect, test } from 'integration-test/base'
 import { computedContent } from './css'
-import { expect } from './customExpect'
 import * as locate from './locate'
 import { graphNodeByBinding } from './locate'
 
@@ -10,8 +8,8 @@ import { graphNodeByBinding } from './locate'
  Scenario: We open the default visualisation of the `aggregated` node. We then make it fullscreen and expect it to show
  the JSON data of the node. We also expect it to cover the whole screen and to have a button to exit fullscreen mode.
  */
-test('Load Fullscreen Visualisation', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Load Fullscreen Visualisation', async ({ editorPage, page }) => {
+  await editorPage
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await page.keyboard.press('Space')
@@ -67,16 +65,16 @@ test('Load Fullscreen Visualisation', async ({ page }) => {
 
   // We can switch visualization type to Table
   await locate.toggleVisualizationSelectorButton(page).click()
-  await page.getByText('Table', { exact: true }).click()
-  const tableVis = locate.tableVisualization(page)
-  await expect(tableVis).toExist()
+  await page.getByRole('button', { name: 'Table', exact: true }).click()
+  await expect(locate.tableVisualization(page)).toExist()
   // ... and back to JSON
   await locate.toggleVisualizationSelectorButton(page).click()
-  await page.getByText('JSON').click()
-  await expect(vis).toExist()
+  await page.getByRole('button', { name: 'JSON', exact: true }).click()
+  await expect(locate.jsonVisualization(page)).toExist()
+  await expect(page.getByRole('button', { name: 'JSON', exact: true })).toBeHidden()
 
   // We may leave fullscreen by pressing Escape
   await page.keyboard.press('Escape')
-  await expect.poll(async () => (await vis.boundingBox())?.width).toBeCloseTo(initialBBox.width)
-  await expect.poll(async () => (await vis.boundingBox())?.height).toBeCloseTo(initialBBox.height)
+
+  await expect.poll(() => vis.boundingBox()).toEqual(initialBBox)
 })
