@@ -6,6 +6,7 @@ import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Text_Input
 from Standard.Base.Logging import all
 
 import project.Table.Table
@@ -76,7 +77,7 @@ type EDI_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
         raw_text = Plain_Text_Format.Plain_Text.read file on_problems
-        parse_text_to_table raw_text separator=self.segment_end
+        parse_text_to_table raw_text self.segment_end self.definition self.map_fields
 
     ## ---
        private: true
@@ -85,7 +86,7 @@ type EDI_Format
     read_stream : Input_Stream -> File_Format_Metadata -> Any
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         raw_text = Plain_Text_Format.Plain_Text.read_stream stream metadata
-        parse_text_to_table raw_text separator=self.segment_end
+        parse_text_to_table raw_text self.segment_end self.definition self.map_fields
 
 ## EDI Definitions
    The definition specifies the structure of the EDI document.
@@ -115,7 +116,8 @@ type EDI_Definition
          }
        }
        ```
-    From_Json file:Text
+    @path (Text_Input display=..Always)
+    From_Json path
 
     ## Structure is a definition of the loops within the document.
        Use square brackets `[]` for arrays, curly braces `{}` for objects.
@@ -126,28 +128,19 @@ type EDI_Definition
        ---
     as_custom self = case self of
         EDI_Definition.Custom _ _ -> self
-        EDI_Definition.EDI_822 -> _
+        EDI_Definition.EDI_822 ->
+            this_proj = Project_Description.new Standard.Table.Main
+            EDI_Definition.From_Json (this_proj.data / "EDI_822.json") . as_custom
         EDI_Definition.From_Json json ->
-            parsed = Data.read json
-            structure = parsed.get "structure" ""
-            field_map = parsed.get "field_map" Dictionary.empty
+            parsed = Data.read json format=JSON_Format
+            structure = parsed.at "structure"
+            field_js = parsed.get "field_map"
+            field_map = case field_js of
+                Nothing -> Dictionary.empty
+                _ -> Dictionary.from_vector field_js.to_vector
             EDI_Definition.Custom structure field_map
 
-    ## ---
-       private: true
-       ---
-
-
-## EDI Document Structure
-   The initial segments of each section, is called Header, and the final segment is called Trailer:
-
-   ISA – Interchange Control Header – this is the segment that defines the sender and recipient.
-       GS – Functional Group Header – this segment defines the type of document(s) that are included in this group.
-           ST – Transaction Set Header – this segment starts the document and is used to assign a control number.
-           SE – Transaction Set Trailer – the segment defines the end of the document.
-       GE – Functional Group Trailer– defines the end of the data that was started by the GS segment.
-   IEA – Interchange Control Trailer – is ending the Interchange segment.
-private parse_text_to_table input:Text separator:Text -> Any =
+private parse_text_to_table input:Text separator:Text definition:EDI_Definition map_fields:Boolean -> Any =
     stripped = case separator of
         '\n' -> input.replace '\r' ''
         _  -> input.replace Named_Pattern.Newlines ''
@@ -157,7 +150,12 @@ private parse_text_to_table input:Text separator:Text -> Any =
         if index.is_nothing then '~' else stripped.get index-1
 
     segments = stripped.split used_sep . map parse_segment . filter s->s.name!=""
-    array = EDIReader.parse segments "[ISA,GS,ST,BGN,[DTM],CUR,{N1,[N2],[N3],N4,[PER]},[RTE,DTM],[ENT,[N1,[N2],[N3],N4,[PER]],[ACT,CUR,[ADJ],[RTE,DTM],[LX,[BLN],[DTM]],[SER,[CTP],DTM]]],SE,GE,IEA]"
+
+    custom_def = definition.as_custom
+
+    field_map = if map_fields then custom_def.field_map else Dictionary.empty
+    array = EDIReader.parse segments custom_def.structure field_map
+
     Table.new [["ISA", Vector.from_polyglot_array array]] . expand_column "ISA" prefix=..None
 
 ## Split a segment into a dictionary of fields

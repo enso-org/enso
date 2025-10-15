@@ -18,7 +18,7 @@ public final class EDIReader {
     }
   }
 
-  public static Object parse(List<EDISegment> data, String structureDef) {
+  public static Object parse(List<EDISegment> data, String structureDef, Map<String, List<String>> fieldMappings) {
     var structure = EDIStructure.parse(structureDef);
 
     EDIField output = structure.isArray
@@ -33,8 +33,12 @@ public final class EDIReader {
 
       // Make a new segment
       var vals = segment.values();
+      var mapping = fieldMappings.getOrDefault(name, List.of());
       var dict = IntStream.range(0, vals.size())
-              .mapToObj(i -> (EDIField)new EDIField.Value(name + " " + (i + 1), vals.get(i)))
+              .mapToObj(i -> {
+                var fieldName = i < mapping.size() ? mapping.get(i) : name + "-" + (i + 1);
+                return (EDIField)new EDIField.Value(fieldName, vals.get(i));
+              })
               .collect(Collectors.toMap(EDIField::name, v -> v));
 
       // We are in an array of this segment type, so just append
