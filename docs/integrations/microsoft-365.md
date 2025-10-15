@@ -12,17 +12,17 @@ OAuth integration requires an application registered in the Azure portal.
 
 ## Registering An OAuth Integration Application
 
-* Go to [the Azure Portal](https://portal.azure.com/)
+* Go to the [Azure Portal](https://portal.azure.com/)
 * Select service "App registrations"
 * Select tab "All applications"
 * Click "New Registration" upper right
    * Enter a name, such as "OAuth Integration"
    * For "Supported account types", select "All Microsoft account users"
-   * For "Redirect URI", enter the staging and prod cloud endpoints, as well as "http://localhost:\[SOME PORT\]" for local debugging
+   * For "Redirect URI", enter the staging and prod cloud endpoints, as well as "http://localhost:PORT" for local debugging
 
 ## Create A Client Secret
 
-* Go to the application in [the Azure Portal](https://portal.azure.com/)
+* Go to the application in the [Azure Portal](https://portal.azure.com/)
 * Select "Overview" on the left
 * Copy the "Application (client) ID" value
 * Select "Client Credentials"
@@ -45,7 +45,7 @@ proving ownership of the domain, such as domain registraiton recrods. Opening a
 support ticket might be required if the request to add the MPN ID is initially
 denied.
 
-* Go to the application in [the Azure Portal](https://portal.azure.com/)
+* Go to the application in the [Azure Portal](https://portal.azure.com/)
 * Select "Branding & Properties" on the left
 * Under "Publisher Verification", click "Add MPN ID to verify publisher"
 * In the pop-up dialog, read the requirements, then select "Sign up for Microsoft Partner Network (MPN)" which will take you to the [Partner Center](https://partner.microsoft.com/)
