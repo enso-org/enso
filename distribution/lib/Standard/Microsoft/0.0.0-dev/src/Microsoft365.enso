@@ -22,9 +22,19 @@ type Microsoft365
         credentials_reference = as_credential_reference credentials
         Microsoft365.Service (MS365Service.new credentials_reference)
 
+    ## ---
+       icon: cloud
+       ---
+
+       Fetches the profile of the current user.
     user self =
         _ms365_get self (_base_url + "/me")
 
+    ## ---
+       icon: cloud
+       ---
+
+       Lists the root directory of the user's OneDrive.
     list_root self =
         _ms365_get self (_base_url + "/me/drive/root/children")
 
