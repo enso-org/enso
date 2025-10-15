@@ -1,11 +1,11 @@
+/// <reference types="wicg-file-system-access" />
+
 import {
   GET_WIDGETS_METHOD,
   WIDGETS_ENSO_MODULE,
-} from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
-import { Ast } from '@/util/ast'
+} from '@/components/GraphEditor/widgets/WidgetFunction/consts'
+import * as Ast from '@/util/ast/abstract'
 import { Pattern } from '@/util/ast/match'
-import type { MockYdocProviderImpl } from '@/util/crdt'
-import type { WebSocketHandler } from '@/util/net'
 import type { QualifiedName } from '@/util/qualifiedName'
 import {
   Builder,
@@ -26,12 +26,10 @@ import type {
   response,
 } from 'ydoc-shared/languageServerTypes'
 import type { SuggestionEntry } from 'ydoc-shared/languageServerTypes/suggestions'
-import type { MockTransportData } from 'ydoc-shared/util/net'
 import { uuidToBits } from 'ydoc-shared/uuid'
-import * as Y from 'yjs'
-import { mockFsDirectoryHandle, type FileTree } from '../util/convert/fsAccess'
-import { mockDataWSHandler as originalMockDataWSHandler } from './dataServer'
-import mockDb from './mockSuggestions.json' with { type: 'json' }
+import { Doc } from 'yjs'
+import mockDb from './data/mockSuggestions.json' with { type: 'json' }
+import { mockDataWSHandler } from './dataServer'
 
 const mockProjectId = crypto.randomUUID() as Uuid
 const standardBase = 'Standard.Base' as QualifiedName
@@ -223,7 +221,7 @@ NmZmYiIGQ9Ik0wIDBoNDB2NDBIMHoiLz48L2NsaXBQYXRoPjwvZGVmcz48L3N2Zz4=`,
     'Standard.Visualization.Widgets.column_names_json': encodeJSON(['Column A', 'Column B']),
   }
 
-const mockWidgetConfigurations: Map<string, Uint8Array> = new Map([
+const initialMockWidgetConfigurations: Map<string, Uint8Array> = new Map([
   [
     '.read',
     encodeJSON([
@@ -397,10 +395,17 @@ const mockWidgetConfigurations: Map<string, Uint8Array> = new Map([
   ],
 ])
 
-function resetMockWidgetConfigurations() {
+let mockWidgetConfigurations: Map<string, Uint8Array> = new Map(initialMockWidgetConfigurations)
+
+/** Clear standard widget configurations. Use `updateMockWidgetConfiguration` to set a specific configuration needed for test. */
+export function clearMockWidgetConfigurations() {
   mockWidgetConfigurations.clear()
 }
-;(window as any)._resetMockWidgetConfigurations = resetMockWidgetConfigurations
+
+/** Restore standard mocks of widget configurations. */
+export function restoreMockWidgetConfigurations() {
+  mockWidgetConfigurations = new Map(initialMockWidgetConfigurations)
+}
 
 function mockWidgetConfiguration(method: string | undefined) {
   if (!method) return null
@@ -444,27 +449,26 @@ function recognizeVizRequest(config: VisualizationConfiguration): VizRequest {
   }
 }
 
-function sendVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
+function makeVizData(id: Uuid, config: VisualizationConfiguration, expressionId?: Uuid) {
   const req = recognizeVizRequest(config)
   const vizDataHandler =
     req.type === 'visualization' ? mockVizPreprocessors[req.id] : mockWidgetConfiguration(req.id)
-  if (!vizDataHandler || !sendData) return
+  if (!vizDataHandler) return
   const vizData =
     vizDataHandler instanceof Uint8Array ? vizDataHandler : (
       vizDataHandler(config.positionalArgumentsExpressions ?? [])
     )
   if (!vizData) return
   const exprId = expressionId ?? visualizationExprIds.get(id)
-  sendVizUpdate(id, config.executionContextId, exprId, vizData)
+  return makeVizUpdate(id, config.executionContextId, exprId, vizData)
 }
 
-function sendVizUpdate(
+function makeVizUpdate(
   id: Uuid,
   executionCtxId: Uuid,
   exprId: Uuid | undefined,
   vizData: Uint8Array,
 ) {
-  if (!sendData) return
   const builder = new Builder()
   const visualizationContextOffset = VisualizationContext.createVisualizationContext(
     builder,
@@ -485,42 +489,47 @@ function sendVizUpdate(
     OutboundPayload.VISUALIZATION_UPDATE,
     payload,
   )
-  sendData(builder.finish(rootTable).toArrayBuffer())
+  return builder.finish(rootTable).toArrayBuffer()
 }
 
-let sendData: ((data: string | Blob | ArrayBufferLike | ArrayBufferView) => void) | undefined
-
-export const mockLSHandler: MockTransportData = async (method, data, transport) => {
+export const mockLSHandler = async (
+  method: string,
+  params: object,
+  sendMessage: (message: { method: string; params: object }) => void,
+  sendBinary: (data?: ArrayBuffer) => void,
+) => {
   switch (method) {
     case 'session/initProtocolConnection':
       return {
         contentRoots: [{ type: 'Project', id: mockProjectId }],
       } satisfies response.InitProtocolConnection
     case 'executionContext/create': {
-      const data_ = data as {
+      const data_ = params as {
         contextId: ContextId
       }
       setTimeout(
-        () => transport.emit('executionContext/executionComplete', { contextId: data_.contextId }),
+        () =>
+          sendMessage({
+            method: 'executionContext/executionComplete',
+            params: { contextId: data_.contextId },
+          }),
         100,
       )
-      return {
-        contextId: data_.contextId,
-      }
+      return { contextId: data_.contextId }
     }
     case 'executionContext/attachVisualization': {
-      const data_ = data as {
+      const data_ = params as {
         visualizationId: Uuid
         expressionId: ExpressionId
         visualizationConfig: VisualizationConfiguration
       }
       visualizations.set(data_.visualizationId, data_.visualizationConfig)
       visualizationExprIds.set(data_.visualizationId, data_.expressionId)
-      sendVizData(data_.visualizationId, data_.visualizationConfig)
+      sendBinary(makeVizData(data_.visualizationId, data_.visualizationConfig))
       return
     }
     case 'executionContext/detachVisualization': {
-      const data_ = data as {
+      const data_ = params as {
         visualizationId: Uuid
         expressionId: ExpressionId
         contextId: ContextId
@@ -530,16 +539,16 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
       return
     }
     case 'executionContext/modifyVisualization': {
-      const data_ = data as {
+      const data_ = params as {
         visualizationId: Uuid
         visualizationConfig: VisualizationConfiguration
       }
       visualizations.set(data_.visualizationId, data_.visualizationConfig)
-      sendVizData(data_.visualizationId, data_.visualizationConfig)
+      sendBinary(makeVizData(data_.visualizationId, data_.visualizationConfig))
       return
     }
     case 'executionContext/executeExpression': {
-      const data_ = data as {
+      const data_ = params as {
         executionContextId: ContextId
         visualizationId: Uuid
         expressionId: ExpressionId
@@ -550,11 +559,13 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
       )
       const exprAst = Ast.parseExpression(data_.expression)!
       if (aiPromptPat.test(exprAst)) {
-        sendVizUpdate(
-          data_.visualizationId,
-          data_.executionContextId,
-          data_.expressionId,
-          encodeJSON('Could you __$$GOAL$$__, please?'),
+        sendBinary(
+          makeVizUpdate(
+            data_.visualizationId,
+            data_.executionContextId,
+            data_.expressionId,
+            encodeJSON('Could you __$$GOAL$$__, please?'),
+          ),
         )
       } else {
         // Check if there's existing preprocessor mock which matches our expression
@@ -566,9 +577,15 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
           expression: func.rhs.code(),
           positionalArgumentsExpressions: args.map((ast) => ast.code()),
         }
-        sendVizData(data_.visualizationId, visualizationConfig, data_.expressionId)
+        sendBinary(makeVizData(data_.visualizationId, visualizationConfig, data_.expressionId))
       }
       return
+    }
+    case 'executionContext/push':
+    case 'executionContext/pop':
+    case 'executionContext/recompute':
+    case 'executionContext/setExecutionEnvironment': {
+      return {}
     }
     case 'search/getSuggestionsDatabase':
       return {
@@ -580,14 +597,10 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
       } satisfies response.GetSuggestionsDatabase
     case 'runtime/getComponentGroups':
       return { componentGroups: placeholderGroups() } satisfies response.GetComponentGroups
-    case 'executionContext/push':
-    case 'executionContext/pop':
-    case 'executionContext/recompute':
-    case 'executionContext/setExecutionEnvironment':
     case 'capability/acquire':
       return {}
     case 'file/list': {
-      const data_ = data as { path: Path }
+      const data_ = params as { path: Path }
       if (!data_.path) return Promise.reject(`'path' parameter missing in '${method}'`)
       if (data_.path.rootId !== mockProjectId)
         return Promise.reject(
@@ -619,7 +632,7 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
       } satisfies response.FileList
     }
     case 'ai/completion': {
-      const { prompt } = data
+      const { prompt } = params as { prompt: string }
       const match = /^Could you (.*), please\?$/.exec(prompt)
       if (!match) {
         return { code: 'How rude!' }
@@ -634,49 +647,183 @@ export const mockLSHandler: MockTransportData = async (method, data, transport) 
   }
 }
 
-function updateVisualization(preprocessor: string, data: unknown) {
+/** Prepare visualization update data sent by a mock binary endpoint */
+export function makeVisUpdates(preprocessor: string, data: unknown) {
+  const updates: ArrayBuffer[] = []
   for (const [id, config] of visualizations.entries()) {
     if (recognizeVizRequest(config).id === preprocessor) {
       const exprId = visualizationExprIds.get(id)
       const vizData = encodeJSON(data)
-      sendVizUpdate(id, config.executionContextId, exprId, vizData)
+      updates.push(makeVizUpdate(id, config.executionContextId, exprId, vizData))
       mockWidgetConfigurations.set(preprocessor, vizData)
     }
   }
+  return updates
 }
-;(window as any)._mockVisualizationDataUpdate = updateVisualization
 
 const directory = mockFsDirectoryHandle(fileTree, '(root)')
 
-export const mockDataHandler: WebSocketHandler = originalMockDataWSHandler(
-  async (segments) => {
-    if (!segments.length) return
-    let file
-    try {
-      let dir = directory
-      for (const segment of segments.slice(0, -1)) {
-        dir = await dir.getDirectoryHandle(segment)
-      }
-      const fileHandle = await dir.getFileHandle(segments.at(-1)!)
-      file = await fileHandle.getFile()
-    } catch {
-      return
+export const mockDataHandler = mockDataWSHandler(async (segments) => {
+  if (!segments.length) return
+  let file
+  try {
+    let dir = directory
+    for (const segment of segments.slice(0, -1)) {
+      dir = await dir.getDirectoryHandle(segment)
     }
-    return await file?.arrayBuffer()
-  },
-  (send) => (sendData = send),
-)
+    const fileHandle = await dir.getFileHandle(segments.at(-1)!)
+    file = await fileHandle.getFile()
+  } catch {
+    return
+  }
+  return await file?.arrayBuffer()
+})
 
-export const mockYdocProvider: MockYdocProviderImpl = (msg, room, doc) => {
-  setTimeout(() => {
-    const srcFiles: Record<string, string> = fileTree.src
-    if (room === 'index') {
-      const modules = doc.getMap('modules')
-      for (const file in srcFiles) modules.set(file, new Y.Doc({ guid: `mock-${file}` }))
-    } else if (room.startsWith('mock-')) {
-      const fileContents = srcFiles[room.slice('mock-'.length)]
-      if (fileContents) new Ast.MutableModule(doc).syncToCode(fileContents)
-    }
-    msg.emit('sync', [])
-  }, 0)
+export const mockYdocProvider = (room: string, doc: Doc) => {
+  const srcFiles: Record<string, string> = fileTree.src
+  if (room === 'index') {
+    const modules = doc.getMap('modules')
+    for (const file in srcFiles) modules.set(file, new Doc({ guid: `mock-${file}` }))
+  } else if (room.startsWith('mock-')) {
+    const fileContents = srcFiles[room.slice('mock-'.length)]
+    if (fileContents) new Ast.MutableModule(doc).syncToCode(fileContents)
+  }
+}
+
+/// <reference types="wicg-file-system-access" />
+export interface FileTree {
+  [name: string]: FileTree | string | ArrayBuffer
+}
+
+function arrayIsSame(a: unknown[], b: unknown) {
+  return Array.isArray(b) && a.length === b.length && a.every((item, i) => b[i] === item)
+}
+
+/** TODO: add docs here. */
+export function mockFsFileHandle(
+  contents: string | ArrayBuffer,
+  name: string,
+  path: string[] = [],
+): FileSystemFileHandle {
+  return {
+    kind: 'file',
+    isFile: true,
+    isDirectory: false,
+    // Spreaded to avoid excess property error.
+    ...{ _path: path },
+    name,
+    queryPermission() {
+      // Unimplemented.
+      throw new Error('Cannot query permission in a read-only mock.')
+    },
+    requestPermission() {
+      // Unimplemented.
+      throw new Error('Cannot request permission in a read-only mock.')
+    },
+    async isSameEntry(other) {
+      return this.kind === other.kind && '_path' in other && arrayIsSame(path, other._path)
+    },
+    async getFile() {
+      return new File([contents], name)
+    },
+    createWritable() {
+      throw new Error('Cannot create a writable strean from a read-only mock.')
+    },
+  }
+}
+
+/** TODO: Add docs */
+export function mockFsDirectoryHandle(
+  tree: FileTree,
+  name: string,
+  path: string[] = [],
+): FileSystemDirectoryHandle {
+  return {
+    kind: 'directory',
+    isFile: false,
+    isDirectory: true,
+    name,
+    // Spreaded to avoid excess property error.
+    ...{ _path: path },
+    async isSameEntry(other) {
+      return this.kind === other.kind && '_path' in other && arrayIsSame(path, other._path)
+    },
+    async resolve(possibleDescendant) {
+      if (!('_path' in possibleDescendant)) return null
+      if (!Array.isArray(possibleDescendant._path)) return null
+      if (possibleDescendant._path.length < path.length) return null
+      if (possibleDescendant._path.slice(0, path.length).some((segment, i) => segment !== path[i]))
+        return null
+      const descendantPath: string[] = possibleDescendant._path
+      return descendantPath.slice(path.length)
+    },
+    queryPermission() {
+      // Unimplemented.
+      throw new Error('Cannot query permission in a read-only mock.')
+    },
+    requestPermission() {
+      // Unimplemented.
+      throw new Error('Cannot request permission in a read-only mock.')
+    },
+    async getDirectoryHandle(name) {
+      const entry = tree[name]
+      if (!entry || typeof entry === 'string' || entry instanceof ArrayBuffer) {
+        const error = new DOMException(
+          `The directory '${[...path, name].join('/')}' was not found.`,
+          'NotFoundError',
+        )
+        throw error
+      }
+      return mockFsDirectoryHandle(entry, name, [...path, name])
+    },
+    async getFileHandle(name) {
+      const entry = tree[name]
+      if (entry == null || (typeof entry !== 'string' && !(entry instanceof ArrayBuffer))) {
+        const error = new DOMException(
+          `The file '${[...path, name].join('/')}' could not be found.`,
+          'NotFoundError',
+        )
+        throw error
+      }
+      return mockFsFileHandle(entry, name, [...path, name])
+    },
+    getDirectory(name) {
+      return this.getDirectoryHandle(name)
+    },
+    getFile(name) {
+      return this.getFileHandle(name)
+    },
+    async removeEntry() {
+      throw new Error('Cannot remove an entry from a read-only mock.')
+    },
+    async *keys() {
+      for (const name in tree) yield name
+    },
+    async *values() {
+      for (const name in tree) {
+        const entry = tree[name]!
+        if (typeof entry === 'string' || entry instanceof ArrayBuffer) {
+          yield mockFsFileHandle(entry, name, [...path, name])
+        } else {
+          yield mockFsDirectoryHandle(entry, name, [...path, name])
+        }
+      }
+    },
+    getEntries() {
+      return this.values()
+    },
+    async *entries() {
+      for (const name in tree) {
+        const entry = tree[name]!
+        if (typeof entry === 'string' || entry instanceof ArrayBuffer) {
+          yield [name, mockFsFileHandle(entry, name, [...path, name])]
+        } else {
+          yield [name, mockFsDirectoryHandle(entry, name, [...path, name])]
+        }
+      }
+    },
+    [Symbol.asyncIterator]() {
+      return this.entries()
+    },
+  }
 }

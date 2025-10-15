@@ -7,16 +7,15 @@ import {
 } from '#/services/RemoteBackend/ids'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import type { FeatureFlags } from '$/providers/featureFlags'
 import * as paths from 'enso-common/src/services/Backend/remoteBackendPaths'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import * as uniqueString from 'enso-common/src/utilities/uniqueString'
+import { test, type Page, type Request, type Route } from 'integration-test/base'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import * as test from 'playwright/test'
 import invariant from 'tiny-invariant'
-import { VALID_PASSWORD } from './utilities'
+import { VALID_PASSWORD } from '../actions/utilities'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -114,12 +113,6 @@ type TrackedCallsInternal = {
 
 export interface TrackedCalls extends TrackedCallsInternal {}
 
-/** Parameters for {@link mockApi}. */
-interface MockParams {
-  readonly page: test.Page
-  readonly setupAPI?: SetupAPI | null | undefined
-}
-
 /** The type for the search query for the "list directory" endpoint. */
 interface ListDirectoryQuery {
   readonly parent_id?: string
@@ -148,21 +141,11 @@ interface SearchDirectoryQuery {
   readonly page_size?: number | null
 }
 
-/**
- * Setup function for the mock API.
- * use it to setup the mock API with custom handlers.
- */
-export interface SetupAPI {
-  (api: Awaited<ReturnType<typeof mockApi>>): Promise<void> | void
-}
-
-/** The return type of {@link mockApi}. */
-export interface MockApi extends Awaited<ReturnType<typeof mockApiInternal>> {}
-
-export const mockApi: (params: MockParams) => Promise<MockApi> = mockApiInternal
+/** The return type of {@link mockCloudApi}. */
+export interface MockCloudApi extends Awaited<ReturnType<typeof mockCloudApi>> {}
 
 /** Add route handlers for the mock API to a page. */
-async function mockApiInternal({ page, setupAPI }: MockParams) {
+export async function mockCloudApi(page: Page) {
   const defaultEmail = 'email@example.com' as backend.EmailAddress
   const defaultUsername = 'user name'
   const defaultPassword = VALID_PASSWORD
@@ -192,13 +175,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     picture: null,
     website: null,
     subscription: {},
-  }
-
-  let featureFlags: Partial<FeatureFlags> = {
-    enableLocalBackend: true,
-    enableCloudExecution: true,
-    enableAdvancedProjectExecutionOptions: true,
-    enableAssetsTableBackgroundRefresh: false,
   }
 
   const callsObjects = new Set<typeof INITIAL_CALLS_OBJECT>()
@@ -687,14 +663,14 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     return new RegExp(`^${regexBody}$`)
   }
 
-  await test.test.step('Mock API', async () => {
+  await test.step('Mock API', async () => {
     const method =
       (theMethod: string) =>
       async (
         url: string,
         callback: (
-          route: test.Route,
-          request: test.Request,
+          route: Route,
+          request: Request,
           globCaptures: string[],
           params: URLSearchParams,
         ) => unknown,
@@ -706,7 +682,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
           )
 
         const urlPathRegex = simpleGlobToRegex(BASE_URL + url)
-        async function handler(route: test.Route, request: test.Request): Promise<void> {
+        async function handler(route: Route, request: Request): Promise<void> {
           if (request.method() !== theMethod) {
             return await route.fallback()
           } else {
@@ -1495,9 +1471,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     deleteUserGroup,
     createUserPermission,
     createUserGroupPermission,
-    setFeatureFlags: (flags: Partial<FeatureFlags>) => {
-      featureFlags = { ...featureFlags, ...flags }
-    },
     // TODO:
     // addPermission,
     // deletePermission,
@@ -1505,19 +1478,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     removeUserGroupFromUser,
     trackCalls,
   } as const
-
-  await setupAPI?.(api)
-
-  await page.addInitScript((flags) => {
-    Object.defineProperty(window, 'overrideFeatureFlags', {
-      value: flags,
-      writable: false,
-      configurable: false,
-    })
-  }, featureFlags)
-
-  // Disallow any changes to the feature flags after the mock API has been initialized.
-  featureFlags = Object.freeze({})
 
   return api
 }

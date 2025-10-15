@@ -1,6 +1,6 @@
 /** @file The base class from which all `Actions` classes are derived. */
-import type { AutocompleteKeybind, ModifierKey } from '#/utilities/inputBindings'
-import { expect, test, type Locator, type Page } from 'playwright/test'
+import type { AutocompleteKeybind, Modifier } from '@/util/shortcuts'
+import { expect, test, type Locator, type Page } from 'integration-test/base'
 
 /** `Meta` (`Cmd`) on macOS, and `Control` on all other platforms. */
 export async function modModifier(page: Page) {
@@ -12,7 +12,7 @@ export async function modModifier(page: Page) {
 }
 
 /** A callback that performs actions on a {@link Page}. */
-export interface PageCallback<Context, Self = void> {
+export interface PageCallback<Context, Self = unknown> {
   (input: Page, context: Context, self: Self): Promise<void> | void
 }
 
@@ -33,16 +33,19 @@ export interface BaseActionsClass<Context, Args extends readonly unknown[] = []>
  *
  * [`thenable`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
  */
-export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never>
-  implements Promise<void>
-{
+export default class BaseActions<Context, ParentClass extends BaseActionsClass<Context> = never> {
+  private isResolved = false
   /** Create a {@link BaseActions}. */
   constructor(
     protected readonly page: Page,
     protected readonly context: Context,
     private readonly promise = Promise.resolve(),
     private readonly parentClass: ParentClass = null!,
-  ) {}
+  ) {
+    promise.then(() => {
+      this.isResolved = true
+    })
+  }
 
   /**
    * Get the string name of the class of this instance. Required for this class to implement
@@ -73,7 +76,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
         const ctrlKey = isMacOS ? 'Meta' : 'Control'
         const deleteKey = isMacOS ? 'Backspace' : 'Delete'
         const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
-        return await callback(shortcut)
+        return callback(shortcut)
       } else {
         return callback(keyOrShortcut)
       }
@@ -90,12 +93,23 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
     )
   }
 
-  /** Proxies the `then` method of the internal {@link Promise}. */
-  async then<T, E>(
-    onfulfilled?: (() => PromiseLike<T> | T) | null | undefined,
+  /**
+   * Proxies the `then` method of the internal {@link Promise}.
+   * Return marked as undefined to allow `await page` to be typed appropriately and return itself.
+   */
+  get then(): undefined {
+    // Do not resolve `then` method when promise is already resolved. That way we avoid
+    // automatic promise return value unwrapping from creating an infinite loop.
+    if (this.isResolved) return undefined
+    // When page is awaited, wait for promise to resolve
+    return this._thenImpl as any
+  }
+
+  private async _thenImpl<T, E>(
+    onfulfilled?: ((actions: this) => PromiseLike<T> | T) | null | undefined,
     onrejected?: ((reason: unknown) => E | PromiseLike<E>) | null | undefined,
   ) {
-    return await this.promise.then(onfulfilled, onrejected)
+    return await this.promise.then(() => (onfulfilled ? onfulfilled(this) : this), onrejected)
   }
 
   /**
@@ -134,6 +148,11 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
     return new clazz(this.page, this.context, this.promise, ...args)
   }
 
+  /** Call a given function on this page object. Useful to maintain unbroken action chains. */
+  call<T>(callback: (page: this) => T): T {
+    return callback(this)
+  }
+
   /**
    * Perform an action. This should generally be avoided in favor of using
    * specific methods; this is more or less an escape hatch used ONLY when the methods do not
@@ -145,20 +164,35 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
     return new this.constructor(
       this.page,
       this.context,
-      this.then(() => callback(this.page, this.context, this)),
+      this.promise.then(() => callback(this.page, this.context, this)),
     )
   }
 
+  /**
+   * Perform an action, defer setup until right before the action.
+   */
+  defer(callback: (page: this) => void | Promise<void> | this): this {
+    return this.do(async () => {
+      await callback(this)
+    })
+  }
+
   /** Perform an action. */
-  step(name: string, callback: PageCallback<Context, this>) {
-    return this.do(() => test.step(name, () => callback(this.page, this.context, this)))
+  step(name: string | (() => string), callback: PageCallback<Context, this>) {
+    return this.do(async () => {
+      const nameEvaluated = typeof name === 'function' ? name() : name
+      return await test.step(
+        nameEvaluated,
+        async () => await callback(this.page, this.context, this),
+      )
+    })
   }
 
   /**
    * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms.
    */
-  press<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+  press<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | Modifier) {
     return this.do((page) =>
       BaseActions.withNormalizedKey(
         page,
@@ -173,7 +207,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
    * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms.
    */
-  down<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+  down<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | Modifier) {
     return this.do((page) =>
       BaseActions.withNormalizedKey(
         page,
@@ -188,7 +222,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
    * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms.
    */
-  up<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+  up<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | Modifier) {
     return this.do((page) =>
       BaseActions.withNormalizedKey(
         page,
@@ -242,7 +276,7 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
       })
     } else {
       return this.step(`Expect no ${description} error`, async (page) => {
-        await expect(page.getByTestId(testId).getByTestId('error')).not.toBeVisible()
+        await expect(page.getByTestId(testId).getByTestId('error')).toBeHidden()
       })
     }
   }

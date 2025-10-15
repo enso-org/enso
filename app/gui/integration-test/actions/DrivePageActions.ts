@@ -1,6 +1,5 @@
 /** @file Actions for the "drive" page. */
-import type { WithImplicitCoercion } from 'node:buffer'
-import { expect, type Locator, type Page } from 'playwright/test'
+import { expect, type Locator, type Page } from 'integration-test/base'
 import type { LocatorCallback } from './BaseActions'
 import { contextMenuActions } from './contextMenuActions'
 import EditorPageActions from './EditorPageActions'
@@ -80,7 +79,7 @@ function locateRightPanel(page: Page) {
 }
 
 /** Actions for the "drive" page. */
-export default class DrivePageActions<Context> extends PageActions<Context> {
+export default class DrivePageActions<Context = object> extends PageActions<Context> {
   /** Actions for navigating to another page. */
   get goToPage(): Omit<GoToPageActions<Context>, 'drive'> {
     return goToPageActions(this.step.bind(this))
@@ -275,21 +274,24 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
         return self.step(`Open directory on drive table row ${row}`, async (page) => {
           const navigateButton = getRow(page, row).getByTestId('directory-row-navigate-button')
           await expect(navigateButton).toHaveAttribute('aria-label', TEXT.open)
-          await navigateButton.dblclick()
+          await navigateButton.click()
+          await page.mouse.move(0, 0) // prevent popup from appearing
         })
       },
       /** Open a project at a specific row. */
       openProject(row: number | string) {
         return self.step(`Open directory on drive table row ${row}`, async (page) => {
           const button = getRow(page, row).getByLabel(TEXT.openInEditor)
-          await button.dblclick()
+          await button.click()
+          await page.mouse.move(0, 0) // prevent popup from appearing
         })
       },
       /** Close a project at a specific row. */
       closeProject(row: number | string) {
         return self.step(`Open directory on drive table row ${row}`, async (page) => {
           const button = getRow(page, row).getByLabel(TEXT.stopExecution)
-          await button.dblclick()
+          await button.click()
+          await page.mouse.move(0, 0) // prevent popup from appearing
         })
       },
       /**
@@ -358,7 +360,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   expectProjectEditorOpened(name: string) {
     return this.step('Expect Editor is opened', async (page) => {
       const projectTab = page.getByRole('tab', { name })
-      await expect(projectTab).toBeVisible()
+      await expect(projectTab).toBeVisible({ timeout: 100000 })
       await expect(projectTab).toHaveClass(/selected/)
     }).into(EditorPageActions<Context>)
   }
@@ -398,7 +400,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
   /** Upload a file using the icon in the Drive Bar. */
   uploadFile(
     name: string,
-    contents: WithImplicitCoercion<Uint8Array | string | readonly number[]>,
+    contents: Uint8Array | string | readonly number[],
     mimeType = 'text/plain',
   ) {
     return this.step(`Upload file '${name}'`, async (page) => {

@@ -43,6 +43,10 @@ public abstract class ExcelFormatStrategy {
   /** Opens an existing Excel file using the given access mode and sets {@link #workbook}. */
   public abstract Workbook openExisting(File file, boolean writeAccess) throws IOException;
 
+  /** Returns a reader for the current workbook. */
+  public abstract ExcelWorkbookReader getExcelWorkbookReader(File file)
+      throws IOException, InterruptedException;
+
   /** Creates a new empty workbook for this format and sets {@link #workbook}. */
   public abstract Workbook createNew();
 

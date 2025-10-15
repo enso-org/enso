@@ -68,16 +68,8 @@ const PAYLOAD_CONSTRUCTOR = {
 /** TODO: Add docs */
 export function mockDataWSHandler(
   readFile: (segments: string[]) => Promise<ArrayBuffer | null | undefined>,
-  cb?: (send: (data: string | Blob | ArrayBufferLike | ArrayBufferView) => void) => void,
 ) {
-  let sentSend = false
-  return async (
-    message: string | Blob | ArrayBufferLike | ArrayBufferView,
-    send: (data: string | Blob | ArrayBufferLike | ArrayBufferView) => void,
-  ) => {
-    if (!sentSend) cb?.(send)
-    sentSend = true
-    if (!(message instanceof ArrayBuffer)) return
+  return async (message: ArrayBuffer) => {
     const binaryMessage = InboundMessage.getRootAsInboundMessage(new ByteBuffer(message))
     const payloadType = binaryMessage.payloadType()
     const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
@@ -202,6 +194,6 @@ export function mockDataWSHandler(
       response.type,
       response.offset,
     )
-    send(builder.finish(rootTable).toArrayBuffer())
+    return builder.finish(rootTable).toArrayBuffer()
   }
 }

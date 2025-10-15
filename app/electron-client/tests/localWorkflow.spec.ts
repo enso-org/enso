@@ -3,7 +3,6 @@ import fs from 'node:fs/promises'
 import pathModule from 'node:path'
 import { expect, type Page } from 'playwright/test'
 import {
-  CONTROL_KEY,
   closeWelcome,
   createNewProject,
   getNewestProject,
@@ -72,7 +71,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   await expect(addedNode.locator('.TableVisualization')).toContainText('1')
 
   // Select nodes and create User Defined Component nodes
-  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.keyboard.press(`ControlOrMeta+A`)
   await page
     .getByRole('button', { name: 'Create User Defined Component from Selected Components' })
     .click()
@@ -157,7 +156,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
 
   // Paste an image in documentation.
   await page.locator('.DocumentationEditor').click()
-  await page.keyboard.press(`${CONTROL_KEY}+V`)
+  await page.keyboard.press(`ControlOrMeta+V`)
   const docImageElement = page.locator('.DocumentationEditor').getByTestId('doc-img')
   await expect(docImageElement).toBeVisible()
   await expect(docImageElement).toHaveJSProperty('width', 3)

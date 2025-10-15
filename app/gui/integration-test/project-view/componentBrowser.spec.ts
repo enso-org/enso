@@ -1,11 +1,8 @@
-import { test, type Page } from 'playwright/test'
-import * as actions from './actions'
-import { expect } from './customExpect'
+import { expect, test, type Page } from 'integration-test/base'
 import { mockExpressionUpdate } from './expressionUpdates'
-import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
-const ACCEPT_INPUT_SHORTCUT = `${CONTROL_KEY}+Enter`
+const ACCEPT_INPUT_SHORTCUT = `ControlOrMeta+Enter`
 
 async function deselectAllNodes(page: Page) {
   await page.keyboard.press('Escape')
@@ -18,30 +15,33 @@ async function expectAndCancelBrowser(
   expectedLabel: string | null,
   expectedSelfArgument?: string,
 ) {
-  const nodeCount = await locate.graphNode(page).count()
-  await expect(locate.componentBrowser(page)).toExist()
-  await expect(locate.componentBrowserEntry(page)).toExist()
-  await expect(page.locator('[data-transitioning]')).toHaveCount(0)
-  if (expectedLabel != null) {
-    await expect(page.getByTestId('component-editor-label')).toContainText(expectedLabel)
-  } else {
-    await expect(page.getByTestId('component-editor-label')).not.toExist()
-  }
-  if (expectedSelfArgument != null)
-    await expect(locate.componentBrowser(page)).toHaveAttribute(
-      'data-self-argument',
-      expectedSelfArgument,
-    )
-  await expect(locate.componentBrowserInput(page)).toHaveText(expectedText)
-  await expect(locate.componentBrowserInput(page)).toBeInViewport()
-  await page.keyboard.press('Escape')
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(page.locator('[data-transitioning]')).toHaveCount(0)
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount)
+  await test.step(`expectAndCancelBrowser ${expectedText} ${expectedLabel} ${expectedSelfArgument}`, async () => {
+    const nodeCount = await locate.graphNode(page).count()
+    await expect(locate.componentBrowser(page)).toExist()
+    await expect(locate.componentBrowserEntry(page)).toExist()
+    await expect(page.locator('[data-transitioning]')).toHaveCount(0)
+    if (expectedLabel != null) {
+      await expect(page.getByTestId('component-editor-label')).toContainText(expectedLabel)
+    } else {
+      await expect(page.getByTestId('component-editor-label')).toBeHidden()
+    }
+    if (expectedSelfArgument != null) {
+      await expect(locate.componentBrowser(page)).toHaveAttribute(
+        'data-self-argument',
+        expectedSelfArgument,
+      )
+    }
+    await expect(locate.componentBrowserInput(page)).toHaveText(expectedText)
+    await expect(locate.componentBrowserInput(page)).toBeInViewport()
+    await page.keyboard.press('Escape')
+    await expect(locate.componentBrowser(page)).toBeHidden()
+    await expect(page.locator('[data-transitioning]')).toHaveCount(0)
+    await expect(locate.graphNode(page)).toHaveCount(nodeCount)
+  })
 }
 
-test('Different ways of opening Component Browser', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Different ways of opening Component Browser', async ({ editorPage, page }) => {
+  await editorPage
 
   // Without source node
 
@@ -84,8 +84,8 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await expectAndCancelBrowser(page, '', 'Table', 'selected')
 })
 
-test('Opening Component Browser from output port buttons', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Opening Component Browser from output port buttons', async ({ editorPage, page }) => {
+  await editorPage
 
   // Pan the graph up so that every node is guaranteed to be visible.
   await page.mouse.move(100, 100)
@@ -109,14 +109,14 @@ test('Opening Component Browser from output port buttons', async ({ page }) => {
   await expectAndCancelBrowser(page, '', null, 'table')
 })
 
-test('Graph Editor pans to Component Browser', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
+  await editorPage
 
   // Select node, pan out of view of it, press Enter; should pan to show node and CB
   await locate.graphNodeByBinding(page, 'final').click()
-  await page.mouse.move(100, 80)
+  await page.mouse.move(100, 180)
   await page.mouse.down({ button: 'middle' })
-  await page.mouse.move(100, 1200)
+  await page.mouse.move(100, 1300)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'final')).not.toBeInViewport()
   await locate.graphEditor(page).press('Enter')
@@ -139,9 +139,9 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await expectAndCancelBrowser(page, '', null)
 })
 
-test('Accepting suggestion', async ({ page }) => {
+test('Accepting suggestion', async ({ editorPage, page }) => {
   // Clicking entry
-  await actions.goToGraph(page)
+  await editorPage
   await locate.addNewNodeButton(page).click()
   let nodeCount = await locate.graphNode(page).count()
   await locate.componentBrowserEntry(page).nth(1).click()
@@ -172,8 +172,7 @@ test('Accepting suggestion', async ({ page }) => {
   nodeCount = await locate.graphNode(page).count()
   await deselectAllNodes(page)
   await locate.addNewNodeButton(page).click()
-  await expect(locate.componentBrowser(page)).toExist()
-  await expect(locate.componentBrowserEntry(page)).toExist()
+  await expect(locate.componentBrowserInput(page)).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).toBeHidden()
   await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
@@ -185,8 +184,8 @@ test('Accepting suggestion', async ({ page }) => {
   await expect(locate.graphNode(page).last()).toBeSelected()
 })
 
-test('Accepting any written input', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Accepting any written input', async ({ editorPage, page }) => {
+  await editorPage
   await locate.addNewNodeButton(page).click()
   const nodeCount = await locate.graphNode(page).count()
   await locate.componentBrowserInput(page).fill('re')
@@ -196,8 +195,8 @@ test('Accepting any written input', async ({ page }) => {
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText('re')
 })
 
-test('Filling input with suggestion', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Filling input with suggestion', async ({ editorPage, page }) => {
+  await editorPage
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserEntry(page)).toExist()
@@ -208,8 +207,8 @@ test('Filling input with suggestion', async ({ page }) => {
   await expect(locate.componentBrowserInput(page)).toHaveText('Data.read ')
 })
 
-test('Filtering list', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Filtering list', async ({ editorPage, page }) => {
+  await editorPage
   await locate.addNewNodeButton(page).click()
   await locate.componentBrowserInput(page).fill('re_ma')
   const segments = locate.componentBrowserEntry(page).locator('.component-label-segment')
@@ -220,8 +219,8 @@ test('Filtering list', async ({ page }) => {
   await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'File (1)'])
 })
 
-test('Navigating components', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Navigating components', async ({ editorPage, page }) => {
+  await editorPage
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Data.read')
@@ -239,8 +238,8 @@ test('Navigating components', async ({ page }) => {
   await expect(locate.rightDock(page)).toBeVisible()
 })
 
-test('Navigating groups', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Navigating groups', async ({ editorPage, page }) => {
+  await editorPage
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
   await expect(page.locator('.groupEntry')).toHaveText([
@@ -280,15 +279,15 @@ test('Navigating groups', async ({ page }) => {
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
 })
 
-test('Editing existing nodes', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Editing existing nodes', async ({ editorPage, page }) => {
+  await editorPage
   const node = locate.graphNodeByBinding(page, 'data')
   const ADDED_PATH = '"/home/enso/Input.txt"'
 
   // Start node editing
-  await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
+  await locate.graphNodeIcon(node).click({ modifiers: ['ControlOrMeta'] })
   await expect(locate.componentBrowser(page)).toBeVisible()
-  await expect(page.getByTestId('component-editor-label')).not.toExist()
+  await expect(page.getByTestId('component-editor-label')).toBeHidden()
   const content = locate.componentBrowserInput(page)
   await expect(content).toHaveText('Data.read')
 
@@ -321,8 +320,8 @@ test('Editing existing nodes', async ({ page }) => {
   await expect(node.locator('.WidgetText')).toBeHidden()
 })
 
-test('Visualization preview: type-based visualization selection', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Visualization preview: type-based visualization selection', async ({ editorPage, page }) => {
+  await editorPage
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
@@ -337,8 +336,8 @@ test('Visualization preview: type-based visualization selection', async ({ page 
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
 })
 
-test('Visualization preview: user visualization selection', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Visualization preview: user visualization selection', async ({ editorPage, page }) => {
+  await editorPage
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
@@ -360,8 +359,8 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
 })
 
 // TODO[#10949]: the record button on node is disabled.
-test.skip('Component browser handling of overridden record-mode', async ({ page }) => {
-  await actions.goToGraph(page)
+test.skip('Component browser handling of overridden record-mode', async ({ editorPage, page }) => {
+  await editorPage
   const node = locate.graphNodeByBinding(page, 'data')
   const ADDED_PATH = '"/home/enso/Input.txt"'
   const recordModeToggle = node.getByTestId('toggleRecord')
@@ -382,7 +381,7 @@ test.skip('Component browser handling of overridden record-mode', async ({ page 
   await locate.graphNodeIcon(node).hover()
   await expect(recordModeToggle).toHaveClass(/toggledOn/)
   // Ensure editing in the component browser doesn't display the override expression.
-  await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
+  await locate.graphNodeIcon(node).click({ modifiers: ['ControlOrMeta'] })
   await expect(locate.componentBrowser(page)).toBeVisible()
   const content = locate.componentBrowserInput(page)
   await expect(content).toHaveText('Data.read')
@@ -395,13 +394,13 @@ test.skip('Component browser handling of overridden record-mode', async ({ page 
   await page.mouse.move(700, 1200, { steps: 20 })
   await expect(recordModeIndicator).toBeVisible()
   // Ensure after editing the node, editing still doesn't display the override expression.
-  await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
+  await locate.graphNodeIcon(node).click({ modifiers: ['ControlOrMeta'] })
   await expect(locate.componentBrowser(page)).toBeVisible()
   await expect(content).toHaveText(`Data.read ${ADDED_PATH}`)
 })
 
-test('AI prompt', async ({ page }) => {
-  await actions.goToGraph(page)
+test('AI prompt', async ({ editorPage, page }) => {
+  await editorPage
 
   const node = locate.graphNodeByBinding(page, 'data')
   await node.click()
@@ -410,7 +409,7 @@ test('AI prompt', async ({ page }) => {
   await expect(locate.componentBrowser(page)).toBeVisible()
 
   await page.keyboard.insertText('AI:convert to table')
-  await expect(page.locator('.ComponentList')).not.toExist()
+  await expect(page.locator('.ComponentList')).toBeHidden()
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowserInput(page)).toHaveText('to_table')
   await expect(locate.componentBrowser(page)).toHaveAttribute('data-self-argument', 'data')

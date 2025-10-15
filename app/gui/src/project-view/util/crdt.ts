@@ -1,6 +1,5 @@
 import type { Opt } from '@/util/data/opt'
-import type { ToValue } from '@/util/reactivity'
-import { ObservableV2 } from 'lib0/observable'
+import { type ToValue } from '@/util/reactivity'
 import { ref, toValue, watchEffect, type Ref } from 'vue'
 import type { Awareness } from 'y-protocols/awareness'
 import { WebsocketProvider } from 'y-websocket'
@@ -58,8 +57,7 @@ export function attachProvider(
   doc: Y.Doc,
   awareness: Awareness,
 ) {
-  const ProviderClass = params.ls.startsWith('mock://') ? MockYdocProvider : WebsocketProvider
-  const provider = new ProviderClass(url, room, doc, { awareness, params })
+  const provider = new WebsocketProvider(url, room, doc, { awareness, params })
   const onSync = () => doc.emit('sync', [true, doc])
   const onDrop = () => doc.emit('sync', [false, doc])
 
@@ -94,55 +92,6 @@ export function attachProvider(
     })
   }
   return { provider, dispose }
-}
-
-interface MockYdocProviderMessages {
-  'sync'(): void
-  'connection-close'(): void
-  'connection-error'(): void
-  'client-disconnected'(): void
-}
-
-export interface MockYdocProviderImpl {
-  (
-    msg: ObservableV2<MockYdocProviderMessages>,
-    room: string,
-    doc: Y.Doc,
-    options: {
-      awareness: object
-      params: ProviderParams
-    },
-  ): void
-}
-
-/** TODO: Add docs */
-export class MockYdocProvider extends ObservableV2<MockYdocProviderMessages> {
-  static mocks: Map<string, MockYdocProviderImpl> = new Map()
-
-  /** TODO: Add docs */
-  static addMock(name: string, mock: MockYdocProviderImpl) {
-    MockYdocProvider.mocks.set(name, mock)
-  }
-
-  /** TODO: Add docs */
-  constructor(
-    _url: string,
-    room: string,
-    doc: Y.Doc,
-    options: {
-      awareness: object
-      params: ProviderParams
-    },
-  ) {
-    super()
-    const name = options.params.ls.slice('mock://'.length)
-    MockYdocProvider.mocks.get(name)?.(this, room, doc, options)
-  }
-
-  /** TODO: Add docs */
-  disconnect() {
-    this.emit('client-disconnected', [])
-  }
 }
 
 /** @returns a reactive view of the given Yjs text object's content. */

@@ -1,5 +1,5 @@
 /** @file Available actions for the login page. */
-import { expect } from 'playwright/test'
+import { expect } from 'integration-test/base'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import LoginPageActions from './LoginPageActions'
 import { TEXT, VALID_EMAIL, VALID_PASSWORD } from './utilities'
@@ -55,7 +55,7 @@ export default class RegisterPageActions<Context> extends BaseActions<Context> {
       })
     } else {
       return next.step('Expect no form error', async (page) => {
-        await expect(page.getByTestId('form-submit-error')).not.toBeVisible()
+        await expect(page.getByTestId('form-submit-error')).toBeHidden()
       })
     }
   }
@@ -91,6 +91,6 @@ export default class RegisterPageActions<Context> extends BaseActions<Context> {
       .getByRole('button', { name: TEXT.register, exact: true })
       .getByText(TEXT.register)
       .click()
-    await expect(this.page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
+    await expect(this.page.getByText(TEXT.loadingAppMessage)).toBeHidden()
   }
 }

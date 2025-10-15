@@ -1,5 +1,5 @@
 /** @file Actions for the user menu. */
-import type { Download } from 'playwright/test'
+import type { Download } from 'integration-test/base'
 import type BaseActions from './BaseActions'
 import type { BaseActionsClass, PageCallback } from './BaseActions'
 import LoginPageActions from './LoginPageActions'
@@ -19,8 +19,8 @@ export interface UserMenuActions<
 
 /** Generate actions for the user menu. */
 export function userMenuActions<
-  T extends BaseActions<Context, ParentClass>,
   Context,
+  T extends BaseActions<Context, ParentClass>,
   ParentClass extends BaseActionsClass<Context>,
 >(
   step: (name: string, callback: PageCallback<Context, T>) => T,

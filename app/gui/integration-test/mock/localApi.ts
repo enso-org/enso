@@ -19,12 +19,15 @@ import {
 } from '#/services/ProjectManager/types'
 import { unsafeMutable } from '#/utilities/object'
 import { getDirectoryAndName } from '#/utilities/path'
+import { capitalizeFirst } from '#/utilities/string'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
+import { test } from 'integration-test/base'
 import { uuidv4 } from 'lib0/random.js'
 import { join } from 'node:path'
-import type { Page } from 'playwright'
-import test from 'playwright/test'
+import type { Page, WebSocketRoute } from 'playwright'
+import { WSSharedDoc, YjsConnection, type YjsSocket } from 'ydoc-server'
+import { makeVisUpdates, mockDataHandler, mockLSHandler, mockYdocProvider } from './lsHandler'
 
 function array<T>(): Readonly<T>[] {
   return []
@@ -33,6 +36,10 @@ function array<T>(): Readonly<T>[] {
 const ROOT_PARENT_PATH = Path('/home/user/enso')
 const ROOT_PATH = Path('/home/user/enso/enso-projects')
 const DOWNLOAD_PATH = Path('/home/user/enso/Downloads')
+
+const languageServerJsonAddress = { host: '127.0.0.1', port: 1235 }
+const languageServerBinaryAddress = { host: '127.0.0.1', port: 1234 }
+const languageServerYdocAddress = { host: '127.0.0.1', port: 1233 }
 
 const INITIAL_CALLS_OBJECT = {
   getRootDirectory: array<object>(),
@@ -74,26 +81,11 @@ type FileEntryWithData = { type: 'FileEntry'; entry: FileEntry; content: string 
 
 type FileSystemEntryWithData = DirectoryEntryWithData | ProjectEntryWithData | FileEntryWithData
 
-/**
- * Setup function for the mock API.
- * use it to setup the mock API with custom handlers.
- */
-export interface SetupLocalAPI {
-  (api: Awaited<ReturnType<typeof mockLocalApi>>): Promise<void> | void
-}
-
-/** Parameters for {@link mockApi}. */
-export interface LocalMockParams {
-  readonly page: Page
-  readonly setupLocalAPI?: SetupLocalAPI | null | undefined
-}
-/** The return type of {@link localMockApi}. */
-export interface LocalMockApi extends Awaited<ReturnType<typeof localMockApiInternal>> {}
-
-export const mockLocalApi: (params: LocalMockParams) => Promise<LocalMockApi> = localMockApiInternal
+/** The return type of {@link mockLocalApi}. */
+export interface MockLocalApi extends Awaited<ReturnType<typeof mockLocalApi>> {}
 
 /** Add route handlers for the mock API to a page. */
-async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
+export async function mockLocalApi(page: Page) {
   const fileSystem = new Map<string, FileSystemEntryWithData>()
   const openProjects = new Map<UUID, ProjectState>()
 
@@ -146,7 +138,7 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
     return { type: 'DirectoryEntry', entry, children: [] }
   }
 
-  const addEntry = (path: Path, entry: FileSystemEntryWithData) => {
+  const addEntry = <E extends FileSystemEntryWithData>(path: Path, entry: E) => {
     fileSystem.set(path, entry)
     const { directoryPath } = getDirectoryAndName(path)
     const parentEntry = fileSystem.get(directoryPath)
@@ -192,36 +184,35 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
   }
 
   type ProjectEntryOptions = {
-    path: Path
+    path?: Path
     metadata: ProjectMetadata
     attributes?: Partial<Attributes>
   }
 
-  const createProjectEntry = ({
-    path,
-    metadata,
-    attributes,
-  }: ProjectEntryOptions): ProjectEntry => ({
-    type: 'ProjectEntry',
-    path,
-    metadata,
-    attributes: createAttributes(attributes),
-  })
-
   const createProject = (options: ProjectEntryOptions): ProjectEntryWithData => {
-    const entry = createProjectEntry(options)
+    const normalizedName = options.metadata.name
+      .split(' ')
+      .filter((n) => n.length)
+      .map((part) => capitalizeFirst(part))
+      .join('_')
     return {
       type: 'ProjectEntry',
-      entry,
+      entry: {
+        type: 'ProjectEntry',
+        path: options.path ?? Path(`${ROOT_PATH}/${normalizedName}`),
+        metadata: options.metadata,
+        attributes: createAttributes(options.attributes),
+      },
       metadata: {
-        projectName: ProjectName(entry.metadata.name),
-        projectNormalizedName: entry.metadata.name,
+        projectName: ProjectName(options.metadata.name),
+        projectNormalizedName: normalizedName,
       },
     }
   }
 
   const addProject = (options: ProjectEntryOptions) => {
-    addEntry(options.path, createProject(options))
+    const project = createProject(options)
+    return addEntry(project.entry.path, project)
   }
 
   type FileEntryOptions = {
@@ -249,6 +240,8 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
   addDirectory({ path: ROOT_PARENT_PATH })
   addDirectory({ path: ROOT_PATH })
   addDirectory({ path: DOWNLOAD_PATH })
+
+  let languageServerBinaryWs: WebSocketRoute | null = null
 
   await test.step('Mock Local API', async () => {
     const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
@@ -313,10 +306,12 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
       }
       unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
       const result: OpenProject = {
-        languageServerBinaryAddress: { host: 'ws://localhost', port: 1234 },
-        languageServerJsonAddress: { host: 'ws://localhost', port: 1235 },
+        languageServerBinaryAddress,
+        languageServerJsonAddress,
+        languageServerYdocAddress,
         projectNamespace: 'local',
-        ...project.metadata,
+        projectName: project.metadata.projectName,
+        projectNormalizedName: project.metadata.projectNormalizedName,
       }
       openProjects.set(params.projectId, {
         state: backend.ProjectState.opened,
@@ -342,6 +337,89 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
         contentType: 'application/json',
         body: JSON.stringify(toJSONRPCResult(null)),
       })
+    })
+
+    await page.routeWebSocket(
+      `ws://${languageServerBinaryAddress.host}:${languageServerBinaryAddress.port}/`,
+      (ws) => {
+        languageServerBinaryWs = ws
+        ws.onMessage(async (messageRaw) => {
+          const response = await mockDataHandler(new Uint8Array(Buffer.from(messageRaw)).buffer)
+          if (response) {
+            ws.send(Buffer.from(response))
+          }
+        })
+      },
+    )
+    await page.routeWebSocket(
+      `ws://${languageServerJsonAddress.host}:${languageServerJsonAddress.port}/`,
+      (ws) => {
+        ws.onMessage(async (messageRaw) => {
+          const { method, params, jsonrpc, id } = JSON.parse(messageRaw.toString())
+          try {
+            const result =
+              (await mockLSHandler(
+                method,
+                params,
+                (message) => ws.send(JSON.stringify({ jsonrpc, ...message })),
+                (binaryData?: ArrayBuffer) => {
+                  if (binaryData) languageServerBinaryWs?.send(Buffer.from(binaryData))
+                },
+              )) ?? null
+            ws.send(JSON.stringify({ jsonrpc, id, result }))
+          } catch (error) {
+            ws.send(JSON.stringify({ jsonrpc, id, error }))
+          }
+        })
+      },
+    )
+    const ydocAddressBase = `ws://${languageServerYdocAddress.host}:${languageServerYdocAddress.port}`
+
+    class MockWs implements YjsSocket {
+      binaryType = 'arraybuffer' as const
+      readyState = WebSocket.OPEN
+      constructor(private wsRoute: WebSocketRoute) {}
+      on(event: 'close', listener: (code: number, reason: Buffer) => void): this
+      on(event: 'message', listener: (data: ArrayBuffer | Buffer, isBinary: boolean) => void): this
+      on(event: 'ping' | 'pong', listener: (data: Buffer) => void): this
+      on(event: unknown, listener: unknown): this {
+        switch (event) {
+          case 'close':
+            this.wsRoute.onClose((code, reason) => {
+              const _listener = listener as (code: number, reason: Buffer) => void
+              _listener(code ?? 0, Buffer.from(reason ?? []))
+            })
+            return this
+          case 'message':
+            this.wsRoute.onMessage((data) => {
+              const _listener = listener as (data: ArrayBuffer | Buffer, isBinary: boolean) => void
+              _listener(Buffer.from(data), true)
+            })
+            return this
+          case 'ping':
+          case 'pong':
+            return this
+        }
+        throw new Error(`Event ${event} not implemented.`)
+      }
+      send(data: Uint8Array, cb?: (err?: Error) => void): void {
+        this.wsRoute.send(Buffer.from(data))
+        if (cb) Promise.resolve().then(() => cb())
+      }
+      ping(): void {}
+      close(): void {
+        this.wsRoute.close()
+      }
+    }
+
+    await page.routeWebSocket(`${ydocAddressBase}/**`, (wsRoute) => {
+      const parsedUrl = new URL(wsRoute.url())
+      const room = parsedUrl.pathname.substring('/project/'.length)
+
+      const mockWs = new MockWs(wsRoute)
+      const wsDoc = new WSSharedDoc()
+      const _connection = new YjsConnection(mockWs, wsDoc)
+      mockYdocProvider(room, wsDoc.doc)
     })
 
     await page.route('/api/root-directory-path', async (route, request) => {
@@ -557,6 +635,12 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
     })
   })
 
+  async function updateVisualization(preprocessor: string, data: unknown) {
+    for (const update of makeVisUpdates(preprocessor, data)) {
+      languageServerBinaryWs?.send(Buffer.from(update))
+    }
+  }
+
   const api = {
     rootPath: ROOT_PATH,
     trackCalls,
@@ -564,9 +648,8 @@ async function localMockApiInternal({ page, setupLocalAPI }: LocalMockParams) {
     addProject,
     addFile,
     removeEntry,
+    updateVisualization,
   } as const
-
-  await setupLocalAPI?.(api)
 
   return api
 }
