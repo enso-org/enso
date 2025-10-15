@@ -1,5 +1,7 @@
 package org.enso.table.excel;
 
+import static org.enso.table.excel.ExcelUtils.formatNumericValue;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -7,7 +9,6 @@ import org.apache.poi.ss.usermodel.ExcelNumberFormat;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import static org.enso.table.excel.ExcelUtils.formatNumericValue;
 import org.graalvm.polyglot.Context;
 
 /** Wrapper class to handle Excel rows. */

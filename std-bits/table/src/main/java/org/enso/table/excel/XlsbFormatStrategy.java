@@ -3,7 +3,6 @@ package org.enso.table.excel;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Workbook;
 
@@ -20,7 +19,8 @@ public class XlsbFormatStrategy extends ExcelFormatStrategy {
       throw writeUnsupported();
     }
     throw new UnsupportedOperationException(
-        "Reading XLSB files via the user model is not yet implemented. Use getExcelWorkbookReader.");
+        "Reading XLSB files via the user model is not yet implemented. Use"
+            + " getExcelWorkbookReader.");
   }
 
   @Override
@@ -41,11 +41,11 @@ public class XlsbFormatStrategy extends ExcelFormatStrategy {
   @Override
   public ExcelWorkbookReader getExcelWorkbookReader(File file)
       throws IOException, InterruptedException {
-        try {
-    return new XlsbExcelWorkbookReader(file);
-        } catch (IOException | InvalidFormatException e) {
-          throw new IOException(
-              "Invalid format encountered when opening the file " + file + " as XLSB.", e);
-        }
+    try {
+      return new XlsbExcelWorkbookReader(file);
+    } catch (IOException | InvalidFormatException e) {
+      throw new IOException(
+          "Invalid format encountered when opening the file " + file + " as XLSB.", e);
+    }
   }
 }

@@ -7,7 +7,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
-
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -23,44 +22,43 @@ public class ExcelUtils {
   private static final LocalDate EPOCH_1904 = LocalDate.of(1904, 1, 1);
   private static final long MILLIS_PER_DAY = 24 * 60 * 60 * 1000L;
 
-  public static Object formatNumericValue(double dblValue, ExcelNumberFormat nf, boolean use1904Format) {
-if (nf != null && DateUtil.isADateFormat(nf.getIdx(), nf.getFormat())) {
-            var temporal =
-                use1904Format
-                    ? ExcelUtils.fromExcelDateTime1904(dblValue)
-                    : ExcelUtils.fromExcelDateTime(dblValue);
+  public static Object formatNumericValue(
+      double dblValue, ExcelNumberFormat nf, boolean use1904Format) {
+    if (nf != null && DateUtil.isADateFormat(nf.getIdx(), nf.getFormat())) {
+      var temporal =
+          use1904Format
+              ? ExcelUtils.fromExcelDateTime1904(dblValue)
+              : ExcelUtils.fromExcelDateTime(dblValue);
 
-            if (temporal == null) {
-              return null;
-            }
+      if (temporal == null) {
+        return null;
+      }
 
-            return switch (temporal) {
-              case LocalDate date -> {
-                var dateFormat = nf.getFormat();
-                yield (dateFormat.contains("h") || dateFormat.contains("H"))
-                    ? date.atStartOfDay(ZoneId.systemDefault())
-                    : date;
-              }
-              case ZonedDateTime zdt -> {
-                if (!use1904Format || zdt.getYear() != 1904 || zdt.getDayOfYear() != 1) {
-                  yield temporal;
-                }
-                var dateFormat = nf.getFormat();
-                yield (dateFormat.contains("y")
-                        || dateFormat.contains("M")
-                        || dateFormat.contains("d"))
-                    ? zdt
-                    : zdt.toLocalTime();
-              }
-              default -> temporal;
-            };
-          } else {
-            if (dblValue == (long) dblValue) {
-              return (long) dblValue;
-            } else {
-              return dblValue;
-            }
+      return switch (temporal) {
+        case LocalDate date -> {
+          var dateFormat = nf.getFormat();
+          yield (dateFormat.contains("h") || dateFormat.contains("H"))
+              ? date.atStartOfDay(ZoneId.systemDefault())
+              : date;
+        }
+        case ZonedDateTime zdt -> {
+          if (!use1904Format || zdt.getYear() != 1904 || zdt.getDayOfYear() != 1) {
+            yield temporal;
           }
+          var dateFormat = nf.getFormat();
+          yield (dateFormat.contains("y") || dateFormat.contains("M") || dateFormat.contains("d"))
+              ? zdt
+              : zdt.toLocalTime();
+        }
+        default -> temporal;
+      };
+    } else {
+      if (dblValue == (long) dblValue) {
+        return (long) dblValue;
+      } else {
+        return dblValue;
+      }
+    }
   }
 
   public static boolean is1904DateSystem(Workbook workbook) {

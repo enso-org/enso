@@ -1,12 +1,13 @@
 package org.enso.table.excel;
 
+import static org.enso.table.excel.ExcelUtils.formatNumericValue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
@@ -20,7 +21,6 @@ import org.apache.poi.xssf.binary.XSSFBStylesTable;
 import org.apache.poi.xssf.eventusermodel.XSSFBReader;
 import org.apache.poi.xssf.model.SharedStrings;
 import org.apache.poi.xssf.usermodel.XSSFComment;
-import static org.enso.table.excel.ExcelUtils.formatNumericValue;
 
 /**
  * Skeleton reader for XLSB workbooks.
@@ -36,56 +36,58 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
   public XlsbExcelWorkbookReader(File file) throws IOException, InvalidFormatException {
     this.file = file;
     try (OPCPackage opcPackage = OPCPackage.open(file, PackageAccess.READ)) {
-        xssfbReader = new XSSFBReader(opcPackage);
-        
-        SharedStrings sharedStrings = null;
-        try {
-            sharedStrings = new XSSFBSharedStringsTable(opcPackage);
-        } catch (Exception e) {
-            System.out.println(e.getMessage() + "No shared strings table found or error reading it: ");
-        }
+      xssfbReader = new XSSFBReader(opcPackage);
 
-        XSSFBStylesTable stylesTable = null;
-        try {
-            stylesTable = xssfbReader.getXSSFBStylesTable();
-        } catch (Exception e) {
-            System.out.println("No styles table found or error reading it: " + e.getMessage());
-        }
+      SharedStrings sharedStrings = null;
+      try {
+        sharedStrings = new XSSFBSharedStringsTable(opcPackage);
+      } catch (Exception e) {
+        System.out.println(e.getMessage() + "No shared strings table found or error reading it: ");
+      }
 
-        XSSFBReader.SheetIterator sheetsData = (XSSFBReader.SheetIterator) xssfbReader.getSheetsData();  
-        while (sheetsData.hasNext()) {
-                try (InputStream sheetInputStream = sheetsData.next()) {
-                    String sheetName = sheetsData.getSheetName();
-                    
-                    // Create a custom sheet contents handler to capture cell data
-                    XlsbSheetContentsHandler contentsHandler = new XlsbSheetContentsHandler();
-                    
-                    // Create data formatter for cell values
-                    DataFormatter dataFormatter = new DataFormatter();
-                    
-                    // Create the sheet handler
-                    XSSFBSheetHandler sheetHandler = new XSSFBSheetHandler(
-                        sheetInputStream,
-                        stylesTable,
-                        null, // comments table - not implemented for simplicity
-                        sharedStrings,
-                        contentsHandler,
-                        dataFormatter,
-                        false // formulasNotResults
-                    );
-                    
-                    // Parse the sheet
-                    sheetHandler.parse();
-                    
-                    sheets.add(new SheetHolder(sheetName, contentsHandler));                   
-                } catch (Exception e) {
-                    System.err.println("Error parsing sheet: " + e.getMessage());
-                }
-            }
+      XSSFBStylesTable stylesTable = null;
+      try {
+        stylesTable = xssfbReader.getXSSFBStylesTable();
+      } catch (Exception e) {
+        System.out.println("No styles table found or error reading it: " + e.getMessage());
+      }
+
+      XSSFBReader.SheetIterator sheetsData =
+          (XSSFBReader.SheetIterator) xssfbReader.getSheetsData();
+      while (sheetsData.hasNext()) {
+        try (InputStream sheetInputStream = sheetsData.next()) {
+          String sheetName = sheetsData.getSheetName();
+
+          // Create a custom sheet contents handler to capture cell data
+          XlsbSheetContentsHandler contentsHandler = new XlsbSheetContentsHandler();
+
+          // Create data formatter for cell values
+          DataFormatter dataFormatter = new DataFormatter();
+
+          // Create the sheet handler
+          XSSFBSheetHandler sheetHandler =
+              new XSSFBSheetHandler(
+                  sheetInputStream,
+                  stylesTable,
+                  null, // comments table - not implemented for simplicity
+                  sharedStrings,
+                  contentsHandler,
+                  dataFormatter,
+                  false // formulasNotResults
+                  );
+
+          // Parse the sheet
+          sheetHandler.parse();
+
+          sheets.add(new SheetHolder(sheetName, contentsHandler));
+        } catch (Exception e) {
+          System.err.println("Error parsing sheet: " + e.getMessage());
+        }
+      }
     } catch (InvalidFormatException e) {
-        throw new IOException("Invalid XLSB format when opening file: " + file, e);
+      throw new IOException("Invalid XLSB format when opening file: " + file, e);
     } catch (OpenXML4JException e) {
-        throw new IOException("Error processing XLSB file: " + file, e);
+      throw new IOException("Error processing XLSB file: " + file, e);
     }
   }
 
@@ -155,146 +157,147 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
   }
 
   /**
-     * Custom implementation of SheetContentsHandler to capture and display cell data from XLSB files.
-     */
-    static class XlsbSheetContentsHandler implements TypedSheetContentsHandler {
-        private final List<RowData> rows = new ArrayList<>();
-        private List<Object> currentRow = new ArrayList<>();
-        private int currentRowIndex = -1;
-        private int maxColumns = 0;
-        private int firstRowIndex = -1;
-        private int lastRowIndex = -1;
-        private int currentRowFirstColumnIndex = Integer.MAX_VALUE;
-        private int currentRowLastColumnIndex = -1;
-        
-        @Override
-        public void startRow(int rowNum) {
-            while (currentRowIndex + 1 < rowNum) {
-                rows.add(null);
-                currentRowIndex++;
-            }
+   * Custom implementation of SheetContentsHandler to capture and display cell data from XLSB files.
+   */
+  static class XlsbSheetContentsHandler implements TypedSheetContentsHandler {
+    private final List<RowData> rows = new ArrayList<>();
+    private List<Object> currentRow = new ArrayList<>();
+    private int currentRowIndex = -1;
+    private int maxColumns = 0;
+    private int firstRowIndex = -1;
+    private int lastRowIndex = -1;
+    private int currentRowFirstColumnIndex = Integer.MAX_VALUE;
+    private int currentRowLastColumnIndex = -1;
 
-            currentRow = new ArrayList<>();
-            currentRowIndex = rowNum;
-            currentRowFirstColumnIndex = Integer.MAX_VALUE;
-            currentRowLastColumnIndex = -1;
+    @Override
+    public void startRow(int rowNum) {
+      while (currentRowIndex + 1 < rowNum) {
+        rows.add(null);
+        currentRowIndex++;
+      }
 
-            if (firstRowIndex == -1 || rowNum < firstRowIndex) {
-                firstRowIndex = rowNum;
-            }
-            if (rowNum > lastRowIndex) {
-                lastRowIndex = rowNum;
-            }
-        }
-        
-        @Override
-        public void endRow(int rowNum) {
-            var rowCopy = Collections.unmodifiableList(new ArrayList<>(currentRow));
-            int firstColumn = currentRowLastColumnIndex >= 0 ? currentRowFirstColumnIndex + 1 : 0;
-            int lastColumn = currentRowLastColumnIndex >= 0 ? currentRowLastColumnIndex + 1 : 0;
-            rows.add(new RowData(rowCopy, firstColumn, lastColumn));
-            maxColumns = Math.max(maxColumns, rowCopy.size());
-        }
-        
-        @Override
-        public void cell(String cellReference, String formattedValue, XSSFComment comment) {
-            if (formattedValue == null) {
-                formattedValue = "";
-            }
-            
-            int colIndex = getColumnIndex(cellReference);
+      currentRow = new ArrayList<>();
+      currentRowIndex = rowNum;
+      currentRowFirstColumnIndex = Integer.MAX_VALUE;
+      currentRowLastColumnIndex = -1;
 
-            while (currentRow.size() <= colIndex) {
-                currentRow.add(null);
-            }
-
-            currentRow.set(colIndex, formattedValue);
-            currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
-            currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
-        }
-
-        @Override
-        public void doubleCell(String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf) {
-            int colIndex = getColumnIndex(cellReference);
-            while (currentRow.size() <= colIndex) {
-                currentRow.add(null);
-            }
-            var val = formatNumericValue(value, nf, false);
-            currentRow.set(colIndex, val);
-            currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
-            currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
-        }
-
-        @Override
-        public void booleanCell(String cellReference, boolean value, XSSFComment comment) {
-            int colIndex = getColumnIndex(cellReference);
-            while (currentRow.size() <= colIndex) {
-                currentRow.add(null);
-            }
-            currentRow.set(colIndex, value);
-            currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
-            currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
-        }
-        
-        @Override
-        public void headerFooter(String text, boolean isHeader, String tagName) {
-            // Not implemented for this example
-        }
-        
-        private int getColumnIndex(String cellReference) {
-            if (cellReference == null || cellReference.isEmpty()) {
-                return 0;
-            }
-            
-            int colIndex = 0;
-            for (int i = 0; i < cellReference.length(); i++) {
-                char c = cellReference.charAt(i);
-                if (Character.isDigit(c)) {
-                    break;
-                }
-                colIndex = colIndex * 26 + (c - 'A' + 1);
-            }
-            return colIndex - 1;
-        }
-        
-        int getFirstRowNumber() {
-            return firstRowIndex >= 0 ? firstRowIndex + 1 : 0;
-        }
-
-        int getLastRowNumber() {
-            return lastRowIndex >= 0 ? lastRowIndex + 1 : 0;
-        }
-
-        RowData getRowData(int rowNumber) {
-            int index = rowNumber - 1;
-            if (index < 0 || index >= rows.size()) {
-                return null;
-            }
-            return rows.get(index);
-        }
-
-        static final class RowData {
-            private final List<Object> values;
-            private final int firstColumn;
-            private final int lastColumn;
-
-            RowData(List<Object> values, int firstColumn, int lastColumn) {
-                this.values = values;
-                this.firstColumn = firstColumn;
-                this.lastColumn = lastColumn;
-            }
-
-            List<Object> values() {
-                return values;
-            }
-
-            int firstColumn() {
-                return firstColumn;
-            }
-
-            int lastColumn() {
-                return lastColumn;
-            }
-        }
+      if (firstRowIndex == -1 || rowNum < firstRowIndex) {
+        firstRowIndex = rowNum;
+      }
+      if (rowNum > lastRowIndex) {
+        lastRowIndex = rowNum;
+      }
     }
+
+    @Override
+    public void endRow(int rowNum) {
+      var rowCopy = Collections.unmodifiableList(new ArrayList<>(currentRow));
+      int firstColumn = currentRowLastColumnIndex >= 0 ? currentRowFirstColumnIndex + 1 : 0;
+      int lastColumn = currentRowLastColumnIndex >= 0 ? currentRowLastColumnIndex + 1 : 0;
+      rows.add(new RowData(rowCopy, firstColumn, lastColumn));
+      maxColumns = Math.max(maxColumns, rowCopy.size());
+    }
+
+    @Override
+    public void cell(String cellReference, String formattedValue, XSSFComment comment) {
+      if (formattedValue == null) {
+        formattedValue = "";
+      }
+
+      int colIndex = getColumnIndex(cellReference);
+
+      while (currentRow.size() <= colIndex) {
+        currentRow.add(null);
+      }
+
+      currentRow.set(colIndex, formattedValue);
+      currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
+      currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
+    }
+
+    @Override
+    public void doubleCell(
+        String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf) {
+      int colIndex = getColumnIndex(cellReference);
+      while (currentRow.size() <= colIndex) {
+        currentRow.add(null);
+      }
+      var val = formatNumericValue(value, nf, false);
+      currentRow.set(colIndex, val);
+      currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
+      currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
+    }
+
+    @Override
+    public void booleanCell(String cellReference, boolean value, XSSFComment comment) {
+      int colIndex = getColumnIndex(cellReference);
+      while (currentRow.size() <= colIndex) {
+        currentRow.add(null);
+      }
+      currentRow.set(colIndex, value);
+      currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
+      currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
+    }
+
+    @Override
+    public void headerFooter(String text, boolean isHeader, String tagName) {
+      // Not implemented for this example
+    }
+
+    private int getColumnIndex(String cellReference) {
+      if (cellReference == null || cellReference.isEmpty()) {
+        return 0;
+      }
+
+      int colIndex = 0;
+      for (int i = 0; i < cellReference.length(); i++) {
+        char c = cellReference.charAt(i);
+        if (Character.isDigit(c)) {
+          break;
+        }
+        colIndex = colIndex * 26 + (c - 'A' + 1);
+      }
+      return colIndex - 1;
+    }
+
+    int getFirstRowNumber() {
+      return firstRowIndex >= 0 ? firstRowIndex + 1 : 0;
+    }
+
+    int getLastRowNumber() {
+      return lastRowIndex >= 0 ? lastRowIndex + 1 : 0;
+    }
+
+    RowData getRowData(int rowNumber) {
+      int index = rowNumber - 1;
+      if (index < 0 || index >= rows.size()) {
+        return null;
+      }
+      return rows.get(index);
+    }
+
+    static final class RowData {
+      private final List<Object> values;
+      private final int firstColumn;
+      private final int lastColumn;
+
+      RowData(List<Object> values, int firstColumn, int lastColumn) {
+        this.values = values;
+        this.firstColumn = firstColumn;
+        this.lastColumn = lastColumn;
+      }
+
+      List<Object> values() {
+        return values;
+      }
+
+      int firstColumn() {
+        return firstColumn;
+      }
+
+      int lastColumn() {
+        return lastColumn;
+      }
+    }
+  }
 }
