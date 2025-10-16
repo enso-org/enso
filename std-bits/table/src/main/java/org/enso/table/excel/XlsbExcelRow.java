@@ -1,6 +1,7 @@
 package org.enso.table.excel;
 
 import java.util.List;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.enso.table.excel.XlsbExcelWorkbookReader.XlsbSheetContentsHandler.RowData;
 import org.graalvm.polyglot.Context;
@@ -33,9 +34,7 @@ public final class XlsbExcelRow implements ExcelRow {
     if (!isWithinBounds(column)) {
       return null;
     }
-
-    var value = values.get(column - 1);
-    return (value == null) ? null : value; // || value.isEmpty()
+    return values.get(column - 1);
   }
 
   @Override
@@ -60,7 +59,7 @@ public final class XlsbExcelRow implements ExcelRow {
     }
 
     var value = values.get(column - 1);
-    return value == null; // || value.isEmpty();
+    return value == null;
   }
 
   @Override

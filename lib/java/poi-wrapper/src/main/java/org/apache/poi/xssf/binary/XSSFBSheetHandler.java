@@ -42,7 +42,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
   private static final int CHECK_ALL_ROWS = -1;
 
   private final SharedStrings stringsTable;
-  private final TypedSheetContentsHandler handler;
+  private final XSSFBSheetContentsHandler handler;
   private final XSSFBStylesTable styles;
   private final XSSFBCommentsTable comments;
   private final boolean formulasNotResults; // TODO: implement this
@@ -61,13 +61,13 @@ public class XSSFBSheetHandler extends XSSFBParser {
       XSSFBStylesTable styles,
       XSSFBCommentsTable comments,
       SharedStrings strings,
-      TypedSheetContentsHandler sheetTypedContentsHandler,
+      XSSFBSheetContentsHandler sheetContentsHandler,
       boolean formulasNotResults) {
     super(is);
     this.styles = styles;
     this.comments = comments;
     this.stringsTable = strings;
-    this.handler = sheetTypedContentsHandler;
+    this.handler = sheetContentsHandler;
     this.formulasNotResults = formulasNotResults;
   }
 
@@ -83,7 +83,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
     this.styles = styles;
     this.comments = comments;
     this.stringsTable = strings;
-    this.handler = new TypedSheetContentsHandlerWrapper(sheetContentsHandler, dataFormatter);
+    this.handler = new XSSFBSheetContentsHandlerWrapper(sheetContentsHandler, dataFormatter);
     this.formulasNotResults = formulasNotResults;
   }
 
@@ -366,7 +366,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
    * <p>By implementing the methods, you can process arbitrarily large files without exhausting main
    * memory.
    */
-  public interface TypedSheetContentsHandler {
+  public interface XSSFBSheetContentsHandler {
     /** A row with the (zero based) row number has started */
     void startRow(int rowNum);
 
@@ -424,11 +424,14 @@ public class XSSFBSheetHandler extends XSSFBParser {
     default void endSheet() {}
   }
 
-  private class TypedSheetContentsHandlerWrapper implements TypedSheetContentsHandler {
+  /**
+   * A wrapper to adapt a XSSFSheetXMLHandler.SheetContentsHandler to XSSFBSheetContentsHandler.
+   */
+  private class XSSFBSheetContentsHandlerWrapper implements XSSFBSheetContentsHandler {
     private final XSSFSheetXMLHandler.SheetContentsHandler delegate;
     private final DataFormatter dataFormatter;
 
-    public TypedSheetContentsHandlerWrapper(XSSFSheetXMLHandler.SheetContentsHandler delegate, DataFormatter dataFormatter) {
+    public XSSFBSheetContentsHandlerWrapper(XSSFSheetXMLHandler.SheetContentsHandler delegate, DataFormatter dataFormatter) {
       this.delegate = delegate;
       this.dataFormatter = dataFormatter;
     }

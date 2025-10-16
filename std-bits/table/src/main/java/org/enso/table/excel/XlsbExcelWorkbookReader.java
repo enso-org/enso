@@ -16,7 +16,7 @@ import org.apache.poi.ss.usermodel.ExcelNumberFormat;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.apache.poi.xssf.binary.XSSFBSharedStringsTable;
 import org.apache.poi.xssf.binary.XSSFBSheetHandler;
-import org.apache.poi.xssf.binary.XSSFBSheetHandler.TypedSheetContentsHandler;
+import org.apache.poi.xssf.binary.XSSFBSheetHandler.XSSFBSheetContentsHandler;
 import org.apache.poi.xssf.binary.XSSFBStylesTable;
 import org.apache.poi.xssf.eventusermodel.XSSFBReader;
 import org.apache.poi.xssf.model.SharedStrings;
@@ -153,7 +153,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
   /**
    * Custom implementation of SheetContentsHandler to capture and display cell data from XLSB files.
    */
-  static class XlsbSheetContentsHandler implements TypedSheetContentsHandler {
+  static class XlsbSheetContentsHandler implements XSSFBSheetContentsHandler {
     private final List<RowData> rows = new ArrayList<>();
     private List<Object> currentRow = new ArrayList<>();
     private int currentRowIndex = -1;

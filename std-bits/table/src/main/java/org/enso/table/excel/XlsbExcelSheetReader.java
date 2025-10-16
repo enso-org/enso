@@ -1,12 +1,7 @@
 package org.enso.table.excel;
 
 import org.apache.poi.ss.usermodel.Sheet;
-
-/**
- * Skeleton sheet reader for XLSB sheets.
- *
- * <p>The implementation will be filled in when XLSB support is added.
- */
+/* A sheet reader for XLSB sheets. */
 public final class XlsbExcelSheetReader implements ExcelSheetReader {
 
   private final int sheetIndex;
@@ -56,11 +51,8 @@ public final class XlsbExcelSheetReader implements ExcelSheetReader {
 
   @Override
   public Sheet getSheet() {
-    throw notImplemented();
-  }
-
-  private UnsupportedOperationException notImplemented() {
-    return new UnsupportedOperationException(
-        "XLSB sheet support is not implemented yet for sheet " + sheetName);
+    // Not supported as we don't have the underlying Apache POI Sheet object.
+    throw new UnsupportedOperationException(
+        "XLSBReader does not support getting the Sheet object.");
   }
 }
