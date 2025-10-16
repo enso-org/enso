@@ -1,4 +1,5 @@
 import { parseWithSpans } from '$/providers/openedProjects/graph/__tests__/graphDatabase.test'
+import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
 import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import { type NodeVisualizationConfiguration } from '$/providers/openedProjects/project/executionContext'
 import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
@@ -14,12 +15,12 @@ import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import {
   GET_WIDGETS_METHOD,
   WIDGETS_ENSO_MODULE,
-  useWidgetFunctionCallInfo,
-} from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
+} from '@/components/GraphEditor/widgets/WidgetFunction/consts'
+import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { expect, test } from 'vitest'
-import { ref, type Ref } from 'vue'
+import { ref, toValue, type WatchSource } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import { SourceRange } from 'ydoc-shared/util/data/text'
 
@@ -75,7 +76,7 @@ test.each`
     const node = statement.expression
     expect(node.externalId).toBe(eid('entireFunction'))
 
-    let visConfig: Ref<Opt<NodeVisualizationConfiguration>> | undefined
+    let visConfig: WatchSource<Opt<NodeVisualizationConfiguration>> | undefined
     useWidgetFunctionCallInfo(
       WidgetInput.FromAst(node),
       {
@@ -102,28 +103,30 @@ test.each`
             }
           }
         },
-      },
+      } as GraphDb,
       {
         useVisualizationData(config) {
           expect(visConfig, 'Only one visualization is expected').toBeUndefined()
           visConfig = config
           return ref(null)
         },
+        moduleProjectPath: undefined,
       },
       projectNames,
     )
     assert(visConfig != null)
-    assert(visConfig.value != null)
-    if (typeof visConfig.value.expression === 'string') {
-      expect(visConfig.value.expressionId).toBe(eid('entireFunction'))
-      expect(visConfig.value.expression).toBe(
+    const visConfigValue = toValue<Opt<NodeVisualizationConfiguration>>(visConfig)
+    assert(visConfigValue != null)
+    if (typeof visConfigValue.expression === 'string') {
+      expect(visConfigValue.expressionId).toBe(eid('entireFunction'))
+      expect(visConfigValue.expression).toBe(
         `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${projectNames.printProjectPath(callSuggestion.memberOf)}`,
       )
       expect(eid('attached')).toBeUndefined()
     } else {
-      expect(visConfig.value.expressionId).toBe(eid('attached'))
+      expect(visConfigValue.expressionId).toBe(eid('attached'))
     }
-    expect(visConfig.value.positionalArgumentsExpressions?.[0]).toBe(methodName)
-    expect(visConfig.value.positionalArgumentsExpressions?.[1]).toBe("['arg']")
+    expect(visConfigValue.positionalArgumentsExpressions?.[0]).toBe(methodName)
+    expect(visConfigValue.positionalArgumentsExpressions?.[1]).toBe("['arg']")
   },
 )

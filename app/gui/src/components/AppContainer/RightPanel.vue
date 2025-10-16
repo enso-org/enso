@@ -91,7 +91,6 @@ const style = computed(() => (data.width == null ? {} : { '--panel-width': `${da
           @update:selected="data.setTab($event ? id : undefined)"
         />
       </div>
-      <div class="filler" />
     </div>
   </div>
 </template>

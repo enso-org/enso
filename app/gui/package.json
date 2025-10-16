@@ -16,13 +16,13 @@
     "url": "https://github.com/enso-org/enso/issues"
   },
   "//": [
+    "TODO: remove '--experimental-wasm-modules' once updated to node 24",
     "--max-old-space-size=4096 is required when sourcemaps are enabled,",
     "otherwise Rollup runs out of memory when Vite is rendering chunks.",
     "ResizeObserver is required for the dashboard tests to work.",
     "ResizeObserver is not supported in vitest, so we need to stub it."
   ],
   "scripts": {
-    "compile": "vue-tsc --noEmit -p tsconfig.node.json",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=6144 vite build",
     "build-cloud": "cross-env ENSO_IDE_CLOUD_BUILD=true corepack pnpm run build",
@@ -32,10 +32,9 @@
     "dev:vite": "vite",
     "test": "corepack pnpm run /^^^^test:.*/",
     "test:unit": "vitest run",
-    "test:integration": "cross-env NODE_ENV=production playwright test",
+    "test:integration": "cross-env NODE_OPTIONS='--experimental-wasm-modules' NODE_ENV=production playwright test",
     "test-dev:unit": "vitest",
-    "test-dev:integration": "cross-env NODE_ENV=production playwright test --ui",
-    "test-dev-dashboard:integration": "cross-env NODE_ENV=production playwright test ./integration-test/dashboard/ --ui",
+    "test-dev:integration": "cross-env NODE_OPTIONS='--experimental-wasm-modules' NODE_ENV=production playwright test --ui",
     "playwright:install": "playwright install chromium"
   },
   "dependencies": {
@@ -175,7 +174,7 @@
     "hash-wasm": "^4.12.0",
     "jsdom": "^26.1.0",
     "playwright": "catalog:",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.6",
     "postcss-nesting": "^12.0.1",
     "project-manager-shim": "workspace:*",
     "react": "^18.3.1",

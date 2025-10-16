@@ -1,54 +1,50 @@
 /** @file Test sorting of assets columns. */
-import { expect, test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
-
-import { mockAllAndLogin } from './actions'
 
 const START_DATE_EPOCH_MS = 1.7e12
 /** The number of milliseconds in a minute. */
 const MIN_MS = 60_000
 
-test('sort', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      const date1 = toRfc3339(new Date(START_DATE_EPOCH_MS))
-      const date2 = toRfc3339(new Date(START_DATE_EPOCH_MS + 1 * MIN_MS))
-      const date3 = toRfc3339(new Date(START_DATE_EPOCH_MS + 2 * MIN_MS))
-      const date4 = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS))
-      const date4a = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS + 1))
-      const date4b = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS + 2))
-      const date5 = toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS))
-      const date5a = toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS + 1))
-      const date6 = toRfc3339(new Date(START_DATE_EPOCH_MS + 5 * MIN_MS))
-      const date7 = toRfc3339(new Date(START_DATE_EPOCH_MS + 6 * MIN_MS))
-      const date8 = toRfc3339(new Date(START_DATE_EPOCH_MS + 7 * MIN_MS))
-      api.addDirectory({ modifiedAt: date4, title: 'a directory 1' })
-      api.addDirectory({ modifiedAt: date4a, title: 'a directory 10' })
-      api.addDirectory({ modifiedAt: date4b, title: 'a directory 2' })
-      api.addDirectory({ modifiedAt: date5a, title: 'a directory 11' })
-      api.addDirectory({ modifiedAt: date6, title: 'G directory' })
-      api.addProject({ modifiedAt: date7, title: 'C project' })
-      api.addSecret({ modifiedAt: date2, title: 'H secret' })
-      api.addProject({ modifiedAt: date1, title: 'b project' })
-      api.addFile({ modifiedAt: date8, title: 'd file' })
-      api.addSecret({ modifiedAt: date3, title: 'f secret' })
-      api.addFile({ modifiedAt: date5, title: 'e file' })
-      // By date:
-      // b project
-      // h secret
-      // f secret
-      // a directory 1
-      // a directory 10
-      // a directory 2
-      // e file
-      // a directory 11
-      // g directory
-      // c project
-      // d file
-    },
-  })
+test('sort', async ({ drivePage, cloudApi }) => {
+  const date1 = toRfc3339(new Date(START_DATE_EPOCH_MS))
+  const date2 = toRfc3339(new Date(START_DATE_EPOCH_MS + 1 * MIN_MS))
+  const date3 = toRfc3339(new Date(START_DATE_EPOCH_MS + 2 * MIN_MS))
+  const date4 = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS))
+  const date4a = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS + 1))
+  const date4b = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS + 2))
+  const date5 = toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS))
+  const date5a = toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS + 1))
+  const date6 = toRfc3339(new Date(START_DATE_EPOCH_MS + 5 * MIN_MS))
+  const date7 = toRfc3339(new Date(START_DATE_EPOCH_MS + 6 * MIN_MS))
+  const date8 = toRfc3339(new Date(START_DATE_EPOCH_MS + 7 * MIN_MS))
+  cloudApi.addDirectory({ modifiedAt: date4, title: 'a directory 1' })
+  cloudApi.addDirectory({ modifiedAt: date4a, title: 'a directory 10' })
+  cloudApi.addDirectory({ modifiedAt: date4b, title: 'a directory 2' })
+  cloudApi.addDirectory({ modifiedAt: date5a, title: 'a directory 11' })
+  cloudApi.addDirectory({ modifiedAt: date6, title: 'G directory' })
+  cloudApi.addProject({ modifiedAt: date7, title: 'C project' })
+  cloudApi.addSecret({ modifiedAt: date2, title: 'H secret' })
+  cloudApi.addProject({ modifiedAt: date1, title: 'b project' })
+  cloudApi.addFile({ modifiedAt: date8, title: 'd file' })
+  cloudApi.addSecret({ modifiedAt: date3, title: 'f secret' })
+  cloudApi.addFile({ modifiedAt: date5, title: 'e file' })
+  // By date:
+  // b project
+  // h secret
+  // f secret
+  // a directory 1
+  // a directory 10
+  // a directory 2
+  // e file
+  // a directory 11
+  // g directory
+  // c project
+  // d file
+
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.withRows(async (rows) => {
       // By default, assets should be grouped by type.
       // Assets in each group are ordered by insertion order.
@@ -173,4 +169,5 @@ test('sort', ({ page }) =>
         /^f secret/,
         /^H secret/,
       ])
-    }))
+    })
+})

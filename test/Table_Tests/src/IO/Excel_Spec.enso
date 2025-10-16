@@ -1247,7 +1247,12 @@ add_specs suite_builder =
             xlsx_sheet_copy.delete_if_exists . should_succeed
             xlsx_sheet.copy_to xlsx_sheet_copy
 
-            # At first, it fails with File_Error
+            # At first, it fails with File_Error (new xls_format api of enum)
+            r0 = xlsx_sheet.read (..Range "Sheet1!A:C" xls_format=..XLS)
+            r0.should_fail_with File_Error
+            r0.catch.should_be_a File_Error.Corrupted_Format
+
+            # At first, it fails with File_Error (old xls_format api of boolean)
             r1 = xlsx_sheet.read (..Range "Sheet1!A:C" xls_format=True)
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Corrupted_Format
@@ -1262,9 +1267,15 @@ add_specs suite_builder =
             r1_3.should_fail_with File_Error
             r1_3.catch.should_be_a File_Error.Corrupted_Format
 
-            r2 = xls_sheet.read (..Range "Sheet1!A:C" xls_format=False)
+            ## (new xls_format api of enum)
+            r2 = xls_sheet.read (..Range "Sheet1!A:C" xls_format=..XLSX)
             r2.should_fail_with File_Error
             r2.catch.should_be_a File_Error.Corrupted_Format
+
+            ## (old xls_format api of boolean)
+            r3 = xls_sheet.read (..Range "Sheet1!A:C" xls_format=False)
+            r3.should_fail_with File_Error
+            r3.catch.should_be_a File_Error.Corrupted_Format
             xlsx_sheet_copy.delete
 
         group_builder.specify "should handle malformed XLS files gracefully" <|

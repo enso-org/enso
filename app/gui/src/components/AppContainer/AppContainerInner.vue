@@ -15,6 +15,7 @@ import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { useEvent } from '@/composables/events'
 import { registerHandlers } from '@/providers/action'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { reactComponent } from '@/util/react'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { onMounted, reactive, shallowRef, toRefs, watch } from 'vue'
@@ -123,16 +124,17 @@ const actionHandlers = registerHandlers({
   },
 })
 
-useEvent(
-  window,
-  'keydown',
-  appContainerBindings.handler(
-    objects.mapEntries(
-      appContainerBindings.bindings,
-      (actionName) => actionHandlers[actionName].action,
-    ),
+const keydownHandler = appContainerBindings.handler(
+  objects.mapEntries(
+    appContainerBindings.bindings,
+    (actionName) => actionHandlers[actionName].action,
   ),
 )
+
+const { globalEventRegistry } = useGlobalEventRegistry()
+useEvent(globalEventRegistry, 'keydown', (event) => {
+  return keydownHandler(event)
+})
 
 const onSignOut = () => {
   emit('closeAllProjects')
@@ -173,7 +175,6 @@ const onSignOut = () => {
           @close="closeSettingsTab"
         />
       </div>
-      <div class="filler" />
       <UserBar :goToSettingsPage="() => (tab = 'settings')" @signOut="onSignOut" />
     </div>
     <div class="mainView">
@@ -213,6 +214,7 @@ const onSignOut = () => {
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: space-between;
   height: 3rem;
   min-height: 3rem;
   position: relative;
@@ -226,10 +228,6 @@ const onSignOut = () => {
   /* Create a stacking context for tab highlight, so it's under all tabs' contents. */
   isolation: isolate;
   font-family: var(--font-sans);
-}
-
-.filler {
-  flex-grow: 1;
 }
 
 .mainView {

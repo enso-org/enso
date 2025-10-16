@@ -21,6 +21,7 @@ import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import { wait } from 'lib0/promise'
+import type { Ref, WatchSource } from 'vue'
 import {
   computed,
   markRaw,
@@ -29,7 +30,6 @@ import {
   shallowRef,
   watch,
   watchEffect,
-  type WatchSource,
   type WritableComputedRef,
 } from 'vue'
 import type { Identifier } from 'ydoc-shared/ast'
@@ -197,7 +197,9 @@ export function createProjectStore(
     diagnostics.value = newDiagnostics
   })
 
-  function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
+  function useVisualizationData(
+    configuration: WatchSource<Opt<NodeVisualizationConfiguration>>,
+  ): Ref<Result<unknown> | null> {
     const visId = ref<Uuid>()
 
     watch(

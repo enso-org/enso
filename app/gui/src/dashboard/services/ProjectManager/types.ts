@@ -142,6 +142,7 @@ export interface CreateProject {
 export interface OpenProject {
   readonly languageServerJsonAddress: IpWithSocket
   readonly languageServerBinaryAddress: IpWithSocket
+  readonly languageServerYdocAddress?: IpWithSocket
   readonly projectName: ProjectName
   readonly projectNormalizedName: string
   readonly projectNamespace: string

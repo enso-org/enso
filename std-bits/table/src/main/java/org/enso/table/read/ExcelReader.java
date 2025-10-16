@@ -18,8 +18,8 @@ import org.enso.table.excel.ExcelFileFormat;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
-import org.enso.table.excel.ExcelSheet;
-import org.enso.table.excel.ExcelWorkbook;
+import org.enso.table.excel.ExcelSheetReader;
+import org.enso.table.excel.ExcelWorkbookReader;
 import org.enso.table.excel.internal.ExcelConnectionPool;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.FunctionWithException;
@@ -70,10 +70,10 @@ public class ExcelReader {
   /**
    * Reads a list of sheet names from a workbook into an array.
    *
-   * @param workbook a {@link ExcelWorkbook} to read the sheet names from.
+   * @param workbook a {@link ExcelWorkbookReader} to read the sheet names from.
    * @return a String[] containing the sheet names.
    */
-  private static String[] readSheetNames(ExcelWorkbook workbook) {
+  private static String[] readSheetNames(ExcelWorkbookReader workbook) {
     int sheetCount = workbook.getNumberOfSheets();
     var output = new String[sheetCount];
     Context context = Context.getCurrent();
@@ -94,7 +94,7 @@ public class ExcelReader {
    */
   public static String[] readRangeNames(File file, ExcelFileFormat format)
       throws IOException, InterruptedException {
-    return withWorkbook(file, format, ExcelWorkbook::getRangeNames);
+    return withWorkbook(file, format, ExcelWorkbookReader::getRangeNames);
   }
 
   /**
@@ -170,7 +170,7 @@ public class ExcelReader {
   /**
    * Reads a sheet by index for the specified XLSX/XLS file into a table.
    *
-   * @param workbook a {@link ExcelWorkbook} to read from.
+   * @param workbook a {@link ExcelWorkbookReader} to read from.
    * @param index the 1-based index to the sheet.
    * @param skip_rows skip rows from the top the sheet.
    * @param headers specifies whether the first row should be used as headers.
@@ -179,7 +179,7 @@ public class ExcelReader {
    * @throws InvalidLocationException when the sheet index is not valid.
    */
   private static Table readSheetByIndex(
-      ExcelWorkbook workbook,
+      ExcelWorkbookReader workbook,
       int index,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
@@ -237,7 +237,7 @@ public class ExcelReader {
   /**
    * Reads a range by sheet name, named range or address for the workbook into a table.
    *
-   * @param workbook a {@link ExcelWorkbook} to read from.
+   * @param workbook a {@link ExcelWorkbookReader} to read from.
    * @param rangeNameOrAddress sheet name, range name or address to read.
    * @param headers specifies whether the first row should be used as headers.
    * @param skip_rows skip rows from the top of the range.
@@ -246,7 +246,7 @@ public class ExcelReader {
    * @throws InvalidLocationException when the range name or address is not found.
    */
   private static Table readRangeByName(
-      ExcelWorkbook workbook,
+      ExcelWorkbookReader workbook,
       String rangeNameOrAddress,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
@@ -308,13 +308,13 @@ public class ExcelReader {
   private static <T> T withWorkbook(
       File file,
       ExcelFileFormat format,
-      FunctionWithException<ExcelWorkbook, T, InterruptedException> action)
+      FunctionWithException<ExcelWorkbookReader, T, InterruptedException> action)
       throws IOException, InterruptedException {
     return ExcelConnectionPool.INSTANCE.performReadOnlyAction(file, format, action);
   }
 
   private static Table readRange(
-      ExcelWorkbook workbook,
+      ExcelWorkbookReader workbook,
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
       int skip_rows,
@@ -338,7 +338,7 @@ public class ExcelReader {
   }
 
   private static Table readTable(
-      ExcelWorkbook workbook,
+      ExcelWorkbookReader workbook,
       int sheetIndex,
       ExcelRange excelRange,
       ExcelHeaders.HeaderBehavior headers,
@@ -347,7 +347,7 @@ public class ExcelReader {
       ProblemAggregator problemAggregator)
       throws InterruptedException {
 
-    ExcelSheet sheet = workbook.getSheetAt(sheetIndex);
+    ExcelSheetReader sheet = workbook.getSheetAt(sheetIndex);
 
     // Expand Single Cell
     if (excelRange != null && excelRange.isSingleCell()) {

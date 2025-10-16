@@ -1746,7 +1746,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       (`syntax-rust-definition` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value
     ),
-    Test / test := (Test / test).dependsOn(buildEngineDistribution).value
+    Test / test := Def.task(()).dependsOn(buildEngineDistribution).value
   )
   /** JPMS related settings for runtime
     */

@@ -6,6 +6,7 @@ import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useNodesDragging } from '@/components/GraphEditor/nodesDragging'
 import { useArrows, useEvent } from '@/composables/events'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
@@ -43,7 +44,8 @@ const displacingWithArrows = useArrows(
   { predicate: (_) => selection.selected.size > 0 },
 )
 
-useEvent(window, 'keydown', displacingWithArrows.events.keydown)
+const { globalEventRegistry } = useGlobalEventRegistry()
+useEvent(globalEventRegistry, 'keydown', displacingWithArrows.events.keydown)
 
 const uploadingFiles = computed<[FileName, File][]>(() => {
   const uploads = [...projectStore.awareness.allUploads()]

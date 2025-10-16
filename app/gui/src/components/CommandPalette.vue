@@ -3,7 +3,7 @@ import { CATEGORIES } from '#/configurations/inputBindings'
 import KeyboardShortcutReact from '#/pages/dashboard/components/KeyboardShortcut'
 import { unsetModal } from '#/providers/ModalProvider'
 import { isTextInputEvent } from '#/utilities/event'
-import * as objects from '#/utilities/object'
+import { mapEntries } from '#/utilities/object'
 import { useActionsStore, type Action } from '$/providers/actions'
 import { useContainerData } from '$/providers/container'
 import { useText } from '$/providers/text'
@@ -70,10 +70,7 @@ useEvent(
   window,
   'keydown',
   commandPaletteBindings.handler(
-    objects.mapEntries(
-      commandPaletteBindings.bindings,
-      (actionName) => actionHandlers[actionName].action,
-    ),
+    mapEntries(commandPaletteBindings.bindings, (actionName) => actionHandlers[actionName].action),
   ),
 )
 
