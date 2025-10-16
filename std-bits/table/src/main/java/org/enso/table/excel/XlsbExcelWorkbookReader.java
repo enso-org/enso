@@ -13,6 +13,7 @@ import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
+import org.apache.poi.ss.usermodel.FormulaError;
 import org.apache.poi.xssf.binary.XSSFBSharedStringsTable;
 import org.apache.poi.xssf.binary.XSSFBSheetHandler;
 import org.apache.poi.xssf.binary.XSSFBSheetHandler.TypedSheetContentsHandler;
@@ -221,7 +222,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
       currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
     }
 
-    
+    @Override
     public void booleanCell(String cellReference, boolean value, XSSFComment comment) {
       int colIndex = getColumnIndex(cellReference);
       while (currentRow.size() <= colIndex) {
@@ -233,7 +234,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
     }
 
     @Override
-    public void errorCell(String cellReference, XSSFComment comment) {
+    public void errorCell(String cellReference, FormulaError fe, XSSFComment comment) {
       int colIndex = getColumnIndex(cellReference);
       while (currentRow.size() <= colIndex) {
         currentRow.add(null);

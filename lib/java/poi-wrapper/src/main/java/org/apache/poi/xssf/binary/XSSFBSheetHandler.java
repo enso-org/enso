@@ -23,6 +23,7 @@ import java.util.Queue;
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
+import org.apache.poi.ss.usermodel.FormulaError;
 import org.apache.poi.ss.usermodel.RichTextString;
 import org.apache.poi.ss.util.CellAddress;
 import org.apache.poi.util.Internal;
@@ -128,7 +129,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
         handleFmlaNum(data);
         break;
       case BrtFmlaError:
-        handleFmlaError(data);
+        handleCellError(data);
         break;
       // TODO: All the PCDI and PCDIA
       case BrtEndSheetData:
@@ -209,18 +210,12 @@ public class XSSFBSheetHandler extends XSSFBParser {
 
   private void handleCellError(byte[] data) {
     beforeCellValue(data);
-    // TODO, read byte to figure out the type of error
+    final int BERR_OFFSET = 8;
+    int bErr = (data.length > BERR_OFFSET) ? (data[BERR_OFFSET] & 0xFF) : -1;
+    FormulaError fe = (bErr >= 0) ? FormulaError.forInt(bErr) : null;
     CellAddress cellAddress = getCellAddress();
     XSSFBComment comment = getCellComment(cellAddress);
-    handler.errorCell(cellAddress.formatAsString(), comment);
-  }
-
-  private void handleFmlaError(byte[] data) {
-    beforeCellValue(data);
-    // TODO, read byte to figure out the type of error
-    CellAddress cellAddress = getCellAddress();
-    XSSFBComment comment = getCellComment(cellAddress);
-    handler.errorCell(cellAddress.formatAsString(), comment);
+    handler.errorCell(cellAddress.formatAsString(), fe, comment);
   }
 
   private void handleBoolean(byte[] data) {
@@ -408,15 +403,15 @@ public class XSSFBSheetHandler extends XSSFBParser {
     void booleanCell(String cellReference, boolean value, XSSFComment comment);
 
     /**
-     * A cell, with an error value, and possibly a comment (may be null),
-     * was encountered.
+     * A cell, with an error value (maybe null if we can't map the code to a FormulaError), 
+     * and possibly a comment (may be null), was encountered.
      *
      * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
      * See the code in <code>
      * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
      * example of how to handle this scenario.
      */
-    void errorCell(String cellReference, XSSFComment comment);
+    void errorCell(String cellReference, FormulaError fe, XSSFComment comment);
 
     /** A header or footer has been encountered */
     default void headerFooter(String text, boolean isHeader, String tagName) {}
@@ -461,8 +456,9 @@ public class XSSFBSheetHandler extends XSSFBParser {
     }
 
     @Override
-    public void errorCell(String cellReference, XSSFComment comment) {
-      delegate.cell(cellReference, "ERROR", comment);
+    public void errorCell(String cellReference, FormulaError fe, XSSFComment comment) {
+      String errorText = fe != null ? fe.getString() : "ERROR";
+      delegate.cell(cellReference, errorText, comment);
     }
 
     @Override
