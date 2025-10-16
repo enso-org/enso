@@ -194,11 +194,13 @@ export class EnsoRunner implements Runner {
       setTimeout(startHealthCheck, 250)
 
       serverProcess.stderr.on('data', (data) => {
+        console.error(data.toString())
         const dataStr = data.toString()
         stderr += dataStr
       })
 
       serverProcess.on('error', (error) => {
+        console.error(error.toString())
         if (!resolved) {
           reject(new Error(`Failed to start language server: ${error.message}`))
         }
