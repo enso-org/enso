@@ -19,6 +19,7 @@ package org.apache.poi.xssf.binary;
 
 import java.io.InputStream;
 import java.util.Queue;
+
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
@@ -475,20 +476,6 @@ public class XSSFBSheetHandler extends XSSFBParser {
     @Override
     public void endSheet() {
       delegate.endSheet();
-    }
-
-    private String formatVal(double val, int styleIdx) {
-      String formatString = styles.getNumberFormatString(styleIdx);
-      short styleIndex = styles.getNumberFormatIndex(styleIdx);
-      // for now, if formatString is null, silently punt
-      // and use "General".  Not the best behavior,
-      // but we're doing it now in the streaming and non-streaming
-      // extractors for xlsx.  See BUG-61053
-      if (formatString == null) {
-        formatString = BuiltinFormats.getBuiltinFormat(0);
-        styleIndex = 0;
-      }
-      return dataFormatter.formatRawCellContents(val, styleIndex, formatString);
     }
   }
 }
