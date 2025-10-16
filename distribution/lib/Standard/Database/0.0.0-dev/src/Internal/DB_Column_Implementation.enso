@@ -545,9 +545,10 @@ make_equality_check_with_floating_point_handling column other op =
 
 adapt_unified_column (column : Column & DB_Column) expected_type =
     dialect = column.connection.dialect
+    mapping = column.connection.type_mapping
     infer_return_type expression =
         SQL_Type_Reference.new column.connection column.context expression
-    adapted = dialect.adapt_unified_column (Internal_Column.from column) expected_type infer_return_type
+    adapted = dialect.adapt_unified_column (Internal_Column.from column) expected_type infer_return_type mapping
     DB_Column.new column.name column.connection adapted.sql_type_reference adapted.expression column.context
 
 

@@ -241,9 +241,9 @@ type SQLServer_Dialect
     ## ---
        private: true
        ---
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
-        _ = [approximate_result_type, infer_result_type_from_database_callback]
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
+        _ = [column, approximate_result_type, infer_result_type_from_database_callback, mapping]
         column
 
     ## ---
