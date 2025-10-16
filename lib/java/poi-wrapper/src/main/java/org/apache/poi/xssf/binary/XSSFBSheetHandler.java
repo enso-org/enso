@@ -56,6 +56,9 @@ public class XSSFBSheetHandler extends XSSFBParser {
 
   private final XSSFBCellHeader cellBuffer = new XSSFBCellHeader();
 
+  // This XSSFBSheetHandler takes a XSSFBSheetContentsHandler which will return all cell values
+  // as their natively stored type (string, double, boolean, error).
+  // If you want formatted string values, use the other constructor.
   public XSSFBSheetHandler(
       InputStream is,
       XSSFBStylesTable styles,
@@ -71,6 +74,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
     this.formulasNotResults = formulasNotResults;
   }
 
+  // This XSSFBSheetHandler takes a XSSFSheetXMLHandler.SheetContentsHandler which will return
+  // all cell values as strings.
+  // The DataFormatter is used to format numeric and date cells.
+  // If you want the raw values, use the other constructor.
   public XSSFBSheetHandler(
       InputStream is,
       XSSFBStylesTable styles,
