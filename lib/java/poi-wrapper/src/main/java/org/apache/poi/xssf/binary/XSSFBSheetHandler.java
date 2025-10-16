@@ -359,12 +359,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
   }
 
   /**
-   * This interface allows to provide callbacks when reading a sheet in streaming mode.
-   *
-   * <p>The XSLX file is usually read via {@link XSSFReader}.
-   *
-   * <p>By implementing the methods, you can process arbitrarily large files without exhausting main
-   * memory.
+   * This interface allows to provide callbacks when reading a sheet in a XSSFBSheetHandler
    */
   public interface XSSFBSheetContentsHandler {
     /** A row with the (zero based) row number has started */
