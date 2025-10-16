@@ -19,6 +19,7 @@ package org.apache.poi.xssf.binary;
 
 import java.io.InputStream;
 import java.util.Queue;
+
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
@@ -55,9 +56,21 @@ public class XSSFBSheetHandler extends XSSFBParser {
 
   private final XSSFBCellHeader cellBuffer = new XSSFBCellHeader();
 
-  // This XSSFBSheetHandler takes a XSSFBSheetContentsHandler which will return all cell values
-  // as their natively stored type (string, double, boolean, error).
-  // If you want formatted string values, use the other constructor.
+  /**
+   * Creates a handler that forwards native POI cell types to the supplied
+   * {@link XSSFBSheetContentsHandler}.
+   *
+   * <p>Select this overload when the consumer expects the raw cell representation rather than
+   * formatted strings.
+   *
+   * @param is XLSB worksheet stream to parse
+   * @param styles table providing cell style and number format metadata
+   * @param comments optional comments table, may be {@code null}
+   * @param strings shared strings table used by the sheet
+   * @param sheetContentsHandler callback receiving native cell events
+   * @param formulasNotResults {@code true} to request formulas rather than cached results (currently
+   *     not implemented)
+   */
   public XSSFBSheetHandler(
       InputStream is,
       XSSFBStylesTable styles,
@@ -73,10 +86,25 @@ public class XSSFBSheetHandler extends XSSFBParser {
     this.formulasNotResults = formulasNotResults;
   }
 
-  // This XSSFBSheetHandler takes a XSSFSheetXMLHandler.SheetContentsHandler which will return
-  // all cell values as strings.
-  // The DataFormatter is used to format numeric and date cells.
-  // If you want the raw values, use the other constructor.
+  /**
+   * Creates a handler that converts numeric and date cells to formatted strings via
+   * {@link DataFormatter}.
+   *
+   * <p>This variant mirrors the SAX-based API from {@link XSSFSheetXMLHandler} so existing POI
+   * consumers can reuse their {@link XSSFSheetXMLHandler.SheetContentsHandler} implementations.
+   *
+   * @param is XLSB worksheet stream to parse
+   * @param styles table providing cell style and number format metadata
+   * @param comments optional comments table, may be {@code null}
+   * @param strings shared strings table used by the sheet
+   * @param sheetContentsHandler callback receiving formatted string values
+   * @param dataFormatter formatter applied to numeric and date cells
+   * @param formulasNotResults {@code true} to request formulas rather than cached results (currently
+   *     not implemented)
+   * @see
+   *     #XSSFBSheetHandler(InputStream, XSSFBStylesTable, XSSFBCommentsTable, SharedStrings,
+   *         XSSFBSheetContentsHandler, boolean)
+   */
   public XSSFBSheetHandler(
       InputStream is,
       XSSFBStylesTable styles,
@@ -93,6 +121,14 @@ public class XSSFBSheetHandler extends XSSFBParser {
     this.formulasNotResults = formulasNotResults;
   }
 
+  /**
+   * Dispatches a parsed XLSB record to the appropriate specialised handler.
+   *
+   * @param id numeric record identifier supplied by {@link XSSFBParser}
+   * @param data raw record payload
+   * @throws XSSFBParseException if the record cannot be processed according to the XLSB spec
+   * @see XSSFBRecordType
+   */
   @Override
   public void handleRecord(int id, byte[] data) throws XSSFBParseException {
     XSSFBRecordType type = XSSFBRecordType.lookup(id);
@@ -364,69 +400,108 @@ public class XSSFBSheetHandler extends XSSFBParser {
     return d;
   }
 
-  /** This interface allows to provide callbacks when reading a sheet in a XSSFBSheetHandler */
+  /**
+   * Receives streaming callbacks while {@link XSSFBSheetHandler} parses an XLSB sheet.
+   *
+   * <p>Implementations follow the same contract as Apache POI's SAX sheet handler but operate on
+   * the binary file format exposed by {@link XSSFBSheetHandler}.
+   *
+   * @see XSSFBSheetHandler
+   * @see XSSFSheetXMLHandler.SheetContentsHandler
+   */
   public interface XSSFBSheetContentsHandler {
-    /** A row with the (zero based) row number has started */
+    /**
+     * Signals that a row has started before any of its cells are delivered.
+     *
+     * @param rowNum zero-based row index
+     * @see #endRow(int)
+     */
     void startRow(int rowNum);
 
-    /** A row with the (zero based) row number has ended */
+    /**
+     * Signals that a row has ended after all of its cells and comments were processed.
+     *
+     * @param rowNum zero-based row index
+     * @see #startRow(int)
+     */
     void endRow(int rowNum);
 
     /**
-     * A cell, with the given string value (may be null), and possibly a comment (may be null), was
-     * encountered.
+     * Handles a cell that resolves to a string value, possibly representing a comment-only cell.
      *
-     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
-     * See the code in <code>
-     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
-     * example of how to handle this scenario.
+     * @param cellReference A1-style cell address
+     * @param value string contents, or {@code null} if only a comment is present
+     * @param comment associated comment, or {@code null} if absent
+     * @see #doubleCell(String, double, XSSFComment, ExcelNumberFormat)
      */
     void stringCell(String cellReference, String value, XSSFComment comment);
 
     /**
-     * A cell, with the given double value and format, and possibly a comment (may be null), was
-     * encountered.
+     * Handles a numeric cell while providing the corresponding {@link ExcelNumberFormat}.
      *
-     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
-     * See the code in <code>
-     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
-     * example of how to handle this scenario.
+     * @param cellReference A1-style cell address
+     * @param value numeric value extracted from the sheet
+     * @param comment associated comment, or {@code null} if absent
+     * @param nf number format describing how the value should be rendered
+     * @see #stringCell(String, String, XSSFComment)
      */
     void doubleCell(String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf);
 
     /**
-     * A cell, with the given boolean value, and possibly a comment (may be null), was encountered.
+     * Handles a boolean cell.
      *
-     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
-     * See the code in <code>
-     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
-     * example of how to handle this scenario.
+     * @param cellReference A1-style cell address
+     * @param value boolean value stored in the cell
+     * @param comment associated comment, or {@code null} if absent
+     * @see #stringCell(String, String, XSSFComment)
      */
     void booleanCell(String cellReference, boolean value, XSSFComment comment);
 
     /**
-     * A cell, with an error value (maybe null if we can't map the code to a FormulaError), and
-     * possibly a comment (may be null), was encountered.
+     * Handles a cell that evaluates to an error.
      *
-     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
-     * See the code in <code>
-     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
-     * example of how to handle this scenario.
+     * @param cellReference A1-style cell address
+     * @param fe mapped {@link FormulaError}, or {@code null} when the error code is unknown
+     * @param comment associated comment, or {@code null} if absent
+     * @see FormulaError
      */
     void errorCell(String cellReference, FormulaError fe, XSSFComment comment);
 
-    /** A header or footer has been encountered */
+    /**
+     * Receives header or footer text encountered in the sheet.
+     *
+     * @param text resolved header or footer text
+     * @param isHeader {@code true} when the text belongs to a header, otherwise {@code false}
+     * @param tagName POI-internal tag representing the header or footer section
+     * @see #endSheet()
+     */
     default void headerFooter(String text, boolean isHeader, String tagName) {}
 
-    /** Signal that the end of a sheet was been reached */
+    /**
+     * Signals that the sheet has been completely processed.
+     *
+     * @see #startRow(int)
+     */
     default void endSheet() {}
   }
 
-  /** A wrapper to adapt a XSSFSheetXMLHandler.SheetContentsHandler to XSSFBSheetContentsHandler. */
+  /**
+   * Bridges a {@link XSSFSheetXMLHandler.SheetContentsHandler} to the
+   * {@link XSSFBSheetContentsHandler} contract.
+   *
+   * @see XSSFSheetXMLHandler
+   */
   private class XSSFBSheetContentsHandlerWrapper implements XSSFBSheetContentsHandler {
     private final XSSFSheetXMLHandler.SheetContentsHandler delegate;
     private final DataFormatter dataFormatter;
 
+    /**
+     * Creates a wrapper that forwards events to the XML sheet handler while formatting numeric
+     * cells.
+     *
+     * @param delegate target handler compatible with the XML streaming API
+     * @param dataFormatter formatter used for numeric and date cell rendering
+     */
     public XSSFBSheetContentsHandlerWrapper(
         XSSFSheetXMLHandler.SheetContentsHandler delegate, DataFormatter dataFormatter) {
       this.delegate = delegate;
