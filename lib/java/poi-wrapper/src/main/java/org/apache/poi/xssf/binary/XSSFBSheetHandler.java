@@ -491,14 +491,14 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * @param tagName POI-internal tag representing the header or footer section
      * @see #endSheet()
      */
-    default void headerFooter(String text, boolean isHeader, String tagName) {}
+    void headerFooter(String text, boolean isHeader, String tagName);
 
     /**
      * Signals that the sheet has been completely processed.
      *
      * @see #startRow(int)
      */
-    default void endSheet() {}
+    void endSheet();
   }
 
   /**
