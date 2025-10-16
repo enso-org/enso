@@ -18,6 +18,7 @@ from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 polyglot java import java.sql.Types
 polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
+polyglot java import org.enso.database.JDBCUtils
 
 ## ---
    private: true
@@ -189,14 +190,14 @@ type SQLServer_Type_Mapping
         custom_fill_hole stmt i type_hint value = case value of
             Nothing ->
                 java_type = case type_hint of
-                    Nothing -> Java_Types.NULL
+                    Nothing -> Types.NULL
                     _ ->
                         ## SQLServer needs its NULLS to be typed at least for TIME.
                         sql_type = SQLServer_Type_Mapping.value_type_to_sql type_hint Problem_Behavior.Ignore
                         sql_type.typeid
                 stmt.setNull i java_type
             _ : Float     ->
-                if value.is_nan || value.is_infinite then stmt.setNull i Java_Types.REAL else
+                if value.is_nan || value.is_infinite then stmt.setNull i Types.REAL else
                     stmt.setDouble i value
             # Fallback to default logic for everything else
             _ -> fill_hole_default stmt i type_hint value JDBCUtils
