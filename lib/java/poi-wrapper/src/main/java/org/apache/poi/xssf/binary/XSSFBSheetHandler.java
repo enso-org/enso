@@ -210,13 +210,17 @@ public class XSSFBSheetHandler extends XSSFBParser {
   private void handleCellError(byte[] data) {
     beforeCellValue(data);
     // TODO, read byte to figure out the type of error
-    handleStringCellValue("ERROR");
+    CellAddress cellAddress = getCellAddress();
+    XSSFBComment comment = getCellComment(cellAddress);
+    handler.errorCell(cellAddress.formatAsString(), comment);
   }
 
   private void handleFmlaError(byte[] data) {
     beforeCellValue(data);
     // TODO, read byte to figure out the type of error
-    handleStringCellValue("ERROR");
+    CellAddress cellAddress = getCellAddress();
+    XSSFBComment comment = getCellComment(cellAddress);
+    handler.errorCell(cellAddress.formatAsString(), comment);
   }
 
   private void handleBoolean(byte[] data) {
@@ -403,6 +407,17 @@ public class XSSFBSheetHandler extends XSSFBParser {
      */
     void booleanCell(String cellReference, boolean value, XSSFComment comment);
 
+    /**
+     * A cell, with an error value, and possibly a comment (may be null),
+     * was encountered.
+     *
+     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
+     * See the code in <code>
+     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
+     * example of how to handle this scenario.
+     */
+    void errorCell(String cellReference, XSSFComment comment);
+
     /** A header or footer has been encountered */
     default void headerFooter(String text, boolean isHeader, String tagName) {}
 
@@ -443,6 +458,11 @@ public class XSSFBSheetHandler extends XSSFBParser {
     @Override
     public void booleanCell(String cellReference, boolean value, XSSFComment comment) {
       delegate.cell(cellReference, Boolean.toString(value), comment);
+    }
+
+    @Override
+    public void errorCell(String cellReference, XSSFComment comment) {
+      delegate.cell(cellReference, "ERROR", comment);
     }
 
     @Override

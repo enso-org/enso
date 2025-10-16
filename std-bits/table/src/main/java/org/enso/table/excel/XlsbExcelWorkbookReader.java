@@ -221,13 +221,24 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
       currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
     }
 
-    @Override
+    
     public void booleanCell(String cellReference, boolean value, XSSFComment comment) {
       int colIndex = getColumnIndex(cellReference);
       while (currentRow.size() <= colIndex) {
         currentRow.add(null);
       }
       currentRow.set(colIndex, value);
+      currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
+      currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
+    }
+
+    @Override
+    public void errorCell(String cellReference, XSSFComment comment) {
+      int colIndex = getColumnIndex(cellReference);
+      while (currentRow.size() <= colIndex) {
+        currentRow.add(null);
+      }
+      currentRow.set(colIndex, null);
       currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
       currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
     }
