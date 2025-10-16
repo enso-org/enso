@@ -69,7 +69,10 @@ electron_builder_bin.electron_builder(
         "package.json",
         "//:sbt_build_engine_distribution",
         "//:sbt_build_small_jdk",
-    ] + [":bundle"],
+    ] + [
+        ":bundle",
+        "//app/gui:dist",
+    ],
     args = [
         "build",
     ],

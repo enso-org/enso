@@ -80,6 +80,7 @@ vite_bin.vite(
         "NODE_ENV": getenv("NODE_ENV"),
     },
     out_dirs = ["dist"],
+    visibility = ["//visibility:public"],
 )
 
 vite_bin.vite_binary(

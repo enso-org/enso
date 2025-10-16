@@ -15,7 +15,7 @@
   },
   "name": "enso",
   "description": "Enso Data Processing Environment.",
-  "main": "bundle/index.mjs",
+  "main": "index.mjs",
   "build": {
     "appId": "org.enso",
     "productName": "Enso",
@@ -54,14 +54,21 @@
       "category": "Development"
     },
     "files": [
-      "!**/node_modules/**/*",
       {
-        "from": "gui/",
-        "to": "."
+        "from": ".",
+        "to": ".",
+        "filter": [
+          "package.json",
+          "!**/node_modules/**/*"
+        ]
       },
       {
         "from": "bundle/",
         "to": "."
+      },
+      {
+        "from": "../gui/dist",
+        "to": "assets"
       }
     ],
     "extraResources": [
