@@ -6,6 +6,7 @@ import Standard.Base.Data.Read.Return_As
 import project.Excel.Excel_Format.Excel_Format
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Fixed_Width.Fixed_Width_Format.Fixed_Width_Format
+import project.IO.EDI_Format.EDI_Format
 import project.Return_As_Table.Return_As_Table
 
 type Impl
@@ -14,6 +15,7 @@ File_Format_SPI.from (_:Impl) =
     excel = File_Format_SPI.new Excel_Format "excel"
     delim = File_Format_SPI.new Delimited_Format "delimited"
     fixed = File_Format_SPI.new Fixed_Width_Format "fixed_width"
-    excel+delim+fixed
+    edi = File_Format_SPI.new EDI_Format "edi"
+    excel+delim+fixed+edi
 
 Return_As.SPI.from (_ : Impl) = Return_As.SPI.new Return_As_Table
