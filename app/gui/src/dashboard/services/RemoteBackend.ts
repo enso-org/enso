@@ -769,7 +769,7 @@ export default class RemoteBackend extends Backend {
    * @throws An {@link DirectoryDoesNotExistError} if the asset is a directory and does not exist.
    * @returns The asset details. Returns `null` if the asset is a root directory.
    */
-  override async getAssetDetails<Id extends backend.RealAssetId>(assetId: Id) {
+  override async getAssetDetails<Id extends backend.AssetId>(assetId: Id) {
     const path = remoteBackendPaths.getAssetDetailsPath(assetId)
     const response = await this.get<backend.AssetDetailsResponse<Id>>(path)
 
@@ -1317,7 +1317,6 @@ export default class RemoteBackend extends Backend {
       }
       case backend.AssetType.secret:
       case backend.AssetType.directory:
-      case backend.AssetType.specialUp:
       default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break

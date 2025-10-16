@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AssetDetailsResponse, RealAssetId } from '#/services/Backend'
+import type { AssetDetailsResponse, AssetId } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
@@ -26,7 +26,7 @@ const editDescriptionMutation = useMutation(
 
 let descriptionEdited = false
 async function updateDescription(
-  asset: AssetDetailsResponse<RealAssetId> | undefined,
+  asset: AssetDetailsResponse<AssetId> | undefined,
   description: string,
 ) {
   if (asset && description && asset.description !== description) {

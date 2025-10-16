@@ -490,11 +490,11 @@ function apiArchiveStream(assets: readonly AssetId[]) {
         }
         break
       }
-      // These asset types are not valid, however include them to force any newly added
-      // asset types to be handled (by causing a non-exhaustiveness error).
+      // These asset types are not present on the Local Backend,
+      // however include them to force any newly added asset types to be handled
+      // (by causing a non-exhaustiveness error).
       case AssetType.secret:
-      case AssetType.datalink:
-      case AssetType.specialUp: {
+      case AssetType.datalink: {
         return
       }
     }

@@ -18,7 +18,6 @@ import {
   Path,
   ProjectId,
   SecretId,
-  UpAssetId,
   VirtualParentsPath,
   type Address,
   type AssetId,
@@ -628,8 +627,8 @@ export interface CreateCustomerPortalSessionResponse {
 export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
 
 /** Response from "assets/${assetId}" endpoint. */
-export type AssetDetailsResponse<Id extends RealAssetId> =
-  | (Omit<Asset<RealAssetTypeId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId })
+export type AssetDetailsResponse<Id extends AssetId> =
+  | (Omit<Asset<AssetTypeFromId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId })
   | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
@@ -856,8 +855,6 @@ export enum AssetType {
   secret = 'secret',
   datalink = 'datalink',
   directory = 'directory',
-  /** A special {@link AssetType} representing a button that navigates to the parent directory. */
-  specialUp = 'specialUp',
 }
 
 export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
@@ -865,7 +862,6 @@ export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
   [AssetType.project]: 'projectAssetType',
   [AssetType.file]: 'fileAssetType',
   [AssetType.secret]: 'secretAssetType',
-  [AssetType.specialUp]: 'specialUpAssetType',
   [AssetType.datalink]: 'datalinkAssetType',
 } satisfies { [Type in AssetType]: `${Type}AssetType` }
 
@@ -885,9 +881,7 @@ export type RealAssetType =
   | AssetType.directory
 
 /** The corresponding ID newtype for each {@link AssetType}. */
-export interface IdType extends RealAssetIdType, SpecialAssetIdType {}
-export type RealAssetId = ProjectId | FileId | DatalinkId | SecretId | DirectoryId
-export interface RealAssetIdType {
+export interface IdType {
   readonly [AssetType.project]: ProjectId
   readonly [AssetType.file]: FileId
   readonly [AssetType.datalink]: DatalinkId
@@ -895,16 +889,13 @@ export interface RealAssetIdType {
   readonly [AssetType.directory]: DirectoryId
 }
 
-export type RealAssetTypeId<Id extends RealAssetId> =
+type AssetTypeFromId<Id extends AssetId> =
   Id extends ProjectId ? AssetType.project
   : Id extends FileId ? AssetType.file
   : Id extends DatalinkId ? AssetType.datalink
   : Id extends SecretId ? AssetType.secret
-  : AssetType.directory
-
-export interface SpecialAssetIdType {
-  readonly [AssetType.specialUp]: UpAssetId
-}
+  : Id extends DirectoryId ? AssetType.directory
+  : never
 
 /**
  * Integers (starting from 0) corresponding to the order in which each asset type should appear
@@ -916,7 +907,6 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.file]: -2,
   [AssetType.datalink]: -3,
   [AssetType.secret]: -4,
-  [AssetType.specialUp]: 1,
 }
 
 /** A state associated with a credential. */
@@ -974,9 +964,6 @@ export type DatalinkAsset = Asset<AssetType.datalink>
 
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export type SecretAsset = Asset<AssetType.secret>
-
-/** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
-export type SpecialUpAsset = Asset<AssetType.specialUp>
 
 const PLACEHOLDER_SIGNATURE = Symbol('placeholder')
 
@@ -1057,7 +1044,7 @@ interface HasType<Type extends AssetType> {
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset<Type extends AssetType = AssetType> = Extract<
-  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset | SpecialUpAsset,
+  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset,
   HasType<Type>
 >
 
@@ -1109,10 +1096,6 @@ export function createPlaceholderAssetId<Type extends AssetType>(
     }
     case AssetType.secret: {
       result = SecretId(id)
-      break
-    }
-    case AssetType.specialUp: {
-      result = UpAssetId(id)
       break
     }
   }
@@ -1917,7 +1900,7 @@ export default abstract class Backend {
    */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
   /** Return asset details. */
-  abstract getAssetDetails<Id extends RealAssetId>(
+  abstract getAssetDetails<Id extends AssetId>(
     assetId: Id,
     rootPath: Path | undefined,
   ): Promise<AssetDetailsResponse<Id>>

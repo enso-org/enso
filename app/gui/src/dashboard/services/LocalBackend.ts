@@ -297,7 +297,7 @@ export default class LocalBackend extends Backend {
    * Return asset details.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async getAssetDetails<Id extends backend.RealAssetId>(
+  override async getAssetDetails<Id extends backend.AssetId>(
     assetId: Id,
     rootPath: backend.Path | undefined,
   ) {
@@ -815,8 +815,7 @@ export default class LocalBackend extends Backend {
       }
       case backend.AssetType.datalink:
       case backend.AssetType.secret:
-      case backend.AssetType.directory:
-      case backend.AssetType.specialUp: {
+      case backend.AssetType.directory: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
       }
