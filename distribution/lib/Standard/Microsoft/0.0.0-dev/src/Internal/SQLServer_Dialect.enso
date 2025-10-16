@@ -416,7 +416,7 @@ type SQLServer_Dialect
        Returns `Nothing` if the key is not defined.
     fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name schema_name =
-        Dialect.default_fetch_primary_key connection table_name schema_name
+        Connection.default_fetch_primary_key connection table_name schema_name
 
     ## ---
        private: true

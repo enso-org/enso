@@ -255,7 +255,7 @@ type DB_Table_Implementation
 
                 new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
 
-                type_mapping = this_table.connection.dialect.get_type_mapping
+                type_mapping = this_table.connection.get_type_mapping
                 infer_from_database_callback expression =
                     SQL_Type_Reference.new this_table.connection this_table.context expression
                 new_type_ref = type_mapping.infer_return_type infer_from_database_callback "ROW_NUMBER" [] new_expr
@@ -281,7 +281,7 @@ type DB_Table_Implementation
 
                         new_expr = Group_Number_Helpers.make_group_number from step grouping_expressions
 
-                        type_mapping = this_table.connection.dialect.get_type_mapping
+                        type_mapping = this_table.connection.get_type_mapping
                         infer_from_database_callback expression =
                             SQL_Type_Reference.new this_table.connection this_table.context expression
                         new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER" [] new_expr
@@ -302,7 +302,7 @@ type DB_Table_Implementation
 
                         new_expr = Group_Number_Helpers.make_group_number_equal_count from step group_count order_descriptors
 
-                        type_mapping = this_table.connection.dialect.get_type_mapping
+                        type_mapping = this_table.connection.get_type_mapping
                         infer_from_database_callback expression =
                             SQL_Type_Reference.new this_table.connection this_table.context expression
                         new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER_EQUAL_COUNT" [] new_expr
@@ -376,7 +376,7 @@ type DB_Table_Implementation
 
     make_constant_column (this_table : Table & DB_Table) value =
         if Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
-            type_mapping = this_table.connection.dialect.get_type_mapping
+            type_mapping = this_table.connection.get_type_mapping
             argument_value_type = Value_Type_Helpers.find_argument_type value
             sql_type = case argument_value_type of
                 Nothing -> SQL_Type.null
@@ -488,7 +488,7 @@ type DB_Table_Implementation
                 problem_builder_for_unification = Problem_Builder.new
                 matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
                 dialect = this_table.connection.dialect
-                type_mapping = dialect.get_type_mapping
+                type_mapping = this_table.connection.get_type_mapping
                 merged_columns = matched_column_sets.map column_set->
                     sql_type_from_value_type value_type =
                         type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error . catch Inexact_Type_Coercion error->
@@ -662,7 +662,7 @@ type DB_Table_Implementation
             actual_types = materialized_table.columns.map .value_type
             expected_types.zip actual_types expected_type-> actual_type->
                 if expected_type == actual_type then Nothing else
-                    if this_table.connection.dialect.get_type_mapping.should_warn_on_materialize expected_type actual_type then
+                    if this_table.connection.get_type_mapping.should_warn_on_materialize expected_type actual_type then
                         warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
 
             result = max_rows.attach_warning materialized_table
@@ -686,7 +686,7 @@ type DB_Table_Implementation
             this_table.connection.dialect.generate_sql query
         count_table = this_table.connection.read_statement count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
-        type_mapping = this_table.connection.dialect.get_type_mapping
+        type_mapping = this_table.connection.get_type_mapping
         types = cols.map col->
             type_mapping.sql_type_to_value_type col.sql_type_reference.get
         Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", types]]

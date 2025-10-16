@@ -350,7 +350,7 @@ make_literal_table connection column_vectors column_names alias =
 
     if total_size == 0 then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
         if total_size > MAX_LITERAL_ELEMENT_COUNT then Error.throw (Illegal_Argument.Error "Too many elements for table literal ("+total_size.to_text+"): materialize a table into the database instead") else
-            type_mapping = connection.dialect.get_type_mapping
+            type_mapping = connection.get_type_mapping
             from_spec = SQL_IR_From_Part.Literal_Values column_vectors column_names alias
             context = SQL_IR_Source.for_subquery from_spec
 
