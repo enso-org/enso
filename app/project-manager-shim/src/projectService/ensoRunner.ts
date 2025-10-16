@@ -148,7 +148,8 @@ export class EnsoRunner implements Runner {
     return new Promise((resolve, reject) => {
       const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
       const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
-      const serverProcess = childProcess.spawn(cmd, cmdArgs, { env, detached: false })
+      const cwd = path.dirname(projectPath)
+      const serverProcess = childProcess.spawn(cmd, cmdArgs, { env, detached: false, cwd })
 
       let stderr = ''
       let resolved = false
