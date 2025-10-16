@@ -1218,12 +1218,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                     x4 = My_Type.static_one inst
 
                     # And calling member methods through static syntax:
-                    x5 = My_Type.zero_arg inst
-                    x6 = My_Type.one_arg inst
+                    x5 = My_Type.zero_arg self=inst
+                    x6 = My_Type.one_arg self=inst
 
                     # And extension methods
                     x7 = inst.extension_method
-                    x8 = My_Type.extension_method inst
+                    x8 = My_Type.extension_method self=inst
                     [x1, x2, x3, x4, x5, x6, x7, x8]
                 """,
                 uri.getAuthority())
@@ -1269,7 +1269,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
                 foo =
                     other = Other_Type.Constructor 44
-                    x1 = My_Type.member_method other
+                    x1 = My_Type.member_method self=other
                     x1
                 """,
                 uri.getAuthority())
@@ -1780,7 +1780,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                     x2 = My_Type.Value.method
                     x3 = method
                     x4 = My_Type.method
-                    x5 = Any.method My_Type.Value
+                    x5 = Any.method self=My_Type.Value
                     x6 = Any.static_method
                     x7 = My_Type.static_method
                     [x1, x2, x3, x4, x5, x6, x7]

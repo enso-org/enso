@@ -2348,7 +2348,7 @@ class RuntimeServerTest
     val code =
       """main =
         |    a = T.A
-        |    x1_1 = T.func1
+        |    x1_1 = T.func1 self=_
         |    x1_2 = x1_1 a y=2
         |    x1 = x1_2 1
         |    x1
@@ -2731,7 +2731,7 @@ class RuntimeServerTest
         |
         |main =
         |    x = Date.new_builtin 1970 1 1
-        |    y = Date.Date.year x
+        |    y = Date.Date.year self=x
         |    y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
