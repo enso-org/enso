@@ -210,9 +210,13 @@ public class XSSFBSheetHandler extends XSSFBParser {
 
   private void handleCellError(byte[] data) {
     beforeCellValue(data);
-    final int BERR_OFFSET = 8;
-    int bErr = (data.length > BERR_OFFSET) ? (data[BERR_OFFSET] & 0xFF) : -1;
-    FormulaError fe = (bErr >= 0) ? FormulaError.forInt(bErr) : null;
+    int bErr = data[XSSFBCellHeader.length] & 0xFF;
+    FormulaError fe;
+    try {
+      fe = FormulaError.forInt(bErr);
+    } catch (IllegalArgumentException e) {
+      fe = null;
+    }
     CellAddress cellAddress = getCellAddress();
     XSSFBComment comment = getCellComment(cellAddress);
     handler.errorCell(cellAddress.formatAsString(), fe, comment);
