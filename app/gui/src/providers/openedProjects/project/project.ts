@@ -156,7 +156,7 @@ export function createProjectStore(
       if (moduleName == null) return null
       const mod = await projectModel.openModule(moduleName)
       for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
-      return mod
+      return mod ? markRaw(mod) : null
     },
     undefined,
     { onError: console.error },

@@ -130,13 +130,16 @@ const groupColors = computed(() => {
 <template>
   <div class="WithCurrentProject" :style="groupColors">
     <slot v-if="initializedProject != null" />
-    <slot v-else-if="project?.error != null" name="error"
-      ><ResultComponent
+    <slot v-else-if="project?.error != null" name="error">
+      <ResultComponent
         status="error"
         title="Failed to open project"
         :subtitle="`${project.error}`"
-    /></slot>
-    <slot v-else-if="project != null" name="loading"><Loader minHeight="full" /></slot>
+      />
+    </slot>
+    <slot v-else-if="project?.nextTask?.process === 'opening'" name="loading">
+      <Loader minHeight="full" />
+    </slot>
     <slot v-else name="fallback" />
   </div>
 </template>

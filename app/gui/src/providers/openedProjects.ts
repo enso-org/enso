@@ -2,7 +2,7 @@ import { BackendType, Plan, ProjectId } from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { assert } from '@/util/assert'
 import { createGlobalState } from '@vueuse/core'
-import { computed, ref, shallowReactive } from 'vue'
+import { computed, ref, shallowReactive, watchEffect } from 'vue'
 import type { Result, ResultError } from 'ydoc-shared/util/data/result'
 import { useAuth } from './auth'
 import { useBackends } from './backends'
@@ -42,6 +42,19 @@ export function createOpenedProjectsStore() {
   const projectStates = useProjectStates()
   const backends = useBackends()
   const closePrevented = ref(false)
+
+  watchEffect(() =>
+    console.debug(
+      'PROJECTS',
+      [...projects.values()].map((proj) => proj.state),
+    ),
+  )
+  watchEffect(() =>
+    console.debug(
+      'PROJECTS TASKS',
+      [...projects.values()].map((proj) => proj.nextTask),
+    ),
+  )
 
   /** Whether the user can run projects. */
   const modesForBackend = computed(() => ({
@@ -169,6 +182,7 @@ export function createOpenedProjectsStore() {
       if (err === PROCESS_ABORTED) {
         console.log(`${process} process aborted.`)
       } else {
+        console.error(`${process} process interrupted by error.`, { cause: err })
         project.error = Error(`${process} process interrupted by error.`, { cause: err })
       }
     }

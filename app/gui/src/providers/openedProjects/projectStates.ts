@@ -17,7 +17,7 @@ import { injectGuiConfig } from '@/providers/guiConfig'
 import { assert, assertDefined } from '@/util/assert'
 import { Err, Ok, rejectionToResult, type Result } from '@/util/data/result'
 import * as vueQuery from '@tanstack/vue-query'
-import { computed, effectScope, onScopeDispose, type EffectScope, type Ref } from 'vue'
+import { computed, effectScope, markRaw, onScopeDispose, type EffectScope, type Ref } from 'vue'
 import * as z from 'zod'
 import { useBackends } from '../backends'
 import { useSession } from '../session'
@@ -81,12 +81,6 @@ export interface LsUrls {
   rpcUrl: string
   dataUrl: string
   ydocUrl: string
-}
-
-export interface WithTask<State, NextState> {
-  state: State
-  abort: AbortController
-  promise: Promise<NextState>
 }
 
 export interface NotOpened {
@@ -153,6 +147,7 @@ export function useProjectStates() {
   const text = useText()
   const config = injectGuiConfig()
   const uploads = useUploadsToCloudStore()
+  const queryClient = vueQuery.useQueryClient()
 
   const catchNetworkError = rejectionToResult(NetworkError)
 
@@ -305,10 +300,20 @@ export function useProjectStates() {
       case 'local':
         if (backends.localBackend == null)
           return Err('Cannot get details of local project: no local backend.')
-        details = await getProjectDetails(backends.localBackend, project.info.id, scope)
+        details = await getProjectDetails(
+          backends.localBackend,
+          project.info.id,
+          scope,
+          queryClient,
+        )
         break
       case 'cloud':
-        details = await getProjectDetails(backends.remoteBackend, project.info.id, scope)
+        details = await getProjectDetails(
+          backends.remoteBackend,
+          project.info.id,
+          scope,
+          queryClient,
+        )
         break
       case 'hybrid':
         if (backends.localBackend == null)
@@ -353,19 +358,21 @@ export function useProjectStates() {
       logger.send('ide_project_opened')
       onScopeDispose(() => logger.send('ide_project_closed'))
 
-      return Ok({
-        status: 'initialized',
-        info: project.info,
-        runningId,
-        ...details,
-        store,
-        projectNames,
-        suggestionDb,
-        module,
-        graph,
-        widgetRegistry,
-        scope,
-      })
+      return Ok(
+        markRaw({
+          status: 'initialized',
+          info: project.info,
+          runningId,
+          ...details,
+          store,
+          projectNames,
+          suggestionDb,
+          module,
+          graph,
+          widgetRegistry,
+          scope,
+        }),
+      )
     })!
   }
 
@@ -375,8 +382,8 @@ export function useProjectStates() {
     backends: { remoteBackend: RemoteBackend; localBackend: LocalBackend },
   ) {
     const [localDetails, cloudDetails] = await Promise.all([
-      getProjectDetails(backends.localBackend, project.runningId, scope),
-      getProjectDetails(backends.remoteBackend, project.id, scope),
+      getProjectDetails(backends.localBackend, project.runningId, scope, queryClient),
+      getProjectDetails(backends.remoteBackend, project.id, scope, queryClient),
     ])
     return {
       runDetails: localDetails.runDetails,
@@ -504,66 +511,74 @@ export const BUSY_PROJECT_STATES = new Set([
   BackendProjectState.hybridOpened,
 ])
 
-async function getProjectDetails(backend: Backend, id: ProjectId, scope: EffectScope) {
+async function getProjectDetails(
+  backend: Backend,
+  id: ProjectId,
+  scope: EffectScope,
+  queryClient: vueQuery.QueryClient,
+) {
   const isLocal = backend.type === BackendType.local
 
   const detailsQuery = scope.run(() =>
-    vueQuery.useQuery({
-      queryKey: ['project', id] as const,
-      queryFn: () => backend.getProjectDetails(id),
-      refetchIntervalInBackground: true,
-      refetchOnWindowFocus: true,
-      refetchOnMount: true,
-      networkMode: backend.type === BackendType.remote ? 'online' : 'always',
-      meta: { persist: false },
-      refetchInterval: (query): number | false => {
-        const { state } = query
+    vueQuery.useQuery(
+      {
+        queryKey: ['project', id] as const,
+        queryFn: () => backend.getProjectDetails(id),
+        refetchIntervalInBackground: true,
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        networkMode: backend.type === BackendType.remote ? 'online' : 'always',
+        meta: { persist: false },
+        refetchInterval: (query): number | false => {
+          const { state } = query
 
-        const staticStates = STATIC_PROJECT_STATES
+          const staticStates = STATIC_PROJECT_STATES
 
-        const openingStates = OPENING_PROJECT_STATES
+          const openingStates = OPENING_PROJECT_STATES
 
-        const createdStates = CREATED_PROJECT_STATES
+          const createdStates = CREATED_PROJECT_STATES
 
-        if (state.status === 'error') {
-          return false
-        }
-
-        if (state.data == null) {
-          return false
-        }
-
-        const currentState = state.data.state.type
-
-        if (isLocal) {
-          if (createdStates.has(currentState)) {
-            return LOCAL_OPENING_INTERVAL_MS
+          if (state.status === 'error') {
+            return false
           }
 
+          if (state.data == null) {
+            return false
+          }
+
+          const currentState = state.data.state.type
+
+          if (isLocal) {
+            if (createdStates.has(currentState)) {
+              return LOCAL_OPENING_INTERVAL_MS
+            }
+
+            if (staticStates.has(state.data.state.type)) {
+              return OPENED_INTERVAL_MS
+            }
+
+            if (openingStates.has(state.data.state.type)) {
+              return LOCAL_OPENING_INTERVAL_MS
+            }
+          }
+
+          if (createdStates.has(currentState)) {
+            return CLOUD_OPENING_INTERVAL_MS
+          }
+
+          // Cloud project
           if (staticStates.has(state.data.state.type)) {
             return OPENED_INTERVAL_MS
           }
-
           if (openingStates.has(state.data.state.type)) {
-            return LOCAL_OPENING_INTERVAL_MS
+            return CLOUD_OPENING_INTERVAL_MS
           }
-        }
 
-        if (createdStates.has(currentState)) {
-          return CLOUD_OPENING_INTERVAL_MS
-        }
-
-        // Cloud project
-        if (staticStates.has(state.data.state.type)) {
-          return OPENED_INTERVAL_MS
-        }
-        if (openingStates.has(state.data.state.type)) {
-          return CLOUD_OPENING_INTERVAL_MS
-        }
-
-        return DEFAULT_INTERVAL_MS
+          return DEFAULT_INTERVAL_MS
+        },
       },
-    }),
+      queryClient,
+    ),
   )
   assertDefined(detailsQuery)
   await detailsQuery.suspense()
