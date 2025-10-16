@@ -4,12 +4,7 @@ load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("//:bazel_scripts/run_engine_distribution.bzl", "run_enso", "ensure_native_enso")
 load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
-load("//toolchains/sbt:run_sbt.bzl", "run_sbt", "enso_binary")
-load("@bazel_skylib//rules:select_file.bzl", "select_file")
-load("@bazel_skylib//rules/directory:directory.bzl", "directory")
-load("@bazel_skylib//rules/directory:subdirectory.bzl", "subdirectory")
-load("@bazel_skylib//rules/directory:glob.bzl", "directory_glob")
-load("@bazel_skylib//rules/directory:providers.bzl", "DirectoryInfo")
+load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
 npm_link_all_packages()
 
@@ -246,36 +241,6 @@ run_sbt(
     out_dir = "built-distribution-native",
     system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
-)
-
-enso_binary(
-    name = "enso_binary",
-    run_sbt_dep = ":sbt_build_native_engine_distribution"
-)
-
-select_file(
-    name = "tmp",
-    srcs = ":sbt_build_native_engine_distribution",
-    #subpath = "enso-engine-0.0.0-dev-macos-aarch64/enso-0.0.0-dev/bin/enso"
-    subpath = "enso-engine-0.0.0-dev-macos-aarch64"
-)
-
-# Does not work
-directory(
-    name = "dir",
-    srcs = [":sbt_build_native_engine_distribution"],
-)
-
-subdirectory(
-    name = "subdir",
-    parent = ":dir",
-    path = "built-distribution-native"
-)
-
-directory_glob(
-    name = "tmp2",
-    directory = ":dir",
-    data = ["enso-engine-0.0.0-dev-macos-aarch64"]
 )
 
 # This is just a sanity check that runs equivalent of `enso --run test/Base_Tests/**/Maybe_Spec.enso`.

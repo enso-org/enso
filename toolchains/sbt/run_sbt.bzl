@@ -6,10 +6,6 @@ load("@aspect_bazel_lib//lib:expand_make_vars.bzl", "expand_variables")
 load("@aspect_bazel_lib//lib:strings.bzl", "split_args")
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
 load("@rules_java//java/common:java_common.bzl", "java_common")
-load("@bazel_skylib//rules:select_file.bzl", "select_file")
-load("@bazel_skylib//rules/directory:directory.bzl", "directory")
-load("@bazel_skylib//rules/directory:glob.bzl", "directory_glob")
-load("@bazel_skylib//rules/directory:providers.bzl", "DirectoryInfo")
 
 def _run_sbt_impl(ctx):
     sbt_bin = ctx.toolchains["@//toolchains/sbt:toolchain_type"].sbt_info.sbt_bin
@@ -20,12 +16,7 @@ def _run_sbt_impl(ctx):
     cc_deps = cc_toolchain.cc.all_files
 
     out_dir = ctx.actions.declare_directory(ctx.attr.out_dir)
-
-    real_executable_path = out_dir.path + "/enso-engine-0.0.0-dev-macos-aarch64/enso-0.0.0-dev/bin/enso"
-    exec_out = ctx.actions.declare_file(real_executable_path)
-    print("exec_out:", exec_out)
-
-    outputs = [out_dir, exec_out]
+    outputs = [out_dir]
 
     args = ctx.actions.args()
     for a in ctx.attr.args:
@@ -43,7 +34,7 @@ def _run_sbt_impl(ctx):
         system_props = system_props + split_args(expand_variables(ctx, ctx.expand_location(p, targets = ctx.attr.srcs), outs = outputs))
 
     ctx.actions.run(
-        outputs = [out_dir, exec_out],
+        outputs = outputs,
         inputs = inputs,
         executable = java_executable_path,
         arguments = system_props + ["-jar", sbt_bin, args],
@@ -51,9 +42,8 @@ def _run_sbt_impl(ctx):
         env = dicts.add(ctx.configuration.default_shell_env, envs),
     )
     return DefaultInfo(
-        files = depset([out_dir]),
-        runfiles = ctx.runfiles(files = [out_dir]),
-        executable = exec_out
+        files = depset(outputs),
+        runfiles = ctx.runfiles(files = outputs),
     )
 
 run_sbt = rule(
@@ -87,32 +77,4 @@ run_sbt = rule(
         "use_default_shell_env": attr.bool(),
         "_java_runtime": attr.label(default = Label("@bazel_tools//tools/jdk:current_java_runtime")),
     },
-)
-
-
-def _enso_binary_impl(ctx):
-    dep_files = ctx.attr.run_sbt_dep[DefaultInfo].files_to_run
-    exec = dep_files.executable
-
-    print("exec:", exec)
-
-    ctx.actions.run(
-        executable = exec,
-        arguments = ["--version"]
-    )
-
-    return DefaultInfo(
-
-    )
-
-
-enso_binary = rule(
-    implementation = _enso_binary_impl,
-    attrs = {
-        "run_sbt_dep": attr.label(
-            mandatory = True,
-            providers = [DefaultInfo]
-        )
-    },
-    executable = True
 )
