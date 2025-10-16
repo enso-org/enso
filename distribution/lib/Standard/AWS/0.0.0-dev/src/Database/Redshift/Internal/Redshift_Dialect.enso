@@ -19,6 +19,7 @@ import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import Standard.Database.Internal.Postgres.Postgres_Dialect
 import Standard.Database.Internal.SQL_Part.SQL_Part
+import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Builder
@@ -141,9 +142,8 @@ type Redshift_Dialect
     ## ---
        private: true
        ---
-    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
-        mapping = self.get_type_mapping
+    make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self column mapping target_type infer_result_type_from_database_callback =
         sql_type_text = mapping.sql_type_to_text target_type
         new_expression = SQL_IR_Expression.Operation "CAST" [column.expression, SQL_IR_Expression.Literal sql_type_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression

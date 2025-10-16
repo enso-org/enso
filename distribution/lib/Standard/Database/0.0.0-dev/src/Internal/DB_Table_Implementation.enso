@@ -388,7 +388,7 @@ type DB_Table_Implementation
             result_internal_column = if needs_cast.not then base_column else
                 infer_type_from_database new_expression =
                     SQL_Type_Reference.new this_table.connection this_table.context new_expression
-                this_table.connection.dialect.make_cast base_column sql_type infer_type_from_database
+                this_table.connection.dialect.make_cast base_column mapping sql_type infer_type_from_database
             this_table.make_column result_internal_column
 
     make_temp_column_name (this_table : Table & DB_Table) = this_table.column_naming_helper.make_temp_column_name this_table.column_names
@@ -526,13 +526,13 @@ type DB_Table_Implementation
                                           This is a possible future improvement to make queries lighter, but the benefit is unlikely to be worth it.
                                         needs_cast = column.value_type != result_type
                                         if needs_cast.not then internal_named_column else
-                                            dialect.make_cast internal_named_column sql_type infer_return_type
+                                            dialect.make_cast internal_named_column mapping sql_type infer_return_type
                                     Nothing ->
                                         typ = SQL_Type_Reference.from_constant SQL_Type.null
                                         expr = SQL_IR_Expression.Literal "NULL"
                                         null_column = Internal_Column.Value column_name typ expr
                                         if sql_type == SQL_Type.null then null_column else
-                                            dialect.make_cast null_column sql_type infer_return_type
+                                            dialect.make_cast null_column mapping sql_type infer_return_type
                             pairs = columns_to_select.map c->
                                 [c.name, c.expression]
                             SQL_IR_Statement.Select pairs t.context

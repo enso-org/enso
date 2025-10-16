@@ -30,6 +30,7 @@ import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.JDBC_Connection.JDBC_Connection
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
+import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
 import project.Internal.Statement_Setter.Statement_Setter
@@ -169,7 +170,7 @@ type SQLite_Dialect
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        mapping = self.get_type_mapping
+        mapping = table.connection.type_mapping
         distinct_expressions = new_key_columns.map column->
             value_type = mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
@@ -185,22 +186,20 @@ type SQLite_Dialect
     ## ---
        private: true
        ---
-    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self (column : Internal_Column) (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_IR_Expression -> SQL_Type_Reference) =
+    make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self (column : Internal_Column) mapping (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_IR_Expression -> SQL_Type_Reference) =
         _ = [infer_result_type_from_database_callback]
-        mapping = self.get_type_mapping
         target_value_type = mapping.sql_type_to_value_type target_type
         custom_cast = make_custom_cast column target_value_type mapping
         new_expression = custom_cast.if_nothing <|
-            self.make_cast_expression column target_type
+            self.make_cast_expression column mapping target_type
         new_sql_type_reference = SQL_Type_Reference.from_constant target_type
         Internal_Column.Value column.name new_sql_type_reference new_expression
 
     ## ---
        private: true
        ---
-    make_cast_expression self column target_type =
-        mapping = self.get_type_mapping
+    make_cast_expression self column mapping target_type =
         sql_type_text = mapping.sql_type_to_text target_type
         SQL_IR_Expression.Operation "CAST" [column.expression, SQL_IR_Expression.Literal sql_type_text]
 
@@ -229,8 +228,9 @@ type SQLite_Dialect
         _ = infer_result_type_from_database_callback
         needs_cast = approximate_result_type != Value_Type.Null
         if needs_cast.not then column else
-            sql_type = self.get_type_mapping.value_type_to_sql approximate_result_type Problem_Behavior.Ignore
-            new_expression = self.make_cast_expression column sql_type
+            mapping = self.get_type_mapping
+            sql_type = mapping.value_type_to_sql approximate_result_type Problem_Behavior.Ignore
+            new_expression = self.make_cast_expression column mapping sql_type
             new_sql_type_reference = SQL_Type_Reference.from_constant sql_type
             Internal_Column.Value column.name new_sql_type_reference new_expression
 

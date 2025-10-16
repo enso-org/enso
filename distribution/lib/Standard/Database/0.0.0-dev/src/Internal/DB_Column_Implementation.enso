@@ -588,12 +588,12 @@ make_unary_op this_column op_kind new_name=Nothing =
 
 internal_do_cast : Column & DB_Column -> Value_Type -> Problem_Behavior -> Column
 internal_do_cast this_column value_type on_problems:Problem_Behavior =
-    dialect = this_column.connection.dialect
-    target_sql_type = this_column.connection.type_mapping.value_type_to_sql value_type on_problems
+    mapping = this_column.connection.type_mapping
+    target_sql_type = mapping.value_type_to_sql value_type on_problems
     target_sql_type.if_not_error <|
         infer_from_database new_expression =
             SQL_Type_Reference.new this_column.connection this_column.context new_expression
-        new_column = dialect.make_cast (Internal_Column.from this_column) target_sql_type infer_from_database
+        new_column = this_column.connection.dialect.make_cast (Internal_Column.from this_column) mapping target_sql_type infer_from_database
         DB_Column.new new_column.name this_column.connection new_column.sql_type_reference new_column.expression this_column.context
 
 should_use_builtin_round : Column & DB_Column -> Integer -> Boolean -> Boolean
