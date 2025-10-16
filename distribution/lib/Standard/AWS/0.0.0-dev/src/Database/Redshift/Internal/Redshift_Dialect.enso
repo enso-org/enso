@@ -21,7 +21,6 @@ import Standard.Database.Internal.Postgres.Postgres_Dialect
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
-import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL.SQL_Type
@@ -132,12 +131,6 @@ type Redshift_Dialect
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering
-
-    ## ---
-       private: true
-       ---
-    get_statement_setter : Statement_Setter
-    get_statement_setter self = Statement_Setter.default
 
     ## ---
        private: true

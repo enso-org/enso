@@ -37,19 +37,16 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
-import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
-from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 import project.Internal.Snowflake_Error_Mapper.Snowflake_Error_Mapper
 
 polyglot java import org.enso.database.JDBCUtils
-polyglot java import org.enso.snowflake.SnowflakeJDBCUtils
 
 ## ---
    private: true
@@ -181,23 +178,6 @@ type Snowflake_Dialect
         new_context = SQL_IR_Source.for_subquery setup.subquery
             . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
-
-    ## ---
-       private: true
-       ---
-    get_statement_setter : Statement_Setter
-    get_statement_setter self =
-        custom_fill_hole stmt i type_hint value = case value of
-            _ : Date_Time ->
-                keep_offset = case type_hint of
-                    Value_Type.Date_Time with_timezone -> with_timezone
-                    _ -> True
-                SnowflakeJDBCUtils.setDateTime stmt i value keep_offset
-            _ : Time_Of_Day -> SnowflakeJDBCUtils.setTimeOfDay stmt i value
-            _ : Date        -> SnowflakeJDBCUtils.setDate stmt i value
-            # Fallback to default logic for everything else
-            _ -> fill_hole_default stmt i type_hint value
-        Statement_Setter.Value custom_fill_hole
 
     ## ---
        private: true

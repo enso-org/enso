@@ -33,7 +33,6 @@ import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
-import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
@@ -176,12 +175,6 @@ type SQLite_Dialect
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
         new_context = SQL_IR_Source.for_subquery setup.subquery . set_groups distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
-
-    ## ---
-       private: true
-       ---
-    get_statement_setter : Statement_Setter
-    get_statement_setter self = Statement_Setter.default
 
     ## ---
        private: true
