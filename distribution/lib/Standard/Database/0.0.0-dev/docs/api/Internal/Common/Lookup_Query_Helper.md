@@ -9,6 +9,6 @@
 - check_initial_invariants base_table:Standard.Base.Any.Any lookup_table:Standard.Base.Any.Any lookup_columns:Standard.Base.Any.Any allow_unmatched_rows:Standard.Base.Any.Any ~continuation:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_context_for_lookup_join lookup_columns:Standard.Base.Any.Any subquery_setup:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_invariant_check lookup_counter:Standard.Base.Any.Any allow_unmatched_rows:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- make_lookup_counter_column dialect:Standard.Base.Any.Any lookup_columns:Standard.Base.Any.Any unique_name_strategy:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_lookup_counter_column connection:Standard.Base.Any.Any lookup_columns:Standard.Base.Any.Any unique_name_strategy:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - precheck_for_duplicate_matches lookup_columns:Standard.Base.Any.Any subquery_setup:Standard.Base.Any.Any connection:Standard.Base.Any.Any new_ctx:Standard.Base.Any.Any ~continuation:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - prepare_subqueries base_table:Standard.Base.Any.Any lookup_table:Standard.Base.Any.Any lookup_columns:Standard.Base.Any.Any unique_name_strategy:Standard.Base.Any.Any -> Standard.Base.Any.Any
