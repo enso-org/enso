@@ -1,6 +1,7 @@
 package org.enso.table.excel;
 
 import org.apache.poi.ss.usermodel.Sheet;
+
 /* A sheet reader for XLSB sheets. */
 public final class XlsbExcelSheetReader implements ExcelSheetReader {
 

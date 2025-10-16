@@ -1,17 +1,17 @@
 package org.enso.table.excel;
 
+import static org.enso.table.excel.ExcelUtils.formatNumericValue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.openxml4j.opc.PackageAccess;
-import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.apache.poi.xssf.binary.XSSFBSharedStringsTable;
@@ -21,8 +21,6 @@ import org.apache.poi.xssf.binary.XSSFBStylesTable;
 import org.apache.poi.xssf.eventusermodel.XSSFBReader;
 import org.apache.poi.xssf.model.SharedStrings;
 import org.apache.poi.xssf.usermodel.XSSFComment;
-import static org.enso.table.excel.ExcelUtils.formatNumericValue;
-
 
 /** An Excel workbook reader for XLSB files. */
 public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
@@ -40,7 +38,8 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
       try {
         sharedStrings = new XSSFBSharedStringsTable(opcPackage);
       } catch (Exception e) {
-        throw new IOException("No shared strings table found or error reading it: " + e.getMessage());
+        throw new IOException(
+            "No shared strings table found or error reading it: " + e.getMessage());
       }
 
       XSSFBStylesTable stylesTable = null;

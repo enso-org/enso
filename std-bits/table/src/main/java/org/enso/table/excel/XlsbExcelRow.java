@@ -1,7 +1,6 @@
 package org.enso.table.excel;
 
 import java.util.List;
-
 import org.apache.poi.ss.usermodel.Cell;
 import org.enso.table.excel.XlsbExcelWorkbookReader.XlsbSheetContentsHandler.RowData;
 import org.graalvm.polyglot.Context;

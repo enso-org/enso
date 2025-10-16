@@ -19,7 +19,6 @@ package org.apache.poi.xssf.binary;
 
 import java.io.InputStream;
 import java.util.Queue;
-
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
@@ -374,8 +373,8 @@ public class XSSFBSheetHandler extends XSSFBParser {
     void endRow(int rowNum);
 
     /**
-     * A cell, with the given string value (may be null), and possibly a comment (may be null),
-     * was encountered.
+     * A cell, with the given string value (may be null), and possibly a comment (may be null), was
+     * encountered.
      *
      * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
      * See the code in <code>
@@ -385,8 +384,8 @@ public class XSSFBSheetHandler extends XSSFBParser {
     void stringCell(String cellReference, String value, XSSFComment comment);
 
     /**
-     * A cell, with the given double value and format, and possibly a comment (may be null),
-     * was encountered.
+     * A cell, with the given double value and format, and possibly a comment (may be null), was
+     * encountered.
      *
      * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
      * See the code in <code>
@@ -396,8 +395,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
     void doubleCell(String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf);
 
     /**
-     * A cell, with the given boolean value, and possibly a comment (may be null),
-     * was encountered.
+     * A cell, with the given boolean value, and possibly a comment (may be null), was encountered.
      *
      * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
      * See the code in <code>
@@ -407,8 +405,8 @@ public class XSSFBSheetHandler extends XSSFBParser {
     void booleanCell(String cellReference, boolean value, XSSFComment comment);
 
     /**
-     * A cell, with an error value (maybe null if we can't map the code to a FormulaError), 
-     * and possibly a comment (may be null), was encountered.
+     * A cell, with an error value (maybe null if we can't map the code to a FormulaError), and
+     * possibly a comment (may be null), was encountered.
      *
      * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
      * See the code in <code>
@@ -424,14 +422,13 @@ public class XSSFBSheetHandler extends XSSFBParser {
     default void endSheet() {}
   }
 
-  /**
-   * A wrapper to adapt a XSSFSheetXMLHandler.SheetContentsHandler to XSSFBSheetContentsHandler.
-   */
+  /** A wrapper to adapt a XSSFSheetXMLHandler.SheetContentsHandler to XSSFBSheetContentsHandler. */
   private class XSSFBSheetContentsHandlerWrapper implements XSSFBSheetContentsHandler {
     private final XSSFSheetXMLHandler.SheetContentsHandler delegate;
     private final DataFormatter dataFormatter;
 
-    public XSSFBSheetContentsHandlerWrapper(XSSFSheetXMLHandler.SheetContentsHandler delegate, DataFormatter dataFormatter) {
+    public XSSFBSheetContentsHandlerWrapper(
+        XSSFSheetXMLHandler.SheetContentsHandler delegate, DataFormatter dataFormatter) {
       this.delegate = delegate;
       this.dataFormatter = dataFormatter;
     }
@@ -452,8 +449,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
     }
 
     @Override
-    public void doubleCell(String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf) {
-      String formattedValue = dataFormatter.formatRawCellContents(value, nf.getIdx(), nf.getFormat());
+    public void doubleCell(
+        String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf) {
+      String formattedValue =
+          dataFormatter.formatRawCellContents(value, nf.getIdx(), nf.getFormat());
       delegate.cell(cellReference, formattedValue, comment);
     }
 
@@ -479,17 +478,17 @@ public class XSSFBSheetHandler extends XSSFBParser {
     }
 
     private String formatVal(double val, int styleIdx) {
-    String formatString = styles.getNumberFormatString(styleIdx);
-    short styleIndex = styles.getNumberFormatIndex(styleIdx);
-    // for now, if formatString is null, silently punt
-    // and use "General".  Not the best behavior,
-    // but we're doing it now in the streaming and non-streaming
-    // extractors for xlsx.  See BUG-61053
-    if (formatString == null) {
-      formatString = BuiltinFormats.getBuiltinFormat(0);
-      styleIndex = 0;
+      String formatString = styles.getNumberFormatString(styleIdx);
+      short styleIndex = styles.getNumberFormatIndex(styleIdx);
+      // for now, if formatString is null, silently punt
+      // and use "General".  Not the best behavior,
+      // but we're doing it now in the streaming and non-streaming
+      // extractors for xlsx.  See BUG-61053
+      if (formatString == null) {
+        formatString = BuiltinFormats.getBuiltinFormat(0);
+        styleIndex = 0;
+      }
+      return dataFormatter.formatRawCellContents(val, styleIndex, formatString);
     }
-    return dataFormatter.formatRawCellContents(val, styleIndex, formatString);
-  }
   }
 }
