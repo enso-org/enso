@@ -24,11 +24,7 @@ import org.apache.poi.xssf.usermodel.XSSFComment;
 import static org.enso.table.excel.ExcelUtils.formatNumericValue;
 
 
-/**
- * Skeleton reader for XLSB workbooks.
- *
- * <p>The implementation will be filled in when XLSB support is added.
- */
+/** An Excel workbook reader for XLSB files. */
 public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
 
   private final File file;
@@ -44,14 +40,14 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
       try {
         sharedStrings = new XSSFBSharedStringsTable(opcPackage);
       } catch (Exception e) {
-        System.out.println(e.getMessage() + "No shared strings table found or error reading it: ");
+        throw new IOException("No shared strings table found or error reading it: " + e.getMessage());
       }
 
       XSSFBStylesTable stylesTable = null;
       try {
         stylesTable = xssfbReader.getXSSFBStylesTable();
       } catch (Exception e) {
-        System.out.println("No styles table found or error reading it: " + e.getMessage());
+        throw new IOException("No styles table found or error reading it: " + e.getMessage());
       }
 
       XSSFBReader.SheetIterator sheetsData =
@@ -79,7 +75,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
 
           sheets.add(new SheetHolder(sheetName, contentsHandler));
         } catch (Exception e) {
-          System.err.println("Error parsing sheet: " + e.getMessage());
+          throw new IOException("Error parsing sheet: " + e.getMessage());
         }
       }
     } catch (InvalidFormatException e) {
@@ -91,7 +87,6 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
 
   @Override
   public int getNumberOfSheets() {
-
     return sheets.size();
   }
 
@@ -112,6 +107,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
 
   @Override
   public int getNumberOfNames() {
+    // Named ranges are currently not supported in the underlying library.
     return 0;
   }
 
@@ -127,11 +123,13 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
 
   @Override
   public String[] getRangeNames() {
+    // Named ranges are currently not supported in the underlying library.
     return new String[0];
   }
 
   @Override
   public String getNameFormula(String name) {
+    // Named ranges are currently not supported in the underlying library.
     return null;
   }
 
@@ -192,38 +190,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
       maxColumns = Math.max(maxColumns, rowCopy.size());
     }
 
-    @Override
-    public void stringCell(String cellReference, String formattedValue, XSSFComment comment) {
-      if (formattedValue == null) {
-        formattedValue = "";
-      }
-
-      int colIndex = getColumnIndex(cellReference);
-
-      while (currentRow.size() <= colIndex) {
-        currentRow.add(null);
-      }
-
-      currentRow.set(colIndex, formattedValue);
-      currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
-      currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
-    }
-
-    @Override
-    public void doubleCell(
-        String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf) {
-      int colIndex = getColumnIndex(cellReference);
-      while (currentRow.size() <= colIndex) {
-        currentRow.add(null);
-      }
-      var val = formatNumericValue(value, nf, false);
-      currentRow.set(colIndex, val);
-      currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
-      currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
-    }
-
-    @Override
-    public void booleanCell(String cellReference, boolean value, XSSFComment comment) {
+    private void setCellValue(String cellReference, Object value) {
       int colIndex = getColumnIndex(cellReference);
       while (currentRow.size() <= colIndex) {
         currentRow.add(null);
@@ -234,14 +201,25 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
     }
 
     @Override
+    public void stringCell(String cellReference, String value, XSSFComment comment) {
+      setCellValue(cellReference, value);
+    }
+
+    @Override
+    public void doubleCell(
+        String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf) {
+      var val = formatNumericValue(value, nf, false);
+      setCellValue(cellReference, val);
+    }
+
+    @Override
+    public void booleanCell(String cellReference, boolean value, XSSFComment comment) {
+      setCellValue(cellReference, value);
+    }
+
+    @Override
     public void errorCell(String cellReference, FormulaError fe, XSSFComment comment) {
-      int colIndex = getColumnIndex(cellReference);
-      while (currentRow.size() <= colIndex) {
-        currentRow.add(null);
-      }
-      currentRow.set(colIndex, null);
-      currentRowFirstColumnIndex = Math.min(currentRowFirstColumnIndex, colIndex);
-      currentRowLastColumnIndex = Math.max(currentRowLastColumnIndex, colIndex);
+      setCellValue(cellReference, null);
     }
 
     @Override
