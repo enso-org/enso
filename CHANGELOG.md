@@ -36,8 +36,6 @@
 - [Change Column.length to Column.row_count.][14085]
 - [Add Text_Column.length and Text_Column.char_length.][14091]
 - [Add EDI_Format and support for reading ANSI X12 EDI files.][14158]
-- [Change Column.length to Column.row_count][14085]
-- [Add Text_Column.length and Text_Column.char_length][14091]
 - [Add support for reading xlsb Excel file format][14157]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
