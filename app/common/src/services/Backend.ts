@@ -16,6 +16,7 @@ import {
   PaginationToken,
   ParentsPath,
   Path,
+  PersonalAccessTokenId,
   ProjectId,
   SecretId,
   UpAssetId,
@@ -790,6 +791,17 @@ export interface LChColor {
   readonly chroma: number
   readonly hue: number
   readonly alpha?: number | undefined
+}
+
+export interface PersonalAccessToken {
+  readonly id: PersonalAccessTokenId
+  readonly name: string
+  readonly createdAt: dateTime.Rfc3339DateTime
+  readonly lastUsedAt: dateTime.Rfc3339DateTime | null
+}
+
+export interface CreatePersonalAccessTokenRequestBody {
+  readonly name: string
 }
 
 /** A pre-selected list of colors to be used in color pickers. */
@@ -2055,6 +2067,12 @@ export default abstract class Backend {
   abstract createCustomerPortalSession(returnUrl: string): Promise<string | null>
   /** Fetches pricing page configuration. */
   abstract getPaymentsConfig(): Promise<PaymentsConfig>
+
+  abstract listPersonalAccessTokens(): Promise<readonly PersonalAccessToken[]>
+  abstract createPersonalAccessToken(
+    body: CreatePersonalAccessTokenRequestBody,
+  ): Promise<PersonalAccessToken>
+  abstract deletePersonalAccessToken(tokenId: PersonalAccessTokenId): Promise<void>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(

@@ -8,6 +8,7 @@ import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
 import { setDownloadDirectory, setLocalRootDirectory } from '#/layouts/Drive/persistentState'
+import { PersonalAccessTokensSettingsSection } from '#/layouts/Settings/PersonalAccessTokensSettingsSection'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import type Backend from '#/services/Backend'
 import {
@@ -547,6 +548,24 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
           {
             type: 'custom',
             render: (context) => <ActivityLogSettingsSection backend={context.backend} />,
+          },
+        ],
+      },
+    ],
+  },
+  [SettingsTabType.personalAccessTokens]: {
+    nameId: 'personalAccessTokensSettingsTab',
+    settingsTab: SettingsTabType.personalAccessTokens,
+    icon: 'key',
+    sections: [
+      {
+        nameId: 'personalAccessTokensSettingsSection',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
+        entries: [
+          {
+            type: 'custom',
+            aliasesId: 'personalAccessTokensSettingsCustomEntryAliases',
+            render: () => <PersonalAccessTokensSettingsSection />,
           },
         ],
       },

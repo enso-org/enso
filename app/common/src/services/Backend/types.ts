@@ -110,6 +110,10 @@ export const ZipAssetsJobId = newtype.newtypeConstructor<ZipAssetsJobId>()
 export type UnzipAssetsJobId = newtype.Newtype<string, 'UnzipAssetsJobId'>
 export const UnzipAssetsJobId = newtype.newtypeConstructor<UnzipAssetsJobId>()
 
+/** Unique identifier for a personal access token. */
+export type PersonalAccessTokenId = newtype.Newtype<string, 'PersonalAccessTokenId'>
+export const PersonalAccessTokenId = newtype.newtypeConstructor<PersonalAccessTokenId>()
+
 /** The name of an asset label. */
 export type LabelName = newtype.Newtype<string, 'LabelName'>
 export const LabelName = newtype.newtypeConstructor<LabelName>()

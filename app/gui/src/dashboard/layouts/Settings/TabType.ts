@@ -17,7 +17,7 @@ enum SettingsTabType {
   activityLog = 'activity-log',
   // compliance = 'compliance',
   // usageStatistics = 'usage-statistics',
-  // personalAccessToken = 'personal-access-token',
+  personalAccessTokens = 'personal-access-tokens',
 }
 
 export default SettingsTabType
