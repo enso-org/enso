@@ -331,6 +331,36 @@ public final class ContextUtils implements TestRule, AutoCloseable {
   }
 
   /**
+   * Returns method reference. The module must already be compiled and loaded in the context.
+   *
+   * <p>Note that module methods cannot be accessed with this method.
+   *
+   * @param moduleName Fully qualified name of the module.
+   * @param typeName Unqualified type name in the module.
+   * @param methodName Unqualified method name in the type.
+   * @return Reference to the method.
+   */
+  public Value getMethodFromLoadedModule(String moduleName, String typeName, String methodName) {
+    var modOpt = ensoContext().getPackageRepository().getLoadedModule(moduleName);
+    if (modOpt.isEmpty()) {
+      throw new IllegalArgumentException("Module " + moduleName + " is not loaded");
+    }
+    var mod = modOpt.get();
+    var runtimeMod = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
+    var modScope = runtimeMod.getScope();
+    var type = modScope.getType(typeName, true);
+    if (type == null) {
+      throw new IllegalArgumentException("Type " + typeName + " not found in module " + moduleName);
+    }
+    var method = modScope.getMethodForType(type, methodName);
+    if (method == null) {
+      throw new IllegalArgumentException(
+          "Method " + methodName + " not found in type " + typeName + " in module " + moduleName);
+    }
+    return asValue(method);
+  }
+
+  /**
    * Returns set of all the builtin methods from Any. These methods are present even if the module
    * was not imported - they are present on the Any builtin type. This is in contrast to {@link
    * #allMethodsFromAny()} which requires the {@code Standard.Base.Any} module to be first imported.
