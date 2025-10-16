@@ -432,6 +432,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * @param cellReference A1-style cell address
      * @param value string contents, or {@code null} if only a comment is present
      * @param comment associated comment, or {@code null} if absent
+     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
+     * See the code in <code>
+     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
+     * example of how to handle this scenario.
      * @see #doubleCell(String, double, XSSFComment, ExcelNumberFormat)
      */
     void stringCell(String cellReference, String value, XSSFComment comment);
@@ -443,6 +447,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * @param value numeric value extracted from the sheet
      * @param comment associated comment, or {@code null} if absent
      * @param nf number format describing how the value should be rendered
+     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
+     * See the code in <code>
+     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
+     * example of how to handle this scenario.
      * @see #stringCell(String, String, XSSFComment)
      */
     void doubleCell(String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf);
@@ -453,6 +461,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * @param cellReference A1-style cell address
      * @param value boolean value stored in the cell
      * @param comment associated comment, or {@code null} if absent
+     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
+     * See the code in <code>
+     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
+     * example of how to handle this scenario.
      * @see #stringCell(String, String, XSSFComment)
      */
     void booleanCell(String cellReference, boolean value, XSSFComment comment);
@@ -463,6 +475,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * @param cellReference A1-style cell address
      * @param fe mapped {@link FormulaError}, or {@code null} when the error code is unknown
      * @param comment associated comment, or {@code null} if absent
+     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
+     * See the code in <code>
+     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
+     * example of how to handle this scenario.
      * @see FormulaError
      */
     void errorCell(String cellReference, FormulaError fe, XSSFComment comment);
