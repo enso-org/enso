@@ -344,6 +344,12 @@ type DuckDB_Connection
     ## ---
        private: true
        ---
+       Access the Type Mapping.
+    type_mapping self = self.connection.type_mapping
+
+    ## ---
+       private: true
+       ---
        Access the underlying JDBC connection.
     jdbc_connection self = self.connection.jdbc_connection
 
