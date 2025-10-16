@@ -19,6 +19,7 @@ package org.apache.poi.xssf.binary;
 
 import java.io.InputStream;
 import java.util.Queue;
+
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
@@ -505,7 +506,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
    *
    * @see XSSFSheetXMLHandler
    */
-  private class XSSFBSheetContentsHandlerWrapper implements XSSFBSheetContentsHandler {
+  private final class XSSFBSheetContentsHandlerWrapper implements XSSFBSheetContentsHandler {
     private final XSSFSheetXMLHandler.SheetContentsHandler delegate;
     private final DataFormatter dataFormatter;
 
