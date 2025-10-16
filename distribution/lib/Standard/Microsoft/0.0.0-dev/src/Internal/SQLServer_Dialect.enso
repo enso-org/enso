@@ -32,7 +32,6 @@ import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Part.SQL_Part
-import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Builder
@@ -45,7 +44,6 @@ from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 import project.Internal.SQLServer_Error_Mapper.SQLServer_Error_Mapper
-import project.Internal.SQLServer_Type_Mapping.SQLServer_Type_Mapping
 
 polyglot java import java.sql.Types as Java_Types
 polyglot java import org.enso.database.JDBCUtils
@@ -175,20 +173,12 @@ type SQLServer_Dialect
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        type_mapping = self.get_type_mapping
+        mapping = self.get_type_mapping
         distinct_expressions = new_key_columns.map column->
-            value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+            value_type = mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
         new_context = SQL_IR_Source.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
-
-    ## ---
-       private: true
-       ---
-       Returns the mapping between SQL types of this dialect and Enso
-       `Value_Type`.
-    get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self = SQLServer_Type_Mapping
 
     ## ---
        private: true
@@ -201,8 +191,8 @@ type SQLServer_Dialect
                     Nothing -> Java_Types.NULL
                     _ ->
                         ## SQLServer needs its NULLS to be typed at least for TIME.
-                        type_mapping = self.get_type_mapping
-                        sql_type = type_mapping.value_type_to_sql type_hint Problem_Behavior.Ignore
+                        mapping = self.get_type_mapping
+                        sql_type = mapping.value_type_to_sql type_hint Problem_Behavior.Ignore
                         sql_type.typeid                            
                 stmt.setNull i java_type
             _ : Float     -> 

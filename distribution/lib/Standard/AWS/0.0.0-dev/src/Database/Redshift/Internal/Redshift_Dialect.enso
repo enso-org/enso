@@ -18,9 +18,7 @@ import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import Standard.Database.Internal.Postgres.Postgres_Dialect
-import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import Standard.Database.Internal.SQL_Part.SQL_Part
-import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Builder
@@ -133,14 +131,6 @@ type Redshift_Dialect
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering
-
-    ## ---
-       private: true
-       ---
-       Returns the mapping between SQL types of this dialect and Enso
-       `Value_Type`.
-    get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self = Postgres_Type_Mapping
 
     ## ---
        private: true

@@ -22,7 +22,6 @@ import project.Internal.JDBC_Connection.JDBC_Connection
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
-import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.Statement_Setter.Statement_Setter
@@ -109,15 +108,6 @@ type Dialect
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         _ = [table, key_columns, case_sensitivity, problem_builder]
-        Unimplemented.throw "This is an interface only."
-
-    ## ---
-       private: true
-       ---
-       Returns the mapping between SQL types of this dialect and Enso
-       `Value_Type`.
-    get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self =
         Unimplemented.throw "This is an interface only."
 
     ## ---

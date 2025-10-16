@@ -96,7 +96,7 @@ make_lookup_counter_column connection lookup_columns unique_name_strategy =
         Lookup_Column.Key_Column _ lookup_column -> [(lookup_column:Internal_Column).expression]
         _ -> []
     row_number_expression = SQL_IR_Expression.Operation "ROW_NUMBER_IN_GROUP" grouping_expressions
-    sql_type = connection.get_type_mapping.value_type_to_sql Value_Type.Integer Problem_Behavior.Ignore
+    sql_type = connection.type_mapping.value_type_to_sql Value_Type.Integer Problem_Behavior.Ignore
     Internal_Column.Value (unique_name_strategy.make_unique "lookup_counter") (SQL_Type_Reference.from_constant sql_type) row_number_expression
 
 ## ---

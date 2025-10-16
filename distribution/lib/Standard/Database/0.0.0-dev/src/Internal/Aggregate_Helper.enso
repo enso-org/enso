@@ -185,9 +185,9 @@ make_infer_return_type connection context =
        See #6118.
     infer_from_database_callback expression =
         SQL_Type_Reference.new connection context expression
-    type_mapping = connection.get_type_mapping
+    mapping = connection.type_mapping
     infer_return_type op_kind columns expression =
-        type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
+        mapping.infer_return_type infer_from_database_callback op_kind columns expression
     infer_return_type
 
 ## ---

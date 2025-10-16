@@ -96,5 +96,4 @@ rename_internal_columns columns new_names =
    associated with `related_column`).
    See `SQL_Type_Mapping.is_integer_type` for details.
 expect_specific_integer_type related_column argument ~action =
-    type_mapping = related_column.connection.get_type_mapping
-    Value_Type.expect_type argument type_mapping.is_integer_type "Integer" action
+    Value_Type.expect_type argument related_column.connection.type_mapping.is_integer_type "Integer" action
