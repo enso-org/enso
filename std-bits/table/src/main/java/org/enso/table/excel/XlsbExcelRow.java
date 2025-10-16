@@ -54,12 +54,7 @@ public final class XlsbExcelRow implements ExcelRow {
 
   @Override
   public boolean isEmpty(int column) {
-    if (!isWithinBounds(column)) {
-      return true;
-    }
-
-    var value = values.get(column - 1);
-    return value == null;
+    return getCellText(column).isEmpty();
   }
 
   @Override
