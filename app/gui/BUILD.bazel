@@ -78,6 +78,7 @@ vite_bin.vite(
     chdir = package_name(),
     env = {
         "NODE_ENV": getenv("NODE_ENV"),
+        "NODE_OPTIONS": "--max-old-space-size=6144",
     },
     out_dirs = ["dist"],
     visibility = ["//visibility:public"],
