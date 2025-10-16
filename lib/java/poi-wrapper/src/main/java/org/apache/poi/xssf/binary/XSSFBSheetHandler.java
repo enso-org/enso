@@ -19,7 +19,6 @@ package org.apache.poi.xssf.binary;
 
 import java.io.InputStream;
 import java.util.Queue;
-
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
@@ -365,9 +364,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
     return d;
   }
 
-  /**
-   * This interface allows to provide callbacks when reading a sheet in a XSSFBSheetHandler
-   */
+  /** This interface allows to provide callbacks when reading a sheet in a XSSFBSheetHandler */
   public interface XSSFBSheetContentsHandler {
     /** A row with the (zero based) row number has started */
     void startRow(int rowNum);
