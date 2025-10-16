@@ -62,9 +62,6 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
           // Create a custom sheet contents handler to capture cell data
           XlsbSheetContentsHandler contentsHandler = new XlsbSheetContentsHandler();
 
-          // Create data formatter for cell values
-          DataFormatter dataFormatter = new DataFormatter();
-
           // Create the sheet handler
           XSSFBSheetHandler sheetHandler =
               new XSSFBSheetHandler(
@@ -73,7 +70,6 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
                   null, // comments table - not implemented for simplicity
                   sharedStrings,
                   contentsHandler,
-                  dataFormatter,
                   false // formulasNotResults
                   );
 

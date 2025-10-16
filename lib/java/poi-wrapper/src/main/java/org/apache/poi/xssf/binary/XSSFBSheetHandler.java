@@ -19,6 +19,7 @@ package org.apache.poi.xssf.binary;
 
 import java.io.InputStream;
 import java.util.Queue;
+
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
@@ -27,6 +28,7 @@ import org.apache.poi.ss.util.CellAddress;
 import org.apache.poi.util.Internal;
 import org.apache.poi.util.LittleEndian;
 import org.apache.poi.util.StringUtil;
+import org.apache.poi.xssf.eventusermodel.XSSFSheetXMLHandler;
 import org.apache.poi.xssf.model.SharedStrings;
 import org.apache.poi.xssf.usermodel.XSSFComment;
 
@@ -42,7 +44,6 @@ public class XSSFBSheetHandler extends XSSFBParser {
   private final TypedSheetContentsHandler handler;
   private final XSSFBStylesTable styles;
   private final XSSFBCommentsTable comments;
-  private final DataFormatter dataFormatter;
   private final boolean formulasNotResults; // TODO: implement this
 
   private int lastEndedRow = -1;
@@ -59,15 +60,29 @@ public class XSSFBSheetHandler extends XSSFBParser {
       XSSFBStylesTable styles,
       XSSFBCommentsTable comments,
       SharedStrings strings,
-      TypedSheetContentsHandler sheetContentsHandler,
+      TypedSheetContentsHandler sheetTypedContentsHandler,
+      boolean formulasNotResults) {
+    super(is);
+    this.styles = styles;
+    this.comments = comments;
+    this.stringsTable = strings;
+    this.handler = sheetTypedContentsHandler;
+    this.formulasNotResults = formulasNotResults;
+  }
+
+  public XSSFBSheetHandler(
+      InputStream is,
+      XSSFBStylesTable styles,
+      XSSFBCommentsTable comments,
+      SharedStrings strings,
+      XSSFSheetXMLHandler.SheetContentsHandler sheetContentsHandler,
       DataFormatter dataFormatter,
       boolean formulasNotResults) {
     super(is);
     this.styles = styles;
     this.comments = comments;
     this.stringsTable = strings;
-    this.handler = sheetContentsHandler;
-    this.dataFormatter = dataFormatter;
+    this.handler = new TypedSheetContentsHandlerWrapper(sheetContentsHandler, dataFormatter);
     this.formulasNotResults = formulasNotResults;
   }
 
@@ -140,15 +155,19 @@ public class XSSFBSheetHandler extends XSSFBParser {
     handler.cell(cellAddress.formatAsString(), formattedValue, comment);
   }
 
-  private void handleFmlaNum(byte[] data) {
-    beforeCellValue(data);
-    // xNum
-    double val = LittleEndian.getDouble(data, XSSFBCellHeader.length);
-    CellAddress cellAddress = new CellAddress(currentRow, cellBuffer.getColNum());
+  private CellAddress getCellAddress() {
+    return new CellAddress(currentRow, cellBuffer.getColNum());
+  }
+
+  private XSSFBComment getCellComment(CellAddress cellAddress) {
     XSSFBComment comment = null;
     if (comments != null) {
       comment = comments.get(cellAddress);
     }
+    return comment;
+  }
+
+  private ExcelNumberFormat getExcelNumberFormat() {
     var styleIdx = cellBuffer.getStyleIdx();
     String formatString = styles.getNumberFormatString(styleIdx);
     short styleIndex = styles.getNumberFormatIndex(styleIdx);
@@ -160,7 +179,16 @@ public class XSSFBSheetHandler extends XSSFBParser {
       formatString = BuiltinFormats.getBuiltinFormat(0);
       styleIndex = 0;
     }
-    ExcelNumberFormat nf = new ExcelNumberFormat(styleIndex, formatString);
+    return new ExcelNumberFormat(styleIndex, formatString);
+  }
+
+  private void handleFmlaNum(byte[] data) {
+    beforeCellValue(data);
+    // xNum
+    double val = LittleEndian.getDouble(data, XSSFBCellHeader.length);
+    CellAddress cellAddress = getCellAddress();
+    XSSFBComment comment = getCellComment(cellAddress);
+    ExcelNumberFormat nf = getExcelNumberFormat();
     handler.doubleCell(cellAddress.formatAsString(), val, comment, nf);
   }
 
@@ -193,11 +221,8 @@ public class XSSFBSheetHandler extends XSSFBParser {
   private void handleBoolean(byte[] data) {
     beforeCellValue(data);
     boolean val = data[XSSFBCellHeader.length] == 1;
-    CellAddress cellAddress = new CellAddress(currentRow, cellBuffer.getColNum());
-    XSSFBComment comment = null;
-    if (comments != null) {
-      comment = comments.get(cellAddress);
-    }
+    CellAddress cellAddress = getCellAddress();
+    XSSFBComment comment = getCellComment(cellAddress);
     handler.booleanCell(cellAddress.formatAsString(), val, comment);
   }
 
@@ -205,61 +230,19 @@ public class XSSFBSheetHandler extends XSSFBParser {
     beforeCellValue(data);
     // xNum
     double val = LittleEndian.getDouble(data, XSSFBCellHeader.length);
-    CellAddress cellAddress = new CellAddress(currentRow, cellBuffer.getColNum());
-    XSSFBComment comment = null;
-    if (comments != null) {
-      comment = comments.get(cellAddress);
-    }
-    var styleIdx = cellBuffer.getStyleIdx();
-    String formatString = styles.getNumberFormatString(styleIdx);
-    short styleIndex = styles.getNumberFormatIndex(styleIdx);
-    // for now, if formatString is null, silently punt
-    // and use "General".  Not the best behavior,
-    // but we're doing it now in the streaming and non-streaming
-    // extractors for xlsx.  See BUG-61053
-    if (formatString == null) {
-      formatString = BuiltinFormats.getBuiltinFormat(0);
-      styleIndex = 0;
-    }
-    ExcelNumberFormat nf = new ExcelNumberFormat(styleIndex, formatString);
+    CellAddress cellAddress = getCellAddress();
+    XSSFBComment comment = getCellComment(cellAddress);
+    ExcelNumberFormat nf = getExcelNumberFormat();
     handler.doubleCell(cellAddress.formatAsString(), val, comment, nf);
   }
 
   private void handleCellRk(byte[] data) {
     beforeCellValue(data);
     double val = rkNumber(data, XSSFBCellHeader.length);
-    CellAddress cellAddress = new CellAddress(currentRow, cellBuffer.getColNum());
-    XSSFBComment comment = null;
-    if (comments != null) {
-      comment = comments.get(cellAddress);
-    }
-    var styleIdx = cellBuffer.getStyleIdx();
-    String formatString = styles.getNumberFormatString(styleIdx);
-    short styleIndex = styles.getNumberFormatIndex(styleIdx);
-    // for now, if formatString is null, silently punt
-    // and use "General".  Not the best behavior,
-    // but we're doing it now in the streaming and non-streaming
-    // extractors for xlsx.  See BUG-61053
-    if (formatString == null) {
-      formatString = BuiltinFormats.getBuiltinFormat(0);
-      styleIndex = 0;
-    }
-    ExcelNumberFormat nf = new ExcelNumberFormat(styleIndex, formatString);
+    CellAddress cellAddress = getCellAddress();
+    XSSFBComment comment = getCellComment(cellAddress);
+    ExcelNumberFormat nf = getExcelNumberFormat();
     handler.doubleCell(cellAddress.formatAsString(), val, comment, nf);
-  }
-
-  private String formatVal(double val, int styleIdx) {
-    String formatString = styles.getNumberFormatString(styleIdx);
-    short styleIndex = styles.getNumberFormatIndex(styleIdx);
-    // for now, if formatString is null, silently punt
-    // and use "General".  Not the best behavior,
-    // but we're doing it now in the streaming and non-streaming
-    // extractors for xlsx.  See BUG-61053
-    if (formatString == null) {
-      formatString = BuiltinFormats.getBuiltinFormat(0);
-      styleIndex = 0;
-    }
-    return dataFormatter.formatRawCellContents(val, styleIndex, formatString);
   }
 
   private void handleBrtCellIsst(byte[] data) {
@@ -412,5 +395,65 @@ public class XSSFBSheetHandler extends XSSFBParser {
 
     /** Signal that the end of a sheet was been reached */
     default void endSheet() {}
+  }
+
+  private class TypedSheetContentsHandlerWrapper implements TypedSheetContentsHandler {
+    private final XSSFSheetXMLHandler.SheetContentsHandler delegate;
+    private final DataFormatter dataFormatter;
+
+    public TypedSheetContentsHandlerWrapper(XSSFSheetXMLHandler.SheetContentsHandler delegate, DataFormatter dataFormatter) {
+      this.delegate = delegate;
+      this.dataFormatter = dataFormatter;
+    }
+
+    @Override
+    public void startRow(int rowNum) {
+      delegate.startRow(rowNum);
+    }
+
+    @Override
+    public void endRow(int rowNum) {
+      delegate.endRow(rowNum);
+    }
+
+    @Override
+    public void cell(String cellReference, String formattedValue, XSSFComment comment) {
+      delegate.cell(cellReference, formattedValue, comment);
+    }
+
+    @Override
+    public void doubleCell(String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf) {
+      String formattedValue = dataFormatter.formatRawCellContents(value, nf.getIdx(), nf.getFormat());
+      delegate.cell(cellReference, formattedValue, comment);
+    }
+
+    @Override
+    public void booleanCell(String cellReference, boolean value, XSSFComment comment) {
+      delegate.cell(cellReference, Boolean.toString(value), comment);
+    }
+
+    @Override
+    public void headerFooter(String text, boolean isHeader, String tagName) {
+      delegate.headerFooter(text, isHeader, tagName);
+    }
+
+    @Override
+    public void endSheet() {
+      delegate.endSheet();
+    }
+
+    private String formatVal(double val, int styleIdx) {
+    String formatString = styles.getNumberFormatString(styleIdx);
+    short styleIndex = styles.getNumberFormatIndex(styleIdx);
+    // for now, if formatString is null, silently punt
+    // and use "General".  Not the best behavior,
+    // but we're doing it now in the streaming and non-streaming
+    // extractors for xlsx.  See BUG-61053
+    if (formatString == null) {
+      formatString = BuiltinFormats.getBuiltinFormat(0);
+      styleIndex = 0;
+    }
+    return dataFormatter.formatRawCellContents(val, styleIndex, formatString);
+  }
   }
 }
