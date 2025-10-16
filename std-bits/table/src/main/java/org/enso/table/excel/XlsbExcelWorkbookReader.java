@@ -226,10 +226,10 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
       // We don't currently read headers/footers
     }
 
-            @Override
-        public void endSheet() {
-          // No additional actions needed at the end of the sheet
-        }
+    @Override
+    public void endSheet() {
+      // No additional actions needed at the end of the sheet
+    }
 
     private int getColumnIndex(String cellReference) {
       if (cellReference == null || cellReference.isEmpty()) {

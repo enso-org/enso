@@ -19,7 +19,6 @@ package org.apache.poi.xssf.binary;
 
 import java.io.InputStream;
 import java.util.Queue;
-
 import org.apache.poi.ss.usermodel.BuiltinFormats;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
@@ -57,8 +56,8 @@ public class XSSFBSheetHandler extends XSSFBParser {
   private final XSSFBCellHeader cellBuffer = new XSSFBCellHeader();
 
   /**
-   * Creates a handler that forwards native POI cell types to the supplied
-   * {@link XSSFBSheetContentsHandler}.
+   * Creates a handler that forwards native POI cell types to the supplied {@link
+   * XSSFBSheetContentsHandler}.
    *
    * <p>Select this overload when the consumer expects the raw cell representation rather than
    * formatted strings.
@@ -68,8 +67,8 @@ public class XSSFBSheetHandler extends XSSFBParser {
    * @param comments optional comments table, may be {@code null}
    * @param strings shared strings table used by the sheet
    * @param sheetContentsHandler callback receiving native cell events
-   * @param formulasNotResults {@code true} to request formulas rather than cached results (currently
-   *     not implemented)
+   * @param formulasNotResults {@code true} to request formulas rather than cached results
+   *     (currently not implemented)
    */
   public XSSFBSheetHandler(
       InputStream is,
@@ -87,8 +86,8 @@ public class XSSFBSheetHandler extends XSSFBParser {
   }
 
   /**
-   * Creates a handler that converts numeric and date cells to formatted strings via
-   * {@link DataFormatter}.
+   * Creates a handler that converts numeric and date cells to formatted strings via {@link
+   * DataFormatter}.
    *
    * <p>This variant mirrors the SAX-based API from {@link XSSFSheetXMLHandler} so existing POI
    * consumers can reuse their {@link XSSFSheetXMLHandler.SheetContentsHandler} implementations.
@@ -99,11 +98,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
    * @param strings shared strings table used by the sheet
    * @param sheetContentsHandler callback receiving formatted string values
    * @param dataFormatter formatter applied to numeric and date cells
-   * @param formulasNotResults {@code true} to request formulas rather than cached results (currently
-   *     not implemented)
-   * @see
-   *     #XSSFBSheetHandler(InputStream, XSSFBStylesTable, XSSFBCommentsTable, SharedStrings,
-   *         XSSFBSheetContentsHandler, boolean)
+   * @param formulasNotResults {@code true} to request formulas rather than cached results
+   *     (currently not implemented)
+   * @see #XSSFBSheetHandler(InputStream, XSSFBStylesTable, XSSFBCommentsTable, SharedStrings,
+   *     XSSFBSheetContentsHandler, boolean)
    */
   public XSSFBSheetHandler(
       InputStream is,
@@ -432,10 +430,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * @param cellReference A1-style cell address
      * @param value string contents, or {@code null} if only a comment is present
      * @param comment associated comment, or {@code null} if absent
-     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
-     * See the code in <code>
+     *     <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell
+     *     </code>. See the code in <code>
      * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
-     * example of how to handle this scenario.
+     *     example of how to handle this scenario.
      * @see #doubleCell(String, double, XSSFComment, ExcelNumberFormat)
      */
     void stringCell(String cellReference, String value, XSSFComment comment);
@@ -447,10 +445,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * @param value numeric value extracted from the sheet
      * @param comment associated comment, or {@code null} if absent
      * @param nf number format describing how the value should be rendered
-     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
-     * See the code in <code>
+     *     <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell
+     *     </code>. See the code in <code>
      * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
-     * example of how to handle this scenario.
+     *     example of how to handle this scenario.
      * @see #stringCell(String, String, XSSFComment)
      */
     void doubleCell(String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf);
@@ -461,10 +459,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * @param cellReference A1-style cell address
      * @param value boolean value stored in the cell
      * @param comment associated comment, or {@code null} if absent
-     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
-     * See the code in <code>
+     *     <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell
+     *     </code>. See the code in <code>
      * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
-     * example of how to handle this scenario.
+     *     example of how to handle this scenario.
      * @see #stringCell(String, String, XSSFComment)
      */
     void booleanCell(String cellReference, boolean value, XSSFComment comment);
@@ -475,10 +473,10 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * @param cellReference A1-style cell address
      * @param fe mapped {@link FormulaError}, or {@code null} when the error code is unknown
      * @param comment associated comment, or {@code null} if absent
-     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
-     * See the code in <code>
+     *     <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell
+     *     </code>. See the code in <code>
      * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
-     * example of how to handle this scenario.
+     *     example of how to handle this scenario.
      * @see FormulaError
      */
     void errorCell(String cellReference, FormulaError fe, XSSFComment comment);
@@ -502,8 +500,8 @@ public class XSSFBSheetHandler extends XSSFBParser {
   }
 
   /**
-   * Bridges a {@link XSSFSheetXMLHandler.SheetContentsHandler} to the
-   * {@link XSSFBSheetContentsHandler} contract.
+   * Bridges a {@link XSSFSheetXMLHandler.SheetContentsHandler} to the {@link
+   * XSSFBSheetContentsHandler} contract.
    *
    * @see XSSFSheetXMLHandler
    */
@@ -569,15 +567,17 @@ public class XSSFBSheetHandler extends XSSFBParser {
     }
   }
 
-      /**
-     * You need to implement this to handle the results
-     *  of the sheet parsing.
+  /** You need to implement this to handle the results of the sheet parsing. */
+  public interface SheetContentsHandler extends XSSFSheetXMLHandler.SheetContentsHandler {
+    /**
+     * A cell, with the given formatted value (may be null), a url (may be null), a toolTip (may be
+     * null) and possibly a comment (may be null), was encountered
      */
-    public interface SheetContentsHandler extends XSSFSheetXMLHandler.SheetContentsHandler {
-        /**
-         * A cell, with the given formatted value (may be null),
-         * a url (may be null), a toolTip (may be null)
-         *  and possibly a comment (may be null), was encountered */
-        void hyperlinkCell(String cellReference, String formattedValue, String url, String toolTip, XSSFComment comment);
-    }
+    void hyperlinkCell(
+        String cellReference,
+        String formattedValue,
+        String url,
+        String toolTip,
+        XSSFComment comment);
+  }
 }
