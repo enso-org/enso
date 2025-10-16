@@ -518,7 +518,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * @param delegate target handler compatible with the XML streaming API
      * @param dataFormatter formatter used for numeric and date cell rendering
      */
-    public XSSFBSheetContentsHandlerWrapper(
+    XSSFBSheetContentsHandlerWrapper(
         XSSFSheetXMLHandler.SheetContentsHandler delegate, DataFormatter dataFormatter) {
       this.delegate = delegate;
       this.dataFormatter = dataFormatter;
