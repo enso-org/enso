@@ -22,7 +22,7 @@ import { highlightSelectionMatches } from '@codemirror/search'
 import { drawSelection, keymap } from '@codemirror/view'
 import { onMounted, toRef, useTemplateRef, type ComponentInstance } from 'vue'
 
-const { store: project, suggestionDb, module, graph } = useCurrentProject()
+const { store: project, module, graph } = useCurrentProject()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
@@ -42,7 +42,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     lintGutter(),
     highlightSelectionMatches(),
     ensoSyntax(toRef(module.value, 'root')),
-    ensoHoverTooltip(graph, suggestionDb, vueHost),
+    ensoHoverTooltip(graph, vueHost),
     () => (editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : []),
   ],
   vueHost: () => vueHost,
