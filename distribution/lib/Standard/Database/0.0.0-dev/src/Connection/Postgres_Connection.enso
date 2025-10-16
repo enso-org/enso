@@ -330,6 +330,12 @@ type Postgres_Connection
     ## ---
        private: true
        ---
+       Access the Statement Setter.
+    statement_setter self = self.connection.statement_setter
+
+    ## ---
+       private: true
+       ---
        Access the underlying JDBC connection.
     jdbc_connection self = self.connection.jdbc_connection
 
