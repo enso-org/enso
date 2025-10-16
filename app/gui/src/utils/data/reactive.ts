@@ -1,5 +1,5 @@
 import { unref, type MaybeRef } from 'vue'
-import * as objects from './object'
+import * as objects from 'enso-common/src/utilities/data/object'
 
 /**
  * A type that may recursively contain refs or getter functions, and can be recursively

@@ -7,7 +7,7 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme.json'
-import * as iter from 'enso-common/src/utilities/data/iter'
+import * as iter from '$/utils/data/iter'
 import { computed, markRaw, ref, watchEffect, type ComputedRef, type WatchStopHandle } from 'vue'
 
 const DRAG_SNAP_THRESHOLD = 16

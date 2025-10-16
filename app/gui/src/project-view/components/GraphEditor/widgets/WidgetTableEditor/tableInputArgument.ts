@@ -10,7 +10,7 @@ import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import { cachedGetter, type ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
-import * as iter from 'enso-common/src/utilities/data/iter'
+import * as iter from '$/utils/data/iter'
 import { computed, toValue } from 'vue'
 import type { ColumnSpecificParams } from './TableHeader.vue'
 

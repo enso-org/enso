@@ -28,8 +28,8 @@ import {
   type TransactionSpec,
 } from '@codemirror/state'
 import { EditorView, placeholder, tooltips } from '@codemirror/view'
-import { find, takeUntil } from 'enso-common/src/utilities/data/iter'
-import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
+import { find, takeUntil } from '$/utils/data/iter'
+import { LINE_BOUNDARIES } from '$/utils/data/string'
 import { createDebouncer } from 'lib0/eventloop.js'
 import {
   computed,

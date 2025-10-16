@@ -1,7 +1,6 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
 import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
-import * as array from '../utilities/data/array.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
 import * as permissions from '../utilities/permissions.js'
@@ -513,9 +512,13 @@ export enum Plan {
   enterprise = 'enterprise',
 }
 
-export const PLANS = Object.values(Plan)
+export const PLANS: readonly Plan[] = Object.values(Plan)
 
-export const isPlan = array.includesPredicate(PLANS)
+/** Whether a given value is a {@link Plan}. */
+export function isPlan(value: unknown): value is Plan {
+  const plans: readonly unknown[] = PLANS
+  return plans.includes(value)
+}
 
 /** Metadata for a payment checkout session. */
 export interface CheckoutSession {

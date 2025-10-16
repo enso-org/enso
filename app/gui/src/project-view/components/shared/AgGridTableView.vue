@@ -104,9 +104,9 @@ import type {
   RowHeightParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import * as iter from 'enso-common/src/utilities/data/iter'
+import * as iter from '$/utils/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
+import { LINE_BOUNDARIES } from '$/utils/data/string'
 import {
   computed,
   h,

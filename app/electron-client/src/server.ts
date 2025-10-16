@@ -55,7 +55,6 @@ import {
   EXPORT_ARCHIVE_PATH,
   GET_FILE_DETAILS_REGEX,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
-import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import {
   basenameAndExtension,
   getFileName,
@@ -670,7 +669,7 @@ export class Server {
       const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
       const shared = {
         title: getFileName(destinationPath),
-        modifiedAt: toRfc3339(new Date()),
+        modifiedAt: new Date().toISOString() as DirectoryAsset['modifiedAt'],
         parentId: DirectoryId(`directory-${getFolderPath(destinationPath)}` as const),
         extension: null,
         permissions: [],
@@ -896,7 +895,7 @@ export class Server {
       })()
       const shared = {
         title: getFileName(path),
-        modifiedAt: toRfc3339(new Date()),
+        modifiedAt: new Date().toISOString() as DirectoryAsset['modifiedAt'],
         parentId: DirectoryId(`directory-${getFolderPath(path)}` as const),
         extension: null,
         permissions: [],

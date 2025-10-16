@@ -9,7 +9,7 @@ import { useGraphEditorState } from '@/providers/graphEditorState'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import type { Vec2 } from '@/util/data/vec2'
 import { isDef } from '@vueuse/core'
-import { setsIntersect } from 'enso-common/src/utilities/data/set'
+import { setsIntersect } from '$/utils/data/set'
 import { setIfUndefined } from 'lib0/map'
 import {
   computed,
