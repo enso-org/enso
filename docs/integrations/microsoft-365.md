@@ -17,15 +17,15 @@ OAuth integration requires an application registered in the Azure portal.
 * Select tab "All applications"
 * Click "New Registration" upper right
    * Enter a name, such as "OAuth Integration"
-   * For "Supported account types", select "All Microsoft account users"
-   * For "Redirect URI", enter the staging and prod cloud endpoints, as well as "http://localhost:PORT" for local debugging
+   * For "Supported account types", select "Accounts in any organizational directory". (This will appear in the Overview section as "All Microsoft account users" after app registration.)
+   * For "Redirect URI", enter the cloud endpoint, as well as "http://localhost:PORT" for local debugging
 
 ## Create A Client Secret
 
 * Go to the application in the [Azure Portal](https://portal.azure.com/)
 * Select "Overview" on the left
 * Copy the "Application (client) ID" value
-* Select "Client Credentials"
+* Click on the link next to "Client Credentials"
 * Select "New Client Secret"
 * Enter name and expiration and create the secret
 * Add the secrets to the [staging](https://github.com/enso-org/cloud-v2/blob/main/terraform/secrets.enc.staging.yaml)
@@ -47,7 +47,42 @@ denied.
 
 * Go to the application in the [Azure Portal](https://portal.azure.com/)
 * Select "Branding & Properties" on the left
-* Under "Publisher Verification", click "Add MPN ID to verify publisher"
-* In the pop-up dialog, read the requirements, then select "Sign up for Microsoft Partner Network (MPN)" which will take you to the [Partner Center](https://partner.microsoft.com/)
-* In the Partner Center, select "Become a partner". You will have to click this button every time you return to this site
-* Follow the directions, and good luck.
+* Change "Publisher domain" to be "ensoanalytics.com" (it should be available in the drop-down list)
+* If there is an existing MPN ID (see "Getting the MPD IDs" below), enter it by clicking "Add MPN ID to verify publisher"
+* If there is no MPN ID:
+  * Under "Publisher Verification", click "Add MPN ID to verify publisher"
+  * In the pop-up dialog, read the requirements, then select "Sign up for Microsoft Partner Network (MPN)" which will take you to the [Partner Center](https://partner.microsoft.com/)
+  * In the Partner Center, select "Become a partner". You will have to click this button every time you return to this site
+  * Follow the directions, and good luck.
+
+## Adding API Permissions
+
+During OAuth, end-users will have to select Graph API scopes to authorize Enso
+to use. Any such scope must be added to the app registration.
+
+* Go to the application in the [Azure Portal](https://portal.azure.com/)
+* Select "API permissions" on the left
+* Click "Add a permission"
+* In pop-up, select "Microsoft Graph"
+* Click "Delegated permissions"
+* Enter the scope name (e.g. "Mail.Read") in the search box
+* Click "expand all" to see the list of matching scopes
+* Select scopes to add
+* Click "Add permissions"
+
+## Getting the MPD IDs
+
+* Sign in to the [Partner Center](https://partner.microsoft.com/)
+* Click "Partner Center" at the top
+* Click "Account settings" under the gear icon
+* Select "Legal Info" on the left
+* Click "View Partner IDs"
+* Select the "Microsoft AI Cloud Partner Program" tab
+* Copy the ID of the "PartnerGlobal" ID type
+
+## Adding / Modifying Redirect URIs
+
+* Go to the application in the [Azure Portal](https://portal.azure.com/)
+* Select "Authentication" on the left
+* Add new URIs
+* Click Save
