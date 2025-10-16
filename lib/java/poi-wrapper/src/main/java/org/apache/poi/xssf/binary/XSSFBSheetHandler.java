@@ -568,4 +568,16 @@ public class XSSFBSheetHandler extends XSSFBParser {
       delegate.endSheet();
     }
   }
+
+      /**
+     * You need to implement this to handle the results
+     *  of the sheet parsing.
+     */
+    public interface SheetContentsHandler extends XSSFSheetXMLHandler.SheetContentsHandler {
+        /**
+         * A cell, with the given formatted value (may be null),
+         * a url (may be null), a toolTip (may be null)
+         *  and possibly a comment (may be null), was encountered */
+        void hyperlinkCell(String cellReference, String formattedValue, String url, String toolTip, XSSFComment comment);
+    }
 }
