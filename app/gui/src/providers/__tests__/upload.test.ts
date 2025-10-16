@@ -9,10 +9,11 @@ import {
   type UploadLargeFileMetadata,
 } from '#/services/Backend'
 import {} from '@/util/assert'
+import { withSetup } from '@/util/testing'
 import { flushPromises } from '@vue/test-utils'
 import { assert, expect, test, vi } from 'vitest'
 import { setFeatureFlag } from '../featureFlags'
-import { createUploadsToCloudStore } from '../upload'
+import { createUploadsStore } from '../upload'
 
 const CHUNK_SIZE = 10
 
@@ -84,82 +85,84 @@ function fixture(files: { fileName: string; partsCount: number }[]) {
     }),
   }
 
-  const store = createUploadsToCloudStore(backend)
+  const store = createUploadsStore(backend as any)
 
   return { partsInProgress, store, filesMap }
 }
 
-test('Pooling single multipart file upload', async () => {
-  setFeatureFlag('fileChunkUploadPoolSize', 2)
-  const { partsInProgress, store, filesMap } = fixture([{ fileName: 'file', partsCount: 5 }])
-  const file = filesMap.get('file')!
-  const uploadResult = store.uploadFile(file.file, file.params).catch(assert.fail)
+test('Pooling single multipart file upload', () =>
+  withSetup(async () => {
+    setFeatureFlag('fileChunkUploadPoolSize', 2)
+    const { partsInProgress, store, filesMap } = fixture([{ fileName: 'file', partsCount: 5 }])
+    const file = filesMap.get('file')!
+    const uploadResult = store.uploadFile(file.file, file.params).catch(assert.fail)
 
-  await flushPromises()
-  expect(partsInProgress.size).toBe(2)
-  expect(store.uploads.size).toBe(1)
-  expect(store.uploads.values().next().value?.sentBytes).toBe(0)
+    await flushPromises()
+    expect(partsInProgress.size).toBe(2)
+    expect(store.uploads.size).toBe(1)
+    expect(store.uploads.values().next().value?.sentBytes).toBe(0)
 
-  // Resolve single part
-  const firstPart = partsInProgress.keys().next().value!
-  partsInProgress.get(firstPart)?.()
-  partsInProgress.delete(firstPart)
-  await flushPromises()
-  expect(partsInProgress.size).toBe(2)
-  expect(store.uploads.values().next().value?.sentBytes).toBe(CHUNK_SIZE)
+    // Resolve single part
+    const firstPart = partsInProgress.keys().next().value!
+    partsInProgress.get(firstPart)?.()
+    partsInProgress.delete(firstPart)
+    await flushPromises()
+    expect(partsInProgress.size).toBe(2)
+    expect(store.uploads.values().next().value?.sentBytes).toBe(CHUNK_SIZE)
 
-  // Resovle two parts at once
-  partsInProgress.forEach((resolve) => resolve())
-  partsInProgress.clear()
-  await flushPromises()
-  expect(partsInProgress.size).toBe(2)
-  expect(store.uploads.values().next().value?.sentBytes).toBe(3 * CHUNK_SIZE)
+    // Resovle two parts at once
+    partsInProgress.forEach((resolve) => resolve())
+    partsInProgress.clear()
+    await flushPromises()
+    expect(partsInProgress.size).toBe(2)
+    expect(store.uploads.values().next().value?.sentBytes).toBe(3 * CHUNK_SIZE)
 
-  // Resolve last parts
-  partsInProgress.forEach((resolve) => resolve())
-  await uploadResult
-  expect(store.uploads.values().next().value?.sentBytes).toBe(5 * CHUNK_SIZE)
-})
+    // Resolve last parts
+    partsInProgress.forEach((resolve) => resolve())
+    await uploadResult
+    expect(store.uploads.values().next().value?.sentBytes).toBe(5 * CHUNK_SIZE)
+  }))
 
-test('Pooling multiple files upload', async () => {
-  setFeatureFlag('fileChunkUploadPoolSize', 2)
-  const { partsInProgress, store, filesMap } = fixture([
-    { fileName: 'file1', partsCount: 1 },
-    { fileName: 'file2', partsCount: 1 },
-    { fileName: 'file3', partsCount: 1 },
-  ])
-  const results = Promise.all(
-    [...filesMap.entries()].map(([, file]) => store.uploadFile(file.file, file.params)),
-  ).catch(assert.fail)
+test('Pooling multiple files upload', () =>
+  withSetup(async () => {
+    setFeatureFlag('fileChunkUploadPoolSize', 2)
+    const { partsInProgress, store, filesMap } = fixture([
+      { fileName: 'file1', partsCount: 1 },
+      { fileName: 'file2', partsCount: 1 },
+      { fileName: 'file3', partsCount: 1 },
+    ])
+    const results = Promise.all(
+      [...filesMap.entries()].map(([, file]) => store.uploadFile(file.file, file.params)),
+    ).catch(assert.fail)
 
-  await flushPromises()
-  expect(partsInProgress.size).toBe(2)
-  expect(store.uploads.size).toBe(3)
+    await flushPromises()
+    expect(partsInProgress.size).toBe(2)
+    expect(store.uploads.size).toBe(3)
 
-  // Resolve single part
-  const firstPart = partsInProgress.keys().next().value!
-  partsInProgress.get(firstPart)?.()
-  partsInProgress.delete(firstPart)
-  await flushPromises()
-  expect(partsInProgress.size).toBe(2)
-  expect([...store.uploads.values()].map(({ sentBytes }) => sentBytes).sort()).toEqual([
-    0,
-    0,
-    CHUNK_SIZE,
-  ])
+    // Resolve single part
+    const firstPart = partsInProgress.keys().next().value!
+    partsInProgress.get(firstPart)?.()
+    partsInProgress.delete(firstPart)
+    await flushPromises()
+    expect(partsInProgress.size).toBe(2)
+    expect([...store.uploads.values()].map(({ sentBytes }) => sentBytes).sort()).toEqual([
+      0,
+      0,
+      CHUNK_SIZE,
+    ])
 
-  // Resovle rest of the parts
-  partsInProgress.forEach((resolve) => resolve())
-  partsInProgress.clear()
-  await flushPromises()
-  expect(partsInProgress.size).toBe(0)
-  expect([...store.uploads.values()].map(({ sentBytes }) => sentBytes).sort()).toEqual([
-    CHUNK_SIZE,
-    CHUNK_SIZE,
-    CHUNK_SIZE,
-  ])
+    // Resovle rest of the parts
+    partsInProgress.forEach((resolve) => resolve())
+    partsInProgress.clear()
+    await flushPromises()
+    expect(partsInProgress.size).toBe(0)
+    expect([...store.uploads.values()].map(({ sentBytes }) => sentBytes).sort()).toEqual([
+      CHUNK_SIZE,
+      CHUNK_SIZE,
+      CHUNK_SIZE,
+    ])
 
-  // Resolve last parts
-  partsInProgress.forEach((resolve) => resolve())
-  await results
-})
+    // Resolve last parts
+    partsInProgress.forEach((resolve) => resolve())
+    await results
+  }))
