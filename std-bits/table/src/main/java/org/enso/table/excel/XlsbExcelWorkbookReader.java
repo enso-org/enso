@@ -192,7 +192,7 @@ public class XlsbExcelWorkbookReader implements ExcelWorkbookReader {
     }
 
     @Override
-    public void cell(String cellReference, String formattedValue, XSSFComment comment) {
+    public void stringCell(String cellReference, String formattedValue, XSSFComment comment) {
       if (formattedValue == null) {
         formattedValue = "";
       }

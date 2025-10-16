@@ -146,13 +146,17 @@ public class XSSFBSheetHandler extends XSSFBParser {
     checkMissedComments(currentRow, cellBuffer.getColNum());
   }
 
-  private void handleCellValue(String formattedValue) {
-    CellAddress cellAddress = new CellAddress(currentRow, cellBuffer.getColNum());
-    XSSFBComment comment = null;
-    if (comments != null) {
-      comment = comments.get(cellAddress);
-    }
-    handler.cell(cellAddress.formatAsString(), formattedValue, comment);
+  private void handleStringCellValue(String formattedValue) {
+    CellAddress cellAddress = getCellAddress();
+    XSSFBComment comment = getCellComment(cellAddress);
+    handler.stringCell(cellAddress.formatAsString(), formattedValue, comment);
+  }
+
+  private void handleDoubleCellValue(double val) {
+    CellAddress cellAddress = getCellAddress();
+    XSSFBComment comment = getCellComment(cellAddress);
+    ExcelNumberFormat nf = getExcelNumberFormat();
+    handler.doubleCell(cellAddress.formatAsString(), val, comment, nf);
   }
 
   private CellAddress getCellAddress() {
@@ -186,36 +190,33 @@ public class XSSFBSheetHandler extends XSSFBParser {
     beforeCellValue(data);
     // xNum
     double val = LittleEndian.getDouble(data, XSSFBCellHeader.length);
-    CellAddress cellAddress = getCellAddress();
-    XSSFBComment comment = getCellComment(cellAddress);
-    ExcelNumberFormat nf = getExcelNumberFormat();
-    handler.doubleCell(cellAddress.formatAsString(), val, comment, nf);
+    handleDoubleCellValue(val);
   }
 
   private void handleCellSt(byte[] data) {
     beforeCellValue(data);
     xlWideStringBuffer.setLength(0);
     XSSFBUtils.readXLWideString(data, XSSFBCellHeader.length, xlWideStringBuffer);
-    handleCellValue(xlWideStringBuffer.toString());
+    handleStringCellValue(xlWideStringBuffer.toString());
   }
 
   private void handleFmlaString(byte[] data) {
     beforeCellValue(data);
     xlWideStringBuffer.setLength(0);
     XSSFBUtils.readXLWideString(data, XSSFBCellHeader.length, xlWideStringBuffer);
-    handleCellValue(xlWideStringBuffer.toString());
+    handleStringCellValue(xlWideStringBuffer.toString());
   }
 
   private void handleCellError(byte[] data) {
     beforeCellValue(data);
     // TODO, read byte to figure out the type of error
-    handleCellValue("ERROR");
+    handleStringCellValue("ERROR");
   }
 
   private void handleFmlaError(byte[] data) {
     beforeCellValue(data);
     // TODO, read byte to figure out the type of error
-    handleCellValue("ERROR");
+    handleStringCellValue("ERROR");
   }
 
   private void handleBoolean(byte[] data) {
@@ -230,26 +231,20 @@ public class XSSFBSheetHandler extends XSSFBParser {
     beforeCellValue(data);
     // xNum
     double val = LittleEndian.getDouble(data, XSSFBCellHeader.length);
-    CellAddress cellAddress = getCellAddress();
-    XSSFBComment comment = getCellComment(cellAddress);
-    ExcelNumberFormat nf = getExcelNumberFormat();
-    handler.doubleCell(cellAddress.formatAsString(), val, comment, nf);
+    handleDoubleCellValue(val);
   }
 
   private void handleCellRk(byte[] data) {
     beforeCellValue(data);
     double val = rkNumber(data, XSSFBCellHeader.length);
-    CellAddress cellAddress = getCellAddress();
-    XSSFBComment comment = getCellComment(cellAddress);
-    ExcelNumberFormat nf = getExcelNumberFormat();
-    handler.doubleCell(cellAddress.formatAsString(), val, comment, nf);
+    handleDoubleCellValue(val);
   }
 
   private void handleBrtCellIsst(byte[] data) {
     beforeCellValue(data);
     int idx = XSSFBUtils.castToInt(LittleEndian.getUInt(data, XSSFBCellHeader.length));
     RichTextString rtss = stringsTable.getItemAt(idx);
-    handleCellValue(rtss.getString());
+    handleStringCellValue(rtss.getString());
   }
 
   private void handleHeaderFooter(byte[] data) {
@@ -334,7 +329,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
   }
 
   private void dumpEmptyCellComment(CellAddress cellAddress, XSSFBComment comment) {
-    handler.cell(cellAddress.formatAsString(), null, comment);
+    handler.stringCell(cellAddress.formatAsString(), null, comment);
   }
 
   private double rkNumber(byte[] data, int offset) {
@@ -376,7 +371,7 @@ public class XSSFBSheetHandler extends XSSFBParser {
     void endRow(int rowNum);
 
     /**
-     * A cell, with the given formatted value (may be null), and possibly a comment (may be null),
+     * A cell, with the given string value (may be null), and possibly a comment (may be null),
      * was encountered.
      *
      * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
@@ -384,10 +379,28 @@ public class XSSFBSheetHandler extends XSSFBParser {
      * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
      * example of how to handle this scenario.
      */
-    void cell(String cellReference, String formattedValue, XSSFComment comment);
+    void stringCell(String cellReference, String value, XSSFComment comment);
 
+    /**
+     * A cell, with the given double value and format, and possibly a comment (may be null),
+     * was encountered.
+     *
+     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
+     * See the code in <code>
+     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
+     * example of how to handle this scenario.
+     */
     void doubleCell(String cellReference, double value, XSSFComment comment, ExcelNumberFormat nf);
 
+    /**
+     * A cell, with the given boolean value, and possibly a comment (may be null),
+     * was encountered.
+     *
+     * <p>Sheets that have missing or empty cells may result in sparse calls to <code>cell</code>.
+     * See the code in <code>
+     * poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an
+     * example of how to handle this scenario.
+     */
     void booleanCell(String cellReference, boolean value, XSSFComment comment);
 
     /** A header or footer has been encountered */
@@ -417,8 +430,8 @@ public class XSSFBSheetHandler extends XSSFBParser {
     }
 
     @Override
-    public void cell(String cellReference, String formattedValue, XSSFComment comment) {
-      delegate.cell(cellReference, formattedValue, comment);
+    public void stringCell(String cellReference, String value, XSSFComment comment) {
+      delegate.cell(cellReference, value, comment);
     }
 
     @Override
