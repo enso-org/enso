@@ -13,6 +13,7 @@ import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
+import { uniqueString } from '$/utils/uniqueString'
 import { PRODUCT_NAME } from 'enso-common'
 import {
   downloadProjectPath,
@@ -26,7 +27,6 @@ import {
   getFolderPath,
   normalizePath,
 } from 'enso-common/src/utilities/file'
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 

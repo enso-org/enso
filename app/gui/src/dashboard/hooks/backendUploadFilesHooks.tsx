@@ -20,6 +20,7 @@ import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useHttpClient, useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { uniqueString } from '$/utils/uniqueString'
 import {
   queryOptions,
   useQueryClient,
@@ -43,7 +44,6 @@ import {
   type UploadedAsset,
   type UploadFileRequestParams,
 } from 'enso-common/src/services/Backend'
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'

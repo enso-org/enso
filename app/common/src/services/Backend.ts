@@ -5,7 +5,6 @@ import * as array from '../utilities/data/array.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
 import * as permissions from '../utilities/permissions.js'
-import * as uniqueString from '../utilities/uniqueString.js'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
   DatalinkId,
@@ -965,27 +964,6 @@ export type DatalinkAsset = Asset<AssetType.datalink>
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export type SecretAsset = Asset<AssetType.secret>
 
-const PLACEHOLDER_SIGNATURE = Symbol('placeholder')
-
-/** Creates a new placeholder id. */
-function createPlaceholderId(from?: string): string {
-  const id = new String(from ?? uniqueString.uniqueString())
-
-  Object.defineProperty(id, PLACEHOLDER_SIGNATURE, {
-    value: true,
-    enumerable: false,
-    configurable: false,
-    writable: false,
-  })
-
-  return id as string
-}
-
-/** Whether a given {@link AssetId} is a placeholder id. */
-export function isPlaceholderId(id: AssetId) {
-  return typeof id !== 'string' && PLACEHOLDER_SIGNATURE in id
-}
-
 /** Whether a given asset represents a credential. */
 export function isAssetCredential(
   asset: Asset,
@@ -993,48 +971,9 @@ export function isAssetCredential(
   return asset.type === 'secret' && asset.credentialMetadata !== undefined
 }
 
-/** Extract the file extension from a file name. */
-function fileExtension(fileNameOrPath: string) {
-  return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
-}
-
 /** Whether an asset can be downloaded. */
 export function isDownloadableAsset(type: AssetType | undefined) {
   return type !== AssetType.secret
-}
-
-/** Creates a {@link FileAsset} using the given values. */
-export function createPlaceholderFileAsset(title: string, parentId: DirectoryId): FileAsset {
-  return {
-    type: AssetType.file,
-    id: FileId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: fileExtension(title),
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Creates a {@link ProjectAsset} using the given values. */
-export function createPlaceholderProjectAsset(title: string, parentId: DirectoryId): ProjectAsset {
-  return {
-    type: AssetType.project,
-    id: ProjectId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: { type: ProjectState.new },
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
 }
 
 /** Any object with a `type` field matching the given `AssetType`. */
@@ -1066,40 +1005,6 @@ export function extractTypeFromId(id: AssetId): AnyAsset extends infer T ?
     type: id.match(/^(.+?)-/)?.[1],
     id,
   } as never
-}
-
-/** Creates a new placeholder asset id for the given asset type. */
-export function createPlaceholderAssetId<Type extends AssetType>(
-  type: Type,
-  id?: string,
-): IdType[Type] {
-  // This is required so that TypeScript can check the `switch` for exhaustiveness.
-  const assetType: AssetType = type
-  id = createPlaceholderId(id)
-  let result: AssetId
-  switch (assetType) {
-    case AssetType.directory: {
-      result = DirectoryId(`directory-${id}`)
-      break
-    }
-    case AssetType.project: {
-      result = ProjectId(id)
-      break
-    }
-    case AssetType.file: {
-      result = FileId(id)
-      break
-    }
-    case AssetType.datalink: {
-      result = DatalinkId(id)
-      break
-    }
-    case AssetType.secret: {
-      result = SecretId(id)
-      break
-    }
-  }
-  return result as IdType[Type]
 }
 
 /** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
