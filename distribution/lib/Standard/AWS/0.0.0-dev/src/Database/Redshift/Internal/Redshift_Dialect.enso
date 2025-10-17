@@ -282,15 +282,6 @@ type Redshift_Dialect
     ## ---
        private: true
        ---
-       The dialect-dependent strategy to get the Primary Key for a given table.
-       Returns `Nothing` if the key is not defined.
-    fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name schema_name =
-        Connection.default_fetch_primary_key connection table_name schema_name
-
-    ## ---
-       private: true
-       ---
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
     value_type_for_upload_of_existing_column self column =
         ## TODO special behaviour for big integer columns should be added here, once we start testing this dialect again

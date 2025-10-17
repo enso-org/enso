@@ -382,6 +382,20 @@ type Postgres_Connection
         self.base_connection.save_as_data_link path on_existing_file
 
     ## ---
+       icon: metadata
+       ---
+       Get the Primary Key for a given table.
+       Returns `Nothing` if the key is not defined.
+
+       ## Arguments
+       - `table_name`: the name of the table to get the primary key for.
+       - `schema_name`: optionally, the schema name where the table is located.
+    @table_name make_table_name_selector add_custom=False
+    fetch_primary_key : Text -> Text -> Vector Text ! Nothing
+    fetch_primary_key self table_name:Text schema_name:Text="" =
+        self.base_connection.fetch_primary_key table_name schema_name
+
+    ## ---
        private: true
        ---
        Converts this value to a JSON serializable object.

@@ -367,25 +367,6 @@ type SQLite_Dialect
     ## ---
        private: true
        ---
-       The dialect-dependent strategy to get the Primary Key for a given table.
-       Returns `Nothing` if the key is not defined.
-       Custom handling is required, because the default DatabaseMetaData
-       implementation does not correctly handle temporary tables.
-    fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name schema_name =
-        _ = schema_name
-        wrapped_name = self.wrap_identifier table_name
-        query = SQL_Builder.code "pragma table_info(" ++ wrapped_name ++ ")"
-        info_table = connection.read_statement query.build
-        ## The `pk` field is non-zero if the columns is part of the primary key.
-           The column value indicates the position in the key.
-           See: https://www.sqlite.org/pragma.html#pragma_table_info
-        v = info_table.filter "pk" (>0) . sort "pk" . at "name" . to_vector
-        if v.is_empty then Nothing else v
-
-    ## ---
-       private: true
-       ---
        Prepares metadata for an operation taking a date/time period and checks if
        the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any

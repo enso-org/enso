@@ -339,15 +339,6 @@ type Snowflake_Dialect
     ## ---
        private: true
        ---
-       The dialect-dependent strategy to get the Primary Key for a given table.
-       Returns `Nothing` if the key is not defined.
-    fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name schema_name =
-        Connection.default_fetch_primary_key connection table_name schema_name
-
-    ## ---
-       private: true
-       ---
        Prepares metadata for an operation taking a date/time period and checks if
        the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any

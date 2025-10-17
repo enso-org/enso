@@ -152,7 +152,7 @@ type DB_Table
             # The primary key may not be valid anymore after grouping!
             is_primary_key_still_valid = self.context.groups.is_empty
             if is_primary_key_still_valid.not then Nothing else
-                result = self.connection.dialect.fetch_primary_key self.connection table_name schema_name
+                result = self.connection.fetch_primary_key table_name schema_name
                 result.catch Any _->Nothing
         # If the key is a result of a join, union or a subquery then it has no notion of primary key.
         _ -> Nothing

@@ -15,6 +15,7 @@ import project.Internal.Common.Connections_Helpers
 import project.Internal.JDBC_Connection
 import project.Internal.SQLite.SQLite_Entity_Naming_Properties
 import project.Internal.SQLite.SQLite_Type_Mapping.SQLite_Type_Mapping
+import project.SQL.SQL_Builder
 import project.SQL.SQL_Statement
 import project.SQL_Query.SQL_Query
 from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
@@ -357,6 +358,28 @@ type SQLite_Connection
        on the 'subclasses'.
     base_connection : Connection
     base_connection self = self.connection
+
+    ## ---
+       icon: metadata
+       ---
+       Get the Primary Key for a given table.
+       Returns `Nothing` if the key is not defined.
+
+       ## Arguments
+       - `table_name`: the name of the table to get the primary key for.
+       - `schema_name`: optionally, the schema name where the table is located.
+    @table_name make_table_name_selector add_custom=False
+    fetch_primary_key : Text -> Text -> Vector Text ! Nothing
+    fetch_primary_key self table_name:Text schema_name:Text="" =
+        _ = schema_name
+        wrapped_name = self.dialect.wrap_identifier table_name
+        query = SQL_Builder.code "pragma table_info(" ++ wrapped_name ++ ")"
+        info_table = self.connection.read_statement query.build
+        ## The `pk` field is non-zero if the columns is part of the primary key.
+           The column value indicates the position in the key.
+           See: https://www.sqlite.org/pragma.html#pragma_table_info
+        v = info_table.filter "pk" (>0) . sort "pk" . at "name" . to_vector
+        if v.is_empty then Nothing else v
 
     ## ---
        private: true
