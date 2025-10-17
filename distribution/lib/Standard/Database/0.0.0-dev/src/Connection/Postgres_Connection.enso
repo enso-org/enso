@@ -23,6 +23,7 @@ from project.Connection.Connection import make_schema_selector, make_structure_c
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.Postgres.Helpers import get_encoding_name, parse_postgres_encoding
 from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
+from project.Internal.Upload.Operations.Create import create_table_implementation
 
 type Postgres_Connection
     ## ---
@@ -259,7 +260,7 @@ type Postgres_Connection
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Table & DB_Table ! Table_Already_Exists
     create_table self (table_name : Text) (structure : Vector Column_Description | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
-        self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
+        create_table_implementation self table_name structure primary_key temporary allow_existing on_problems
 
     ## ---
        private: true
