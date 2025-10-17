@@ -3,8 +3,6 @@ use crate::prelude::*;
 use crate::env::Action;
 use crate::env::Modification;
 
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct Sh;
 
@@ -67,19 +65,17 @@ mod tests {
     #[allow(unused_imports)]
     use super::*;
 
-
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn test_modify_env() {
         let set_foobar = Modification {
             variable_name: "FOOBAR".into(),
-            action:        Action::Set("foobar_value".into()),
+            action: Action::Set("foobar_value".into()),
         };
-        let unset_foobar =
-            Modification { variable_name: "FOOBAR".into(), action: Action::Remove };
+        let unset_foobar = Modification { variable_name: "FOOBAR".into(), action: Action::Remove };
         let prepend_path = Modification {
             variable_name: "PATH".into(),
-            action:        Action::PrependPaths(vec!["/foo".into(), "/bar".into()]),
+            action: Action::PrependPaths(vec!["/foo".into(), "/bar".into()]),
         };
         assert_eq!(Bash.modify_env(&set_foobar).unwrap(), "export FOOBAR=foobar_value");
         assert_eq!(Bash.modify_env(&unset_foobar).unwrap(), "unset FOOBAR");

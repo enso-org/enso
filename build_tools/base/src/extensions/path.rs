@@ -42,7 +42,7 @@ pub trait PathExt: AsRef<Path> {
     /// ```
     fn with_appended_extension(&self, extension: impl AsRef<OsStr>) -> PathBuf {
         if extension.as_ref().is_empty() {
-            return self.as_ref().into();
+            self.as_ref().into()
         } else {
             let mut ret = self.as_ref().to_path_buf().into_os_string();
             ret.push(".");

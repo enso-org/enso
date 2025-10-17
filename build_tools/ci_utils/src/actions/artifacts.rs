@@ -10,7 +10,6 @@ use anyhow::Context as Trait_anyhow_Context;
 use flume::Sender;
 use tempfile::tempdir;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -22,10 +21,7 @@ pub mod raw;
 pub mod run_session;
 pub mod upload;
 
-
-
 pub const API_VERSION: &str = "6.0-preview";
-
 
 pub async fn execute_dbg<T: DeserializeOwned + Debug>(
     client: &reqwest::Client,
@@ -64,7 +60,6 @@ pub fn discover_recursive(
     tokio::task::spawn_blocking(move || discover_and_feed(root_path, tx));
     rx.into_stream()
 }
-
 
 fn upload(
     file_provider: impl Stream<Item = FileToUpload> + Send + 'static,
@@ -117,7 +112,7 @@ pub async fn download_single_file_artifact(
     match downloader.file_items().collect_vec().as_slice() {
         [item] => {
             let file = FileToDownload {
-                target:                 target.as_ref().into(),
+                target: target.as_ref().into(),
                 remote_source_location: item.content_location.clone(),
             };
             downloader.download_file_item(&file).await?;
@@ -188,9 +183,10 @@ pub fn single_dir_provider(path: &Path) -> Result<impl Stream<Item = FileToUploa
         .filter(|res| match res {
             Ok(entry) => !entry.file_type().is_dir(),
             // ignore "not found" errors, just don't include the file in the final stream.
-            Err(e) =>
+            Err(e) => {
                 e.depth() != 0
-                    || e.io_error().map_or(true, |e| e.kind() != std::io::ErrorKind::NotFound),
+                    || e.io_error().is_none_or(|e| e.kind() != std::io::ErrorKind::NotFound)
+            }
         })
         .map(|entry| FileToUpload::new_relative(parent_path, entry?.path()))
         .try_collect()?;
@@ -230,7 +226,6 @@ pub async fn retrieve_compressed_directory(
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -268,7 +263,7 @@ mod tests {
         let path_to_upload = "Cargo.toml";
 
         let file_to_upload = FileToUpload {
-            local_path:  PathBuf::from(path_to_upload),
+            local_path: PathBuf::from(path_to_upload),
             remote_path: PathBuf::from(path_to_upload),
         };
 

@@ -1,14 +1,11 @@
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod arg;
-
-
 
 pub mod prelude {
     pub use crate::arg::ArgExt as _;
@@ -139,8 +136,9 @@ impl Processor {
             arg::SourceKind::Build => T::resolve(self, source.build_args.input)
                 .map_ok(move |input| Source::BuildLocally(BuildSource { input }))
                 .boxed(),
-            arg::SourceKind::Local =>
-                ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path))),
+            arg::SourceKind::Local => {
+                ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path)))
+            }
             arg::SourceKind::CiRun => {
                 let run_id = source.run_id.context(format!(
                     "Missing run ID, please provide {} argument.",
@@ -155,10 +153,11 @@ impl Processor {
                 });
                 ready(source).boxed()
             }
-            arg::SourceKind::CurrentCiRun =>
+            arg::SourceKind::CurrentCiRun => {
                 ok_ready_boxed(Source::External(ExternalSource::OngoingCiRun(OngoingCiRunSource {
                     artifact_name: resolve_artifact_name(source.artifact_name, &target),
-                }))),
+                })))
+            }
             arg::SourceKind::Release => {
                 let designator = source
                     .release

@@ -6,8 +6,6 @@ use ide_ci::program::command::provider::CommandProviderExt;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Sbt;
 
-
-
 pub fn verify_generated_package_task(package: &str, path: impl AsRef<Path>) -> String {
     format!(
         "enso/verifyGeneratedPackage {} {}",
@@ -28,7 +26,7 @@ pub trait SbtCommandProvider: CommandProvider {
 
 #[derive(Clone, Debug)]
 pub struct Context {
-    pub repo_root:         PathBuf,
+    pub repo_root: PathBuf,
     pub system_properties: Vec<sbt::SystemProperty>,
 }
 

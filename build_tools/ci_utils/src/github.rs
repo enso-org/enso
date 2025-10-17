@@ -5,7 +5,6 @@ use crate::define_env_var;
 use octocrab::models::repos::Asset;
 use octocrab::models::repos::Release;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -17,8 +16,6 @@ pub mod workflow;
 
 pub use repo::Repo;
 pub use repo::RepoRef;
-
-
 
 /// Maximum number of items per page in the GitHub API.
 const MAX_PER_PAGE: u8 = 100;
@@ -46,7 +43,6 @@ pub fn retrieve_github_access_token() -> Result<String> {
         .inspect_err(|e| debug!("Failed to retrieve GitHub authentication from environment: {e}"))
         .or_else(|_| get_token_from_file())
 }
-
 
 /// Prepare the octocrab (GitHub API client) using the authentication token from the environment.
 #[context("Failed to setup GitHub API client.")]

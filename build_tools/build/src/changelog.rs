@@ -4,14 +4,11 @@ use pulldown_cmark::Event;
 use pulldown_cmark::HeadingLevel;
 use pulldown_cmark::Tag::Heading;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod check;
-
-
 
 #[derive(Clone, Copy, Debug)]
 pub struct Changelog<'a>(pub &'a str);
@@ -38,15 +35,14 @@ impl<'a> Changelog<'a> {
         let file_end_pos = self.0.len();
         let next_header_start = headers.next().map_or(file_end_pos, |h| h.pos.start);
         let contents = self.0[first_header.pos.end..next_header_start].trim();
-        let entry =
-            Entry { header: first_header.text.to_string(), contents: contents.to_string() };
+        let entry = Entry { header: first_header.text.to_string(), contents: contents.to_string() };
         Ok(entry)
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct Entry {
-    pub header:   String,
+    pub header: String,
     pub contents: String,
 }
 
@@ -55,7 +51,7 @@ pub struct Header<'a> {
     /// Text of the header.
     pub text: &'a str,
     /// Position in the changelog file text.
-    pub pos:  Range<usize>,
+    pub pos: Range<usize>,
 }
 
 impl<'a> Header<'a> {

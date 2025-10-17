@@ -2,8 +2,6 @@ use crate::prelude::*;
 
 use crate::new_command_type;
 
-
-
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Node;
 

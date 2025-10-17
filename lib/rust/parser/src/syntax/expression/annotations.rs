@@ -19,7 +19,6 @@ use crate::syntax::Flush;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
-
 // ===================
 // === Annotations ===
 // ===================
@@ -36,13 +35,13 @@ use crate::syntax::Tree;
 #[operator_consumer(FlushAndForward)]
 pub struct ParseAnnotations<'s, Inner> {
     operator: Option<AnnotationOperator<'s>>,
-    inner:    Inner,
+    inner: Inner,
 }
 
 #[derive(Debug, ApplyToOperand)]
 pub struct Annotation<'s> {
     operator: AnnotationOperator<'s>,
-    ident:    Ident<'s>,
+    ident: Ident<'s>,
 }
 
 impl<'s> Annotation<'s> {
@@ -60,15 +59,15 @@ impl<'s> Annotation<'s> {
 impl<'s> From<Annotation<'s>> for Operator<'s> {
     fn from(value: Annotation<'s>) -> Self {
         Operator {
-            left_precedence:  None,
+            left_precedence: None,
             right_precedence: ModifiedPrecedence::new(
                 Spacing::Spaced,
                 Precedence::Assignment,
                 false,
             )
             .into(),
-            associativity:    Associativity::Left,
-            arity:            Arity::Annotation(value),
+            associativity: Associativity::Left,
+            arity: Arity::Annotation(value),
         }
     }
 }
@@ -80,14 +79,17 @@ impl<'s> Annotation<'s> {
 }
 
 impl<'s, Inner> SpacingLookaheadTokenConsumer<'s> for ParseAnnotations<'s, Inner>
-where Inner:
-        SpacingLookaheadTokenConsumer<'s> + SpacingLookaheadTreeConsumer<'s> + OperatorConsumer<'s>
+where
+    Inner:
+        SpacingLookaheadTokenConsumer<'s> + SpacingLookaheadTreeConsumer<'s> + OperatorConsumer<'s>,
 {
     fn push_token(&mut self, token: Token<'s>, following_spacing: Option<Spacing>) {
         match (self.operator.as_mut(), token.variant) {
             (None, Variant::AnnotationOperator(variant))
                 if following_spacing == Some(Spacing::Unspaced) =>
-                self.operator = token.with_variant(variant).into(),
+            {
+                self.operator = token.with_variant(variant).into()
+            }
             (Some(_), Variant::Ident(variant)) => {
                 let operator = self.operator.take().unwrap();
                 let ident = token.with_variant(variant);
@@ -107,7 +109,8 @@ where Inner:
 }
 
 impl<'s, Inner> Flush for ParseAnnotations<'s, Inner>
-where Inner: SpacingLookaheadTreeConsumer<'s>
+where
+    Inner: SpacingLookaheadTreeConsumer<'s>,
 {
     fn flush(&mut self) {
         if let Some(operator) = self.operator.take() {

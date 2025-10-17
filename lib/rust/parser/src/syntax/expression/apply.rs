@@ -10,22 +10,19 @@ use crate::syntax::SyntaxError;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
-
-
 // ==========================
 // === Applying operators ===
 // ==========================
-
 
 // === Binary operators ===
 
 #[derive(Debug)]
 pub struct ApplyOperator<'s> {
-    tokens:            Vec<Token<'s>>,
-    lhs:               Option<MaybeSection<Tree<'s>>>,
-    rhs:               Option<MaybeSection<Tree<'s>>>,
+    tokens: Vec<Token<'s>>,
+    lhs: Option<MaybeSection<Tree<'s>>>,
+    rhs: Option<MaybeSection<Tree<'s>>>,
     reify_rhs_section: bool,
-    warnings:          Option<Warnings>,
+    warnings: Option<Warnings>,
 }
 
 impl<'s> ApplyOperator<'s> {
@@ -105,14 +102,13 @@ impl<'s> ApplyOperator<'s> {
     }
 }
 
-
 // === Unary operators ===
 
 #[derive(Debug)]
 pub struct ApplyUnaryOperator<'s> {
-    token:    token::UnaryOperator<'s>,
-    rhs:      Option<MaybeSection<Tree<'s>>>,
-    error:    Option<SyntaxError>,
+    token: token::UnaryOperator<'s>,
+    rhs: Option<MaybeSection<Tree<'s>>>,
+    error: Option<SyntaxError>,
     warnings: Option<Warnings>,
 }
 
@@ -138,9 +134,10 @@ impl<'s> ApplyUnaryOperator<'s> {
         MaybeSection::from(rhs).map(|rhs| {
             let mut tree = match rhs {
                 Some(rhs) => Tree::unary_opr_app(token, rhs),
-                None =>
+                None => {
                     Tree::opr_app(None, Ok(token.with_variant(token::variant::Operator())), None)
-                        .with_error(SyntaxError::SyntacticOperatorMissingOperandUnary),
+                        .with_error(SyntaxError::SyntacticOperatorMissingOperandUnary)
+                }
             };
             if let Some(warnings) = warnings {
                 warnings.apply(&mut tree);

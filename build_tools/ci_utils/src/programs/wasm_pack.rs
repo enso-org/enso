@@ -6,8 +6,6 @@ use crate::programs::Cargo;
 
 use tempfile::TempDir;
 
-
-
 /// What kind of Cargo build profile should be used.
 ///
 /// Typically affects optimization, debug symbol generation and so.
@@ -76,7 +74,6 @@ impl Program for WasmPack {
         "wasm-pack"
     }
 }
-
 
 new_command_type! {WasmPack, WasmPackCommand}
 

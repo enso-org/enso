@@ -6,8 +6,6 @@ use clap::Args;
 use clap::Subcommand;
 use enso_build::project::wasm::test::Browser;
 
-
-
 #[derive(Subcommand, Clone, Debug, PartialEq)]
 pub enum Command {
     /// Run the unit tests.
@@ -17,12 +15,12 @@ pub enum Command {
         no_native: bool,
         /// Skip the WASM Rust tests.
         #[clap(long)]
-        no_wasm:   bool,
+        no_wasm: bool,
         /// Which browsers should be used to run WASM tests.
         ///
         /// More than one browser can be specified.
         #[clap(long, enso_env(), value_enum, default_values_t = [Browser::Firefox])]
-        browser:   Vec<Browser>,
+        browser: Vec<Browser>,
     },
     Lint,
 }

@@ -1,22 +1,22 @@
 [package]
-name = "enso-parser-schema"
-version = "0.1.0"
-authors = ["Enso Team <enso-dev@enso.org>"]
-edition = "2021"
-description = "Generates schema describing Enso Parser AST types."
-readme = "README.md"
-homepage = "https://github.com/enso-org/enso"
-repository = "https://github.com/enso-org/enso"
-license-file = "../../LICENSE"
+	name = "enso-parser-schema"
+	version = "0.1.0"
+	authors = ["Enso Team <enso-dev@enso.org>"]
+	edition = "2021"
+	description = "Generates schema describing Enso Parser AST types."
+	readme = "README.md"
+	homepage = "https://github.com/enso-org/enso"
+	repository = "https://github.com/enso-org/enso"
+	license-file = "../../LICENSE"
 
 [dependencies]
-enso-metamodel = { path = "../../metamodel" }
-enso-parser = { path = ".." }
-enso-reflect = { path = "../../reflect" }
-serde = { workspace = true }
+	enso-metamodel = { path = "../../metamodel" }
+	enso-parser = { path = ".." }
+	enso-reflect = { path = "../../reflect" }
+	serde = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-serde_json = { workspace = true }
+	serde_json = { workspace = true }
 
 [lints]
-workspace = true
+	workspace = true

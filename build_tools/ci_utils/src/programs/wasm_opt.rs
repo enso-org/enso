@@ -3,8 +3,6 @@ use crate::prelude::*;
 use crate::program::command::Manipulator;
 use crate::program::version::IsVersion;
 
-
-
 #[derive(Clone, Copy, Debug, strum::Display, strum::EnumString)]
 pub enum OptimizationLevel {
     /// execute default optimization passes (equivalent to -Os)

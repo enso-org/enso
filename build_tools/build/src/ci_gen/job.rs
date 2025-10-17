@@ -32,8 +32,6 @@ use ide_ci::actions::workflow::definition::Target;
 use ide_ci::cache::goodie::graalvm;
 use ide_ci::convert_case::ToKebabCase;
 
-
-
 /// Target runners set (or just a single runner) for a job.
 pub trait RunsOn: 'static + Debug {
     /// A strategy that will be used for the job.
@@ -233,7 +231,7 @@ impl JobArchetype for VerifyLicensePackages {
 
 #[derive(Clone, Copy, Debug)]
 pub struct JvmTests {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
@@ -262,10 +260,12 @@ impl JobArchetype for JvmTests {
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
-            graalvm::Edition::Community =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
-            graalvm::Edition::Enterprise =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+            graalvm::Edition::Community => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community)
+            }
+            graalvm::Edition::Enterprise => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise)
+            }
         }
         job
     }
@@ -315,19 +315,21 @@ impl Display for StandardLibraryTestsScope {
         match self {
             StandardLibraryTestsScope::CloudRelated => write!(f, "std-cloud-related"),
             StandardLibraryTestsScope::StandardLibraryJvm => write!(f, "standard-library"),
-            StandardLibraryTestsScope::StandardLibraryInNative =>
-                write!(f, "standard-library-in-native"),
-            StandardLibraryTestsScope::Microsoft =>
-                write!(f, "std-microsoft std-mock-dual-microsoft"),
+            StandardLibraryTestsScope::StandardLibraryInNative => {
+                write!(f, "standard-library-in-native")
+            }
+            StandardLibraryTestsScope::Microsoft => {
+                write!(f, "std-microsoft std-mock-dual-microsoft")
+            }
         }
     }
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
-    pub scope:           StandardLibraryTestsScope,
+    pub scope: StandardLibraryTestsScope,
 }
 
 impl StandardLibraryTests {
@@ -401,10 +403,12 @@ impl JobArchetype for StandardLibraryTests {
         )
         .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
-            graalvm::Edition::Community =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
-            graalvm::Edition::Enterprise =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+            graalvm::Edition::Community => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community)
+            }
+            graalvm::Edition::Enterprise => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise)
+            }
         }
 
         // If running extra cloud tests, enable reporting all tests. These tests run on a nightly
@@ -435,7 +439,7 @@ impl JobArchetype for StandardLibraryTests {
 /// standard libraries and tests.
 #[derive(Clone, Copy, Debug)]
 pub struct EnsoCodeLintCheck {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
@@ -477,7 +481,7 @@ impl JobArchetype for EnsoCodeLintCheck {
 /// and comparing it to the API signature files that are already in the VCS.
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryApiCheck {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
@@ -622,9 +626,9 @@ fn build_job_ensuring_cloud_tests_run_on_github(
 
 #[derive(Clone, Copy, Debug)]
 pub struct SnowflakeTests {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
-    pub jvm_mode:        bool,
+    pub jvm_mode: bool,
 }
 
 const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Community;
@@ -1061,7 +1065,7 @@ rm dist/backend/project-manager.tar"
 
 #[derive(Clone, Copy, Debug)]
 pub struct BuildEngineDistribution {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
@@ -1090,10 +1094,12 @@ impl JobArchetype for BuildEngineDistribution {
             .build_job(job_name, target);
         job.env(engine::env::ENSO_LAUNCHER, self.engine_launcher);
         match self.graal_edition {
-            graalvm::Edition::Community =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
-            graalvm::Edition::Enterprise =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+            graalvm::Edition::Community => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community)
+            }
+            graalvm::Edition::Enterprise => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise)
+            }
         }
         job
     }

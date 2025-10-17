@@ -6,8 +6,6 @@ use serde::de::Error;
 use serde::Deserializer;
 use serde::Serializer;
 
-
-
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum Either<T, U> {
@@ -16,7 +14,8 @@ pub enum Either<T, U> {
 }
 
 impl<T, U> Either<T, U>
-where T: Into<U>
+where
+    T: Into<U>,
 {
     pub fn into_right(self) -> U {
         match self {
@@ -30,7 +29,9 @@ pub trait WithShorthand<'a, Shorthand: Sized + Deserialize<'a>>: Deserialize<'a>
     fn resolve(short: Shorthand) -> Self;
 
     fn de<D>(de: D) -> std::result::Result<Self, D::Error>
-    where D: Deserializer<'a> {
+    where
+        D: Deserializer<'a>,
+    {
         Either::<Shorthand, Self>::deserialize(de).map(|e| match e {
             Either::Left(shorthand) => Self::resolve(shorthand),
             Either::Right(value) => value,
@@ -43,7 +44,6 @@ impl<'a, T: Deserialize<'a>> WithShorthand<'a, T> for Vec<T> {
         vec![short]
     }
 }
-
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
@@ -68,7 +68,8 @@ impl<T> From<SingleOrSequence<T>> for Vec<T> {
 pub fn single_or_sequence<'de, D, T>(de: D) -> std::result::Result<Vec<T>, D::Error>
 where
     D: Deserializer<'de>,
-    T: Deserialize<'de>, {
+    T: Deserialize<'de>,
+{
     WithShorthand::de(de)
 }
 
@@ -82,7 +83,9 @@ pub mod regex_vec {
 
     /// See [`regex_vec`].
     pub fn serialize<S>(value: &[Regex], ser: S) -> std::result::Result<S::Ok, S::Error>
-    where S: Serializer {
+    where
+        S: Serializer,
+    {
         ser.collect_seq(value.iter().map(Regex::as_str))
     }
 
@@ -108,7 +111,8 @@ pub mod via_string {
     pub fn serialize<S, T>(value: &T, ser: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
-        T: Display, {
+        T: Display,
+    {
         ser.collect_str(value)
     }
 
@@ -117,7 +121,8 @@ pub mod via_string {
     where
         D: Deserializer<'de>,
         T: FromStr,
-        T::Err: Display, {
+        T::Err: Display,
+    {
         let text = String::deserialize(de)?;
         T::from_str(&text).map_err(D::Error::custom)
     }
@@ -131,7 +136,8 @@ pub mod via_string_opt {
     pub fn serialize<S, T>(value: &Option<T>, ser: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
-        T: Display, {
+        T: Display,
+    {
         if let Some(value) = value {
             ser.collect_str(value)
         } else {
@@ -144,7 +150,8 @@ pub mod via_string_opt {
     where
         D: Deserializer<'de>,
         T: FromStr,
-        T::Err: Display, {
+        T::Err: Display,
+    {
         let text = Option::<String>::deserialize(de)?;
         if let Some(text) = text {
             T::from_str(&text).map(Some).map_err(D::Error::custom)

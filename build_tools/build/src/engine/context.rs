@@ -29,8 +29,6 @@ use ide_ci::programs::Sbt;
 use std::env::consts::DLL_EXTENSION;
 use std::env::consts::EXE_EXTENSION;
 
-
-
 pub type FutureEnginePackage = BoxFuture<'static, Result<crate::paths::generated::EnginePackage>>;
 
 pub type EnginePackageProvider = dyn FnMut() -> FutureEnginePackage + Send + Sync + 'static;
@@ -51,9 +49,9 @@ pub fn format_option_variant<T>(value: &Option<T>, f: &mut Formatter) -> std::fm
 pub struct RunContext {
     #[deref]
     #[deref_mut]
-    pub inner:            crate::project::Context,
-    pub config:           BuildConfigurationResolved,
-    pub paths:            Paths,
+    pub inner: crate::project::Context,
+    pub config: BuildConfigurationResolved,
+    pub paths: Paths,
     /// If set, the engine package (used for creating bundles) will be obtained through this
     /// provider rather than built from source along the other Engine components.
     #[derive_where(skip)]
@@ -74,10 +72,10 @@ impl RunContext {
 
     pub fn expected_artifacts(&self) -> BuiltArtifacts {
         BuiltArtifacts {
-            engine_package:          self.config.build_engine_package.then(|| {
+            engine_package: self.config.build_engine_package.then(|| {
                 self.repo_root.built_distribution.enso_engine_triple.engine_package.clone()
             }),
-            launcher_package:        self.config.build_launcher_package.then(|| {
+            launcher_package: self.config.build_launcher_package.then(|| {
                 self.repo_root.built_distribution.enso_launcher_triple.launcher_package.clone()
             }),
             project_manager_package: self.config.build_project_manager_package.then(|| {
@@ -87,10 +85,10 @@ impl RunContext {
                     .project_manager_package
                     .clone()
             }),
-            launcher_bundle:         self.config.build_launcher_bundle.then(|| {
+            launcher_bundle: self.config.build_launcher_bundle.then(|| {
                 self.repo_root.built_distribution.enso_bundle_triple.launcher_bundle.clone()
             }),
-            project_manager_bundle:  self.config.build_project_manager_bundle.then(|| {
+            project_manager_bundle: self.config.build_project_manager_bundle.then(|| {
                 self.repo_root
                     .built_distribution
                     .project_manager_bundle_triple
@@ -143,12 +141,10 @@ impl RunContext {
 
         // Setup flatc (FlatBuffers compiler), required for building the engine.
         let flatc_goodie = cache::goodie::flatc::Flatc {
-            version:  engine::deduce_flatbuffers(&self.repo_root.project.dependencies_scala)
-                .await?,
+            version: engine::deduce_flatbuffers(&self.repo_root.project.dependencies_scala).await?,
             platform: TARGET_OS,
         };
         flatc_goodie.install_if_missing(&self.cache).await?;
-
 
         self.paths.emit_env_to_actions().await?;
         debug!("Build configuration: {:#?}", self.config);
@@ -168,7 +164,6 @@ impl RunContext {
         //     goodies.require(&musl).await?;
         // }
 
-
         // Setup GraalVM
         let graalvm =
             engine::deduce_graal(self.octocrab.clone(), &self.repo_root.project.dependencies_scala)
@@ -182,10 +177,10 @@ impl RunContext {
         // GraalPy has a version that corresponds to the `graalMavenPackagesVersion` variable in
         // build.sbt
         let graalpy = cache::goodie::graalpy::GraalPy {
-            client:  self.octocrab.clone(),
+            client: self.octocrab.clone(),
             version: graalpy_version,
-            os:      self.paths.triple.os,
-            arch:    self.paths.triple.arch,
+            os: self.paths.triple.os,
+            arch: self.paths.triple.arch,
         };
         graalpy.install_if_missing(&self.cache).await?;
         ide_ci::programs::graalpy::GraalPy.require_present().await?;
@@ -194,7 +189,7 @@ impl RunContext {
             // Ensure all runtime dependencies are resolved and exported so that they can be
             // appended to classpath
             let sbt = engine::sbt::Context {
-                repo_root:         self.paths.repo_root.path.clone(),
+                repo_root: self.paths.repo_root.path.clone(),
                 system_properties: default(),
             };
             sbt.call_arg("syntax-rust-definition/Runtime/managedClasspath").await?;
@@ -270,7 +265,7 @@ impl RunContext {
         // Build packages.
         debug!("Bootstrapping Enso project.");
         let sbt = engine::sbt::Context {
-            repo_root:         self.paths.repo_root.path.clone(),
+            repo_root: self.paths.repo_root.path.clone(),
             system_properties: vec![sbt::SystemProperty::new(
                 "bench.compileOnly",
                 self.config.execute_benchmarks_once.to_string(),
@@ -383,20 +378,17 @@ impl RunContext {
             Ok(())
         };
 
-        match &self.config.test_standard_library {
-            Some(selection) => {
-                enso.run_tests(
-                    IrCaches::No,
-                    &sbt,
-                    PARALLEL_ENSO_TESTS,
-                    selection.clone(),
-                    self.config.extra_engine_runner_args.clone(),
-                    self.config.extra_java_tool_opts.clone(),
-                    self.config.has_native_runner(),
-                )
-                .await?;
-            }
-            None => {}
+        if let Some(selection) = &self.config.test_standard_library {
+            enso.run_tests(
+                IrCaches::No,
+                &sbt,
+                PARALLEL_ENSO_TESTS,
+                selection.clone(),
+                self.config.extra_engine_runner_args.clone(),
+                self.config.extra_java_tool_opts.clone(),
+                self.config.has_native_runner(),
+            )
+            .await?;
         }
 
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
@@ -439,14 +431,15 @@ impl RunContext {
 
         match &self.config.execute_benchmarks {
             None => (),
-            Some(benchs) =>
+            Some(benchs) => {
                 if benchs.bench_type == BenchmarkType::Enso {
                     if self.config.check_enso_benchmarks {
                         enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
                     } else {
                         enso.run_benchmarks(BenchmarkOptions { dry_run: false }).await?;
                     }
-                },
+                }
+            }
         }
 
         if is_in_env() {
@@ -541,7 +534,7 @@ impl RunContext {
             Operation::Sbt(args) => {
                 self.prepare_build_env().await?;
                 let sbt = engine::sbt::Context {
-                    repo_root:         self.paths.repo_root.path.clone(),
+                    repo_root: self.paths.repo_root.path.clone(),
                     system_properties: default(),
                 };
                 sbt.call_args(args).await?;

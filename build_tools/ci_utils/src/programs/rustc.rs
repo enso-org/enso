@@ -2,8 +2,6 @@ use crate::prelude::*;
 
 use crate::program::command::Manipulator;
 
-
-
 /// Lint check or a group of such.
 // Full list can be obtained by `rustc -W help`.
 #[derive(Clone, Copy, Debug, strum::Display, strum::AsRefStr)]

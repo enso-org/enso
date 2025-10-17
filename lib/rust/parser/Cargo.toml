@@ -1,39 +1,36 @@
 [package]
-name = "enso-parser"
-version = "0.1.0"
-authors = ["Enso Team <enso-dev@enso.org>"]
-edition = "2021"
-description = "Enso Parser."
-readme = "README.md"
-homepage = "https://github.com/enso-org/enso"
-repository = "https://github.com/enso-org/enso"
-license-file = "../../LICENSE"
+	name = "enso-parser"
+	version = "0.1.0"
+	authors = ["Enso Team <enso-dev@enso.org>"]
+	edition = "2021"
+	description = "Enso Parser."
+	readme = "README.md"
+	homepage = "https://github.com/enso-org/enso"
+	repository = "https://github.com/enso-org/enso"
+	license-file = "../../LICENSE"
 
 [features]
-debug = ["dep:enso-parser-syntax-tree-visitor"]
-nightly = [] # necessary to run benchmarks
+	debug = ["dep:enso-parser-syntax-tree-visitor"]
+	nightly = []                                    # necessary to run benchmarks
 
 [dependencies]
-enso-parser-macros = { path = "macros" }
-enso-prelude = { path = "../prelude" }
-enso-reflect = { path = "../reflect" }
-derive-where = { workspace = true }
-derive_more = { workspace = true }
-enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor", optional = true }
-paste = { version = "1.0" }
-serde = { workspace = true }
-serde_json = { workspace = true }
-uuid = { version = "1.1", features = ["serde"] }
-bincode = "1.3"
+	enso-parser-macros = { path = "macros" }
+	enso-prelude = { path = "../prelude" }
+	enso-reflect = { path = "../reflect" }
+	derive-where = { workspace = true }
+	derive_more = { workspace = true }
+	enso-parser-syntax-tree-visitor = { path = "src/syntax/tree/visitor", optional = true }
+	paste = { version = "1.0" }
+	serde = { workspace = true }
+	serde_json = { workspace = true }
+	uuid = { version = "1.1", features = ["serde"] }
+	bincode = "1.3"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-enso-metamodel = { path = "../metamodel" }
-rand = "0.8.5"
-rand_chacha = "0.3.1"
-rand_distr = "0.4.3"
-
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-wasm-bindgen-test = { workspace = true }
+	enso-metamodel = { path = "../metamodel" }
+	rand = "0.8.5"
+	rand_chacha = "0.3.1"
+	rand_distr = "0.4.3"
 
 [lints]
-workspace = true
+	workspace = true

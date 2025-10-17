@@ -5,8 +5,6 @@ use ide_ci::programs::cargo;
 use ide_ci::programs::wasm_pack;
 use ide_ci::programs::WasmPack;
 
-
-
 // =================
 // === Constants ===
 // =================
@@ -56,7 +54,6 @@ impl From<Browser> for wasm_pack::TestFlags {
         }
     }
 }
-
 
 // =========================
 // === Package discovery ===

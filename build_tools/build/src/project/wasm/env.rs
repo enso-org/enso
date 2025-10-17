@@ -3,8 +3,6 @@
 use crate::project::wasm::LogLevel;
 use crate::project::wasm::ProfilingLevel;
 
-
-
 ide_ci::define_env_var! {
     /// Use the environment-variable API provided by the `enso_profiler_macros` library to
     /// implement the public interface to profiling-level configuration (see:

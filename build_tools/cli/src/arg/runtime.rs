@@ -7,8 +7,6 @@ use clap::Args;
 use clap::Subcommand;
 use enso_build::project::runtime::Runtime;
 
-
-
 source_args_hlp!(Runtime, "runtime", BuildInput);
 
 #[derive(Args, Clone, Copy, Debug, PartialEq, Eq)]
