@@ -25,7 +25,7 @@ type Default_Comparator
        ---
     compare : Any -> Any -> (Ordering|Nothing)
     compare x y =
-        case Any.== x y of
+        case x == y of
             True -> Ordering.Equal
             False ->
                 case Default_Comparator.less_than_builtin x y of
