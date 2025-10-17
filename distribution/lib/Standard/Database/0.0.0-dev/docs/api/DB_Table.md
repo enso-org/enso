@@ -1,7 +1,6 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.DB_Table
 - type DB_Table
-    - Value internal_name:Standard.Base.Data.Text.Text connection:(Standard.Database.Connection.Connection.Connection|Standard.Base.Any.Any) internal_columns:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) context:Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
     - as_subquery self -> Standard.Base.Any.Any
     - default_ordering self -> Standard.Base.Any.Any
     - dialect_name self -> Standard.Base.Data.Text.Text
