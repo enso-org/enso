@@ -16,7 +16,7 @@
     - fetch_columns self statement:Standard.Base.Any.Any statement_setter:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - fetch_primary_key self table_name:Standard.Base.Data.Text.Text schema_name:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - get_tables_advanced self name_like:Standard.Base.Any.Any= database:Standard.Base.Any.Any= schema:Standard.Base.Any.Any= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= include_hidden:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - internal_allocate_dry_run_table self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - internal_allocate_dry_run_table self table_name:Standard.Base.Any.Any connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - maybe_run_maintenance self -> Standard.Base.Any.Any
     - new jdbc_connection:Standard.Database.Internal.JDBC_Connection.JDBC_Connection dialect:Standard.Base.Any.Any type_mapping:Standard.Base.Any.Any entity_naming_properties:Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties data_link_setup:(Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup|Standard.Base.Nothing.Nothing)= try_large_update:Standard.Base.Data.Boolean.Boolean= statement_setter:Standard.Database.Internal.Statement_Setter.Statement_Setter= -> Standard.Database.Connection.Connection.Connection
     - query self query:Standard.Base.Any.Any alias:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
