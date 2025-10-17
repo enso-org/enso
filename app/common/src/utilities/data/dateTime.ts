@@ -1,6 +1,6 @@
 /** @file Utilities for manipulating and displaying dates and times. */
 import { ZonedDateTime, getDayOfWeek } from '@internationalized/date'
-import type { TextId } from 'enso-common/src/text'
+import type { TextId } from '../../text.js'
 import { newtypeConstructor, type Newtype } from './newtype.js'
 
 // 0 = Monday. Use `en-US` for 0 = Sunday.
