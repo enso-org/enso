@@ -163,14 +163,15 @@ type Snowflake_Dialect
        Prepares a distinct operation.
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
-        table_name_deduplicator = (Internals_Access.get_connection table).base_connection.table_naming_helper.create_unique_name_strategy
+        table_connection = Internals_Access.get_connection table
+        table_name_deduplicator = table_connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        mapping = table.connection.type_mapping
+        mapping = table_connection.type_mapping
         # TODO simpler distinct if distinct_expressions are all columns?
         distinct_expressions = new_key_columns.map column->
             value_type = mapping.sql_type_to_value_type column.sql_type_reference.get
