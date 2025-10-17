@@ -9,6 +9,7 @@ from Standard.Table import Table
 
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
+import project.DB_Table as DB_Table_Module
 import project.DB_Table.DB_Table
 import project.Dialects.Dialect
 import project.Internal.Common.Connections_Helpers
@@ -246,6 +247,21 @@ type SQLite_Connection
     create_table : Text  -> Vector Column_Description | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Table & DB_Table ! Table_Already_Exists
     create_table self (table_name : Text) (structure : Vector Column_Description | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
         self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a `DB_Table` that is not backed by an existing table in the
+       Database, but is created in a query by constructing a `VALUES` expression.
+       We limit these tables to at most 256 cells to avoid creating too large
+       queries. If you need a larger table, create a temporary table instead.
+       Note that the types of columns in the created table will depend on how the
+       Database interprets the provided values and may not reflect the types of
+       the source table. If you need more sophisticated type mapping mechanism,
+       use `create_table` instead.
+    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table =
+        DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
 
     ## ---
        advanced: true

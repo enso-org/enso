@@ -107,7 +107,7 @@ type SQL_Type_Recipe
        private: true
        ---
        A recipe for computing the SQL type.
-    Value connection:Connection context:SQL_IR_Source expression:SQL_IR_Expression
+    Value connection context:SQL_IR_Source expression:SQL_IR_Expression
 
 ## ---
    private: true

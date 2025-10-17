@@ -534,9 +534,9 @@ type Connection
        Once all references to the table with this name are destroyed, the table
        will be marked for removal and dropped at the next maintenance.
     internal_allocate_dry_run_table : Text -> Table & DB_Table
-    internal_allocate_dry_run_table self table_name =
+    internal_allocate_dry_run_table self table_name connection =
         ref = self.hidden_table_registry.make_reference table_name
-        make_table_for_name self table_name "" table_name ref
+        make_table_for_name connection table_name "" table_name ref
 
     ## ---
        private: true
