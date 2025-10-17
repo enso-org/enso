@@ -1466,7 +1466,7 @@ add_specs suite_builder =
 
             workbook.close
             big_file.delete_if_exists . should_succeed
-        
+
         group_builder.specify "should be able to write and read a big XLS file (>110MB)" pending=ci_pending <|
             IO.println "Generating big XLS file "+Time_Of_Day.now.to_text
             rng = RandomHelpers.new 123
