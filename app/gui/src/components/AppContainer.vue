@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Dashboard as DashboardReact, type DashboardProps } from '#/pages/dashboard/Dashboard'
+import { Dashboard as DashboardReact } from '#/pages/dashboard/Dashboard'
 import { EnsoPath } from '#/services/Backend'
 import CommandPalette from '$/components/CommandPalette.vue'
 import { useBackends } from '$/providers/backends'
@@ -18,16 +18,16 @@ import {
   isRemoteAssetPath,
   ProjectId,
   type AssetDetailsResponse,
-  type ProjectAsset,
 } from 'enso-common/src/services/Backend'
 
 const Dashboard = reactComponent(DashboardReact)
 
-export const dataLoader: DataLoader<DashboardProps> = {
+export const dataLoader: DataLoader<object> = {
   async beforeRouteEnter(to) {
     if (to.params.path == null) return Ok({})
     const { localBackend, remoteBackend } = useBackends()
     const queryClient = useQueryClient()
+    const openedProjects = useOpenedProjects()
 
     const path = EnsoPath(
       to.params.path instanceof Array ? to.params.path.join('/') : to.params.path,
@@ -42,15 +42,15 @@ export const dataLoader: DataLoader<DashboardProps> = {
     const options = backendQueryOptions('getAssetDetails', [typedAsset.id, undefined], backend)
     const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
     if (!assetResponse) return Ok({})
-    const asset: ProjectAsset = { ...assetResponse, ensoPath: path }
-    return Ok({ projectToOpen: { asset, backend: backend.type } })
+
+    openedProjects.openProjectLocally(assetResponse, backend.type)
+
+    return Ok({})
   },
 }
 </script>
 
 <script setup lang="ts">
-const props = defineProps<DashboardProps>()
-
 provideAsyncResources(useOpenedProjects())
 provideContainerData()
 </script>
@@ -59,7 +59,7 @@ provideContainerData()
   <div class="TabView">
     <CommandPalette />
     <ContainerDataProviderForReact>
-      <Dashboard v-bind="props" />
+      <Dashboard />
     </ContainerDataProviderForReact>
   </div>
 </template>

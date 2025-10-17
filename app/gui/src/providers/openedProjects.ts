@@ -1,5 +1,4 @@
 import { BackendType, Plan, ProjectId } from '#/services/Backend'
-import LocalStorage from '#/utilities/LocalStorage'
 import { assert } from '@/util/assert'
 import { createGlobalState } from '@vueuse/core'
 import { computed, ref, shallowReactive, watchEffect } from 'vue'
@@ -38,7 +37,6 @@ export function createOpenedProjectsStore() {
   const auth = useAuth()
   const projects = shallowReactive(new Map<ProjectId, Project>())
   const enableCloudExecution = useFeatureFlag('enableCloudExecution')
-  const localStorage = LocalStorage.getInstance()
   const projectStates = useProjectStates()
   const backends = useBackends()
   const closePrevented = ref(false)
@@ -230,8 +228,6 @@ export function createOpenedProjectsStore() {
       }
     }
   })
-
-  // TODO: add saving/restoring from local storage here.
 
   function get(id: ProjectId): Project | undefined {
     return projects.get(id)

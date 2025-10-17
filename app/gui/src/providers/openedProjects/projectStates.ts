@@ -82,9 +82,8 @@ export interface LsUrls {
   dataUrl: string
   ydocUrl: string
 }
-
 export interface NotOpened {
-  status: 'not-opened'
+  status: 'not-opened' | 'closed-by-backend'
   info: ProjectInfo
 }
 

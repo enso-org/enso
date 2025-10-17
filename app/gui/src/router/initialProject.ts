@@ -1,20 +1,22 @@
-import Backend, { AssetType, Plan, type User } from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
+import Backend, { AssetType, Path, Plan, type User } from '#/services/Backend'
+import LocalBackend, { newDirectoryId } from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
+import { baseName } from '#/utilities/fileInfo'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { onlineManager } from '@tanstack/vue-query'
+import { Platform, platform } from 'enso-common/src/detect'
 import type { NavigationGuardReturn, RouteLocation } from 'vue-router'
 
 export const SAMPLES_DIRECTORY = 'Samples'
-export const LOCAL_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting_Started`
-export const CLOUD_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting Started.project`
+export const LOCAL_WELCOME_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting_Started`
+export const CLOUD_WELCOME_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting Started.project`
 
 type BackendAPI<B extends Backend> = Pick<B, 'rootPath' | 'listDirectory'>
 
 /** Get path of the project to auto-open on application launch. */
-export async function initialProjectPath(
+export async function welcomeProjectPath(
   cliStartupProject: string | undefined,
   user: User,
   {
@@ -23,7 +25,7 @@ export async function initialProjectPath(
   }: {
     localBackend: BackendAPI<LocalBackend> | null
     remoteBackend: BackendAPI<RemoteBackend>
-  } = useBackends(),
+  },
 ) {
   let path: string | undefined
 
@@ -33,12 +35,12 @@ export async function initialProjectPath(
     path = `${localBackend?.rootPath()}/${cliStartupProject}`
   } else {
     if (
-      await shouldOpenInitialProject(localBackend, user.plan === Plan.free ? null : remoteBackend)
+      await shouldOpenWelcomeProject(localBackend, user.plan === Plan.free ? null : remoteBackend)
     ) {
       if (user.plan === Plan.free) {
-        path = `${localBackend?.rootPath()}/${LOCAL_INITIAL_PROJECT_RELATIVE_PATH}`
+        path = `${localBackend?.rootPath()}/${LOCAL_WELCOME_PROJECT_RELATIVE_PATH}`
       } else {
-        path = `enso://Users/${user.name}/${CLOUD_INITIAL_PROJECT_RELATIVE_PATH}`
+        path = `enso://Users/${user.name}/${CLOUD_WELCOME_PROJECT_RELATIVE_PATH}`
       }
     }
   }
@@ -52,11 +54,10 @@ export async function initialProjectPath(
  *
  * It may be a project specified in CLI arguments or the Welcome project on fresh installs.
  */
-export async function maybeRedirectToInitialProject(
-  to: RouteLocation,
-): Promise<NavigationGuardReturn> {
+export async function maybeRedirectToProject(to: RouteLocation): Promise<NavigationGuardReturn> {
   if (to.params.path) return
 
+  const backends = useBackends()
   const config = injectGuiConfig()
   const auth = useAuth()
   await auth.waitForSession()
@@ -64,11 +65,19 @@ export async function maybeRedirectToInitialProject(
   // In case of not being logged in, the redirection should be managed by ProtectedLayout.
   if (auth.session == null) return
 
-  const initialPath = await initialProjectPath(config.params.startup.project, auth.session.user)
+  const pathFromOptions =
+    config.params.startup.project && backends.localBackend ?
+      await uploadProjectArchive(config.params.startup.project, backends.localBackend)
+    : undefined
+
+  const initialPath =
+    pathFromOptions ??
+    (await welcomeProjectPath(config.params.startup.project, auth.session.user, backends))
+
   return initialPath ? { name: 'dashboard', params: { path: initialPath.split('/') } } : true
 }
 
-async function shouldOpenInitialProject(
+async function shouldOpenWelcomeProject(
   localBackend: Pick<LocalBackend, 'listDirectory'> | null,
   remoteBackend: Pick<RemoteBackend, 'listDirectory'> | null,
 ) {
@@ -103,4 +112,49 @@ async function shouldOpenInitialProject(
   return ![...(localHome?.assets ?? []), ...(cloudHome?.assets ?? [])].some((asset) => {
     return asset.type != AssetType.directory || asset.title != SAMPLES_DIRECTORY
   })
+}
+
+async function uploadProjectArchive(
+  url: string,
+  localBackend: Pick<LocalBackend, 'uploadFileStart' | 'uploadFileEnd' | 'rootPath'>,
+) {
+  const filePath = fileURLToPath(url)
+  if (filePath == null) return
+  const projectName = baseName(filePath)
+  const parentDirectoryId = newDirectoryId(localBackend.rootPath())
+  const metadata = await localBackend.uploadFileStart(
+    {
+      parentDirectoryId,
+      fileName: projectName,
+      fileId: null,
+      filePath: Path(filePath),
+    },
+    null!,
+  )
+  const endMetadata = await localBackend.uploadFileEnd({
+    ...metadata,
+  })
+  if (endMetadata.project == null) {
+    return
+  }
+  return endMetadata.project.ensoPath
+}
+
+/** Extract proper path from `file://` URL. */
+function fileURLToPath(url: string): string | null {
+  if (URL.canParse(url)) {
+    const parsed = new URL(url)
+    if (parsed.protocol === 'file:') {
+      return decodeURIComponent(
+        platform() === Platform.windows ?
+          // On Windows, we must remove leading `/` from URL.
+          parsed.pathname.slice(1)
+        : parsed.pathname,
+      )
+    } else {
+      return null
+    }
+  } else {
+    return null
+  }
 }

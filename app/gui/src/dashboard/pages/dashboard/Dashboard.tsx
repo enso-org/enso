@@ -21,13 +21,6 @@ import * as detect from 'enso-common/src/detect'
 import * as React from 'react'
 import type { Router } from 'vue-router'
 
-/** Dashboard properties */
-export interface DashboardProps {
-  readonly projectToOpen?:
-    | { readonly asset: backendModule.ProjectAsset; readonly backend: backendModule.BackendType }
-    | undefined
-}
-
 // This is a component, not a mere constant
 // eslint-disable-next-line no-restricted-syntax
 const AppContainerInner = vueComponent(AppContainerInnerVue).default
@@ -60,7 +53,7 @@ function goToSettingsTab(router: Router, tab: SettingsTabType) {
 }
 
 /** The component that contains the entire UI. */
-export function Dashboard(props: DashboardProps) {
+export function Dashboard() {
   const { remoteBackend, localBackend } = useBackends()
   const inputBindings = inputBindingsProvider.useInputBindings()
   const config = useConfig()
@@ -91,16 +84,7 @@ export function Dashboard(props: DashboardProps) {
   //   networkMode: 'always',
   //   ...STATIC_QUERY_OPTIONS,
   //   queryFn: async () => {
-  //     if (props.projectToOpen) {
-  //       if (
-  //         // If project is already on launched list, then the Editor.tsx will handle opening it.
-  //         !initialAlreadyLaunchedProject &&
-  //         !initialAlreadyLaunchedHybridProject &&
-  //         !projectHooks.BUSY_PROJECT_STATES.has(props.projectToOpen.asset.projectState.type)
-  //       ) {
-  //         await openProjectLocally(props.projectToOpen.asset, props.projectToOpen.backend)
-  //       }
-  //     } else if (initialLocalProjectPath != null && localBackend) {
+  //     if (initialLocalProjectPath != null && localBackend) {
   //       const projectName = baseName(initialLocalProjectPath)
   //       const parentDirectoryId = localBackendModule.newDirectoryId(localBackend.rootPath())
   //       const metadata = await localBackend.uploadFileStart(
