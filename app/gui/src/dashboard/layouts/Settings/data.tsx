@@ -596,7 +596,10 @@ export const SETTINGS_DATA: SettingsData = [
   },
   {
     nameId: 'securitySettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA[SettingsTabType.activityLog]],
+    tabs: [
+      SETTINGS_TAB_DATA[SettingsTabType.activityLog],
+      SETTINGS_TAB_DATA[SettingsTabType.personalAccessTokens],
+    ],
   },
 ]
 

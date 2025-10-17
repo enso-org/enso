@@ -2,6 +2,7 @@
 import {
   DirectoryId,
   HttpsUrl,
+  PersonalAccessTokenId,
   type AssetId,
   type CredentialInput,
   type DatalinkId,
@@ -88,10 +89,18 @@ export const GET_LOG_EVENTS_PATH = 'log_events'
 export const POST_LOG_EVENT_PATH = 'logs'
 /** Relative HTTP path to the "get payments config" endpoint of the Cloud backend API. */
 export const PAYMENTS_CONFIG_PATH = 'payments/config'
-/** Resolve an enso URL path. */
+/** Relative HTTP path to the "resolve an enso URL path" endpoint of the Cloud backend API. */
 export const RESOLVE_ENSO_PATH = 'path/resolve'
 /** Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API. */
 export const CUSTOMER_PORTAL_SESSION_CREATE_PATH = 'payments/customer-portal-sessions/create'
+/** Relative HTTP path to the "personal access tokens" endpoint of the Cloud backend API. */
+export const LIST_PERSONAL_ACCESS_TOKENS_PATH = 'personal-access-tokens'
+/** Relative HTTP path to the "create personal access token" endpoint of the Cloud backend API. */
+export const CREATE_PERSONAL_ACCESS_TOKEN_PATH = 'personal-access-tokens'
+/** Relative HTTP path to the "delete personal access token" endpoint of the Cloud backend API. */
+export function deletePersonalAccessTokenPath(tokenId: PersonalAccessTokenId) {
+  return `personal-access-tokens/${tokenId}`
+}
 
 /** Relative HTTP path to the "cancel subscription" endpoint of the Cloud backend API. */
 export function cancelSubscriptionPath(subscriptionId: SubscriptionId) {

@@ -13,6 +13,8 @@ import * as objects from '#/utilities/object'
 import { getFileName, getFolderPath } from '#/utilities/path'
 import * as detect from 'enso-common/src/detect'
 import * as remoteBackendPaths from 'enso-common/src/services/Backend/remoteBackendPaths'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
@@ -31,6 +33,7 @@ export default class RemoteBackend extends Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
   override readonly baseUrl = new URL($config.API_URL ?? '', location.href)
+  tokens: backend.PersonalAccessToken[] = []
   private user: objects.Mutable<backend.User> | null = null
 
   /** The path to the root directory of this {@link Backend}. */
@@ -1184,11 +1187,75 @@ export default class RemoteBackend extends Backend {
    */
   async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
     const response = await this.get<backend.PaymentsConfig>(remoteBackendPaths.PAYMENTS_CONFIG_PATH)
-
     if (!response.ok) {
       return await this.throw(response, 'getPaymentsConfigBackendError')
     } else {
       return await response.json()
+    }
+  }
+
+  /**
+   * List all personal access tokens for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async listPersonalAccessTokens(): Promise<readonly backend.PersonalAccessToken[]> {
+    // Temporary mock implementation
+    return structuredClone(this.tokens)
+    const response = await this.get<readonly backend.PersonalAccessToken[]>(
+      remoteBackendPaths.LIST_PERSONAL_ACCESS_TOKENS_PATH,
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'listPersonalAccessTokensBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Create a new personal access token for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async createPersonalAccessToken(
+    body: backend.CreatePersonalAccessTokenRequestBody,
+  ): Promise<backend.PersonalAccessToken> {
+    // Temporary mock implementation
+    const now = toRfc3339(new Date())
+    const token = {
+      id: backend.PersonalAccessTokenId(`pat-${uniqueString()}`),
+      name: body.name,
+      createdAt: now,
+      lastUsedAt: now,
+    }
+    this.tokens.push(token)
+    return structuredClone(token)
+    const response = await this.post<backend.PersonalAccessToken>(
+      remoteBackendPaths.LIST_PERSONAL_ACCESS_TOKENS_PATH,
+      body,
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'createPersonalAccessTokenBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Delete a personal access token for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  async deletePersonalAccessToken(tokenId: backend.PersonalAccessTokenId) {
+    // Temporary mock implementation
+    const index = this.tokens.findIndex((token) => token.id === tokenId)
+    if (index !== -1) {
+      this.tokens.splice(index, 1)
+    }
+    return
+    const path = remoteBackendPaths.deletePersonalAccessTokenPath(tokenId)
+    const response = await this.delete(path)
+    if (!response.ok) {
+      return await this.throw(response, 'deletePersonalAccessTokenBackendError')
+    } else {
+      return
     }
   }
 

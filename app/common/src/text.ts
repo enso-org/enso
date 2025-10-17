@@ -187,6 +187,7 @@ interface PlaceholderOverrides {
 
   readonly welcomeToTeam: [organizationName: string]
   readonly invitationText: [organizationName: string]
+  readonly deletePersonalAccessTokenConfirmation: [tokenName: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

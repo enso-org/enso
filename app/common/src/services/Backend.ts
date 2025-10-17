@@ -2068,10 +2068,13 @@ export default abstract class Backend {
   /** Fetches pricing page configuration. */
   abstract getPaymentsConfig(): Promise<PaymentsConfig>
 
+  /** List all personal access tokens for the current user. */
   abstract listPersonalAccessTokens(): Promise<readonly PersonalAccessToken[]>
+  /** Create a new personal access token for the current user. */
   abstract createPersonalAccessToken(
     body: CreatePersonalAccessTokenRequestBody,
   ): Promise<PersonalAccessToken>
+  /** Delete a personal access token for the current user. */
   abstract deletePersonalAccessToken(tokenId: PersonalAccessTokenId): Promise<void>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */

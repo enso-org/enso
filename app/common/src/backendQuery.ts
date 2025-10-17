@@ -23,6 +23,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'createDatalink'
   | 'createDirectory'
   | 'createPermission'
+  | 'createPersonalAccessToken'
   | 'createProject'
   | 'createProjectExecution'
   | 'createSecret'
@@ -33,6 +34,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'deleteAsset'
   | 'deleteDatalink'
   | 'deleteInvitation'
+  | 'deletePersonalAccessToken'
   | 'deleteProjectExecution'
   | 'deleteTag'
   | 'deleteUser'
@@ -134,6 +136,8 @@ export const INVALIDATION_MAP: Partial<
   updateProjectExecution: ['listProjectExecutions'],
   syncProjectExecution: ['listProjectExecutions'],
   deleteProjectExecution: ['listProjectExecutions'],
+  createPersonalAccessToken: ['listPersonalAccessTokens'],
+  deletePersonalAccessToken: ['listPersonalAccessTokens'],
 }
 
 /** For each backend method, an optional function defining how to create a query key from its arguments. */
