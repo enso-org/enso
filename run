@@ -4,7 +4,7 @@ set -e # Exit on error.
 # Change working directory to the script's directory.
 pushd "$(dirname "$0")" > /dev/null 
 
-cargo run --profile buildscript --package enso-build-cli -- $@
+cargo run --package enso-build-cli -- $@
 
 # Revert to the original working directory.
 popd > /dev/null 

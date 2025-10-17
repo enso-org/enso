@@ -68,6 +68,7 @@ fn visit_files<F: FnMut(&DirEntry)>(dir: &Path, f: &mut F) -> io::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "nightly")]
 #[bench]
 fn bench_std_lib(b: &mut test::Bencher) {
     let mut sources = vec![];

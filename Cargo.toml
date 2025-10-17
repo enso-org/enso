@@ -2,34 +2,33 @@
 resolver = "2"
 members = [
     "app/rust-ffi",
-    "build_tools/cli",
-    "build_tools/macros/lib",
     "build_tools/ci-gen",
     "build_tools/cli",
     "build_tools/install",
     "build_tools/install/config",
     "build_tools/install/installer",
     "build_tools/install/uninstaller",
+    "build_tools/macros/lib",
     "lib/rust/launcher-shims",
     "lib/rust/macro-utils",
     "lib/rust/metamodel",
-    "lib/rust/parser/src/syntax/tree/visitor",
-    "lib/rust/parser/jni",
-    "lib/rust/parser/generate-java",
-    "lib/rust/parser/schema",
     "lib/rust/parser/debug",
+    "lib/rust/parser/debug/fuzz",
+    "lib/rust/parser/generate-java",
+    "lib/rust/parser/jni",
     "lib/rust/parser/macros",
+    "lib/rust/parser/schema",
+    "lib/rust/parser/src/syntax/tree/visitor",
     "lib/rust/prelude",
     "lib/rust/prelude/macros",
     "lib/rust/reflect",
     "lib/rust/zst",
-    "lib/rust/parser/debug/fuzz",
     "tools/language-server/logstat",
     "tools/language-server/wstest",
 ]
 
 [profile.dev]
-opt-level = 0
+opt-level = 1
 lto = false
 debug = true
 debug-assertions = true
@@ -57,16 +56,6 @@ debug-assertions = false
 opt-level = 0
 lto = false
 debug = 2
-debug-assertions = true
-
-[profile.integration-test]
-inherits = "test"
-opt-level = 2
-
-[profile.buildscript]
-inherits = "dev"
-opt-level = 1
-lto = false
 debug-assertions = true
 
 [workspace.lints.rust]

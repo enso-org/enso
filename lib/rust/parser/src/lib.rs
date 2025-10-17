@@ -291,7 +291,7 @@ fn transform_tree(tree: &mut syntax::Tree, f: impl FnOnce(syntax::Tree) -> synta
 // === Benchmarks ===
 // ==================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "nightly"))]
 mod benches {
     use super::*;
 

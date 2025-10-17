@@ -5,15 +5,12 @@ use crate::prelude::*;
 use ide_ci::programs::cargo;
 use ide_ci::programs::Cargo;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod env;
 pub mod test;
-
-
 
 #[derive(
     clap::ValueEnum,
@@ -56,12 +53,11 @@ pub enum LogLevel {
     Trace,
 }
 
-
 pub async fn test(repo_root: PathBuf, wasm: &[test::Browser], native: bool) -> Result {
     async fn maybe_run<Fut: Future<Output = Result>>(
         name: &str,
         enabled: bool,
-        f: impl (FnOnce() -> Fut),
+        f: impl FnOnce() -> Fut,
     ) -> Result {
         if enabled {
             info!("Will run {name} tests.");

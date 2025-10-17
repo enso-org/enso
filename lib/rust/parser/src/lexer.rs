@@ -1928,7 +1928,7 @@ mod tests {
 
 
 
-#[cfg(test)]
+#[cfg(all(test, feature = "nightly"))]
 mod benches {
     use super::*;
     extern crate test;
