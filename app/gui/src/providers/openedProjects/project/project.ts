@@ -82,7 +82,6 @@ export function createProjectStore(
   },
   projectNames: ProjectNameStore,
 ) {
-  console.debug('PROJECT', props.engine)
   const { projectId, renameProject: renameProjectBackend } = props
   const abort = useAbortScope()
 
@@ -133,7 +132,6 @@ export function createProjectStore(
   })
 
   const projectModel = new DistributedProject(doc)
-  console.debug('PROJECT MODEL', projectModel)
   const moduleDocGuid = ref<string>()
 
   function currentDocGuid() {
