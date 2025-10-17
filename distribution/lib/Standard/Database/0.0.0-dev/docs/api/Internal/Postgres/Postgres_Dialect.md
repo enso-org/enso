@@ -2,7 +2,7 @@
 ## module Standard.Database.Internal.Postgres.Postgres_Dialect
 - type Postgres_Dialect
     - Value dialect_operations:Standard.Base.Any.Any
-    - adapt_unified_column self column:Standard.Base.Any.Any approximate_result_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - adapt_unified_column self column:Standard.Base.Any.Any approximate_result_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any mapping:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - cast_aggregate_columns self op_kind:Standard.Base.Data.Text.Text columns:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) -> Standard.Base.Any.Any
     - cast_op_type self op_kind:Standard.Base.Data.Text.Text args:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) expression:Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression -> Standard.Base.Any.Any
     - check_aggregate_support self aggregate:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -17,12 +17,10 @@
     - get_error_mapper self -> Standard.Base.Any.Any
     - get_limit_sql_modifier self limit:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - get_part_order self part:Standard.Database.Internal.SQL_Part.SQL_Part -> Standard.Base.Data.Numbers.Integer
-    - get_statement_setter self -> Standard.Base.Any.Any
-    - get_type_mapping self -> Standard.Base.Any.Any
     - if_replace_params_supports self replace_params:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - is_feature_supported self feature:Standard.Database.Dialects.Feature.Feature -> Standard.Base.Data.Boolean.Boolean
     - is_operation_supported self operation:Standard.Base.Data.Text.Text -> Standard.Base.Data.Boolean.Boolean
-    - make_cast self column:Standard.Database.Internal.IR.Internal_Column.Internal_Column target_type:Standard.Database.SQL.SQL_Type infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - make_cast self column:Standard.Database.Internal.IR.Internal_Column.Internal_Column mapping:Standard.Base.Any.Any target_type:Standard.Database.SQL.SQL_Type infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - make_table_literal self vecs:Standard.Base.Any.Any column_names:Standard.Base.Any.Any as_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - name self -> Standard.Base.Any.Any
     - needs_execute_query_for_type_inference self statement:Standard.Base.Any.Any -> Standard.Base.Any.Any

@@ -72,7 +72,6 @@ use ide_ci::programs::git;
 use ide_ci::programs::git::clean;
 use ide_ci::programs::rustc;
 use ide_ci::programs::Cargo;
-use ide_ci::programs::Pnpm;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
 use tokio::process::Child;
@@ -845,16 +844,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 backend_context.build().await?;
 
                 enso_build::release::deploy_ydoc_polyglot_to_ecr(&ctx, args.ecr_repository).await?;
-            }
-            Action::DeployYdocNodejs(args) => {
-                enso_build::web::install(&ctx.repo_root).await?;
-                Pnpm.cmd()?
-                    .with_current_dir(&ctx.repo_root)
-                    .run("-r")
-                    .arg("compile")
-                    .run_ok()
-                    .await?;
-                enso_build::release::deploy_ydoc_nodejs_to_ecr(&ctx, args.ecr_repository).await?;
             }
             Action::DispatchBuildImage => {
                 if !(&ctx.triple.versions.version.pre.to_string().starts_with("nightly")) {

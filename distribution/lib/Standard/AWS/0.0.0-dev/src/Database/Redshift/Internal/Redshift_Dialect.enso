@@ -18,11 +18,9 @@ import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import Standard.Database.Internal.Postgres.Postgres_Dialect
-import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
-import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL.SQL_Type
@@ -137,23 +135,8 @@ type Redshift_Dialect
     ## ---
        private: true
        ---
-       Returns the mapping between SQL types of this dialect and Enso
-       `Value_Type`.
-    get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self = Postgres_Type_Mapping
-
-    ## ---
-       private: true
-       ---
-    get_statement_setter : Statement_Setter
-    get_statement_setter self = Statement_Setter.default
-
-    ## ---
-       private: true
-       ---
-    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
-        mapping = self.get_type_mapping
+    make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self column mapping target_type infer_result_type_from_database_callback =
         sql_type_text = mapping.sql_type_to_text target_type
         new_expression = SQL_IR_Expression.Operation "CAST" [column.expression, SQL_IR_Expression.Literal sql_type_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
@@ -177,9 +160,9 @@ type Redshift_Dialect
     ## ---
        private: true
        ---
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
-        _ = [approximate_result_type, infer_result_type_from_database_callback]
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
+        _ = [column, approximate_result_type, infer_result_type_from_database_callback, mapping]
         column
 
     ## ---
@@ -303,7 +286,7 @@ type Redshift_Dialect
        Returns `Nothing` if the key is not defined.
     fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name schema_name =
-        Dialect.default_fetch_primary_key connection table_name schema_name
+        Connection.default_fetch_primary_key connection table_name schema_name
 
     ## ---
        private: true

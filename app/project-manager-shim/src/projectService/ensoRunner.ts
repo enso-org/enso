@@ -151,7 +151,8 @@ export class EnsoRunner implements Runner {
       return new Promise<LanguageServerSockets>((resolve, reject) => {
         const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
         const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
-        const serverProcess = childProcess.spawn(cmd, cmdArgs, { env, detached: false })
+        const cwd = path.dirname(projectPath)
+        const serverProcess = childProcess.spawn(cmd, cmdArgs, { env, detached: false, cwd })
 
         let stderr = ''
         let resolved = false
@@ -196,11 +197,13 @@ export class EnsoRunner implements Runner {
         setTimeout(startHealthCheck, 250)
 
         serverProcess.stderr.on('data', (data) => {
+          console.error(data.toString())
           const dataStr = data.toString()
           stderr += dataStr
         })
 
         serverProcess.on('error', (error) => {
+          console.error(error.toString())
           if (!resolved) {
             reject(new Error(`Failed to start language server: ${error.message}`))
           }

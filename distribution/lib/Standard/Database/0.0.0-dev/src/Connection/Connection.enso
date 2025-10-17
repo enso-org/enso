@@ -52,6 +52,10 @@ type Connection
           connection.
         - `dialect`: the dialect associated with the database we are connected
           to.
+        - `type_mapping`: the type mapping associated with the database we are
+          connected to.
+        - `statement_setter`: a helper for setting parameters on prepared
+          statements.
         - `entity_naming_properties`: a helper allowing to manage properties of
           entity naming rules of the given backend.
         - `supports_large_update`: whether the connection should try to use
@@ -62,7 +66,7 @@ type Connection
           to the user, but are used internally by the dry-run system.
         - `data_link_setup`: an optional setup allowing for saving the connection
           as a data link.
-    Value jdbc_connection dialect (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry) (data_link_setup : Data_Link_Setup | Nothing = Nothing)
+    Value jdbc_connection dialect type_mapping (statement_setter:Statement_Setter) (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry) (data_link_setup : Data_Link_Setup | Nothing = Nothing)
 
     ## ---
        private: true
@@ -74,15 +78,19 @@ type Connection
           connection.
         - `dialect`: the dialect associated with the database we are connected
           to.
+        - `type_mapping`: the type mapping associated with the database we are
+          connected to.
         - `entity_naming_properties`: a helper allowing to manage properties of
           entity naming rules of the given backend.
         - `data_link_setup`: an optional setup allowing for saving the connection
           as a data link.
         - `try_large_update`: whether the connection should try to use
           `executeLargeUpdate`.
-    new jdbc_connection:JDBC_Connection dialect entity_naming_properties:Entity_Naming_Properties (data_link_setup : Data_Link_Setup | Nothing = Nothing) (try_large_update : Boolean = True) -> Connection =
+        - `statement_setter`: a helper for setting parameters on prepared
+          statements.
+    new jdbc_connection:JDBC_Connection dialect type_mapping entity_naming_properties:Entity_Naming_Properties (data_link_setup : Data_Link_Setup | Nothing = Nothing) (try_large_update : Boolean = True) (statement_setter : Statement_Setter = Statement_Setter.default) -> Connection =
         registry = Hidden_Table_Registry.new
-        Connection.Value jdbc_connection dialect entity_naming_properties (Ref.new try_large_update) registry data_link_setup
+        Connection.Value jdbc_connection dialect type_mapping statement_setter entity_naming_properties (Ref.new try_large_update) registry data_link_setup
 
     ## ---
        private: true
@@ -92,7 +100,6 @@ type Connection
        The connection is not usable afterwards.
     close : Nothing
     close self = self.jdbc_connection.close
-
 
     ## ---
        private: true
@@ -203,7 +210,7 @@ type Connection
             Nothing -> Nothing
             _ : Vector -> types
             _ -> [types]
-        tm = self.dialect.get_type_mapping
+        tm = self.type_mapping
         result = get_tables_advanced self.jdbc_connection name_like database schema types_vector tm.sql_type_to_value_type tm.column_fetcher_factory all_fields
         case include_hidden of
             True -> result
@@ -339,8 +346,8 @@ type Connection
           fetched. Defaults to false.
     read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Boolean -> Table
     read_statement self statement column_types=Nothing last_row_only=False =
-        type_overrides = self.dialect.get_type_mapping.prepare_type_overrides column_types
-        statement_setter = self.dialect.get_statement_setter
+        type_overrides = self.type_mapping.prepare_type_overrides column_types
+        statement_setter = self.statement_setter
         self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
             rs = stmt.executeQuery
 
@@ -351,7 +358,7 @@ type Connection
                     sql_type_reference.cache_computed_type <| SQL_Type.from_metadata metadata ix+1
 
             # And finally, materialize the results.
-            tm = self.dialect.get_type_mapping
+            tm = self.type_mapping
             SQL_Warning_Helper.process_warnings stmt <|
                 result_set_to_table rs tm.sql_type_to_value_type tm.column_fetcher_factory type_overrides last_row_only
 
@@ -396,11 +403,11 @@ type Connection
             Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute the query. Press the Write button ▶ to perform the operation." panic=False
                 (self.execute_query query limit False)
         False ->
-            statement_setter = self.dialect.get_statement_setter
+            statement_setter = self.statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
                 _check_statement_is_allowed self stmt
                 rs = stmt.executeQuery
-                tm = self.dialect.get_type_mapping
+                tm = self.type_mapping
                 table = result_set_to_table rs tm.sql_type_to_value_type tm.column_fetcher_factory row_limit=(limit.rows_to_read.if_nothing -1)
                 limit.attach_warning table
 
@@ -418,7 +425,7 @@ type Connection
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
-            statement_setter = self.dialect.get_statement_setter
+            statement_setter = self.statement_setter
             self.jdbc_connection.with_prepared_statement query statement_setter stmt->
                 _check_statement_is_allowed self stmt
                 result = case self.supports_large_update.get of
@@ -557,6 +564,21 @@ type Connection
                 case self.data_link_setup of
                     Nothing -> Error.throw (Illegal_State.Error "The connection does not support saving as a data link.")
                     data_link_setup -> data_link_setup.save_as_data_link path on_existing_file
+
+    ## ---
+       private: true
+       ---
+       Default implementation relying on DatabaseMetaData for fetching primary key.
+    default_fetch_primary_key connection table_name schema_name =
+        connection.jdbc_connection.with_metadata metadata->
+            used_schema = if schema_name == "" then Nothing else schema_name
+            rs = metadata.getPrimaryKeys Nothing used_schema table_name
+            tm = connection.type_mapping
+            keys_table = result_set_to_table rs tm.sql_type_to_value_type tm.column_fetcher_factory
+            # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
+            selected = keys_table.select_columns ["COLUMN_NAME", "KEY_SEQ"] case_sensitivity=Case_Sensitivity.Insensitive reorder=True
+            key_column_names = selected.sort 1 . at 0 . to_vector
+            if key_column_names.is_empty then Nothing else key_column_names
 
 ## ---
    private: true

@@ -255,10 +255,10 @@ type DB_Table_Implementation
 
                 new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
 
-                type_mapping = this_table.connection.dialect.get_type_mapping
+                mapping = this_table.connection.type_mapping
                 infer_from_database_callback expression =
                     SQL_Type_Reference.new this_table.connection this_table.context expression
-                new_type_ref = type_mapping.infer_return_type infer_from_database_callback "ROW_NUMBER" [] new_expr
+                new_type_ref = mapping.infer_return_type infer_from_database_callback "ROW_NUMBER" [] new_expr
 
                 new_column = Internal_Column.Value name new_type_ref new_expr
 
@@ -281,10 +281,10 @@ type DB_Table_Implementation
 
                         new_expr = Group_Number_Helpers.make_group_number from step grouping_expressions
 
-                        type_mapping = this_table.connection.dialect.get_type_mapping
+                        mapping = this_table.connection.type_mapping
                         infer_from_database_callback expression =
                             SQL_Type_Reference.new this_table.connection this_table.context expression
-                        new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER" [] new_expr
+                        new_type_ref = mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER" [] new_expr
 
                         new_column = Internal_Column.Value name new_type_ref new_expr
 
@@ -302,10 +302,10 @@ type DB_Table_Implementation
 
                         new_expr = Group_Number_Helpers.make_group_number_equal_count from step group_count order_descriptors
 
-                        type_mapping = this_table.connection.dialect.get_type_mapping
+                        mapping = this_table.connection.type_mapping
                         infer_from_database_callback expression =
                             SQL_Type_Reference.new this_table.connection this_table.context expression
-                        new_type_ref = type_mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER_EQUAL_COUNT" [] new_expr
+                        new_type_ref = mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER_EQUAL_COUNT" [] new_expr
 
                         new_column = Internal_Column.Value name new_type_ref new_expr
 
@@ -376,11 +376,11 @@ type DB_Table_Implementation
 
     make_constant_column (this_table : Table & DB_Table) value =
         if Column.is_column value then Error.throw (Illegal_Argument.Error "A constant value may only be created from a scalar, not a DB_Column") else
-            type_mapping = this_table.connection.dialect.get_type_mapping
+            mapping = this_table.connection.type_mapping
             argument_value_type = Value_Type_Helpers.find_argument_type value
             sql_type = case argument_value_type of
                 Nothing -> SQL_Type.null
-                _ -> type_mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
+                _ -> mapping.value_type_to_sql argument_value_type Problem_Behavior.Ignore
             expr = SQL_IR_Expression.Constant value
             new_type_ref = SQL_Type_Reference.from_constant sql_type
             base_column = Internal_Column.Value value.pretty new_type_ref expr
@@ -388,7 +388,7 @@ type DB_Table_Implementation
             result_internal_column = if needs_cast.not then base_column else
                 infer_type_from_database new_expression =
                     SQL_Type_Reference.new this_table.connection this_table.context new_expression
-                this_table.connection.dialect.make_cast base_column sql_type infer_type_from_database
+                this_table.connection.dialect.make_cast base_column mapping sql_type infer_type_from_database
             this_table.make_column result_internal_column
 
     make_temp_column_name (this_table : Table & DB_Table) = this_table.column_naming_helper.make_temp_column_name this_table.column_names
@@ -488,10 +488,10 @@ type DB_Table_Implementation
                 problem_builder_for_unification = Problem_Builder.new
                 matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns columns_to_keep problem_builder_for_matching
                 dialect = this_table.connection.dialect
-                type_mapping = dialect.get_type_mapping
+                mapping = this_table.connection.type_mapping
                 merged_columns = matched_column_sets.map column_set->
                     sql_type_from_value_type value_type =
-                        type_mapping.value_type_to_sql value_type Problem_Behavior.Report_Error . catch Inexact_Type_Coercion error->
+                        mapping.value_type_to_sql value_type Problem_Behavior.Report_Error . catch Inexact_Type_Coercion error->
                             Panic.throw <|
                                 Illegal_State.Error "Unexpected inexact type coercion in Union. The union logic should only operate in types supported by the given backend. This is a bug in the Database library. The coercion was: "+error.to_display_text cause=error
                     case Table_Helpers.unify_result_type_for_union column_set all_tables problem_builder_for_unification of
@@ -526,13 +526,13 @@ type DB_Table_Implementation
                                           This is a possible future improvement to make queries lighter, but the benefit is unlikely to be worth it.
                                         needs_cast = column.value_type != result_type
                                         if needs_cast.not then internal_named_column else
-                                            dialect.make_cast internal_named_column sql_type infer_return_type
+                                            dialect.make_cast internal_named_column mapping sql_type infer_return_type
                                     Nothing ->
                                         typ = SQL_Type_Reference.from_constant SQL_Type.null
                                         expr = SQL_IR_Expression.Literal "NULL"
                                         null_column = Internal_Column.Value column_name typ expr
                                         if sql_type == SQL_Type.null then null_column else
-                                            dialect.make_cast null_column sql_type infer_return_type
+                                            dialect.make_cast null_column mapping sql_type infer_return_type
                             pairs = columns_to_select.map c->
                                 [c.name, c.expression]
                             SQL_IR_Statement.Select pairs t.context
@@ -555,7 +555,7 @@ type DB_Table_Implementation
                             name = column_set.name
                             expression = SQL_IR_Expression.Column union_alias name
                             input_column = Internal_Column.Value name (infer_return_type expression) expression
-                            dialect.adapt_unified_column input_column result_type infer_return_type
+                            dialect.adapt_unified_column input_column result_type infer_return_type mapping
 
                         DB_Table.new union_alias this_table.connection new_columns new_ctx
 
@@ -662,7 +662,7 @@ type DB_Table_Implementation
             actual_types = materialized_table.columns.map .value_type
             expected_types.zip actual_types expected_type-> actual_type->
                 if expected_type == actual_type then Nothing else
-                    if this_table.connection.dialect.get_type_mapping.should_warn_on_materialize expected_type actual_type then
+                    if this_table.connection.type_mapping.should_warn_on_materialize expected_type actual_type then
                         warnings_builder.append (Inexact_Type_Coercion.Warning expected_type actual_type)
 
             result = max_rows.attach_warning materialized_table
@@ -686,9 +686,9 @@ type DB_Table_Implementation
             this_table.connection.dialect.generate_sql query
         count_table = this_table.connection.read_statement count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
-        type_mapping = this_table.connection.dialect.get_type_mapping
+        mapping = this_table.connection.type_mapping
         types = cols.map col->
-            type_mapping.sql_type_to_value_type col.sql_type_reference.get
+            mapping.sql_type_to_value_type col.sql_type_reference.get
         Table.new [["Column", cols.map .name], ["Items Count", counts], ["Value Type", types]]
 
     ## ---

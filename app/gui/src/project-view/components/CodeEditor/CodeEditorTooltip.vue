@@ -1,20 +1,16 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import type { NodeId } from '$/providers/openedProjects/graph'
-import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
-import type { SuggestionDbStore } from '$/providers/openedProjects/suggestionDatabase'
 import { computed } from 'vue'
 
-const { nodeId, syntax, graphDb, suggestionDbStore } = defineProps<{
+const { nodeId, syntax } = defineProps<{
   nodeId: NodeId | undefined
   syntax: string
-  graphDb: GraphDb
-  suggestionDbStore: SuggestionDbStore
 }>()
 
-const { projectNames: projectNames } = useCurrentProject()
+const { projectNames: projectNames, graph, suggestionDb } = useCurrentProject()
 
-const expressionInfo = computed(() => nodeId && graphDb.getExpressionInfo(nodeId))
+const expressionInfo = computed(() => nodeId && graph.value.db.getExpressionInfo(nodeId))
 const typeName = computed(() => {
   const type = expressionInfo.value?.typeInfo?.primaryType
   if (type == null || projectNames.value == null) return 'Unknown'
@@ -31,13 +27,13 @@ const methodPath = computed(() => {
   return projectNames.value.printProjectPath(method.value.definedOnType) + '.' + method.value.name
 })
 const group = computed(() => {
-  const id = method.value && suggestionDbStore.entries.findByMethodPointer(method.value)
+  const id = method.value && suggestionDb.value.entries.findByMethodPointer(method.value)
   if (id == null) return
-  const suggestionEntry = suggestionDbStore.entries.get(id)
+  const suggestionEntry = suggestionDb.value.entries.get(id)
   if (!suggestionEntry) return
   const groupIndex = suggestionEntry.groupIndex
   if (groupIndex == null) return
-  const group = suggestionDbStore.groups[groupIndex]
+  const group = suggestionDb.value.groups[groupIndex]
   if (!group) return
   return {
     name: `${group.project}.${group.name}`,

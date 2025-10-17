@@ -15,6 +15,7 @@ import project.Internal.Common.Connections_Helpers
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.JDBC_Connection
+import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import project.SQL.SQL_Statement
 import project.SQL_Query.SQL_Query
 from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
@@ -44,7 +45,7 @@ type Postgres_Connection
            Our generator is supposed to always quote identifiers
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
 
-        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres entity_naming_properties data_link_setup) make_new
+        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres Postgres_Type_Mapping entity_naming_properties data_link_setup) make_new
 
     ## ---
        private: true
@@ -319,6 +320,18 @@ type Postgres_Connection
        ---
        Access the dialect.
     dialect self = self.connection.dialect
+
+    ## ---
+       private: true
+       ---
+       Access the Type Mapping.
+    type_mapping self = self.connection.type_mapping
+
+    ## ---
+       private: true
+       ---
+       Access the Statement Setter.
+    statement_setter self = self.connection.statement_setter
 
     ## ---
        private: true
