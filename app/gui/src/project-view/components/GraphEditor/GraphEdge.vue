@@ -184,7 +184,7 @@ const basePath = computed(() => {
   if (!pathElements) return
   const { start, elements } = pathElements
   const origin = sourceOriginPoint.value
-  if (origin == null) return undefined
+  if (origin == null || !origin.isFinite() || !start.isFinite()) return undefined
   return toSvgPath(origin.add(start), elements)
 })
 
@@ -351,22 +351,23 @@ const colorClasses = computed(() => {
         fill="black"
       />
     </mask>
-    <g v-bind="{ ...$attrs, ...(sourceMask ? { mask: `url('#${sourceMask.id}')` } : {}) }">
+    <g
+      v-bind="{ ...$attrs, ...(sourceMask ? { mask: `url('#${sourceMask.id}')` } : {}) }"
+      class="GraphEdge"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
+    >
       <path
         ref="base"
         :d="basePath"
         class="edge define-node-colors visible"
         :class="{ ...baseClass, ...colorClasses }"
         :style="{ ...baseStyle, ...sourceHoverAnimationStyle }"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
       />
       <path
         v-if="isConnected(edge)"
         :d="basePath"
         class="edge io clickable"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
         :data-testid="edgeIsBroken ? 'broken-edge' : null"
         @pointerdown.stop="click"
         @pointerenter="hovered = true"
@@ -378,8 +379,6 @@ const colorClasses = computed(() => {
         class="edge define-node-colors visible"
         :class="colorClasses"
         :style="{ ...baseStyle, ...activeStyle }"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
       />
       <path
         v-if="arrowTransform"
@@ -396,8 +395,6 @@ const colorClasses = computed(() => {
         class="arrow define-node-colors visible"
         :class="colorClasses"
         :style="baseStyle"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
       />
     </g>
   </template>

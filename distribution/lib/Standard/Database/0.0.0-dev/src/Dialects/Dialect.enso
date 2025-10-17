@@ -25,11 +25,9 @@ import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Dialect
-import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
-from project.Internal.Result_Set import result_set_to_table
 
 ## ---
    private: true
@@ -114,38 +112,19 @@ type Dialect
     ## ---
        private: true
        ---
-       Returns the mapping between SQL types of this dialect and Enso
-       `Value_Type`.
-    get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self =
-        Unimplemented.throw "This is an interface only."
-
-    ## ---
-       private: true
-       ---
-       Returns a helper object that handles the logic of setting values in a
-       prepared statement.
-       This object may provide custom logic for handling dialect-specific
-       handling of some types.
-    get_statement_setter : Statement_Setter
-    get_statement_setter self =
-        Unimplemented.throw "This is an interface only."
-
-    ## ---
-       private: true
-       ---
        Builds an SQL expression that casts the given expression to the given
        target type.
 
        ## Arguments
         - `column`: the input column to transform.
+        - `mapping`: the type mapping of the connection.
         - `target_type`: the target type.
         - `infer_result_type_from_database_callback`: A callback that can be used
           to infer the type of the newly built expression from the Database. It
           should be used by default, unless an override is chosen.
-    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self column target_type infer_result_type_from_database_callback =
-        _ = [column, target_type, infer_result_type_from_database_callback]
+    make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self column mapping target_type infer_result_type_from_database_callback =
+        _ = [column, mapping, target_type, infer_result_type_from_database_callback]
         Unimplemented.throw "This is an interface only."
 
     ## ---
@@ -180,9 +159,9 @@ type Dialect
        columns.
        These transformations depend on the dialect. They can be used to align the
        result types, for example.
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
-        _ = [column, approximate_result_type, infer_result_type_from_database_callback]
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
+        _ = [column, approximate_result_type, infer_result_type_from_database_callback, mapping]
         Unimplemented.throw "This is an interface only."
 
     ## ---
@@ -357,21 +336,6 @@ sqlite = SQLite_Dialect.sqlite
    The dialect of PostgreSQL databases.
 postgres : Dialect
 postgres = Postgres_Dialect.postgres
-
-## ---
-   private: true
-   ---
-   Default implementation relying on DatabaseMetaData.
-default_fetch_primary_key connection table_name schema_name =
-    connection.jdbc_connection.with_metadata metadata->
-        used_schema = if schema_name == "" then Nothing else schema_name
-        rs = metadata.getPrimaryKeys Nothing used_schema table_name
-        tm = connection.dialect.get_type_mapping
-        keys_table = result_set_to_table rs tm.sql_type_to_value_type tm.column_fetcher_factory
-        # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
-        selected = keys_table.select_columns ["COLUMN_NAME", "KEY_SEQ"] case_sensitivity=Case_Sensitivity.Insensitive reorder=True
-        key_column_names = selected.sort 1 . at 0 . to_vector
-        if key_column_names.is_empty then Nothing else key_column_names
 
 ## ---
    private: true

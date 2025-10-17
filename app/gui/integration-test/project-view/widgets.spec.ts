@@ -1,10 +1,12 @@
-import test, { type Locator, type Page } from 'playwright/test'
+import type EditorPageActions from 'integration-test/actions/EditorPageActions'
+import { expect, test, type Locator, type Page } from 'integration-test/base'
+import {
+  clearMockWidgetConfigurations,
+  restoreMockWidgetConfigurations,
+} from 'integration-test/mock/lsHandler'
 import * as actions from './actions'
-import { expect } from './customExpect'
 import { mockMethodCallInfo } from './expressionUpdates'
-import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
-import { mockVisualizationDataUpdate, resetMockWidgetConfigurations } from './visualizationUpdates'
 
 class DropDownLocator {
   readonly rootWidget: Locator
@@ -69,8 +71,8 @@ const CHOOSE_CLOUD_FILE = 'Choose file in cloud…'
 const CHOOSE_LOCAL_FILE = 'Choose file…'
 const CHOOSE_FILE_OPTIONS = [CHOOSE_CLOUD_FILE, CHOOSE_LOCAL_FILE]
 
-test('Widget in plain AST', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Widget in plain AST', async ({ editorPage, page }) => {
+  await editorPage
   const numberNode = locate.graphNodeByBinding(page, 'five')
   const numberWidget = numberNode.locator('.WidgetNumber')
   await expect(numberWidget).toBeVisible()
@@ -86,8 +88,8 @@ test('Widget in plain AST', async ({ page }) => {
   await expect(textWidget.getByTestId('widget-text-content')).toHaveText('test')
 })
 
-test('Text widget: Convert to multiline', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Text widget: Convert to multiline', async ({ editorPage, page }) => {
+  await editorPage
   const textNode = locate.graphNodeByBinding(page, 'text')
   const textWidget = textNode.locator('.WidgetText')
   await expect(textWidget).toBeVisible()
@@ -106,8 +108,8 @@ test('Text widget: Convert to multiline', async ({ page }) => {
 })
 
 test.describe('Multi-selection widget', () => {
-  test.beforeEach(async ({ page }) => {
-    await actions.goToGraph(page)
+  test.beforeEach(async ({ editorPage, page }) => {
+    await editorPage
 
     await mockMethodCallInfo(page, 'selected', {
       methodPointer: {
@@ -239,8 +241,8 @@ test.describe('Multi-selection widget', () => {
   })
 })
 
-test('Editing list', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Editing list', async ({ editorPage, page }) => {
+  await editorPage
   const node = locate.graphNodeByBinding(page, 'autoscoped')
   const vector = node.locator('.WidgetVector')
   const vectorItems = vector.locator('.item')
@@ -286,27 +288,26 @@ test('Editing list', async ({ page }) => {
 
   // Test delete: last item
   await locate.deleteItemButton(vectorItems).click()
-  await expect(vectorItems).not.toExist()
+  await expect(vectorItems).toBeHidden()
   await expect(vector).toExist()
 })
 
-async function dataReadNodeWithMethodCallInfo(page: Page): Promise<Locator> {
-  await mockMethodCallInfo(page, 'data', {
-    methodPointer: {
-      module: 'Standard.Base.Data',
-      definedOnType: 'Standard.Base.Data',
-      name: 'read',
-    },
-    notAppliedArguments: [0, 1, 2],
-  })
-  return locate.graphNodeByBinding(page, 'data')
+async function dataReadNodeWithMethodCallInfo(editorPage: EditorPageActions): Promise<Locator> {
+  return await editorPage
+    .mockMethodCallInfo('data', {
+      methodPointer: {
+        module: 'Standard.Base.Data',
+        definedOnType: 'Standard.Base.Data',
+        name: 'read',
+      },
+      notAppliedArguments: [0, 1, 2],
+    })
+    .locateNodes('data')
 }
 
 test.describe('Dynamic configuration updates', () => {
-  test.beforeEach(async ({ page }) => {
-    await actions.goToGraph(page)
-    await resetMockWidgetConfigurations(page)
-  })
+  test.beforeEach(clearMockWidgetConfigurations)
+  test.afterEach(restoreMockWidgetConfigurations)
 
   /**
    * Check that dynamic dropdowns (with items provided by widget configuration) are not shown
@@ -315,8 +316,8 @@ test.describe('Dynamic configuration updates', () => {
    * dynamic configuration.
    * We check that no dropdown is shown until dynamic configuration arrives.
    */
-  test('Dynamic dropdown', async ({ page }) => {
-    const node = await dataReadNodeWithMethodCallInfo(page)
+  test('Dynamic dropdown', async ({ page, localApi, editorPage }) => {
+    const node = await dataReadNodeWithMethodCallInfo(editorPage)
     const topLevelArgs = node.locator('.WidgetTopLevelArgument')
     await node.click()
     await expect(topLevelArgs).toHaveCount(3)
@@ -327,7 +328,7 @@ test.describe('Dynamic configuration updates', () => {
     ).not.toBeVisible()
 
     // Provide dynamic configuration for `format` arg.
-    await mockVisualizationDataUpdate(page, '.read', [
+    await localApi.updateVisualization('.read', [
       [
         'format',
         {
@@ -365,9 +366,10 @@ test.describe('Dynamic configuration updates', () => {
    * Check that numeric widget is displayed even if dynamic configuration is not provided.
    * Unlike dynamic dropdowns, numeric widget can work normally without dynamic configuration.
    */
-  test('Number widget', async ({ page }) => {
+  test('Number widget', async ({ page, localApi, editorPage }) => {
+    await editorPage
     const node = locate.graphNodeByBinding(page, 'selected')
-    await locate.graphNodeIcon(node).click({ modifiers: [CONTROL_KEY] })
+    await locate.graphNodeIcon(node).click({ modifiers: ['ControlOrMeta'] })
     await expect(locate.componentBrowser(page)).toBeVisible()
     const content = locate.componentBrowserInput(page)
     await page.keyboard.press('End')
@@ -391,7 +393,7 @@ test.describe('Dynamic configuration updates', () => {
     await expect(node.locator('.AutoSizedInput')).not.toHaveClass(/slider/)
 
     // Provide limits from dynamic configuration.
-    await mockVisualizationDataUpdate(page, '.select_columns', [
+    await localApi.updateVisualization('.select_columns', [
       [
         'columns',
         {
@@ -411,8 +413,8 @@ test.describe('Dynamic configuration updates', () => {
    * File browser widget is weird. We want to match it even when dynamic configuration is not yet provided,
    * but it also uses a dropdown widget internally. This is why we have a special test case for it.
    */
-  test('File browser widget', async ({ page }) => {
-    const node = await dataReadNodeWithMethodCallInfo(page)
+  test('File browser widget', async ({ page, localApi, editorPage }) => {
+    const node = await dataReadNodeWithMethodCallInfo(editorPage)
     await node.click()
     await expect(node.locator('.WidgetTopLevelArgument')).toHaveCount(3)
     const pathArg = node.locator('.WidgetTopLevelArgument').filter({ has: page.getByText('path') })
@@ -421,7 +423,7 @@ test.describe('Dynamic configuration updates', () => {
     await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS])
     // Provide dynamic configuration for `path` argument.
     // (we use Folder_Browser here, and check how dropdown items have changed)
-    await mockVisualizationDataUpdate(page, '.read', [
+    await localApi.updateVisualization('.read', [
       [
         'path',
         {
@@ -439,9 +441,8 @@ test.describe('Dynamic configuration updates', () => {
    * Inherited config has a priority even if newer configuration for the child expression arrives.
    * We are using `aggregated` node to test this.
    */
-  test('Inherited configuration', async ({ page }) => {
-    const node = locate.graphNodeByBinding(page, 'aggregated')
-    await mockMethodCallInfo(page, 'aggregated', {
+  test('Inherited configuration', async ({ page, localApi, editorPage }) => {
+    await editorPage.mockMethodCallInfo('aggregated', {
       methodPointer: {
         module: 'Standard.Table.Table',
         definedOnType: 'Standard.Table.Table.Table',
@@ -449,10 +450,11 @@ test.describe('Dynamic configuration updates', () => {
       },
       notAppliedArguments: [1, 2, 3, 4],
     })
+    const node = locate.graphNodeByBinding(page, 'aggregated')
     await node.click()
     await expect(node.locator('.WidgetTopLevelArgument')).toHaveCount(4)
     // Top-level configuration, including configuration for child widgets.
-    await mockVisualizationDataUpdate(page, '.aggregate', [
+    await localApi.updateVisualization('.aggregate', [
       [
         'columns',
         {
@@ -533,7 +535,7 @@ test.describe('Dynamic configuration updates', () => {
     // Provide dynamic configuration for `column` argument of `Aggregate_Column.Group_By`.
     // It shouldn’t affect the selectable variants of the dropdown, because parent
     // config has a priority.
-    await mockVisualizationDataUpdate(page, '.Group_By', [
+    await localApi.updateVisualization('.Group_By', [
       [
         'column',
         {
@@ -563,7 +565,7 @@ test.describe('Dynamic configuration updates', () => {
     await firstItemDropdown.expectVisibleWithOptions(['column 1', 'column 2'])
 
     // Update parent configuration
-    await mockVisualizationDataUpdate(page, '.aggregate', [
+    await localApi.updateVisualization('.aggregate', [
       [
         'columns',
         {
@@ -613,11 +615,9 @@ test.describe('Dynamic configuration updates', () => {
   })
 })
 
-test('Selection widgets in Data.read node', async ({ page }) => {
-  await actions.goToGraph(page)
-
+test('Selection widgets in Data.read node', async ({ editorPage, page }) => {
+  const node = await dataReadNodeWithMethodCallInfo(editorPage)
   // Check initially visible arguments
-  const node = await dataReadNodeWithMethodCallInfo(page)
   const topLevelArgs = node.locator('.WidgetTopLevelArgument')
   await expect(topLevelArgs).toHaveCount(1)
 
@@ -678,10 +678,8 @@ test('Selection widgets in Data.read node', async ({ page }) => {
   await expect(pathArg.getByTestId('widget-text-content')).toHaveText('File 1')
 })
 
-test('Selection widget with text widget as input', async ({ page }) => {
-  await actions.goToGraph(page)
-
-  const node = await dataReadNodeWithMethodCallInfo(page)
+test('Selection widget with text widget as input', async ({ editorPage, page }) => {
+  const node = await dataReadNodeWithMethodCallInfo(editorPage)
   const topLevelArgs = node.locator('.WidgetTopLevelArgument')
   const pathArg = topLevelArgs.filter({ has: page.getByText('path') })
   const pathDropdown = new DropDownLocator(pathArg)
@@ -712,7 +710,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await page.keyboard.press('Escape')
   await expect(pathArgInput).not.toBeFocused()
   await expect(pathArgInput).toHaveText('File 2')
-  await expect(pathDropdown.dropDown).not.toBeVisible()
+  await expect(pathDropdown.dropDown).toBeHidden()
 
   // Choosing entry should finish editing
   await pathArgInput.click()
@@ -722,7 +720,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await pathDropdown.clickOption('File 1')
   await expect(pathArgInput).not.toBeFocused()
   await expect(pathArgInput).toHaveText('File 1')
-  await expect(pathDropdown.dropDown).not.toBeVisible()
+  await expect(pathDropdown.dropDown).toBeHidden()
 
   // Clicking-off and pressing Enter should accept text as-is
   await pathArgInput.click()
@@ -731,7 +729,7 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await page.keyboard.press('Enter')
   await expect(pathArgInput).not.toBeFocused()
   await expect(pathArgInput).toHaveText('File')
-  await expect(pathDropdown.dropDown).not.toBeVisible()
+  await expect(pathDropdown.dropDown).toBeHidden()
 
   await pathArgInput.click()
   await pathDropdown.expectVisibleWithOptions([...CHOOSE_FILE_OPTIONS, 'File 1', 'File 2'])
@@ -740,11 +738,11 @@ test('Selection widget with text widget as input', async ({ page }) => {
   await actions.clickAtBackground(page)
   await expect(pathArgInput).not.toBeFocused()
   await expect(pathArgInput).toHaveText('Foo')
-  await expect(pathDropdown.dropDown).not.toBeVisible()
+  await expect(pathDropdown.dropDown).toBeHidden()
 })
 
-test('File Browser widget', async ({ page }) => {
-  await actions.goToGraph(page)
+test('File Browser widget', async ({ editorPage, page }) => {
+  await editorPage
   await mockMethodCallInfo(page, 'data', {
     methodPointer: {
       module: 'Standard.Base.Data',
@@ -766,59 +764,61 @@ test('File Browser widget', async ({ page }) => {
 })
 
 test.describe('Table expression', () => {
-  test.beforeEach(async ({ page }) => {
-    await actions.goToGraph(page)
-
-    await mockMethodCallInfo(page, 'table', {
-      methodPointer: {
-        module: 'Standard.Table.Table',
-        definedOnType: 'Standard.Table.Table.Table',
-        name: 'set',
-      },
-      notAppliedArguments: [],
-    })
-    await mockMethodCallInfo(
-      page,
-      { binding: 'table', expr: 'expr ""' },
-      {
+  function prepare(editorPage: EditorPageActions) {
+    return editorPage
+      .mockMethodCallInfo('table', {
         methodPointer: {
-          module: 'Standard.Table.Expression',
-          definedOnType: 'Standard.Table.Expression',
-          name: 'expr',
+          module: 'Standard.Table.Table',
+          definedOnType: 'Standard.Table.Table.Table',
+          name: 'set',
         },
         notAppliedArguments: [],
-      },
-    )
-  })
+      })
+      .mockMethodCallInfo(
+        { binding: 'table', expr: 'expr ""' },
+        {
+          methodPointer: {
+            module: 'Standard.Table.Expression',
+            definedOnType: 'Standard.Table.Expression',
+            name: 'expr',
+          },
+          notAppliedArguments: [],
+        },
+      )
+  }
 
-  test('Language recognized', async ({ page }) => {
+  test('Language recognized', async ({ page, editorPage }) => {
+    await prepare(editorPage)
     const tableNode = locate.graphNodeByBinding(page, 'table')
     const exprText = tableNode.locator('.WidgetText')
     await expect(exprText).toHaveAttribute('data-text-syntax', 'enso-table-expression')
   })
 
-  test('Autocomplete: Builtins', async ({ page }) => {
-    const ac = await getTableNodeExprAutocomplete(page)
+  test('Autocomplete: Builtins', async ({ editorPage }) => {
+    await prepare(editorPage)
+    const ac = await getTableNodeExprAutocomplete(editorPage)
     await expect(ac.option('false')).toBeVisible()
   })
 
-  test('Autocomplete: Column methods', async ({ page }) => {
-    const ac = await getTableNodeExprAutocomplete(page)
+  test('Autocomplete: Column methods', async ({ editorPage }) => {
+    await prepare(editorPage)
+    const ac = await getTableNodeExprAutocomplete(editorPage)
     await expect(ac.option('is_nan')).toBeVisible()
   })
 
-  test('Autocomplete: Table columns', async ({ page }) => {
+  test('Autocomplete: Table columns', async ({ page, editorPage }) => {
+    await prepare(editorPage)
     // Column data is requested asynchronously, and the menu options list is not reactive, so we
     // retry in case the menu is opened before the data has been received.
     await expect(async () => {
       await page.mouse.click(0, 0)
-      const ac = await getTableNodeExprAutocomplete(page)
+      const ac = await getTableNodeExprAutocomplete(editorPage)
       await expect(ac.option('Column A')).toBeVisible()
     }).toPass({ timeout: 5_000 })
   })
 
-  async function getTableNodeExprAutocomplete(page: Page) {
-    const node = locate.graphNodeByBinding(page, 'table')
+  async function getTableNodeExprAutocomplete(editorPage: EditorPageActions) {
+    const node = editorPage.locateNodes('table')
     const exprText = node.locator('.WidgetText')
     await expect(exprText).toHaveAttribute('data-text-syntax', 'enso-table-expression')
     await exprText.click()
@@ -841,11 +841,8 @@ class AutocompleteMenu {
   }
 }
 
-test('Manage aggregates in `aggregate` node', async ({ page }) => {
-  await actions.goToGraph(page)
-  // Hide docpanel to not obscure long node.
-  await page.getByRole('tab', { name: 'Documentation' }).click()
-  await mockMethodCallInfo(page, 'aggregated', {
+test('Manage aggregates in `aggregate` node', async ({ editorPage, page }) => {
+  await editorPage.mockMethodCallInfo('aggregated', {
     methodPointer: {
       module: 'Standard.Table.Table',
       definedOnType: 'Standard.Table.Table.Table',
@@ -854,30 +851,31 @@ test('Manage aggregates in `aggregate` node', async ({ page }) => {
     notAppliedArguments: [1, 2, 3],
   })
 
-  // Check initially visible arguments
-  const node = locate.graphNodeByBinding(page, 'aggregated')
-  const topLevelArgs = node.locator('.WidgetTopLevelArgument')
-  await expect(topLevelArgs).toHaveCount(1)
+  // Hide docpanel to not obscure long node.
+  await page.getByRole('tab', { name: 'Documentation' }).click()
 
-  // Check arguments after selecting node
-  await node.click()
-  await expect(topLevelArgs).toHaveCount(3)
+  await editorPage
+    // Check initially visible arguments
+    .expectNodeTopLevelArgumentCount('aggregated', 1)
+    .selectSingleNode('aggregated')
+    // Check arguments after selecting node
+    .expectNodeTopLevelArgumentCount('aggregated', 3)
 
+  const node = editorPage.locateNodes('aggregated')
   // Add first aggregate
-  const columnsArg = topLevelArgs.filter({ has: page.getByText('columns') })
+  const columnsArg = node
+    .locator('.WidgetTopLevelArgument')
+    .filter({ has: page.getByText('columns') })
 
   await locate.addItemButton(columnsArg).click()
-  await expect(columnsArg.locator('.WidgetToken')).toContainText([
+  await editorPage.expectNodeTokens('aggregated', [
+    'aggregate',
     'Aggregate_Column',
     '.',
     'Group_By',
   ])
-  await mockMethodCallInfo(
-    page,
-    {
-      binding: 'aggregated',
-      expr: 'Aggregate_Column.Group_By',
-    },
+  await editorPage.mockMethodCallInfo(
+    { binding: 'aggregated', expr: 'Aggregate_Column.Group_By' },
     {
       methodPointer: {
         module: 'Standard.Table.Aggregate_Column',
@@ -898,12 +896,8 @@ test('Manage aggregates in `aggregate` node', async ({ page }) => {
     '.',
     'Count_Distinct',
   ])
-  await mockMethodCallInfo(
-    page,
-    {
-      binding: 'aggregated',
-      expr: 'Aggregate_Column.Count_Distinct',
-    },
+  await editorPage.mockMethodCallInfo(
+    { binding: 'aggregated', expr: 'Aggregate_Column.Count_Distinct' },
     {
       methodPointer: {
         module: 'Standard.Table.Aggregate_Column',
@@ -940,12 +934,8 @@ test('Manage aggregates in `aggregate` node', async ({ page }) => {
     '.',
     'Group_By',
   ])
-  await mockMethodCallInfo(
-    page,
-    {
-      binding: 'aggregated',
-      expr: 'Aggregate_Column.Group_By',
-    },
+  await editorPage.mockMethodCallInfo(
+    { binding: 'aggregated', expr: 'Aggregate_Column.Group_By' },
     {
       methodPointer: {
         module: 'Standard.Table.Aggregate_Column',
@@ -1003,41 +993,37 @@ test('Manage aggregates in `aggregate` node', async ({ page }) => {
 // Test that autoscoped constructors provide argument placeholders.
 // This test can be removed when `aggregate` inserts autoscoped constructors by default,
 // so this behavior will be tested in regular `aggregate` tests.
-test('Autoscoped constructors', async ({ page }) => {
-  await actions.goToGraph(page)
-  await mockMethodCallInfo(page, 'autoscoped', {
-    methodPointer: {
-      module: 'Standard.Table.Table',
-      definedOnType: 'Standard.Table.Table.Table',
-      name: 'aggregate',
-    },
-    notAppliedArguments: [2, 3],
-  })
-  await mockMethodCallInfo(
-    page,
-    { binding: 'autoscoped', expr: '..Group_By' },
-    {
+test('Autoscoped constructors', async ({ editorPage }) => {
+  await editorPage
+    .mockMethodCallInfo('autoscoped', {
       methodPointer: {
-        module: 'Standard.Table.Aggregate_Column',
-        definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
-        name: 'Group_By',
+        module: 'Standard.Table.Table',
+        definedOnType: 'Standard.Table.Table.Table',
+        name: 'aggregate',
       },
-      notAppliedArguments: [0, 1],
-    },
-  )
-  const node = locate.graphNodeByBinding(page, 'autoscoped')
-  const topLevelArgs = node.locator('.WidgetTopLevelArgument')
-  // Wait for hidden arguments to appear after selecting the node.
-  await node.click()
-  await expect(topLevelArgs).toHaveCount(4)
-
-  const groupBy = node.getByTestId('list-item-content')
-  await expect(groupBy).toBeVisible()
-  await expect(groupBy.locator('.WidgetArgumentName')).toContainText(['column', 'as“”'])
+      notAppliedArguments: [2, 3],
+    })
+    .mockMethodCallInfo(
+      { binding: 'autoscoped', expr: '..Group_By' },
+      {
+        methodPointer: {
+          module: 'Standard.Table.Aggregate_Column',
+          definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
+          name: 'Group_By',
+        },
+        notAppliedArguments: [0, 1],
+      },
+    )
+    .selectSingleNode('autoscoped')
+    .withNode('autoscoped', async (node) => {
+      const groupBy = node.getByTestId('list-item-content')
+      await expect(groupBy).toBeVisible()
+      await expect(groupBy.locator('.WidgetArgumentName')).toContainText(['column', 'as“”'])
+    })
 })
 
-test('Table widget', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Table widget', async ({ editorPage, page }) => {
+  await editorPage
 
   const node = await actions.createTableNode(page)
   const widget = node.locator('.WidgetTableEditor')
@@ -1085,9 +1071,10 @@ test('Table widget', async ({ page }) => {
 })
 
 test('Text widget can be refocused after focus is lost in an unexpected way (#12571)', async ({
+  editorPage,
   page,
 }) => {
-  await actions.goToGraph(page)
+  await editorPage
   const textNode = locate.graphNodeByBinding(page, 'text')
   const textInput = textNode.getByTestId('widget-text-content')
   await textInput.click()

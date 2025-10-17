@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.Dialects.Dialect
 - type Dialect
-    - adapt_unified_column self column:Standard.Base.Any.Any approximate_result_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - adapt_unified_column self column:Standard.Base.Any.Any approximate_result_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any mapping:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - check_aggregate_support self aggregate:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - custom_build_aggregate self base_table:Standard.Database.DB_Table.DB_Table key_columns:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) resolved_aggregates:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) problem_builder:Standard.Table.Internal.Problem_Builder.Problem_Builder -> (Standard.Base.Data.Pair.Pair Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source Standard.Base.Any.Any)
     - default_table_types self -> Standard.Base.Any.Any
@@ -15,12 +15,10 @@
     - get_error_mapper self -> Standard.Base.Any.Any
     - get_limit_sql_modifier self limit:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - get_part_order self part:Standard.Database.Internal.SQL_Part.SQL_Part -> Standard.Base.Data.Numbers.Integer
-    - get_statement_setter self -> Standard.Base.Any.Any
-    - get_type_mapping self -> Standard.Base.Any.Any
     - if_replace_params_supports self replace_params:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - is_feature_supported self feature:Standard.Database.Dialects.Feature.Feature -> Standard.Base.Data.Boolean.Boolean
     - is_operation_supported self operation:Standard.Base.Data.Text.Text -> Standard.Base.Data.Boolean.Boolean
-    - make_cast self column:Standard.Base.Any.Any target_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - make_cast self column:Standard.Base.Any.Any mapping:Standard.Base.Any.Any target_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - name self -> Standard.Base.Any.Any
     - needs_execute_query_for_type_inference self statement:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - prepare_distinct self table:Standard.Base.Any.Any key_columns:Standard.Base.Any.Any case_sensitivity:Standard.Base.Any.Any problem_builder:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -33,6 +31,5 @@
 - type Temp_Table_Style
     - Hash_Prefix
     - Temporary_Table
-- default_fetch_primary_key connection:Standard.Base.Any.Any table_name:Standard.Base.Any.Any schema_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - postgres -> Standard.Base.Any.Any
 - sqlite -> Standard.Base.Any.Any

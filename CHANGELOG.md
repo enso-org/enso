@@ -31,16 +31,18 @@
 
 - [Implement `Text_Column` for in-memory backend.][13769]
 - [Implement `Text_Column.to_case` for in-memory backend.][13769]
-- [Add support for gzip encoded return from web APIs][14026]
+- [Add support for gzip encoded return from web APIs.][14026]
 - [Fixes for JDBC connection and schema support for SQL Server.][14039]
-- [Change Column.length to Column.row_count][14085]
-- [Add Text_Column.length and Text_Column.char_length][14091]
+- [Change Column.length to Column.row_count.][14085]
+- [Add Text_Column.length and Text_Column.char_length.][14091]
+- [Add EDI_Format and support for reading ANSI X12 EDI files.][14158]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
 [14039]: https://github.com/enso-org/enso/pull/14039
 [14085]: https://github.com/enso-org/enso/pull/14085
 [14091]: https://github.com/enso-org/enso/pull/14091
+[14158]: https://github.com/enso-org/enso/pull/14158
 
 #### Enso Language & Runtime
 
@@ -52,6 +54,7 @@
 - [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [Removal of --no-global-cache option][13909]
+- [Launching ydoc-server together with language-server][13178]
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
@@ -64,6 +67,7 @@
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13909]: https://github.com/enso-org/enso/pull/13909
+[13178]: https://github.com/enso-org/enso/pull/13178
 [13914]: https://github.com/enso-org/enso/pull/13914
 [13917]: https://github.com/enso-org/enso/pull/13917
 

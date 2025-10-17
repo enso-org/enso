@@ -39,6 +39,7 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { unrefElement, useEventConditional } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { registerHandlers, toggledAction, type DisplayableActionName } from '@/providers/action'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -284,11 +285,8 @@ const actionHandlers = registerHandlers({
   'graph.startProfiling': { action: () => void projectStore.lsRpcConnection.profilingStart(true) },
   'graph.stopProfiling': { action: () => void projectStore.lsRpcConnection.profilingStop() },
   'graph.openComponentBrowser': {
-    action: () => {
-      if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
-        createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
-      }
-    },
+    enabled: () => graphNavigator.sceneMousePos != null && !componentBrowserOpened.value,
+    action: () => createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } }),
   },
   'graph.selectAll': { action: () => nodeSelection.selectAll() },
   'graph.deselectAll': {
@@ -344,12 +342,10 @@ const isActive = ref(true)
 onActivated(() => (isActive.value = true))
 onDeactivated(() => (isActive.value = false))
 
-useEventConditional(
-  window,
-  'keydown',
-  isActive,
-  (e) => graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e),
-)
+const { globalEventRegistry } = useGlobalEventRegistry()
+useEventConditional(globalEventRegistry, 'keydown', isActive, (e) => {
+  return graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e)
+})
 
 function tryGetSelectionDocUrl() {
   const selected = nodeSelection.tryGetSingleSelectedNode()

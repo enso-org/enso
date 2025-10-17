@@ -31,12 +31,10 @@ import project.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.JDBC_Connection.JDBC_Connection
 import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
-import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Fragment
 import project.SQL.SQL_Statement
@@ -161,9 +159,9 @@ type Postgres_Dialect
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        type_mapping = self.get_type_mapping
+        mapping = table.connection.type_mapping
         distinct_expressions = new_key_columns.map column->
-            value_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+            value_type = mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
         new_context = SQL_IR_Source.for_subquery setup.subquery . add_extension (make_distinct_extension distinct_expressions)
         table.updated_context_and_columns new_context new_columns subquery=True
@@ -171,23 +169,8 @@ type Postgres_Dialect
     ## ---
        private: true
        ---
-       Returns the mapping between SQL types of this dialect and Enso
-       `Value_Type`.
-    get_type_mapping : SQL_Type_Mapping
-    get_type_mapping self = Postgres_Type_Mapping
-
-    ## ---
-       private: true
-       ---
-    get_statement_setter : Statement_Setter
-    get_statement_setter self = Statement_Setter.default
-
-    ## ---
-       private: true
-       ---
-    make_cast : Internal_Column -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    make_cast self (column : Internal_Column) (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_IR_Expression -> SQL_Type_Reference) =
-        mapping = self.get_type_mapping
+    make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self (column : Internal_Column) mapping (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_IR_Expression -> SQL_Type_Reference) =
         source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
         target_value_type = mapping.sql_type_to_value_type target_type
         # Boolean to Numeric casts need special handling:
@@ -223,24 +206,23 @@ type Postgres_Dialect
        a **fixed-length** column of length max_int4. This is wrong, and in
        practice the column is just a variable-length text. This method detects
        this situations and overrides the type to make it correct.
-    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
-    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback =
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
         needs_char_length_override_check = case approximate_result_type of
             Value_Type.Char _ _ -> True
             _ -> False
         case needs_char_length_override_check of
             True ->
-                type_mapping = self.get_type_mapping
-                db_type = type_mapping.sql_type_to_value_type column.sql_type_reference.get
+                db_type = mapping.sql_type_to_value_type column.sql_type_reference.get
                 case db_type of
                     Value_Type.Char _ _ -> case db_type == approximate_result_type of
                         True -> column
                         False ->
-                            type_override = type_mapping.value_type_to_sql approximate_result_type Problem_Behavior.Report_Error
+                            type_override = mapping.value_type_to_sql approximate_result_type Problem_Behavior.Report_Error
                             type_override.catch Inexact_Type_Coercion _->
                                 Panic.throw <|
                                     Illegal_State.Error "The target type ("+db_type.to_display_text+") that we need to cast to seems to not be supported by the Dialect. This is not expected. It is a bug in the Database library."
-                            self.make_cast column type_override infer_result_type_from_database_callback
+                            self.make_cast column mapping type_override infer_result_type_from_database_callback
                     _ -> Panic.throw <|
                         Illegal_State.Error "The type computed by our logic is Char, but the Database computed a non-text type ("+db_type.to_display_text+"). This should never happen and should be reported as a bug in the Database library."
             False -> column
@@ -379,7 +361,7 @@ type Postgres_Dialect
        Returns `Nothing` if the key is not defined.
     fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
     fetch_primary_key self connection table_name schema_name =
-        Dialect.default_fetch_primary_key connection table_name schema_name
+        Connection.default_fetch_primary_key connection table_name schema_name
 
     ## ---
        private: true

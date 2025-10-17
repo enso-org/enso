@@ -497,7 +497,11 @@ type File_Format_SPI
         reg = Meta.lookup_services File_Format_SPI
         reg.map .to_vector . flatten
 
-    private get_types b:Boolean=False =
+    ## ---
+       private: true
+       ---
+       Returns all registered file format types.
+    get_types b:Boolean=False =
         File_Format_SPI.get_regs b . map .typ
 
     private find_format_for_data_link sub_type:Text =

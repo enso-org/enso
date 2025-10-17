@@ -7,6 +7,7 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.usermodel.Workbook;
 
 /** XLS (HSSF) format strategy. */
@@ -27,6 +28,13 @@ public class XlsFormatStrategy extends ExcelFormatStrategy {
       throw new IOException("Invalid XLS format when opening file: " + file, e);
     }
     return workbook;
+  }
+
+  @Override
+  public ExcelWorkbookReader getExcelWorkbookReader(File file)
+      throws IOException, InterruptedException {
+    openExisting(file, false);
+    return new ExcelWorkbookReaderFromPOIUserModel(workbook);
   }
 
   @Override
@@ -51,5 +59,51 @@ public class XlsFormatStrategy extends ExcelFormatStrategy {
       throw new IllegalStateException("Workbook not initialized");
     }
     workbook.write(out);
+  }
+
+  // ** Wrap a Workbook object in the interface. */
+  record ExcelWorkbookReaderFromPOIUserModel(org.apache.poi.ss.usermodel.Workbook workbook)
+      implements ExcelWorkbookReader {
+    @Override
+    public int getNumberOfSheets() {
+      return workbook.getNumberOfSheets();
+    }
+
+    @Override
+    public int getSheetIndex(String name) {
+      return workbook.getSheetIndex(name);
+    }
+
+    @Override
+    public String getSheetName(int sheet) {
+      return workbook.getSheetName(sheet);
+    }
+
+    @Override
+    public int getNumberOfNames() {
+      return workbook.getNumberOfNames();
+    }
+
+    @Override
+    public String[] getRangeNames() {
+      var names = workbook.getAllNames();
+      return names.stream().map(Name::getNameName).toArray(String[]::new);
+    }
+
+    @Override
+    public String getNameFormula(String name) {
+      var namedRange = workbook.getName(name);
+      return namedRange == null ? null : namedRange.getRefersToFormula();
+    }
+
+    @Override
+    public ExcelSheetReader getSheetAt(int sheetIndex) {
+      return ExcelSheetReader.forPOIUserModel(workbook, sheetIndex);
+    }
+
+    @Override
+    public void close() throws IOException {
+      workbook.close();
+    }
   }
 }

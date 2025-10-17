@@ -11,6 +11,7 @@ from Standard.Database import Column_Description, DB_Table, SQL_Query, SQL_Query
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.Dialects.Dialect
 import Standard.Database.Internal.JDBC_Connection
+import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import Standard.Database.SQL.SQL_Statement
 from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_with_schema_selector, make_table_types_selector
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
@@ -53,7 +54,7 @@ type DuckDB_Connection
         jdbc_connection = JDBC_Connection.from_java sql_exception=SQLException java_connection
 
         ## For initial work using DuckDB, we will use the Postgres dialect.
-        DuckDB_Connection.Value (Connection.new jdbc_connection Dialect.postgres DuckDB_Entity_Naming_Properties.new) make_new
+        DuckDB_Connection.Value (Connection.new jdbc_connection Dialect.postgres Postgres_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new
 
     ## ---
        private: true
@@ -339,6 +340,18 @@ type DuckDB_Connection
        ---
        Access the dialect.
     dialect self = self.connection.dialect
+
+    ## ---
+       private: true
+       ---
+       Access the Type Mapping.
+    type_mapping self = self.connection.type_mapping
+
+    ## ---
+       private: true
+       ---
+       Access the Statement Setter.
+    statement_setter self = self.connection.statement_setter
 
     ## ---
        private: true

@@ -19,10 +19,12 @@
     - schemas self -> Standard.Base.Any.Any
     - set_database self database:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - set_schema self schema:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - statement_setter self -> Standard.Base.Any.Any
     - table_types self -> Standard.Base.Any.Any
     - tables self name_like:Standard.Base.Data.Text.Text= database:Standard.Base.Data.Text.Text= schema:Standard.Base.Data.Text.Text= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - truncate_table self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - type_mapping self -> Standard.Base.Any.Any
     - version self -> Standard.Base.Data.Text.Text
 - schema_black_list -> Standard.Base.Any.Any
 - Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.DuckDB.DuckDB_Connection.DuckDB_Connection -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data

@@ -30,7 +30,7 @@ import org.enso.table.excel.ExcelFormatStrategy;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
 import org.enso.table.excel.ExcelRow;
-import org.enso.table.excel.ExcelSheet;
+import org.enso.table.excel.ExcelSheetReader;
 import org.enso.table.excel.ExcelUtils;
 import org.enso.table.util.ColumnMapper;
 import org.enso.table.util.NameDeduplicator;
@@ -160,7 +160,7 @@ public class ExcelWriter {
           headers != ExcelHeaders.HeaderBehavior.INFER
               ? headers
               : shouldWriteHeaders(
-                  ExcelSheet.forPOIUserModel(workbook, sheetIndex), firstRow + 1, 1, -1);
+                  ExcelSheetReader.forPOIUserModel(workbook, sheetIndex), firstRow + 1, 1, -1);
 
       String sheetName = workbook.getSheetName(sheetIndex - 1);
       workbook.removeSheetAt(sheetIndex - 1);
@@ -215,7 +215,7 @@ public class ExcelWriter {
           headers != ExcelHeaders.HeaderBehavior.INFER
               ? headers
               : shouldWriteHeaders(
-                  ExcelSheet.forPOIUserModel(workbook, sheetIndex), firstRow + 1, 1, -1);
+                  ExcelSheetReader.forPOIUserModel(workbook, sheetIndex), firstRow + 1, 1, -1);
 
       workbook.removeSheetAt(sheetIndex);
       Sheet sheet = workbook.createSheet(sheetName);
@@ -285,7 +285,7 @@ public class ExcelWriter {
       throw new InvalidLocationException(
           range.getSheetName(), "Unknown sheet '" + range.getSheetName() + "'.");
     }
-    ExcelSheet sheet = ExcelSheet.forPOIUserModel(workbook, sheetIndex);
+    ExcelSheetReader sheet = ExcelSheetReader.forPOIUserModel(workbook, sheetIndex);
 
     if (skipRows != 0) {
       if (range.isWholeColumn()) {
@@ -343,7 +343,7 @@ public class ExcelWriter {
       Table table,
       Long rowLimit,
       ExcelHeaders.HeaderBehavior headers,
-      ExcelSheet sheet,
+      ExcelSheetReader sheet,
       ExcelRange expanded)
       throws RangeExceededException,
           ExistingDataException,
@@ -419,7 +419,7 @@ public class ExcelWriter {
       Table table,
       Long rowLimit,
       ExcelHeaders.HeaderBehavior headers,
-      ExcelSheet sheet)
+      ExcelSheetReader sheet)
       throws RangeExceededException, ExistingDataException, InterruptedException {
     boolean writeHeaders = headers == ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
     int requiredRows =
@@ -470,8 +470,8 @@ public class ExcelWriter {
    * @param sheet Sheet containing the range.
    * @return True if range is empty and clear is False, otherwise returns False.
    */
-  private static boolean rangeIsNotEmpty(Workbook workbook, ExcelRange range, ExcelSheet sheet)
-      throws InterruptedException {
+  private static boolean rangeIsNotEmpty(
+      Workbook workbook, ExcelRange range, ExcelSheetReader sheet) throws InterruptedException {
     ExcelRange fullRange = range.getAbsoluteRange(workbook);
     for (int row = fullRange.getTopRow(); row <= fullRange.getBottomRow(); row++) {
       ExcelRow excelRow = sheet.get(row);
@@ -489,7 +489,7 @@ public class ExcelWriter {
    * @param range The range to clear.
    * @param sheet Sheet containing the range.
    */
-  private static void clearRange(Workbook workbook, ExcelRange range, ExcelSheet sheet)
+  private static void clearRange(Workbook workbook, ExcelRange range, ExcelSheetReader sheet)
       throws InterruptedException {
     ExcelRange fullRange = range.getAbsoluteRange(workbook);
     for (int row = fullRange.getTopRow(); row <= fullRange.getBottomRow(); row++) {
@@ -636,7 +636,8 @@ public class ExcelWriter {
    * @return EXCEL_COLUMN_NAMES if the range has headers, otherwise USE_FIRST_ROW_AS_HEADERS.
    */
   private static ExcelHeaders.HeaderBehavior shouldWriteHeaders(
-      ExcelSheet excelSheet, int topRow, int startCol, int endCol) throws InterruptedException {
+      ExcelSheetReader excelSheet, int topRow, int startCol, int endCol)
+      throws InterruptedException {
     ExcelRow row = excelSheet.get(topRow);
 
     // If the first row is missing or empty, should write headers.

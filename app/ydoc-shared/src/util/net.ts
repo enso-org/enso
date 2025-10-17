@@ -1,17 +1,6 @@
 import type { ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
 import type { Result, ResultError } from './data/result'
-import { MockWebSocketTransport, type MockTransportData } from './net/MockWSTransport'
-import {
-  ReconnectingWebSocket,
-  ReconnectingWebSocketTransport,
-} from './net/ReconnectingWSTransport'
-export {
-  MockWebSocketTransport,
-  ReconnectingWebSocket,
-  ReconnectingWebSocketTransport,
-  type MockTransportData,
-}
 
 interface Disposable {
   dispose(): void

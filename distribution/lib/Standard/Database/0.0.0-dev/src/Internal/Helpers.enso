@@ -92,9 +92,8 @@ rename_internal_columns columns new_names =
 ## ---
    private: true
    ---
-   Checks if the `argument` has an integer type (as defined by the dialect
+   Checks if the `argument` has an integer type (as defined by the type_mapping
    associated with `related_column`).
    See `SQL_Type_Mapping.is_integer_type` for details.
-expect_dialect_specific_integer_type related_column argument ~action =
-    type_mapping = related_column.connection.dialect.get_type_mapping
-    Value_Type.expect_type argument type_mapping.is_integer_type "Integer" action
+expect_specific_integer_type related_column argument ~action =
+    Value_Type.expect_type argument related_column.connection.type_mapping.is_integer_type "Integer" action

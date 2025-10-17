@@ -38,7 +38,6 @@
   },
   "devDependencies": {
     "@electron/notarize": "2.1.0",
-    "@playwright/test": "^1.50.1",
     "@types/gunzip-maybe": "^1.4.2",
     "@types/mime-types": "^2.1.4",
     "@types/node": "catalog:",
