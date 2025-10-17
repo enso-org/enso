@@ -65,6 +65,7 @@ import org.enso.interpreter.runtime.warning.WarningsLibrary;
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
+  private final int thisArgumentPosition;
 
   private final CountingConditionProfile errorReceiverProfile = CountingConditionProfile.create();
   private @Child InvokeMethodNode childDispatch;
@@ -75,7 +76,8 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       int thisArgumentPosition,
       boolean onBoundary) {
-    super(schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition, onBoundary);
+    super(schema, defaultsExecutionMode, argumentsExecutionMode, onBoundary);
+    this.thisArgumentPosition = thisArgumentPosition;
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
   }

@@ -26,7 +26,6 @@ import org.enso.interpreter.runtime.warning.WarningsLibrary;
 public abstract class InvokeMethodNode extends BaseNode {
   protected static final int CACHE_SIZE = 10;
   protected final int argumentCount;
-  protected final int thisArgumentPosition;
   protected final boolean onBoundary;
   protected final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
   protected final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
@@ -74,10 +73,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
-      int thisArgumentPosition,
       boolean onBoundary) {
     this.argumentCount = schema.length;
-    this.thisArgumentPosition = thisArgumentPosition;
     this.onBoundary = onBoundary;
     this.defaultsExecutionMode = defaultsExecutionMode;
     this.argumentsExecutionMode = argumentsExecutionMode;

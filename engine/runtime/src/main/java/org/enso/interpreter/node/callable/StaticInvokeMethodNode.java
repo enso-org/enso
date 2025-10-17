@@ -29,18 +29,36 @@ import org.enso.interpreter.runtime.state.State;
 abstract class StaticInvokeMethodNode extends InvokeMethodNode {
 
   private @Child InvokeFunctionNode invokeFunctionNode;
+  private final int namedSelfArgPosition;
 
   StaticInvokeMethodNode(
       CallArgumentInfo[] schema,
       DefaultsExecutionMode defaultsExecutionMode,
       ArgumentsExecutionMode argumentsExecutionMode,
-      int thisArgumentPosition,
+      int namedSelfArgPosition,
       boolean onBoundary) {
-    super(schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition, onBoundary);
-    verifyCallSchema(schema);
-    var newSchema = removeFirstArg(schema);
+    super(schema, defaultsExecutionMode, argumentsExecutionMode, onBoundary);
+    assert namedSelfArgPosition == 0 || namedSelfArgPosition == 1;
+    this.namedSelfArgPosition = namedSelfArgPosition;
+    var newSchema = createNewSchema(schema, namedSelfArgPosition);
     this.invokeFunctionNode =
         InvokeFunctionNode.build(newSchema, defaultsExecutionMode, argumentsExecutionMode);
+  }
+
+  /**
+   * Static method invocation must be done with one named {@code self} argument.
+   * Such argument can be either the first one or the second one.
+   * If it is on the second place, it means that on the first place, there is
+   * an implicit receiver.
+   * The given schema is potentially changed such that the {@code self} argument is on
+   * the first position.
+   */
+  private static CallArgumentInfo[] createNewSchema(CallArgumentInfo[] schema, int namedSelfArgPosition) {
+    return switch (namedSelfArgPosition) {
+      case 0 -> schema;
+      case 1 -> removeFirstArg(schema);
+      default -> throw new IllegalArgumentException("Invalid named self argument position: " + namedSelfArgPosition);
+    };
   }
 
   @Override
@@ -68,11 +86,16 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
                   + " must have `self` as first named parameter to be statically invoked");
       throw methodNotInvocable(this, symbol, self, cause);
     }
-    var argsWithoutFirst = removeFirstArg(arguments);
-    assert invokeFunctionNode.getSchema().length == argsWithoutFirst.length
+    Object[] modifiedArgs;
+    if (namedSelfArgPosition == 1) {
+      modifiedArgs = removeFirstArg(arguments);
+    } else {
+      modifiedArgs = arguments;
+    }
+    assert invokeFunctionNode.getSchema().length == modifiedArgs.length
         : "After removing implicit self argument, the number of arguments must match the function"
             + " schema.";
-    return invokeFunctionNode.execute(method, frame, state, argsWithoutFirst);
+    return invokeFunctionNode.execute(method, frame, state, modifiedArgs);
   }
 
   @Fallback
