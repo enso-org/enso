@@ -99,16 +99,30 @@ public abstract class InvokeMethodNode extends BaseNode {
     return function;
   }
 
-  /** Returns true if the first argument, which is {@code Any} type should be removed. */
-  public static boolean shouldRemoveSelfArg(FunctionSchema resolvedFuncSchema, int argumentCount) {
-    var resolvedFuncArgCount = resolvedFuncSchema.getArgumentsCount();
+  /**
+   * Returns true if synthetic Self argument should be prepended to the arguments passed to the
+   * function.
+   *
+   * <p>Static method calls on Any are resolved to `Any.type.method`. Such methods take one
+   * additional self argument (with Any.type) as opposed to static method calls resolved on any
+   * other types.
+   *
+   * @param resolvedFunctionSchema Schema of the function that was resolved to be invoked.
+   * @param argumentCount Count of the arguments passed to the function.
+   * @return True if synthetic self argument should be prepended to the arguments.
+   */
+  public static boolean shouldPrependSyntheticSelfArg(
+      FunctionSchema resolvedFunctionSchema, int argumentCount) {
+    var resolvedFuncArgCount = resolvedFunctionSchema.getArgumentsCount();
     long argsWithDefaultValCount = 0;
-    for (var argDef : resolvedFuncSchema.getArgumentInfos()) {
+    for (var argDef : resolvedFunctionSchema.getArgumentInfos()) {
       if (argDef.hasDefaultValue()) {
         argsWithDefaultValCount++;
       }
     }
-    return resolvedFuncArgCount - argsWithDefaultValCount == argumentCount - 1;
+    boolean shouldPrependSyntheticSelfArg =
+        resolvedFuncArgCount - argsWithDefaultValCount == argumentCount + 1;
+    return shouldPrependSyntheticSelfArg;
   }
 
   private static boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
