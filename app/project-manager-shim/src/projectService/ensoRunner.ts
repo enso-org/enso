@@ -118,6 +118,11 @@ export class EnsoRunner implements Runner {
     if (loadingProject) {
       return loadingProject
     }
+
+    // Finding server ports is not reliable if another project is opening.
+    while (this.loadingProjects.size > 0) {
+      await this.loadingProjects.values().next().value
+    }
     const promise = this.findServerPorts(DEFAULT_JSONRPC_PORT).then(([jsonPort, binaryPort]) => {
       const rootId = crypto.randomUUID()
       const args: string[] = [
