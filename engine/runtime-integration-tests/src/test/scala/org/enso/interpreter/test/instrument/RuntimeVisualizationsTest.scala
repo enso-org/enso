@@ -242,9 +242,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     object AnnotatedVisualization {
 
       val metadata    = new Metadata
-      val idIncY      = metadata.addItem(111, 7)
-      val idIncRes    = metadata.addItem(129, 8)
-      val idIncMethod = metadata.addItem(102, 43)
+      val idIncY      = metadata.addItem(111, 7, "e1")
+      val idIncRes    = metadata.addItem(129, 8, "e2")
+      val idIncMethod = metadata.addItem(102, 43, "e3")
 
       val code =
         metadata.appendToCode(
@@ -1526,6 +1526,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(requestId, Api.PushContextRequest(contextId, item1))
       )
+      // Timeout is on purpose. We want to make sure no further viusalization updates happen
       val pushResponses = context.receiveNIgnorePendingExpressionUpdates(6, 10)
       pushResponses should contain allOf (
         Api.Response(requestId, Api.PushContextResponse(contextId)),
@@ -3342,7 +3343,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.consumeOut shouldEqual List("encoding...")
   }
 
-  ignore should "cache intermediate visualization expressions" in withContext() {
+  it should "cache intermediate visualization expressions" in withContext() {
     context =>
       val idMainRes  = context.Main.metadata.addItem(99, 1)
       val contents   = context.Main.code
@@ -3507,8 +3508,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       editFileResponse should contain(
         context.executionComplete(contextId)
       )
-      // FIXME: That will currently not work as changes in visualizations themselves will not trigger
-      // update in Observable
       val Some(data3) = editFileResponse.collectFirst {
         case Api.Response(
               None,
@@ -3523,7 +3522,52 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             ) =>
           data
       }
-      data3.sameElements("52".getBytes) shouldBe true
+      // Known limitation, visualization would need to be re-evaluated explicitly via ModifyVisualization request
+      data3.sameElements("51".getBytes) shouldBe true
+      context.consumeOut shouldEqual List("encoding...")
+
+      // attach visualization
+      context.send(
+        Api.Request(
+          requestId,
+          Api.ModifyVisualization(
+            visualizationId,
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.ModuleMethod(
+                Api.MethodPointer(
+                  "Enso_Test.Test.Visualization",
+                  "Enso_Test.Test.Visualization",
+                  "incAndEncode"
+                ),
+                Vector()
+              ),
+              "Enso_Test.Test.Visualization"
+            )
+          )
+        )
+      )
+      val modifyVisualizationResponses =
+        context.receiveNIgnoreExpressionUpdates(5, 10)
+      modifyVisualizationResponses should contain allOf (
+        Api.Response(requestId, Api.VisualizationModified()),
+        context.executionComplete(contextId)
+      )
+      val Some(data4) = modifyVisualizationResponses.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idMainRes`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      data4.sameElements("52".getBytes) shouldBe true
       context.consumeOut shouldEqual List("encoding...")
   }
 

@@ -197,6 +197,14 @@ class UpsertVisualizationJob(
               }
             case _ =>
           }
+        case call: FunctionCallInstrumentationNode.FunctionCall =>
+          call.getFunction.getCallTarget.getRootNode match {
+            case _: ClosureRootNode =>
+              val stackJ = new java.util.Stack[RuntimeCache]
+              stack.map(_.cache).reverse.foreach(stackJ.push)
+              ObservableInvalidation.invalidateDownstreamDependencies(new ExternalUUID(expressionId), stackJ)
+            case _ =>
+          }
         case _ =>
       }
     }

@@ -113,4 +113,12 @@ public interface Observable {
     if (id.isExternal()) return new CachingObservable(id);
     else return new NonCachingObservable(id);
   }
+
+  /**
+   * Checks if this Observable has an upstream dependency with a given ID.
+   *
+   * @param id unique identifier to check
+   * @return true if dependency is present, false otherwise
+  */
+  boolean hasDependency(RuntimeID id);
 }

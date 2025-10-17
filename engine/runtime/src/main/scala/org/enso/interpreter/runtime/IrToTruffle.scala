@@ -2574,10 +2574,12 @@ private[runtime] class IrToTruffle(
       inputArg match {
         case arg: DefinitionArgument.Specified =>
           val defaultExpression = arg.defaultValue
-            .map(
-              new ExpressionProcessor(scope, scopeName, initialName)
-                .run(_, false)
-            )
+            .map { v =>
+              val defaultExpr = new ExpressionProcessor(scope, scopeName, initialName)
+                .run(v, false)
+              setLocation(defaultExpr, v.location(), v.getId)
+              defaultExpr
+            }
             .orNull
 
           // Note [Handling Suspended Defaults]

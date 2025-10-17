@@ -145,6 +145,11 @@ public class CachingObservable implements Observable {
   }
 
   @Override
+  public boolean hasDependency(RuntimeID id) {
+    return dependencies.stream().anyMatch(o -> o.id().equals(id));
+  }
+
+  @Override
   public boolean equals(Object obj) {
     return obj instanceof CachingObservable o && o.id == id;
   }

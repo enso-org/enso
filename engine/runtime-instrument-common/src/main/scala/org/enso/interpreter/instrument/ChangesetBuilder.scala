@@ -3,6 +3,7 @@ package org.enso.interpreter.instrument
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.ir.{
   CallArgument,
+  DefinitionArgument,
   Expression,
   Literal,
   Location,
@@ -540,6 +541,11 @@ object ChangesetBuilder {
           }
           depthFirstSearch(binding.name, acc, true)
           depthFirstSearch(binding.expression, acc, false)
+        case defArg: DefinitionArgument =>
+          // Ensures that changes to arguments' default values are being invalidated
+          if (!hasImportantId) {
+            defArg.defaultValue().foreach(e => Node.fromIr(e, false).foreach(acc.add))
+          }
         case _ =>
           currentIr.children.foreach(depthFirstSearch(_, acc, isBinding))
       }

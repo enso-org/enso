@@ -44,6 +44,7 @@ import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.RuntimeAnalysis;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
@@ -66,6 +67,7 @@ import org.enso.interpreter.service.error.TypeNotFoundException;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.RuntimeID;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.polyglot.runtime.Runtime$Api$ExecutionResult$Diagnostic$;
@@ -387,6 +389,7 @@ public final class ExecutionService implements GuestExecutionService {
       VisualizationHolder visualizationHolder,
       RuntimeCache cache,
       RuntimeCache executionCache,
+      RuntimeID expressionID,
       Module module,
       Object function,
       Object... arguments) {
@@ -426,6 +429,7 @@ public final class ExecutionService implements GuestExecutionService {
               idExecutionInstrument.map(
                   service -> service.bind(module, entryCallTarget, callbacks, this.timer));
           var ret = new Object[1];
+          var runtimeAnalysis = context.currentRuntimeAnalysis();
           try {
             if (fn instanceof Function tmp) {
               State state = State.create(context);
@@ -433,8 +437,10 @@ public final class ExecutionService implements GuestExecutionService {
             }
             var callArgs = new Object[] {fn, arguments};
             var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
+            runtimeAnalysis.enterNode(expressionID);
             ret[0] = RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
           } finally {
+            runtimeAnalysis.exitNode(expressionID);
             eventNodeFactory.ifPresent(EventBinding::dispose);
           }
           return ret[0];

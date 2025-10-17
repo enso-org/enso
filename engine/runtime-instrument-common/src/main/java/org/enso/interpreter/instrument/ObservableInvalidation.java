@@ -81,4 +81,29 @@ public class ObservableInvalidation {
       return invalidateTransitiveDependencies(toInvalidate, newAcc, caches, currentCallID);
     }
   }
+
+  public static void invalidateDownstreamDependencies(RuntimeID initial, List<RuntimeCache> caches) {
+    if (!caches.isEmpty()) {
+      var cache = caches.remove(0);
+      var obs = cache.get(initial);
+      assert obs != null;
+      var toProcess = cache.downstreamOf(initial);
+      var processed = new HashSet<RuntimeID>();
+      processed.add(initial);
+      while (!toProcess.isEmpty()) {
+        var head = toProcess.remove(0);
+        head.invalidate();
+        processed.add(head.id());
+        if (cache.get(head.id()) != null) {
+          for (Observable downstream : cache.downstreamOf(head.id())) {
+            if (!processed.contains(downstream.id()) && !toProcess.contains(downstream)) {
+              toProcess.add(downstream);
+            }
+          }
+        } else {
+          invalidateDownstreamDependencies(head.id(), caches);
+        }
+      }
+    }
+  }
 }

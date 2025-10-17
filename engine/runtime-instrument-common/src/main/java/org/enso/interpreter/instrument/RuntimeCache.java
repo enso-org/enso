@@ -1,6 +1,8 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +17,7 @@ import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.polyglot.RuntimeID;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.service.GuestExecutionService;
+import scala.collection.mutable.HashSet;
 
 /** A storage for computed values. */
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
@@ -91,6 +94,22 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   public Observable get(RuntimeID expressionId, RuntimeID downstreamDependency) {
     var o = cache.computeIfAbsent(expressionId.uuid(), _ -> Observable.fromUUID(expressionId));
     return downstreamDependency == null ? o : o.register(cache.get(downstreamDependency));
+  }
+
+  /**
+   * Infer downstream dependencies of an {@code Observable} identified by the given id.
+   *
+   * @param id ID of the dependency to look for
+   * @return a list of Observables having {@code id} as an upstream dependency
+   */
+  public List<Observable> downstreamOf(RuntimeID id) {
+    var downstream = new LinkedList<Observable>();
+    for (Observable o: cache.values()) {
+      if (o.hasDependency(id)) {
+        downstream.add(o);
+      }
+    }
+    return downstream;
   }
 
   public CompletionStage<Boolean> registerAction(RuntimeID expressionId, ObservableVisualization action) {

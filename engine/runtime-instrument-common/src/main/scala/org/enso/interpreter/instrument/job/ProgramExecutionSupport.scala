@@ -37,6 +37,7 @@ import org.enso.interpreter.runtime.warning.{
   WarningsLibrary,
   WithWarnings
 }
+import org.enso.polyglot.ExternalUUID
 import org.enso.polyglot.debugger.ExecutedVisualization
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -694,6 +695,7 @@ object ProgramExecutionSupport {
           holder,
           visualization.cache,
           runtimeCache,
+          new ExternalUUID(expressionId),
           visualization.module,
           visualization.callback,
           expressionValue +: visualization.arguments: _*

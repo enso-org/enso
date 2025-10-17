@@ -49,6 +49,11 @@ public class NonCachingObservable implements Observable {
   }
 
   @Override
+  public boolean hasDependency(RuntimeID id) {
+    return dependencies.stream().anyMatch(o -> o.id().equals(id));
+  }
+
+  @Override
   public String toString() {
     var deps = dependencies.stream().map(dep -> dep.id()).collect(Collectors.toSet());
     return "Observable(id=" + id + ", direct dependencies=" + deps + ")";
