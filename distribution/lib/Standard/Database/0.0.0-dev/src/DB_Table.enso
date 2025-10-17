@@ -63,7 +63,7 @@ type DB_Table
         - `connection`: The connection with which the table is associated.
         - `internal_columns`: The internal representation of the table columns.
         - `context`: The context associated with this table.
-    private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:SQL_IR_Source
+    Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:SQL_IR_Source
 
     ## The internal constructor used to construct a DB_Table instance.
        It can perform some additional operations, like refining the type, so it

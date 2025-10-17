@@ -412,7 +412,7 @@ type DB_Table_Implementation
         if this_table.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
             sql = this_table.to_sql
             column_types = this_table.internal_columns.map .sql_type_reference
-            table = this_table.connection.read_statement sql column_types last_row_only=True
+            table = this_table.connection.base_connection.read_statement sql column_types last_row_only=True
             table.rows.first
 
     sort (this_table : Table & DB_Table) (columns : Vector Sort_Column | Sort_Column) text_ordering:Text_Ordering error_on_missing_columns:Boolean on_problems:Problem_Behavior =
@@ -640,7 +640,7 @@ type DB_Table_Implementation
         new_ctx = SQL_IR_Source.for_subquery setup.subquery
         query = SQL_IR_Statement.Select [[column_name, expr]] new_ctx
         sql = this_table.connection.dialect.generate_sql query
-        table = this_table.connection.read_statement sql
+        table = this_table.connection.base_connection.read_statement sql
         table.at column_name . at 0
 
     default_max_rows = Rows_To_Read.First_With_Warning 1000
@@ -654,7 +654,7 @@ type DB_Table_Implementation
 
             sql = preprocessed.to_sql
             column_types = preprocessed.internal_columns.map .sql_type_reference
-            materialized_table = this_table.connection.read_statement sql column_types . catch SQL_Error sql_error->
+            materialized_table = this_table.connection.base_connection.read_statement sql column_types . catch SQL_Error sql_error->
                 Error.throw (this_table.connection.dialect.get_error_mapper.transform_custom_errors sql_error)
 
             warnings_builder = Builder.new
@@ -684,7 +684,7 @@ type DB_Table_Implementation
                 [column.name, SQL_IR_Expression.Operation "COUNT" [column.expression]]
             query = SQL_IR_Statement.Select new_columns new_ctx
             this_table.connection.dialect.generate_sql query
-        count_table = this_table.connection.read_statement count_query
+        count_table = this_table.connection.base_connection.read_statement count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
         mapping = this_table.connection.type_mapping
         types = cols.map col->

@@ -207,7 +207,7 @@ type SQLServer_Connection
             SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
             SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql
             _ : SQLServer_Query -> query
-        self.connection.query used_query alias
+        used_query.to_db_table self alias
 
     ## ---
        aliases: [import, load, open, query, sql]

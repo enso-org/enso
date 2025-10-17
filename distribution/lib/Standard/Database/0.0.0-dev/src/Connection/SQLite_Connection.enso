@@ -168,7 +168,8 @@ type SQLite_Connection
           not found, a `Table_Not_Found` error is raised.
     @query make_table_name_selector
     query : SQL_Query -> Text -> Table & DB_Table ! Table_Not_Found
-    query self query:SQL_Query alias="" = self.connection.query query alias
+    query self query:SQL_Query alias="" =
+        query.to_db_table self alias
 
     ## ---
        aliases: [import, load, open, query, sql]
