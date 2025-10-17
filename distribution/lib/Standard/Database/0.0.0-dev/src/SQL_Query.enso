@@ -3,7 +3,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table
 
-import project.Connection.Connection.Connection
 import project.DB_Table as DB_Table_Module
 import project.DB_Table.DB_Table
 import project.Errors.Table_Not_Found

@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Database.Connection.Connection.Connection
 import Standard.Database.SQL_Query.SQL_Query
 from Standard.Database.Internal.JDBC_Connection import handle_sql_errors
 from Standard.Database.SQL_Query import make_table_for_name, make_table_from_query
