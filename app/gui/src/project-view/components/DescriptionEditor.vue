@@ -9,7 +9,7 @@ import { useStringSync } from '@/util/codemirror'
 import { ResultComponent } from '@/util/react'
 import { EditorView } from '@codemirror/view'
 import { useMutation } from '@tanstack/vue-query'
-import { isOnElectron } from 'enso-common/src/detect'
+import { isOnElectron } from '$/utils/detect'
 import { computed, effectScope, onScopeDispose, ref, watch } from 'vue'
 
 const rightPanel = useRightPanelData()

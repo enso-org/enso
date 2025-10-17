@@ -48,7 +48,7 @@ import { useState } from 'react'
 import { toast } from 'react-toastify'
 import invariant from 'tiny-invariant'
 
-declare module 'enso-common/src/queryClient' {
+declare module '$/utils/queryClient' {
   /** */
   interface MutationPools {
     readonly uploadFileChunk: true

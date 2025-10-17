@@ -21,7 +21,7 @@ declare const DUMMY_MUTATION_POOL_SYMBOL: unique symbol
  * Declaration merge into `MutationPools` to add a new mutation pool id:
  *
  * ```ts
- * declare module 'enso-common/src/queryClient' {
+ * declare module '$/utils/queryClient' {
  *   interface MutationPools {
  *     myNewPoolId: true
  *   }

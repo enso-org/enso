@@ -18,7 +18,7 @@ import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
-import { Platform, platform } from 'enso-common/src/detect'
+import { Platform, platform } from '$/utils/detect'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { computed } from 'vue'
 

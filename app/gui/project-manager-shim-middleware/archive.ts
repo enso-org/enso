@@ -1,4 +1,4 @@
-import { getFolderPath, isFolderPath } from 'enso-common/src/utilities/file'
+import { getFolderPath, isFolderPath } from '$/utils/file'
 import gunzipMaybe from 'gunzip-maybe'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { mkdir } from 'node:fs/promises'

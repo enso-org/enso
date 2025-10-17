@@ -13,6 +13,7 @@ import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
+import { fileExtension, getFileName, getFolderPath, normalizePath } from '$/utils/file'
 import { uniqueString } from '$/utils/uniqueString'
 import { PRODUCT_NAME } from 'enso-common'
 import {
@@ -21,12 +22,6 @@ import {
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import {
-  fileExtension,
-  getFileName,
-  getFolderPath,
-  normalizePath,
-} from 'enso-common/src/utilities/file'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 

@@ -1,5 +1,5 @@
 import * as gtag from '$/utils/analytics/gtag'
-import * as detect from 'enso-common/src/detect'
+import * as detect from '$/utils/detect'
 
 export const createUser = {
   /** Log successful user creation. */

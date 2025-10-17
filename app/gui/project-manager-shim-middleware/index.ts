@@ -8,6 +8,7 @@ import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
 
+import { basenameAndExtension, getFileName, getFolderPath, isFolderPath } from '$/utils/file'
 import {
   AssetType,
   DirectoryId,
@@ -36,12 +37,6 @@ import {
   EXPORT_ARCHIVE_PATH,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
-import {
-  basenameAndExtension,
-  getFileName,
-  getFolderPath,
-  isFolderPath,
-} from 'enso-common/src/utilities/file'
 import { tmpdir } from 'node:os'
 import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
