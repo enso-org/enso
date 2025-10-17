@@ -46,18 +46,19 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
   }
 
   /**
-   * Static method invocation must be done with one named {@code self} argument.
-   * Such argument can be either the first one or the second one.
-   * If it is on the second place, it means that on the first place, there is
-   * an implicit receiver.
-   * The given schema is potentially changed such that the {@code self} argument is on
-   * the first position.
+   * Static method invocation must be done with one named {@code self} argument. Such argument can
+   * be either the first one or the second one. If it is on the second place, it means that on the
+   * first place, there is an implicit receiver. The given schema is potentially changed such that
+   * the {@code self} argument is on the first position.
    */
-  private static CallArgumentInfo[] createNewSchema(CallArgumentInfo[] schema, int namedSelfArgPosition) {
+  private static CallArgumentInfo[] createNewSchema(
+      CallArgumentInfo[] schema, int namedSelfArgPosition) {
     return switch (namedSelfArgPosition) {
       case 0 -> schema;
       case 1 -> removeFirstArg(schema);
-      default -> throw new IllegalArgumentException("Invalid named self argument position: " + namedSelfArgPosition);
+      default ->
+          throw new IllegalArgumentException(
+              "Invalid named self argument position: " + namedSelfArgPosition);
     };
   }
 
