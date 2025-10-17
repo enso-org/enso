@@ -57,7 +57,8 @@ const DEFAULT_JSONRPC_PORT = 30616
 
 /** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
-  private runningProjects: Map<string, RunningProject> = new Map()
+  private runningProjects = new Map<string, RunningProject>()
+  private loadingProjects = new Map<string, Promise<LanguageServerSockets>>()
 
   /** Creates a new EnsoRunner with the path to the Enso executable. */
   constructor(private ensoPath: Path) {}
@@ -113,132 +114,140 @@ export class EnsoRunner implements Runner {
     if (runningProject) {
       return runningProject.sockets
     }
-
-    // Find available ports for the language server
-    const [jsonPort, binaryPort] = await this.findServerPorts(DEFAULT_JSONRPC_PORT)
-    const rootId = crypto.randomUUID()
-    const args: string[] = [
-      '--server',
-      '--root-id',
-      rootId,
-      '--project-id',
-      projectId,
-      '--path',
-      projectPath,
-      '--interface',
-      '127.0.0.1',
-      '--rpc-port',
-      jsonPort.toString(),
-      '--data-port',
-      binaryPort.toString(),
-    ]
-
-    // Add extra arguments if provided
-    if (extraArgs) {
-      args.push(...extraArgs)
+    const loadingProject = this.loadingProjects.get(projectId)
+    if (loadingProject) {
+      return loadingProject
     }
+    const promise = this.findServerPorts(DEFAULT_JSONRPC_PORT).then(([jsonPort, binaryPort]) => {
+      const rootId = crypto.randomUUID()
+      const args: string[] = [
+        '--server',
+        '--root-id',
+        rootId,
+        '--project-id',
+        projectId,
+        '--path',
+        projectPath,
+        '--interface',
+        '127.0.0.1',
+        '--rpc-port',
+        jsonPort.toString(),
+        '--data-port',
+        binaryPort.toString(),
+      ]
 
-    const env = { ...process.env }
-    if (extraEnv) {
-      for (const [key, value] of extraEnv) {
-        env[key] = value
+      // Add extra arguments if provided
+      if (extraArgs) {
+        args.push(...extraArgs)
       }
-    }
 
-    return new Promise((resolve, reject) => {
-      const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
-      const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
-      const serverProcess = childProcess.spawn(cmd, cmdArgs, { env, detached: false })
-
-      let stderr = ''
-      let resolved = false
-
-      // Health check function
-      const checkServerHealth = async (): Promise<boolean> => {
-        try {
-          const response = await fetch(`http://127.0.0.1:${jsonPort}/_health`)
-          return response.ok
-        } catch {
-          return false
+      const env = { ...process.env }
+      if (extraEnv) {
+        for (const [key, value] of extraEnv) {
+          env[key] = value
         }
       }
 
-      // Start polling for server readiness after initial delay
-      const startHealthCheck = () => {
-        const pollInterval = setInterval(async () => {
-          if (resolved) {
-            clearInterval(pollInterval)
-            return
-          }
+      return new Promise<LanguageServerSockets>((resolve, reject) => {
+        const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
+        const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
+        const serverProcess = childProcess.spawn(cmd, cmdArgs, { env, detached: false })
 
-          const isReady = await checkServerHealth()
-          if (isReady) {
-            clearInterval(pollInterval)
-            resolved = true
-            const sockets: LanguageServerSockets = {
-              jsonSocket: { host: '127.0.0.1', port: jsonPort },
-              binarySocket: { host: '127.0.0.1', port: binaryPort },
+        let stderr = ''
+        let resolved = false
+
+        // Health check function
+        const checkServerHealth = async (): Promise<boolean> => {
+          try {
+            const response = await fetch(`http://127.0.0.1:${jsonPort}/_health`)
+            return response.ok
+          } catch {
+            return false
+          }
+        }
+
+        // Start polling for server readiness after initial delay
+        const startHealthCheck = () => {
+          const pollInterval = setInterval(async () => {
+            if (resolved) {
+              clearInterval(pollInterval)
+              return
             }
-            this.runningProjects.set(projectId, {
-              process: serverProcess,
-              sockets: sockets,
-              shutdownHooks: new Map(),
-            })
-            resolve(sockets)
-          }
-        }, 250) // Poll every 250ms
-      }
 
-      // Start health check after initial delay
-      setTimeout(startHealthCheck, 250)
-
-      serverProcess.stderr.on('data', (data) => {
-        const dataStr = data.toString()
-        stderr += dataStr
-      })
-
-      serverProcess.on('error', (error) => {
-        if (!resolved) {
-          reject(new Error(`Failed to start language server: ${error.message}`))
+            const isReady = await checkServerHealth()
+            if (isReady) {
+              clearInterval(pollInterval)
+              resolved = true
+              const sockets: LanguageServerSockets = {
+                jsonSocket: { host: '127.0.0.1', port: jsonPort },
+                binarySocket: { host: '127.0.0.1', port: binaryPort },
+              }
+              this.runningProjects.set(projectId, {
+                process: serverProcess,
+                sockets: sockets,
+                shutdownHooks: new Map(),
+              })
+              resolve(sockets)
+            }
+          }, 250) // Poll every 250ms
         }
-      })
 
-      serverProcess.on('close', async (code) => {
-        // Execute shutdown hooks if the process exits unexpectedly
-        const runningProject = this.runningProjects.get(projectId)
-        if (runningProject && runningProject.shutdownHooks) {
-          for (const [hookType, hook] of runningProject.shutdownHooks) {
-            try {
-              runningProject.shutdownHooks.delete(hookType)
-              await hook()
-            } catch (error) {
-              console.error(
-                `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
-                error,
-              )
+        // Start health check after initial delay
+        setTimeout(startHealthCheck, 250)
+
+        serverProcess.stderr.on('data', (data) => {
+          const dataStr = data.toString()
+          stderr += dataStr
+        })
+
+        serverProcess.on('error', (error) => {
+          if (!resolved) {
+            reject(new Error(`Failed to start language server: ${error.message}`))
+          }
+        })
+
+        serverProcess.on('close', async (code) => {
+          // Execute shutdown hooks if the process exits unexpectedly
+          const runningProject = this.runningProjects.get(projectId)
+          if (runningProject && runningProject.shutdownHooks) {
+            for (const [hookType, hook] of runningProject.shutdownHooks) {
+              try {
+                runningProject.shutdownHooks.delete(hookType)
+                await hook()
+              } catch (error) {
+                console.error(
+                  `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
+                  error,
+                )
+              }
             }
           }
-        }
 
-        // Remove from running projects when it closes
-        this.runningProjects.delete(projectId)
-        if (!resolved) {
-          reject(new Error(`Language server process exited with code ${code}. stderr: ${stderr}`))
-        }
+          // Remove from running projects when it closes
+          this.runningProjects.delete(projectId)
+          if (!resolved) {
+            reject(new Error(`Language server process exited with code ${code}. stderr: ${stderr}`))
+          }
+        })
+
+        // Timeout after 30 seconds if server doesn't start
+        setTimeout(() => {
+          if (!resolved) {
+            serverProcess.kill('SIGKILL')
+            reject(new Error('Language server startup timeout'))
+          }
+        }, 30000)
       })
-
-      // Timeout after 30 seconds if server doesn't start
-      setTimeout(() => {
-        if (!resolved) {
-          serverProcess.kill('SIGKILL')
-          reject(new Error('Language server startup timeout'))
-        }
-      }, 30000)
     })
+    this.loadingProjects.set(projectId, promise)
+    promise.finally(() => this.loadingProjects.delete(projectId))
+    return promise
   }
 
   /** Closes a project and stops its language server. */
   async closeProject(projectId: string): Promise<void> {
+    // First wait for potential initialization end.
+    await this.loadingProjects.get(projectId)
     const runningProject = this.runningProjects.get(projectId)
 
     if (!runningProject) {

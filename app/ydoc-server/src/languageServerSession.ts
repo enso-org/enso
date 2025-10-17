@@ -89,7 +89,6 @@ export class LanguageServerSession {
   /** Get a {@link LanguageServerSession} by its URL. */
   static get(url: string): LanguageServerSession {
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
-      console.debug('GETTING NEW LS SESSION', url)
       const ws = new ReconnectingWebSocketTransport(url)
       const ls = new LanguageServer(crypto.randomUUID(), ws)
       return new LanguageServerSession(ls, () => LanguageServerSession.sessions.delete(url))
