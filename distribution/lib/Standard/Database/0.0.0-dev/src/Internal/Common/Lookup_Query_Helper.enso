@@ -4,6 +4,7 @@ from Standard.Base.Runtime import assert
 
 import Standard.Table.Internal.Lookup_Helpers
 import Standard.Table.Internal.Lookup_Helpers.Lookup_Column
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table import Join_Kind, Table, Value_Type
 from Standard.Table.Errors import all
 
@@ -26,8 +27,7 @@ build_lookup_query : DB_Table -> Table & DB_Table -> (Vector (Integer | Text | R
 build_lookup_query base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems:Problem_Behavior =
     lookup_columns = Lookup_Helpers.prepare_columns_for_lookup base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
     lookup_columns.if_not_error <| check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows <|
-        column_naming_helper = base_table.connection.base_connection.column_naming_helper
-        unique_name_strategy = column_naming_helper.create_unique_name_strategy
+        unique_name_strategy = base_table.connection.base_connection.to Unique_Name_Strategy
         unique_name_strategy.mark_used base_table.column_names
         unique_name_strategy.mark_used lookup_table.column_names
 

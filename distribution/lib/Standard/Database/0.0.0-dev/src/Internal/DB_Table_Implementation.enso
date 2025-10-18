@@ -25,6 +25,7 @@ import Standard.Table.Columns_To_Keep.Columns_To_Keep
 import Standard.Table.Expression.Expression
 import Standard.Table.Grouping_Method.Grouping_Method
 import Standard.Table.Internal.Add_Row_Number
+import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Column_Type_Helpers
 import Standard.Table.Internal.Constant_Column.Constant_Column
 import Standard.Table.Internal.Display_Helpers
@@ -701,7 +702,8 @@ type DB_Table_Implementation
     ## ---
        private: true
        ---
-    column_naming_helper (this_table : Table & DB_Table) = this_table.connection.base_connection.column_naming_helper
+    column_naming_helper (this_table : Table & DB_Table) =
+        this_table.connection.base_connection.to Column_Naming_Helper
 
     to_text (this_table : Table & DB_Table) = "(Database Table "+this_table.name.to_text+")"
 
@@ -812,8 +814,7 @@ _join_or_cross_join (this_table : Table & DB_Table) (right : Table & DB_Table) j
         join_resolution = Database_Join_Helper.make_join_helpers left right left_setup.column_mapping right_setup.column_mapping . resolve on on_problems
         right_columns_to_drop = if join_kind == Join_Kind.Inner then join_resolution.redundant_column_names else []
 
-        column_naming_helper = this_table.connection.base_connection.column_naming_helper
-        result_columns = Database_Join_Helper.select_columns_for_join column_naming_helper join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
+        result_columns = Database_Join_Helper.select_columns_for_join this_table.column_naming_helper join_kind left_setup.new_columns right_setup.new_columns right_columns_to_drop right_prefix problem_builder
 
         ## TODO proper equality of nulls in join conditions, see:
             https://www.pivotaltracker.com/story/show/184109759

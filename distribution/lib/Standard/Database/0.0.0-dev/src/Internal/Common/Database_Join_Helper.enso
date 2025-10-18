@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Errors.Common import Floating_Point_Equality
 
 import Standard.Table.Internal.Join_Helpers
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table import Join_Kind, Table
 
 import project.Connection.Connection.Connection
@@ -88,8 +89,6 @@ type Join_Subquery_Setup
    ---
 prepare_subqueries : Connection -> Table & DB_Table -> Table & DB_Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
 prepare_subqueries connection left right needs_left_indicator needs_right_indicator =
-    column_naming_helper = connection.base_connection.column_naming_helper
-
     ## If a self-join, make sure we are able to distinguish the left and
        right tables.
     table_name_deduplicator = Table_Naming_Helper.new connection . create_unique_name_strategy
@@ -97,13 +96,13 @@ prepare_subqueries connection left right needs_left_indicator needs_right_indica
     right_alias = table_name_deduplicator.make_unique right.name
 
     left_indicators = if needs_left_indicator.not then [] else
-        renamer = column_naming_helper.create_unique_name_strategy
+        renamer = connection.base_connection.to Unique_Name_Strategy
         renamer.mark_used (left.internal_columns.map .name)
         # This is an operation, not a constant to avoid adding unnecessary interpolations to the query.
         [Internal_Column.Value (renamer.make_unique "left_indicator") SQL_Type_Reference.null (SQL_IR_Expression.Literal "TRUE")]
 
     right_indicators = if needs_right_indicator.not then [] else
-        renamer = column_naming_helper.create_unique_name_strategy
+        renamer = connection.base_connection.to Unique_Name_Strategy
         renamer.mark_used (right.internal_columns.map .name)
         [Internal_Column.Value (renamer.make_unique "right_indicator") SQL_Type_Reference.null (SQL_IR_Expression.Literal "TRUE")]
 

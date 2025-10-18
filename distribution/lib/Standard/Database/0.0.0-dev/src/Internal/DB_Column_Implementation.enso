@@ -502,7 +502,8 @@ type DB_Column_Implementation
 
     default_row_limit_for_read = ..First_With_Warning 1000
 
-naming_helper this_column = (this_column:DB_Column).connection.base_connection.column_naming_helper
+naming_helper this_column =
+    (this_column:DB_Column).connection.base_connection.to Column_Naming_Helper
 
 ## ---
    private: true

@@ -19,6 +19,7 @@ import Standard.Table.Internal.Match_Columns_Helpers
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Replace_Helpers
 import Standard.Table.Internal.Table_Helpers
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 from Standard.Table import Column, Table
@@ -317,16 +318,16 @@ make_table : Connection -> Text -> Vector -> SQL_IR_Source -> Problem_Behavior -
 make_table connection table_name columns ctx on_problems =
     if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
         problem_builder = Problem_Builder.new
-        column_names_validator = connection.base_connection.column_naming_helper.create_unique_name_strategy
+        unique_name_strategy = connection.base_connection.to Unique_Name_Strategy
         cols = columns.map p->
             raw_name = p.first
             sql_type = p.second
             # We ensure that the name used in the Enso table is a valid name for Enso column and is unique, possibly changing the input name slightly.
-            enso_name = column_names_validator.make_unique raw_name
+            enso_name = unique_name_strategy.make_unique raw_name
             # The expression keeps the original 'raw' name coming from the database.
             expression = SQL_IR_Expression.Column table_name raw_name
             Internal_Column.Value enso_name (SQL_Type_Reference.from_constant sql_type) expression
-        problem_builder.report_unique_name_strategy column_names_validator
+        problem_builder.report_unique_name_strategy unique_name_strategy
         # We do not want to stop the table from being fetched, so we report the issues as warnings.
         problem_builder.attach_problems_before on_problems <|
             DB_Table.new table_name connection cols ctx

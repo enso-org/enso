@@ -521,16 +521,6 @@ type Connection
     ## ---
        private: true
        ---
-       Returns a helper for checking and generating column names.
-    column_naming_helper : Column_Naming_Helper
-    column_naming_helper self =
-        column_naming_properties = self.entity_naming_properties.for_column_names
-        generated_column_naming_properties = self.entity_naming_properties.for_generated_column_names
-        Column_Naming_Helper.Value column_naming_properties generated_column_naming_properties
-
-    ## ---
-       private: true
-       ---
        Creates a Table reference that refers to a table with the given name.
        Once all references to the table with this name are destroyed, the table
        will be marked for removal and dropped at the next maintenance.
@@ -676,3 +666,19 @@ get_tables_advanced jdbc_connection name_like:Text|Nothing database:Text|Nothing
         renamed = table.rename_columns name_dict error_on_missing_columns=False on_problems=..Ignore
         if all_fields then renamed else
             renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
+
+## ---
+   private: true
+   ---
+   Converts a Connection to a Column_Naming_Helper
+Column_Naming_Helper.from (that:Connection) =
+    column_naming_properties = that.entity_naming_properties.for_column_names
+    generated_column_naming_properties = that.entity_naming_properties.for_generated_column_names
+    Column_Naming_Helper.Value column_naming_properties generated_column_naming_properties
+
+## ---
+   private: true
+   ---
+   Converts a Connection to a column Unique_Naming_Helper
+Unique_Naming_Helper.from (that:Connection) =
+    Unique_Name_Strategy.new that.entity_naming_properties.for_column_names
