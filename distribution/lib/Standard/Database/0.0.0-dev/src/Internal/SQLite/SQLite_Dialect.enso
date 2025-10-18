@@ -33,6 +33,7 @@ import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type

@@ -10,6 +10,7 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input, Vector_Editor
 
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
@@ -27,7 +28,6 @@ import project.Internal.JDBC_Connection.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
-import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
 import project.SQL_Query.SQL_Query
@@ -679,6 +679,6 @@ Column_Naming_Helper.from (that:Connection) =
 ## ---
    private: true
    ---
-   Converts a Connection to a column Unique_Naming_Helper
-Unique_Naming_Helper.from (that:Connection) =
+   Converts a Connection to a column Unique_Name_Strategy
+Unique_Name_Strategy.from (that:Connection) =
     Unique_Name_Strategy.new that.entity_naming_properties.for_column_names
