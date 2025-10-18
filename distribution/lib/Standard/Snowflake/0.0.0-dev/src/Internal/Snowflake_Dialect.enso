@@ -7,6 +7,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table import Aggregate_Column, Column, Table, Value_Type
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
@@ -36,7 +37,6 @@ import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
-import Standard.Database.Internal.Table_Naming_Helper.Table_Naming_Helper
 import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL.SQL_Type
@@ -164,9 +164,9 @@ type Snowflake_Dialect
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         table_connection = Internals_Access.get_connection table
-        table_name_deduplicator = Table_Naming_Helper.new table_connection . create_unique_name_strategy
-        table_name_deduplicator.mark_used table.name
-        inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
+        unique_name_strategy = Unique_Name_Strategy.new table_connection.base_connection.entity_naming_properties.for_table_names
+        unique_name_strategy.mark_used table.name
+        inner_table_alias = unique_name_strategy.make_unique table.name+"_inner"
         setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]

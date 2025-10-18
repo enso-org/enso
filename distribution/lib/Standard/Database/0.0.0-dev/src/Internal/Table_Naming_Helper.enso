@@ -1,9 +1,13 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.Internal.Naming_Properties.Naming_Properties
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table.Errors import Name_Too_Long
+
+import project.Connection.Connection.Connection
 
 polyglot java import org.enso.base.Text_Utils
 
@@ -15,14 +19,14 @@ type Table_Naming_Helper
     ## ---
        private: true
        ---
-    private Value connection
+    private Value connection:Connection
 
     ## ---
        private
        ---
     new : Connection -> Table_Naming_Helper
     new connection =
-        Table_Naming_Helper.Value connection
+        Table_Naming_Helper.Value connection.base_connection
 
     ## ---
        private: true
