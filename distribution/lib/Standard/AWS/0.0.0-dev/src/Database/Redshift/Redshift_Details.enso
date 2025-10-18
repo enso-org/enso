@@ -68,9 +68,7 @@ type Redshift_Details
 
         # TODO [RW] can we inherit these from postgres?
         encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
-
-        Connection.new jdbc_connection Redshift_Dialect.redshift Postgres_Type_Mapping entity_naming_properties
+        Connection.new jdbc_connection Redshift_Dialect.redshift Postgres_Type_Mapping (Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True)
 
     ## ---
        private: true
