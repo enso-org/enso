@@ -5,6 +5,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.In_Memory_Table.In_Memory_Table
+import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 from Standard.Table import Table
 
 import project.Column_Description.Column_Description
@@ -27,7 +28,7 @@ from project.Internal.Upload.Helpers.SQL_Helpers import make_batched_insert_temp
 create_table_structure connection table_name structure primary_key temporary on_problems:Problem_Behavior -> Text =
     aligned_structure = align_structure connection structure
     resolved_primary_key = resolve_primary_key aligned_structure primary_key
-    validate_structure connection.base_connection.column_naming_helper aligned_structure <|
+    validate_structure (connection.base_connection.to Column_Naming_Helper) aligned_structure <|
         create_table_statement = prepare_create_table_statement connection table_name aligned_structure resolved_primary_key temporary on_problems
         update_result = create_table_statement.if_not_error <|
             log_sql_if_enabled connection.jdbc_connection create_table_statement.to_text
