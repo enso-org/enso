@@ -12,6 +12,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 
 ## ---
    private: true
@@ -87,12 +88,11 @@ type Join_Subquery_Setup
    ---
 prepare_subqueries : Connection -> Table & DB_Table -> Table & DB_Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
 prepare_subqueries connection left right needs_left_indicator needs_right_indicator =
-    table_naming_helper = connection.base_connection.table_naming_helper
     column_naming_helper = connection.base_connection.column_naming_helper
 
     ## If a self-join, make sure we are able to distinguish the left and
        right tables.
-    table_name_deduplicator = table_naming_helper.create_unique_name_strategy
+    table_name_deduplicator = Table_Naming_Helper.new connection . create_unique_name_strategy
     left_alias = table_name_deduplicator.make_unique left.name
     right_alias = table_name_deduplicator.make_unique right.name
 

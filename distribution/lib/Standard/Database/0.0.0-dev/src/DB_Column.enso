@@ -10,6 +10,7 @@ import project.Internal.DB_Column_Implementation.DB_Column_Implementation
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 import project.Internal.Type_Refinements.DB_Column_Refinements
 import project.SQL.SQL_Statement
 
@@ -86,7 +87,7 @@ type DB_Column
         use_ctes = self.connection.dialect.flagged ..Supports_Nested_With_Clause
 
         if use_ctes.not then callback self else
-            binder = self.connection.base_connection.table_naming_helper.generate_random_table_name
+            binder = Table_Naming_Helper.new self.connection . generate_random_table_name
 
             ref_expression = SQL_IR_Expression.Let_Ref name binder self.expression
             ref_column = DB_Column.new binder self.connection self.sql_type_reference ref_expression self.context

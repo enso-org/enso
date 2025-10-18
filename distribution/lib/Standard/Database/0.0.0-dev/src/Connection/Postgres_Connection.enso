@@ -45,9 +45,7 @@ type Postgres_Connection
            quoted we have full case sensitivity and can distinguish columns
            `A` from `a` as different.
            Our generator is supposed to always quote identifiers
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
-
-        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres Postgres_Type_Mapping entity_naming_properties data_link_setup) make_new
+        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres Postgres_Type_Mapping (Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True) data_link_setup) make_new
 
     ## ---
        private: true

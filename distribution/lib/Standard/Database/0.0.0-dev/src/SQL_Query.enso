@@ -9,6 +9,7 @@ import project.Errors.Table_Not_Found
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.Statement_Setter.Statement_Setter
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 import project.SQL.SQL_Statement
 from project.Internal.JDBC_Connection import handle_sql_errors
 
@@ -26,8 +27,7 @@ type SQL_Query
        ---
     to_db_table self connection alias:Text = alias.if_not_error <| case self of
         SQL_Query.Table_Name name ->
-            table_naming_helper = connection.base_connection.table_naming_helper
-            table_naming_helper.verify_table_name name <|
+            Table_Naming_Helper.new connection . verify_table_name name <|
                 make_table_for_name connection name "" alias
         SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
             connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|
@@ -46,8 +46,7 @@ type SQL_Query_With_Schema
        ---
     to_db_table self connection alias:Text = alias.if_not_error <| case self of
         SQL_Query_With_Schema.Table_Name name schema ->
-            table_naming_helper = connection.base_connection.table_naming_helper
-            table_naming_helper.verify_table_name name <|
+            Table_Naming_Helper.new connection . verify_table_name name <|
                 make_table_for_name connection name schema alias
         SQL_Query_With_Schema.Raw_SQL raw_sql -> handle_sql_errors <|
             connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|

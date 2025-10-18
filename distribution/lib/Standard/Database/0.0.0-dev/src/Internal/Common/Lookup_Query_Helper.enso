@@ -14,6 +14,7 @@ import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 from project.Internal.Upload.Helpers.Check_Queries import check_for_null_keys
 
 ## ---
@@ -157,7 +158,7 @@ type Lookup_Subquery_Setup
    lookup join query (it translates the source columns valid in the input
    contexts, to the external join context).
 prepare_subqueries base_table lookup_table lookup_columns unique_name_strategy =
-    table_name_deduplicator = base_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+    table_name_deduplicator = Table_Naming_Helper.new base_table.connection . create_unique_name_strategy
     self_alias = table_name_deduplicator.make_unique base_table.name
     lookup_alias = table_name_deduplicator.make_unique lookup_table.name
     new_table_name = table_name_deduplicator.make_unique <|

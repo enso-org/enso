@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Runtime.Context
 
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 from project.Errors import Table_Already_Exists
 from project.Internal.Upload.Operations.Upload_Table import create_table_structure, resolve_temp_table_name
 
@@ -23,7 +24,7 @@ from project.Internal.Upload.Operations.Upload_Table import create_table_structu
 create_table_implementation connection table_name structure primary_key temporary allow_existing on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
     resolved_table_name = resolve_temp_table_name connection temporary table_name
-    table_naming_helper = connection.base_connection.table_naming_helper
+    table_naming_helper = Table_Naming_Helper.new connection
     on_exists =
         if allow_existing then connection.query (..Table_Name resolved_table_name) else Error.throw (Table_Already_Exists.Error resolved_table_name)
     table_naming_helper.verify_table_name resolved_table_name <|

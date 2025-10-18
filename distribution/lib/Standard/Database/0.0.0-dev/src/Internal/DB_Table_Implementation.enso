@@ -65,6 +65,7 @@ import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 import project.Internal.Take_Drop_Helpers
 import project.Internal.Telemetry
 import project.Internal.Type_Refinements.DB_Table_Refinements
@@ -371,7 +372,7 @@ type DB_Table_Implementation
 
     make_table_from_vectors (this_table : Table & DB_Table) column_vectors column_names =
         Feature.Make_Table_From.if_supported_else_throw this_table.connection.dialect "make_table_from_vectors" <|
-            literal_table_name = this_table.connection.base_connection.table_naming_helper.generate_random_table_name "enso-literal-"
+            literal_table_name = Table_Naming_Helper.new this_table.connection . generate_random_table_name "enso-literal-"
             make_literal_table this_table.connection column_vectors column_names literal_table_name
 
     make_constant_column (this_table : Table & DB_Table) value =
@@ -537,7 +538,7 @@ type DB_Table_Implementation
                                 [c.name, c.expression]
                             SQL_IR_Statement.Select pairs t.context
 
-                        table_name_deduplicator = this_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+                        table_name_deduplicator = Table_Naming_Helper.new this_table.connection . create_unique_name_strategy
                         table_name_deduplicator.mark_used (all_tables.map .name)
                         union_alias = table_name_deduplicator.make_unique <|
                             all_tables.map .name . join "_"
@@ -794,7 +795,7 @@ _join_or_cross_join (this_table : Table & DB_Table) (right : Table & DB_Table) j
             True
     can_proceed.if_not_error <|
         left = this_table
-        table_name_deduplicator = this_table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+        table_name_deduplicator = Table_Naming_Helper.new this_table.connection . create_unique_name_strategy
         table_name_deduplicator.mark_used [left.name, right.name]
         new_table_name = table_name_deduplicator.make_unique <|
             left.name + "_" + right.name

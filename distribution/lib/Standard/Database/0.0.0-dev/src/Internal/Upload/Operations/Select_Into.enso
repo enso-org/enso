@@ -5,6 +5,7 @@ import Standard.Base.Errors.Common.Dry_Run_Operation
 import Standard.Base.Runtime.Context
 
 import project.Internal.DDL_Transaction
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 from project.Errors import SQL_Error, Table_Already_Exists
 from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors
@@ -16,7 +17,7 @@ from project.Internal.Upload.Operations.Upload_Table import create_table_upload_
 select_into_table_implementation source_table connection table_name primary_key temporary on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
     resolved_table_name = resolve_temp_table_name connection temporary table_name
-    table_naming_helper = connection.base_connection.table_naming_helper
+    table_naming_helper = Table_Naming_Helper.new connection
     table_naming_helper.verify_table_name resolved_table_name <|
         Panic.recover SQL_Error <| handle_upload_errors <|
             real_target_already_exists = connection.base_connection.table_exists resolved_table_name

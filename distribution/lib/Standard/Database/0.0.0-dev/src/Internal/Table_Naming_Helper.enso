@@ -15,14 +15,21 @@ type Table_Naming_Helper
     ## ---
        private: true
        ---
-    Value connection
+    private Value connection
+
+    ## ---
+       private
+       ---
+    new : Connection -> Table_Naming_Helper
+    new connection =
+        Table_Naming_Helper.Value connection
 
     ## ---
        private: true
        ---
     naming_properties : Naming_Properties
     naming_properties self =
-        self.connection.base_connection.entity_naming_properties.for_table_names
+        self.connection.entity_naming_properties.for_table_names
 
     ## ---
        private: true

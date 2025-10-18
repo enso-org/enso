@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
+from Standard.Base.Logging import all
 
 import project.Internal.Common.Encoding_Limited_Naming_Properties.Encoding_Limited_Naming_Properties
 import project.Internal.JDBC_Connection.JDBC_Connection
@@ -27,6 +28,7 @@ type Entity_Naming_Properties
        ---
     from_jdbc_connection : JDBC_Connection -> Encoding -> Boolean -> Entity_Naming_Properties
     from_jdbc_connection jdbc_connection encoding:Encoding=Encoding.utf_8 is_case_sensitive:Boolean=True =
+        Entity_Naming_Properties.log_message "Determining entity naming properties from JDBC connection." ..Warning
         jdbc_connection.with_metadata metadata->
             table_limit = metadata.getMaxTableNameLength
             if table_limit == 0 then

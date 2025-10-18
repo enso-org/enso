@@ -12,6 +12,7 @@ import project.DB_Table.DB_Table
 import project.Internal.DDL_Transaction
 import project.Internal.In_Transaction.In_Transaction
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 import project.Update_Action.Update_Action
 from project.Errors import Rows_Already_Present, SQL_Error, Unmatched_Rows
 from project.Internal.Upload.Helpers.Argument_Checks import all
@@ -29,7 +30,7 @@ common_update_table (source_table : Table) (target_table : Table) update_action 
         Panic.recover SQL_Error <| handle_upload_errors <|
             effective_key_columns = if key_columns.is_nothing then [] else key_columns
             check_update_arguments_structure_match source_table target_table:(Table & DB_Table) effective_key_columns update_action error_on_missing_columns on_problems <|
-                tmp_table_name = connection.base_connection.table_naming_helper.generate_random_table_name "enso-temp-source-table-"
+                tmp_table_name = Table_Naming_Helper.new connection . generate_random_table_name "enso-temp-source-table-"
                 dry_run = Context.Output.is_enabled.not
                 row_limit = if dry_run then dry_run_row_limit else Nothing
                 structure_hint = target_table.select_columns source_table.column_names reorder=True . columns . map c->

@@ -35,6 +35,7 @@ import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Fragment
 import project.SQL.SQL_Statement
@@ -153,7 +154,7 @@ type Postgres_Dialect
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         table_connection = Internals_Access.get_connection table
-        table_name_deduplicator = table_connection.base_connection.table_naming_helper.create_unique_name_strategy
+        table_name_deduplicator = Table_Naming_Helper.new table_connection . create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = table.context.as_subquery inner_table_alias [table.internal_columns]
