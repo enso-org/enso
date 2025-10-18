@@ -83,21 +83,21 @@ type SQLServer_Connection
        immediately instead of waiting for them to be automatically released.
        The connection is not usable afterwards.
     close : Nothing
-    close self = self.connection.close
+    close self = self.base_connection.close
 
     ## ---
        icon: metadata
        ---
        Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
-    databases self = self.connection.databases
+    databases self = self.base_connection.databases
 
     ## ---
        icon: metadata
        ---
        Returns the name of the current database (or catalog).
     database : Text
-    database self = self.connection.database
+    database self = self.base_connection.database
 
     ## ---
        icon: data_input
@@ -119,7 +119,7 @@ type SQLServer_Connection
        (or catalog).
     schemas : Vector Text
     schemas self =
-        self.connection.read_text_column "select name from sys.schemas" "name"
+        self.base_connection.read_text_column "select name from sys.schemas" "name"
 
     ## ---
        icon: metadata
@@ -127,7 +127,7 @@ type SQLServer_Connection
        Returns the name of the current schema.
     schema : Text
     schema self =
-        self.connection.schema
+        self.base_connection.schema
 
     ## ---
        icon: metadata
@@ -148,7 +148,7 @@ type SQLServer_Connection
        ---
        Gets a list of the table types.
     table_types : Vector Text
-    table_types self = self.connection.table_types
+    table_types self = self.base_connection.table_types
 
     ## ---
        group: Standard.Base.Metadata
@@ -181,7 +181,7 @@ type SQLServer_Connection
         parsed_database = if database == "*" then Nothing else (if database == "" then self.database else database)
         used_connection = if parsed_database.if_nothing self.database != self.database then self.set_database parsed_database else self
         parsed_schema = if schema == "*" then Nothing else (if schema == "" then self.schema else schema)
-        used_connection.connection.tables (if name_like == "" then Nothing else name_like) parsed_database parsed_schema types all_fields
+        used_connection.base_connection.tables (if name_like == "" then Nothing else name_like) parsed_database parsed_schema types all_fields
 
     ## ---
        aliases: [import, load, open, read, sql]
@@ -322,7 +322,7 @@ type SQLServer_Connection
     @limit Rows_To_Read.default_widget
     execute_query : Text | SQL_Statement -> Rows_To_Read -> Boolean -> Table
     execute_query self query (limit : Rows_To_Read = ..First_With_Warning 1000) write_operation:Boolean=True =
-        self.connection.execute_query query limit write_operation
+        self.base_connection.execute_query query limit write_operation
 
     ## ---
        advanced: true
@@ -339,7 +339,7 @@ type SQLServer_Connection
           representing the query to execute.
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
-        self.connection.execute_update query
+        self.base_connection.execute_update query
 
     ## ---
        private: true
@@ -356,31 +356,31 @@ type SQLServer_Connection
           representing the query to execute.
     execute : Text | SQL_Statement -> Integer
     execute self query =
-        self.connection.execute query
+        self.base_connection.execute query
 
     ## ---
        private: true
        ---
        Access the dialect.
-    dialect self = self.connection.dialect
+    dialect self = self.base_connection.dialect
 
     ## ---
        private: true
        ---
        Access the Type Mapping.
-    type_mapping self = self.connection.type_mapping
+    type_mapping self = self.base_connection.type_mapping
 
     ## ---
        private: true
        ---
        Access the Statement Setter.
-    statement_setter self = self.connection.statement_setter
+    statement_setter self = self.base_connection.statement_setter
 
     ## ---
        private: true
        ---
        Access the underlying JDBC connection.
-    jdbc_connection self = self.connection.jdbc_connection
+    jdbc_connection self = self.base_connection.jdbc_connection
 
     ## ---
        private: true
@@ -393,7 +393,7 @@ type SQLServer_Connection
           does not exist. Defaults to `False`.
     drop_table : Text -> Boolean -> Nothing
     drop_table self table_name if_exists=False =
-        self.connection.drop_table table_name if_exists
+        self.base_connection.drop_table table_name if_exists
 
     ## ---
        private: true
@@ -404,7 +404,7 @@ type SQLServer_Connection
         - `table_name`: the name of the table to truncate.
     truncate_table : Text -> Nothing ! Table_Not_Found
     truncate_table self table_name =
-        self.connection.truncate_table table_name
+        self.base_connection.truncate_table table_name
 
     ## ---
        private: true
@@ -444,7 +444,7 @@ type SQLServer_Connection
        Converts this value to a JSON serializable object.
     to_js_object : JS_Object
     to_js_object self =
-        JS_Object.from_pairs <| [["type", "SQLServer_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
+        JS_Object.from_pairs <| [["type", "SQLServer_Connection"], ["links", self.tables.at "Name" . to_vector]]
 
 ## ---
    private: true
