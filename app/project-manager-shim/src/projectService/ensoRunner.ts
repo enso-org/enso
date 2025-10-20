@@ -486,6 +486,43 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     // Directory doesn't exist, continue to next directory
   }
 
+  // Check built-distribution/*/enso/dist/*/bin/enso
+  const builtDistEnsoPath = path.join(workDir, 'built-distribution')
+  try {
+    const stat = fs.statSync(builtDistEnsoPath)
+    if (stat.isDirectory()) {
+      const topLevelDirs = fs.readdirSync(builtDistEnsoPath)
+      for (const topDir of topLevelDirs) {
+        const topPath = path.join(builtDistEnsoPath, topDir)
+        const topStat = fs.statSync(topPath)
+        if (topStat.isDirectory()) {
+          const ensoDistPath = path.join(topPath, 'enso', 'dist')
+          try {
+            const distStat = fs.statSync(ensoDistPath)
+            if (distStat.isDirectory()) {
+              const distDirs = fs.readdirSync(ensoDistPath)
+              for (const distDir of distDirs) {
+                for (const ensoExecutable of ensoExecutables) {
+                  const ensoPath = path.join(ensoDistPath, distDir, 'bin', ensoExecutable)
+                  try {
+                    fs.accessSync(ensoPath)
+                    return checkExecutable(ensoPath)
+                  } catch {
+                    // File doesn't exist, continue searching
+                  }
+                }
+              }
+            }
+          } catch {
+            // enso/dist directory doesn't exist, continue searching
+          }
+        }
+      }
+    }
+  } catch {
+    // Directory doesn't exist, continue to next directory
+  }
+
   // Check built-distribution/*/*/bin/enso
   const builtDistDir = path.join(workDir, 'built-distribution')
   try {
@@ -598,7 +635,7 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
   // Iterate through target releases to find one with matching asset
   for (const targetRelease of targetReleases) {
     const version = targetRelease.tag_name
-    assetName = `enso-engine-${version}-${platformString}-${archString}${extensionString}`
+    assetName = `enso-bundle-${version}-${platformString}-${archString}${extensionString}`
     asset = targetRelease.assets.find((a: any) => a.name === assetName)
 
     if (asset) {
