@@ -1,3 +1,29 @@
+const path = require('node:path')
+const fs = require('node:fs/promises')
+
+function artifactName(version) {
+  return 'enso-${os}-${arch}-' + version + '.${ext}'
+}
+
+function engineDistributionSource(version) {
+  let platform = process.platform
+  let arch = process.arch
+  if (platform === 'darwin') {
+    platform = 'macos'
+    if (arch === 'arm64') {
+      arch = 'aarch64'
+    }
+  }
+  if (platform === 'linux' && arch === 'x64') {
+    arch = 'amd64'
+  }
+  return `../../built-distribution/enso-engine-${version}-${platform}-${arch}/enso-${version}/`
+}
+
+function engineDistributionTarget(version) {
+  return 'enso/dist/' + version
+}
+
 module.exports = {
   appId: 'org.enso',
   productName: 'Enso',
@@ -5,7 +31,7 @@ module.exports = {
     version: '2025.3.0-dev',
     installer: {},
   },
-  artifactName: 'enso-${os}-${arch}-2025.3.0-dev.${ext}',
+  artifactName: artifactName('2025.3.0-dev'),
   protocols: [
     {
       name: 'Enso url',
@@ -50,9 +76,8 @@ module.exports = {
   ],
   extraResources: [
     {
-      from: '../../built-distribution/enso-engine-0.0.0-dev-${os}-${arch}/enso-0.0.0-dev/',
-      to: 'enso/dist/0.0.0-dev',
-      filter: ['!THIRD-PARTY{,/**/*}'],
+      from: engineDistributionSource('0.0.0-dev'),
+      to: engineDistributionTarget('0.0.0-dev'),
     },
     {
       from: '../../built-small-jdk/',
@@ -107,7 +132,7 @@ module.exports = {
       await fs.writeFile(executable, loaderScript)
       await fs.chmod(executable, 0o755)
     } catch (e) {
-      throw new Error('Failed to create loader for sandbox fix', { cause: e })
+      throw new Error('Failed to create loader for sandbox fix: ' + e.message)
     }
   },
 }
