@@ -635,7 +635,7 @@ val generateRustParserLib =
     val log     = state.value.log
     val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
     val libName = System.mapLibraryName("enso_parser")
-    // Destination of the dll as built by Cargo
+    // Destination of the native library as built by Cargo
     val libDest =
       (`syntax-rust-definition` / rustParserTargetDirectory).value / profile / libName
     // The library will be copied into this location. It is required in various
