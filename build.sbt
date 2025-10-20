@@ -8,11 +8,21 @@ import sbt.complete.DefaultParsers.*
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
-import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
 
 import scala.sys.process.*
 import Dependencies.*
-import JarExtractor.{CopyToOutputJar, LinuxAMD64, MacOSAMD64, MacOSArm64, PolyglotLib, WindowsAMD64}
+import JarExtractor.{
+  CopyToOutputJar,
+  LinuxAMD64,
+  MacOSAMD64,
+  MacOSArm64,
+  PolyglotLib,
+  WindowsAMD64
+}
 
 import java.nio.file.{Files, StandardCopyOption}
 
@@ -671,7 +681,11 @@ val generateRustParserLib =
           s"Expected Rust parser library at ${libDest.toPath} but it does not exist after build."
         )
       }
-      Files.copy(libDest.toPath, copyLibDest.toPath, StandardCopyOption.REPLACE_EXISTING)
+      Files.copy(
+        libDest.toPath,
+        copyLibDest.toPath,
+        StandardCopyOption.REPLACE_EXISTING
+      )
       if (!Files.exists(copyLibDest.toPath)) {
         log.error(
           s"Failed to copy Rust parser library to ${copyLibDest.toPath}."
