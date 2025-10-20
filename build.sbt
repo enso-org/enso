@@ -635,8 +635,6 @@ val generateRustParserLib =
     val log     = state.value.log
     val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
     val libName = System.mapLibraryName("enso_parser")
-    val libGlob =
-      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / profile / libName
     // Destination of the dll as built by Cargo
     val libDest =
       (`syntax-rust-definition` / rustParserTargetDirectory).value / profile / libName
@@ -644,6 +642,8 @@ val generateRustParserLib =
     // other places.
     val copyLibDest =
       (`syntax-rust-definition` / rustParserTargetDirectory).value / libName
+    val libGlob =
+      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / libName
 
     val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
     if (
