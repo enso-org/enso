@@ -29,14 +29,14 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni --target x86_64-unknown-linux-musl --out-dir target/lib/
+          cargo build --release -p enso-parser-jni --target x86_64-unknown-linux-musl --target-dir target/lib/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: parser_linux
           path: |
-            target/lib/**
+            target/lib/release/**
 
   build_mac_intel_parser:
     runs-on: macos-13
@@ -49,14 +49,14 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni --out-dir target/lib/x86_64
+          cargo build --release -p enso-parser-jni --target-dir target/lib/x86_64
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: parser_mac_intel
           path: |
-            target/lib/**
+            target/lib/release/**
 
   build_mac_arm_parser:
     runs-on: macos-14
@@ -69,14 +69,14 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni --out-dir target/lib/aarch64/
+          cargo build --release -p enso-parser-jni --target-dir target/lib/aarch64/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: parser_mac_arm
           path: |
-            target/lib/**
+            target/lib/release/**
 
   build_windows_parser:
     runs-on: windows-2022
@@ -89,14 +89,14 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni --out-dir target/lib/
+          cargo build --release -p enso-parser-jni --target-dir target/lib/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: parser_windows
           path: |
-            target/lib/**
+            target/lib/release/**
 
   build_java:
     needs:
