@@ -634,7 +634,7 @@ val generateRustParserLib =
   } else {
     val log = state.value.log
     val libGlob =
-      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
+      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / profile / "libenso_parser.so"
 
     val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
     if (
@@ -661,7 +661,7 @@ val generateRustParserLib =
         profile,
       ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
         Seq(
-          "--artifact-dir",
+          "--target-dir",
           (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
         )
       val envVars = target
