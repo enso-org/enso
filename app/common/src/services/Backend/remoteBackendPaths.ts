@@ -1,8 +1,8 @@
 /** @file Paths used by the `RemoteBackend`. */
 import {
+  AccessTokenId,
   DirectoryId,
   HttpsUrl,
-  PersonalAccessTokenId,
   type AssetId,
   type CredentialInput,
   type DatalinkId,
@@ -98,7 +98,7 @@ export const LIST_PERSONAL_ACCESS_TOKENS_PATH = 'personal-access-tokens'
 /** Relative HTTP path to the "create personal access token" endpoint of the Cloud backend API. */
 export const CREATE_PERSONAL_ACCESS_TOKEN_PATH = 'personal-access-tokens'
 /** Relative HTTP path to the "delete personal access token" endpoint of the Cloud backend API. */
-export function deletePersonalAccessTokenPath(tokenId: PersonalAccessTokenId) {
+export function deletePersonalAccessTokenPath(tokenId: AccessTokenId) {
   return `personal-access-tokens/${tokenId}`
 }
 

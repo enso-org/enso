@@ -8,6 +8,7 @@ import * as permissions from '../utilities/permissions.js'
 import * as uniqueString from '../utilities/uniqueString.js'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
+  AccessTokenId,
   DatalinkId,
   DirectoryId,
   EnsoPath,
@@ -16,7 +17,6 @@ import {
   PaginationToken,
   ParentsPath,
   Path,
-  PersonalAccessTokenId,
   ProjectId,
   SecretId,
   UpAssetId,
@@ -794,7 +794,7 @@ export interface LChColor {
 }
 
 export interface PersonalAccessToken {
-  readonly id: PersonalAccessTokenId
+  readonly id: AccessTokenId
   readonly name: string
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly lastUsedAt: dateTime.Rfc3339DateTime | null
@@ -1288,9 +1288,7 @@ export interface UpdateProjectRequestBody {
   readonly projectName: string | null
 }
 
-/**
- * Extra parameters required when opening the project in hybrid mode.
- */
+/** Extra parameters required when opening the project in hybrid mode. */
 export interface OpenHybridProjectParameters {
   /** Cloud project directory path. */
   readonly cloudProjectDirectoryPath: EnsoPath
@@ -1304,6 +1302,11 @@ export interface OpenHybridProjectParameters {
 export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
   /** MUST be present on Remote backend; NOT REQUIRED on Local backend. */
+  readonly accessToken: AccessTokenId | null
+  /**
+   * MUST be present on Remote backend; NOT REQUIRED on Local backend.
+   * Legacy field, should be removed when no longer needed by the runtime.
+   */
   readonly cognitoCredentials: CognitoCredentials | null
   /** Extra parameters required when running in hybrid mode. */
   readonly openHybridProjectParameters: OpenHybridProjectParameters | null
@@ -2075,7 +2078,7 @@ export default abstract class Backend {
     body: CreatePersonalAccessTokenRequestBody,
   ): Promise<PersonalAccessToken>
   /** Delete a personal access token for the current user. */
-  abstract deletePersonalAccessToken(tokenId: PersonalAccessTokenId): Promise<void>
+  abstract deletePersonalAccessToken(tokenId: AccessTokenId): Promise<void>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(

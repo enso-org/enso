@@ -89,6 +89,7 @@ interface PlaceholderOverrides {
   readonly syncProjectExecutionBackendError: [projectTitle: string]
   readonly getProjectLogsBackendError: [projectTitle: string]
   readonly openProjectBackendError: [projectTitle: string]
+  readonly openProjectMissingTokenBackendError: [projectTitle: string]
   readonly openProjectMissingCredentialsBackendError: [projectTitle: string]
   readonly updateProjectBackendError: [projectTitle: string]
   readonly uploadFileWithNameBackendError: [fileTitle: string]

@@ -240,7 +240,6 @@ export function useOpenProjectMutation() {
       type,
       hybrid,
       inBackground = false,
-      suppressHybridProjectOpen: _ = false,
       ensoPath,
     }: LaunchedProject & { inBackground?: boolean; suppressHybridProjectOpen?: boolean }) => {
       assert(() => !closingProjects.has(id))
@@ -255,6 +254,9 @@ export function useOpenProjectMutation() {
           id,
           {
             executeAsync: inBackground,
+            // TODO: Figure out how to set `accessToken` per project.
+            // Should there be a default `accessToken` per user?
+            accessToken: null,
             cognitoCredentials: {
               accessToken: session.accessToken,
               refreshToken: session.refreshToken,
@@ -608,7 +610,7 @@ export function useReopenProject(openProjectMutation: ReturnType<typeof useOpenP
   const { remoteBackend } = useBackends()
 
   return eventCallbacks.useEventCallback(
-    async (project: LaunchedProject & { readonly suppressHybridProjectOpen?: boolean }) => {
+    async (project: LaunchedProject & { suppressHybridProjectOpen?: boolean }) => {
       if (project.hybrid && project.suppressHybridProjectOpen !== true) {
         await remoteBackend.setHybridOpenInProgress(project.hybrid.cloudProjectId, project.title)
       }

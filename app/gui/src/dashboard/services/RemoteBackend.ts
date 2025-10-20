@@ -821,8 +821,11 @@ export default class RemoteBackend extends Backend {
     title: string,
   ): Promise<void> {
     const path = remoteBackendPaths.openProjectPath(projectId)
+    // `cognitoCredentials` is a legacy field, should be removed when no longer needed by the runtime.
     if (body.cognitoCredentials == null) {
       return this.throw(null, 'openProjectMissingCredentialsBackendError', title)
+    } else if (body.accessToken == null) {
+      return this.throw(null, 'openProjectMissingTokenBackendError', title)
     } else {
       const credentials = body.cognitoCredentials
       const exactCredentials: backend.CognitoCredentials = {
@@ -837,7 +840,6 @@ export default class RemoteBackend extends Backend {
         cognitoCredentials: exactCredentials,
       }
       const response = await this.post(path, filteredBody)
-
       if (!response.ok) {
         return this.throw(response, 'openProjectBackendError', title)
       } else {
@@ -1221,7 +1223,7 @@ export default class RemoteBackend extends Backend {
     // Temporary mock implementation
     const now = toRfc3339(new Date())
     const token = {
-      id: backend.PersonalAccessTokenId(`pat-${uniqueString()}`),
+      id: backend.AccessTokenId(`pat-${uniqueString()}`),
       name: body.name,
       createdAt: now,
       lastUsedAt: now,
@@ -1243,7 +1245,7 @@ export default class RemoteBackend extends Backend {
    * Delete a personal access token for the current user.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  async deletePersonalAccessToken(tokenId: backend.PersonalAccessTokenId) {
+  async deletePersonalAccessToken(tokenId: backend.AccessTokenId) {
     // Temporary mock implementation
     const index = this.tokens.findIndex((token) => token.id === tokenId)
     if (index !== -1) {
