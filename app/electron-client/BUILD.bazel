@@ -67,6 +67,7 @@ electron_builder_bin.electron_builder(
     name = "electron_builder_run",
     srcs = npm_link_targets() + [
         "package.json",
+        ":electron-builder-config.cjs",
         "//:sbt_build_engine_distribution",
         "//:sbt_build_small_jdk",
     ] + [
@@ -75,6 +76,7 @@ electron_builder_bin.electron_builder(
     ],
     args = [
         "build",
+        "--config electron-builder-config.cjs",
     ],
     chdir = package_name(),
     env = {
