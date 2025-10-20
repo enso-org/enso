@@ -878,7 +878,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Native Tests, linux, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -964,7 +964,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Native Tests, macos, aarch64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1048,7 +1048,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Native Tests, macos, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1133,7 +1133,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Native Tests, windows, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1218,7 +1218,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library JVM Tests, linux, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1304,7 +1304,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library JVM Tests, macos, aarch64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1388,7 +1388,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library JVM Tests, macos, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1473,7 +1473,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library JVM Tests, windows, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1558,7 +1558,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Microsoft Tests, linux, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1646,7 +1646,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Microsoft Tests, macos, aarch64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1730,7 +1730,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Microsoft Tests, macos, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1815,7 +1815,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Microsoft Tests, windows, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1901,7 +1901,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Native Tests, linux, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -1986,7 +1986,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library JVM Tests, linux, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
@@ -2071,7 +2071,7 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Microsoft Tests, linux, amd64)
-          path: "\ntest/**/*.hprof\nengine/**/*.hprof\n    "
+          path: "\n    test/**/*.hprof\n    engine/**/*.hprof\n    "
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
