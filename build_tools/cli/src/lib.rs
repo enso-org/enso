@@ -67,7 +67,6 @@ use ide_ci::ok_ready_boxed;
 use ide_ci::programs::cargo;
 use ide_ci::programs::git;
 use ide_ci::programs::git::clean;
-use ide_ci::programs::rustc;
 use ide_ci::programs::Cargo;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
@@ -269,28 +268,26 @@ impl Processor {
 
     pub fn handle_wasm(&self, wasm: arg::wasm::Target) -> BoxFuture<'static, Result> {
         match wasm.command {
-            arg::wasm::Command::Test { no_wasm, no_native, browser } => {
-                let wasm_browsers =
-                    if no_wasm { default() } else { browser.into_iter().map_into().collect_vec() };
-                let root = self.repo_root.to_path_buf();
-                async move { project::wasm::test(root, &wasm_browsers, !no_native).await }.boxed()
-            }
-            arg::wasm::Command::Lint => {
+            arg::wasm::Command::Test => {
                 let repo_root = self.repo_root.clone();
                 async move {
                     Cargo
                         .cmd()?
                         .current_dir(&repo_root)
-                        .arg(cargo::clippy::COMMAND)
+                        .apply(&cargo::Command::Test)
                         .apply(&cargo::Options::Workspace)
-                        .apply(&cargo::Options::Package("enso-integration-test".into()))
-                        .apply(&cargo::Options::AllTargets)
-                        .apply(&cargo::Color::Always)
+                        // Color needs to be passed to tests themselves separately.
+                        // See: https://github.com/rust-lang/cargo/issues/1983
                         .arg("--")
-                        .apply(&rustc::Option::Deny(rustc::Lint::Warnings))
+                        .apply(&cargo::Color::Always)
                         .run_ok()
-                        .await?;
-
+                        .await
+                }
+                .boxed()
+            }
+            arg::wasm::Command::Lint => {
+                let repo_root = self.repo_root.clone();
+                async move {
                     Cargo
                         .cmd()?
                         .current_dir(&repo_root)

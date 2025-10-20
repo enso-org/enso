@@ -116,7 +116,7 @@ impl RunContext {
         ide_ci::programs::Git.require_present().await?;
         ide_ci::programs::Cargo.require_present().await?;
         ide_ci::programs::Node.require_present().await?;
-        ide_ci::programs::Npm.require_present().await?;
+        ide_ci::programs::Pnpm.require_present().await?;
 
         let prepare_simple_library_server = {
             if self.config.test_jvm {
@@ -127,7 +127,7 @@ impl RunContext {
                     .clean()
                     .run_ok()
                     .await?;
-                ide_ci::programs::Npm
+                ide_ci::programs::Pnpm
                     .cmd()?
                     .current_dir(simple_server_path)
                     .install()

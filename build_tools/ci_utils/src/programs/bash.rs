@@ -4,18 +4,6 @@ use crate::env::Action;
 use crate::env::Modification;
 
 #[derive(Clone, Copy, Debug)]
-pub struct Sh;
-
-impl Program for Sh {
-    type Command = Command;
-    type Version = Version;
-
-    fn executable_name(&self) -> &'static str {
-        "sh"
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
 pub struct Bash;
 
 impl Program for Bash {

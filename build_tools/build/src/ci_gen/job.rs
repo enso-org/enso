@@ -17,7 +17,6 @@ use core::panic;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input_expression;
-use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::step::Argument;
 use ide_ci::actions::workflow::definition::Access;
@@ -752,17 +751,6 @@ impl JobArchetype for GuiBuild {
                 steps
             })
             .build_job("GUI build", target)
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct WasmTest;
-
-impl JobArchetype for WasmTest {
-    fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("wasm test --no-native")
-            .customize(|step| vec![setup_wasm_pack_step(), step])
-            .build_job("WASM tests", target)
     }
 }
 

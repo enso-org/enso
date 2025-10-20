@@ -132,19 +132,6 @@ pub fn setup_corepack() -> Step {
     }
 }
 
-pub fn setup_wasm_pack_step() -> Step {
-    Step {
-        name: Some("Installing wasm-pack".into()),
-        uses: Some("jetli/wasm-pack-action@v0.4.0".into()),
-        with: Some(step::Argument::Other(BTreeMap::from_iter([(
-            "version".into(),
-            "v0.12.1".into(),
-        )]))),
-        r#if: Some(is_github_hosted()),
-        ..default()
-    }
-}
-
 /// Step that executes a given [GitHub Script](https://github.com/actions/github-script).
 pub fn github_script_step(name: impl Into<String>, script: impl Into<String>) -> Step {
     Step {

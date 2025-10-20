@@ -25,7 +25,6 @@ pub mod backend;
 pub mod gui;
 pub mod ide;
 pub mod runtime;
-pub mod wasm;
 
 pub use backend::Backend;
 pub use runtime::Runtime;
