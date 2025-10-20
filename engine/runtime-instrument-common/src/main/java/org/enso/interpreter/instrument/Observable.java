@@ -119,6 +119,6 @@ public interface Observable {
    *
    * @param id unique identifier to check
    * @return true if dependency is present, false otherwise
-  */
+   */
   boolean hasDependency(RuntimeID id);
 }

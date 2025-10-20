@@ -202,7 +202,10 @@ class UpsertVisualizationJob(
             case _: ClosureRootNode =>
               val stackJ = new java.util.Stack[RuntimeCache]
               stack.map(_.cache).reverse.foreach(stackJ.push)
-              ObservableInvalidation.invalidateDownstreamDependencies(new ExternalUUID(expressionId), stackJ)
+              ObservableInvalidation.invalidateDownstreamDependencies(
+                new ExternalUUID(expressionId),
+                stackJ
+              )
             case _ =>
           }
         case _ =>

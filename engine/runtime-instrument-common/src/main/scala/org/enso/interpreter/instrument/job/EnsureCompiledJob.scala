@@ -34,7 +34,7 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
-import org.enso.text.editing.model.IdMap
+import org.enso.text.editing.model.{IdMap, Span}
 
 import java.io.File
 import java.util
@@ -352,7 +352,21 @@ class EnsureCompiledJob(
               module.getLiteralSource,
               module.getIr
             )
-            val changeset = changesetBuilder.build(pendingEdits, idMap)
+
+            // retrieve existing idmap
+            val idMapDiff = idMap.map { newIdMap =>
+              val existingMap      = fromCompilerIdMap(module.getIdMap).values.toMap
+              val newIdMapMap      = newIdMap.values.toMap
+              val newIdMapReversed = newIdMapMap.map(v => (v._2, v._1))
+
+              val sameUUIDs =
+                newIdMapReversed.keySet.intersect(existingMap.values.toSet)
+              // New entries
+              val newEntries = newIdMapReversed.removedAll(sameUUIDs)
+              IdMap(newEntries.map(kv => (kv._2, kv._1)).toVector)
+            }
+            val changeset =
+              changesetBuilder.build(pendingEdits, idMap, idMapDiff)
             ctx.executionService.modifyModuleSources(
               module,
               edits,
@@ -693,5 +707,22 @@ object EnsureCompiledJob {
           map
       }
     new data.IdMap(values)
+  }
+
+  /** Convert compiler's identifiers map to a runtime representation.
+    *
+    * @param idMap the compiler's identifiers map
+    * @return the identifiers map
+    */
+  private def fromCompilerIdMap(idMap: data.IdMap): IdMap = {
+    if (idMap == null) {
+      IdMap(Vector.empty)
+    } else {
+      val buf = scala.collection.mutable.ArrayBuffer.empty[(Span, UUID)]
+      idMap
+        .values()
+        .forEach((l, uuid) => buf.addOne((Span(l.start(), l.end()), uuid)))
+      IdMap(buf.toArray.toVector)
+    }
   }
 }

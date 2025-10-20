@@ -44,7 +44,6 @@ import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
-import org.enso.interpreter.runtime.RuntimeAnalysis;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;

@@ -55,11 +55,12 @@ public class ObservableInvalidation {
       Set<Observable> acc,
       List<RuntimeCache> caches,
       RuntimeID currentCallID) {
-    if (toInvalidate.isEmpty()) {
-      return acc;
-    } else {
+    var newAcc = new HashSet<Observable>();
+    newAcc.addAll(acc);
+    while (!toInvalidate.isEmpty()) {
       var head = toInvalidate.remove(0);
-      var toProcessInCurrentCache = head.invalidate().filter(o -> !acc.contains(o));
+      newAcc.add(head);
+      var toProcessInCurrentCache = head.invalidate().filter(o -> !newAcc.contains(o));
       Set<Observable> unrolledDependencies = Set.of();
       if (!caches.isEmpty() && head.id() == currentCallID) {
         var observableOneLevelUp = caches.get(0).get(head.id());
@@ -73,16 +74,14 @@ public class ObservableInvalidation {
               invalidateTransitiveDependencies(toInvalidate1, Set.of(), caches1, nextCallID);
         }
       }
-      var newAcc = new HashSet<Observable>();
-      newAcc.add(head);
-      newAcc.addAll(acc);
       newAcc.addAll(unrolledDependencies);
       toInvalidate.addAll(toProcessInCurrentCache.toList());
-      return invalidateTransitiveDependencies(toInvalidate, newAcc, caches, currentCallID);
     }
+    return newAcc;
   }
 
-  public static void invalidateDownstreamDependencies(RuntimeID initial, List<RuntimeCache> caches) {
+  public static void invalidateDownstreamDependencies(
+      RuntimeID initial, List<RuntimeCache> caches) {
     if (!caches.isEmpty()) {
       var cache = caches.remove(0);
       var obs = cache.get(initial);

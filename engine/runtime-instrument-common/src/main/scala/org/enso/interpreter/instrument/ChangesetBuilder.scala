@@ -53,10 +53,15 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     *
     * @param edits the edits applied to the source
     * @param idMap the idMap of the source
+    * @param diffIdMap the subset of `idMap` containing only new mappings, compared to previous compilation
     * @return the computed changeset
     */
   @throws[CompilerError]
-  def build(edits: Seq[PendingEdit], idMap: Option[IdMap]): Changeset[A] = {
+  def build(
+    edits: Seq[PendingEdit],
+    idMap: Option[IdMap],
+    diffIdMap: Option[IdMap]
+  ): Changeset[A] = {
 
     val simpleEditOptionFromSetValue: Option[PendingEdit.SetExpressionValue] =
       edits.collect { case edit: PendingEdit.SetExpressionValue =>
@@ -123,7 +128,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       source,
       ir,
       simpleUpdateOption,
-      compute(edits.map(_.edit), idMap),
+      compute(edits.map(_.edit), diffIdMap),
       idMap
     )
   }
@@ -148,24 +153,24 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   ): Set[ChangesetBuilder.NodeId] = {
     val allEdits = edits.toSet
 
-    @scala.annotation.tailrec
     def analyzeIdMapChanges(
       tree: ChangesetBuilder.Tree,
       values: Seq[(org.enso.compiler.core.ir.Location, UUID)],
       ids: mutable.Set[ChangesetBuilder.NodeId]
     ): mutable.Set[ChangesetBuilder.NodeId] = {
-      if (values.isEmpty) {
-        ids
-      } else {
-        val head = values.head
+      var toProcess = values
+      while (toProcess.nonEmpty) {
+        val head = toProcess.head
+        toProcess = toProcess.tail
         val invalidated = ChangesetBuilder.invalidated(
           tree,
           head._1,
           false,
           false
         )
-        analyzeIdMapChanges(tree, values.tail, ids ++= invalidated.map(_.id))
+        ids ++= invalidated.map(_.id)
       }
+      ids
     }
 
     @scala.annotation.tailrec
@@ -203,7 +208,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         go(newTree, newSource, edits, ids ++= invalidatedSet.map(_.id))
       }
     }
-    val tree = ChangesetBuilder.buildTreeOfExternalIDs(ir)
+    val tree1 = ChangesetBuilder.buildTreeOfExternalIDs(ir)
     val invalidatedByIdMap = idMapOpt
       .map(
         _.values.map(v =>
@@ -211,9 +216,10 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         )
       )
       .getOrElse(Seq.empty)
-    val initial =
-      analyzeIdMapChanges(tree, invalidatedByIdMap, mutable.HashSet())
-    go(tree, source, mutable.Queue.from(edits), initial)
+    val invalidatedByIdMapChanges =
+      analyzeIdMapChanges(tree1, invalidatedByIdMap, mutable.HashSet())
+    val tree2 = ChangesetBuilder.buildTreeOfExternalIDs(ir)
+    go(tree2, source, mutable.Queue.from(edits), invalidatedByIdMapChanges)
   }
 
   /** Traverses the IR and returns a list of the most specific (the innermost)
@@ -544,7 +550,9 @@ object ChangesetBuilder {
         case defArg: DefinitionArgument =>
           // Ensures that changes to arguments' default values are being invalidated
           if (!hasImportantId) {
-            defArg.defaultValue().foreach(e => Node.fromIr(e, false).foreach(acc.add))
+            defArg
+              .defaultValue()
+              .foreach(e => Node.fromIr(e, false).foreach(acc.add))
           }
         case _ =>
           currentIr.children.foreach(depthFirstSearch(_, acc, isBinding))
