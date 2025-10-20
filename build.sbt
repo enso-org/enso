@@ -636,9 +636,6 @@ val generateRustParserLib =
     val profile    = if (BuildInfo.isReleaseMode) "release" else "dev"
     val profileDir = if (BuildInfo.isReleaseMode) "release" else "debug"
     val libName    = System.mapLibraryName("enso_parser")
-    // Destination of the native library as built by Cargo
-    val libDest =
-      (`syntax-rust-definition` / rustParserTargetDirectory).value / profileDir / libName
     // The library will be copied into this location. It is required in various
     // other places.
     val copyLibDest =
@@ -658,6 +655,13 @@ val generateRustParserLib =
           Some("x86_64-unknown-linux-musl")
         case _ =>
           None
+      }
+      // Destination of the native library as built by Cargo
+      val libDest = target match {
+        case Some(someTarget) =>
+          (`syntax-rust-definition` / rustParserTargetDirectory).value / someTarget / profileDir / libName
+        case None =>
+          (`syntax-rust-definition` / rustParserTargetDirectory).value / profileDir / libName
       }
       target.foreach { t =>
         Cargo.rustUp(t, log)
