@@ -676,7 +676,7 @@ val generateRustParserLib =
         .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
         .getOrElse(Seq())
       Cargo.run(arguments, log, envVars)
-      if (!Files.exists(libDest.toPath)) {
+      if (!libDest.exists()) {
         log.error(
           s"Expected Rust parser library at ${libDest.toPath} but it does not exist after build."
         )
