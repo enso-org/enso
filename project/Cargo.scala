@@ -38,7 +38,7 @@ object Cargo {
     val process = Process(cmd, None, extraEnv: _*)
     val sb      = new StringBuilder
     val processLogger = ProcessLogger(str => {
-      log.debug(str)
+      log.info(str)
       sb.append(str)
         .append(System.lineSeparator())
     })
