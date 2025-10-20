@@ -633,6 +633,7 @@ val generateRustParserLib =
     )
   } else {
     val log = state.value.log
+    val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
     val libGlob =
       (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / profile / "libenso_parser.so"
 
@@ -652,7 +653,6 @@ val generateRustParserLib =
       target.foreach { t =>
         Cargo.rustUp(t, log)
       }
-      val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
       val arguments = Seq(
         "build",
         "-p",
