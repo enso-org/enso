@@ -1,8 +1,8 @@
+import type { MethodCallInfo } from '$/providers/openedProjects/graph/graphDatabase'
+import { type ExpressionInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import { createContextStore } from '@/providers'
-import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
-import type { ExpressionInfo } from '@/stores/project/computedValueRegistry'
-import type { Ast } from '@/util/ast'
-import type { ProjectPath } from '@/util/projectPath'
+import { Ast } from '@/util/ast'
+import { ProjectPath } from '@/util/projectPath'
 import { identity } from '@vueuse/core'
 
 interface FunctionInfo {

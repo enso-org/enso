@@ -489,7 +489,6 @@ function useOpenProject() {
       predicate: (mutation) => mutation.options.scope?.id === project.id,
     })
     const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
-
     if (!isOpeningTheSameProject) {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(project.id)
       client.setQueryData(queryKey, { state: { type: backendModule.ProjectState.openInProgress } })
@@ -692,7 +691,6 @@ export function useCloseProject() {
         .forEach((mutation) => {
           mutation.setOptions({ ...mutation.options, scope: { id: project.id } })
         })
-
       removeLaunchedProject(project.id)
 
       await promise

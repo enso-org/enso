@@ -1,6 +1,6 @@
+import { type Node } from '$/providers/openedProjects/graph'
 import { toggledAction } from '@/providers/action'
-import type { Node } from '@/stores/graph'
-import type { ToValue } from '@/util/reactivity'
+import { type ToValue } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, toValue } from 'vue'
 

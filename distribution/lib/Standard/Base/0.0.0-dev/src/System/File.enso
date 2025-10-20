@@ -20,7 +20,6 @@ import project.Internal.Path_Helpers
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
@@ -33,6 +32,7 @@ import project.System.File.Local_File_Write_Strategy
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 import project.Warning.Warning
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Error import all
 from project.Metadata.Choice import Option

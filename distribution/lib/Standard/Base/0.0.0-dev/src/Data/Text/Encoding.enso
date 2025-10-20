@@ -6,12 +6,12 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Json import JS_Object
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
+from project.Nothing import all
 
 polyglot java import java.nio.charset.Charset
 polyglot java import java.nio.charset.UnsupportedCharsetException

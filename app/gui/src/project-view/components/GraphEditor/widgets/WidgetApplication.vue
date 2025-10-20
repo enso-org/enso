@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { entryMethodPointer } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { WidgetInput, defineWidget, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { CallInfo } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
-import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
 import { computed } from 'vue'
@@ -15,7 +15,7 @@ const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()
 
 const application = computed(() => props.input[ArgumentApplicationKey])
-const graph = useGraphStore()
+const { module } = useCurrentProject()
 
 const targetMaybePort = computed(() => {
   const target = application.value.target
@@ -25,7 +25,7 @@ const targetMaybePort = computed(() => {
     if (!application.value.calledFunction) return input
     const ptr = entryMethodPointer(application.value.calledFunction)
     if (!ptr) return input
-    const definition = graph.getMethodAst(ptr)
+    const definition = module.value.getMethodAst(ptr)
     if (!definition.ok) return input
     return input
   } else {

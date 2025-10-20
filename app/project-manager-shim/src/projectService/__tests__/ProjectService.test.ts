@@ -25,7 +25,7 @@ describe('ProjectService', () => {
     if (ensoPath) {
       // Use real Enso runner if available
       const runner = new EnsoRunner(ensoPath)
-      projectService = new ProjectService(runner)
+      projectService = new ProjectService(runner, [])
     } else {
       // Fail the test if executable is not available
       throw new Error('Enso executable not found. Cannot run tests without Enso runtime.')

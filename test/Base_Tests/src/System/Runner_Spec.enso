@@ -39,7 +39,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
 
             proj_dir.exists . should_be_true
             proj_dir.is_directory . should_be_true
-            out = enso_run cwd=tmp_root.path args=["--run", if relative then "NeedsJvm/Proj" else proj_dir.to_text ]
+            out = enso_run cwd=tmp_root.path args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--run", if relative then "NeedsJvm/Proj" else proj_dir.to_text ]
             clue = "Output from subprocess: " + out.to_text
             Test.with_clue clue <|
                 clue . should_contain expected_version
@@ -68,7 +68,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
             proj_dir.is_directory . should_be_true
             # The spawned subprocess will try to run the newly created project
             # via a relative path
-            out = enso_run cwd=tmp_root.path args=["--vm.D", "org.enso.runner.Main.Logger.level=trace", "--run", "Dir1/Dir2/Proj"]
+            out = enso_run cwd=tmp_root.path args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--vm.D=org.enso.runner.Main.Logger.level=trace", "--run", "Dir1/Dir2/Proj"]
             clue = "Output from subprocess: " + out.to_text
             Test.with_clue clue <|
                 clue . should_contain "org.enso.runner.Main"

@@ -1,8 +1,11 @@
+import {
+  WidgetEditHandler,
+  type WidgetEditHooks,
+} from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { NEW_COLUMN_ID } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
-import { WidgetEditHandler, type WidgetEditHooks } from '@/providers/widgetRegistry/editHandler'
-import type { ToValue } from '@/util/reactivity'
-import type { CellPosition, StartEditingCellParams } from 'ag-grid-enterprise'
-import { computed, ref, toValue, watch, type ShallowRef } from 'vue'
+import { type ToValue } from '@/util/reactivity'
+import { type CellPosition, type StartEditingCellParams } from 'ag-grid-enterprise'
+import { computed, ref, type ShallowRef, toValue, watch } from 'vue'
 
 export interface EditedCell {
   rowIndex: number | 'header'

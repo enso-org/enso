@@ -1,7 +1,5 @@
 /** @file Test copying, moving, cutting and pasting. */
-import { expect, test } from 'playwright/test'
-
-import { mockAllAndLogin } from './actions'
+import { expect, test } from 'integration-test/base'
 
 test.skip(
   'export from remote to local (local+remote)',
@@ -11,8 +9,9 @@ test.skip(
       description: 'Blocked on implementation of mocks for `?presigned=true`',
     },
   },
-  ({ page }) =>
-    mockAllAndLogin({ page })
+  async ({ drivePage }) => {
+    await drivePage.goToCategory
+      .cloud()
       .newEmptyProject()
       .waitForEditorToLoad()
       .goToPage.drive()
@@ -25,7 +24,8 @@ test.skip(
       .goToCategory.local()
       .driveTable.withRows(async (rows) => {
         await expect(rows).toHaveCount(1)
-      }),
+      })
+  },
 )
 
 test.skip(
@@ -36,8 +36,9 @@ test.skip(
       description: 'Blocked on implementation of mocks for `?presigned=true`',
     },
   },
-  ({ page }) =>
-    mockAllAndLogin({ page })
+  async ({ drivePage }) => {
+    await drivePage.goToCategory
+      .cloud()
       .newEmptyProject()
       .waitForEditorToLoad()
       .goToPage.drive()
@@ -50,17 +51,19 @@ test.skip(
       .goToCategory.local()
       .driveTable.withRows(async (rows) => {
         await expect(rows).toHaveCount(1)
-      }),
+      })
+  },
 )
 
-test('export from local to remote (local+remote)', ({ page }) =>
-  mockAllAndLogin({ page })
+test('export from local to remote (local+remote)', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     .goToCategory.local()
     .newEmptyProject()
     .waitForEditorToLoad()
     .goToPage.drive()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
+      await expect(rows).toHaveCount(2)
     })
     .driveTable.closeProject(0)
     .driveTable.rightClickRow(0)
@@ -68,16 +71,18 @@ test('export from local to remote (local+remote)', ({ page }) =>
     .goToCategory.cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
-    }))
+    })
+})
 
-test('export from local to remote (drag) (local+remote)', ({ page }) =>
-  mockAllAndLogin({ page })
+test('export from local to remote (drag) (local+remote)', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     .goToCategory.local()
     .newEmptyProject()
     .waitForEditorToLoad()
     .goToPage.drive()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveCount(1)
+      await expect(rows).toHaveCount(2)
     })
     .driveTable.closeProject(0)
     .driveTable.clickRow(0)
@@ -85,4 +90,5 @@ test('export from local to remote (drag) (local+remote)', ({ page }) =>
     .goToCategory.cloud()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
-    }))
+    })
+})

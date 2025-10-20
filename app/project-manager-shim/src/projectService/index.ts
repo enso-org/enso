@@ -84,17 +84,18 @@ export class ProjectService {
   /** Creates a new ProjectService with the specified runner. */
   constructor(
     private readonly runner: Runner,
+    private readonly extraArgs: Array<string>,
     private readonly logger: Console = console,
   ) {}
 
   /** Creates a default ProjectService using the Enso executable found in the environment. */
-  static default(): ProjectService {
-    const ensoPath = findEnsoExecutable()
+  static default(workDir: string = '.', extraArgs: Array<string> = []): ProjectService {
+    const ensoPath = findEnsoExecutable(workDir)
     if (!ensoPath) {
       throw new Error('Enso executable not found')
     }
     const runner = new EnsoRunner(ensoPath)
-    return new ProjectService(runner)
+    return new ProjectService(runner, extraArgs)
   }
 
   /**
@@ -180,6 +181,7 @@ export class ProjectService {
     const sockets = await this.runner.openProject(
       project.path,
       projectId,
+      this.extraArgs.length > 0 ? this.extraArgs : undefined,
       extraEnv.length > 0 ? extraEnv : undefined,
     )
 
@@ -345,5 +347,10 @@ export class ProjectService {
 
   private getNameForDuplicatedProject(projectName: string): string {
     return `${projectName} (copy)`
+  }
+
+  /** Gets the version of the Enso executable. */
+  async version(): Promise<string> {
+    return this.runner.version()
   }
 }

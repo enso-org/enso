@@ -13,7 +13,6 @@ import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
-import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 import * as projectManagement from 'project-manager-shim'
 import {
   handleFilesystemCommand,
@@ -67,7 +66,6 @@ import { createReadStream, createWriteStream, statSync } from 'node:fs'
 import { access, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
-import { pathToFileURL } from 'node:url'
 import { createGzip } from 'node:zlib'
 import { ProjectService } from 'project-manager-shim/projectService'
 
@@ -85,7 +83,6 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
-const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 // ==================
 // === fileExists ===
@@ -145,32 +142,21 @@ export function extractTypeAndPath<Id extends AssetId>(id: Id): AssetTypeAndId {
 // === Config ===
 // ==============
 
-/** External functions for a {@link Server}. */
-export interface ExternalFunctions {
-  readonly runProjectManagerCommand: (
-    cliArguments: string[],
-    body?: NodeJS.ReadableStream,
-  ) => NodeJS.ReadableStream
-}
-
 /** Constructor parameter for the server configuration. */
 interface ConfigConfig {
   readonly dir: string
   readonly port: number
-  readonly externalFunctions: ExternalFunctions
 }
 
 /** Server configuration. */
 export class Config {
   dir: string
   port: number
-  externalFunctions: ExternalFunctions
 
   /** Create a server configuration. */
   constructor(cfg: ConfigConfig) {
     this.dir = path.resolve(cfg.dir)
     this.port = cfg.port
-    this.externalFunctions = cfg.externalFunctions
   }
 }
 
@@ -199,26 +185,22 @@ async function findPort(port: number): Promise<number> {
 export class Server {
   private projectsRootDirectory: string
   private devServer?: vite.ViteDevServer
-  private projectService?: ProjectService
+  private projectService: ProjectService
 
   /** Create a simple HTTP server. */
-  constructor(public config: Config) {
+  constructor(
+    public config: Config,
+    projectService: ProjectService,
+  ) {
     this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
-  }
-
-  /** Get the project service. */
-  getProjectService(): ProjectService {
-    if (!this.projectService) {
-      this.projectService = ProjectService.default()
-    }
-    return this.projectService
+    this.projectService = projectService
   }
 
   /** Server constructor. */
-  static async create(config: Config): Promise<Server> {
+  static async create(config: Config, projectService: ProjectService): Promise<Server> {
     const localConfig = Object.assign({}, config)
     localConfig.port = await findPort(localConfig.port)
-    const server = new Server(localConfig)
+    const server = new Server(localConfig, projectService)
     await server.run()
     return server
   }
@@ -249,47 +231,11 @@ export class Server {
           },
           handler: this.process.bind(this),
         },
-        (err, { https: httpsServer, http: httpServer }) => {
+        (err, _) => {
           void (async () => {
             if (err) {
               console.error(`Error creating server:`, err.http)
               reject(err)
-            }
-            const server = httpsServer ?? httpServer
-            if (!IS_ELECTRON_DEV_MODE) {
-              if (server) {
-                await ydocServer.createGatewayServer(server)
-              } else {
-                console.warn('YDocs server is not run, new GUI may not work properly!')
-              }
-            }
-            console.log(`Server started on port ${this.config.port}.`)
-            console.log(`Serving files from '${path.resolve(process.cwd(), this.config.dir)}'.`)
-            if (IS_ELECTRON_DEV_MODE) {
-              const vite = (await import(
-                pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
-              )) as typeof import('vite')
-              this.devServer = await vite.createServer({
-                server: {
-                  middlewareMode: true,
-                  hmr: server ? { server } : {},
-                },
-                configFile: process.env.GUI_CONFIG_PATH ?? false,
-                mode: process.env.MODE ?? 'staging',
-              })
-
-              const docServer = http.createServer()
-              docServer.on('request', (request, response) => {
-                if (request.method === 'GET' && request.url === '/_health') {
-                  response.writeHead(200, { 'Content-Type': 'text/plain; charset=UTF-8' }).end('OK')
-                }
-              })
-
-              await ydocServer.createGatewayServer(docServer)
-
-              docServer.listen(5976, 'localhost', () => {
-                console.log(`Ydoc server listening on localhost:5976`)
-              })
             }
             resolve()
           })()
@@ -307,34 +253,13 @@ export class Server {
     const requestUrl = request.url
     if (requestUrl == null) {
       console.error('Request URL is null.')
-    } else if (requestUrl.startsWith('/api/project-manager/')) {
-      const actualUrl = new URL(
-        requestUrl.replace(/^\/api\/project-manager/, GLOBAL_CONFIG.projectManagerHttpEndpoint),
-      )
-      request.pipe(
-        http.request(
-          actualUrl,
-          { headers: request.headers, method: request.method },
-          (actualResponse) => {
-            response.writeHead(
-              // This is SAFE. The documentation says:
-              // Only valid for response obtained from ClientRequest.
-              actualResponse.statusCode!,
-              actualResponse.statusMessage,
-              actualResponse.headers,
-            )
-            actualResponse.pipe(response, { end: true })
-          },
-        ),
-        { end: true },
-      )
     } else if (isProjectServiceRequest(requestUrl)) {
       const headers = Object.fromEntries(COOP_COEP_CORP_HEADERS)
       handleProjectServiceRequest(
         request,
         response,
         requestUrl,
-        async () => this.getProjectService(),
+        async () => this.projectService,
         headers,
       )
     } else if (request.url?.startsWith('/api/')) {
@@ -1099,48 +1024,23 @@ export class Server {
         .writeHead(HTTP_STATUS_BAD_REQUEST, COOP_COEP_CORP_HEADERS)
         .end('Command arguments must be an array of strings.')
     } else {
-      // Check if it's a filesystem command
-      if (cliArguments[0]?.startsWith('--filesystem-')) {
-        const result = await handleFilesystemCommand(cliArguments, request)
+      const result = await handleFilesystemCommand(cliArguments, request)
 
-        if (typeof result === 'string') {
-          const resultData = Buffer.from(result)
-          response
-            .writeHead(HTTP_STATUS_OK, {
-              'Content-Length': String(resultData.byteLength),
-              'Content-Type': 'application/json',
-              ...COOP_COEP_CORP_HEADERS,
-            })
-            .end(resultData)
-        } else {
-          const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
-            'Content-Type': 'application/octet-stream',
+      if (typeof result === 'string') {
+        const resultData = Buffer.from(result)
+        response
+          .writeHead(HTTP_STATUS_OK, {
+            'Content-Length': String(resultData.byteLength),
+            'Content-Type': 'application/json',
             ...COOP_COEP_CORP_HEADERS,
           })
-          result.pipe(responseWithHead, { end: true })
-        }
+          .end(resultData)
       } else {
-        // For non-filesystem commands, fallback to the project manager
-        const commandOutput = (() => {
-          try {
-            return this.config.externalFunctions.runProjectManagerCommand(cliArguments, request)
-          } catch {
-            const readableStream = new stream.Readable()
-            readableStream.push(
-              JSON.stringify({
-                error: `Error running Project Manager command '${JSON.stringify(cliArguments)}'.`,
-              }),
-            )
-            readableStream.push(null)
-            return readableStream
-          }
-        })()
-
-        response.writeHead(HTTP_STATUS_OK, [
-          ['Content-Type', 'application/json'],
+        const responseWithHead = response.writeHead(HTTP_STATUS_OK, {
+          'Content-Type': 'application/octet-stream',
           ...COOP_COEP_CORP_HEADERS,
-        ])
-        commandOutput.pipe(response, { end: true })
+        })
+        result.pipe(responseWithHead, { end: true })
       }
     }
   }

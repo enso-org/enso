@@ -1,11 +1,11 @@
+import { type ModuleStore } from '$/providers/openedProjects/module'
+import { requiredImportsByProjectPath } from '$/providers/openedProjects/module/imports'
+import type { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import type { UpdateHandler, WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import { commonContextMenuActions, type MenuItem } from '@/components/shared/AgGridTableView.vue'
-import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
-import { requiredImportsByProjectPath, type RequiredImport } from '@/stores/graph/imports'
-import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
-import { findIndexOpt } from '@/util/data/array'
+import { arrayEquals, findIndexOpt } from '@/util/data/array'
 import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
-import { arrayEquals } from '@/util/equals'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import { cachedGetter, type ToValue } from '@/util/reactivity'
@@ -134,17 +134,14 @@ export function tableInputCallMayBeHandled(call: Ast.Expression) {
  * A composable responsible for interpreting `Table.input` expressions, creating AGGrid column
  * definitions allowing also editing AST through AGGrid editing.
  * @param input the widget's input
- * @param graph the graph store
+ * @param module the module store
  * @param onUpdate callback called when AGGrid was edited by user, resulting in AST change.
  */
 export function useTableInputArgument(
   input: ToValue<WidgetInput & { value: Ast.Expression }>,
-  graph: {
-    startEdit(): Ast.MutableModule
-    addMissingImports(edit: Ast.MutableModule, newImports: RequiredImport[]): void
-  },
-  suggestions: SuggestionDb,
-  onUpdate: (update: WidgetUpdate) => void,
+  module: ToValue<Pick<ModuleStore, 'edit' | 'addMissingImports'>>,
+  suggestions: ToValue<SuggestionDb>,
+  onUpdate: UpdateHandler,
 ) {
   const errorMessagePreamble = 'Table Editor Widget should not have been matched'
   const columnsAst = computed(() => retrieveColumnsAst(toValue(input).value))
@@ -159,7 +156,7 @@ export function useTableInputArgument(
   // Why cachedGetter - see comment on columnDefs.
   const columnHeaders = cachedGetter(
     () => Array.from(columns.value, (col) => ({ id: col.id, name: col.name.rawTextContent })),
-    (a, b) => arrayEquals(a, b, (a, b) => a.id === b.id && a.name === b.name),
+    { equalFn: (a, b) => arrayEquals(a, b, (a, b) => a.id === b.id && a.name === b.name) },
   )
 
   // Why cachedGetter - see comment on rowData.
@@ -272,21 +269,29 @@ export function useTableInputArgument(
   const removeRowMenuItem = {
     name: 'Remove Row',
     action: ({ node }: { node: { data: RowData | undefined } | null }) => {
-      if (!node?.data) return
-      const edit = graph.startEdit()
-      fixColumns(edit)
-      removeRow(edit, node.data.index)
-      onUpdate({ edit, directInteraction: true })
+      toValue(module).edit(
+        (edit) => {
+          if (!node?.data) return Err('No node data')
+          fixColumns(edit)
+          removeRow(edit, node.data.index)
+          return onUpdate({ edit, directInteraction: true })
+        },
+        { logPreamble: 'Cannot remove row in Table Widget' },
+      )
     },
   }
 
   const removeColumnMenuItem = (colId: Ast.AstId) => ({
     name: 'Remove Column',
     action: () => {
-      const edit = graph.startEdit()
-      fixColumns(edit)
-      removeColumn(edit, colId)
-      onUpdate({ edit, directInteraction: true })
+      toValue(module).edit(
+        (edit) => {
+          fixColumns(edit)
+          removeColumn(edit, colId)
+          return onUpdate({ edit, directInteraction: true })
+        },
+        { logPreamble: 'Cannot remove column in Table Widget' },
+      )
     },
   })
 
@@ -304,10 +309,14 @@ export function useTableInputArgument(
         type: 'newColumn',
         enabled: mayAddNewColumnCurrently.value,
         newColumnRequested: () => {
-          const edit = graph.startEdit()
-          fixColumns(edit)
-          addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
-          onUpdate({ edit, directInteraction: true })
+          toValue(module).edit(
+            (edit) => {
+              fixColumns(edit)
+              addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
+              return onUpdate({ edit, directInteraction: true })
+            },
+            { logPreamble: 'Cannot add new column' },
+          )
         },
       },
     },
@@ -364,31 +373,40 @@ export function useTableInputArgument(
               return false
             }
             const ast = colData.at(data.index)
-            const edit = graph.startEdit()
-            fixColumns(edit)
-            if (data.index === rowCount.value) {
-              addRow(edit, (colId) => (colId === col.id ? newValue : null))
-            } else {
-              const newValueAst = convertWithImport(newValue, edit)
-              if (ast != null) edit.getVersion(ast).replace(newValueAst)
-              else edit.getVersion(colData).set(data.index, newValueAst)
-            }
-            onUpdate({ edit, directInteraction: true })
-            return true
+            const result = toValue(module).edit(
+              (edit) => {
+                fixColumns(edit)
+                if (data.index === rowCount.value) {
+                  addRow(edit, (colId) => (colId === col.id ? newValue : null))
+                } else {
+                  const newValueAst = convertWithImport(newValue, edit)
+                  if (ast != null) edit.getVersion(ast).replace(newValueAst)
+                  else edit.getVersion(colData).set(data.index, newValueAst)
+                }
+                return onUpdate({ edit, directInteraction: true })
+              },
+              { logPreamble: 'Cannot set value on table cell' },
+            )
+            return result instanceof Promise ? true : result.ok
           },
           headerComponentParams: {
             columnParams: {
               type: 'astColumn',
               nameSetter: (newName: string) => {
-                const edit = graph.startEdit()
-                const column = columns.value[i]
-                if (column == null) {
-                  console.error('Tried to rename column no longer existing in code')
-                  return
-                }
-                fixColumns(edit)
-                edit.getVersion(column.name).setRawTextContent(newName)
-                onUpdate({ edit, directInteraction: true })
+                toValue(module).edit(
+                  (edit) => {
+                    const column = columns.value[i]
+                    if (column == null) {
+                      const err = Err('Tried to rename column no longer existing in code')
+                      err.error.log()
+                      return err
+                    }
+                    fixColumns(edit)
+                    edit.getVersion(column.name).setRawTextContent(newName)
+                    return onUpdate({ edit, directInteraction: true })
+                  },
+                  { logPreamble: 'Cannot rename header' },
+                )
               },
             },
           },
@@ -421,57 +439,63 @@ export function useTableInputArgument(
   )
 
   const nothingImport = computed(() =>
-    requiredImportsByProjectPath(suggestions, NOTHING_PATH, true),
+    requiredImportsByProjectPath(toValue(suggestions), NOTHING_PATH, true),
   )
 
   function convertWithImport(value: unknown, edit: Ast.MutableModule) {
     const { ast, requireNothingImport } = cellValueConversion.agGridToAst(value, edit)
     if (requireNothingImport) {
-      graph.addMissingImports(edit, nothingImport.value)
+      toValue(module).addMissingImports(edit, nothingImport.value)
     }
     return ast
   }
 
   function moveColumn(colId: string, toIndex: number) {
-    if (!columnsAst.value.ok) {
-      columnsAst.value.error.log('Cannot reorder columns: The table AST is not available')
-      return
-    }
-    if (!columnsAst.value.value) {
-      console.error('Cannot reorder columns on placeholders! This should not be possible in the UI')
-      return
-    }
-    const edit = graph.startEdit()
-    const columns = edit.getVersion(columnsAst.value.value)
-    const fromIndex = iter.find(columns.enumerate(), ([, ast]) => ast?.id === colId)?.[0]
-    if (fromIndex != null) {
-      columns.move(fromIndex, toIndex - 1)
-      onUpdate({ edit, directInteraction: true })
-    }
+    toValue(module).edit(
+      (edit) => {
+        if (!columnsAst.value.ok) {
+          return columnsAst.value
+        }
+        if (!columnsAst.value.value) {
+          return Err(
+            'Cannot reorder columns on placeholders! This should not be possible in the UI',
+          )
+        }
+        const columns = edit.getVersion(columnsAst.value.value)
+        const fromIndex = iter.find(columns.enumerate(), ([, ast]) => ast?.id === colId)?.[0]
+        if (fromIndex != null) {
+          columns.move(fromIndex, toIndex - 1)
+          return onUpdate({ edit, directInteraction: true })
+        }
+        return Err(`Uknown columnId ${colId}`)
+      },
+      { logPreamble: 'Cannot reorder columns' },
+    )
   }
 
   function moveRow(rowIndex: number, overIndex: number) {
-    if (!columnsAst.value.ok) {
-      columnsAst.value.error.log('Cannot reorder rows: The table AST is not available')
-      return
-    }
-    if (!columnsAst.value.value) {
-      console.error('Cannot reorder rows on placeholders! This should not be possible in the UI')
-      return
-    }
     // If dragged out of grid, we do nothing.
     if (overIndex === -1) return
-    const edit = graph.startEdit()
-    for (const col of columns.value) {
-      const editedCol = edit.getVersion(col.data)
-      editedCol.move(rowIndex, overIndex)
-    }
-    onUpdate({ edit, directInteraction: true })
+    toValue(module).edit(
+      (edit) => {
+        if (!columnsAst.value.ok) {
+          return columnsAst.value
+        }
+        if (!columnsAst.value.value) {
+          return Err('Cannot reorder rows on placeholders! This should not be possible in the UI')
+        }
+        for (const col of columns.value) {
+          const editedCol = edit.getVersion(col.data)
+          editedCol.move(rowIndex, overIndex)
+        }
+        return onUpdate({ edit, directInteraction: true })
+      },
+      { logPreamble: 'Cannot move row' },
+    )
   }
 
   function pasteFromClipboard(data: string[][], focusedCell: { rowIndex: number; colId: string }) {
-    if (data.length === 0) return { rows: 0, columns: 0 }
-    const edit = graph.startEdit()
+    if (data.length === 0) return Ok({ rows: 0, columns: 0 })
     const focusedColIndex =
       findIndexOpt(columns.value, ({ id }) => id === focusedCell.colId) ?? columns.value.length
 
@@ -486,53 +510,56 @@ export function useTableInputArgument(
     let actuallyPastedRowsEnd = pastedRowsEnd
     let actuallyPastedColsEnd = pastedColsEnd
 
-    // Set data in existing cells.
-    for (
-      let rowIndex = focusedCell.rowIndex;
-      rowIndex < Math.min(pastedRowsEnd, rowCount.value);
-      ++rowIndex
-    ) {
+    return toValue(module).edit(async (edit) => {
+      // Set data in existing cells.
       for (
-        let colIndex = focusedColIndex;
-        colIndex < Math.min(pastedColsEnd, columns.value.length);
-        ++colIndex
+        let rowIndex = focusedCell.rowIndex;
+        rowIndex < Math.min(pastedRowsEnd, rowCount.value);
+        ++rowIndex
       ) {
-        const column = columns.value[colIndex]!
-        const newValueAst = convertWithImport(newValueGetter(rowIndex, colIndex), edit)
-        edit.getVersion(column.data).set(rowIndex, newValueAst)
-      }
-    }
-
-    // Extend the table if necessary.
-    const newRowCount = Math.max(pastedRowsEnd, rowCount.value)
-    for (let i = rowCount.value; i < newRowCount; ++i) {
-      if (!mayAddNewRow(i)) {
-        actuallyPastedRowsEnd = i
-        break
+        for (
+          let colIndex = focusedColIndex;
+          colIndex < Math.min(pastedColsEnd, columns.value.length);
+          ++colIndex
+        ) {
+          const column = columns.value[colIndex]!
+          const newValueAst = convertWithImport(newValueGetter(rowIndex, colIndex), edit)
+          edit.getVersion(column.data).set(rowIndex, newValueAst)
+        }
       }
 
-      addRow(edit, (_colId, index) => newValueGetter(i, index))
-    }
-    const newColCount = Math.max(pastedColsEnd, columns.value.length)
-    let modifiedColumnsAst: Ast.Vector | undefined = undefined
-    for (let i = columns.value.length; i < newColCount; ++i) {
-      if (!mayAddNewColumn(newRowCount, i)) {
-        actuallyPastedColsEnd = i
-        break
+      // Extend the table if necessary.
+      const newRowCount = Math.max(pastedRowsEnd, rowCount.value)
+      for (let i = rowCount.value; i < newRowCount; ++i) {
+        if (!mayAddNewRow(i)) {
+          actuallyPastedRowsEnd = i
+          break
+        }
+
+        addRow(edit, (_colId, index) => newValueGetter(i, index))
       }
-      modifiedColumnsAst = addColumn(
-        edit,
-        `${DEFAULT_COLUMN_PREFIX}${i + 1}`,
-        (index) => newValueGetter(index, i),
-        newRowCount,
-        modifiedColumnsAst,
-      )
-    }
-    onUpdate({ edit, directInteraction: true })
-    return {
-      rows: actuallyPastedRowsEnd - focusedCell.rowIndex,
-      columns: actuallyPastedColsEnd - focusedColIndex,
-    }
+      const newColCount = Math.max(pastedColsEnd, columns.value.length)
+      let modifiedColumnsAst: Ast.Vector | undefined = undefined
+      for (let i = columns.value.length; i < newColCount; ++i) {
+        if (!mayAddNewColumn(newRowCount, i)) {
+          actuallyPastedColsEnd = i
+          break
+        }
+        modifiedColumnsAst = addColumn(
+          edit,
+          `${DEFAULT_COLUMN_PREFIX}${i + 1}`,
+          (index) => newValueGetter(index, i),
+          newRowCount,
+          modifiedColumnsAst,
+        )
+      }
+      const updateResult = await onUpdate({ edit, directInteraction: true })
+      if (!updateResult.ok) return updateResult
+      return Ok({
+        rows: actuallyPastedRowsEnd - focusedCell.rowIndex,
+        columns: actuallyPastedColsEnd - focusedColIndex,
+      })
+    })
   }
 
   return {

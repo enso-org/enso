@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import {
   CELLS_LIMIT,
+  type RowData,
   tableInputCallMayBeHandled,
   useTableInputArgument,
-  type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
-import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { targetIsOutside } from '@/util/autoBlur'
+import type { Result } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
@@ -23,7 +24,7 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { computed, ref, watch, type ComponentInstance, type ComputedRef } from 'vue'
+import { type ComponentInstance, computed, type ComputedRef, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import ResizableWidget from '../ResizableWidget.vue'
@@ -31,8 +32,7 @@ import TableHeader, { type HeaderParams } from './WidgetTableEditor/TableHeader.
 import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
-const suggestionDb = useSuggestionDbStore()
+const { suggestionDb, module } = useCurrentProject()
 const grid = ref<
   ComponentInstance<typeof AgGridTableView<RowData, any>> &
     ComponentExposed<typeof AgGridTableView<RowData, any>>
@@ -59,8 +59,8 @@ const config = computed(() => {
 
 const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTableInputArgument(
   () => props.input,
-  graph,
-  suggestionDb.entries,
+  module,
+  () => suggestionDb.value.entries,
   props.updateCallback,
 )
 
@@ -117,13 +117,20 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
   const focusedCell = api.getFocusedCell()
   if (focusedCell === null) console.warn('Pasting while no cell is focused!')
   else {
+    const checkAndWarn = (pasted: Result<{ rows: number; columns: number }>) => {
+      if (
+        pasted.ok &&
+        (pasted.value.rows < data.length || pasted.value.columns < (data[0]?.length ?? 0))
+      ) {
+        pasteWarning.show(`Truncated pasted data to keep table within ${CELLS_LIMIT} limit`)
+      }
+    }
     const pasted = pasteFromClipboard(data, {
       rowIndex: focusedCell.rowIndex,
       colId: focusedCell.column.getColId(),
     })
-    if (pasted.rows < data.length || pasted.columns < (data[0]?.length ?? 0)) {
-      pasteWarning.show(`Truncated pasted data to keep table within ${CELLS_LIMIT} limit`)
-    }
+    if (pasted instanceof Promise) pasted.then(checkAndWarn)
+    else checkAndWarn(pasted)
   }
   return []
 }

@@ -11,7 +11,8 @@ final class JavaPolyglotNode {
     try {
       var isAot = TruffleOptions.AOT;
       var loader =
-          OtherJvmClassLoader.create(EpbLanguage.class, isAot, context.getEnv().getContext());
+          OtherJvmClassLoader.create(
+              "org.enso.jvm.interop", EpbLanguage.class, isAot, context.getEnv().getContext());
       var target = RootNode.createConstantNode(loader).getCallTarget();
       return new GenericForeignNode(target);
     } catch (URISyntaxException | IOException ex) {

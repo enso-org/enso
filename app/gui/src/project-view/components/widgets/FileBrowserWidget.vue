@@ -6,6 +6,7 @@ export default {
 
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
+import type { FileType } from '$/providers/openedProjects/widgetRegistry/configuration'
 import ActionButton from '@/components/ActionButton.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import UpsertSecretPanel from '@/components/UpsertSecretPanel.vue'
@@ -32,7 +33,6 @@ import { useUserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { useBackend } from '@/composables/backend'
 import { registerHandlers } from '@/providers/action'
 import { providePopoverRoot } from '@/providers/popoverRoot'
-import type { FileType } from '@/providers/widgetRegistry/configuration'
 import type { AnyAsset } from 'enso-common/src/services/Backend'
 import { assetIsDirectory, AssetType } from 'enso-common/src/services/Backend'
 import { computed, ref, toValue, useTemplateRef, watch } from 'vue'

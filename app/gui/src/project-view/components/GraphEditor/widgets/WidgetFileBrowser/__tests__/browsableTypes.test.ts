@@ -281,26 +281,22 @@ test.each([
 
 describe('Set path', () => {
   test('File, prefer raw, no current path', () => {
-    const edit = vi.fn()
     const addMissingConstructorImports = vi.fn()
     const portId = 'MOCK-PORT-ID' as Ast.AstId
     const setPath = useSetPath({
       currentPath: undefined,
       preferRawPath: true,
       portId,
-      edit,
       addMissingConstructorImports,
     })
-    const widgetUpdate = setPath('file', 'New path')
+    const widgetUpdate = setPath('file', 'New path', Ast.MutableModule.Transient())
     expect(widgetUpdate.portUpdate?.origin).toBe(portId)
     expect(widgetUpdate.portUpdate).toHaveProperty('value')
     expect((widgetUpdate.portUpdate as any).value.code()).toBe("'New path'")
-    expect(edit).not.toHaveBeenCalled()
     expect(addMissingConstructorImports).not.toHaveBeenCalled()
   })
 
   test.each(['file', 'secret'] as const)('Replace current path, type: %s', (type) => {
-    const edit = vi.fn()
     const addMissingConstructorImports = vi.fn()
     const currentPath = Ast.TextLiteral.tryParse("'Old path'")
     assertDefined(currentPath)
@@ -308,14 +304,12 @@ describe('Set path', () => {
       currentPath: { type, path: currentPath },
       preferRawPath: true,
       portId: 'MOCK-PORT-ID' as Ast.AstId,
-      edit,
       addMissingConstructorImports,
     })
-    const widgetUpdate = setPath(type, 'New path')
+    const widgetUpdate = setPath(type, 'New path', Ast.MutableModule.Transient())
     expect(widgetUpdate.portUpdate?.origin).toBe(currentPath.id)
     expect(widgetUpdate.portUpdate).toHaveProperty('value')
     expect((widgetUpdate.portUpdate as any).value.code()).toBe("'New path'")
-    expect(edit).not.toHaveBeenCalled()
     expect(addMissingConstructorImports).not.toHaveBeenCalled()
   })
 
@@ -341,21 +335,19 @@ describe('Set path', () => {
       expected: "(Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret.get 'New path')",
     },
   ])('Set path with constructor: $type, conflicts=$conflicts', ({ type, conflicts, expected }) => {
-    const edit = vi.fn(() => Ast.MutableModule.Transient())
+    const module = Ast.MutableModule.Transient()
     const addMissingConstructorImports = vi.fn(() => !conflicts)
     const portId = 'MOCK-PORT-ID' as Ast.AstId
     const setPath = useSetPath({
       currentPath: { type: 'wrong-type' as any, path: Ast.TextLiteral.tryParse("'Old path'")! },
       preferRawPath: false,
       portId,
-      edit,
       addMissingConstructorImports,
     })
-    const widgetUpdate = setPath(type, 'New path')
+    const widgetUpdate = setPath(type, 'New path', module)
     expect(widgetUpdate.portUpdate?.origin).toBe(portId)
     expect(widgetUpdate.portUpdate).toHaveProperty('value')
     expect((widgetUpdate.portUpdate as any).value.code()).toBe(expected)
-    expect(edit).toHaveBeenCalled()
     expect(addMissingConstructorImports).toHaveBeenCalled()
   })
 })

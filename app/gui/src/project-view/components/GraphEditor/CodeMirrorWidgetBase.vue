@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import type {
+  HandledUpdate,
+  WidgetInput,
+  WidgetTypeId,
+} from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
-import type { HandledUpdate, WidgetInput, WidgetTypeId } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'

@@ -1,13 +1,13 @@
-import type { BrowserItem } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
-import type {
-  Actions,
-  CustomDropdownItem,
+import { type FileType } from '$/providers/openedProjects/widgetRegistry/configuration'
+import { type BrowserItem } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
+import {
+  type Actions,
+  type CustomDropdownItem,
 } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import FileBrowserWidget from '@/components/widgets/FileBrowserWidget.vue'
-import type { FileType } from '@/providers/widgetRegistry/configuration'
-import type { Icon } from '@/util/iconMetadata/iconName'
-import type { ToValue } from '@/util/reactivity'
-import { computed, h, toValue, type ComputedRef } from 'vue'
+import { type Icon } from '@/util/iconMetadata/iconName'
+import { type ToValue } from '@/util/reactivity'
+import { computed, type ComputedRef, h, toValue } from 'vue'
 
 const TYPES = new Map<BrowserItem, { label: string; icon?: Icon }>([
   ['directory', { label: 'Choose directory in cloud…' }],

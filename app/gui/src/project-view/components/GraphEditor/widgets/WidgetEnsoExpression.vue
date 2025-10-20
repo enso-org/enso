@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
-import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import {
   defineWidget,
   Score,
   WidgetInput,
   widgetProps,
   type HandledUpdate,
-} from '@/providers/widgetRegistry'
+} from '$/providers/openedProjects/widgetRegistry'
+import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import { Ast } from '@/util/ast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { computed, ref, useTemplateRef } from 'vue'
@@ -46,7 +46,7 @@ const cmWidget = useTemplateRef('cmWidget')
 
 <script lang="ts">
 export const EnsoExpression: unique symbol = Symbol.for('WidgetInput:EnsoExpression')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [EnsoExpression]?: {
       weakMatch?: boolean

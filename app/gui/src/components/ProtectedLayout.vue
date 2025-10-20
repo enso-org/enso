@@ -184,6 +184,7 @@ const shouldDisplayAgreementsModal = computed(
     v-bind="agreementsModalProps"
   />
   <RouterView v-else-if="allowed || route.meta.access == null || route.meta.access === 'guest'" />
+  <div v-else data-testid="content-not-allowed"></div>
 
   <EnsoDevtools v-if="displayDevTools" />
   <ReactQueryDevtools v-if="displayDevTools" />

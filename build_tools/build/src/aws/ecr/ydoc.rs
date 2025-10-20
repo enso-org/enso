@@ -31,21 +31,6 @@ pub async fn build_ydoc_polyglot_image(
     Ok(id)
 }
 
-/// Build the Node.js Ydoc Docker image.
-#[instrument(fields(%docker_context, %app_ydoc_server_nodejs))]
-pub async fn build_ydoc_nodejs_image(
-    docker_context: &generated::RepoRootToolsCiDockerYdocServerNodejs,
-    app_ydoc_server_nodejs: &generated::RepoRootAppYdocServerNodejs,
-    tag: String,
-) -> Result<ImageId> {
-    let mut opts = BuildOptions::new(app_ydoc_server_nodejs);
-    opts.file = Some(docker_context.dockerfile.to_path_buf());
-    opts.tags.push(tag);
-    opts.add_build_context_local("docker-tools", docker_context);
-    let id = Docker.build(opts).await?;
-    Ok(id)
-}
-
 #[cfg(test)]
 mod tests {
     use crate::repo::deduce_repository_path;
@@ -72,29 +57,6 @@ mod tests {
         );
         let id =
             build_ydoc_polyglot_image(&dockerfile, &ydoc_native_image, tag.to_string()).await?;
-        info!("Built image: {}", id);
-        Ok(())
-    }
-
-    /// Convenience test that builds the Node.js Ydoc image.
-    ///
-    /// The `app/ydoc-server-nodejs` distribution must be already built.
-    #[tokio::test]
-    #[ignore]
-    async fn test_ydoc_nodejs() -> Result {
-        setup_logging().ok();
-        let tag = "ydoc-server-nodejs:0.0.0-dev";
-        info!("Current directory: {}", ide_ci::env::current_dir()?.display());
-        let root = deduce_repository_path()?;
-        let root = root.absolutize()?;
-        info!("Repository root: {}", root.display());
-        let docker_context = generated::RepoRootToolsCiDockerYdocServerNodejs::new_root(
-            root.join("tools/ci/docker/ydoc-server-nodejs"),
-        );
-        let app_ydoc_server_nodejs =
-            generated::RepoRootAppYdocServerNodejs::new_root(root.join("app/ydoc-server-nodejs"));
-        let id = build_ydoc_nodejs_image(&docker_context, &app_ydoc_server_nodejs, tag.to_string())
-            .await?;
         info!("Built image: {}", id);
         Ok(())
     }
