@@ -47,9 +47,11 @@ export const [provideContainerData, useContainerData] = createContextStore(
         filter(
           openedProjects.listProjects(),
           (project) =>
-            project.state.status !== 'not-opened' &&
-            project.state.status !== 'hybrid-closed' &&
-            project.state.status !== 'hybrid-uploaded',
+            project.nextTask?.process === 'opening' ||
+            project.error != null ||
+            (project.state.status !== 'not-opened' &&
+              project.state.status !== 'hybrid-closed' &&
+              project.state.status !== 'hybrid-uploaded'),
         ),
         (project) => ({
           ...project,

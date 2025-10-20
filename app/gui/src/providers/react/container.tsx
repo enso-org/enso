@@ -13,29 +13,25 @@ export const useRightPanelData = useInReactFunction(RightPanelDataContext)
 const ContainerDataContext = react.createContext<ContainerData | null>(null)
 export const useContainerData = useInReactFunction(ContainerDataContext)
 
-export const ContainerDataProviderForReact = reactComponent(
-  ({ value, children }: react.PropsWithChildren<{ value: ContainerData }>) => {
-    return <ContainerDataContext.Provider value={value}>{children}</ContainerDataContext.Provider>
+export const ContainerProviderForReact = reactComponent(
+  ({
+    container,
+    rightPanel,
+    children,
+  }: react.PropsWithChildren<{ container: ContainerData; rightPanel: RightPanelData }>) => {
+    return (
+      <ContainerDataContext.Provider value={container}>
+        <RightPanelDataContext.Provider value={rightPanel}>
+          {children}
+        </RightPanelDataContext.Provider>
+      </ContainerDataContext.Provider>
+    )
   },
   {
     useInjectPropsFromWrapper: () => {
       const result = {
-        value: useContainerDataVue(),
-      }
-      // Avoid annoying warning about __veauryInjectedProps__ property by returning a function.
-      return () => result
-    },
-  },
-) as any
-
-export const RightPanelDataProviderForReact = reactComponent(
-  ({ value, children }: react.PropsWithChildren<{ value: RightPanelData }>) => {
-    return <RightPanelDataContext.Provider value={value}>{children}</RightPanelDataContext.Provider>
-  },
-  {
-    useInjectPropsFromWrapper: () => {
-      const result = {
-        value: useRightPanelDataVue(),
+        container: useContainerDataVue(),
+        rightPanel: useRightPanelDataVue(),
       }
       // Avoid annoying warning about __veauryInjectedProps__ property by returning a function.
       return () => result

@@ -111,7 +111,7 @@ export function Dashboard() {
     <CategoriesProvider>
       <Page hideInfoBar>
         <div
-          className="flex min-h-full flex-col text-xs text-primary"
+          className="flex h-full flex-col text-xs text-primary"
           onContextMenu={(event) => {
             event.preventDefault()
             modalProvider.unsetModal()

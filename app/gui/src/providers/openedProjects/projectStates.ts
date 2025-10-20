@@ -83,7 +83,7 @@ export interface LsUrls {
   ydocUrl: string
 }
 export interface NotOpened {
-  status: 'not-opened' | 'closed-by-backend'
+  status: 'not-opened'
   info: ProjectInfo
 }
 
@@ -429,7 +429,7 @@ export function useProjectStates() {
       case 'hybrid':
         if (backends.localBackend == null)
           return Err('Cannot close hybrid project: no local backend')
-        await backends.localBackend.closeProject(project.info.id, project.info.title)
+        await backends.localBackend.closeProject(project.runningId, project.info.title)
         return Ok({
           status: 'hybrid-closed',
           info: { ...project.info, mode: project.info.mode },
