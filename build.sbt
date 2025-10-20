@@ -1,30 +1,20 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks._
+import org.enso.build.BenchTasks.*
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers._
+import sbt.complete.DefaultParsers.*
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
-import src.main.scala.licenses.{
-  DistributionDescription,
-  SBTDistributionComponent
-}
+import src.main.scala.licenses.{DistributionDescription, SBTDistributionComponent}
 
-import scala.sys.process._
-import Dependencies._
-import JarExtractor.{
-  CopyToOutputJar,
-  LinuxAMD64,
-  MacOSAMD64,
-  MacOSArm64,
-  PolyglotLib,
-  WindowsAMD64
-}
+import scala.sys.process.*
+import Dependencies.*
+import JarExtractor.{CopyToOutputJar, LinuxAMD64, MacOSAMD64, MacOSArm64, PolyglotLib, WindowsAMD64}
 
-import java.nio.file.Files
+import java.nio.file.{Files, StandardCopyOption}
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
@@ -681,7 +671,7 @@ val generateRustParserLib =
           s"Expected Rust parser library at ${libDest.toPath} but it does not exist after build."
         )
       }
-      IO.copyFile(libDest, copyLibDest)
+      Files.copy(libDest.toPath, copyLibDest.toPath, StandardCopyOption.REPLACE_EXISTING)
       if (!Files.exists(copyLibDest.toPath)) {
         log.error(
           s"Failed to copy Rust parser library to ${copyLibDest.toPath}."
