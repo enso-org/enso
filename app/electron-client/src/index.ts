@@ -9,13 +9,11 @@
 
 import './cjs-shim' // must be imported first
 
-import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as pathModule from 'node:path'
 import process from 'node:process'
 
-import * as electron from 'electron'
 import * as common from 'enso-common'
 import {
   buildWebAppURLSearchParamsFromArgs,
@@ -37,14 +35,36 @@ import * as security from '@/security'
 import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
 import * as projectManagement from 'project-manager-shim'
-import { toElectronFileFilter, type FileFilter } from './fileBrowser'
-
-import * as download from 'electron-dl'
-import type { DownloadUrlOptions } from 'enso-gui/src/electronApi'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 
 const DEFAULT_WINDOW_WIDTH = 1380
 const DEFAULT_WINDOW_HEIGHT = 900
+
+let electron: typeof import('electron') | undefined
+
+function exit(code = 0) {
+  if (electron) {
+    electron.app.exit(code)
+  } else {
+    process.exit(code)
+  }
+}
+
+function quit() {
+  if (electron) {
+    electron.app.quit()
+  } else {
+    process.exit(0)
+  }
+}
+
+function showErrorBox(title: string, content: string) {
+  if (electron) {
+    electron.dialog.showErrorBox(title, content)
+  } else {
+    console.error(`${title}\n\n${content}`)
+  }
+}
 
 /** Convert path to proper `file://` URL. */
 function pathToURL(path: string): URL {
@@ -55,16 +75,12 @@ function pathToURL(path: string): URL {
   }
 }
 
-// ===========
-// === App ===
-// ===========
-
 /**
  * The Electron application. It is responsible for starting all the required services, and
  * displaying and managing the app window.
  */
 class App {
-  window: electron.BrowserWindow | null = null
+  window: import('electron').BrowserWindow | null = null
   server: server.Server | null = null
   webOptions: Options = defaultOptions()
   isQuitting = false
@@ -75,6 +91,7 @@ class App {
     urlAssociations.registerAssociations()
     // Register file associations for macOS.
     fileAssociations.setOpenFileEventHandler((path) => {
+      if (!electron) return
       if (electron.app.isReady()) {
         const project = fileAssociations.handleOpenFile(path)
         this.window?.webContents.send(ipc.Channel.openProject, project)
@@ -85,13 +102,12 @@ class App {
     const { args, fileToOpen, urlToOpen } = this.processArguments()
     if (args.version) {
       await this.printVersion()
-      electron.app.quit()
+      quit()
     } else if (args.debug.info) {
-      await electron.app.whenReady().then(async () => {
-        await debug.printInfo()
-        electron.app.quit()
-      })
-    } else {
+      await electron?.app.whenReady()
+      await debug.printInfo()
+      quit()
+    } else if (electron) {
       const isOriginalInstance = electron.app.requestSingleInstanceLock({
         fileToOpen,
         urlToOpen,
@@ -152,7 +168,7 @@ class App {
         this.registerShortcuts()
       } else {
         console.log('Another instance of the application is already running, exiting.')
-        electron.app.quit()
+        quit()
       }
     }
   }
@@ -281,7 +297,7 @@ class App {
       authentication.initAuthentication(() => this.window!)
     } catch (err) {
       console.error('Failed to initialize the application, shutting down. Error: ', err)
-      electron.app.quit()
+      quit()
     }
   }
 
@@ -411,127 +427,6 @@ class App {
   }
 
   /**
-   * Initialize Inter-Process Communication between the Electron application and the served
-   * website.
-   */
-  initIpc() {
-    electron.ipcMain.on(ipc.Channel.error, (_event, data) => {
-      console.error(...data)
-    })
-    electron.ipcMain.on(ipc.Channel.warn, (_event, data) => {
-      console.warn(...data)
-    })
-    electron.ipcMain.on(ipc.Channel.log, (_event, data) => {
-      console.log(...data)
-    })
-    electron.ipcMain.on(ipc.Channel.info, (_event, data) => {
-      console.info(...data)
-    })
-    electron.ipcMain.on(
-      ipc.Channel.importProjectFromPath,
-      (event, path: string, directory: string | null, title: string) => {
-        const directoryParams = directory == null ? [] : [directory]
-        const info = projectManagement.importProjectFromPath(path, ...directoryParams, title)
-        event.reply(ipc.Channel.importProjectFromPath, path, info)
-      },
-    )
-    electron.ipcMain.handle(
-      ipc.Channel.downloadURL,
-      async (_event, options: DownloadUrlOptions) => {
-        const { url, path, name, shouldUnpackProject, showFileDialog } = options
-        // This should never happen, but we'll check for it anyway.
-        if (!this.window) {
-          throw new Error('Window is not available.')
-        }
-
-        await download.download(this.window, url, {
-          ...(path != null ? { directory: path } : {}),
-          ...(name != null ? { filename: name } : {}),
-          saveAs: showFileDialog != null ? showFileDialog : path == null,
-          onCompleted: (file) => {
-            const path = file.path
-            const filenameRaw = pathModule.basename(path)
-
-            try {
-              if (
-                projectManagement.isProjectBundle(path) ||
-                projectManagement.isProjectRoot(path)
-              ) {
-                if (!shouldUnpackProject) {
-                  return
-                }
-                // in case we're importing a project bundle, we need to remove the extension
-                // from the filename
-                const filename = filenameRaw.replace(pathModule.extname(filenameRaw), '')
-                const directory = pathModule.dirname(path)
-
-                projectManagement.importProjectFromPath(path, directory, filename)
-                fsSync.unlinkSync(path)
-              }
-            } catch (error) {
-              console.error('Error downloading URL', error)
-            }
-          },
-        })
-
-        return
-      },
-    )
-    electron.ipcMain.on(ipc.Channel.showItemInFolder, (_event, fullPath: string) => {
-      electron.shell.showItemInFolder(fullPath)
-    })
-    electron.ipcMain.handle(
-      ipc.Channel.openFileBrowser,
-      async (
-        _event,
-        kind: 'default' | 'directory' | 'file' | 'filePath',
-        defaultPath?: string,
-        filters?: FileFilter[],
-      ) => {
-        console.log('Request for opening browser for ', kind, defaultPath, JSON.stringify(filters))
-        let retval = null
-        if (kind === 'filePath') {
-          // "Accept", as the file won't be created immediately.
-          const { canceled, filePath } = await electron.dialog.showSaveDialog({
-            buttonLabel: 'Accept',
-            filters: filters?.map(toElectronFileFilter) ?? [],
-            ...(defaultPath != null ? { defaultPath } : {}),
-          })
-          if (!canceled) {
-            retval = [filePath]
-          }
-        } else {
-          /** Helper for `showOpenDialog`, which has weird types by default. */
-          type Properties = ('openDirectory' | 'openFile')[]
-          const properties: Properties =
-            kind === 'file' ? ['openFile']
-            : kind === 'directory' ? ['openDirectory']
-            : process.platform === 'darwin' ? ['openFile', 'openDirectory']
-            : ['openFile']
-          const { canceled, filePaths } = await electron.dialog.showOpenDialog({
-            properties,
-            filters: filters?.map(toElectronFileFilter) ?? [],
-            ...(defaultPath != null ? { defaultPath } : {}),
-          })
-          if (!canceled) {
-            retval = filePaths
-          }
-        }
-        return retval
-      },
-    )
-
-    // Handling navigation events from renderer process
-    electron.ipcMain.on(ipc.Channel.goBack, () => {
-      this.window?.webContents.navigationHistory.goBack()
-    })
-
-    electron.ipcMain.on(ipc.Channel.goForward, () => {
-      this.window?.webContents.navigationHistory.goForward()
-    })
-  }
-
-  /**
    * The server port. In case the server was not started, the port specified in the configuration
    * is returned. This might be used to connect this application window to another, existing
    * application server.
@@ -602,6 +497,7 @@ class App {
   }
 
   registerShortcuts() {
+    if (!electron) return
     electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
       webContents.on('before-input-event', (_beforeInputEvent, input) => {
         const { code, alt, control, shift, meta, type } = input
@@ -621,14 +517,10 @@ class App {
   }
 }
 
-// ===================
-// === App startup ===
-// ===================
-
 process.on('uncaughtException', (err, origin) => {
   console.error(`Uncaught exception: ${err.toString()}\nException origin: ${origin}`)
-  electron.dialog.showErrorBox(common.PRODUCT_NAME, err.stack ?? err.toString())
-  electron.app.exit(1)
+  showErrorBox(common.PRODUCT_NAME, err.stack ?? err.toString())
+  exit(1)
 })
 
 const APP = new App()
