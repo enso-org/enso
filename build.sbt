@@ -415,6 +415,7 @@ lazy val enso = (project in file("."))
     `version-output`,
     `ydoc-polyfill`,
     `ydoc-server`,
+    `ydoc-server-registration`,
     `zio-wrapper`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
@@ -538,6 +539,8 @@ lazy val componentModulesPaths =
     (`zio-wrapper` / Compile / exportedModuleBin).value,
     (`language-server-deps-wrapper` / Compile / exportedModuleBin).value,
     (`ydoc-polyfill` / Compile / exportedModuleBin).value,
+    (`ydoc-server` / Compile / exportedModuleBin).value,
+    (`ydoc-server-registration` / Compile / exportedModuleBin).value,
     (`library-manager` / Compile / exportedModuleBin).value,
     (`logging-config` / Compile / exportedModuleBin).value,
     (`logging-utils` / Compile / exportedModuleBin).value,
@@ -2015,17 +2018,20 @@ lazy val `ydoc-server` = project
       )
       args
     },
-    Compile / resourceGenerators +=
-      Def
-        .task(
-          Ydoc.generateJsBundle(
-            (ThisBuild / baseDirectory).value,
-            baseDirectory.value,
-            (Compile / resourceManaged).value,
-            streams.value
-          )
+    Compile / resourceGenerators += Def.taskIf {
+      if ((Bazel / wasStartedFromBazel).value) {
+        Seq(
+          (Bazel / ydocServerPolyglotMainJs).value
         )
-        .taskValue
+      } else {
+        Ydoc.generateJsBundle(
+          (ThisBuild / baseDirectory).value,
+          baseDirectory.value,
+          (Compile / resourceManaged).value,
+          streams.value
+        )
+      }
+    }
   )
   .settings(
     NativeImage.smallJdk := None,
@@ -2048,6 +2054,37 @@ lazy val `ydoc-server` = project
   )
   .dependsOn(`ydoc-polyfill`)
   .dependsOn(`logging-service-logback`)
+
+lazy val `ydoc-server-registration` = project
+  .in(file("lib/java/ydoc-server-registration"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    customFrgaalJavaCompilerSettings("21"),
+    javaModuleName := "org.enso.ydoc.server.registration",
+    Compile / exportJars := true,
+    crossPaths := false,
+    autoScalaLibrary := false,
+    Test / fork := true,
+    commands += WithDebugCommand.withDebug,
+    Compile / moduleDependencies ++=
+      GraalVM.modules,
+    Compile / internalModuleDependencies := Seq(
+      (`engine-runner-common` / Compile / exportedModule).value,
+      (`jvm-interop` / Compile / exportedModule).value
+    ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk"      % "nativeimage"       % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "inspect-community" % graalMavenPackagesVersion % "runtime",
+      "junit"                % "junit"             % junitVersion              % Test,
+      "com.github.sbt"       % "junit-interface"   % junitIfVersion            % Test
+    ),
+    libraryDependencies ++= {
+      GraalVM.modules
+    }
+  )
+  .dependsOn(`engine-runner-common`)
+  .dependsOn(`jvm-interop`)
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .enablePlugins(JPMSPlugin)
@@ -3782,6 +3819,7 @@ lazy val `engine-runner` = project
       (`semver` / Compile / exportedModule).value,
       (`cli` / Compile / exportedModule).value,
       (`jvm-channel` / Compile / exportedModule).value,
+      (`jvm-interop` / Compile / exportedModule).value,
       (`os-environment` / Compile / exportedModule).value,
       (`distribution-manager` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value,
@@ -3796,7 +3834,8 @@ lazy val `engine-runner` = project
       (`engine-common` / Compile / exportedModule).value,
       (`polyglot-api` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value,
-      (`logging-utils` / Compile / exportedModule).value
+      (`logging-utils` / Compile / exportedModule).value,
+      (`ydoc-server-registration` / Compile / exportedModule).value
     ),
     // Runtime / modulePath is used as module-path for the native image build.
     Runtime / moduleDependencies :=
@@ -3884,15 +3923,18 @@ lazy val `engine-runner` = project
           .map(_.data.getAbsolutePath)
       def langServer = {
         val log = streams.value.log
-        val path = (`language-server` / Compile / fullClasspath).value
+        val langServer = (`language-server` / Compile / fullClasspath).value
           .map(_.data.getAbsolutePath)
+        val ydocServerRegistration =
+          (`ydoc-server-registration` / Compile / fullClasspath).value
+            .map(_.data.getAbsolutePath)
         if (GraalVM.EnsoLauncher.disableLanguageServer) {
           log.info(
             s"Skipping language server in native image build as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
           )
           Seq()
         } else {
-          path
+          langServer ++ ydocServerRegistration
         }
       }
       val core = (
@@ -4121,6 +4163,7 @@ lazy val `engine-runner` = project
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`ydoc-server-registration`)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")

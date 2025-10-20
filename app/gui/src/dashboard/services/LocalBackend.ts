@@ -373,7 +373,7 @@ export default class LocalBackend extends Backend {
         ydocAddress:
           cachedProject.languageServerYdocAddress ?
             ipWithSocketToAddress(cachedProject.languageServerYdocAddress)
-          : null,
+          : backend.Address('ws://localhost:5976'),
         organizationId: backend.OrganizationId('organization-'),
         packageName: cachedProject.projectNormalizedName,
         projectId,

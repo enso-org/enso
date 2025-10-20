@@ -185,7 +185,7 @@ add_sqlserver_specs suite_builder create_connection_fn =
     light_table_builder columns = table_builder columns
     
     ## TODO need to be able to type_hint the nulls for this to work 
-       light_table_builder columns = default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
+       light_table_builder columns = default_connection.get.create_literal_table (Table.new columns) "literal_table"
        https://github.com/enso-org/enso/issues/11487
 
     materialize = .read
