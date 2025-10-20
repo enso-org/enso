@@ -783,7 +783,9 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             let arg::git_clean::Options { dry_run, cache, build_script } = options;
             let mut exclusions: Vec<&str> = vec![".idea"];
             if !build_script {
-                exclusions.push("target/rust/buildscript");
+                // Do not attempt to delete the very executable that runs the command.
+                // It will fail on windows due to file being locked.
+                exclusions.push("target/rust/**/deps/enso_build_cli*");
             }
 
             if !dry_run {
