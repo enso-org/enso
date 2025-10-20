@@ -36,7 +36,7 @@ jobs:
         with:
           name: parser_linux
           path: |
-            target/build/release/libenso_parser.so
+            target/build/x86_64-unknown-linux-musl/release/libenso_parser.so
 
   build_mac_intel_parser:
     runs-on: macos-13
