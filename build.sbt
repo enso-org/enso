@@ -632,9 +632,18 @@ val generateRustParserLib =
       libDest
     )
   } else {
-    val log = state.value.log
+    val log     = state.value.log
+    val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
+    val libName = System.mapLibraryName("enso_parser")
     val libGlob =
-      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / profile / "libenso_parser.so"
+      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / profile / libName
+    // Destination of the dll as built by Cargo
+    val libDest =
+      (`syntax-rust-definition` / rustParserTargetDirectory).value / profile / libName
+    // The library will be copied into this location. It is required in various
+    // other places.
+    val copyLibDest =
+      (`syntax-rust-definition` / rustParserTargetDirectory).value / libName
 
     val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
     if (
@@ -652,13 +661,12 @@ val generateRustParserLib =
       target.foreach { t =>
         Cargo.rustUp(t, log)
       }
-      val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
       val arguments = Seq(
         "build",
         "-p",
         "enso-parser-jni",
         "--profile",
-        profile,
+        profile
       ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
         Seq(
           "--target-dir",
@@ -668,6 +676,17 @@ val generateRustParserLib =
         .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
         .getOrElse(Seq())
       Cargo.run(arguments, log, envVars)
+      if (!Files.exists(libDest.toPath)) {
+        log.error(
+          s"Expected Rust parser library at ${libDest.toPath} but it does not exist after build."
+        )
+      }
+      IO.copyFile(libDest, copyLibDest)
+      if (!Files.exists(copyLibDest.toPath)) {
+        log.error(
+          s"Failed to copy Rust parser library to ${copyLibDest.toPath}."
+        )
+      }
     }
     FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
   }
