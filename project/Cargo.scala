@@ -33,12 +33,12 @@ object Cargo {
     if (!cargoOk(log))
       throw new RuntimeException("Cargo isn't installed!")
 
-    log.debug(cmd.toString())
+    log.info(cmd.toString())
 
     val process = Process(cmd, None, extraEnv: _*)
     val sb      = new StringBuilder
     val processLogger = ProcessLogger(str => {
-      log.info(str)
+      log.info("[cargo subprocess] " + str)
       sb.append(str)
         .append(System.lineSeparator())
     })
