@@ -1,7 +1,9 @@
 <script lang="ts">
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
-import { useContainerData } from '$/providers/container'
+import { BackendType, EnsoPath, Path } from '#/services/Backend'
+import { newDirectoryId, newProjectId } from '#/services/LocalBackend'
+import { provideContainerData } from '$/providers/container'
 import { useOpenedProjects, type Project } from '$/providers/openedProjects'
 import { RightPanelDataProviderForReact } from '$/providers/react/container'
 import { provideRightPanelData } from '$/providers/rightPanel'
@@ -10,23 +12,17 @@ import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { useEvent } from '@/composables/events'
 import ProjectView from '@/ProjectView.vue'
 import { registerHandlers } from '@/providers/action'
+import { provideAsyncResources } from '@/providers/asyncResources'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { reactComponent } from '@/util/react'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { onMounted, shallowRef, toRefs } from 'vue'
+import { onMounted, onUnmounted, shallowRef, toRefs } from 'vue'
 import { Drive, Settings } from './reactTabs'
 import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
 
 const UserBar = reactComponent(UserBarReact)
-
-/**
- * A part of `AppContainer` which needs some hooks passed from react by `Dashboard.tsx`.
- *
- * Should be merged back to AppContainer once all needed features will be moved to Vue store.
- */
-export default {}
 </script>
 
 <script setup lang="ts">
@@ -39,7 +35,8 @@ const props = defineProps<{
 const fullscreenRoot = shallowRef<HTMLElement>()
 
 const openedProjects = useOpenedProjects()
-const { tab, projectTabs } = toRefs(useContainerData())
+const { tab, projectTabs } = toRefs(provideContainerData())
+provideAsyncResources(openedProjects)
 provideRightPanelData(tab, props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
 
@@ -68,10 +65,6 @@ function closeTab() {
   }
 }
 
-onMounted(() => {
-  window.api?.menu?.setMenuItemHandler('closeTab', closeTab)
-})
-
 const actionHandlers = registerHandlers({
   'app.closeTab': {
     action: closeTab,
@@ -93,67 +86,93 @@ useEvent(globalEventRegistry, 'keydown', (event) => {
 const onSignOut = () => {
   openedProjects.closeAllProjects()
 }
+
+onMounted(() => {
+  window.api?.menu?.setMenuItemHandler('closeTab', closeTab)
+  window.api?.projectManagement.setOpenProjectHandler((project) => {
+    const projectId = newProjectId(project.projectRoot)
+
+    openedProjects.openProjectLocally(
+      {
+        id: projectId,
+        title: project.name,
+        parentId: newDirectoryId(Path(project.parentDirectory)),
+        ensoPath: EnsoPath(String(project.projectRoot)),
+      },
+      BackendType.local,
+    )
+  })
+})
+
+onUnmounted(() => {
+  window.api?.projectManagement.setOpenProjectHandler(() => {})
+})
 </script>
 
 <template>
-  <RightPanelDataProviderForReact>
-    <div class="bar">
-      <div role="tablist" class="tablist">
-        <SelectableTab
-          :selected="tab === 'drive'"
-          icon="drive"
-          label="Data Catalog"
-          @update:selected="$event && (tab = 'drive')"
-        />
-        <SelectableTab
-          v-for="project in projectTabs"
-          :key="project.state.info.id"
-          data-testid="editor-tab-button"
-          :selected="project.shown.value"
-          :icon="project.state.status === 'initialized' ? 'graph_editor' : undefined"
-          :label="
-            project.state.status === 'initialized' ?
-              project.state.name.value
-            : project.state.info.title
-          "
-          @update:selected="$event && (tab = project.state.info.ensoPath)"
-          @close="openedProjects.closeProject(project.state.info.id)"
-        >
-          <GrowingSpinner
-            v-if="project.state.status !== 'initialized'"
-            :phase="loadingProjectSpinnerPhase(project)"
-            :size="16"
-          />
-        </SelectableTab>
-        <SelectableTab
-          v-if="tab === 'settings'"
-          :selected="true"
-          icon="settings"
-          label="Settings"
-          @close="closeSettingsTab"
-        />
-      </div>
-      <UserBar :goToSettingsPage="() => (tab = 'settings')" @signOut="onSignOut" />
-    </div>
-    <div class="mainView">
-      <div class="panel">
-        <KeepAlive>
-          <Drive v-if="tab === 'drive'" />
-        </KeepAlive>
-        <KeepAlive v-for="project in projectTabs" :key="project.state.info.id">
-          <ProjectView
-            v-if="tab === project.state.info.ensoPath"
-            :projectId="project.state.info.id"
-          />
-        </KeepAlive>
-        <KeepAlive>
-          <Settings v-if="tab === 'settings'" />
-        </KeepAlive>
-      </div>
-      <RightPanel />
-      <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
-    </div>
-  </RightPanelDataProviderForReact>
+  <div class="TabView">
+    <CommandPalette />
+    <ContainerDataProviderForReact>
+      <RightPanelDataProviderForReact>
+        <div class="bar">
+          <div role="tablist" class="tablist">
+            <SelectableTab
+              :selected="tab === 'drive'"
+              icon="drive"
+              label="Data Catalog"
+              @update:selected="$event && (tab = 'drive')"
+            />
+            <SelectableTab
+              v-for="project in projectTabs"
+              :key="project.state.info.id"
+              data-testid="editor-tab-button"
+              :selected="project.shown.value"
+              :icon="project.state.status === 'initialized' ? 'graph_editor' : undefined"
+              :label="
+                project.state.status === 'initialized' ?
+                  project.state.name.value
+                : project.state.info.title
+              "
+              @update:selected="$event && (tab = project.state.info.ensoPath)"
+              @close="openedProjects.closeProject(project.state.info.id)"
+            >
+              <GrowingSpinner
+                v-if="project.state.status !== 'initialized'"
+                :phase="loadingProjectSpinnerPhase(project)"
+                :size="16"
+              />
+            </SelectableTab>
+            <SelectableTab
+              v-if="tab === 'settings'"
+              :selected="true"
+              icon="settings"
+              label="Settings"
+              @close="closeSettingsTab"
+            />
+          </div>
+          <UserBar :goToSettingsPage="() => (tab = 'settings')" @signOut="onSignOut" />
+        </div>
+        <div class="mainView">
+          <div class="panel">
+            <KeepAlive>
+              <Drive v-if="tab === 'drive'" />
+            </KeepAlive>
+            <KeepAlive v-for="project in projectTabs" :key="project.state.info.id">
+              <ProjectView
+                v-if="tab === project.state.info.ensoPath"
+                :projectId="project.state.info.id"
+              />
+            </KeepAlive>
+            <KeepAlive>
+              <Settings v-if="tab === 'settings'" />
+            </KeepAlive>
+          </div>
+          <RightPanel />
+          <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
+        </div>
+      </RightPanelDataProviderForReact>
+    </ContainerDataProviderForReact>
+  </div>
 </template>
 
 <style scoped>

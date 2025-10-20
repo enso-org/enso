@@ -1,11 +1,23 @@
-import Backend, { AssetType, Path, Plan, type User } from '#/services/Backend'
+import Backend, {
+  AssetType,
+  EnsoPath,
+  extractTypeFromId,
+  isRemoteAssetPath,
+  Path,
+  Plan,
+  ProjectId,
+  type AssetDetailsResponse,
+  type User,
+} from '#/services/Backend'
 import LocalBackend, { newDirectoryId } from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { baseName } from '#/utilities/fileInfo'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
+import { useOpenedProjects } from '$/providers/openedProjects'
+import { backendQueryOptions } from '@/composables/backend'
 import { injectGuiConfig } from '@/providers/guiConfig'
-import { onlineManager } from '@tanstack/vue-query'
+import { onlineManager, useQueryClient } from '@tanstack/vue-query'
 import { Platform, platform } from 'enso-common/src/detect'
 import type { NavigationGuardReturn, RouteLocation } from 'vue-router'
 
@@ -14,6 +26,27 @@ export const LOCAL_WELCOME_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting
 export const CLOUD_WELCOME_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting Started.project`
 
 type BackendAPI<B extends Backend> = Pick<B, 'rootPath' | 'listDirectory'>
+
+export async function openProjectFromPath(to: RouteLocation) {
+  if (to.params.path == null) return
+  const { localBackend, remoteBackend } = useBackends()
+  const queryClient = useQueryClient()
+  const openedProjects = useOpenedProjects()
+
+  const path = EnsoPath(to.params.path instanceof Array ? to.params.path.join('/') : to.params.path)
+
+  if (!path) return
+  const backend = isRemoteAssetPath(path) ? remoteBackend : localBackend
+  if (backend == null) return
+  const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
+  const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
+  if (typedAsset?.type !== AssetType.project) return
+  const options = backendQueryOptions('getAssetDetails', [typedAsset.id, undefined], backend)
+  const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
+  if (!assetResponse) return
+
+  openedProjects.openProjectLocally(assetResponse, backend.type)
+}
 
 /** Get path of the project to auto-open on application launch. */
 export async function welcomeProjectPath(
