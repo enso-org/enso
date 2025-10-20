@@ -24,6 +24,36 @@ function engineDistributionTarget(version) {
   return 'enso/dist/' + version
 }
 
+/**
+ * AppImage is known to have sandboxing issues, for example:
+ * https://github.com/enso-org/enso/issues/3801 or
+ * https://github.com/enso-org/enso/issues/11035
+ * A solution to them is to run AppImage with --no-sandbox option (just passing no-sandbox
+ * as chrome option didn't seem to work). Wrapped app in a "sandbox fix loader"
+ * similar to https://github.com/gergof/electron-builder-sandbox-fix/blob/master/lib/index.js
+ * 'electron-builder-sandbox-fix' failed to detect the necessity of sandbox, so we just always
+ * add the option instead. This does not lower security, because Enso processes have access
+ * to user's filesystem anyway.
+ */
+async function patchAppImage(context) {
+  const executableName = context.packager.executableName
+  if (!executableName) throw new Error('Expected executableName in context.packager')
+  const executable = path.join(context.appOutDir, executableName)
+  const loaderScript = `#!/usr/bin/env bash
+      set -u
+
+      SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+      exec "$SCRIPT_DIR/${executableName}.bin" --no-sandbox "$@"
+      `
+  try {
+    await fs.rename(executable, executable + '.bin')
+    await fs.writeFile(executable, loaderScript)
+    await fs.chmod(executable, 0o755)
+  } catch (e) {
+    throw new Error('Failed to create loader for sandbox fix: ' + e.message)
+  }
+}
+
 module.exports = {
   appId: 'org.enso',
   productName: 'Enso',
@@ -107,32 +137,8 @@ module.exports = {
   },
   publish: null,
   afterPack: async (context) => {
-    // AppImage is known to have sandboxing issues, for example:
-    // https://github.com/enso-org/enso/issues/3801 or
-    // https://github.com/enso-org/enso/issues/11035
-    //
-    // A solution to them is to run AppImage with --no-sandbox option (just passing no-sandbox
-    // as chrome option didn't seem to work). Wrapped app in a "sandbox fix loader"
-    // similar to https://github.com/gergof/electron-builder-sandbox-fix/blob/master/lib/index.js
-    // 'electron-builder-sandbox-fix' failed to detect the necessity of sandbox, so we just always
-    // add the option instead. This does not lower security, because Enso processes have access
-    // to user's filesystem anyway.
-    if (context.electronPlatformName !== 'linux') return
-    const executableName = context.packager.executableName
-    if (!executableName) throw new Error('Expected executableName in context.packager')
-    const executable = path.join(context.appOutDir, executableName)
-    const loaderScript = `#!/usr/bin/env bash
-      set -u
-
-      SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
-      exec "$SCRIPT_DIR/${executableName}.bin" --no-sandbox "$@"
-      `
-    try {
-      await fs.rename(executable, executable + '.bin')
-      await fs.writeFile(executable, loaderScript)
-      await fs.chmod(executable, 0o755)
-    } catch (e) {
-      throw new Error('Failed to create loader for sandbox fix: ' + e.message)
+    if (context.electronPlatformName === 'linux') {
+      await patchAppImage(context)
     }
   },
 }
