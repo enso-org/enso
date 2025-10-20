@@ -633,7 +633,7 @@ val generateRustParserLib =
     )
   } else {
     val log     = state.value.log
-    val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
+    val profile = if (BuildInfo.isReleaseMode) "release" else "debug"
     val libName = System.mapLibraryName("enso_parser")
     // Destination of the native library as built by Cargo
     val libDest =
