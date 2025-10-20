@@ -21,6 +21,8 @@ object BazelSupport extends AutoPlugin {
   val RUST_PARSER_JAVA_SRC_DIR_PROP   = "enso.BazelSupport.parser.javaSrcDir"
   val RUST_PARSER_LIB_PROP            = "enso.BazelSupport.parser.lib"
   val EXTRACTED_PYTHON_RESOURCES_PROP = "enso.BazelSupport.python.resourceDir"
+  val YDOC_SERVER_POLYGLOT_MAIN_JS =
+    "enso.BazelSupport.ydocServer.polyglotMainJs"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
@@ -49,6 +51,9 @@ object BazelSupport extends AutoPlugin {
     )
     lazy val extractedPythonResourceDir = taskKey[File](
       "Directory containing extracted Python resources"
+    )
+    lazy val ydocServerPolyglotMainJs = taskKey[File](
+      "Path to the ydoc-server polyglot main JS file."
     )
     lazy val Bazel = config("Bazel")
   }
@@ -148,6 +153,23 @@ object BazelSupport extends AutoPlugin {
           )
         }
         dir
+      },
+      Bazel / ydocServerPolyglotMainJs := {
+        val logger = streams.value.log
+        val prop   = System.getProperty(YDOC_SERVER_POLYGLOT_MAIN_JS)
+        if (prop == null) {
+          logger.error(
+            s"Ydoc-server polyglot main JS not set in ${YDOC_SERVER_POLYGLOT_MAIN_JS} property."
+          )
+        }
+        val jsFile = new File(prop)
+        if (!jsFile.exists()) {
+          logger.warn(
+            s"Ydoc-server polyglot main JS not found at $jsFile. " +
+            "Make sure to build it with `bazel build //app/ydoc-server-polyglot:dist`."
+          )
+        }
+        jsFile
       }
     )
   }

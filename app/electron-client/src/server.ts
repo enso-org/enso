@@ -66,7 +66,6 @@ import { createReadStream, createWriteStream, statSync } from 'node:fs'
 import { access, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
-import { pathToFileURL } from 'node:url'
 import { createGzip } from 'node:zlib'
 import { ProjectService } from 'project-manager-shim/projectService'
 
@@ -84,7 +83,6 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
-const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 // ==================
 // === fileExists ===
@@ -233,47 +231,11 @@ export class Server {
           },
           handler: this.process.bind(this),
         },
-        (err, { https: httpsServer, http: httpServer }) => {
+        (err, _) => {
           void (async () => {
             if (err) {
               console.error(`Error creating server:`, err.http)
               reject(err)
-            }
-            const server = httpsServer ?? httpServer
-            if (!IS_ELECTRON_DEV_MODE) {
-              if (server) {
-                await ydocServer.createGatewayServer(server)
-              } else {
-                console.warn('YDocs server is not run, new GUI may not work properly!')
-              }
-            }
-            console.log(`Server started on port ${this.config.port}.`)
-            console.log(`Serving files from '${path.resolve(process.cwd(), this.config.dir)}'.`)
-            if (IS_ELECTRON_DEV_MODE) {
-              const vite = (await import(
-                pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
-              )) as typeof import('vite')
-              this.devServer = await vite.createServer({
-                server: {
-                  middlewareMode: true,
-                  hmr: server ? { server } : {},
-                },
-                configFile: process.env.GUI_CONFIG_PATH ?? false,
-                mode: process.env.MODE ?? 'staging',
-              })
-
-              const docServer = http.createServer()
-              docServer.on('request', (request, response) => {
-                if (request.method === 'GET' && request.url === '/_health') {
-                  response.writeHead(200, { 'Content-Type': 'text/plain; charset=UTF-8' }).end('OK')
-                }
-              })
-
-              await ydocServer.createGatewayServer(docServer)
-
-              docServer.listen(5976, 'localhost', () => {
-                console.log(`Ydoc server listening on localhost:5976`)
-              })
             }
             resolve()
           })()
