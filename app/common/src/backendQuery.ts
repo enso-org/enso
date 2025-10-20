@@ -23,7 +23,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'createDatalink'
   | 'createDirectory'
   | 'createPermission'
-  | 'createPersonalAccessToken'
+  | 'createApiKey'
   | 'createProject'
   | 'createProjectExecution'
   | 'createSecret'
@@ -136,8 +136,8 @@ export const INVALIDATION_MAP: Partial<
   updateProjectExecution: ['listProjectExecutions'],
   syncProjectExecution: ['listProjectExecutions'],
   deleteProjectExecution: ['listProjectExecutions'],
-  createPersonalAccessToken: ['listPersonalAccessTokens'],
-  deletePersonalAccessToken: ['listPersonalAccessTokens'],
+  createApiKey: ['listApiKeys'],
+  deletePersonalAccessToken: ['listApiKeys'],
 }
 
 /** For each backend method, an optional function defining how to create a query key from its arguments. */

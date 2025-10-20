@@ -33,7 +33,7 @@ export default class RemoteBackend extends Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
   override readonly baseUrl = new URL($config.API_URL ?? '', location.href)
-  tokens: backend.PersonalAccessToken[] = []
+  tokens: backend.ApiKey[] = []
   private user: objects.Mutable<backend.User> | null = null
 
   /** The path to the root directory of this {@link Backend}. */
@@ -1198,14 +1198,14 @@ export default class RemoteBackend extends Backend {
    * List all personal access tokens for the current user.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  async listPersonalAccessTokens(): Promise<readonly backend.PersonalAccessToken[]> {
+  async listApiKeys(): Promise<readonly backend.ApiKey[]> {
     // Temporary mock implementation
     return structuredClone(this.tokens)
-    const response = await this.get<readonly backend.PersonalAccessToken[]>(
+    const response = await this.get<readonly backend.ApiKey[]>(
       remoteBackendPaths.LIST_PERSONAL_ACCESS_TOKENS_PATH,
     )
     if (!response.ok) {
-      return await this.throw(response, 'listPersonalAccessTokensBackendError')
+      return await this.throw(response, 'listApiKeysBackendError')
     } else {
       return await response.json()
     }
@@ -1215,25 +1215,23 @@ export default class RemoteBackend extends Backend {
    * Create a new personal access token for the current user.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  async createPersonalAccessToken(
-    body: backend.CreatePersonalAccessTokenRequestBody,
-  ): Promise<backend.PersonalAccessToken> {
+  async createApiKey(body: backend.CreatePersonalAccessTokenRequestBody): Promise<backend.ApiKey> {
     // Temporary mock implementation
     const now = toRfc3339(new Date())
     const token = {
-      id: backend.AccessTokenId(`pat-${uniqueString()}`),
+      id: backend.ApiKeyId(`pat-${uniqueString()}`),
       name: body.name,
       createdAt: now,
       lastUsedAt: now,
     }
     this.tokens.push(token)
     return structuredClone(token)
-    const response = await this.post<backend.PersonalAccessToken>(
+    const response = await this.post<backend.ApiKey>(
       remoteBackendPaths.LIST_PERSONAL_ACCESS_TOKENS_PATH,
       body,
     )
     if (!response.ok) {
-      return await this.throw(response, 'createPersonalAccessTokenBackendError')
+      return await this.throw(response, 'createApiKeyBackendError')
     } else {
       return await response.json()
     }
@@ -1243,7 +1241,7 @@ export default class RemoteBackend extends Backend {
    * Delete a personal access token for the current user.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  async deletePersonalAccessToken(tokenId: backend.AccessTokenId) {
+  async deletePersonalAccessToken(tokenId: backend.ApiKeyId) {
     // Temporary mock implementation
     const index = this.tokens.findIndex((token) => token.id === tokenId)
     if (index !== -1) {

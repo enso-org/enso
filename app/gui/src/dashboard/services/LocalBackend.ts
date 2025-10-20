@@ -1025,12 +1025,12 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override listPersonalAccessTokens() {
+  override listApiKeys() {
     return this.invalidOperation()
   }
 
   /** Invalid operation. */
-  override createPersonalAccessToken() {
+  override createApiKey() {
     return this.invalidOperation()
   }
 

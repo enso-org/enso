@@ -8,7 +8,7 @@ import * as permissions from '../utilities/permissions.js'
 import * as uniqueString from '../utilities/uniqueString.js'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
-  AccessTokenId,
+  ApiKeyId,
   DatalinkId,
   DirectoryId,
   EnsoPath,
@@ -793,8 +793,8 @@ export interface LChColor {
   readonly alpha?: number | undefined
 }
 
-export interface PersonalAccessToken {
-  readonly id: AccessTokenId
+export interface ApiKey {
+  readonly id: ApiKeyId
   readonly name: string
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly lastUsedAt: dateTime.Rfc3339DateTime | null
@@ -2067,13 +2067,11 @@ export default abstract class Backend {
   abstract getPaymentsConfig(): Promise<PaymentsConfig>
 
   /** List all personal access tokens for the current user. */
-  abstract listPersonalAccessTokens(): Promise<readonly PersonalAccessToken[]>
+  abstract listApiKeys(): Promise<readonly ApiKey[]>
   /** Create a new personal access token for the current user. */
-  abstract createPersonalAccessToken(
-    body: CreatePersonalAccessTokenRequestBody,
-  ): Promise<PersonalAccessToken>
+  abstract createApiKey(body: CreatePersonalAccessTokenRequestBody): Promise<ApiKey>
   /** Delete a personal access token for the current user. */
-  abstract deletePersonalAccessToken(tokenId: AccessTokenId): Promise<void>
+  abstract deletePersonalAccessToken(tokenId: ApiKeyId): Promise<void>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(

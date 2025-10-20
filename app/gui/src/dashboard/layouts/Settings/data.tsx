@@ -8,7 +8,7 @@ import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
 import { setDownloadDirectory, setLocalRootDirectory } from '#/layouts/Drive/persistentState'
-import { PersonalAccessTokensSettingsSection } from '#/layouts/Settings/PersonalAccessTokensSettingsSection'
+import { ApiKeySettingsSection } from '#/layouts/Settings/ApiKeysSettingsSection'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import type Backend from '#/services/Backend'
 import {
@@ -553,19 +553,19 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
-  [SettingsTabType.personalAccessTokens]: {
-    nameId: 'personalAccessTokensSettingsTab',
-    settingsTab: SettingsTabType.personalAccessTokens,
+  [SettingsTabType.apiKeys]: {
+    nameId: 'apiKeysSettingsTab',
+    settingsTab: SettingsTabType.apiKeys,
     icon: 'key',
     sections: [
       {
-        nameId: 'personalAccessTokensSettingsSection',
+        nameId: 'apiKeysSettingsSection',
         columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
         entries: [
           {
             type: 'custom',
-            aliasesId: 'personalAccessTokensSettingsCustomEntryAliases',
-            render: () => <PersonalAccessTokensSettingsSection />,
+            aliasesId: 'apiKeysSettingsCustomEntryAliases',
+            render: () => <ApiKeySettingsSection />,
           },
         ],
       },
@@ -598,7 +598,7 @@ export const SETTINGS_DATA: SettingsData = [
     nameId: 'securitySettingsTabSection',
     tabs: [
       SETTINGS_TAB_DATA[SettingsTabType.activityLog],
-      SETTINGS_TAB_DATA[SettingsTabType.personalAccessTokens],
+      SETTINGS_TAB_DATA[SettingsTabType.apiKeys],
     ],
   },
 ]

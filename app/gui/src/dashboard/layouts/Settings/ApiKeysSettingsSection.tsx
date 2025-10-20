@@ -1,4 +1,4 @@
-/** @file Settings tab for viewing and editing roles for all users in the organization. */
+/** @file Settings section for viewing and managing API keys. */
 import { Cell, Column, Row, Table, TableBody, TableHeader } from '#/components/aria'
 import { Button } from '#/components/Button'
 import { Dialog, Popover } from '#/components/Dialog'
@@ -8,70 +8,57 @@ import { Scroller } from '#/components/Scroller'
 import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import type { PersonalAccessToken } from '#/services/Backend'
-import { tv } from '#/utilities/tailwindVariants'
+import type { ApiKey } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
-const PERSONAL_ACCESS_TOKEN_SETTINGS_SECTION_STYLES = tv({
-  base: '',
-  slots: {
-    tableContainer: 'min-h-0 flex-1',
-    table: 'max-w-3xl table-fixed self-start rounded-rows',
-    column:
-      'w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0',
-  },
-})
+const COLUMN_STYLES =
+  'w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0'
 
-/** Settings tab for viewing and editing organization teams. */
-export function PersonalAccessTokensSettingsSection() {
+/** Settings tab for viewing and managing API keys. */
+export function ApiKeySettingsSection() {
   const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
-  const { data: personalAccessTokens } = useSuspenseQuery(
-    backendQueryOptions(backend, 'listPersonalAccessTokens', []),
-  )
-
-  const styles = PERSONAL_ACCESS_TOKEN_SETTINGS_SECTION_STYLES({})
+  const { data: apiKeys } = useSuspenseQuery(backendQueryOptions(backend, 'listApiKeys', []))
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <Button.Group verticalAlign="center" className="flex-initial">
         <Popover.Trigger>
-          <Button variant="outline">{getText('newPersonalAccessToken')}</Button>
+          <Button variant="outline">{getText('newApiKey')}</Button>
           <Popover size="small" placement="bottom left">
-            <NewPersonalAccessTokenForm />
+            <NewApiKeyForm />
           </Popover>
         </Popover.Trigger>
       </Button.Group>
       <Scroller
         scrollbar
         orientation="vertical"
-        className={styles.tableContainer()}
+        className="min-h-0 flex-1"
         shadowStartClassName="mt-8"
       >
-        <Table aria-label={getText('personalAccessTokens')} className={styles.table()}>
+        <Table
+          aria-label={getText('apiKeys')}
+          className="max-w-3xl table-fixed self-start rounded-rows"
+        >
           <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
-            <Column isRowHeader className={styles.column({ className: 'w-48 min-w-48' })}>
+            <Column isRowHeader className={`${COLUMN_STYLES} w-48 min-w-48`}>
               {getText('name')}
             </Column>
-            <Column isRowHeader className={styles.column({ className: 'w-40 min-w-40' })}>
+            <Column isRowHeader className={`${COLUMN_STYLES} w-40 min-w-40`}>
               {getText('createdAt')}
             </Column>
-            <Column isRowHeader className={styles.column({ className: 'w-40 min-w-40' })}>
+            <Column isRowHeader className={`${COLUMN_STYLES} w-40 min-w-40`}>
               {getText('lastUsedAt')}
             </Column>
-            <Column isRowHeader className={styles.column()}>
+            <Column isRowHeader className={COLUMN_STYLES}>
               {getText('actions')}
             </Column>
           </TableHeader>
-          <TableBody
-            items={personalAccessTokens}
-            dependencies={[personalAccessTokens]}
-            className="select-text"
-          >
-            {personalAccessTokens.length === 0 ?
+          <TableBody items={apiKeys} dependencies={[apiKeys]} className="select-text">
+            {apiKeys.length === 0 ?
               <Row className="h-10">
                 <Cell
                   ref={(el) => {
@@ -85,13 +72,10 @@ export function PersonalAccessTokensSettingsSection() {
                   }}
                   className="px-2.5 placeholder"
                 >
-                  {getText('youHaveNoPersonalAccessTokens')}
+                  {getText('youHaveNoApiKeys')}
                 </Cell>
               </Row>
-            : (personalAccessToken) => (
-                <PersonalAccessTokenRow personalAccessToken={personalAccessToken} />
-              )
-            }
+            : (apiKey) => <ApiKeyRow apiKey={apiKey} />}
           </TableBody>
         </Table>
       </Scroller>
@@ -99,15 +83,15 @@ export function PersonalAccessTokensSettingsSection() {
   )
 }
 
-/** Props for a {@link PersonalAccessTokenRow}. */
-interface PersonalAccessTokenRowProps {
-  /** The personal access token to display in the row. */
-  readonly personalAccessToken: PersonalAccessToken
+/** Props for an {@link ApiKeyRow}. */
+interface ApiKeyRowProps {
+  /** The API key to display in the row. */
+  readonly apiKey: ApiKey
 }
 
-/** A row in the {@link PersonalAccessTokensSettingsSection} table. */
-function PersonalAccessTokenRow(props: PersonalAccessTokenRowProps) {
-  const { personalAccessToken } = props
+/** A row in the {@link ApiKeySettingsSection} table. */
+function ApiKeyRow(props: ApiKeyRowProps) {
+  const { apiKey } = props
   const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
   const deletePersonalAccessToken = useMutationCallback(
@@ -117,15 +101,13 @@ function PersonalAccessTokenRow(props: PersonalAccessTokenRowProps) {
   return (
     <Row className="group h-row rounded-rows-child">
       <Cell className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
-        {personalAccessToken.name}
+        {apiKey.name}
       </Cell>
       <Cell className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-        {toReadableIsoString(new Date(personalAccessToken.createdAt))}
+        {toReadableIsoString(new Date(apiKey.createdAt))}
       </Cell>
       <Cell className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-        {personalAccessToken.lastUsedAt ?
-          toReadableIsoString(new Date(personalAccessToken.lastUsedAt))
-        : getText('never')}
+        {apiKey.lastUsedAt ? toReadableIsoString(new Date(apiKey.lastUsedAt)) : getText('never')}
       </Cell>
       <Cell className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
         <Button.GroupJoin
@@ -137,11 +119,8 @@ function PersonalAccessTokenRow(props: PersonalAccessTokenRowProps) {
               {getText('delete')}
             </Button>
             <ConfirmDeleteModal
-              actionText={getText(
-                'deletePersonalAccessTokenConfirmation',
-                personalAccessToken.name,
-              )}
-              onConfirm={() => deletePersonalAccessToken([personalAccessToken.id])}
+              actionText={getText('deletePersonalAccessTokenConfirmation', apiKey.name)}
+              onConfirm={() => deletePersonalAccessToken([apiKey.id])}
             />
           </Popover.Trigger>
         </Button.GroupJoin>
@@ -150,17 +129,13 @@ function PersonalAccessTokenRow(props: PersonalAccessTokenRowProps) {
   )
 }
 
-/** A form to create a personal access token. */
-function NewPersonalAccessTokenForm() {
+/** A form to create an API key. */
+function NewApiKeyForm() {
   const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
-  const { data: personalAccessTokens } = useSuspenseQuery(
-    backendQueryOptions(backend, 'listPersonalAccessTokens', []),
-  )
-  const personalAccessTokenNames = new Set(personalAccessTokens.map((token) => token.name))
-  const createPersonalAccessToken = useMutationCallback(
-    backendMutationOptions(backend, 'createPersonalAccessToken'),
-  )
+  const { data: apiKeys } = useSuspenseQuery(backendQueryOptions(backend, 'listApiKeys', []))
+  const apiKeyNames = new Set(apiKeys.map((apiKey) => apiKey.name))
+  const createApiKey = useMutationCallback(backendMutationOptions(backend, 'createApiKey'))
 
   return (
     <Form
@@ -169,16 +144,13 @@ function NewPersonalAccessTokenForm() {
           name: z
             .string()
             .min(1)
-            .refine(
-              (name) => !personalAccessTokenNames.has(name),
-              getText('duplicatePersonalAccessTokenError'),
-            ),
+            .refine((name) => !apiKeyNames.has(name), getText('duplicateApiKeyError')),
         })
       }
       method="dialog"
-      onSubmit={({ name }) => createPersonalAccessToken([{ name }])}
+      onSubmit={({ name }) => createApiKey([{ name }])}
     >
-      <Text.Heading variant="subtitle">{getText('newPersonalAccessToken')}</Text.Heading>
+      <Text.Heading variant="subtitle">{getText('newApiKey')}</Text.Heading>
       <Input name="name" label={getText('name')} />
       <Button.Group className="relative">
         <Form.Submit />
