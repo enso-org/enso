@@ -46,8 +46,6 @@ pub async fn build_package(
         .arg("--release")
         .arg("--package")
         .arg(crate_name)
-        .arg("-Z")
-        .arg("unstable-options")
         .arg("--out-dir")
         .arg(temp_dir.path())
         .run_ok()

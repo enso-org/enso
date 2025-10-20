@@ -659,8 +659,6 @@ val generateRustParserLib =
         "enso-parser-jni",
         "--profile",
         profile,
-        "-Z",
-        "unstable-options"
       ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
         Seq(
           "--artifact-dir",
