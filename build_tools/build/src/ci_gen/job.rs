@@ -727,7 +727,7 @@ pub struct NativeTest;
 
 impl JobArchetype for NativeTest {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Native Rust tests", "wasm test --no-wasm")
+        plain_job(target, "Native Rust tests", "wasm test")
     }
 }
 

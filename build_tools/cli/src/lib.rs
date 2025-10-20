@@ -57,6 +57,7 @@ use enso_build::source::Source;
 use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
+use futures_util::future::try_join_all;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
 use ide_ci::fs::remove_if_exists;
@@ -792,17 +793,35 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             }
 
             if !dry_run {
-                // On Windows, `npm` uses junctions as symbolic links for in-workspace dependencies.
+                // On Windows, `pnpm` uses junctions as symbolic links for in-workspace dependencies.
                 // Unfortunately, Git for Windows treats those as hard links. That then leads to
                 // `git clean` recursing into those linked directories, happily deleting sources of
-                // whole linked packages. Manually deleting `node_modules` before running clean
-                // prevents this from happening.
-                //
-                // Related npm issue: https://github.com/npm/npm/issues/19091
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("node_modules")).await?;
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-enso")).await?;
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-out")).await?;
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-bin")).await?;
+                // whole linked packages or failing on files that were already deleted. Manually
+                // deleting junction directories before running clean prevents this from happening.
+                let junctions = [
+                    "bazel-enso",
+                    "bazel-out",
+                    "bazel-bin",
+                    "node_modules",
+                    "app/common/node_modules",
+                    "app/gui/node_modules",
+                    "app/electron-client/node_modules",
+                    "app/lang-markdown/node_modules",
+                    "app/lezer-markdown/node_modules",
+                    "app/project-manager-shim/node_modules",
+                    "app/rust-ffi/node_modules",
+                    "app/table-expression/node_modules",
+                    "app/ydoc-server/node_modules",
+                    "app/ydoc-server-nodejs/node_modules",
+                    "app/ydoc-server-polyglot/node_modules",
+                    "app/ydoc-shared/node_modules",
+                    "lib/js/runner/node_modules",
+                ];
+
+                try_join_all(junctions.map(|rel_path| {
+                    ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join(rel_path))
+                }))
+                .await?;
             }
 
             let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
