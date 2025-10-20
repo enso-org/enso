@@ -1,10 +1,10 @@
 import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
+import { type NodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import type { NodeVisualizationConfiguration } from '$/providers/openedProjects/project/executionContext'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
-import type { NodeId } from '@/stores/graph/graphDatabase'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
-import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
   DEFAULT_VISUALIZATION_IDENTIFIER,

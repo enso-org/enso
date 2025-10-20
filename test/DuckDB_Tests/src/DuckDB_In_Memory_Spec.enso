@@ -1,0 +1,23 @@
+from Standard.Base import all
+from Standard.Table import all
+from Standard.Database import all
+from Standard.DuckDB import all
+
+from Standard.Test import all
+
+add_specs suite_builder =
+    suite_builder.group "DuckDB_Parquet" group_builder->
+        group_builder.specify "Connect to an In-Memory Database" <|
+            connect = Database.connect DuckDB.In_Memory
+            connect.database.should_equal "memory"
+
+        group_builder.specify "List schemas" <|
+            connect = Database.connect DuckDB.In_Memory
+            connect.schema.should_equal "main"
+            connect.schemas.should_contain "main"
+            connect.schemas.should_contain "information_schema"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

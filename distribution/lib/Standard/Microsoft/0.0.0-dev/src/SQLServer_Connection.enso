@@ -1,15 +1,16 @@
 from Standard.Base import all
-import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.File_Type
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
+from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
+import Standard.Database.DB_Table as DB_Table_Module
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Internal.Common.Connections_Helpers
 import Standard.Database.Internal.Common.Encoding_Limited_Naming_Properties.Encoding_Limited_Naming_Properties
@@ -18,12 +19,14 @@ import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL_Query.SQL_Query
-from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_types_selector
+from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_selector, make_table_name_with_schema_selector, make_table_types_selector
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
+from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
 
 import project.Connection.SQLServer_Query.SQLServer_Query
 import project.Internal.SQLServer_Dialect
+import project.Internal.SQLServer_Type_Mapping.SQLServer_Type_Mapping
 
 polyglot java import java.sql.SQLException
 polyglot java import org.enso.database.JDBCProxy
@@ -61,7 +64,7 @@ type SQLServer_Connection
         ## jdbc reports table name length limit as 128, but it actually seems to be 116 for temp tables so we override it
         limited = Encoding_Limited_Naming_Properties.Instance Encoding.utf_8 limit=116 is_case_sensitive=True
         modified_entity_naming_properties = Entity_Naming_Properties.Value for_table_names=limited for_column_names=jdbc_entity_naming_properties.for_column_names for_generated_column_names=jdbc_entity_naming_properties.for_generated_column_names
-        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver modified_entity_naming_properties data_link_setup) make_new
+        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Dialect.sqlserver SQLServer_Type_Mapping modified_entity_naming_properties data_link_setup statement_setter=SQLServer_Type_Mapping.statement_setter) make_new
 
     ## ---
        private: true
@@ -103,7 +106,7 @@ type SQLServer_Connection
 
        ## Arguments
         - database: The name of the database to connect to.
-    @database (self-> Single_Choice display=Display.Always values=(self.databases . map d-> Option d d.pretty))
+    @database (self-> Single_Choice display=..Always values=(self.databases . map d-> Option d d.pretty))
     set_database : Text -> Connection ! SQL_Error
     set_database self database =
         if database . equals_ignore_case self.database then self else
@@ -199,14 +202,14 @@ type SQLServer_Connection
           is raised.
         - If provided with a `Table_Name` or a text short-hand and the table is
           not found, a `Table_Not_Found` error is raised.
-    @query make_table_name_selector
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
     query : (SQLServer_Query | SQL_Query) -> Text -> Table & DB_Table ! Table_Not_Found
     query self query:(SQLServer_Query | SQL_Query) alias="" =
         used_query = case query of
             SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
             SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql
             _ : SQLServer_Query -> query
-        self.connection.query used_query alias
+        used_query.to_db_table self alias
 
     ## ---
        aliases: [import, load, open, query, sql]
@@ -228,15 +231,11 @@ type SQLServer_Connection
        it is provided with a DML query. Usually it is preferred to use
        `execute_update` for DML queries, or if they are supposed to return
        results, the `read` should be wrapped in an execution context check.
-    @query make_table_name_selector
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
     @limit Rows_To_Read.default_widget
     read : (SQLServer_Query | SQL_Query) -> Rows_To_Read -> Table ! Table_Not_Found
     read self query:(SQLServer_Query | SQL_Query) (limit : Rows_To_Read = ..First_With_Warning 1000) =
-        used_query = case query of
-            SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
-            SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql
-            _ : SQLServer_Query -> query
-        self.connection.read used_query limit
+        self.query query . read limit
 
     ## ---
        group: Standard.Base.Output
@@ -286,7 +285,22 @@ type SQLServer_Connection
     @structure make_structure_creator
     create_table : Text  -> Vector Column_Description | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Table & DB_Table ! Table_Already_Exists
     create_table self (table_name : Text) (structure : Vector Column_Description | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = Problem_Behavior.Report_Warning) =
-        self.connection.create_table table_name structure primary_key temporary allow_existing on_problems
+        create_table_implementation self table_name structure primary_key temporary allow_existing on_problems
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a `DB_Table` that is not backed by an existing table in the
+       Database, but is created in a query by constructing a `VALUES` expression.
+       We limit these tables to at most 256 cells to avoid creating too large
+       queries. If you need a larger table, create a temporary table instead.
+       Note that the types of columns in the created table will depend on how the
+       Database interprets the provided values and may not reflect the types of
+       the source table. If you need more sophisticated type mapping mechanism,
+       use `create_table` instead.
+    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table =
+        DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
 
     ## ---
        advanced: true
@@ -353,6 +367,18 @@ type SQLServer_Connection
     ## ---
        private: true
        ---
+       Access the Type Mapping.
+    type_mapping self = self.connection.type_mapping
+
+    ## ---
+       private: true
+       ---
+       Access the Statement Setter.
+    statement_setter self = self.connection.statement_setter
+
+    ## ---
+       private: true
+       ---
        Access the underlying JDBC connection.
     jdbc_connection self = self.connection.jdbc_connection
 
@@ -393,9 +419,24 @@ type SQLServer_Connection
        icon: data_output
        ---
        Creates a Data Link that will open the same connection.
+    @path (File_Browse file_types=[File_Type.Option "DataLink" ["datalink"]] existing_only=False display=..Always)
     @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
-    save_as_data_link self destination (on_existing_file:Existing_File_Behavior = ..Error) =
-        self.base_connection.save_as_data_link destination on_existing_file
+    save_as_data_link self path:Enso_File (on_existing_file:Existing_File_Behavior = ..Error) =
+        self.base_connection.save_as_data_link path on_existing_file
+
+    ## ---
+       icon: metadata
+       ---
+       Get the Primary Key for a given table.
+       Returns `Nothing` if the key is not defined.
+
+       ## Arguments
+       - `table_name`: the name of the table to get the primary key for.
+       - `schema_name`: optionally, the schema name where the table is located.
+    @table_name make_table_name_selector add_custom=False
+    fetch_primary_key : Text -> Text -> Vector Text ! Nothing
+    fetch_primary_key self table_name:Text schema_name:Text="" =
+        self.base_connection.fetch_primary_key table_name schema_name
 
     ## ---
        private: true
@@ -417,17 +458,3 @@ Table_Viz_Data.from (that:SQLServer_Connection) =
    ---
 schema_black_list =
     ["INFORMATION_SCHEMA", "sys", "db_accessadmin", "db_backupoperator", "db_datareader", "db_datawriter", "db_ddladmin", "db_denydatareader", "db_denydatawriter", "db_owner", "db_securityadmin"]
-
-## ---
-   private: true
-   ---
-make_table_name_selector connection =
-    schema = connection.schema
-    schema_text sch = if sch == schema then "" else sch+"."
-    tables = connection.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
-    table_name_values = tables.rows.map r->
-        name = r.at "Name"
-        sch = r.at "Schema"
-        Option ((schema_text sch) + name) "(..Table_Name "+name.pretty+(if sch == schema then "" else " "+sch.pretty)+")"
-    values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
-    Single_Choice display=Display.Always values=values

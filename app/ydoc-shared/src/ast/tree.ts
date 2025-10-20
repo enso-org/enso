@@ -3194,7 +3194,9 @@ export class Vector extends BaseExpression {
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableVector> | undefined {
     const parsed = parseExpression(source, module)
-    if (parsed instanceof MutableVector) return parsed
+    if (parsed instanceof MutableVector) {
+      return parsed
+    }
   }
 
   /** TODO: Add docs */

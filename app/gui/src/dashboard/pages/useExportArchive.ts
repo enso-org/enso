@@ -30,11 +30,11 @@ export function useExportArchive(options: ExportArchiveOptions) {
     const secondsString = new Date().getSeconds().toString().padStart(2, '0')
     const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
     const [filePathRaw] =
-      (await window.fileBrowserApi?.openFileBrowser(
+      (await window.api?.fileBrowser.openFileBrowser(
         'filePath',
         `${downloadDirectory}/${PRODUCT_NAME} ${dateString}.zip`,
       )) ?? []
-    if (window.fileBrowserApi && filePathRaw == null) {
+    if (window.api && filePathRaw == null) {
       // Assume that the user cancelled the action.
       return
     }

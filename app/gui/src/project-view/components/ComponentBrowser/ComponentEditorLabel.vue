@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import TooltipTrigger from '@/components/TooltipTrigger.vue'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { computed } from 'vue'
 

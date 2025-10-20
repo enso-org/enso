@@ -6,13 +6,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import org.enso.base.cache.ReloadDetector;
 import org.enso.table.excel.ExcelFileFormat;
-import org.enso.table.excel.ExcelWorkbook;
+import org.enso.table.excel.ExcelFormatStrategy;
+import org.enso.table.excel.ExcelWorkbookReader;
 import org.enso.table.util.FunctionWithException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A singleton cache for {@link ExcelWorkbook} connections.
+ * A singleton cache for {@link ExcelWorkbookReader} connections.
  *
  * <p>Provides read-only access helpers that reuse an open workbook connection per excel workbook.
  * Integrates with {@link ReloadDetector} to clear state on reload and allows explicit closing of
@@ -28,13 +29,13 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExcelConnectionPool.class);
 
-  private final HashMap<String, ExcelWorkbook> workbooksCache = new HashMap<>();
+  private final HashMap<String, ExcelWorkbookReader> workbooksCache = new HashMap<>();
 
   /** Private constructor to enforce the singleton pattern. Use {@link #INSTANCE}. */
   private ExcelConnectionPool() {}
 
   /**
-   * Performs a read-only action using a cached {@link ExcelWorkbook} connection.
+   * Performs a read-only action using a cached {@link ExcelWorkbookReader} connection.
    *
    * <p>Registers this pool with {@link ReloadDetector} so the cache is cleared on reload, opens (or
    * reuses) a cached workbook for the given file and format, and applies the provided action. The
@@ -42,7 +43,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
    *
    * @param file the Excel workbook file to open
    * @param format the expected {@link ExcelFileFormat}
-   * @param action a function operating on the opened {@link ExcelWorkbook}
+   * @param action a function operating on the opened {@link ExcelWorkbookReader}
    * @param <R> the action's return type
    * @return the result produced by {@code action}
    * @throws IOException if the file cannot be opened or resolved
@@ -51,7 +52,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   public <R> R performReadOnlyAction(
       File file,
       ExcelFileFormat format,
-      FunctionWithException<ExcelWorkbook, R, InterruptedException> action)
+      FunctionWithException<ExcelWorkbookReader, R, InterruptedException> action)
       throws IOException, InterruptedException {
     ReloadDetector.clearOnReload(this);
     var workbook = openCachedConnection(file, format);
@@ -69,7 +70,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
    */
   public void closeConnection(File file, ExcelFileFormat format) throws IOException {
     String key = getKeyForFile(file, format);
-    ExcelWorkbook existingWorkbook = workbooksCache.get(key);
+    ExcelWorkbookReader existingWorkbook = workbooksCache.get(key);
     if (existingWorkbook != null) {
       existingWorkbook.close();
       workbooksCache.remove(key);
@@ -106,19 +107,20 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   }
 
   /**
-   * Returns a cached {@link ExcelWorkbook} for the given file and format, opening it if necessary.
+   * Returns a cached {@link ExcelWorkbookReader} for the given file and format, opening it if
+   * necessary.
    *
    * <p>Validates that the file exists, then uses a canonical-path-based key to locate or create a
    * cached connection.
    *
    * @param file the Excel file to access
    * @param format the {@link ExcelFileFormat} of the file
-   * @return an open {@link ExcelWorkbook}
+   * @return an open {@link ExcelWorkbookReader}
    * @throws FileNotFoundException if {@code file} does not exist
    * @throws IOException if the file cannot be opened or canonicalized
    * @throws InterruptedException if opening the workbook is interrupted
    */
-  private ExcelWorkbook openCachedConnection(File file, ExcelFileFormat format)
+  private ExcelWorkbookReader openCachedConnection(File file, ExcelFileFormat format)
       throws IOException, InterruptedException {
     if (!file.exists()) {
       throw new FileNotFoundException(file.toString());
@@ -126,7 +128,8 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
     String key = getKeyForFile(file, format);
     var workbook = workbooksCache.get(key);
     if (workbook == null) {
-      workbook = ExcelWorkbook.getExcelWorkbook(file, format);
+      var strategy = ExcelFormatStrategy.createStrategy(format);
+      workbook = strategy.getExcelWorkbookReader(file);
       workbooksCache.put(key, workbook);
     }
     return workbook;

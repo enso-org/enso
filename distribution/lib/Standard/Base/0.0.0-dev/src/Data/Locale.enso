@@ -6,8 +6,8 @@ import project.Data.Vector.Vector
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
-import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Nothing import all
 from project.Data.Text.Extensions import all
 from project.Metadata.Choice import Option
 

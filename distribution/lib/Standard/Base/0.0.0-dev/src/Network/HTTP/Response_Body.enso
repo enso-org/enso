@@ -11,7 +11,6 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.URI.URI
-import project.Nothing.Nothing
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.Advanced.Restartable_Input_Stream.Restartable_Input_Stream
@@ -24,6 +23,7 @@ import project.System.File_Format.File_Format
 import project.System.File_Format.Infer
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
+from project.Nothing import all
 from project.Data.Boolean import Boolean
 from project.Data.Text.Extensions import all
 from project.Error import all

@@ -45,7 +45,7 @@ export default function Login() {
       }),
     defaultValues: { email: initialEmail ?? '' },
     onSubmit: async ({ email, password }) => {
-      // This is special case, needed by package testing. See app/ide-desktop/client/tests/electronTest.ts.
+      // This is special case, needed by package testing. See app/electron-client/tests/electronTest.ts.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, @typescript-eslint/no-explicit-any
       const passwordOverride: string = (window as any).passwordOverride
       const { user, challenge } = await signInWithPassword(

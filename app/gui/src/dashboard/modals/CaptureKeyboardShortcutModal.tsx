@@ -5,13 +5,13 @@ import { Form } from '#/components/Form'
 import { Text } from '#/components/Text'
 import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import { unsetModal } from '#/providers/ModalProvider'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import {
   modifierFlagsForEvent,
   modifiersForModifierFlags,
   normalizedKeyboardSegmentLookup,
-} from '#/utilities/inputBindings'
-import { twMerge } from '#/utilities/tailwindMerge'
-import { useText } from '$/providers/react'
+} from '@/util/shortcuts'
 import { isOnMacOS } from 'enso-common/src/detect'
 import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 

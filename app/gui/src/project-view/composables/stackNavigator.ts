@@ -1,7 +1,7 @@
+import { type GraphStore, type NodeId } from '$/providers/openedProjects/graph'
+import { type ProjectStore } from '$/providers/openedProjects/project'
+import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import type { BreadcrumbItem } from '@/components/NavBreadcrumbs.vue'
-import type { GraphStore, NodeId } from '@/stores/graph'
-import type { ProjectStore } from '@/stores/project'
-import type { ProjectNameStore } from '@/stores/projectNames'
 import { methodPointerEquals, type StackItem } from '@/util/methodPointer'
 import { computed, onMounted, ref } from 'vue'
 

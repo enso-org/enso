@@ -480,7 +480,6 @@ fn to_statement<'s>(
         | TextLiteral(_)
         | App(_)
         | NamedApp(_)
-        | OprApp(_)
         | UnaryOprApp(_)
         | AutoscopedIdentifier(_)
         | MultiSegmentApp(_)
@@ -489,6 +488,7 @@ fn to_statement<'s>(
         | CaseOf(_)
         | Array(_)
         | Tuple(_) => Ok(Expression),
+        OprApp(app) if app.lhs.is_some() && app.rhs.is_some() => Ok(Expression),
         // Expression, but since it can only occur in tail position, it never needs an
         // `ExpressionStatement` node.
         BodyBlock(_) => Ok(Statement),
@@ -504,9 +504,9 @@ fn to_statement<'s>(
         | Annotation(_)
         | Documentation(_)
         | ConstructorDefinition(_) => Ok(Statement),
-        // These will become an error in the future.
-        OprSectionBoundary(_) => Ok(Expression),
-        TemplateFunction(_) | Lambda(_) => Ok(Expression),
+        // Operator sections (fully-applied operators are matched above)
+        OprApp(_) => Err(SyntaxError::StmtUnexpectedFunctionExpressionOprSection),
+        TemplateFunction(_) | Lambda(_) => Err(SyntaxError::StmtUnexpectedFunctionExpression),
         // Shouldn't be possible here, but this is not currently guaranteed by the types.
         ExpressionStatement(_) => Err(SyntaxError::Internal),
     } {

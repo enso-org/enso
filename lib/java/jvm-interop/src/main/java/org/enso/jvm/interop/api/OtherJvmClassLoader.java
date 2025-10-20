@@ -3,6 +3,7 @@ package org.enso.jvm.interop.api;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -35,21 +36,27 @@ public final class OtherJvmClassLoader implements TruffleObject {
   /**
    * Creates instance of the class loader.
    *
+   * @param mainModule name of the main module to initialize
    * @param language the language to associate objects loaded by this loader with
    * @param otherJvm normally we run in AOT mode but for debugging purposes we can also emulate the
-   *     connection in a single JVM
+   *     connection in a single JVM - pass in value of TruffleOptions.AOT or equivalent
    * @param ctx own context to execute code in
    * @return new instance of the class loader
    * @throws IOException
    * @throws URISyntaxException
    */
   public static OtherJvmClassLoader create(
-      Class<? extends TruffleLanguage> language, boolean otherJvm, TruffleContext ctx)
+      String mainModule,
+      Class<? extends TruffleLanguage> language,
+      boolean otherJvm,
+      TruffleContext ctx)
       throws IOException, URISyntaxException {
-    var jvm = otherJvm ? initializeJvm() : null;
+    var jvm = otherJvm ? initializeJvm(mainModule) : null;
     var ch = Channel.create(jvm, OtherJvmPool.class);
     var pool = ch.getConfig();
-    pool.onEnterLeave(language, ctx::enter, ctx::leave);
+    if (ctx != null) {
+      pool.onEnterLeave(language, ctx::enter, ctx::leave);
+    }
     return new OtherJvmClassLoader(ch);
   }
 
@@ -65,7 +72,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
 
   @ExportMessage
   boolean isMemberInvocable(String member) {
-    return "addPath".equals(member);
+    return "addPath".equals(member) || "findLibraries".equals(member) || "close".equals(member);
   }
 
   @ExportMessage
@@ -98,6 +105,15 @@ public final class OtherJvmClassLoader implements TruffleObject {
           throw UnsupportedTypeException.create(args);
         }
       }
+      case "close" -> {
+        try {
+          channel.close();
+        } catch (AbstractTruffleException ex) {
+          throw ex;
+        } catch (Exception ex) {
+          throw new org.enso.jvm.interop.impl.OtherJvmException(ex);
+        }
+      }
       default -> throw UnknownIdentifierException.create(name);
     }
     return this;
@@ -109,7 +125,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
     return result.value(null);
   }
 
-  private static JVM initializeJvm() throws IOException, URISyntaxException {
+  private static JVM initializeJvm(String mainModule) throws IOException, URISyntaxException {
     var home = System.getProperty("java.home");
     if (home == null) {
       throw new IOException("No java.home specified");
@@ -139,7 +155,7 @@ public final class OtherJvmClassLoader implements TruffleObject {
       throw new IOException("Cannot find " + component + " directory");
     }
     commandAndArgs.add("--module-path=" + component.getPath());
-    commandAndArgs.add("-Djdk.module.main=org.enso.jvm.interop");
+    commandAndArgs.add("-Djdk.module.main=" + mainModule);
     return JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
   }
 }

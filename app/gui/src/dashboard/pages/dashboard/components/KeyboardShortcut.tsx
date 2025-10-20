@@ -8,16 +8,11 @@ import SvgMask from '#/components/SvgMask'
 import { Text } from '#/components/Text'
 import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import {
-  compareModifiers,
-  decomposeKeybindString,
-  toModifierKey,
-  type Key,
-  type ModifierKey,
-} from '#/utilities/inputBindings'
+import { toModifierKey } from '#/utilities/inputBindings'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
+import { type ModifierKey, parseKeybindString } from '@/util/shortcuts'
 import * as detect from 'enso-common/src/detect'
 import type * as text from 'enso-common/src/text'
 import * as React from 'react'
@@ -80,7 +75,7 @@ const KEY_CHARACTER: Readonly<Record<string, string>> = {
   ArrowLeft: '←',
   ArrowRight: '→',
   /* eslint-enable @typescript-eslint/naming-convention */
-} satisfies Partial<Record<Key, string>>
+}
 
 const MODIFIER_TO_TEXT_ID: Readonly<Record<ModifierKey, text.TextId>> = {
   // The names come from a third-party API and cannot be changed.
@@ -118,8 +113,8 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
   if (shortcutString == null) {
     return null
   } else {
-    const shortcut = decomposeKeybindString(shortcutString)
-    const modifiers = [...shortcut.modifiers].sort(compareModifiers).map(toModifierKey)
+    const shortcut = parseKeybindString(shortcutString).info
+    const modifiers = shortcut.modifiers.map(toModifierKey)
     return (
       <div
         className={twMerge(

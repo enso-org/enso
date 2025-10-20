@@ -1,10 +1,12 @@
-import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
-import { useAI } from '@/components/ComponentBrowser/ai'
-import type { Filter, SelfArg } from '@/components/ComponentBrowser/filtering'
-import type { NodeId } from '@/stores/graph'
-import type { GraphDb } from '@/stores/graph/graphDatabase'
-import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
-import type { SuggestionDb } from '@/stores/suggestionDatabase'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { type NodeId } from '$/providers/openedProjects/graph'
+import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
+import {
+  requiredImportEquals,
+  requiredImports,
+  type RequiredImport,
+} from '$/providers/openedProjects/module/imports'
+import { type SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
 import {
   entryDisplayOwner,
   entryDisplayPath,
@@ -12,16 +14,18 @@ import {
   entryIsStatic,
   type SuggestionEntry,
   type SuggestionId,
-} from '@/stores/suggestionDatabase/entry'
+} from '$/providers/openedProjects/suggestionDatabase/entry'
+import { useAI } from '@/components/ComponentBrowser/ai'
+import type { Filter, SelfArg } from '@/components/ComponentBrowser/filtering'
 import { Ast } from '@/util/ast'
 import { selfArgSeparator } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { ANY_TYPE } from '@/util/ensoTypes'
 import type { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
-import { proxyRefs } from '@/util/reactivity'
+import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
-import { computed, readonly, ref, shallowRef, type ComputedRef } from 'vue'
+import { computed, readonly, ref, shallowRef, toRef, toValue, type ComputedRef } from 'vue'
 import { Range } from 'ydoc-shared/util/data/range'
 
 /** Information how the component browser is used, needed for proper input initializing. */
@@ -53,8 +57,8 @@ export type ComponentBrowserMode =
 
 /** Component Browser Input Data */
 export function useComponentBrowserInput(
-  graphDb: GraphDb = useGraphStore().db,
-  suggestionDb: SuggestionDb = useSuggestionDbStore().entries,
+  graphDb: ToValue<GraphDb> = toRef(useCurrentProject().graph.value, 'db'),
+  suggestionDb: ToValue<SuggestionDb> = toRef(useCurrentProject().suggestionDb.value, 'entries'),
   ai: { query(query: string, sourcePort: string): Promise<Result<string>> } = useAI(),
 ) {
   const text = ref('')
@@ -138,17 +142,19 @@ export function useComponentBrowserInput(
 
   const sourceNodeType = computed<SelfArg | null>(() => {
     if (!sourceNodeIdentifier.value) return null
-    const definition = graphDb.getIdentDefiningNode(sourceNodeIdentifier.value)
+    const graphDbValue = toValue(graphDb)
+    const definition = graphDbValue.getIdentDefiningNode(sourceNodeIdentifier.value)
     if (definition == null) return null
-    const info = graphDb.getExpressionInfo(definition)
+    const info = graphDbValue.getExpressionInfo(definition)
     if (info == null || info.typeInfo == null) return { type: 'unknown' }
-    const ancestors = [...info.typeInfo.ancestors(suggestionDb)]
+    const ancestors = [...info.typeInfo.ancestors(toValue(suggestionDb))]
     return { type: 'known', typeInfo: info.typeInfo, ancestors }
   })
 
   /** Apply given suggested entry to the input. */
   function applySuggestion(id: SuggestionId, suffix: string | undefined): Result {
-    const entry = suggestionDb.get(id)
+    const suggestionDbValue = toValue(suggestionDb)
+    const entry = suggestionDbValue.get(id)
     if (!entry) return Err(`No entry with id ${id}`)
     switchedToCodeMode.value = { appliedSuggestion: entry }
     const { newText, requiredImport } = inputAfterApplyingSuggestion(entry)
@@ -156,15 +162,15 @@ export function useComponentBrowserInput(
     text.value = newTextWithSuffix
     selection.value = Range.emptyAt(newTextWithSuffix.length)
     if (requiredImport) {
-      const importId = suggestionDb.findByProjectPath(requiredImport)
+      const importId = suggestionDbValue.findByProjectPath(requiredImport)
       if (importId) {
-        const requiredEntry = suggestionDb.get(importId)
+        const requiredEntry = suggestionDbValue.get(importId)
         if (requiredEntry) {
-          imports.value = imports.value.concat(requiredImports(suggestionDb, requiredEntry))
+          imports.value = imports.value.concat(requiredImports(suggestionDbValue, requiredEntry))
         }
       }
     } else {
-      imports.value = imports.value.concat(requiredImports(suggestionDb, entry))
+      imports.value = imports.value.concat(requiredImports(suggestionDbValue, entry))
     }
     return Ok()
   }
@@ -232,10 +238,11 @@ export function useComponentBrowserInput(
   }
 
   function reset(usage: Usage) {
+    const graphDbValue = toValue(graphDb)
     switch (usage.type) {
       case 'newNode':
         if (usage.sourcePort) {
-          const ident = graphDb.getOutputPortIdentifier(usage.sourcePort)
+          const ident = graphDbValue.getOutputPortIdentifier(usage.sourcePort)
           sourceNodeIdentifier.value = ident != null && Ast.isIdentifier(ident) ? ident : undefined
         } else {
           sourceNodeIdentifier.value = undefined
@@ -245,7 +252,7 @@ export function useComponentBrowserInput(
         break
       case 'editNode': {
         const parsed = extractSourceNode(
-          graphDb.nodeIdToNode.get(usage.node)?.innerExpr.code() ?? '',
+          graphDbValue.nodeIdToNode.get(usage.node)?.innerExpr.code() ?? '',
         )
         text.value = parsed.text
         sourceNodeIdentifier.value = parsed.sourceNodeIdentifier
@@ -265,7 +272,7 @@ export function useComponentBrowserInput(
       matchedSource != null &&
       Ast.isIdentifier(matchedSource) &&
       matchedCode != null &&
-      graphDb.getIdentDefiningNode(matchedSource)
+      toValue(graphDb).getIdentDefiningNode(matchedSource)
     )
       return {
         text: matchedCode,

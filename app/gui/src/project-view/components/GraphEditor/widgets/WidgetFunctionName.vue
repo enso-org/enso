@@ -4,14 +4,14 @@ import {
   useProjectNames,
   useProjectStore,
 } from '$/components/WithCurrentProject.vue'
-import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import {
   defineWidget,
   Score,
   WidgetInput,
   widgetProps,
   type UpdateResult,
-} from '@/providers/widgetRegistry'
+} from '$/providers/openedProjects/widgetRegistry'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import { usePersisted } from '@/stores/persisted'
 import { Ast } from '@/util/ast'
 import { Err, Ok } from '@/util/data/result'
@@ -63,7 +63,7 @@ async function renameFunction(newName: string): Promise<UpdateResult> {
 
 <script lang="ts">
 export const FunctionName: unique symbol = Symbol.for('WidgetInput:FunctionName')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [FunctionName]?: {
       /**

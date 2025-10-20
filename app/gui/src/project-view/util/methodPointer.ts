@@ -1,7 +1,7 @@
-import type { ProjectNameStore } from '@/stores/projectNames'
+import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { Ok, type Result } from '@/util/data/result'
-import type { ProjectPath } from '@/util/projectPath'
-import type { QualifiedName } from '@/util/qualifiedName'
+import { type ProjectPath } from '@/util/projectPath'
+import { type QualifiedName } from '@/util/qualifiedName'
 import * as encoding from 'lib0/encoding'
 import type { Identifier, IdentifierOrOperatorIdentifier } from 'ydoc-shared/ast'
 import type {

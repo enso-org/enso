@@ -12,9 +12,9 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
+from project.Nothing import all
 from project.Data.Boolean.Boolean import False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Enso_Secret import as_hideable_value

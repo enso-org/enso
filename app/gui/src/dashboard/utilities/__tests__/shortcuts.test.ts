@@ -3,7 +3,7 @@ import * as v from 'vitest'
 
 import * as detect from 'enso-common/src/detect'
 
-import * as shortcutsModule from '#/utilities/inputBindings'
+import { decomposeKeybindString } from '@/util/shortcuts'
 
 // NOTE: macOS using the meta key has not been tested, as it is not possible to override
 // `navigator.userAgent`.
@@ -30,8 +30,8 @@ v.test.each([
   },
   // Capitalization
   {
-    keybind: 'meta+shift+alt+mod+pointermain',
-    expected: { modifiers: ['Meta', 'Shift', 'Alt', 'Mod'], key: 'PointerMain' },
+    keybind: 'shift+alt+mod+pointermain',
+    expected: { modifiers: ['Shift', 'Alt', 'Mod'], key: 'PointerMain' },
   },
   // Repeated keys
   {
@@ -50,6 +50,6 @@ v.test.each([
     expected: { modifiers: [], key: DELETE_KEY },
   },
 ])('Keybinds should be parsed correctly', ({ keybind, expected }) => {
-  const decomposed = shortcutsModule.decomposeKeybindString(keybind)
+  const decomposed = decomposeKeybindString(keybind)
   v.expect(decomposed).toEqual(expected)
 })

@@ -155,7 +155,7 @@ fn flush<'s, Inner: TokenConsumer<'s> + TreeConsumer<'s>>(
 fn maybe_negated<'s>(minus: Option<Token<'s>>, tree: Tree<'s>) -> Tree<'s> {
     match minus {
         Some(minus) =>
-            Tree::unary_opr_app(minus.with_variant(token::variant::UnaryOperator()), Some(tree)),
+            Tree::unary_opr_app(minus.with_variant(token::variant::UnaryOperator()), tree),
         None => tree,
     }
 }

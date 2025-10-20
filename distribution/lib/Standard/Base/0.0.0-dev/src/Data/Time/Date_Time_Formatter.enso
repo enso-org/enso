@@ -12,9 +12,9 @@ import project.Internal.Time.Format.Analyzer.Analyzer
 import project.Internal.Time.Format.As_Java_Formatter_Interpreter
 import project.Internal.Time.Format.Parser
 import project.Internal.Time.Format.Tokenizer.Tokenizer
-import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Function import all
+from project.Nothing import all
 
 polyglot java import java.lang.Exception as JException
 polyglot java import java.time.format.DateTimeFormatter

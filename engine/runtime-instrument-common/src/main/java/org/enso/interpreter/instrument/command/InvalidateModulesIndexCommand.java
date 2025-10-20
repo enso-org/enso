@@ -2,7 +2,7 @@ package org.enso.interpreter.instrument.command;
 
 import java.util.UUID;
 import org.enso.interpreter.instrument.execution.RuntimeContext;
-import org.enso.interpreter.instrument.job.AnalyzeModuleInScopeJob;
+import org.enso.interpreter.instrument.job.AnalyzeModuleJob;
 import org.enso.interpreter.instrument.job.DeserializeLibrarySuggestionsJob;
 import org.enso.interpreter.instrument.job.EnsureCompiledJob;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -41,7 +41,7 @@ public final class InvalidateModulesIndexCommand extends AsynchronousCommand {
                 .abortBackgroundJobs(
                     "invalidate modules index",
                     DeserializeLibrarySuggestionsJob.class,
-                    AnalyzeModuleInScopeJob.class);
+                    AnalyzeModuleJob.class);
 
             EnsoContext context = ctx.executionService().getContext();
             context

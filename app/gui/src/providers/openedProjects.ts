@@ -1,18 +1,27 @@
 import { ProjectId } from '#/services/Backend'
+import { createGraphStore, type GraphStore } from '$/providers/openedProjects/graph'
+import { createProjectStore, type ProjectStore } from '$/providers/openedProjects/project'
+import {
+  createProjectNameStore,
+  type ProjectNameStore,
+} from '$/providers/openedProjects/projectNames'
+import {
+  createSuggestionDbStore,
+  type SuggestionDbStore,
+} from '$/providers/openedProjects/suggestionDatabase'
+import { WidgetRegistry } from '$/providers/openedProjects/widgetRegistry'
 import { createContextStore } from '@/providers'
-import { WidgetRegistry } from '@/providers/widgetRegistry'
-import { createGraphStore, type GraphStore } from '@/stores/graph'
-import { createProjectStore, type LsUrls, type ProjectStore } from '@/stores/project'
-import { createProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
-import { createSuggestionDbStore, type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { EffectScope, effectScope, shallowReactive, toValue, type ToRefs } from 'vue'
+import { createModuleStore, type ModuleStore } from './openedProjects/module'
+import { type LsUrls } from './openedProjects/project/project'
 
 /** All stores of a single opened project */
 export interface OpenedProject {
   store: ProjectStore
-  names: ProjectNameStore
+  projectNames: ProjectNameStore
   suggestionDb: SuggestionDbStore
+  module: ModuleStore
   graph: GraphStore
   widgetRegistry: WidgetRegistry
 }
@@ -53,7 +62,7 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
       new Map<ProjectId, OpenedProject & { storesScope: EffectScope }>(),
     )
 
-    function registerProject(props: ToRefs<ProjectProps>) {
+    async function registerProject(props: ToRefs<ProjectProps>) {
       const { projectId, projectDisplayedName, projectNamespace } = props
       assert(!projects.has(toValue(projectId)), 'Registering already registered project')
       const storesScope = effectScope()
@@ -73,11 +82,13 @@ export const [provideOpenedProjects, injectOpenedProjects] = createContextStore(
           names,
         )
         const suggestionDb = createSuggestionDbStore(store, names)
-        const graph = createGraphStore(store, suggestionDb, names)
+        const module = createModuleStore(store, names, suggestionDb)
+        const graph = createGraphStore(store, suggestionDb, names, module)
         const widgetRegistry = new WidgetRegistry(graph.db)
         projects.set(toValue(projectId), {
-          names,
+          projectNames: names,
           store,
+          module,
           suggestionDb,
           graph,
           widgetRegistry,

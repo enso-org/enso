@@ -1,13 +1,14 @@
-import type { GraphStore } from '@/stores/graph'
-import type { ProjectStore } from '@/stores/project'
-import type { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
+import type { GraphStore } from '$/providers/openedProjects/graph'
+import type { ModuleStore } from '$/providers/openedProjects/module'
+import type { ProjectStore } from '$/providers/openedProjects/project'
+import type { ComputedValueRegistry } from '$/providers/openedProjects/project/computedValueRegistry'
 import { valueExt, type ValueExt } from '@/util/codemirror/stateEffect'
 import type { ToValue } from '@/util/reactivity'
 import { forceLinting, linter, type Diagnostic } from '@codemirror/lint'
 import type { Extension } from '@codemirror/state'
 import type { EditorView } from '@codemirror/view'
 import * as iter from 'enso-common/src/utilities/data/iter'
-import { computed, toValue, watchEffect, type ComputedRef } from 'vue'
+import { computed, toValue, watchEffect, type ComputedRef, type Ref } from 'vue'
 import type { Diagnostic as LSDiagnostic } from 'ydoc-shared/languageServerTypes'
 import type { SourceRange } from 'ydoc-shared/util/data/text'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
@@ -17,13 +18,14 @@ import type { ExternalId } from 'ydoc-shared/yjsModel'
  * based on dataflow errors and diagnostics the LS provided in an `executionStatus` message.
  */
 export function useEnsoDiagnostics(
-  projectStore: Pick<ProjectStore, 'computedValueRegistry' | 'dataflowErrors' | 'diagnostics'>,
-  graphStore: Pick<GraphStore, 'moduleSource' | 'db'>,
+  projectStore: Ref<Pick<ProjectStore, 'computedValueRegistry' | 'dataflowErrors' | 'diagnostics'>>,
+  moduleStore: Ref<Pick<ModuleStore, 'source'>>,
+  graphStore: Ref<Pick<GraphStore, 'db'>>,
   view: EditorView,
 ): Extension {
   function spanOfExternalId(externalId: ExternalId): SourceRange | undefined {
-    const astId = graphStore.db.idFromExternal(externalId)
-    return astId && graphStore.moduleSource.getSpan(astId)
+    const astId = graphStore.value.db.idFromExternal(externalId)
+    return astId && moduleStore.value.source.getSpan(astId)
   }
   return [
     reactiveDiagnostics(
@@ -31,9 +33,9 @@ export function useEnsoDiagnostics(
       expressionUpdateDiagnostics,
       useExpressionUpdateDiagnostics({
         spanOfExternalId,
-        computedValueDb: projectStore.computedValueRegistry.db,
+        computedValueDb: () => projectStore.value.computedValueRegistry.db,
         getDataflowError: (externalId: ExternalId) =>
-          projectStore.dataflowErrors.lookup(externalId)?.value?.message,
+          projectStore.value.dataflowErrors.lookup(externalId)?.value?.message,
       }),
     ),
     reactiveDiagnostics(
@@ -41,7 +43,7 @@ export function useEnsoDiagnostics(
       executionContextDiagnostics,
       useExecutionContextDiagnostics({
         spanOfExternalId,
-        lsDiagnostics: () => projectStore.diagnostics,
+        lsDiagnostics: () => projectStore.value.diagnostics,
       }),
     ),
   ]
@@ -74,15 +76,16 @@ function useExpressionUpdateDiagnostics({
   getDataflowError,
 }: {
   spanOfExternalId: (externalId: ExternalId) => SourceRange | undefined
-  computedValueDb: ComputedValueRegistry['db']
+  computedValueDb: ToValue<ComputedValueRegistry['db']>
   getDataflowError: (externalId: ExternalId) => string | undefined
 }): ComputedRef<Diagnostic[]> {
   return computed<Diagnostic[]>(() => {
-    const panics = computedValueDb.type.reverseLookup('Panic')
-    const errors = computedValueDb.type.reverseLookup('DataflowError')
+    const db = toValue(computedValueDb)
+    const panics = db.type.reverseLookup('Panic')
+    const errors = db.type.reverseLookup('DataflowError')
     const diagnostics: Diagnostic[] = []
     for (const externalId of iter.chain(panics, errors)) {
-      const update = computedValueDb.get(externalId)
+      const update = db.get(externalId)
       if (!update) continue
       const span = spanOfExternalId(externalId)
       if (!span) continue

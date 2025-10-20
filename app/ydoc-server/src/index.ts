@@ -15,9 +15,9 @@ import type WS from 'modern-isomorphic-ws'
 import type { IncomingMessage } from 'node:http'
 import { docName, type ConnectionData } from './auth'
 import { deserializeIdMap } from './serialization'
-import { setupGatewayClient } from './ydoc'
+import { setupGatewayClient, WSSharedDoc, YjsConnection, type YjsSocket } from './ydoc'
 
-export { deserializeIdMap, docName, setupGatewayClient }
+export { deserializeIdMap, docName, setupGatewayClient, WSSharedDoc, YjsConnection, type YjsSocket }
 
 /** @param customLogger Optional external logger to use for all debug logs. */
 export function configureAllDebugLogs(
@@ -43,7 +43,8 @@ export async function createGatewayServer(
   wss.on('connection', (ws: WS, _request: IncomingMessage, data: ConnectionData) => {
     ws.on('error', onWebSocketError)
     try {
-      setupGatewayClient(ws, data.lsUrl, data.doc)
+      const wsArrayBuffer = Object.assign(ws, { binaryType: 'arraybuffer' } as const)
+      setupGatewayClient(wsArrayBuffer, data.lsUrl, data.doc)
     } catch (e) {
       if (e instanceof Error) {
         onWebSocketError(e)
