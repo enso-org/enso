@@ -254,9 +254,6 @@ export function useOpenProjectMutation() {
           id,
           {
             executeAsync: inBackground,
-            // TODO: Figure out how to set `accessToken` per project.
-            // Should there be a default `accessToken` per user?
-            accessToken: null,
             cognitoCredentials: {
               accessToken: session.accessToken,
               refreshToken: session.refreshToken,

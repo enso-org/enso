@@ -1024,6 +1024,21 @@ export default class LocalBackend extends Backend {
     return this.invalidOperation()
   }
 
+  /** Invalid operation. */
+  override listPersonalAccessTokens() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override createPersonalAccessToken() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override deletePersonalAccessToken() {
+    return this.invalidOperation()
+  }
+
   /** Find asset details using directory listing. */
   private async findAsset<Key extends keyof backend.AnyAsset>(
     directory: projectManager.Path,

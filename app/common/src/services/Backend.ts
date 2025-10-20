@@ -1302,11 +1302,6 @@ export interface OpenHybridProjectParameters {
 export interface OpenProjectRequestBody {
   readonly executeAsync: boolean
   /** MUST be present on Remote backend; NOT REQUIRED on Local backend. */
-  readonly accessToken: AccessTokenId | null
-  /**
-   * MUST be present on Remote backend; NOT REQUIRED on Local backend.
-   * Legacy field, should be removed when no longer needed by the runtime.
-   */
   readonly cognitoCredentials: CognitoCredentials | null
   /** Extra parameters required when running in hybrid mode. */
   readonly openHybridProjectParameters: OpenHybridProjectParameters | null

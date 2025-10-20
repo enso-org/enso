@@ -824,8 +824,6 @@ export default class RemoteBackend extends Backend {
     // `cognitoCredentials` is a legacy field, should be removed when no longer needed by the runtime.
     if (body.cognitoCredentials == null) {
       return this.throw(null, 'openProjectMissingCredentialsBackendError', title)
-    } else if (body.accessToken == null) {
-      return this.throw(null, 'openProjectMissingTokenBackendError', title)
     } else {
       const credentials = body.cognitoCredentials
       const exactCredentials: backend.CognitoCredentials = {
