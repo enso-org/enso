@@ -616,7 +616,12 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
   console.log(`Downloading ${assetName}...`)
 
   // Download the asset
-  const downloadResponse = await fetch(asset.browser_download_url, { headers })
+  const downloadResponse = await fetch(asset.url, {
+    headers: {
+      ...headers,
+      Accept: 'application/octet-stream',
+    },
+  })
 
   if (!downloadResponse.ok) {
     throw new Error(`Failed to download asset: ${downloadResponse.statusText}`)
