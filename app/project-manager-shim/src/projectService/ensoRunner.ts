@@ -697,5 +697,48 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
 
   console.log(`Enso engine downloaded and extracted to ${extractDir}`)
 
+  patchEnsoEngine(extractDir)
+
   return extractDir
+}
+
+/**
+ * Patches the Enso distribution by renaming `.enso.portable` to `.enso.bundle`.
+ *
+ * This is a temporary solution during the unification of portable and bundle Enso distributions.
+ *
+ * @param distributionDir - The path to the enso distribution
+ */
+export function patchEnsoEngine(distributionDir: string): void {
+  const checkAndRename = (dir: string): boolean => {
+    const portableFile = path.join(dir, '.enso.portable')
+    const bundleFile = path.join(dir, '.enso.bundle')
+
+    if (fs.existsSync(portableFile)) {
+      fs.renameSync(portableFile, bundleFile)
+      console.log(`Renamed ${portableFile} to ${bundleFile}`)
+      return true
+    }
+    return false
+  }
+
+  // Check the distribution directory itself
+  if (checkAndRename(distributionDir)) {
+    return
+  }
+
+  // Check one level down
+  try {
+    const entries = fs.readdirSync(distributionDir, { withFileTypes: true })
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const childDir = path.join(distributionDir, entry.name)
+        if (checkAndRename(childDir)) {
+          return
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`Error scanning directory ${distributionDir}:`, error)
+  }
 }
