@@ -191,7 +191,6 @@ const config = [
       '**/*.json',
       'app/rust-ffi/pkg/',
       'app/electron-client/electron-builder-config.cjs',
-      'app/electron-client/create-build-info.cjs',
     ],
   },
   {
@@ -220,8 +219,8 @@ const config = [
             'app/ydoc-shared/vitest.config.ts',
             'app/project-manager-shim/scripts/*.js',
             'app/ide-desktop/icons/src/index.js',
-            'app/electron-client/pre-electron-builder.cjs',
             'app/electron-client/electron-builder-config.cjs',
+            'app/electron-client/create-build-info.mjs',
           ],
         },
       },
@@ -559,12 +558,6 @@ const config = [
   {
     files: ['**/*.js', '**/*.jsx', '**/*.cjs', '**/*.mjs'],
     ignores: ['**/build.mjs'],
-    languageOptions: {
-      parserOptions: {
-        // Avoid TS project service errors for plain JS/CJS files.
-        projectService: false,
-      },
-    },
     rules: {
       '@typescript-eslint/no-var-requires': 'off',
       // Parameter types must be specified using JSDoc in JS files.

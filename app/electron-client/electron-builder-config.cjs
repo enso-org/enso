@@ -5,19 +5,17 @@ function artifactName(version) {
   return 'enso-${os}-${arch}-' + version + '.${ext}'
 }
 
-function engineDistributionSource(version) {
-  let platform = process.platform
-  let arch = process.arch
-  if (platform === 'darwin') {
-    platform = 'macos'
-    if (arch === 'arm64') {
-      arch = 'aarch64'
-    }
+function engineDistributionSource(version, platform = process.platform, arch = process.arch) {
+  const platformMap = { darwin: 'macos' }
+  const archMapByPlatform = {
+    darwin: { arm64: 'aarch64' },
+    linux: { x64: 'amd64' },
   }
-  if (platform === 'linux' && arch === 'x64') {
-    arch = 'amd64'
-  }
-  return `../../built-distribution/enso-engine-${version}-${platform}-${arch}/enso-${version}/`
+
+  const normalizedPlatform = platformMap[platform] ?? platform
+  const normalizedArch = archMapByPlatform[platform]?.[arch] ?? arch
+
+  return `../../built-distribution/enso-engine-${version}-${normalizedPlatform}-${normalizedArch}/enso-${version}/`
 }
 
 function engineDistributionTarget(version) {
@@ -58,10 +56,10 @@ module.exports = {
   appId: 'org.enso',
   productName: 'Enso',
   extraMetadata: {
-    version: '2025.3.0-dev',
+    version: '0.0.0-dev',
     installer: {},
   },
-  artifactName: artifactName('2025.3.0-dev'),
+  artifactName: artifactName('0.0.0-dev'),
   protocols: [
     {
       name: 'Enso url',
@@ -117,8 +115,8 @@ module.exports = {
   directories: {
     output: 'ide-dist',
   },
+  // Providing empty beforeBuild hook and using npmRebuild: true to prevent electron-builder from trying to install dependencies.
   beforeBuild: function () {
-    // We handle node_modules manually.
     return false
   },
   npmRebuild: true,
