@@ -95,6 +95,12 @@ type Dialect_Flag
     ## ---
        private: true
        ---
+       Specifies if the backend supports Unicode casing rules, i.e. does ß uppercase
+       to SS, and does Turkish dotted and dotless I casing work correctly.
+    Supports_Unicode_Casing
+    ## ---
+       private: true
+       ---
        Specifies if NaN value is treated as greater than all numbers. If `False`,
        `NaN` is expected to yield False to both < and > comparisons.
     NaN_Non_Comparable
