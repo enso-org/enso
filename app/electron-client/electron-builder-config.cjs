@@ -56,10 +56,11 @@ module.exports = {
   appId: 'org.enso',
   productName: 'Enso',
   extraMetadata: {
-    version: '0.0.0-dev',
-    installer: {},
+    version: '0.0.0-dev', // FIXME: Replace with the actual version
+    installer: {}, // FIXME: installer config
   },
-  artifactName: artifactName('0.0.0-dev'),
+  copyright: 'Copyright © 2025 New Byte Order sp. z o.o.',
+  artifactName: artifactName('0.0.0-dev'), // FIXME: Replace with the actual artifact name
   protocols: [
     {
       name: 'Enso url',
@@ -71,7 +72,6 @@ module.exports = {
     target: 'dir',
     icon: './assets/icons/icon.icns',
     category: 'public.app-category.developer-tools',
-    darkModeSupport: true,
     type: 'distribution',
     hardenedRuntime: true,
     gatekeeperAssess: false,
@@ -112,6 +112,20 @@ module.exports = {
       to: 'enso/runtime',
     },
   ],
+  fileAssociations: [
+    {
+      ext: '.enso',
+      name: 'Enso Source File',
+      role: 'Editor',
+      mimeType: 'text/plain',
+    },
+    {
+      ext: '.enso-project',
+      name: 'Enso Project Bundle',
+      role: 'Editor',
+      mimeType: 'application/gzip',
+    },
+  ],
   directories: {
     output: 'ide-dist',
   },
@@ -120,7 +134,6 @@ module.exports = {
     return false
   },
   npmRebuild: true,
-  buildDependenciesFromSource: false,
   nodeGypRebuild: false,
   msi: {
     runAfterFinish: false,
