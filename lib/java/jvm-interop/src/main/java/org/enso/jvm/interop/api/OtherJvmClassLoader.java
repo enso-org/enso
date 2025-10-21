@@ -21,6 +21,7 @@ import org.enso.jvm.interop.impl.OtherJvmMessage;
 import org.enso.jvm.interop.impl.OtherJvmPool;
 import org.enso.jvm.interop.impl.OtherJvmResult;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Value;
 
 /**
@@ -89,7 +90,9 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     try {
       var rawClass = loadRawClass(fqn);
       if (ctx == null) {
-        ctx = Context.create("hosted");
+        ctx = Context.newBuilder("hosted")
+            .allowHostAccess(HostAccess.ALL)
+            .build();
       }
       return ctx.asValue(rawClass);
     } catch (ClassNotFoundException ex) {
