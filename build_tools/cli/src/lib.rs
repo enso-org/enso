@@ -785,7 +785,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             if !build_script {
                 // Do not attempt to delete the very executable that runs the command.
                 // It will fail on windows due to file being locked.
-                exclusions.push("target/rust/**/enso_build_cli*");
+                exclusions.push("target/rust/**/enso-build-cli*");
             }
 
             if !dry_run {
