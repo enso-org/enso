@@ -23,6 +23,27 @@ function engineDistributionTarget(version) {
 }
 
 /**
+ * electron-builder preserves symlinks in extraResources, but Bazel uses them for sandboxing.
+ * This function replaces symlinks with real files by copying their targets.
+ */
+async function replaceSymlinksWithFiles(root) {
+  const entries = await fs.readdir(root, { withFileTypes: true })
+  for (const entry of entries) {
+    const full = path.join(root, entry.name)
+    const st = await fs.lstat(full)
+    if (st.isSymbolicLink()) {
+      const linkTarget = await fs.readlink(full)
+      const absTarget = path.resolve(path.dirname(full), linkTarget)
+      const data = await fs.readFile(absTarget)
+      await fs.unlink(full)
+      await fs.writeFile(full, data, { mode: st.mode })
+    } else if (st.isDirectory()) {
+      await replaceSymlinksWithFiles(full)
+    }
+  }
+}
+
+/**
  * AppImage is known to have sandboxing issues, for example:
  * https://github.com/enso-org/enso/issues/3801 or
  * https://github.com/enso-org/enso/issues/11035
@@ -151,5 +172,13 @@ module.exports = {
     if (context.electronPlatformName === 'linux') {
       await patchAppImage(context)
     }
+
+    const productName = context.packager.appInfo.productFilename
+    const resourcesDir =
+      context.electronPlatformName === 'darwin' ?
+        path.join(context.appOutDir, `${productName}.app`, 'Contents', 'Resources')
+      : path.join(context.appOutDir, 'resources')
+    const ensoDir = path.join(resourcesDir, 'enso')
+    await replaceSymlinksWithFiles(ensoDir)
   },
 }
