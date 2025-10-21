@@ -102,14 +102,17 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
   @Override
   public final void close() {
     try {
-      channel.close();
+      try {
+        channel.close();
+      } finally {
+        if (ctx != null) {
+          ctx.close();
+        }
+      }
     } catch (AbstractTruffleException ex) {
       throw ex;
     } catch (Exception ex) {
       throw new org.enso.jvm.interop.impl.OtherJvmException(ex);
-    }
-    if (ctx != null) {
-      ctx.close();
     }
   }
 
