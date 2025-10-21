@@ -900,6 +900,9 @@ add_specs suite_builder =
     xls_sheet = enso_project.data / "TestSheetOld.xls"
     xls_path = xls_sheet.path
 
+    xlsb_sheet = enso_project.data / "TestSheet.xlsb"
+    xlsb_path = xlsb_sheet.path
+
     sheet_names = ["Sheet1", "Another", "NoHeaders", "Random"]
     range_names = ["myData"]
 
@@ -927,6 +930,10 @@ add_specs suite_builder =
         workbook.sheet_count . should_equal sheets
         workbook.named_ranges_count . should_equal ranges
 
+    check_workbook_no_ranges workbook sheets=sheet_names.length =
+        workbook.is_a Excel_Workbook . should_be_true
+        workbook.sheet_count . should_equal sheets
+
     suite_builder.group "Read XLSX / XLS Files" group_builder->
         group_builder.specify "should let you read the workbook with Auto_Detect" <|
             check_workbook <| xlsx_sheet.read
@@ -937,6 +944,10 @@ add_specs suite_builder =
             check_workbook <| Data.read xls_sheet
             check_workbook <| Data.read xls_path
 
+            check_workbook_no_ranges <| xlsb_sheet.read
+            check_workbook_no_ranges <| Data.read xlsb_sheet
+            check_workbook_no_ranges <| Data.read xlsb_path
+
         group_builder.specify "should let you read the workbook with Excel" <|
             check_workbook <| xlsx_sheet.read ..Workbook
             check_workbook <| Data.read xlsx_sheet ..Workbook
@@ -945,6 +956,10 @@ add_specs suite_builder =
             check_workbook <| xls_sheet.read ..Workbook
             check_workbook <| Data.read xls_sheet ..Workbook
             check_workbook <| Data.read xls_path ..Workbook
+            
+            check_workbook_no_ranges <| xlsb_sheet.read ..Workbook
+            check_workbook_no_ranges <| Data.read xlsb_sheet ..Workbook
+            check_workbook_no_ranges <| Data.read xlsb_path ..Workbook
 
         group_builder.specify "workbook should look like a database connection" <|
             workbook = xlsx_sheet.read
@@ -967,10 +982,13 @@ add_specs suite_builder =
         group_builder.specify "should let you read the sheet names" <|
             xlsx_sheet.read . sheet_names . should_equal sheet_names
             xls_sheet.read . sheet_names . should_equal sheet_names
+            xlsb_sheet.read . sheet_names . should_equal sheet_names
 
         group_builder.specify "should let you read the range names" <|
             xlsx_sheet.read . named_ranges . should_equal range_names
             xls_sheet.read . named_ranges . should_equal range_names
+            # Not supported in XLSB files:
+            # xlsb_sheet.read . named_ranges . should_equal range_names
 
         group_builder.specify "should let you read by sheet index" <|
             table = xlsx_sheet.read (..Sheet 1)
@@ -1515,9 +1533,11 @@ add_specs suite_builder =
             t1.write oneMInts (..Sheet "1MillionA") . should_succeed
             t1.write oneMInts (..Sheet "1MillionB") . should_succeed
 
+    spec_fmt suite_builder 'XLS reading' Examples.xls
+
     spec_fmt suite_builder 'XLSX reading' Examples.xlsx
 
-    spec_fmt suite_builder 'XLS reading' Examples.xls
+    spec_fmt suite_builder 'XLSB reading' Examples.xlsb
 
     suite_builder.group "Reading single cells correctly" group_builder->
         file = enso_project.data / "RangeTests.xlsx"

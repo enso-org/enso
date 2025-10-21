@@ -670,15 +670,19 @@ pub fn add_backend_checks(
         },
         &[&build_engine_distribution_id],
     );
-    workflow.add_dependent(
-        target,
-        job::StandardLibraryTests {
-            graal_edition,
-            engine_launcher,
-            scope: job::StandardLibraryTestsScope::Microsoft,
-        },
-        &[&build_engine_distribution_id],
-    );
+    // Microsoft-specific standard library tests are run only on Linux, as they require SQL Server
+    // which is served from a docker image that only runs on Linux hosts.
+    if target.0 == OS::Linux {
+        workflow.add_dependent(
+            target,
+            job::StandardLibraryTests {
+                graal_edition,
+                engine_launcher,
+                scope: job::StandardLibraryTestsScope::Microsoft,
+            },
+            &[&build_engine_distribution_id],
+        );
+    }
 }
 
 pub fn workflow_call_job(name: impl Into<String>, path: impl Into<String>) -> Job {
