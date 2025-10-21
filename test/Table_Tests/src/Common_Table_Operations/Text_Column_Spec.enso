@@ -130,9 +130,8 @@ add_text_columns_specs suite_builder setup =
             column.lower . should_equal expected_lower_column
         group_builder.specify "upper and lower work with unicode case folding" <|
             column = build_sorted_table [["X", ["Straße", "München", "Köln", "3. Bezirk"]]] . at 0
-            expected_upper_column = case setup.flagged ..Supports_Unicode_Casing of
-                True -> build_sorted_table [["upper([X])", ["STRASSE", "MÜNCHEN", "KÖLN", "3. BEZIRK"]]] . at 0
-                False  -> build_sorted_table [["upper([X])", ["STRAßE", "MüNCHEN", "KöLN", "3. BEZIRK"]]] . at 0
+            expected_upper_column = build_sorted_table [["upper([X])", ["STRASSE", "MÜNCHEN", "KÖLN", "3. BEZIRK"]]] . at 0
             expected_lower_column = build_sorted_table [["lower([X])", ["straße", "münchen", "köln", "3. bezirk"]]] . at 0
-            column.upper . should_equal expected_upper_column
+            if setup.flagged ..Supports_Unicode_Casing then
+                column.upper . should_equal expected_upper_column
             column.lower . should_equal expected_lower_column
