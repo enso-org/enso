@@ -818,6 +818,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                     "app/ydoc-server-polyglot/node_modules",
                     "app/ydoc-shared/node_modules",
                     "lib/js/runner/node_modules",
+                    "tools/simple-library-server/node_modules",
                 ];
 
                 try_join_all(junctions.map(|rel_path| {
