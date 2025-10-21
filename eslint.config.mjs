@@ -190,8 +190,8 @@ const config = [
       '**/generated',
       '**/*.json',
       'app/rust-ffi/pkg/',
-      'app/electron-client/pre-electron-builder.cjs',
       'app/electron-client/electron-builder-config.cjs',
+      'app/electron-client/create-build-info.cjs',
     ],
   },
   {

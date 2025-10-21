@@ -1,8 +1,10 @@
 load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/electron-client:electron-builder/package_json.bzl", electron_builder_bin = "bin")
+load("//app/electron-client:bazel/buildInfo.bzl", "generate_build_info")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -39,9 +41,9 @@ npm_package(
 esbuild(
     name = "bundle",
     srcs = glob(["src/**/*.ts"]) + [
-        "buildInfo.ts",
         "fileAssociations.ts",
         "paths.ts",
+        ":build_info",
     ],
     bundle = True,
     # Some configuration options (like plugins) cannot be defined in Bazel rule, so we use a config file.
@@ -95,5 +97,18 @@ electron_builder_bin.electron_builder(
     },
     # Run from BINDIR (default); rely on package.json "build" config.
     out_dirs = ["ide-dist"],
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "create_build_info_script",
+    chdir = package_name(),
+    entry_point = "create-build-info.mjs",
+    visibility = ["//visibility:public"],
+)
+
+generate_build_info(
+    name = "build_info",
+    out = "buildInfo.ts",
     visibility = ["//visibility:public"],
 )
