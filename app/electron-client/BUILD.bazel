@@ -44,7 +44,13 @@ esbuild(
         "paths.ts",
     ],
     bundle = True,
+    # Some configuration options (like plugins) cannot be defined in Bazel rule, so we use a config file.
     config = ":esbuild.config.mjs",
+    define = {
+        "process.env.ELECTRON_DEV_MODE": "false",
+        "process.env.ENSO_IDE_VERSION": '"2025.0.0-dev"',
+        "process.env.ENSO_IDE_COMMIT_HASH": '"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"',
+    },
     entry_points = [
         "src/index.ts",
         "src/preload.ts",
@@ -56,9 +62,13 @@ esbuild(
         "bufferutil",
         "utf-8-validate",
         "encoding",
+        "supports-color",
     ],
+    format = "esm",
     output_dir = True,
+    platform = "node",
     sourcemap = "linked",
+    target = ["node20"],
     visibility = ["//visibility:public"],
     deps = npm_link_targets(),
 )
