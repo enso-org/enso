@@ -3,7 +3,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Aggregate_Column, Value_Type
 
-import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Dialects.Dialect
 import Standard.Database.Dialects.Dialect.Temp_Table_Style
@@ -278,15 +277,6 @@ type Redshift_Dialect
        ---
     get_error_mapper : Error_Mapper
     get_error_mapper self = Redshift_Error_Mapper
-
-    ## ---
-       private: true
-       ---
-       The dialect-dependent strategy to get the Primary Key for a given table.
-       Returns `Nothing` if the key is not defined.
-    fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name schema_name =
-        Connection.default_fetch_primary_key connection table_name schema_name
 
     ## ---
        private: true

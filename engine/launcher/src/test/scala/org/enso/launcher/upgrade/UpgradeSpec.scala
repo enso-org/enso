@@ -103,7 +103,7 @@ class UpgradeSpec
     )
     if (portable) {
       val root = launcherPath.getParent.getParent
-      FileSystem.writeTextFile(root / ".enso.portable", "mark")
+      FileSystem.writeTextFile(root / ".enso.bundle", "mark")
     }
     Thread.sleep(1000)
   }

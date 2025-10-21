@@ -3,7 +3,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table
 
-import project.Connection.Connection.Connection
 import project.DB_Table as DB_Table_Module
 import project.DB_Table.DB_Table
 import project.Errors.Table_Not_Found
@@ -25,7 +24,7 @@ type SQL_Query
     ## ---
        private: true
        ---
-    to_db_table self connection:Connection alias:Text = alias.if_not_error <| case self of
+    to_db_table self connection alias:Text = alias.if_not_error <| case self of
         SQL_Query.Table_Name name ->
             table_naming_helper = connection.base_connection.table_naming_helper
             table_naming_helper.verify_table_name name <|
@@ -45,7 +44,7 @@ type SQL_Query_With_Schema
     ## ---
        private: true
        ---
-    to_db_table self connection:Connection alias:Text = alias.if_not_error <| case self of
+    to_db_table self connection alias:Text = alias.if_not_error <| case self of
         SQL_Query_With_Schema.Table_Name name schema ->
             table_naming_helper = connection.base_connection.table_naming_helper
             table_naming_helper.verify_table_name name <|
@@ -104,7 +103,7 @@ make_table_from_query connection query:Text|SQL_Statement alias:Text -> Table & 
     columns = connection.base_connection.fetch_columns query statement_setter
     name = if alias == "" then (UUID.randomUUID.to_text) else alias
     ctx = SQL_IR_Source.for_query query name
-    r = DB_Table_Module.make_table connection.base_connection name columns ctx on_problems=Problem_Behavior.Report_Error
+    r = DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Error
 
     ## Any problems are treated as errors - e.g. if the query
        contains clashing column names, it may very likely lead to

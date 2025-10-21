@@ -15,7 +15,7 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
 
   def preparePortableDistribution(): Unit = {
     copyLauncherTo(portableLauncher)
-    FileSystem.writeTextFile(portableRoot / ".enso.portable", "mark")
+    FileSystem.writeTextFile(portableRoot / ".enso.bundle", "mark")
     Files.createDirectories(portableRoot / "config")
     FileSystem.writeTextFile(
       portableRoot / "config" / "global-config.yaml",

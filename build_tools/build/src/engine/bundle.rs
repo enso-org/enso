@@ -123,6 +123,6 @@ impl IsBundle for crate::paths::generated::LauncherBundle {
     }
 
     fn distribution_marker(&self) -> PathBuf {
-        self.enso_portable.to_path_buf()
+        self.enso_bundle.to_path_buf()
     }
 }

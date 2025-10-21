@@ -7,7 +7,6 @@ import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Table, Value_Type
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 
-import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 import project.Dialects.Dialect
@@ -22,6 +21,7 @@ import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.Error_Mapper.Error_Mapper
+import project.Internal.Internals_Access
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
@@ -162,14 +162,15 @@ type SQLite_Dialect
        Prepares a distinct operation.
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
-        table_name_deduplicator = table.connection.base_connection.table_naming_helper.create_unique_name_strategy
+        table_connection = Internals_Access.get_connection table
+        table_name_deduplicator = table_connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = table.context.as_subquery inner_table_alias [table.internal_columns]
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        mapping = table.connection.type_mapping
+        mapping = table_connection.type_mapping
         distinct_expressions = new_key_columns.map column->
             value_type = mapping.sql_type_to_value_type column.sql_type_reference.get
             Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
@@ -363,25 +364,6 @@ type SQLite_Dialect
        ---
     get_error_mapper : Error_Mapper
     get_error_mapper self = SQLite_Error_Mapper
-
-    ## ---
-       private: true
-       ---
-       The dialect-dependent strategy to get the Primary Key for a given table.
-       Returns `Nothing` if the key is not defined.
-       Custom handling is required, because the default DatabaseMetaData
-       implementation does not correctly handle temporary tables.
-    fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name schema_name =
-        _ = schema_name
-        wrapped_name = self.wrap_identifier table_name
-        query = SQL_Builder.code "pragma table_info(" ++ wrapped_name ++ ")"
-        info_table = connection.read_statement query.build
-        ## The `pk` field is non-zero if the columns is part of the primary key.
-           The column value indicates the position in the key.
-           See: https://www.sqlite.org/pragma.html#pragma_table_info
-        v = info_table.filter "pk" (>0) . sort "pk" . at "name" . to_vector
-        if v.is_empty then Nothing else v
 
     ## ---
        private: true

@@ -102,7 +102,7 @@ type Connection
     close self = self.jdbc_connection.close
 
     ## ---
-       private: true
+       icon: metadata
        ---
        Returns the list of databases (or catalogs) for the connection.
     databases : Vector Text
@@ -111,7 +111,7 @@ type Connection
             Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getCatalogs "TABLE_CAT"
 
     ## ---
-       private: true
+       icon: metadata
        ---
        Returns the name of the current database (or catalog).
     database : Text
@@ -119,7 +119,7 @@ type Connection
         self.jdbc_connection.with_connection connection->connection.getCatalog
 
     ## ---
-       private: true
+       icon: data_input
        ---
        Returns a new Connection with the specified database set as default.
 
@@ -131,7 +131,7 @@ type Connection
             SQL_Error.throw_sql_error "Changing database is not supported."
 
     ## ---
-       private: true
+       icon: metadata
        ---
        Returns the list of schemas for the connection within the current database
        (or catalog).
@@ -141,7 +141,7 @@ type Connection
             Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getSchemas "TABLE_SCHEM"
 
     ## ---
-       private: true
+       icon: metadata
        ---
        Returns the name of the current schema.
     schema : Text
@@ -149,7 +149,7 @@ type Connection
         self.jdbc_connection.with_connection .getSchema
 
     ## ---
-       private: true
+       icon: data_input
        ---
        Returns a new Connection with the specified schema set as default.
 
@@ -161,7 +161,8 @@ type Connection
             SQL_Error.throw_sql_error "Changing schema is not supported."
 
     ## ---
-       private: true
+       group: Standard.Base.Metadata
+       icon: metadata
        ---
        Gets a list of the table types
     table_types : Vector Text
@@ -232,7 +233,9 @@ type Connection
         tables.at "Name" . to_vector . contains table_name
 
     ## ---
-       private: true
+       aliases: [import, load, open, read, sql]
+       group: Standard.Base.Input
+       icon: data_input
        ---
        Set up a query returning a Table object, which can be used to work with
        data within the database or load it into memory.
@@ -531,9 +534,9 @@ type Connection
        Once all references to the table with this name are destroyed, the table
        will be marked for removal and dropped at the next maintenance.
     internal_allocate_dry_run_table : Text -> Table & DB_Table
-    internal_allocate_dry_run_table self table_name =
+    internal_allocate_dry_run_table self table_name connection =
         ref = self.hidden_table_registry.make_reference table_name
-        make_table_for_name self table_name "" table_name ref
+        make_table_for_name connection table_name "" table_name ref
 
     ## ---
        private: true
@@ -566,14 +569,21 @@ type Connection
                     data_link_setup -> data_link_setup.save_as_data_link path on_existing_file
 
     ## ---
-       private: true
+       icon: metadata
        ---
-       Default implementation relying on DatabaseMetaData for fetching primary key.
-    default_fetch_primary_key connection table_name schema_name =
-        connection.jdbc_connection.with_metadata metadata->
+       Get the Primary Key for a given table.
+       Returns `Nothing` if the key is not defined.
+
+       ## Arguments
+       - `table_name`: the name of the table to get the primary key for.
+       - `schema_name`: optionally, the schema name where the table is located.
+    @table_name make_table_name_selector add_custom=False
+    fetch_primary_key : Text -> Text -> Vector Text ! Nothing
+    fetch_primary_key self table_name:Text schema_name:Text="" =
+        self.jdbc_connection.with_metadata metadata->
             used_schema = if schema_name == "" then Nothing else schema_name
             rs = metadata.getPrimaryKeys Nothing used_schema table_name
-            tm = connection.type_mapping
+            tm = self.type_mapping
             keys_table = result_set_to_table rs tm.sql_type_to_value_type tm.column_fetcher_factory
             # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
             selected = keys_table.select_columns ["COLUMN_NAME", "KEY_SEQ"] case_sensitivity=Case_Sensitivity.Insensitive reorder=True
@@ -608,11 +618,11 @@ make_schema_selector connection include_any:Boolean=False =
 ## ---
    private: true
    ---
-make_table_name_selector : Connection -> Widget
-make_table_name_selector connection =
+make_table_name_selector : Connection -> Boolean -> Widget
+make_table_name_selector connection add_custom:Boolean=True =
     tables_to_display = connection.tables.at "Name" . to_vector
     table_name_values = tables_to_display.map t-> Option t t.pretty
-    values = table_name_values + [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""']
+    values = table_name_values + (if add_custom then [Option '<Table_Name>' '..Table_Name ""', Option '<Raw_SQL>' '..Raw_SQL ""'] else [])
     Single_Choice display=Display.Always values=values
 
 ## ---

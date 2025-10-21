@@ -5,7 +5,6 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Table, Value_Type
 
-import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 import project.Dialects.Dialect_Flag.Dialect_Flag
@@ -236,16 +235,6 @@ type Dialect
        The default table types to use when listing tables.
     default_table_types : Vector Text
     default_table_types self =
-        Unimplemented.throw "This is an interface only."
-
-    ## ---
-       private: true
-       ---
-       The dialect-dependent strategy to get the Primary Key for a given table.
-       Returns `Nothing` if the key is not defined.
-    fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name schema_name =
-        _ = [connection, table_name, schema_name]
         Unimplemented.throw "This is an interface only."
 
     ## ---

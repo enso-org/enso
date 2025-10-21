@@ -11,7 +11,6 @@ from Standard.Table import Aggregate_Column, Column, Table, Value_Type
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialects.Dialect
@@ -163,14 +162,15 @@ type Snowflake_Dialect
        Prepares a distinct operation.
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
-        table_name_deduplicator = (Internals_Access.get_connection table).base_connection.table_naming_helper.create_unique_name_strategy
+        table_connection = Internals_Access.get_connection table
+        table_name_deduplicator = table_connection.base_connection.table_naming_helper.create_unique_name_strategy
         table_name_deduplicator.mark_used table.name
         inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
         setup = (Internals_Access.get_context table).as_subquery inner_table_alias [Internals_Access.internal_columns table]
         new_columns = setup.new_columns.first
         column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        mapping = table.connection.type_mapping
+        mapping = table_connection.type_mapping
         # TODO simpler distinct if distinct_expressions are all columns?
         distinct_expressions = new_key_columns.map column->
             value_type = mapping.sql_type_to_value_type column.sql_type_reference.get
@@ -335,15 +335,6 @@ type Snowflake_Dialect
        ---
     get_error_mapper : Error_Mapper
     get_error_mapper self = Snowflake_Error_Mapper
-
-    ## ---
-       private: true
-       ---
-       The dialect-dependent strategy to get the Primary Key for a given table.
-       Returns `Nothing` if the key is not defined.
-    fetch_primary_key : Connection -> Text -> Text -> Vector Text ! Nothing
-    fetch_primary_key self connection table_name schema_name =
-        Connection.default_fetch_primary_key connection table_name schema_name
 
     ## ---
        private: true
