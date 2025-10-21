@@ -51,7 +51,6 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
   readonly item: backendModule.AnyAsset
-  readonly isOpened: boolean
   readonly isPlaceholder: boolean
   readonly id: backendModule.AssetId
   readonly parentId: backendModule.DirectoryId
@@ -138,7 +137,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
     parentId,
     contextMenuRef,
     isKeyboardSelected,
-    isOpened,
     select,
     state,
     columns,
@@ -427,7 +425,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
                     isNavigating={isNavigating}
                     labels={labels}
                     isPlaceholder={isPlaceholder}
-                    isOpened={isOpened}
                     backendType={backend.type}
                     item={item}
                     setSelected={setSelected}

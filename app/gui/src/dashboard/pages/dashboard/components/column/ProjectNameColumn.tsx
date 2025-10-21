@@ -21,7 +21,7 @@ export interface ProjectNameColumnProps extends AssetNameColumnProps {
 
 /** The icon and name of a {@link ProjectAsset}. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const { item, isEditable, isOpened, isPlaceholder, closeProject, openProject } = props
+  const { item, isEditable, isPlaceholder, closeProject, openProject } = props
 
   const { associatedBackend: backend } = useCategoriesAPI()
   const { user } = useFullUserSession()
@@ -76,7 +76,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
     >
       <ProjectIcon
         isDisabled={!canExecute}
-        isOpened={isOpened}
         backend={backend}
         item={item}
         isPlaceholder={isPlaceholder}

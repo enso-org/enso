@@ -6,19 +6,13 @@ import { Spinner } from '#/components/Spinner'
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
-import {
-  BackendType,
-  IS_OPENING,
-  IS_OPENING_OR_OPENED,
-  ProjectState,
-  type ProjectAsset,
-  type ProjectId,
-} from '#/services/Backend'
+import { BackendType, ProjectState, type ProjectAsset, type ProjectId } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession, useText } from '$/providers/react'
 import {
   useAreOtherProjectsOpening,
   useIsProjectClosing,
+  useIsProjectOpened,
   useIsProjectOpening,
   useOpenedProjects,
 } from '$/providers/react/openedProjects'
@@ -64,7 +58,6 @@ export interface ProjectIconProps {
   readonly isPlaceholder: boolean
   readonly backend: Backend
   readonly isDisabled: boolean
-  readonly isOpened: boolean
   readonly item: ProjectAsset
   readonly closeProject: (project: ProjectId) => void
   readonly openProject: (projectId: ProjectId) => void
@@ -72,15 +65,7 @@ export interface ProjectIconProps {
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const {
-    backend,
-    item,
-    isOpened,
-    isDisabled: isDisabledRaw,
-    isPlaceholder,
-    closeProject,
-    openProject,
-  } = props
+  const { backend, item, isDisabled: isDisabledRaw, closeProject, openProject } = props
 
   const openedProjects = useOpenedProjects()
   const isUnconditionallyDisabled = !openedProjects.canOpenProjectLocally(backend.type)
@@ -97,31 +82,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     projectState.openedBy != null && projectState.openedBy !== user.email
 
-  const isProjectOpening = useIsProjectOpening(item.id)
+  const isProjectOpening = useIsProjectOpening(item)
+  const isProjectOpened = useIsProjectOpened(item)
   const isProjectClosing = useIsProjectClosing(item.id)
 
-  const state = (() => {
-    if (isProjectOpening) {
-      return ProjectState.openInProgress
-    }
-
-    if (!isOpened && !isPlaceholder) {
-      return ProjectState.closed
-    }
-    // Project is closed, show open button
-    if (!isOpened) {
-      return projectState.type
-    }
-
-    if (status === ProjectState.closed) {
-      // Project is opened locally, but not on the backend yet.
-      return ProjectState.openInProgress
-    }
-    return status
-  })()
-
   const areOtherProjectsOpening = useAreOtherProjectsOpening(item.id)
-  const isAnotherProjectOpening = areOtherProjectsOpening && !IS_OPENING_OR_OPENED[state]
+  const isAnotherProjectOpening = areOtherProjectsOpening && !isProjectOpening
   const isDisabled =
     isDisabledRaw || isUnconditionallyDisabled || isAnotherProjectOpening || isProjectClosing
 
@@ -133,9 +99,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const closingProjectTooltip = isProjectClosing ? getText('syncingProjectFiles') : null
 
   const spinnerState = ((): SpinnerState => {
-    if (!isOpened) {
-      return 'loading-slow'
-    }
     return backend.type === BackendType.remote ?
         REMOTE_SPINNER_STATE[status]
       : LOCAL_SPINNER_STATE[status]
@@ -158,7 +121,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (true) {
-    case IS_OPENING[state]:
+    case isProjectOpening:
       return (
         <div className="relative flex">
           <Button
@@ -182,7 +145,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
           />
         </div>
       )
-    case IS_OPENING_OR_OPENED[state]:
+    case isProjectOpened:
       return (
         <div className="flex flex-row gap-0.5">
           <div className="relative flex">

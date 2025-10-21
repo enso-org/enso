@@ -1,4 +1,11 @@
-import { BackendType, Plan, ProjectId } from '#/services/Backend'
+import {
+  IS_OPENING as BACKEND_IS_OPENING,
+  IS_OPENING_OR_OPENED as BACKEND_IS_OPENING_OR_OPENED,
+  BackendType,
+  Plan,
+  ProjectId,
+  type ProjectAsset,
+} from '#/services/Backend'
 import { assert } from '@/util/assert'
 import { createGlobalState } from '@vueuse/core'
 import { computed, ref, shallowReactive, watchEffect } from 'vue'
@@ -237,6 +244,32 @@ export function createOpenedProjectsStore() {
     return projects.values()
   }
 
+  function isProjectOpening(asset: ProjectAsset) {
+    const openedByMe = projects.get(asset.id)
+    if (openedByMe != null && openedByMe.state.status != 'not-opened') {
+      return openedByMe.nextTask?.process === 'opening'
+    } else {
+      console.debug('>>>', asset.projectState.type)
+      return BACKEND_IS_OPENING[asset.projectState.type]
+    }
+  }
+
+  function isProjectOpened(asset: ProjectAsset) {
+    const openedByMe = projects.get(asset.id)
+    if (openedByMe != null && openedByMe.state.status != 'not-opened') {
+      return openedByMe.nextTask == null && openedByMe.state.status === 'initialized'
+    } else {
+      return (
+        !BACKEND_IS_OPENING[asset.projectState.type] &&
+        BACKEND_IS_OPENING_OR_OPENED[asset.projectState.type]
+      )
+    }
+  }
+
+  function isProjectClosing(id: ProjectId) {
+    return projects.get(id)?.nextTask?.process === 'closing'
+  }
+
   return {
     openProject,
     canOpenProjectLocally,
@@ -247,6 +280,9 @@ export function createOpenedProjectsStore() {
     closeAllProjects,
     get,
     listProjects,
+    isProjectOpening,
+    isProjectOpened,
+    isProjectClosing,
     waitForProcess,
     closePrevented,
   }

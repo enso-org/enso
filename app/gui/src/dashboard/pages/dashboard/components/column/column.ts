@@ -24,7 +24,6 @@ export * from './components'
 
 /** Props for an arbitrary variant of {@link Asset}. */
 export interface AssetColumnProps {
-  readonly isOpened: boolean
   readonly isNavigating: boolean
   readonly item: AnyAsset
   readonly backendType: BackendType

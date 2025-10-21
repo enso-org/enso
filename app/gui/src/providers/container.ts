@@ -6,7 +6,7 @@ import { normalizeRouteParamToString } from '@/util/router'
 import { filter } from 'enso-common/src/utilities/data/iter'
 import { computed, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useOpenedProjects } from './openedProjects'
+import { useOpenedProjects, type Project } from './openedProjects'
 import type { RunningProjectInfo } from './openedProjects/projectStates'
 
 /** Tab identifier, equal to the path of the view's URL. */
@@ -22,6 +22,16 @@ export function isProjectTab(tab: TabId): tab is EnsoPath {
       DEV: tab satisfies EnsoPath
       return true
   }
+}
+
+function isProjectShownAsTab(project: Project) {
+  return (
+    project.nextTask?.process === 'opening' ||
+    project.error != null ||
+    (project.state.status !== 'not-opened' &&
+      project.state.status !== 'hybrid-closed' &&
+      project.state.status !== 'hybrid-uploaded')
+  )
 }
 
 export type ContainerData = ReturnType<typeof useContainerData>
@@ -43,21 +53,10 @@ export const [provideContainerData, useContainerData] = createContextStore(
     }
 
     const projectTabs = computed(() =>
-      Array.from(
-        filter(
-          openedProjects.listProjects(),
-          (project) =>
-            project.nextTask?.process === 'opening' ||
-            project.error != null ||
-            (project.state.status !== 'not-opened' &&
-              project.state.status !== 'hybrid-closed' &&
-              project.state.status !== 'hybrid-uploaded'),
-        ),
-        (project) => ({
-          ...project,
-          shown: computed(() => tab.value === project.state.info.ensoPath),
-        }),
-      ),
+      Array.from(filter(openedProjects.listProjects(), isProjectShownAsTab), (project) => ({
+        ...project,
+        shown: computed(() => tab.value === project.state.info.ensoPath),
+      })),
     )
 
     const isValidTab = (name: string | undefined): name is TabId =>

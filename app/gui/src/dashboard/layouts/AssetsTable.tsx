@@ -164,7 +164,6 @@ function AssetsTable(props: AssetsTableProps) {
 
   const contextMenuRef = useRef<ContextMenuApi>(null)
   const { category, associatedBackend: backend } = useCategoriesAPI()
-  const openedProjects = useOpenedProjects()
   const { openProjectLocally, closeProject } = useOpenedProjects()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
@@ -1090,17 +1089,11 @@ function AssetsTable(props: AssetsTableProps) {
 
         <tbody ref={bodyRef} className="isolate">
           {assets.map((item) => {
-            const isOpenedByYou = [...openedProjects.listProjects()].some(
-              (project) => item.id === project.state.info.id,
-            )
-            const isOpenedOnTheBackend =
-              item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
             return (
               <AssetRow
                 key={item.id + item.virtualParentsPath}
                 contextMenuRef={contextMenuRef}
                 isPlaceholder={false}
-                isOpened={isOpenedByYou || isOpenedOnTheBackend}
                 columns={columns}
                 id={item.id}
                 type={item.type}
