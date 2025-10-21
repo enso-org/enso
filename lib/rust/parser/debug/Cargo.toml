@@ -1,29 +1,29 @@
 [package]
-	name = "enso-parser-debug"
-	version = "0.1.0"
-	authors = ["Enso Team <enso-dev@enso.org>"]
-	edition = "2021"
-	description = "Enso parser debugging tools."
-	readme = "README.md"
-	homepage = "https://github.com/enso-org/enso"
-	repository = "https://github.com/enso-org/enso"
-	license-file = "../../LICENSE"
+name = "enso-parser-debug"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2021"
+description = "Enso parser debugging tools."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso"
+repository = "https://github.com/enso-org/enso"
+license-file = "../../LICENSE"
 
 [dependencies]
-	enso-parser = { path = "../", features = ["debug"] }
-	enso-metamodel = { path = "../../metamodel" }
-	enso-metamodel-lexpr = { path = "../../metamodel/lexpr" }
-	enso-reflect = { path = "../../reflect" }
-	lexpr = "0.2.6"
-	serde = { workspace = true }
-	serde_json = { workspace = true }
-	clap = { workspace = true }
+enso-parser = { path = "../", features = ["debug"] }
+enso-metamodel = { path = "../../metamodel" }
+enso-metamodel-lexpr = { path = "../../metamodel/lexpr" }
+enso-reflect = { path = "../../reflect" }
+lexpr = "0.2.6"
+serde = { workspace = true }
+serde_json = { workspace = true }
+clap = { workspace = true }
 
 [dev-dependencies]
-	insta = "1.43.2"
+insta = "1.43.2"
 
 [lints]
-	workspace = true
+workspace = true
 
 [features]
-	nightly = []
+nightly = []

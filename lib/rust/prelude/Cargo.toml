@@ -1,28 +1,28 @@
 [package]
-	name = "enso-prelude"
-	version = "0.2.7"
-	authors = ["Enso Team <enso-dev@enso.org>"]
-	edition = "2021"
-	description = "An augmented standard library in the vein of Haskell's prelude."
-	readme = "README.md"
-	homepage = "https://github.com/enso-org/enso"
-	repository = "https://github.com/enso-org/enso"
-	license-file = "../../LICENSE"
-	keywords = ["prelude", "standard-library"]
-	categories = ["algorithms"]
-	publish = true
+name = "enso-prelude"
+version = "0.2.7"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2021"
+description = "An augmented standard library in the vein of Haskell's prelude."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso"
+repository = "https://github.com/enso-org/enso"
+license-file = "../../LICENSE"
+keywords = ["prelude", "standard-library"]
+categories = ["algorithms"]
+publish = true
 
 [lib]
-	crate-type = ["rlib"]
+crate-type = ["rlib"]
 
 [dependencies]
-	enso-reflect = { path = "../reflect" }
-	enso-zst = { path = "../zst" }
-	boolinator = { workspace = true }
-	derive-where = { workspace = true }
-	derive_more = { workspace = true }
-	serde = { workspace = true }
-	enso-macros = { path = "./macros" }
+enso-reflect = { path = "../reflect" }
+enso-zst = { path = "../zst" }
+boolinator = { workspace = true }
+derive-where = { workspace = true }
+derive_more = { workspace = true }
+serde = { workspace = true }
+enso-macros = { path = "./macros" }
 
 [lints]
-	workspace = true
+workspace = true

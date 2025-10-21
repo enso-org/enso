@@ -29,7 +29,6 @@
   "[toml]": {
     "editor.defaultFormatter": "tamasfe.even-better-toml",
   },
-  "evenBetterToml.formatter.indentString": "    ",
-  "evenBetterToml.formatter.indentEntries": true,
-  "evenBetterToml.formatter.indentTables": true
+  "evenBetterToml.formatter.indentEntries": false,
+  "evenBetterToml.formatter.indentTables": false
 }
