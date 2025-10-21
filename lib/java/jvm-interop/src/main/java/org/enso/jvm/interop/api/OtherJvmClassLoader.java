@@ -90,9 +90,7 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     try {
       var rawClass = loadRawClass(fqn);
       if (ctx == null) {
-        ctx = Context.newBuilder("hosted")
-            .allowHostAccess(HostAccess.ALL)
-            .build();
+        ctx = Context.newBuilder("hosted").allowHostAccess(HostAccess.ALL).build();
       }
       return ctx.asValue(rawClass);
     } catch (ClassNotFoundException ex) {
