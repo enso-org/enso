@@ -46,12 +46,12 @@ pub async fn build_package(
         .arg("--release")
         .arg("--package")
         .arg(crate_name)
-        .arg("--out-dir")
+        .arg("--target-dir")
         .arg(temp_dir.path())
         .run_ok()
         .await?;
 
-    let built_exe = temp_dir.path().join(crate_name).with_executable_extension();
+    let built_exe = temp_dir.path().join("release").join(crate_name).with_executable_extension();
     if let Some(certificate) = certificate {
         certificate.sign(&built_exe).await?;
     }

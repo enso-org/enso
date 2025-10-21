@@ -6,8 +6,6 @@ use crate::actions::artifacts::upload::ArtifactUploader;
 use crate::actions::artifacts::upload::FileToUpload;
 use crate::actions::artifacts::upload::UploadOptions;
 
-use anyhow::Context as Trait_anyhow_Context;
-use flume::Sender;
 use tempfile::tempdir;
 
 // ==============
@@ -22,44 +20,6 @@ pub mod run_session;
 pub mod upload;
 
 pub const API_VERSION: &str = "6.0-preview";
-
-pub async fn execute_dbg<T: DeserializeOwned + Debug>(
-    client: &reqwest::Client,
-    reqeust: reqwest::RequestBuilder,
-) -> Result<T> {
-    let request = reqeust.build()?;
-    dbg!(&request);
-    let response = client.execute(request).await?;
-    dbg!(&response);
-    let text = response.text().await?;
-    debug!("{}", &text);
-    let deserialized = serde_json::from_str(&text)?;
-    dbg!(&deserialized);
-    Ok(deserialized)
-}
-
-pub fn discover_and_feed(root_path: impl AsRef<Path>, sender: Sender<FileToUpload>) -> Result {
-    walkdir::WalkDir::new(&root_path).into_iter().try_for_each(|entry| {
-        let entry = entry?;
-        if entry.file_type().is_file() {
-            let file = FileToUpload::new_relative(&root_path, entry.path())?;
-            sender
-                .send(file)
-                .context("Stopping discovery in progress, because all listeners were dropped.")?;
-        };
-        Ok(())
-    })
-}
-
-pub fn discover_recursive(
-    root_path: impl Into<PathBuf>,
-) -> impl Stream<Item = FileToUpload> + Send {
-    let root_path = root_path.into();
-
-    let (tx, rx) = flume::unbounded();
-    tokio::task::spawn_blocking(move || discover_and_feed(root_path, tx));
-    rx.into_stream()
-}
 
 fn upload(
     file_provider: impl Stream<Item = FileToUpload> + Send + 'static,
@@ -192,24 +152,6 @@ pub fn single_dir_provider(path: &Path) -> Result<impl Stream<Item = FileToUploa
         .try_collect()?;
     info!("Discovered {} files under the {}.", files.len(), path.display());
     Ok(futures::stream::iter(files))
-}
-
-#[tracing::instrument(skip_all , fields(path = %path_to_upload.as_ref().display(), artifact = artifact_name.as_ref()), err)]
-pub async fn upload_compressed_directory(
-    path_to_upload: impl AsRef<Path> + Send,
-    artifact_name: impl AsRef<str> + Send,
-) -> Result {
-    let artifact_name = artifact_name.as_ref();
-    let tempdir = tempdir()?;
-    let archive_path = tempdir.path().join(format!("{artifact_name}.tar.gz"));
-
-    info!("Packing {} to {}", path_to_upload.as_ref().display(), archive_path.display());
-    crate::archive::compress_directory_contents(&archive_path, path_to_upload).await?;
-
-    info!("Starting upload of {artifact_name}.");
-    upload_single_file(&archive_path, artifact_name).await?;
-    info!("Completed upload of {artifact_name}.");
-    Ok(())
 }
 
 #[tracing::instrument(skip_all , fields(path = %path_to_extract.as_ref().display(), artifact = artifact_name.as_ref()), err)]

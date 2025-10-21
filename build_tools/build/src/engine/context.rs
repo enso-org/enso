@@ -668,25 +668,3 @@ impl Display for StdLib {
         write!(f, "Standard.{}", self.name)
     }
 }
-
-/// Upload the directory with Enso-generated test results.
-///
-/// This is meant to ease debugging, it does not really affect the build.
-#[context("Failed to upload test results.")]
-pub async fn upload_test_results(test_results_dir: PathBuf) -> Result {
-    // Each platform gets its own log results, so we need to generate unique
-    // names.
-    let name = format!("Test_Results_{TARGET_OS}");
-    let upload_result =
-        ide_ci::actions::artifacts::upload_compressed_directory(&test_results_dir, name).await;
-    if let Err(err) = &upload_result {
-        // We wouldn't want to fail the whole build if we can't upload the test
-        // results. Still, it should be somehow
-        // visible in the build summary.
-        ide_ci::actions::workflow::message(
-            MessageLevel::Warning,
-            format!("Failed to upload test results: {err}"),
-        );
-    }
-    upload_result
-}
