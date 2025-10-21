@@ -74,7 +74,7 @@ class PortableDistributionManager(env: Environment)
         dataRoot                  = root,
         runtimes                  = root / RUNTIMES_DIRECTORY,
         engines                   = root / ENGINES_DIRECTORY,
-        bundle                    = None,
+        bundle                    = detectBundle(),
         config                    = root / CONFIG_DIRECTORY,
         runRoot                   = root,
         locks                     = root / LOCK_DIRECTORY,
