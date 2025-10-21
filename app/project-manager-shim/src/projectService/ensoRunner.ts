@@ -704,9 +704,7 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
 
 /**
  * Patches the Enso distribution by renaming `.enso.portable` to `.enso.bundle`.
- *
  * This is a temporary solution during the unification of portable and bundle Enso distributions.
- *
  * @param distributionDir - The path to the enso distribution
  */
 export function patchEnsoEngine(distributionDir: string): void {
