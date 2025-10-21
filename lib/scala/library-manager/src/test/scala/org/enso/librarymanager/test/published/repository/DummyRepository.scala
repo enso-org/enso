@@ -139,7 +139,7 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
   private def commandPrefix: Seq[String] =
     if (OS.isWindows) Seq("cmd.exe", "/c") else Seq.empty
 
-  private def pnpmCommand: String  = if (OS.isWindows) "pnpm.cmd" else "pnpm"
+  private def pnpmCommand: String = if (OS.isWindows) "pnpm.cmd" else "pnpm"
   private def nodeCommand: String = if (OS.isWindows) "node.exe" else "node"
 
   case class Server(process: WrappedProcess) extends AutoCloseable {
