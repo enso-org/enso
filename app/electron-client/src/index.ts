@@ -25,6 +25,7 @@ import * as authentication from '@/authentication'
 import * as configParser from '@/configParser'
 import * as contentConfig from '@/contentConfig'
 import * as debug from '@/debug'
+import { initIpc } from '@/electron'
 import * as fileAssociations from '@/fileAssociations'
 import * as ipc from '@/ipc'
 import * as log from '@/log'
@@ -34,6 +35,7 @@ import * as projectService from '@/projectService'
 import * as security from '@/security'
 import * as server from '@/server'
 import * as urlAssociations from '@/urlAssociations'
+import type { BrowserWindowConstructorOptions, WebPreferences } from 'electron'
 import * as projectManagement from 'project-manager-shim'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 
@@ -41,6 +43,7 @@ const DEFAULT_WINDOW_WIDTH = 1380
 const DEFAULT_WINDOW_HEIGHT = 900
 
 let electron: typeof import('electron') | undefined
+type Electron = typeof import('electron')
 
 function exit(code = 0) {
   if (electron) {
@@ -114,7 +117,7 @@ class App {
       })
       if (isOriginalInstance) {
         this.handleItemOpening(fileToOpen, urlToOpen)
-        this.setChromeOptions()
+        this.setChromeOptions(electron)
         security.enableAll()
 
         this.onStart().catch((err) => {
@@ -175,26 +178,29 @@ class App {
 
   /** Background tasks scheduled on the application startup. */
   async onStart() {
-    const userData = electron.app.getPath('userData')
-    const versionInfoPath = pathModule.join(userData, 'version_info.json')
-    const versionInfoPathExists = await fs
-      .access(versionInfoPath, fs.constants.F_OK)
-      .then(() => true)
-      .catch(() => false)
+    const writeVersionInfoPromise = (async () => {
+      if (!electron) return
+      const userData = electron.app.getPath('userData')
+      const versionInfoPath = pathModule.join(userData, 'version_info.json')
+      const versionInfoPathExists = await fs
+        .access(versionInfoPath, fs.constants.F_OK)
+        .then(() => true)
+        .catch(() => false)
 
-    if (versionInfoPathExists) {
-      const versionInfoText = await fs.readFile(versionInfoPath, 'utf8')
-      const versionInfoJson = JSON.parse(versionInfoText)
+      if (versionInfoPathExists) {
+        const versionInfoText = await fs.readFile(versionInfoPath, 'utf8')
+        const versionInfoJson = JSON.parse(versionInfoText)
 
-      if (debug.VERSION_INFO.version === versionInfoJson.version && !contentConfig.VERSION.isDev())
-        return
-    }
+        if (
+          debug.VERSION_INFO.version === versionInfoJson.version &&
+          !contentConfig.VERSION.isDev()
+        )
+          return
+      }
 
-    const writeVersionInfoPromise = fs.writeFile(
-      versionInfoPath,
-      JSON.stringify(debug.VERSION_INFO),
-      'utf8',
-    )
+      return fs.writeFile(versionInfoPath, JSON.stringify(debug.VERSION_INFO), 'utf8')
+    })()
+
     const downloadSamplesPromise = projectManagement.downloadSamples()
 
     return Promise.allSettled([writeVersionInfoPromise, downloadSamplesPromise])
@@ -222,17 +228,21 @@ class App {
    * @param projectUrl - The `file://` url of project to be opened on startup.
    */
   setProjectToOpenOnStartup(projectUrl: URL) {
-    // Make sure that we are not initialized yet, as this method should be called before the
-    // application is ready.
-    if (!electron.app.isReady()) {
-      console.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
-      this.webOptions.startup.project = projectUrl.toString()
+    if (electron) {
+      // Make sure that we are not initialized yet, as this method should be called before the
+      // application is ready.
+      if (!electron.app.isReady()) {
+        console.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
+        this.webOptions.startup.project = projectUrl.toString()
+      } else {
+        console.error(
+          "Cannot set the project to open on startup to '" +
+            projectUrl.toString() +
+            "', as the application is already initialized.",
+        )
+      }
     } else {
-      console.error(
-        "Cannot set the project to open on startup to '" +
-          projectUrl.toString() +
-          "', as the application is already initialized.",
-      )
+      //
     }
   }
 
@@ -262,7 +272,7 @@ class App {
    * Set Chrome options based on the app configuration. For comprehensive list of available
    * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches.
    */
-  setChromeOptions() {
+  setChromeOptions(electron: Electron) {
     // Needed to accept localhost self-signed cert
     electron.app.commandLine.appendSwitch('ignore-certificate-errors')
     // Enable native CPU-mappable GPU memory buffer support on Linux.
@@ -286,7 +296,7 @@ class App {
       // appears, it serves the website immediately.
       await this.startContentServerIfEnabled(args)
       await this.createWindowIfEnabled(args)
-      this.initIpc()
+      initIpc(this.window)
       await this.loadWindowContent(args)
       /**
        * The non-null assertion on the following line is safe because the window
@@ -337,14 +347,18 @@ class App {
   /** Create the Electron window and display it on the screen. */
   async createWindowIfEnabled(args: Options) {
     await this.runIfEnabled(args.displayWindow, () => {
+      if (!electron) {
+        console.error('Running in headless mode, window will not be created.')
+        return
+      }
       console.log('Creating the window.')
-      const webPreferences: electron.WebPreferences = {
+      const webPreferences: WebPreferences = {
         preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
         sandbox: true,
         spellcheck: false,
         ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
       }
-      const windowPreferences: electron.BrowserWindowConstructorOptions = {
+      const windowPreferences: BrowserWindowConstructorOptions = {
         webPreferences,
         width: DEFAULT_WINDOW_WIDTH,
         height: DEFAULT_WINDOW_HEIGHT,

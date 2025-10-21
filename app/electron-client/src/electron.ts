@@ -11,7 +11,7 @@ import { toElectronFileFilter, type FileFilter } from './fileBrowser'
  * Initialize Inter-Process Communication between the Electron application and the served
  * website.
  */
-export function initIpc(window?: BrowserWindow) {
+export function initIpc(window: BrowserWindow | null) {
   ipcMain.on(Channel.error, (_event, data) => {
     console.error(...data)
   })
