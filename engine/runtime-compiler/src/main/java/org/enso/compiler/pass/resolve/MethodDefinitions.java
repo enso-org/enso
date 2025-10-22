@@ -1,10 +1,12 @@
 package org.enso.compiler.pass.resolve;
 
+import java.util.ArrayList;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.MetadataStorage;
@@ -23,6 +25,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedModuleMethod;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotField;
 import org.enso.compiler.data.BindingsMap.ResolvedPolyglotSymbol;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
+import org.enso.compiler.data.BindingsMap.Type;
 import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.compiler.pass.MiniPassFactory;
@@ -30,6 +33,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.desugar.ComplexType$;
 import org.enso.compiler.pass.desugar.FunctionBinding$;
 import org.enso.compiler.pass.desugar.GenerateMethodBodies$;
+import org.enso.persist.Persistance;
 import scala.Option;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
@@ -118,8 +122,10 @@ public final class MethodDefinitions implements MiniPassFactory {
                       return switch (method) {
                         case Method.Explicit explicitMethod -> {
                           var isStatic = computeIsStatic(explicitMethod.body());
+                          var methodWithAscribedSelf =
+                              addTypeAscriptionToSelfParameter(explicitMethod);
                           var resolvedMethod =
-                              explicitMethod
+                              methodWithAscribedSelf
                                   .copyBuilder()
                                   .methodReference(resolvedMethodRef)
                                   .isStatic(isStatic)
@@ -155,6 +161,60 @@ public final class MethodDefinitions implements MiniPassFactory {
                   });
 
       return moduleIr.copyWithBindings(newDefs);
+    }
+
+    private Method.Explicit addTypeAscriptionToSelfParameter(Method.Explicit method) {
+      var typePointer = method.methodReference().typePointer();
+      if (typePointer.isEmpty()) {
+        return method;
+      }
+      var resolution =
+          MetadataInteropHelpers.getMetadataOrNull(typePointer.get(), INSTANCE, Resolution.class);
+      if (resolution == null) {
+        return method;
+      }
+      if (resolution.target() instanceof ResolvedType resType
+          && method.body() instanceof Function.Lambda body
+          && canAddSelfParameterTypeAscription(resType.tp())) {
+        var bodyDup = body.duplicate(true, true, true, false);
+        // Here we add the type ascription ensuring that the 'proper' self argument only
+        // accepts _instances_ of the type (or triggers conversions)
+        var newBodyRef = Persistance.Reference.of(addTypeAscriptionToSelfParameter(bodyDup), true);
+        return method.copyBuilder().bodyReference(newBodyRef).build();
+      }
+      return method;
+    }
+
+    private static boolean canAddSelfParameterTypeAscription(Type tp) {
+      return tp.members().nonEmpty() || (tp.builtinType() && !"Nothing".equals(tp.name()));
+    }
+
+    private static Expression addTypeAscriptionToSelfParameter(Function.Lambda lambda) {
+      if (lambda.arguments().isEmpty()) {
+        throw new CompilerError(
+            "MethodDefinitions pass: expected at least one argument (self) in the method, but got"
+                + " none.");
+      }
+      var firstArg = lambda.arguments().head();
+      if (firstArg instanceof DefinitionArgument.Specified selfArg
+          && selfArg.name() instanceof Name.Self) {
+        var selfType = new Name.SelfType(selfArg.identifiedLocation(), new MetadataStorage());
+        var newSelfArg = selfArg.copyWithAscribedType(Option.apply(selfType));
+        return lambdaWithNewSelfArg(lambda, newSelfArg);
+      } else {
+        throw new CompilerError(
+            "MethodDefinitions pass: expected the first argument to be `self`, but got "
+                + firstArg);
+      }
+    }
+
+    private static Function.Lambda lambdaWithNewSelfArg(
+        Function.Lambda lambda, DefinitionArgument newSelfArg) {
+      var args = new ArrayList<>(CollectionConverters.asJava(lambda.arguments()));
+      assert !args.isEmpty();
+      args.set(0, newSelfArg);
+      var newArgs = CollectionConverters.asScala(args).toList();
+      return lambda.copyWithArguments(newArgs);
     }
 
     private Name resolveType(Name typePointer, BindingsMap availableSymbolsMap) {
