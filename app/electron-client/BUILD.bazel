@@ -74,7 +74,7 @@ esbuild(
 )
 
 electron_builder_bin.electron_builder(
-    name = "electron_builder_run",
+    name = "dist",
     srcs = npm_link_targets() + [
         "package.json",
         ":bundle",
