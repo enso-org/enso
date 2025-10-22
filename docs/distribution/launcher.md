@@ -61,7 +61,7 @@ As described in
 launcher can either be run in a portable distribution or installed locally. The
 launcher must detect if its run as the portable or installed distribution. When
 run, the launcher checks if it is placed in a directory called `bin` and checks
-the parent directory for a file called `.enso.portable`. If such file is found,
+the parent directory for a file called `.enso.bundle`. If such file is found,
 the launcher runs in portable mode. Otherwise, it runs in installed mode.
 
 ## Launcher Build
