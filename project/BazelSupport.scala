@@ -54,7 +54,7 @@ object BazelSupport extends AutoPlugin {
       "Directory containing extracted Python resources"
     )
     lazy val cCompilerPath = taskKey[File](
-      "Path to the C Compiler. Will be passed to native-image."
+      "Path to the C Compiler. Will be passed to native-image via `-H:CCompilerPath`."
     )
     lazy val ydocServerPolyglotMainJs = taskKey[File](
       "Path to the ydoc-server polyglot main JS file."
