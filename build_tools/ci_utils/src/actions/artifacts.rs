@@ -39,18 +39,6 @@ fn upload(
     .boxed()
 }
 
-fn upload_single_file(
-    file: impl Into<PathBuf>,
-    artifact_name: impl Into<String>,
-) -> BoxFuture<'static, Result> {
-    let file = file.into();
-    let artifact_name = artifact_name.into();
-    info!("Uploading file {} as artifact {artifact_name}.", file.display());
-    single_file_provider(file)
-        .and_then_async(move |stream| upload(stream, artifact_name, default()))
-        .boxed()
-}
-
 pub async fn upload_directory_if_exists(
     dir: impl Into<PathBuf>,
     artifact_name: impl Into<String>,
