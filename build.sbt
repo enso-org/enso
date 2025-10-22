@@ -2021,7 +2021,8 @@ lazy val `ydoc-server` = project
     Compile / resourceGenerators += Def.taskIf {
       if ((Bazel / wasStartedFromBazel).value) {
         val js = (Bazel / ydocServerPolyglotMainJs).value
-        val target = (Compile / resourceManaged).value / "org" / "enso" / "ydoc" / "server" / "ydoc.cjs"
+        val target =
+          (Compile / resourceManaged).value / "org" / "enso" / "ydoc" / "server" / "ydoc.cjs"
         IO.createDirectory(target.getParentFile)
         IO.copyFile(js, target)
         Seq(target)
