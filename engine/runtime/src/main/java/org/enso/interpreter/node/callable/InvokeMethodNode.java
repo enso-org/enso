@@ -48,7 +48,11 @@ public abstract class InvokeMethodNode extends BaseNode {
       boolean onBoundary) {
     if (isStaticMethodInvocation(schema)) {
       return StaticInvokeMethodNodeGen.create(
-          schema, defaultsExecutionMode, argumentsExecutionMode, namedSelfArgPosition(schema), onBoundary);
+          schema,
+          defaultsExecutionMode,
+          argumentsExecutionMode,
+          namedSelfArgPosition(schema),
+          onBoundary);
     } else {
       return InstanceInvokeMethodNodeGen.create(
           schema, defaultsExecutionMode, argumentsExecutionMode, thisArgumentPosition, onBoundary);
