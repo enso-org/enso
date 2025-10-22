@@ -20,12 +20,6 @@ final class IrTruffleUtils {
     return new CreateTypeCheckNodes(ctx, comment, true).extractAscribedType(t);
   }
 
-  /*
-    static TypeCheckValueNode extractAscribedTypeAll(EnsoContext ctx, AscriptionReason comment, Expression t) {
-      var checkNode = new CreateTypeCheckNodes(ctx, true, comment).extractAscribedType(t);
-      return TypeCheckValueNode.allTypes(true, checkNode);
-    }
-  */
   private static class CreateTypeCheckNodes
       extends org.enso.compiler.pass.analyse.types.TypeCheckAlgorithm<
           TypeCheckValueNode, CompilerError> {
