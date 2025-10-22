@@ -169,6 +169,8 @@ SBT_BOOT_DIR = "$$TMPDIR/.sbt/boot"
 
 SBT_IVY_HOME = "$$TMPDIR/.ivy2"
 
+SBT_COURSIER_CACHE = "$$TMPDIR/.coursier"
+
 SBT_GLOBAL_BASE = "$$TMPDIR"
 
 SBT_LOCAL_REPOS = "$$TMPDIR/.sbt/repositories"
@@ -178,6 +180,7 @@ SBT_SYSTEM_PROPS = [
     "-Dsbt.global.base=" + SBT_GLOBAL_BASE,
     "-Dsbt.boot.directory=" + SBT_BOOT_DIR,
     "-Dsbt.ivy.home=" + SBT_IVY_HOME,
+    "-Dsbt.coursier.cache=" + SBT_COURSIER_CACHE,
     # Copied from .jvmopts
     # TODO: Create a rule that reads that file?
     "-Xss16M",
