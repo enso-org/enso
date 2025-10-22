@@ -2,7 +2,9 @@
  * @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components.
  */
+import { Dialog } from '#/components/Dialog'
 import Page from '#/components/Page'
+import { Text } from '#/components/Text'
 import { backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
 import { useBindGlobalActions } from '#/hooks/menuHooks'
@@ -14,13 +16,15 @@ import * as backendModule from '#/services/Backend'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { vueComponent } from '#/utilities/vue'
 import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
-// eslint-disable-next-line no-restricted-syntax
-import AppContainerVue from '$/components/AppContainer'
-import { useBackends, useFullUserSession, useRouter } from '$/providers/react'
+import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { useQuery } from '@tanstack/react-query'
 import * as detect from 'enso-common/src/detect'
 import * as React from 'react'
 import type { Router } from 'vue-router'
+// eslint-disable-next-line no-restricted-syntax
+import AppContainerVue from '$/components/AppContainer'
 
 // This is a component, not a mere constant
 // eslint-disable-next-line no-restricted-syntax
@@ -44,6 +48,10 @@ export function Dashboard() {
   )
   const { user } = useFullUserSession()
   const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
+  const openedProjects = useOpenedProjects()
+  const closingOnAppExit = useVueValue(
+    React.useCallback(() => openedProjects.closingOnAppExit.value, [openedProjects]),
+  )
 
   const inputBindingHandlers = React.useMemo(() => {
     const hasOrganization = backendModule.isUserOnPlanWithMultipleSeats(user)
@@ -107,6 +115,14 @@ export function Dashboard() {
     [inputBindings, inputBindingHandlers],
   )
 
+  React.useEffect(() => {
+    if (closingOnAppExit) {
+      modalProvider.setModal(<SyncingProjectsDialog />)
+    } else {
+      modalProvider.unsetModal()
+    }
+  }, [closingOnAppExit])
+
   return (
     <CategoriesProvider>
       <Page hideInfoBar>
@@ -121,5 +137,14 @@ export function Dashboard() {
         </div>
       </Page>
     </CategoriesProvider>
+  )
+}
+
+function SyncingProjectsDialog() {
+  const { getText } = useText()
+  return (
+    <Dialog title={getText('syncingProjectsTitle')} modalProps={{ defaultOpen: true }}>
+      <Text>{getText('syncingProjectsMessage')}</Text>
+    </Dialog>
   )
 }

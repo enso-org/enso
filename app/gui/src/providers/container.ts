@@ -4,7 +4,7 @@ import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
 import { filter } from 'enso-common/src/utilities/data/iter'
-import { computed, watchEffect } from 'vue'
+import { computed, onScopeDispose, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useOpenedProjects, type Project } from './openedProjects'
 import type { RunningProjectInfo } from './openedProjects/projectStates'
@@ -95,6 +95,11 @@ export const [provideContainerData, useContainerData] = createContextStore(
       localStorage.set('openedTabs', openedTabs)
       localStorage.set('unuploadedProjects', unuploadedProjects)
     })
+
+    const offProjectReady = openedProjects.onProjectReady(
+      (project) => (tab.value = project.state.info.ensoPath),
+    )
+    onScopeDispose(offProjectReady)
 
     return proxyRefs({
       tab,

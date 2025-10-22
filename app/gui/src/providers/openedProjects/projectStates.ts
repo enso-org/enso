@@ -12,14 +12,12 @@ import Backend, {
 } from '#/services/Backend'
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
-import LocalStorage from '#/utilities/LocalStorage'
 import { backendMutationOptions } from '@/composables/backend'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { assert, assertDefined } from '@/util/assert'
 import { Err, Ok, rejectionToResult, type Result } from '@/util/data/result'
 import * as vueQuery from '@tanstack/vue-query'
 import { computed, effectScope, markRaw, onScopeDispose, type EffectScope, type Ref } from 'vue'
-import * as z from 'zod'
 import { useBackends } from '../backends'
 import { useSession } from '../session'
 import { useText } from '../text'
@@ -27,56 +25,10 @@ import { useUploadsToCloudStore } from '../upload'
 import { createGraphStore, type GraphStore } from './graph'
 import { createModuleStore, type ModuleStore } from './module'
 import { createProjectStore, type ProjectStore } from './project'
+import type { ProjectInfo, RunningProjectInfo } from './projectInfoStorage'
 import { createProjectNameStore, type ProjectNameStore } from './projectNames'
 import { createSuggestionDbStore, type SuggestionDbStore } from './suggestionDatabase'
 import { WidgetRegistry } from './widgetRegistry'
-
-declare module '#/utilities/LocalStorage' {
-  interface LocalStorageData {
-    readonly openedTabs: RunningProjectInfo[]
-    readonly unuploadedProjects: RunningProjectInfo[]
-  }
-}
-
-const PROJECT_ID_SCHEMA = z.custom<ProjectId>(
-  (x) => typeof x === 'string' && x.startsWith('project-'),
-)
-const PROJECT_SESSION_ID_SCHEMA = z.custom<ProjectSessionId>(
-  (x) => typeof x === 'string' && x.startsWith('projectsession-'),
-)
-const DIRECTORY_ID_SCHEMA = z.custom<DirectoryId>(
-  (x) => typeof x === 'string' && x.startsWith('directory-'),
-)
-const ENSO_PATH_SCHEMA = z.custom<EnsoPath>((x) => typeof x === 'string')
-const PROJECT_INFO_SCHEMA = z.object({
-  id: PROJECT_ID_SCHEMA,
-  parentId: DIRECTORY_ID_SCHEMA,
-  title: z.string(),
-  ensoPath: ENSO_PATH_SCHEMA,
-  mode: z.enum(['local', 'cloud', 'hybrid']),
-})
-
-const RUNNING_NATIVE_PROJECT_INFO_SCHEMA = PROJECT_INFO_SCHEMA.extend({
-  mode: z.enum(['local', 'cloud']),
-})
-
-const RUNNING_HYBRID_PROJECT_INFO_SCHEMA = PROJECT_INFO_SCHEMA.extend({
-  mode: z.literal('hybrid'),
-  runningId: PROJECT_ID_SCHEMA,
-  hybridSessionId: PROJECT_SESSION_ID_SCHEMA,
-  localParentId: DIRECTORY_ID_SCHEMA,
-})
-const RUNNING_PROJECT_INFO_SCHEMA = z.discriminatedUnion('mode', [
-  RUNNING_NATIVE_PROJECT_INFO_SCHEMA,
-  RUNNING_HYBRID_PROJECT_INFO_SCHEMA,
-])
-
-LocalStorage.registerKey('openedTabs', { schema: z.array(RUNNING_PROJECT_INFO_SCHEMA) })
-LocalStorage.registerKey('unuploadedProjects', { schema: z.array(RUNNING_PROJECT_INFO_SCHEMA) })
-
-export type ProjectInfo = z.infer<typeof PROJECT_INFO_SCHEMA>
-export type RunningProjectInfo = z.infer<typeof RUNNING_PROJECT_INFO_SCHEMA>
-export type RunMode = ProjectInfo['mode']
 
 export interface LsUrls {
   rpcUrl: string
@@ -487,7 +439,7 @@ export function useProjectStates() {
   async function closeHybridProject(
     project: HybridUploaded | HybridOpened | HybridDownloaded,
   ): Promise<Result<NotOpened>> {
-    closeRemoteProject.mutateAsync([project.info.id, project.info.title])
+    await closeRemoteProject.mutateAsync([project.info.id, project.info.title])
     return Ok({ status: 'not-opened', info: project.info })
   }
 

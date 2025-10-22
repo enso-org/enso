@@ -8,6 +8,7 @@ import {
 } from '#/services/Backend'
 import { assert } from '@/util/assert'
 import { createGlobalState } from '@vueuse/core'
+import { isOnElectron } from 'enso-common/src/detect'
 import { computed, ref, shallowReactive, watchEffect } from 'vue'
 import type { Result, ResultError } from 'ydoc-shared/util/data/result'
 import { useAuth } from './auth'
@@ -46,7 +47,8 @@ export function createOpenedProjectsStore() {
   const enableCloudExecution = useFeatureFlag('enableCloudExecution')
   const projectStates = useProjectStates()
   const backends = useBackends()
-  const closePrevented = ref(false)
+  const closingOnAppExit = ref(false)
+  const projectReadyCallbacks: ((project: Project) => void)[] = []
 
   watchEffect(
     () =>
@@ -163,6 +165,11 @@ export function createOpenedProjectsStore() {
           abort.signal.throwIfAborted()
           if (result.ok) {
             project.state = result.value
+            if (project.state.status === 'initialized') {
+              for (const cb of projectReadyCallbacks) {
+                cb(project)
+              }
+            }
           } else {
             project.error = result.error
             project.nextTask = undefined
@@ -235,8 +242,10 @@ export function createOpenedProjectsStore() {
           proj.state.status === 'hybrid-uploaded'),
     )
     if (hybrids.length > 0) {
-      closePrevented.value = true
       event.preventDefault()
+      // Browsers have their own `beforeunload` handling.
+      if (!isOnElectron()) return
+      closingOnAppExit.value = true
       const errors = (
         await Promise.all(
           hybrids.map(async (project) => {
@@ -246,6 +255,7 @@ export function createOpenedProjectsStore() {
           }),
         )
       ).filter((proj) => proj.error != null)
+      closingOnAppExit.value = false
       if (errors.length == 0) {
         window.close()
       }
@@ -302,6 +312,11 @@ export function createOpenedProjectsStore() {
     return projects.get(id)?.nextTask?.process === 'closing'
   }
 
+  function onProjectReady(cb: (project: Project) => void) {
+    projectReadyCallbacks.push(cb)
+    return () => projectReadyCallbacks.splice(projectReadyCallbacks.indexOf(cb), 1)
+  }
+
   return {
     openProject,
     canOpenProjectLocally,
@@ -316,7 +331,8 @@ export function createOpenedProjectsStore() {
     isProjectOpened,
     isProjectClosing,
     waitForProcess,
-    closePrevented,
+    closingOnAppExit: closingOnAppExit,
+    onProjectReady,
   }
 }
 
