@@ -715,9 +715,7 @@ type S3_File
        private: true
        ---
     can_write_into_parent self -> Boolean =
-        path = S3_Path.parse self.uri
-        bucket = path.bucket
-        (S3_File.Value bucket).exists
+        (S3_File.new self.s3_path.bucket_root.to_text self.credentials).exists
 
     ## ---
        private: true
