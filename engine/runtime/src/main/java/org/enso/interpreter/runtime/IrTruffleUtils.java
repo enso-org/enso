@@ -12,7 +12,7 @@ import org.enso.interpreter.node.typecheck.TypeCheckValueNode;
 final class IrTruffleUtils {
   static TypeCheckValueNode extractAscribedType(
       EnsoContext ctx, AscriptionReason comment, Expression t) {
-    return new CreateTypeCheckNodes(ctx, false, comment).extractAscribedType(t);
+    return new CreateTypeCheckNodes(ctx, comment).extractAscribedType(t);
   }
 
   /*
@@ -28,7 +28,7 @@ final class IrTruffleUtils {
     private final boolean allTypes;
     private final AscriptionReason comment;
 
-    private CreateTypeCheckNodes(EnsoContext ctx, boolean allTypes, AscriptionReason reason) {
+    private CreateTypeCheckNodes(EnsoContext ctx, AscriptionReason reason) {
       this.ctx = ctx;
       this.allTypes = reason.isAllTypes();
       this.comment = reason;
