@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Backend, { ProjectId } from '#/services/Backend'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { injectOpenedProjects } from '$/providers/openedProjects'
 import { type LsUrls } from '$/providers/openedProjects/project'
@@ -10,6 +9,7 @@ import { provideVisibility } from '@/providers/visibility'
 import { provideSettings } from '@/stores/settings'
 import type { Opt } from '@/util/data/opt'
 import { useEventListener } from '@vueuse/core'
+import { Backend, ProjectId } from 'enso-common/src/services/Backend'
 import {
   markRaw,
   onActivated,

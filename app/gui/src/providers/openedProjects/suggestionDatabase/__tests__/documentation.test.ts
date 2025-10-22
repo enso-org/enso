@@ -3,12 +3,12 @@ import {
   getDocumentationSummary,
   getGroupIndex,
 } from '$/providers/openedProjects/suggestionDatabase/documentation'
-import { unwrap } from '@/util/data/result'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
+import { unwrap } from 'ydoc-shared/util/data/result'
 
 const projectNames = mockProjectNameStore('local', 'Project')
 

@@ -1,8 +1,8 @@
-import { AssetType, DirectoryId } from '#/services/Backend'
-import { Err, Ok, type Result } from '@/util/data/result'
+import { AssetType, DirectoryId } from 'enso-common/src/services/Backend'
 import { uuidv4 } from 'lib0/random'
 import { describe, expect, test, vi } from 'vitest'
 import { ref, type Ref } from 'vue'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import type { EnsoPath } from '../ensoPath'
 import { useAcceptCurrentFile, type AssetExists } from '../useAcceptCurrentFile'
 

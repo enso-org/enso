@@ -8,7 +8,7 @@ import type { Directory } from '@/components/widgets/FileBrowserWidget/pathBrows
 import type { Mutation } from '@/composables/backend'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
-import Backend, { type CreatedDirectory } from 'enso-common/src/services/Backend'
+import { Backend, type CreatedDirectory } from 'enso-common/src/services/Backend'
 import { computed, ref, toValue } from 'vue'
 import type { Result } from 'ydoc-shared/util/data/result'
 

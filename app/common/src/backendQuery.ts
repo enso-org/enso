@@ -1,6 +1,6 @@
 /** @file Framework-independent helpers for constructing backend Tanstack queries. */
 import type * as queryCore from '@tanstack/query-core'
-import type Backend from './services/Backend.js'
+import type { Backend } from './services/Backend.js'
 import * as backendModule from './services/Backend.js'
 import { omit, type ExtractKeys, type MethodOf } from './utilities/data/object.js'
 

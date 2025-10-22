@@ -13,7 +13,7 @@ import {
   INVALIDATE_ALL_QUERIES,
   INVALIDATION_MAP,
 } from 'enso-common/src/backendQuery'
-import type Backend from 'enso-common/src/services/Backend'
+import type { Backend } from 'enso-common/src/services/Backend'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import { computed, toValue, type UnwrapRef } from 'vue'
 // eslint-disable-next-line vue/prefer-import-from-vue

@@ -1,8 +1,8 @@
-import { EnsoPath } from '#/services/Backend'
-import { Err, Ok, type Result } from '@/util/data/result'
 import type { ToValue } from '@/util/reactivity'
 import { urlParse } from '@/util/url'
+import { EnsoPath } from 'enso-common/src/services/Backend'
 import { toValue } from 'vue'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 
 export type ParsedAssetUrl =
   | { kind: 'projectRelative'; relativePath: string; uploading: boolean }

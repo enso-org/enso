@@ -1,9 +1,9 @@
 /** Documentation metadata included in the front-matter section of the Markdown doc comment. */
 import { assert } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
-import { Err, Ok, type Result } from '@/util/data/result'
 import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import * as z from 'zod'
 
 /** A macro definition in the `macros` array. */

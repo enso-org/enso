@@ -1,5 +1,5 @@
 /** @file Parsing and representation of the search query. */
-import { unsafeKeyValuePair } from '#/utilities/object'
+import { unsafeKeyValuePair } from 'enso-common/src/utilities/data/object'
 import * as array from './array'
 
 // Control characters must be handled, in order to follow the JSON spec.

@@ -1,5 +1,4 @@
 /** @file Functions to initiate a download. */
-
 import type { DownloadUrlOptions, SystemApi } from '$/electronApi'
 
 /** Options for `download` function. */

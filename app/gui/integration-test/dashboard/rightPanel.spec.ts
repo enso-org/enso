@@ -1,9 +1,9 @@
 /** @file Tests for the asset panel. */
 import { expect, test, type Locator, type Page } from 'integration-test/base'
 
-import { EmailAddress, UserId } from '#/services/Backend'
+import { EmailAddress, UserId } from 'enso-common/src/services/Backend'
 
-import { PermissionAction } from '#/utilities/permissions'
+import { PermissionAction } from 'enso-common/src/utilities/permissions'
 
 import { TEXT } from '../actions'
 

@@ -2,7 +2,6 @@ import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { assert } from '@/util/assert'
 import { findDifferenceIndex } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'
-import { Err, Ok, ResultError, type Result } from '@/util/data/result'
 import {
   methodPointerEquals,
   stackItemsEqual,
@@ -31,6 +30,7 @@ import type {
   VisualizationConfiguration as LSVisualizationConfiguration,
   Uuid,
 } from 'ydoc-shared/languageServerTypes'
+import { Err, Ok, ResultError, type Result } from 'ydoc-shared/util/data/result'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 

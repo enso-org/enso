@@ -1,8 +1,8 @@
 /** @file Orchestrates reactive synchronization for the File Browser widget. */
 import { mapPath, type EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
-import type { Result } from '@/util/data/result'
 import type { ToValue } from '@/util/reactivity'
 import { toValue, watchEffect, type Ref } from 'vue'
+import type { Result } from 'ydoc-shared/util/data/result'
 
 export interface FileBrowserSyncOptions {
   /** Whether the widget is in write mode (affects filename syncing). */

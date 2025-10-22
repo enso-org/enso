@@ -2,8 +2,8 @@
 import type * as aria from '#/components/aria'
 import { Button } from '#/components/Button'
 import { Text } from '#/components/Text'
-import * as permissionsModule from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import * as permissionsModule from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
 
 /** Props for a {@link PermissionDisplay}. */

@@ -3,12 +3,10 @@ import ENGLISH from './text/english.json' with { type: 'json' }
 import { unsafeKeys } from './utilities/data/object.js'
 
 /** Possible languages in which to display text. */
-export enum Language {
-  english = 'english',
-}
+export type Language = 'english'
 
 export const LANGUAGE_TO_LOCALE: Record<Language, string> = {
-  [Language.english]: 'en-US',
+  english: 'en-US',
 }
 
 /** An object containing the corresponding localized text for each text ID. */
@@ -200,8 +198,9 @@ export interface Replacements
     Record<Exclude<TextId, keyof PlaceholderOverrides>, []> {}
 
 export const TEXTS: Readonly<Record<Language, Texts>> = {
-  [Language.english]: ENGLISH,
+  english: ENGLISH,
 }
+
 /**
  * A function that gets localized text for a given key, with optional replacements.
  * @param key - The key of the text to get.
@@ -218,11 +217,10 @@ export type GetText = <K extends TextId>(
 /** Resolves the language texts based on the user's preferred language. */
 export function resolveUserLanguage() {
   const locale = navigator.language
-  const language =
+  return (
     unsafeKeys(LANGUAGE_TO_LOCALE).find((language) => locale === LANGUAGE_TO_LOCALE[language]) ??
-    Language.english
-
-  return language
+    'english'
+  )
 }
 
 /**

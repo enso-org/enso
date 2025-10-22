@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { AssetDetailsResponse, RealAssetId } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
@@ -10,6 +9,7 @@ import { ResultComponent } from '@/util/react'
 import { EditorView } from '@codemirror/view'
 import { useMutation } from '@tanstack/vue-query'
 import { isOnElectron } from 'enso-common/src/detect'
+import type { AssetDetailsResponse, RealAssetId } from 'enso-common/src/services/Backend'
 import { computed, effectScope, onScopeDispose, ref, watch } from 'vue'
 
 const rightPanel = useRightPanelData()

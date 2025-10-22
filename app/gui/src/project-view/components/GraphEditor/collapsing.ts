@@ -4,10 +4,10 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { Identifier } from '@/util/ast/abstract'
 import { isIdentifier, moduleMethodNames } from '@/util/ast/abstract'
-import { Err, Ok, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { tryIdentifier } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
+import { Err, Ok, unwrap, type Result } from 'ydoc-shared/util/data/result'
 import { frontmatter } from '../ComponentHelp/metadata'
 
 // === Types ===

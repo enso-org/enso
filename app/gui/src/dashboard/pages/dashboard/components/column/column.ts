@@ -3,15 +3,15 @@ import { memo, type JSX } from 'react'
 
 import type { AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
+import type { SortInfo } from '#/utilities/sorting'
+import type { LaunchedProject } from '$/providers/container'
 import type {
   AnyAsset,
   AssetSortExpression,
   BackendType,
   Label,
   ProjectId,
-} from '#/services/Backend'
-import type { SortInfo } from '#/utilities/sorting'
-import type { LaunchedProject } from '$/providers/container'
+} from 'enso-common/src/services/Backend'
 import { Column } from './columnUtils'
 import {
   LabelsColumn,

@@ -1,6 +1,5 @@
 <script lang="ts">
 import { Dashboard as DashboardReact, type DashboardProps } from '#/pages/dashboard/Dashboard'
-import { EnsoPath } from '#/services/Backend'
 import CommandPalette from '$/components/CommandPalette.vue'
 import { useBackends } from '$/providers/backends'
 import { provideContainerData } from '$/providers/container'
@@ -9,17 +8,18 @@ import { ContainerDataProviderForReact } from '$/providers/react/container'
 import type { DataLoader } from '$/router/dataLoader'
 import { backendQueryOptions } from '@/composables/backend'
 import { provideAsyncResources } from '@/providers/asyncResources'
-import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import {
   AssetType,
+  EnsoPath,
   extractTypeFromId,
   isRemoteAssetPath,
   ProjectId,
   type AssetDetailsResponse,
   type ProjectAsset,
 } from 'enso-common/src/services/Backend'
+import { Ok } from 'enso-common/src/utilities/data/result'
 
 const Dashboard = reactComponent(DashboardReact)
 

@@ -7,7 +7,6 @@ import {
 import { SuggestionUpdateProcessor } from '$/providers/openedProjects/suggestionDatabase/lsUpdate'
 import { frontmatter } from '@/components/ComponentHelp/metadata'
 import { assert, assertDefined } from '@/util/assert'
-import { unwrap } from '@/util/data/result'
 import { parseAbsoluteProjectPathRaw, ProjectPath } from '@/util/projectPath'
 import {
   tryIdentifier,
@@ -19,6 +18,7 @@ import { expect, test } from 'vitest'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import type { SuggestionsDatabaseUpdate } from 'ydoc-shared/languageServerTypes/suggestions'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
+import { unwrap } from 'ydoc-shared/util/data/result'
 
 function stdPath(path: string) {
   assert(path.startsWith('Standard.'))

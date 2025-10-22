@@ -3,13 +3,16 @@
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md
  */
-import * as backend from '#/services/Backend'
-import { getFileName, getFolderPath } from '#/utilities/fileInfo'
-import { omit } from '#/utilities/object'
-import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
-import { normalizeName } from '@/util/nameValidation'
-import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-import invariant from 'tiny-invariant'
+import * as dateTime from '../../utilities/data/dateTime.js'
+import { omit } from '../../utilities/data/object.js'
+import {
+  getDirectoryAndName,
+  getFileName,
+  getFolderPath,
+  normalizeSlashes,
+} from '../../utilities/file.js'
+import { normalizeName } from '../../utilities/nameValidation.js'
+import * as backend from '../Backend.js'
 import {
   MissingComponentAction,
   Path,
@@ -61,7 +64,9 @@ export class ProjectManager {
     }
     await this.listDirectory(Path(getFolderPath(projectPath)))
     const projectId = this.projectIds.get(projectPath)
-    invariant(projectId, `Unknown project id for project '${projectPath}'.`)
+    if (!projectId) {
+      throw new Error(`Unknown project id for project '${projectPath}'.`)
+    }
     return this.projects.get(projectId)
   }
 
@@ -376,7 +381,6 @@ export class ProjectManager {
     ...cliArguments: string[]
   ): Promise<Response> {
     const searchParams = new URLSearchParams({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
     })
     return await fetch(`/api/run-project-manager-command?${searchParams}`, { method: 'POST', body })
@@ -389,8 +393,6 @@ export class ProjectManager {
     ...cliArguments: string[]
   ): Promise<T> {
     const response = await this.runStandaloneCommand(body, name, ...cliArguments)
-    // There is no way to avoid this as `JSON.parse` returns `any`.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const json: JSONRPCResponse<never> = await response.json()
     if ('result' in json) {
       return json.result
@@ -405,8 +407,6 @@ export class ProjectManager {
       method: 'POST',
       body: body && JSON.stringify(body),
     })
-    // There is no way to avoid this as `JSON.parse` returns `any`.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const json: JSONRPCResponse<never> = await response.json()
     if ('result' in json) {
       return json.result

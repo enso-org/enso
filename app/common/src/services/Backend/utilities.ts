@@ -1,12 +1,8 @@
-/**
- * @file Module containing utility functions related to any backend.
- */
-import type { AnyCategory } from '../layouts/Drive/Categories/Category'
-import type { DirectoryId } from './Backend'
+/** @file Backend agnostic utility functions. */
+import type { DirectoryId } from '../Backend.js'
+import type { AnyCategory } from './Category.js'
 
-/**
- * Options for the parseDirectoriesPath function.
- */
+/** Options for {@link parseDirectoriesPath}. */
 export interface ParsedDirectoriesPathOptions {
   readonly rootDirectoryId: DirectoryId
   readonly getCategoryByDirectoryId: (id: DirectoryId) => AnyCategory | null
@@ -22,14 +18,12 @@ export interface PathItem {
   readonly icon: AnyCategory['icon']
 }
 
-/**
- * Parse the parents path and virtual parents path into a list of {@link PathItem}.
- */
+/** Parse the parents path and virtual parents path into a list of {@link PathItem}. */
 export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
   const { getCategoryByDirectoryId, parentsPath, rootDirectoryId, virtualParentsPath } = options
 
   // e.g: parentsPath = 'directory-id1adsf/directory-id2adsf/directory-id3adsf'
-  // eslint-disable-next-line no-restricted-syntax
+
   const splitPath = parentsPath.split('/') as DirectoryId[]
   const rootDirectoryInPath = splitPath[0] || rootDirectoryId
 

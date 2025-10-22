@@ -25,7 +25,7 @@ import { RouterProvider } from 'react-aria-components'
 
 import { AboutModal } from '#/modals/AboutModal'
 
-import RemoteBackend from '#/services/RemoteBackend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'

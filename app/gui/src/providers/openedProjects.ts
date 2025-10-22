@@ -1,4 +1,3 @@
-import { ProjectId } from '#/services/Backend'
 import { createGraphStore, type GraphStore } from '$/providers/openedProjects/graph'
 import { createProjectStore, type ProjectStore } from '$/providers/openedProjects/project'
 import {
@@ -12,6 +11,7 @@ import {
 import { WidgetRegistry } from '$/providers/openedProjects/widgetRegistry'
 import { createContextStore } from '@/providers'
 import { assert } from '@/util/assert'
+import { ProjectId } from 'enso-common/src/services/Backend'
 import { EffectScope, effectScope, shallowReactive, toValue, type ToRefs } from 'vue'
 import { createModuleStore, type ModuleStore } from './openedProjects/module'
 import { type LsUrls } from './openedProjects/project/project'

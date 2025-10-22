@@ -13,7 +13,6 @@ import {
 import { SuggestionUpdateProcessor } from '$/providers/openedProjects/suggestionDatabase/lsUpdate'
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { assert } from '@/util/assert'
-import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import type { MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
@@ -25,6 +24,7 @@ import { computed, markRaw, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 
 /**

@@ -1,7 +1,6 @@
 import type { ModuleStore } from '$/providers/openedProjects/module'
 import type { ProjectStore } from '$/providers/openedProjects/project'
 import { changeSetToTextEdits } from '@/util/codemirror/text'
-import { Err, Ok } from '@/util/data/result'
 import { useToast } from '@/util/toast'
 import {
   Annotation,
@@ -13,6 +12,7 @@ import {
 import { EditorView } from '@codemirror/view'
 import { createDebouncer } from 'lib0/eventloop'
 import { onUnmounted, type Ref, watch } from 'vue'
+import { Err, Ok } from 'ydoc-shared/util/data/result'
 import { type SourceRangeEdit, textChangeToEdits } from 'ydoc-shared/util/data/text'
 import { type Origin } from 'ydoc-shared/yjsModel'
 

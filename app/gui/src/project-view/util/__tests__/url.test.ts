@@ -1,5 +1,5 @@
-import { Err, Ok, type Result } from '@/util/data/result'
 import { describe, expect, test } from 'vitest'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import { parseEnsoDeeplink, type DeeplinkUrl } from '../url'
 
 describe('parseEnsoDeeplink', () => {

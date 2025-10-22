@@ -14,7 +14,6 @@ import {
 } from '#/layouts/Drive/Categories'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
-import type LocalBackend from '#/services/LocalBackend'
 import { noop } from '#/utilities/functions'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
@@ -36,13 +35,14 @@ import {
   stripProjectExtension,
   type AnyAsset,
   type AssetId,
-  type default as Backend,
+  type Backend,
   type DirectoryId,
   type FileId,
   type ProjectId,
   type UploadedAsset,
   type UploadFileRequestParams,
 } from 'enso-common/src/services/Backend'
+import type { LocalBackend } from 'enso-common/src/services/LocalBackend'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { useState } from 'react'
 import { toast } from 'react-toastify'

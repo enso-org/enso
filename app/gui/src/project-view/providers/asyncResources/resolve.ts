@@ -1,12 +1,18 @@
-import { AssetType, EnsoPath, extractTypeFromId, NetworkError, ProjectId } from '#/services/Backend'
-import LocalBackend, { isLocalProjectId } from '#/services/LocalBackend'
-import RemoteBackend from '#/services/RemoteBackend'
 import type { OpenedProjectsStore } from '$/providers/openedProjects'
 import { useProjectFiles } from '@/stores/projectFiles'
-import { Err, Ok, rejectionToResult, type Result } from '@/util/data/result'
 import { urlParse } from '@/util/url'
+import {
+  AssetType,
+  EnsoPath,
+  extractTypeFromId,
+  NetworkError,
+  ProjectId,
+} from 'enso-common/src/services/Backend'
+import { isLocalProjectId, LocalBackend } from 'enso-common/src/services/LocalBackend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import { toValue } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
+import { Err, Ok, rejectionToResult, type Result } from 'ydoc-shared/util/data/result'
 import type { ResourceDefinition } from './AsyncResource'
 import type { ResourceContext } from './context'
 import { parseResourceUrl } from './parse'

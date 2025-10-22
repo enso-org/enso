@@ -5,7 +5,7 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/ast/abstract'
-import { Err, Ok, type Result } from '@/util/data/result'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 export {
   isIdentifier,
   isIdentifierOrOperatorIdentifier,

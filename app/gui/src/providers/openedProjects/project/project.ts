@@ -1,4 +1,3 @@
-import { ProjectId } from '#/services/Backend'
 import { ComputedValueRegistry } from '$/providers/openedProjects/project/computedValueRegistry'
 import {
   ExecutionContext,
@@ -11,7 +10,6 @@ import { Awareness } from '@/stores/awareness'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
 import type { Opt } from '@/util/data/opt'
-import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
 import type { MethodPointer } from '@/util/methodPointer'
 import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
@@ -20,6 +18,7 @@ import { ProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
+import { ProjectId } from 'enso-common/src/services/Backend'
 import { wait } from 'lib0/promise'
 import type { Ref, WatchSource } from 'vue'
 import {
@@ -36,6 +35,7 @@ import type { Identifier } from 'ydoc-shared/ast'
 import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { Diagnostic, ExpressionId } from 'ydoc-shared/languageServerTypes'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import type { AbortScope } from 'ydoc-shared/util/net'
 import {
   DistributedProject,

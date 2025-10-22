@@ -5,35 +5,35 @@
  * The functions are asynchronous and return a {@link Promise} that resolves to the response from
  * the API.
  */
-import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
-import Backend, * as backend from '#/services/Backend'
-import * as projectManager from '#/services/ProjectManager'
-import type { ProjectManager } from '#/services/ProjectManager/ProjectManager'
-import { download } from '#/utilities/download'
-import { tryGetMessage } from '#/utilities/error'
-import { getDirectoryAndName, joinPath } from '#/utilities/path'
-import type { GetText } from '$/providers/text'
-import { PRODUCT_NAME } from 'enso-common'
-import {
-  downloadProjectPath,
-  EXPORT_ARCHIVE_PATH,
-} from 'enso-common/src/services/Backend/remoteBackendPaths'
-import { HttpClient } from 'enso-common/src/services/HttpClient'
-import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import { markRaw } from 'vue'
+import { PRODUCT_NAME } from '../index.js'
+import { toReadableIsoString } from '../utilities/data/dateTime.js'
+import type { DownloadOptions } from '../utilities/download.js'
+import { tryGetMessage } from '../utilities/errors.js'
 import {
   fileExtension,
+  getDirectoryAndName,
   getFileName,
   getFolderPath,
+  joinPath,
   normalizePath,
-} from 'enso-common/src/utilities/file'
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
-import invariant from 'tiny-invariant'
-import { markRaw } from 'vue'
+} from '../utilities/file.js'
+import { uniqueString } from '../utilities/uniqueString.js'
+import * as backend from './Backend.js'
+import { downloadProjectPath, EXPORT_ARCHIVE_PATH } from './Backend/remoteBackendPaths.js'
+import { HttpClient } from './HttpClient.js'
+import type { ProjectManager } from './ProjectManager/ProjectManager.js'
+import {
+  MissingComponentAction,
+  Path,
+  ProjectName,
+  type IpWithSocket,
+} from './ProjectManager/types.js'
 
 const LOCAL_API_URL = '/api/'
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
-function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
+function ipWithSocketToAddress(ipWithSocket: IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
@@ -42,12 +42,12 @@ export const PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
 export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
-export function newDirectoryId(path: projectManager.Path) {
+export function newDirectoryId(path: Path) {
   return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${encodeURIComponent(path)}` as const)
 }
 
 /** Create a {@link backend.ProjectId} from a path. */
-export function newProjectId(path: projectManager.Path) {
+export function newProjectId(path: Path) {
   return backend.ProjectId(`${PROJECT_ID_PREFIX}${encodeURIComponent(path)}`)
 }
 
@@ -66,7 +66,7 @@ export function isLocalProjectId(projectId: backend.ProjectId): boolean {
 }
 
 /** Create a {@link backend.FileId} from a path. */
-export function newFileId(path: projectManager.Path) {
+export function newFileId(path: Path) {
   return backend.FileId(`${FILE_ID_PREFIX}${encodeURIComponent(path)}`)
 }
 
@@ -74,26 +74,37 @@ export function newFileId(path: projectManager.Path) {
  * Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard.
  */
-export default class LocalBackend extends Backend {
+export class LocalBackend extends backend.Backend {
   static readonly type = backend.BackendType.local
   override readonly type = LocalBackend.type
   override readonly baseUrl = new URL(LOCAL_API_URL, location.href)
   /** All files that have been uploaded to the Project Manager. */
   uploadedFiles: Map<string, backend.UploadedAsset> = new Map()
   private readonly projectManager: ProjectManager
+  private readonly getLocalRootDirectory: () => Path | null
+  private readonly getFilePath: ((item: File) => string) | undefined
 
   /** Create a {@link LocalBackend}. */
-  constructor(getText: GetText, projectManagerInstance: ProjectManager, client = new HttpClient()) {
-    super(getText, client)
-
+  constructor(
+    getText: backend.GetText,
+    projectManagerInstance: ProjectManager,
+    client = new HttpClient(),
+    downloader: (options: DownloadOptions) => void | Promise<void>,
+    getLocalRootDirectory: () => Path | null,
+    getFilePath: ((item: File) => string) | undefined,
+  ) {
+    super(getText, client, downloader)
     this.projectManager = projectManagerInstance
+    this.getLocalRootDirectory = getLocalRootDirectory
+    this.getFilePath = getFilePath
   }
 
   /** The root directory of this backend. */
   rootPath() {
-    return (
-      localRootDirectoryStore.getState().localRootDirectory ?? this.projectManager.rootDirectory
-    )
+    // TODO: We have settings in Electron for this, but not in the node CLI.
+    // We need to figure out where to store this setting for the node CLI as well,
+    // so that it is synced between both.
+    return this.getLocalRootDirectory() ?? this.projectManager.rootDirectory
   }
 
   /** Return the ID of the root directory. */
@@ -206,8 +217,6 @@ export default class LocalBackend extends Backend {
       }
     }
     result.sort((a, b) => backend.compareAssets(a, b, query.sortExpression, query.sortDirection))
-    // This is SAFE as the only `PaginationToken`s returned from this class are created from `AssetId`s.
-    // eslint-disable-next-line no-restricted-syntax
     const from = query.from as backend.AssetId | null
     const index = from == null ? 0 : result.findIndex((asset) => asset.id === from) + 1
     const assets = result.slice(index, query.pageSize != null ? index + query.pageSize : undefined)
@@ -234,8 +243,6 @@ export default class LocalBackend extends Backend {
       recursive: true,
     })
     const fullAssetList = result.assets.filter(backend.doesAssetMatchQuery(query))
-    // This is SAFE as the only `PaginationToken`s returned from this class are created from `AssetId`s.
-    // eslint-disable-next-line no-restricted-syntax
     const from = query.from as backend.AssetId | null
     const index = from == null ? 0 : fullAssetList.findIndex((asset) => asset.id === from) + 1
     const assets = fullAssetList.slice(
@@ -261,8 +268,8 @@ export default class LocalBackend extends Backend {
         this.projectManager.rootDirectory
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const project = await this.projectManager.createProject({
-      name: projectManager.ProjectName(body.projectName),
-      missingComponentAction: projectManager.MissingComponentAction.install,
+      name: ProjectName(body.projectName),
+      missingComponentAction: MissingComponentAction.install,
       projectsDirectory,
     })
     return {
@@ -321,7 +328,6 @@ export default class LocalBackend extends Backend {
       }
       throw new backend.AssetDoesNotExistError()
     }
-    // eslint-disable-next-line no-restricted-syntax
     return entry as unknown as backend.AssetDetailsResponse<Id>
   }
 
@@ -400,7 +406,7 @@ export default class LocalBackend extends Backend {
     try {
       await this.projectManager.openProject({
         projectPath: path,
-        missingComponentAction: projectManager.MissingComponentAction.install,
+        missingComponentAction: MissingComponentAction.install,
         ...(body?.openHybridProjectParameters != null ?
           { cloud: body.openHybridProjectParameters }
         : {}),
@@ -427,7 +433,7 @@ export default class LocalBackend extends Backend {
     if (body.projectName != null) {
       await this.projectManager.renameProject({
         projectPath: path,
-        name: projectManager.ProjectName(body.projectName),
+        name: ProjectName(body.projectName),
       })
     }
     const parentPath = getDirectoryAndName(path).directoryPath
@@ -648,7 +654,7 @@ export default class LocalBackend extends Backend {
 
       if (parentDirectoryId == null) {
         return joinPath(
-          projectManager.Path(currentParentDirectoryPath.split('/').slice(0, -1).join('/')),
+          Path(currentParentDirectoryPath.split('/').slice(0, -1).join('/')),
           fileName,
         )
       }
@@ -663,7 +669,7 @@ export default class LocalBackend extends Backend {
     if (type === backend.AssetType.project && title != null) {
       await this.projectManager.renameProject({
         projectPath: path,
-        name: projectManager.ProjectName(title),
+        name: ProjectName(title),
       })
     }
   }
@@ -679,7 +685,7 @@ export default class LocalBackend extends Backend {
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
-    const sourcePath = body.filePath ?? window.api?.system?.getFilePath(file)
+    const sourcePath = body.filePath ?? this.getFilePath?.(file)
     const searchParams = new URLSearchParams([
       ['directory', newDirectoryId(parentPath)],
       ['file_name', body.fileName],
@@ -720,7 +726,9 @@ export default class LocalBackend extends Backend {
   override uploadFileEnd(body: backend.UploadFileEndRequestBody): Promise<backend.UploadedAsset> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
     const file = this.uploadedFiles.get(body.uploadId)
-    invariant(file, 'Uploaded file not found')
+    if (!file) {
+      throw new Error('Uploaded file not found')
+    }
     return Promise.resolve(file)
   }
 
@@ -732,7 +740,7 @@ export default class LocalBackend extends Backend {
     const typeAndId = backend.extractTypeAndPath(fileId)
     const from = typeAndId.path
     const folderPath = getFolderPath(from)
-    const to = joinPath(projectManager.Path(folderPath), body.title)
+    const to = joinPath(Path(folderPath), body.title)
     await this.projectManager.moveFile(from, to)
   }
 
@@ -747,7 +755,7 @@ export default class LocalBackend extends Backend {
     body: backend.UpdateDirectoryRequestBody,
   ): Promise<backend.UpdatedDirectory> {
     const from = backend.extractTypeAndPath(directoryId).path
-    const folderPath = projectManager.Path(getFolderPath(from))
+    const folderPath = Path(getFolderPath(from))
     const to = joinPath(folderPath, body.title)
     await this.projectManager.moveFile(from, to)
     return {
@@ -759,8 +767,7 @@ export default class LocalBackend extends Backend {
 
   /** Resolve path to asset. In case of LocalBackend, this is just the filesystem path. */
   override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
-    // eslint-disable-next-line no-restricted-syntax
-    const { directoryPath } = getDirectoryAndName(projectManager.Path(path as string))
+    const { directoryPath } = getDirectoryAndName(Path(path as string))
     return this.findAsset(directoryPath, 'ensoPath', path)
   }
 
@@ -788,8 +795,10 @@ export default class LocalBackend extends Backend {
     switch (asset.type) {
       case backend.AssetType.project: {
         const details = await this.getProjectDetails(asset.id, true)
-        invariant(details.url != null, 'The download URL of the project must be present.')
-        await download({
+        if (details.url == null) {
+          throw new Error('The download URL of the project must be present.')
+        }
+        await this.downloader({
           url: details.url,
           name: `${title}.enso-project`,
           electronOptions: {
@@ -802,8 +811,10 @@ export default class LocalBackend extends Backend {
       }
       case backend.AssetType.file: {
         const details = await this.getFileDetails(asset.id, title, true)
-        invariant(details.url != null, 'The download URL of the file must be present.')
-        await download({
+        if (details.url == null) {
+          throw new Error('The download URL of the file must be present.')
+        }
+        await this.downloader({
           url: details.url,
           name: details.file.fileName ?? '',
           electronOptions: {
@@ -817,8 +828,7 @@ export default class LocalBackend extends Backend {
       case backend.AssetType.secret:
       case backend.AssetType.directory:
       case backend.AssetType.specialUp: {
-        invariant(`'${asset.type}' assets cannot be downloaded.`)
-        break
+        throw new Error(`'${asset.type}' assets cannot be downloaded.`)
       }
     }
   }
@@ -841,7 +851,10 @@ export default class LocalBackend extends Backend {
       // Download files as HTTP stream
       const secondsString = new Date().getSeconds().toString().padStart(2, '0')
       const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
-      await download({ url: this.resolvePath(path), name: `${PRODUCT_NAME} ${dateString}.zip` })
+      await this.downloader({
+        url: this.resolvePath(path),
+        name: `${PRODUCT_NAME} ${dateString}.zip`,
+      })
       return { filePath: null }
     }
   }
@@ -1026,7 +1039,7 @@ export default class LocalBackend extends Backend {
 
   /** Find asset details using directory listing. */
   private async findAsset<Key extends keyof backend.AnyAsset>(
-    directory: projectManager.Path,
+    directory: Path,
     key: Key,
     value: backend.AnyAsset[Key],
   ) {
@@ -1041,18 +1054,13 @@ export default class LocalBackend extends Backend {
       from: null,
       pageSize: null,
     })
-
     const entry = directoryContents.assets.find((content) => content[key] === value)
-
     if (entry == null) {
       if (backend.isDirectoryId(value)) {
         throw new backend.DirectoryDoesNotExistError()
       }
-
       throw new backend.AssetDoesNotExistError()
     }
-
-    // eslint-disable-next-line no-restricted-syntax
     return entry as never
   }
 }

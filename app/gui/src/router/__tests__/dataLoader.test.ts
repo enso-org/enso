@@ -1,9 +1,9 @@
 /* eslint-disable vue/one-component-per-file */
-import { Ok } from '@/util/data/result'
 import { proxyRefs } from '@/util/reactivity'
 import { describe, expect, test } from 'vitest'
 import { createApp, defineComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { Ok } from 'ydoc-shared/util/data/result'
 import { withDataLoader, type DataLoader } from '../dataLoader'
 
 function fixture(dataLoader: DataLoader<{ data: number }>) {

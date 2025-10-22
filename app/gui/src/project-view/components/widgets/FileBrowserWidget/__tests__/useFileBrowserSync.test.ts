@@ -1,8 +1,8 @@
-import { DirectoryId } from '#/services/Backend'
-import { Ok, type Result } from '@/util/data/result'
+import { DirectoryId } from 'enso-common/src/services/Backend'
 import { uuidv4 } from 'lib0/random'
 import { describe, expect, test, vi } from 'vitest'
 import { nextTick, ref, type Ref } from 'vue'
+import { Ok, type Result } from 'ydoc-shared/util/data/result'
 import type { EnsoPath } from '../ensoPath'
 import { useFileBrowserSync } from '../useFileBrowserSync'
 

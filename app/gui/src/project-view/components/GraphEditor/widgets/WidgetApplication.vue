@@ -8,8 +8,8 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
+import { mapOrUndefined } from 'enso-common/src/utilities/data/opt'
 import { computed } from 'vue'
-import { mapOrUndefined } from 'ydoc-shared/util/data/opt'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()

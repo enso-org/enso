@@ -1,9 +1,9 @@
 // Declaration-merging is used to implement mixin types in this file.
 /* eslint-disable @typescript-eslint/no-unsafe-declaration-merging */
+import type { Result } from 'enso-common/src/utilities/data/result'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import * as Y from 'yjs'
 import { assert, assertDefined, assertEqual, bail } from '../util/assert'
-import type { Result } from '../util/data/result'
-import { Err, Ok } from '../util/data/result'
 import type { SourceRangeEdit } from '../util/data/text'
 import { allKeys } from '../util/types'
 import type { ExternalId, VisualizationMetadata } from '../yjsModel'

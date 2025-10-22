@@ -10,14 +10,19 @@ import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
-import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
+import type {
+  AnyAsset,
+  DatalinkAsset,
+  FileAsset,
+  ProjectAsset,
+} from 'enso-common/src/services/Backend'
+import { AssetType, BackendType, S3ObjectVersionId } from 'enso-common/src/services/Backend'
+import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import { includes } from 'enso-common/src/utilities/data/array'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'

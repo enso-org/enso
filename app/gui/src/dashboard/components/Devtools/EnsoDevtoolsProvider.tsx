@@ -3,9 +3,9 @@
  * This file provides a zustand store that contains the state of the Enso devtools.
  */
 import { PAYWALL_FEATURES, type PaywallFeatureName } from '#/hooks/billing'
-import { unsafeEntries, unsafeFromEntries } from '#/utilities/object'
 import * as zustand from '#/utilities/zustand'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { unsafeEntries, unsafeFromEntries } from 'enso-common/src/utilities/data/object'
 
 /** Configuration for a paywall feature. */
 export interface PaywallDevtoolsFeatureConfiguration {

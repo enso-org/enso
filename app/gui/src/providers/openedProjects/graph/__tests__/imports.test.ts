@@ -19,10 +19,10 @@ import {
   makeType,
 } from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
 import { Ast } from '@/util/ast'
-import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName, type Identifier } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
+import { unwrap } from 'ydoc-shared/util/data/result'
 
 const qn = (s: string) => unwrap(tryQualifiedName(s))
 

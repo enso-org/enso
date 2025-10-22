@@ -4,12 +4,8 @@
  * This module copies implementation from NameValidation.scala module in the backend.
  */
 
-import { isIdentifier, type Identifier } from '@/util/qualifiedName'
-
-/**
- * Transforms the given string into a valid package name.
- */
-export function normalizeName(name: string): Identifier {
+/** Transform the given string into a valid package name. */
+export function normalizeName(name: string): string {
   const starting =
     (
       name.length === 0 ||
@@ -21,19 +17,11 @@ export function normalizeName(name: string): Identifier {
       'Project'
     : !name[0]?.match(/[a-zA-Z]/) ? 'Project_' + name
     : name
-
   const startingWithUppercase = starting.charAt(0).toUpperCase() + starting.slice(1)
-  const onlyAlphanumeric = startingWithUppercase.split('').filter(isAllowedNameCharacter).join('')
-  if (!isIdentifier(onlyAlphanumeric)) {
-    throw new Error(`Project name normalization failed: ${name}`)
-  }
-
-  return onlyAlphanumeric
+  return startingWithUppercase.split('').filter(isAllowedNameCharacter).join('')
 }
 
-/**
- * Checks if a character is allowed in a project name.
- */
+/** Check whether a character is allowed in a project name. */
 function isAllowedNameCharacter(char: string): boolean {
   return /[a-zA-Z0-9_]/.test(char)
 }

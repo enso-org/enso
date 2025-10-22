@@ -1,6 +1,4 @@
 <script lang="ts">
-import { ProjectId } from '#/services/Backend'
-import { isLocalProjectId } from '#/services/LocalBackend'
 import { injectOpenedProjects, type OpenedProject } from '$/providers/openedProjects'
 import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
@@ -8,6 +6,8 @@ import { assert } from '@/util/assert'
 import { colorFromString } from '@/util/colors'
 import type { Opt } from '@/util/data/opt'
 import type { ToValue } from '@/util/reactivity'
+import { ProjectId } from 'enso-common/src/services/Backend'
+import { isLocalProjectId } from 'enso-common/src/services/LocalBackend'
 import { computed, type Ref, shallowRef, type ToRefs, toValue, watch } from 'vue'
 
 export type CurrentProjectStore = ReturnType<typeof useCurrentProjectRaw>

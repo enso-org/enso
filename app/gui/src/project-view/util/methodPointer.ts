@@ -1,5 +1,4 @@
 import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
-import { Ok, type Result } from '@/util/data/result'
 import { type ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
 import * as encoding from 'lib0/encoding'
@@ -9,6 +8,7 @@ import type {
   ExplicitCall as LSExplicitCall,
   LSMethodPointer,
 } from 'ydoc-shared/languageServerTypes'
+import { Ok, type Result } from 'ydoc-shared/util/data/result'
 
 /** Serialize a {@link MethodPointer}. */
 export function encodeMethodPointer(enc: encoding.Encoder, ptr: MethodPointer) {

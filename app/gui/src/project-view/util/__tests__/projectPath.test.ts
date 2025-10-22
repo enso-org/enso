@@ -1,8 +1,8 @@
 import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
-import { unwrap } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
+import { unwrap } from 'ydoc-shared/util/data/result'
 
 const cases = [
   {

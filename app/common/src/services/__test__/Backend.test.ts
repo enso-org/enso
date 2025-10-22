@@ -1,11 +1,11 @@
-import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { describe, expect, it, test } from 'vitest'
+import { Rfc3339DateTime } from '../../utilities/data/dateTime.js'
 import {
   AssetType,
   compareAssets,
   doesTitleContainInvalidCharacters,
   type AnyAsset,
-} from '../Backend'
+} from '../Backend.js'
 
 describe('Backend', () => {
   it('sorts assets by modified date descending', () => {

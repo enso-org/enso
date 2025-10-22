@@ -1,7 +1,6 @@
 <script lang="ts">
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
-import { BackendType, EnsoPath, type ProjectId } from '#/services/Backend'
 import {
   useContainerData,
   type LaunchedProject,
@@ -17,6 +16,7 @@ import { registerHandlers } from '@/providers/action'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { reactComponent } from '@/util/react'
+import { BackendType, EnsoPath, type ProjectId } from 'enso-common/src/services/Backend'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { onMounted, reactive, shallowRef, toRefs, watch } from 'vue'
 import { Drive, Editor, Settings } from './reactTabs'

@@ -1,14 +1,9 @@
-/**
- * @file
- *
- * Feature flags provider.
- * Feature flags are used to enable or disable certain features in the application.
- */
-import { Plan } from '#/services/Backend'
-import { unsafeEntries } from '#/utilities/object'
+/** @file Provider for feature flags, used to enable or disable certain features in the application. */
 import { unsafeWriteValue } from '#/utilities/write'
 import { useZustandStoreRef } from '$/utils/zustand'
 import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
+import { Plan } from 'enso-common/src/services/Backend'
+import { unsafeEntries } from 'enso-common/src/utilities/data/object'
 import { z } from 'zod'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'

@@ -4,6 +4,7 @@ import { getText, resolveDictionary, type Replacements, type TextId } from '../t
 import * as array from '../utilities/data/array.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
+import type { DownloadOptions } from '../utilities/download.js'
 import * as permissions from '../utilities/permissions.js'
 import * as uniqueString from '../utilities/uniqueString.js'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
@@ -98,7 +99,7 @@ export interface Logger {
   readonly error: (message: unknown, ...optionalParams: unknown[]) => void
 }
 
-type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
+export type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
 export enum BackendType {
@@ -1744,15 +1745,23 @@ export class NetworkError extends Error {
 export class NotAuthorizedError extends NetworkError {}
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
-export default abstract class Backend {
+export abstract class Backend {
   abstract readonly type: BackendType
   abstract readonly baseUrl: URL
+  protected getText: GetText
+  private readonly client: HttpClient
+  protected readonly downloader: (options: DownloadOptions) => void | Promise<void>
 
   /** Create a {@link LocalBackend}. */
   constructor(
-    protected getText: GetText,
-    private readonly client: HttpClient,
-  ) {}
+    getText: GetText,
+    client: HttpClient,
+    downloader: (options: DownloadOptions) => void | Promise<void>,
+  ) {
+    this.getText = getText
+    this.client = client
+    this.downloader = downloader
+  }
 
   /**
    * Set `this.getText`. This function is exposed rather than the property itself to make it clear

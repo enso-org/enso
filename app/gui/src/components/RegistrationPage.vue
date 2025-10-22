@@ -2,9 +2,9 @@
 import RegistrationReact from '#/pages/authentication/Registration'
 import { useUserAgreements } from '$/composables/userAgreements'
 import type { DataLoader } from '$/router'
-import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
+import { Ok } from 'ydoc-shared/util/data/result'
 
 const Registration = reactComponent(RegistrationReact)
 

@@ -36,6 +36,9 @@ catalogs:
     vitest:
       specifier: ^3.2.4
       version: 3.2.4
+    vue:
+      specifier: ^3.5.13
+      version: 3.5.13
 
 overrides:
   tslib: ^2.8.1
@@ -134,7 +137,7 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       vue:
-        specifier: '*'
+        specifier: 'catalog:'
         version: 3.5.13(typescript@5.7.2)
       zod:
         specifier: ^3.25.49
@@ -511,7 +514,7 @@ importers:
         specifier: '=2.4.4'
         version: 2.4.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(vue@3.5.13(typescript@5.7.2))
       vue:
-        specifier: ^3.5.13
+        specifier: 'catalog:'
         version: 3.5.13(typescript@5.7.2)
       vue-component-type-helpers:
         specifier: ^2.2.0

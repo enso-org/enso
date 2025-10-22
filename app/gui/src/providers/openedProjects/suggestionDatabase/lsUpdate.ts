@@ -19,7 +19,6 @@ import {
 } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { assert, assertNever } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
-import { Err, Ok, withContext, type Result } from '@/util/data/result'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import type { ProjectPath } from '@/util/projectPath'
 import {
@@ -36,6 +35,7 @@ import type {
   SuggestionsDatabaseUpdate,
 } from 'ydoc-shared/languageServerTypes/suggestions'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
+import { Err, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 
 interface UpdateContext {
   groups: DeepReadonly<GroupInfo[]>

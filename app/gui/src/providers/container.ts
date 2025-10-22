@@ -1,8 +1,14 @@
-import { BackendType, DirectoryId, EnsoPath, ProjectId, ProjectSessionId } from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
+import {
+  BackendType,
+  type DirectoryId,
+  type EnsoPath,
+  type ProjectId,
+  type ProjectSessionId,
+} from 'enso-common/src/services/Backend'
 import { computed, reactive, watchEffect, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as z from 'zod'

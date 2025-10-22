@@ -1,7 +1,7 @@
-import { Plan } from '#/services/Backend'
 import type { UserSession } from '$/providers/auth'
 import { useText } from '$/providers/text'
 import type { ToValue } from '@/util/reactivity'
+import { Plan } from 'enso-common/src/services/Backend'
 import { computed, toValue, watch } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 

@@ -1,14 +1,14 @@
 /** @file The mock API. */
-import * as backend from '#/services/Backend'
 import {
   organizationIdToDirectoryId,
   userGroupIdToDirectoryId,
   userIdToDirectoryId,
 } from '#/services/RemoteBackend/ids'
-import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
+import * as backend from 'enso-common/src/services/Backend'
 import * as paths from 'enso-common/src/services/Backend/remoteBackendPaths'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
+import * as object from 'enso-common/src/utilities/data/object'
+import * as permissions from 'enso-common/src/utilities/permissions'
 import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 import { test, type Page, type Request, type Route } from 'integration-test/base'
 import { readFileSync } from 'node:fs'

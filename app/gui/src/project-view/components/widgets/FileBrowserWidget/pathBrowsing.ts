@@ -1,7 +1,6 @@
 /** @file APIs for navigating a cloud directory structure. */
 import type { EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
 import { findDifferenceIndex } from '@/util/data/array'
-import { Err, Ok, type Result } from '@/util/data/result'
 import {
   assetIsDirectory,
   type DirectoryAsset,
@@ -9,6 +8,7 @@ import {
   type ListDirectoryResponseBody,
 } from 'enso-common/src/services/Backend'
 import { computed, reactive, ref, toRaw, type Ref } from 'vue'
+import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 
 /** A directory on browser's stack. */
 export interface Directory {

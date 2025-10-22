@@ -1,9 +1,9 @@
 /** @file Encapsulates the logic for accepting the currently selected file in the File Browser. */
 import { mapPath, type EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
-import type { Result } from '@/util/data/result'
 import type { ToValue } from '@/util/reactivity'
 import { AssetType } from 'enso-common/src/services/Backend'
 import { ref, toValue, type Ref } from 'vue'
+import type { Result } from 'ydoc-shared/util/data/result'
 
 export type AssetExists = { exists: true; type: AssetType } | { exists: false }
 
