@@ -136,7 +136,7 @@ module.exports = {
     },
     {
       from: '../../built-small-jdk/',
-      to: 'enso/runtime',
+      to: 'enso/runtime/graalvm-ce-java24.0.1-24.2.0',
     },
   ],
   fileAssociations: [
