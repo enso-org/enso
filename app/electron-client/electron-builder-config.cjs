@@ -68,8 +68,8 @@ async function patchAppImage(context) {
       set -u
 
       # TODO[ib]: quick hack to resolve java binary at runtime on Linux
-      export PATH="$PATH:$SCRIPT_DIR/resources/enso/runtime/graalvm-ce-java24.0.1-24.2.0/bin"
       SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+      export PATH="$PATH:$SCRIPT_DIR/resources/enso/runtime/graalvm-ce-java24.0.1-24.2.0/bin"
       exec "$SCRIPT_DIR/${executableName}.bin" --no-sandbox "$@"
       `
   try {
