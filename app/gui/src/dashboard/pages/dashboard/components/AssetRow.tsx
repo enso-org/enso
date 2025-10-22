@@ -75,8 +75,7 @@ export interface AssetRowProps {
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
-  readonly closeProject: (projectId: backendModule.ProjectId) => void
-  readonly openProject: (projectId: backendModule.ProjectId) => void
+  // readonly openProject: (projectId: backendModule.ProjectId) => void
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
@@ -146,8 +145,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
     item,
     labels,
     grabKeyboardFocus,
-    closeProject,
-    openProject,
   } = props
 
   const { category, associatedBackend: backend } = useCategoriesAPI()
@@ -430,8 +427,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
                     setSelected={setSelected}
                     state={state}
                     isEditable={state.category.type !== 'trash'}
-                    closeProject={closeProject}
-                    openProject={openProject}
                   />
                 </td>
               )

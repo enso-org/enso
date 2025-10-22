@@ -260,7 +260,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             action: 'close',
             doAction: () => {
               void goToDrive()
-              closeProject(asset.id)
+              closeProject(asset.id, { asset, backendType: backend.type })
             },
           },
         isCloud && {

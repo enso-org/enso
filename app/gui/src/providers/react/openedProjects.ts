@@ -9,17 +9,23 @@ export const useOpenedProjects = useInReactFunction(OpenedProjectsContext)
 export function useIsProjectOpening(asset: ProjectAsset) {
   const openedProjects = useOpenedProjects()
   return useVueValue(
-    react.useCallback(() => openedProjects.isProjectOpening(asset), [openedProjects, asset]),
+    react.useCallback(
+      () => openedProjects.isProjectOpening(asset),
+      [openedProjects, asset, asset?.projectState, asset?.projectState.type],
+    ),
   )
 }
 
 export function useIsProjectOpened(asset: ProjectAsset | null) {
   const openedProjects = useOpenedProjects()
   return useVueValue(
-    react.useCallback(
-      () => (asset != null ? openedProjects.isProjectOpened(asset) : false),
-      [openedProjects, asset],
-    ),
+    react.useCallback(() => {
+      const result = asset != null ? openedProjects.isProjectOpened(asset) : false
+      console.debug('Returning', result)
+      return result
+    }, [openedProjects, asset, asset?.projectState, asset?.projectState.type]),
+    false,
+    true,
   )
 }
 

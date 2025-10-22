@@ -3,13 +3,7 @@ import { memo, type JSX } from 'react'
 
 import type { AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type {
-  AnyAsset,
-  AssetSortExpression,
-  BackendType,
-  Label,
-  ProjectId,
-} from '#/services/Backend'
+import type { AnyAsset, AssetSortExpression, BackendType, Label } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import { Column } from './columnUtils'
 import {
@@ -32,8 +26,7 @@ export interface AssetColumnProps {
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
   readonly labels: readonly Label[]
-  readonly closeProject: (project: ProjectId) => void
-  readonly openProject: (projectId: ProjectId) => void
+  // readonly openProject: (projectId: ProjectId) => void
 }
 
 /** Props for the name column of an arbitrary variant of {@link Asset}. */

@@ -48,17 +48,21 @@ export function createOpenedProjectsStore() {
   const backends = useBackends()
   const closePrevented = ref(false)
 
-  watchEffect(() =>
-    console.debug(
-      'PROJECTS',
-      [...projects.values()].map((proj) => proj.state),
-    ),
+  watchEffect(
+    () =>
+      console.debug(
+        'PROJECTS',
+        [...projects.values()].map((proj) => proj.state),
+      ),
+    { flush: 'sync' },
   )
-  watchEffect(() =>
-    console.debug(
-      'PROJECTS TASKS',
-      [...projects.values()].map((proj) => proj.nextTask),
-    ),
+  watchEffect(
+    () =>
+      console.debug(
+        'PROJECTS TASKS',
+        [...projects.values()].map((proj) => proj.nextTask),
+      ),
+    { flush: 'sync' },
   )
 
   /** Whether the user can run projects. */
@@ -120,10 +124,18 @@ export function createOpenedProjectsStore() {
     }
   }
 
-  function closeProject(id: ProjectId) {
+  function closeProject(
+    id: ProjectId,
+    backendProject?: { asset: ProjectAsset; backendType: BackendType },
+  ) {
     const project = projects.get(id)
     if (project == null) {
-      console.warn('Cannot close project: project not opened')
+      if (backendProject == null) {
+        console.warn('Cannot close project: project not opened')
+      } else {
+        projectStates.closeProjectInBackend(backendProject.asset, backendProject.backendType)
+      }
+
       return
     }
     performProcess(project, 'closing')
@@ -147,7 +159,8 @@ export function createOpenedProjectsStore() {
     try {
       do {
         if (project.nextTask != null) {
-          const result = await project.nextTask.promise
+          const result: Result<ProjectState> = await project.nextTask.promise
+          abort.signal.throwIfAborted()
           if (result.ok) {
             project.state = result.value
           } else {
@@ -156,20 +169,32 @@ export function createOpenedProjectsStore() {
             break
           }
         }
-        abort.signal.throwIfAborted()
+        project.error = undefined
         let promise
         switch (project.state.status) {
           case 'not-opened':
             if (process === 'opening') promise = projectStates.openProject(project.state)
             break
           case 'hybrid-opened':
-            promise = projectStates.downloadHybridProject(project.state)
+            promise =
+              process === 'opening' ?
+                projectStates.downloadHybridProject(project.state)
+              : projectStates.closeHybridProject(project.state)
             break
           case 'hybrid-downloaded':
-            promise = projectStates.openLocalVersionOfHybridProject(project.state, abort.signal)
+            promise =
+              process === 'opening' ?
+                (promise = projectStates.openLocalVersionOfHybridProject(
+                  project.state,
+                  abort.signal,
+                ))
+              : projectStates.closeHybridProject(project.state)
             break
           case 'opened':
-            promise = projectStates.initializeProject(project.state)
+            promise =
+              process === 'opening' ?
+                projectStates.initializeProject(project.state)
+              : projectStates.closeProject(project.state)
             break
           case 'initialized':
             if (process === 'closing') promise = projectStates.closeProject(project.state)
@@ -246,17 +271,24 @@ export function createOpenedProjectsStore() {
 
   function isProjectOpening(asset: ProjectAsset) {
     const openedByMe = projects.get(asset.id)
-    if (openedByMe != null && openedByMe.state.status != 'not-opened') {
+    if (openedByMe != null) {
       return openedByMe.nextTask?.process === 'opening'
     } else {
-      console.debug('>>>', asset.projectState.type)
       return BACKEND_IS_OPENING[asset.projectState.type]
     }
   }
 
   function isProjectOpened(asset: ProjectAsset) {
     const openedByMe = projects.get(asset.id)
-    if (openedByMe != null && openedByMe.state.status != 'not-opened') {
+    console.debug(
+      '>>>',
+      openedByMe != null,
+      openedByMe?.nextTask == null,
+      openedByMe?.state.status !== 'not-opened',
+      openedByMe?.state.status === 'initialized',
+      asset.projectState.type,
+    )
+    if (openedByMe != null && openedByMe.state.status !== 'not-opened') {
       return openedByMe.nextTask == null && openedByMe.state.status === 'initialized'
     } else {
       return (

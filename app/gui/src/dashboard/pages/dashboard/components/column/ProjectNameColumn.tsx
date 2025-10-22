@@ -11,6 +11,7 @@ import { isDoubleClick } from '#/utilities/event'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession } from '$/providers/react'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { isOnMacOS } from 'enso-common/src/detect'
 import { useStore } from 'zustand'
 
@@ -21,13 +22,14 @@ export interface ProjectNameColumnProps extends AssetNameColumnProps {
 
 /** The icon and name of a {@link ProjectAsset}. */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const { item, isEditable, isPlaceholder, closeProject, openProject } = props
+  const { item, isEditable, isPlaceholder } = props
 
   const { associatedBackend: backend } = useCategoriesAPI()
   const { user } = useFullUserSession()
   const getAssetChildren = useGetAssetChildren()
   const renameAsset = useRenameAsset(backend)
   const driveStore = useDriveStore()
+  const openedProjects = useOpenedProjects()
 
   const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
   const setIsEditing = (isEditing: boolean) => {
@@ -70,7 +72,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         if (isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
         } else if (isDoubleClick(event) && canExecute) {
-          openProject(item.id)
+          openedProjects.openProjectLocally(item, backend.type)
         }
       }}
     >
@@ -79,8 +81,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         backend={backend}
         item={item}
         isPlaceholder={isPlaceholder}
-        closeProject={closeProject}
-        openProject={openProject}
       />
 
       <EditableSpan

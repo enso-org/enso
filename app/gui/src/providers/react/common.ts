@@ -20,16 +20,21 @@ export function useInReactFunction<T>(context: react.Context<T | null>) {
  * The selector vue's reactive dependencies are tracked, and the React component is re-rendered
  * when the value changed.
  */
-export function useVueValue<T>(selector: WatchSource<T>, deep = false): T {
-  const [state, setState] = react.useState(() => toValue<T>(selector))
+export function useVueValue<T>(selector: WatchSource<T>, deep = false, debug = false): T {
+  const [state, setState] = react.useState(() => {
+    if (debug) console.debug('INIT STATE')
+    return toValue<T>(selector)
+  })
   react.useEffect(() => {
+    if (debug) console.debug('NEW SELECTOR')
     return watch(
       selector,
       (newValue) => {
+        if (debug) console.debug('SETTING STATE', newValue)
         setState(newValue)
       },
       // We need to set state synchronously to make react transitions working properly.
-      { flush: 'sync', deep },
+      { flush: 'sync', deep, immediate: true },
     )
   }, [selector, deep])
   return state

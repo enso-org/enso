@@ -13,6 +13,7 @@ import Backend, {
 import type LocalBackend from '#/services/LocalBackend'
 import type RemoteBackend from '#/services/RemoteBackend'
 import LocalStorage from '#/utilities/LocalStorage'
+import { backendMutationOptions } from '@/composables/backend'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { assert, assertDefined } from '@/util/assert'
 import { Err, Ok, rejectionToResult, type Result } from '@/util/data/result'
@@ -102,6 +103,7 @@ export interface HybridDownloaded {
 export interface Opened {
   status: 'opened'
   info: RunningProjectInfo
+  runningId: ProjectId
 }
 
 export interface Initialized {
@@ -148,6 +150,19 @@ export function useProjectStates() {
   const uploads = useUploadsToCloudStore()
   const queryClient = vueQuery.useQueryClient()
 
+  const openLocalProject = vueQuery.useMutation(
+    backendMutationOptions('openProject', backends.localBackend),
+  )
+  const openRemoteProject = vueQuery.useMutation(
+    backendMutationOptions('openProject', backends.remoteBackend),
+  )
+  const closeLocalProject = vueQuery.useMutation(
+    backendMutationOptions('closeProject', backends.localBackend),
+  )
+  const closeRemoteProject = vueQuery.useMutation(
+    backendMutationOptions('closeProject', backends.remoteBackend),
+  )
+
   const catchNetworkError = rejectionToResult(NetworkError)
 
   async function openProject(project: NotOpened): Promise<Result<HybridOpened | Opened>> {
@@ -163,7 +178,7 @@ export function useProjectStates() {
       case 'local': {
         if (!backends.localBackend) return Err('Cannot open local project: Local Backend missing.')
         const result = await catchNetworkError(
-          backends.localBackend.openProject(
+          openLocalProject.mutateAsync([
             project.info.id,
             {
               executeAsync: false,
@@ -171,17 +186,18 @@ export function useProjectStates() {
               openHybridProjectParameters: null,
             },
             project.info.title,
-          ),
+          ]),
         )
         if (!result.ok) return result
         return Ok({
           status: 'opened',
           info: { ...project.info, mode: project.info.mode },
+          runningId: project.info.id,
         })
       }
       case 'cloud': {
         const result = await catchNetworkError(
-          backends.remoteBackend.openProject(
+          openRemoteProject.mutateAsync([
             project.info.id,
             {
               executeAsync: false,
@@ -189,12 +205,13 @@ export function useProjectStates() {
               openHybridProjectParameters: null,
             },
             project.info.title,
-          ),
+          ]),
         )
         if (!result.ok) return result
         return Ok({
           status: 'opened',
           info: { ...project.info, mode: project.info.mode },
+          runningId: project.info.id,
         })
       }
       case 'hybrid': {
@@ -288,6 +305,7 @@ export function useProjectStates() {
         runningId: localProjectAsset.id,
         localParentId: localProjectAsset.parentId,
       },
+      runningId: localProjectAsset.id,
     })
   }
 
@@ -406,7 +424,7 @@ export function useProjectStates() {
   }
 
   async function closeProject(
-    project: Initialized,
+    project: Opened | Initialized,
   ): Promise<Result<NotOpened | HybridLocallyClosed>> {
     if (project.status === 'initialized') {
       project.scope.stop()
@@ -415,13 +433,13 @@ export function useProjectStates() {
       case 'local':
         if (backends.localBackend == null)
           return Err('Cannot close local project: no local backend')
-        await backends.localBackend.closeProject(project.info.id, project.info.title)
+        await closeLocalProject.mutateAsync([project.info.id, project.info.title])
         return Ok({
           status: 'not-opened',
           info: project.info,
         })
       case 'cloud':
-        await backends.remoteBackend.closeProject(project.info.id, project.info.title)
+        await closeRemoteProject.mutateAsync([project.info.id, project.info.title])
         return Ok({
           status: 'not-opened',
           info: project.info,
@@ -466,9 +484,19 @@ export function useProjectStates() {
     })
   }
 
-  async function closeHybridProject(project: HybridUploaded): Promise<Result<NotOpened>> {
-    backends.remoteBackend.closeProject(project.info.id, project.info.title)
+  async function closeHybridProject(
+    project: HybridUploaded | HybridOpened | HybridDownloaded,
+  ): Promise<Result<NotOpened>> {
+    closeRemoteProject.mutateAsync([project.info.id, project.info.title])
     return Ok({ status: 'not-opened', info: project.info })
+  }
+
+  function closeProjectInBackend(project: { id: ProjectId; title: string }, backend: BackendType) {
+    if (backend === BackendType.local) {
+      closeLocalProject.mutate([project.id, project.title])
+    } else {
+      closeRemoteProject.mutate([project.id, project.title])
+    }
   }
 
   return {
@@ -479,6 +507,7 @@ export function useProjectStates() {
     closeProject,
     uploadHybridProject,
     closeHybridProject,
+    closeProjectInBackend,
   }
 }
 

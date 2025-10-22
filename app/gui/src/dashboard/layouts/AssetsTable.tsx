@@ -60,13 +60,7 @@ import {
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import type {
-  AssetId,
-  AssetSortExpression,
-  DirectoryId,
-  PaginationToken,
-  ProjectId,
-} from '#/services/Backend'
+import type { AssetId, AssetSortExpression, DirectoryId, PaginationToken } from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -164,7 +158,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const contextMenuRef = useRef<ContextMenuApi>(null)
   const { category, associatedBackend: backend } = useCategoriesAPI()
-  const { openProjectLocally, closeProject } = useOpenedProjects()
+  const { openProjectLocally } = useOpenedProjects()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
 
@@ -686,16 +680,6 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
-  const doOpenProject = useEventCallback((projectId: ProjectId) => {
-    const project = assets.find((asset) => asset.id === projectId)
-
-    if (project?.type !== AssetType.project) {
-      return Promise.resolve()
-    }
-
-    return openProjectLocally(project, backend.type)
-  })
-
   const doCopy = useEventCallback(() => {
     const { selectedIds } = driveStore.getState()
     setPasteData({
@@ -1110,8 +1094,6 @@ function AssetsTable(props: AssetsTableProps) {
                 onDragStart={onRowDragStart}
                 onDragEnd={endAutoScroll}
                 onDrop={onRowDrop}
-                closeProject={closeProject}
-                openProject={doOpenProject}
               />
             )
           })}

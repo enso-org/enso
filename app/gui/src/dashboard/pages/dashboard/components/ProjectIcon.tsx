@@ -6,7 +6,7 @@ import { Spinner } from '#/components/Spinner'
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
-import { BackendType, ProjectState, type ProjectAsset, type ProjectId } from '#/services/Backend'
+import { BackendType, ProjectState, type ProjectAsset } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession, useText } from '$/providers/react'
 import {
@@ -59,13 +59,11 @@ export interface ProjectIconProps {
   readonly backend: Backend
   readonly isDisabled: boolean
   readonly item: ProjectAsset
-  readonly closeProject: (project: ProjectId) => void
-  readonly openProject: (projectId: ProjectId) => void
 }
 
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
-  const { backend, item, isDisabled: isDisabledRaw, closeProject, openProject } = props
+  const { backend, item, isDisabled: isDisabledRaw } = props
 
   const openedProjects = useOpenedProjects()
   const isUnconditionallyDisabled = !openedProjects.canOpenProjectLocally(backend.type)
@@ -82,9 +80,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     projectState.openedBy != null && projectState.openedBy !== user.email
 
+  console.debug('>', item, item.projectState.type)
   const isProjectOpening = useIsProjectOpening(item)
   const isProjectOpened = useIsProjectOpened(item)
   const isProjectClosing = useIsProjectClosing(item.id)
+  console.debug('>>', isProjectOpening, isProjectOpened, isProjectClosing)
 
   const areOtherProjectsOpening = useAreOtherProjectsOpening(item.id)
   const isAnotherProjectOpening = areOtherProjectsOpening && !isProjectOpening
@@ -105,11 +105,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
   })()
 
   const doOpenProject = useEventCallback(() => {
-    openProject(item.id)
+    openedProjects.openProjectLocally(item, backend.type)
   })
 
   const doCloseProject = useEventCallback(() => {
-    return closeProject(item.id)
+    return openedProjects.closeProject(item.id, { asset: item, backendType: backend.type })
   })
 
   const getTooltip = (defaultTooltip: string) =>
