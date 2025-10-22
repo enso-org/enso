@@ -2223,6 +2223,9 @@ lazy val `engine-common` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    publishLocalSetting,
+    autoScalaLibrary := false,
+    crossPaths := false,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
@@ -4373,7 +4376,9 @@ lazy val `jvm-channel` =
     .enablePlugins(JPMSPlugin)
     .settings(
       customFrgaalJavaCompilerSettings(targetJdk = "24"),
+      publishLocalSetting,
       autoScalaLibrary := false,
+      crossPaths := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
@@ -4408,7 +4413,9 @@ lazy val `jvm-interop` =
       inConfig(Compile)(
         Seq(fork := true, javaOptions ++= Seq("-ea:org.enso.jvm..."))
       ),
+      publishLocalSetting,
       autoScalaLibrary := false,
+      crossPaths := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(

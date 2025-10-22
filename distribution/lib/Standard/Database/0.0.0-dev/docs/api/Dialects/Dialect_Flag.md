@@ -30,6 +30,7 @@
     - Supports_Separate_NaN
     - Supports_Sort_Digits_As_Numbers
     - Supports_Time_Duration
+    - Supports_Unicode_Casing
     - Supports_Unicode_Normalization
     - Text_Length_Limited_Columns
     - Use_Builtin_Bankers
