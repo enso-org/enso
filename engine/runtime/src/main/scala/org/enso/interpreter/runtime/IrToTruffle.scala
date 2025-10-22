@@ -837,11 +837,26 @@ private[runtime] class IrToTruffle(
   ): TypeCheckValueNode = {
     arg.ascribedType
       .map { t =>
-        val reason    = AscriptionReason.forParameter(arg.name.name)
-        val checkNode = IrTruffleUtils.extractAscribedType(context, reason, t)
+        val reason = AscriptionReason.forParameter(arg.name.name)
+        // If `arg` is synthetic self, it means that the expected type should be eigen type, because
+        // the whole method is "static" (has no explicit self parameter).
+        val checkNode = if (isSyntheticSelfParameter(arg)) {
+          IrTruffleUtils.extractAscribedEigenType(context, reason, t)
+        } else {
+          IrTruffleUtils.extractAscribedType(context, reason, t)
+        }
         TypeCheckValueNode.allTypes(false, checkNode)
       }
       .getOrElse(null)
+  }
+
+  private def isSyntheticSelfParameter(
+    param: DefinitionArgument
+  ): Boolean = {
+    param.name() match {
+      case self: Name.Self => self.synthetic
+      case _               => false
+    }
   }
 
   /** Checks if the expression has a @Builtin_Method annotation

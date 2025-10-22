@@ -12,7 +12,12 @@ import org.enso.interpreter.node.typecheck.TypeCheckValueNode;
 final class IrTruffleUtils {
   static TypeCheckValueNode extractAscribedType(
       EnsoContext ctx, AscriptionReason comment, Expression t) {
-    return new CreateTypeCheckNodes(ctx, comment).extractAscribedType(t);
+    return new CreateTypeCheckNodes(ctx, comment, false).extractAscribedType(t);
+  }
+
+  static TypeCheckValueNode extractAscribedEigenType(
+      EnsoContext ctx, AscriptionReason comment, Expression t) {
+    return new CreateTypeCheckNodes(ctx, comment, true).extractAscribedType(t);
   }
 
   /*
@@ -26,12 +31,15 @@ final class IrTruffleUtils {
           TypeCheckValueNode, CompilerError> {
     private final EnsoContext ctx;
     private final boolean allTypes;
+    private final boolean expectsEigenType;
     private final AscriptionReason comment;
 
-    private CreateTypeCheckNodes(EnsoContext ctx, AscriptionReason reason) {
+    private CreateTypeCheckNodes(
+        EnsoContext ctx, AscriptionReason reason, boolean expectsEigenType) {
       this.ctx = ctx;
       this.allTypes = reason.isAllTypes();
       this.comment = reason;
+      this.expectsEigenType = expectsEigenType;
     }
 
     @Override
@@ -46,7 +54,11 @@ final class IrTruffleUtils {
           return null;
         }
       }
-      return TypeCheckValueNode.single(comment, typ);
+      if (expectsEigenType) {
+        return TypeCheckValueNode.single(comment, typ.getEigentype());
+      } else {
+        return TypeCheckValueNode.single(comment, typ);
+      }
     }
 
     @Override
