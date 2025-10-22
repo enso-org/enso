@@ -221,6 +221,7 @@ const config = [
             'app/ide-desktop/icons/src/index.js',
             'app/electron-client/electron-builder-config.cjs',
             'app/electron-client/create-build-info.mjs',
+            'app/electron-client/esbuild.config.mjs',
           ],
         },
       },
