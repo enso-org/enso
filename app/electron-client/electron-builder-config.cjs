@@ -25,6 +25,12 @@ function engineDistributionTarget(version) {
 /**
  * electron-builder preserves symlinks in extraResources, but Bazel uses them for sandboxing.
  * This function replaces symlinks with real files by copying their targets.
+ *
+ * One catch we can face is that this will also replace any expected symlinks in engine distribution.
+ * The only symlinks we have at the moment are some legal files in the GraalVM distribution, but they
+ * can be safely copied.
+ *
+ * TODO[ib]: Can we selectively replace only symlinks pointing outside of distribution directory?
  */
 async function replaceSymlinksWithFiles(root) {
   const entries = await fs.readdir(root, { withFileTypes: true })
