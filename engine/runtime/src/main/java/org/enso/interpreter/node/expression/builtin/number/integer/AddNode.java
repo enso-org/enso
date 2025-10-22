@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 public abstract class AddNode extends IntegerNode.Binary {
 
   @Override
-  abstract Object executeBinary(Object self, Object that);
+  abstract Object executeBinary(Object own, Object that);
 
   public static AddNode build() {
     return AddNodeGen.create();

@@ -108,11 +108,11 @@ public abstract sealed class IntegerNode extends Node
    * arguments.
    */
   public abstract static non-sealed class Binary extends IntegerNode {
-    public final Object execute(Object self, Object that) {
-      var ensoSelf = toEnsoNumberOrNull(self, false);
+    public final Object execute(Object own, Object that) {
+      var ensoSelf = toEnsoNumberOrNull(own, false);
       var ensoThat = toEnsoNumberOrNull(that);
       if (ensoSelf == null || ensoThat == null) {
-        throw throwTypeErrorIfNotInt(self, that);
+        throw throwTypeErrorIfNotInt(own, that);
       }
       return executeBinary(ensoSelf, ensoThat);
     }
