@@ -33,14 +33,12 @@
 - [Implement `Text_Column.to_case` for in-memory backend.][13769]
 - [Add support for gzip encoded return from web APIs.][14026]
 - [Fixes for JDBC connection and schema support for SQL Server.][14039]
-- [Change Column.length to Column.row_count][14085]
-- [Add Text_Column.length and Text_Column.char_length][14091]
-- [Microsoft 365 OAuth support.][14135]
 - [Change Column.length to Column.row_count.][14085]
 - [Add Text_Column.length and Text_Column.char_length.][14091]
 - [Add EDI_Format and support for reading ANSI X12 EDI files.][14158]
 - [Add support for reading xlsb Excel file format][14157]
 - [Add Text_Column.upper and Text_Column.lower.][14179]
+- [Microsoft 365 OAuth support.][14135]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
