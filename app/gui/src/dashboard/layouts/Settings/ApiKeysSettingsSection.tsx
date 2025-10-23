@@ -11,6 +11,7 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import type { ApiKey } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
@@ -22,12 +23,16 @@ export function ApiKeySettingsSection() {
   const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
   const { data: apiKeys } = useSuspenseQuery(backendQueryOptions(backend, 'listApiKeys', []))
+  const apiKeyLimit = useFeatureFlag('apiKeyLimit')
+  const canCreateMoreApiKeys = apiKeys.length < apiKeyLimit
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <Button.Group verticalAlign="center" className="flex-initial">
         <Popover.Trigger>
-          <Button variant="outline">{getText('newApiKey')}</Button>
+          <Button isDisabled={!canCreateMoreApiKeys} variant="outline">
+            {getText('newApiKey')}
+          </Button>
           <Popover size="small" placement="bottom left">
             <NewApiKeyForm />
           </Popover>
