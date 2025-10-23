@@ -69,3 +69,37 @@ type Text_Column
        ```
     char_length self -> Column & Numeric_Column =
         self.operations_implementation.char_length self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each element of the column to uppercase.
+
+        ## Examples
+        ### Convert the values in a column to uppercase.
+        
+        ```
+            import Standard.Examples
+
+            example_upper = Examples.text_column_1.upper
+        ```   
+    upper self -> Column & Text_Column =
+        self.operations_implementation.upper self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each element of the column to lowercase.    
+
+        ## Examples
+        ### Convert the values in a column to lowercase.
+        
+        ```
+            import Standard.Examples
+
+            example_lower = Examples.text_column_1.lower
+        ```  
+    lower self -> Column & Text_Column =    
+        self.operations_implementation.lower self.column

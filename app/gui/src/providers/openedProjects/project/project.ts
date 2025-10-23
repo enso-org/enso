@@ -485,7 +485,7 @@ function resolveYDocUrl(rpcUrl: string, url: string): URL {
     resolved = new URL(url)
   } else {
     resolved = new URL(rpcUrl)
-    resolved.port = '1234'
+    resolved.port = '5976'
   }
   resolved.pathname = '/project'
   return resolved

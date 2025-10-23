@@ -894,28 +894,6 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.2.1)(@vitest/browser@3.2.4)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.37.0)(yaml@2.7.0)
 
-  app/ydoc-server-nodejs:
-    dependencies:
-      ws:
-        specifier: ^8.18.0
-        version: 8.18.0
-      ydoc-server:
-        specifier: workspace:*
-        version: link:../ydoc-server
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.2.1
-      esbuild:
-        specifier: ^0.25.0
-        version: 0.25.0
-      esbuild-plugin-wasm:
-        specifier: ^1.1.0
-        version: 1.1.0
-      typescript:
-        specifier: 'catalog:'
-        version: 5.7.2
-
   app/ydoc-server-polyglot:
     dependencies:
       ydoc-server:

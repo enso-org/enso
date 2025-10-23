@@ -21,9 +21,8 @@ public abstract class LanguageServerApi {
 
   public static void launchLanguageServer(CommandLine line, ProfilingConfig config, Level logLevel)
       throws WrongOption {
-    var it =
-        ServiceLoader.load(LanguageServerApi.class, LanguageServerApi.class.getClassLoader())
-            .iterator();
+    var loader = LanguageServerApi.class.getClassLoader();
+    var it = ServiceLoader.load(LanguageServerApi.class, loader).iterator();
     if (!it.hasNext()) {
       throw new WrongOption("No language server implementation found");
     }

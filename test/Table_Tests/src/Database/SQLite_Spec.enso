@@ -331,7 +331,7 @@ sqlite_spec suite_builder prefix create_connection_func persistent_connector =
         in_mem_table = Table.new columns
         in_mem_table.select_into_database_table (connection.if_nothing default_connection.get) name primary_key=Nothing
     light_table_builder columns =
-        default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
+        default_connection.get.create_literal_table (Table.new columns) "literal_table"
 
     materialize = .read
 

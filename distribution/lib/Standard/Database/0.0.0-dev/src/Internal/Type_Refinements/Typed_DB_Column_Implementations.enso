@@ -36,3 +36,13 @@ type DB_Text_Column_Implementation
         Value_Type.expect_text column <|
             new_name = (naming_helper column).function_name "char_length" [column]
             make_unary_op column "LENGTH" new_name
+
+    upper column =
+        Value_Type.expect_text column <|
+            new_name = (naming_helper column).function_name "upper" [column]
+            make_unary_op column "UPPER" new_name
+    
+    lower column =
+        Value_Type.expect_text column <|
+            new_name = (naming_helper column).function_name "lower" [column]
+            make_unary_op column "LOWER" new_name

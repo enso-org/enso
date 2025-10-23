@@ -37,7 +37,6 @@
       client/:
       common/:
       icons/:
-    ydoc-server-nodejs/:
   build/:
     prettier/:
   built-distribution/:
@@ -166,4 +165,4 @@
   edition/:
     <edition>.yaml:
   runtime/:
-  .enso.portable:
+  .enso.bundle:
