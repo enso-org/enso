@@ -38,7 +38,7 @@ export function submitForm(
     input,
     makeAuthUrl: (secretId: SecretId, nonce: string) => {
       const state = btoa(JSON.stringify({ secretId, nonce }))
-      const scope = oauthScopes.join(',')
+      const scope = oauthScopes.join(' ')
       const query = new URLSearchParams({
         /* eslint-disable @typescript-eslint/naming-convention, camelcase */
         client_id: ms365OauthClientId,
