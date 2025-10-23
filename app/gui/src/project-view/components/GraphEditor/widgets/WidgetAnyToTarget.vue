@@ -17,7 +17,7 @@ import { injectFunctionInfo } from '@/providers/functionInfo'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { ProjectPath } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'
-import { map } from '$/utils/data/iter'
+import { map } from 'enso-common/src/utilities/data/iter'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))

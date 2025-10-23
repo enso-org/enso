@@ -4,7 +4,7 @@ import { type NodeId } from '$/providers/openedProjects/graph'
 import ColorRing from '@/components/ColorRing.vue'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import * as iter from '$/utils/data/iter'
+import * as iter from 'enso-common/src/utilities/data/iter'
 import { ref } from 'vue'
 
 const emit = defineEmits<{

@@ -1,3 +1,4 @@
+import { LINE_BOUNDARIES } from '$/utils/data/string'
 import { textEditorsBindings } from '@/bindings'
 import type CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import type { VueHost } from '@/components/VueHostRender.vue'
@@ -28,8 +29,7 @@ import {
   type TransactionSpec,
 } from '@codemirror/state'
 import { EditorView, placeholder, tooltips } from '@codemirror/view'
-import { find, takeUntil } from '$/utils/data/iter'
-import { LINE_BOUNDARIES } from '$/utils/data/string'
+import { find, takeUntil } from 'enso-common/src/utilities/data/iter'
 import { createDebouncer } from 'lib0/eventloop.js'
 import {
   computed,
