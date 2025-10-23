@@ -1,4 +1,11 @@
 import { useBackends } from '$/providers/backends'
+import type { BackendMutationMethod, BackendQueryMethod } from '$/utils/backendQuery'
+import {
+  backendBaseOptions,
+  backendQueryKey,
+  INVALIDATE_ALL_QUERIES,
+  INVALIDATION_MAP,
+} from '$/utils/backendQuery'
 import type { ToValue } from '@/util/reactivity'
 import type {
   UseMutationOptions,
@@ -6,13 +13,6 @@ import type {
   UseQueryOptions,
 } from '@tanstack/vue-query'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import type { BackendMutationMethod, BackendQueryMethod } from 'enso-common/src/backendQuery'
-import {
-  backendBaseOptions,
-  backendQueryKey,
-  INVALIDATE_ALL_QUERIES,
-  INVALIDATION_MAP,
-} from 'enso-common/src/backendQuery'
 import type Backend from 'enso-common/src/services/Backend'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import { computed, toValue, type UnwrapRef } from 'vue'

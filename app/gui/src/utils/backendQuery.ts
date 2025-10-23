@@ -1,7 +1,7 @@
 /** @file Framework-independent helpers for constructing backend Tanstack queries. */
-import type Backend from './services/Backend.js'
-import * as backendModule from './services/Backend.js'
-import { omit, type ExtractKeys, type MethodOf } from './utilities/data/object.js'
+import type Backend from 'enso-common/src/services/Backend'
+import * as backendModule from 'enso-common/src/services/Backend'
+import { omit, type ExtractKeys, type MethodOf } from 'enso-common/src/utilities/data/object'
 
 /** Should match `NetworkMode` in TanStack query core. */
 type NetworkMode = 'online' | 'always' | 'offlineFirst'
