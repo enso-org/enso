@@ -2370,6 +2370,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    libraryDependencies ++= logbackPkg.map(_ % "provided"),
     libraryDependencies ++= akka ++ circe ++ bouncyCastle.map(
       _ % Test
     ) ++ slf4jApi ++ Seq(
@@ -2393,6 +2394,11 @@ lazy val `language-server` = (project in file("engine/language-server"))
     ),
     javaModuleName := "org.enso.language.server",
     Compile / moduleDependencies ++= slf4jApi ++
+    (`logging-config` / Compile / moduleDependencies).value ++
+    (`logging-utils` / Compile / moduleDependencies).value ++
+    (`logging-service` / Compile / moduleDependencies).value ++
+    (`logging-service-common` / Compile / moduleDependencies).value ++
+    (`logging-service-logback` / Compile / moduleDependencies).value ++
     Seq(
       "org.graalvm.polyglot"   % "polyglot"                % graalMavenPackagesVersion,
       "commons-cli"            % "commons-cli"             % commonsCliVersion,
@@ -2401,34 +2407,44 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.eclipse.jgit"       % "org.eclipse.jgit"        % jgitVersion,
       "org.netbeans.api"       % "org-openide-util-lookup" % netbeansApiVersion
     ),
-    Compile / internalModuleDependencies := Seq(
-      (`akka-wrapper` / Compile / exportedModule).value,
-      (`zio-wrapper` / Compile / exportedModule).value,
-      (`scala-libs-wrapper` / Compile / exportedModule).value,
-      (`connected-lock-manager-server` / Compile / exportedModule).value,
-      (`language-server-deps-wrapper` / Compile / exportedModule).value,
-      (`engine-runner-common` / Compile / exportedModule).value,
-      (`ydoc-polyfill` / Compile / exportedModule).value,
-      (`logging-utils` / Compile / exportedModule).value,
-      (`logging-utils-akka` / Compile / exportedModule).value,
-      (`logging-service` / Compile / exportedModule).value,
-      (`engine-common` / Compile / exportedModule).value,
-      (`library-manager` / Compile / exportedModule).value,
-      (`polyglot-api` / Compile / exportedModule).value,
-      (`json-rpc-server` / Compile / exportedModule).value,
-      (`profiling-utils` / Compile / exportedModule).value,
-      (`searcher` / Compile / exportedModule).value,
-      (`pkg` / Compile / exportedModule).value,
-      (`distribution-manager` / Compile / exportedModule).value,
-      (`edition-updater` / Compile / exportedModule).value,
-      (`editions` / Compile / exportedModule).value,
-      (`text-buffer` / Compile / exportedModule).value,
-      (`filewatcher` / Compile / exportedModule).value,
-      (`version-output` / Compile / exportedModule).value,
-      (`semver` / Compile / exportedModule).value,
-      (`cli` / Compile / exportedModule).value,
-      (`task-progress-notifications` / Compile / exportedModule).value
-    ),
+    Compile / internalModuleDependencies :=
+      (`logging-config` / Compile / internalModuleDependencies).value ++
+      (`logging-utils` / Compile / internalModuleDependencies).value ++
+      (`logging-utils-akka` / Compile / internalModuleDependencies).value ++
+      (`logging-service` / Compile / internalModuleDependencies).value ++
+      (`logging-service-common` / Compile / internalModuleDependencies).value ++
+      (`logging-service-logback` / Compile / internalModuleDependencies).value ++
+      Seq(
+        (`akka-wrapper` / Compile / exportedModule).value,
+        (`zio-wrapper` / Compile / exportedModule).value,
+        (`scala-libs-wrapper` / Compile / exportedModule).value,
+        (`connected-lock-manager-server` / Compile / exportedModule).value,
+        (`language-server-deps-wrapper` / Compile / exportedModule).value,
+        (`engine-runner-common` / Compile / exportedModule).value,
+        (`ydoc-polyfill` / Compile / exportedModule).value,
+        (`engine-common` / Compile / exportedModule).value,
+        (`library-manager` / Compile / exportedModule).value,
+        (`logging-config` / Compile / exportedModule).value,
+        (`logging-utils` / Compile / exportedModule).value,
+        (`logging-utils-akka` / Compile / exportedModule).value,
+        (`logging-service` / Compile / exportedModule).value,
+        (`logging-service-common` / Compile / exportedModule).value,
+        (`logging-service-logback` / Compile / exportedModule).value,
+        (`polyglot-api` / Compile / exportedModule).value,
+        (`json-rpc-server` / Compile / exportedModule).value,
+        (`profiling-utils` / Compile / exportedModule).value,
+        (`searcher` / Compile / exportedModule).value,
+        (`pkg` / Compile / exportedModule).value,
+        (`distribution-manager` / Compile / exportedModule).value,
+        (`edition-updater` / Compile / exportedModule).value,
+        (`editions` / Compile / exportedModule).value,
+        (`text-buffer` / Compile / exportedModule).value,
+        (`filewatcher` / Compile / exportedModule).value,
+        (`version-output` / Compile / exportedModule).value,
+        (`semver` / Compile / exportedModule).value,
+        (`cli` / Compile / exportedModule).value,
+        (`task-progress-notifications` / Compile / exportedModule).value
+      ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
     Test / envVars ++= distributionEnvironmentOverrides,
@@ -2588,6 +2604,9 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`engine-runner-common`)
   .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
+  .dependsOn(`logging-service-logback` % Runtime)
+  .dependsOn(`logging-service-telemetry` % Runtime)
+  .dependsOn(`logging-service-opensearch` % Runtime)
   .dependsOn(`polyglot-api`)
   .dependsOn(`searcher`)
   .dependsOn(`text-buffer`)
