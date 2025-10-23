@@ -84,5 +84,6 @@ to use. Any such scope must be added to the app registration.
 
 * Go to the application in the [Azure Portal](https://portal.azure.com/)
 * Select "Authentication" on the left
-* Add new URIs
+* The platformd displayed should be "Web", but if it's not, select "Add a platform" and choose “Public client/native”
+* Add new URIs to the Web platform
 * Click Save
