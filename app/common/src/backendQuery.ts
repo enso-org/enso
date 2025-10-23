@@ -34,7 +34,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'deleteAsset'
   | 'deleteDatalink'
   | 'deleteInvitation'
-  | 'deletePersonalAccessToken'
+  | 'deleteApiKey'
   | 'deleteProjectExecution'
   | 'deleteTag'
   | 'deleteUser'
@@ -137,7 +137,7 @@ export const INVALIDATION_MAP: Partial<
   syncProjectExecution: ['listProjectExecutions'],
   deleteProjectExecution: ['listProjectExecutions'],
   createApiKey: ['listApiKeys'],
-  deletePersonalAccessToken: ['listApiKeys'],
+  deleteApiKey: ['listApiKeys'],
 }
 
 /** For each backend method, an optional function defining how to create a query key from its arguments. */

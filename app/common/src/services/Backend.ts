@@ -796,12 +796,14 @@ export interface LChColor {
 export interface ApiKey {
   readonly id: ApiKeyId
   readonly name: string
+  readonly description: string
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly lastUsedAt: dateTime.Rfc3339DateTime | null
 }
 
-export interface CreatePersonalAccessTokenRequestBody {
+export interface CreateApiKeyRequestBody {
   readonly name: string
+  readonly description: string
 }
 
 /** A pre-selected list of colors to be used in color pickers. */
@@ -2069,7 +2071,7 @@ export default abstract class Backend {
   /** List all API keys for the current user. */
   abstract listApiKeys(): Promise<readonly ApiKey[]>
   /** Create a new API key for the current user. */
-  abstract createApiKey(body: CreatePersonalAccessTokenRequestBody): Promise<ApiKey>
+  abstract createApiKey(body: CreateApiKeyRequestBody): Promise<ApiKey>
   /** Delete a API key for the current user. */
   abstract deleteApiKey(tokenId: ApiKeyId): Promise<void>
 

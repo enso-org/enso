@@ -1221,6 +1221,7 @@ export default class RemoteBackend extends Backend {
     const token = {
       id: backend.ApiKeyId(`pat-${uniqueString()}`),
       name: body.name,
+      description: body.description,
       createdAt: now,
       lastUsedAt: now,
     }
@@ -1248,7 +1249,7 @@ export default class RemoteBackend extends Backend {
     const path = remoteBackendPaths.deleteApiKeyPath(tokenId)
     const response = await this.delete(path)
     if (!response.ok) {
-      return await this.throw(response, 'deletePersonalAccessTokenBackendError')
+      return await this.throw(response, 'deleteApiKeyBackendError')
     } else {
       return
     }

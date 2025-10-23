@@ -47,6 +47,9 @@ export function ApiKeySettingsSection() {
             <Column isRowHeader className={`${COLUMN_STYLES} w-48 min-w-48`}>
               {getText('name')}
             </Column>
+            <Column isRowHeader className={`${COLUMN_STYLES} w-80 min-w-80`}>
+              {getText('description')}
+            </Column>
             <Column isRowHeader className={`${COLUMN_STYLES} w-40 min-w-40`}>
               {getText('createdAt')}
             </Column>
@@ -94,14 +97,15 @@ function ApiKeyRow(props: ApiKeyRowProps) {
   const { apiKey } = props
   const { remoteBackend: backend } = useBackends()
   const { getText } = useText()
-  const deletePersonalAccessToken = useMutationCallback(
-    backendMutationOptions(backend, 'deletePersonalAccessToken'),
-  )
+  const deleteApiKey = useMutationCallback(backendMutationOptions(backend, 'deleteApiKey'))
 
   return (
     <Row className="group h-row rounded-rows-child">
-      <Cell className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+      <Cell className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
         {apiKey.name}
+      </Cell>
+      <Cell className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+        {apiKey.description}
       </Cell>
       <Cell className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
         {toReadableIsoString(new Date(apiKey.createdAt))}
@@ -119,8 +123,8 @@ function ApiKeyRow(props: ApiKeyRowProps) {
               {getText('delete')}
             </Button>
             <ConfirmDeleteModal
-              actionText={getText('deletePersonalAccessTokenConfirmation', apiKey.name)}
-              onConfirm={() => deletePersonalAccessToken([apiKey.id])}
+              actionText={getText('deleteApiKeyConfirmation', apiKey.name)}
+              onConfirm={() => deleteApiKey([apiKey.id])}
             />
           </Popover.Trigger>
         </Button.GroupJoin>
@@ -145,13 +149,15 @@ function NewApiKeyForm() {
             .string()
             .min(1)
             .refine((name) => !apiKeyNames.has(name), getText('duplicateApiKeyError')),
+          description: z.string(),
         })
       }
       method="dialog"
-      onSubmit={({ name }) => createApiKey([{ name }])}
+      onSubmit={(values) => createApiKey([values])}
     >
       <Text.Heading variant="subtitle">{getText('newApiKey')}</Text.Heading>
       <Input name="name" label={getText('name')} />
+      <Input name="description" label={getText('description')} />
       <Button.Group className="relative">
         <Form.Submit />
         <Dialog.Close variant="outline">{getText('cancel')}</Dialog.Close>
