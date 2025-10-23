@@ -1,0 +1,49 @@
+# This file is NOT auto-generated. This is a temporary workflow for running
+# a very specific WASM test in the parser.
+# See https://github.com/enso-org/enso/issues/14191.
+
+name: Parser WASM Test
+on:
+  workflow_dispatch:
+    inputs:
+      clean_build_required:
+        description: Clean before and after the run.
+        required: false
+        type: boolean
+        default: false
+  workflow_call: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-parser-wasm-test
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+jobs:
+  enso-build-ci-gen-job-parser-wasm-test-linux-amd64:
+    name: Parser recursion test (linux, amd64)
+    runs-on:
+      - self-hosted
+      - Linux
+    steps:
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
+        with:
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v7
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+      - if: "${{ (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
+        name: Clean before
+        run: git clean -xdf
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.12.1
+      - run: WASM_BINDGEN_TEST_TIMEOUT=300 wasm-pack test --headless --firefox lib/rust/parser
+      - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
+        name: Clean after
+        run: git clean -xdf

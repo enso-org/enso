@@ -11,7 +11,7 @@ license-file = "../../LICENSE"
 
 [features]
 debug = ["dep:enso-parser-syntax-tree-visitor"]
-nightly = []                                    # necessary to run benchmarks
+nightly = [] # necessary to run benchmarks
 
 [dependencies]
 enso-parser-macros = { path = "macros" }
@@ -31,6 +31,9 @@ enso-metamodel = { path = "../metamodel" }
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_distr = "0.4.3"
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3.54"
 
 [lints]
 workspace = true
