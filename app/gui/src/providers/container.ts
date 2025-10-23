@@ -1,5 +1,4 @@
 import { EnsoPath } from '#/services/Backend'
-import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
@@ -7,7 +6,6 @@ import { filter } from 'enso-common/src/utilities/data/iter'
 import { computed, onScopeDispose, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useOpenedProjects, type Project } from './openedProjects'
-import type { RunningProjectInfo } from './openedProjects/projectStates'
 
 /** Tab identifier, equal to the path of the view's URL. */
 export type TabId = 'drive' | 'settings' | EnsoPath
@@ -41,16 +39,6 @@ export const [provideContainerData, useContainerData] = createContextStore(
     const router = useRouter()
     const route = useRoute()
     const openedProjects = useOpenedProjects()
-    const localStorage = LocalStorage.getInstance()
-
-    const projectsClosedByBackend = []
-    for (const project of localStorage.get('openedTabs') ?? []) {
-      if (project.mode === 'local' || project.mode === 'hybrid') {
-        openedProjects.openProject(project)
-      } else {
-        projectsClosedByBackend.push(openedProjects)
-      }
-    }
 
     const projectTabs = computed(() =>
       Array.from(filter(openedProjects.listProjects(), isProjectShownAsTab), (project) => ({
@@ -80,20 +68,6 @@ export const [provideContainerData, useContainerData] = createContextStore(
       if (!isValidTab(name)) {
         tab.value = fallbackTab
       }
-    })
-
-    watchEffect(() => {
-      const openedTabs: RunningProjectInfo[] = []
-      const unuploadedProjects: RunningProjectInfo[] = []
-      for (const project of openedProjects.listProjects()) {
-        if (project.state.status === 'opened' || project.state.status === 'initialized') {
-          openedTabs.push(project.state.info)
-        } else if (project.state.status === 'hybrid-closed') {
-          unuploadedProjects.push(project.state.info)
-        }
-      }
-      localStorage.set('openedTabs', openedTabs)
-      localStorage.set('unuploadedProjects', unuploadedProjects)
     })
 
     const offProjectReady = openedProjects.onProjectReady(

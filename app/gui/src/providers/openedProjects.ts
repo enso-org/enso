@@ -6,6 +6,7 @@ import {
   ProjectId,
   type ProjectAsset,
 } from '#/services/Backend'
+import LocalStorage from '#/utilities/LocalStorage'
 import { assert } from '@/util/assert'
 import { createGlobalState } from '@vueuse/core'
 import { isOnElectron } from 'enso-common/src/detect'
@@ -44,6 +45,7 @@ export function createOpenedProjectsStore() {
   const enableCloudExecution = useFeatureFlag('enableCloudExecution')
   const projectStates = useProjectStates()
   const backends = useBackends()
+  const localStorage = LocalStorage.getInstance()
   const closingOnAppExit = ref(false)
   const projectReadyCallbacks: ((project: Project) => void)[] = []
 
@@ -340,6 +342,26 @@ export function createOpenedProjectsStore() {
     return () => projectReadyCallbacks.splice(projectReadyCallbacks.indexOf(cb), 1)
   }
 
+  for (const project of localStorage.get('openedTabs') ?? []) {
+    restoreProject(project)
+  }
+
+  watchEffect(() => {
+    const openedTabs: RunningProjectInfo[] = []
+    for (const project of projects.values()) {
+      switch (project.state.status) {
+        case 'opened':
+        case 'initialized':
+        case 'hybrid-closed':
+        case 'to-restore':
+        case 'closed-by-backend':
+          openedTabs.push(project.state.info)
+          break
+      }
+    }
+    localStorage.set('openedTabs', openedTabs)
+  })
+
   return {
     openProject,
     canOpenProjectLocally,
@@ -356,7 +378,6 @@ export function createOpenedProjectsStore() {
     waitForProcess,
     closingOnAppExit: closingOnAppExit,
     onProjectReady,
-    restoreProject,
   }
 }
 

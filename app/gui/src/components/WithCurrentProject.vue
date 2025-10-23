@@ -137,7 +137,12 @@ const groupColors = computed(() => {
         :subtitle="`${project.error}`"
       />
     </slot>
-    <slot v-else-if="project?.nextTask?.process === 'opening'" name="loading">
+    <slot
+      v-else-if="
+        project?.nextTask?.process === 'opening' || project?.nextTask?.process === 'restoring'
+      "
+      name="loading"
+    >
       <Loader minHeight="full" />
     </slot>
     <slot v-else name="fallback" />

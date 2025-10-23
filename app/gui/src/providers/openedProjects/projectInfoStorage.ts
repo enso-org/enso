@@ -5,7 +5,6 @@ import * as z from 'zod'
 declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly openedTabs: RunningProjectInfo[]
-    readonly unuploadedProjects: RunningProjectInfo[]
   }
 }
 
@@ -43,7 +42,6 @@ const RUNNING_PROJECT_INFO_SCHEMA = z.discriminatedUnion('mode', [
 ])
 
 LocalStorage.registerKey('openedTabs', { schema: z.array(RUNNING_PROJECT_INFO_SCHEMA) })
-LocalStorage.registerKey('unuploadedProjects', { schema: z.array(RUNNING_PROJECT_INFO_SCHEMA) })
 
 export type ProjectInfo = z.infer<typeof PROJECT_INFO_SCHEMA>
 export type RunningProjectInfo = z.infer<typeof RUNNING_PROJECT_INFO_SCHEMA>
