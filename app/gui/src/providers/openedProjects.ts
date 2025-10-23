@@ -14,15 +14,12 @@ import type { Result, ResultError } from 'ydoc-shared/util/data/result'
 import { useAuth } from './auth'
 import { useBackends } from './backends'
 import { useFeatureFlag } from './featureFlags'
-import {
-  useProjectStates,
-  type ProjectInfo,
-  type ProjectState,
-} from './openedProjects/projectStates'
+import type { ProjectInfo, RunningProjectInfo } from './openedProjects/projectInfoStorage'
+import { useProjectStates, type ProjectState } from './openedProjects/projectStates'
 
 const PROCESS_ABORTED = 'aborted'
 
-export type Process = 'opening' | 'closing'
+export type Process = 'opening' | 'closing' | 'restoring'
 
 export interface Project {
   state: ProjectState
@@ -126,6 +123,24 @@ export function createOpenedProjectsStore() {
     }
   }
 
+  function restoreProject(info: RunningProjectInfo) {
+    const existing = projects.get(info.id)
+    if (
+      existing == null ||
+      (existing?.nextTask == null && existing?.state.status === 'not-opened')
+    ) {
+      const project = shallowReactive({
+        state: { status: 'to-restore' as const, info },
+        nextTask: undefined,
+        error: undefined,
+      })
+      projects.set(info.id, project)
+      performProcess(project, 'opening')
+    } else {
+      performProcess(existing, 'opening')
+    }
+  }
+
   function closeProject(
     id: ProjectId,
     backendProject?: { asset: ProjectAsset; backendType: BackendType },
@@ -184,24 +199,22 @@ export function createOpenedProjectsStore() {
             break
           case 'hybrid-opened':
             promise =
-              process === 'opening' ?
-                projectStates.downloadHybridProject(project.state)
-              : projectStates.closeHybridProject(project.state)
+              process === 'closing' ?
+                projectStates.closeHybridProject(project.state)
+              : projectStates.downloadHybridProject(project.state)
             break
           case 'hybrid-downloaded':
             promise =
-              process === 'opening' ?
-                (promise = projectStates.openLocalVersionOfHybridProject(
-                  project.state,
-                  abort.signal,
-                ))
-              : projectStates.closeHybridProject(project.state)
+              process === 'closing' ?
+                projectStates.closeHybridProject(project.state)
+              : projectStates.openLocalVersionOfHybridProject(project.state, abort.signal)
             break
           case 'opened':
             promise =
-              process === 'opening' ?
-                projectStates.initializeProject(project.state)
-              : projectStates.closeProject(project.state)
+              process === 'closing' ?
+                projectStates.closeProject(project.state)
+              : projectStates.initializeProject(project.state)
+
             break
           case 'initialized':
             if (process === 'closing') promise = projectStates.closeProject(project.state)
@@ -211,6 +224,16 @@ export function createOpenedProjectsStore() {
             break
           case 'hybrid-uploaded':
             promise = projectStates.closeHybridProject(project.state)
+            break
+          case 'to-restore':
+            promise =
+              process === 'restoring' ?
+                projectStates.restoreProject(project.state)
+              : projectStates.discardProject(project.state)
+            break
+          case 'closed-by-backend':
+            if (process === 'opening') promise = projectStates.reopenProject(project.state)
+            else if (process === 'closing') promise = projectStates.discardProject(project.state)
             break
         }
         project.nextTask = promise ? { abort, promise, process } : undefined
@@ -333,6 +356,7 @@ export function createOpenedProjectsStore() {
     waitForProcess,
     closingOnAppExit: closingOnAppExit,
     onProjectReady,
+    restoreProject,
   }
 }
 
