@@ -1035,7 +1035,7 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
-  override deletePersonalAccessToken() {
+  override deleteApiKey() {
     return this.invalidOperation()
   }
 

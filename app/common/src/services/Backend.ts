@@ -2066,12 +2066,12 @@ export default abstract class Backend {
   /** Fetches pricing page configuration. */
   abstract getPaymentsConfig(): Promise<PaymentsConfig>
 
-  /** List all personal access tokens for the current user. */
+  /** List all API keys for the current user. */
   abstract listApiKeys(): Promise<readonly ApiKey[]>
-  /** Create a new personal access token for the current user. */
+  /** Create a new API key for the current user. */
   abstract createApiKey(body: CreatePersonalAccessTokenRequestBody): Promise<ApiKey>
-  /** Delete a personal access token for the current user. */
-  abstract deletePersonalAccessToken(tokenId: ApiKeyId): Promise<void>
+  /** Delete a API key for the current user. */
+  abstract deleteApiKey(tokenId: ApiKeyId): Promise<void>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(
