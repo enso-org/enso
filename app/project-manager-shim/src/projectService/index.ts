@@ -89,7 +89,10 @@ export class ProjectService {
   ) {}
 
   /** Creates a default ProjectService using the Enso executable found in the environment. */
-  static default(workDir: string = '.', extraArgs: Array<string> = []): ProjectService {
+  static default(
+    workDir: string = '.',
+    extraArgs: Array<string> = ['--log-level', 'info'],
+  ): ProjectService {
     const ensoPath = findEnsoExecutable(workDir)
     if (!ensoPath) {
       throw new Error('Enso executable not found')
