@@ -56,7 +56,8 @@ pub fn extra_stdlib_test_reporter((os, arch): Target, graal_edition: graalvm::Ed
 /// Note that there may be multiple `*.hprof` files if multiple processes crashed.
 /// `artifact_name` should be unique for each job in the whole workflow.
 pub fn heapdump_upload(artifact_name: impl Into<String>) -> Step {
-    let path = "**/*.hprof";
+    let path = "test/**/*.hprof\nengine/**/*.hprof";
+
     let mut step = upload_artifact("Upload Heap Dumps")
         .with_custom_argument("name", artifact_name.into())
         .with_custom_argument("path", path)

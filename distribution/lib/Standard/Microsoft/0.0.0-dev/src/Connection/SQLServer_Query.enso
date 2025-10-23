@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Database.Connection.Connection.Connection
 import Standard.Database.SQL_Query.SQL_Query
 from Standard.Database.Internal.JDBC_Connection import handle_sql_errors
 from Standard.Database.SQL_Query import make_table_for_name, make_table_from_query
@@ -15,7 +14,7 @@ type SQLServer_Query
     ## ---
        private: true
        ---
-    to_db_table self connection:Connection alias:Text = alias.if_not_error <| case self of
+    to_db_table self connection alias:Text = alias.if_not_error <| case self of
         SQLServer_Query.Table_Name name schema ->
             table_naming_helper = connection.base_connection.table_naming_helper
             table_naming_helper.verify_table_name name <|

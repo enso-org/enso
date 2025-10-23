@@ -102,7 +102,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'new_name'])
 
   // Leave function
-  await page.mouse.dblclick(10, 100)
+  await page.getByTestId('editor').getByText('New Project').dblclick()
   await expect(page.locator('.GraphNode')).toHaveCount(1)
   await expect(page.locator('.GraphNode')).toHaveText(/Main.new_name/)
 

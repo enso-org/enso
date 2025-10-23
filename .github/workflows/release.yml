@@ -13,9 +13,8 @@ on:
         description: What kind of Ydoc image to build.
         required: false
         type: choice
-        default: nodejs
+        default: polyglot
         options:
-          - nodejs
           - polyglot
   workflow_call:
     inputs:
@@ -27,7 +26,7 @@ on:
         description: What kind of Ydoc image to build.
         required: false
         type: string
-        default: nodejs
+        default: polyglot
 concurrency: release
 jobs:
   enso-build-ci-gen-draft-release-linux-amd64:

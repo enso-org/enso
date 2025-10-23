@@ -14,11 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class LoadClassTest {
-  // TBD: Make the number bigger again
-  //   - which currently exceeds the maximum size of a message
-  //   - so fix it
-  private static final int MAX = 5; // 5000;
-  private static final int MIN = 1; // 1000;
+  private static final int MAX = 5000;
+  private static final int MIN = 1000;
   private static final String PATH = System.getProperty("java.home");
   // set from TestCollectorFeature
   public static String MODULE_PATH;
