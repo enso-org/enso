@@ -20,8 +20,8 @@ type Case
     ## ---
        private: true
        deprecated: true
-       Deprecated use `Proper` instead.
        ---
+       Deprecated use `Proper` instead.
     Title
 
     ## ---
