@@ -15,8 +15,6 @@ use ide_ci::programs::Pnpm;
 use sha2::Digest;
 use std::process::Stdio;
 
-
-
 // ==============
 // === Export ===
 // ==============
@@ -40,7 +38,6 @@ pub mod env {
 
     // === Electron Builder ===
     pub use ide_ci::env::known::electron_builder::*;
-
 
     // GUI-specific environment variables
     define_env_var! {
@@ -174,9 +171,9 @@ pub struct ProjectManagerInfo {
     /// Latest bundled engine version, that will be used as this IDE's default.
     pub latest_bundled_engine: Version,
     /// Root of the Project Manager bundle.
-    pub bundle_location:       PathBuf,
+    pub bundle_location: PathBuf,
     /// Relative path from the bundle location.
-    pub pm_executable:         PathBuf,
+    pub pm_executable: PathBuf,
 }
 
 impl ProjectManagerInfo {
@@ -203,8 +200,8 @@ impl FallibleManipulator for ProjectManagerInfo {
 pub struct IdeDesktop {
     pub repo_root: generated::RepoRoot,
     #[derive_where(skip)]
-    pub octocrab:  Octocrab,
-    pub cache:     ide_ci::cache::Cache,
+    pub octocrab: Octocrab,
+    pub cache: ide_ci::cache::Cache,
 }
 
 impl IdeDesktop {
@@ -277,7 +274,6 @@ impl IdeDesktop {
             None => vec![],
         };
 
-
         self.pnpm()?
             .apply(&RemoveEmptyCscEnvVars)
             .set_env(env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
@@ -311,12 +307,12 @@ impl IdeDesktop {
             );
 
             let config = enso_install_config::bundler::Config {
-                electron_builder_config:  electron_config,
+                electron_builder_config: electron_config,
                 unpacked_electron_bundle: unpacked_dir(output_path, target_os, TARGET_ARCH),
-                repo_root:                self.repo_root.to_path_buf(),
-                output_file:              ide_artifacts.image.clone(),
-                intermediate_dir:         output_path.to_path_buf(),
-                certificate:              code_signing_certificate,
+                repo_root: self.repo_root.to_path_buf(),
+                output_file: ide_artifacts.image.clone(),
+                intermediate_dir: output_path.to_path_buf(),
+                certificate: code_signing_certificate,
             };
             enso_install_config::bundler::bundle(config).await?;
             store_sha256_checksum(&ide_artifacts.image, &ide_artifacts.image_checksum)?;

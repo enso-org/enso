@@ -324,6 +324,7 @@ type Postgres_Dialect
             Dialect_Flag.Case_Insensitive_Ordering_By_Default -> True
             Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
             Dialect_Flag.Supports_Unicode_Normalization -> False
+            Dialect_Flag.Supports_Unicode_Casing -> False
             Dialect_Flag.NaN_Non_Comparable -> False
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
             Dialect_Flag.Date_Time -> True

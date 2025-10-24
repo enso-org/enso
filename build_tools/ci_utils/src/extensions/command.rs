@@ -2,8 +2,6 @@ use crate::prelude::*;
 
 use std::fmt::Write;
 
-
-
 pub trait CommandExt {
     fn as_std(&self) -> &std::process::Command;
 
@@ -37,7 +35,6 @@ impl CommandExt for crate::program::command::Command {
         self.inner.as_std()
     }
 }
-
 
 impl CommandExt for std::process::Command {
     fn as_std(&self) -> &std::process::Command {

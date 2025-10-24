@@ -5,13 +5,11 @@ use crate::version;
 use chrono::Datelike;
 use semver::Prerelease;
 
-
-
 /// Parsed nightly build [prerelease](https://semver.org/#spec-item-9) piece.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NightlyPrerelease {
     /// The date of the nightly build.
-    pub date:  chrono::NaiveDate,
+    pub date: chrono::NaiveDate,
     /// The number of the nightly build.
     ///
     /// The first nightly build of the day has None, subsequent builds have Some(1), Some(2), etc.
@@ -105,7 +103,7 @@ impl TryFrom<&Version> for NightlyPrerelease {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Nightly {
     full_version: Version,
-    prerelease:   NightlyPrerelease,
+    prerelease: NightlyPrerelease,
 }
 
 impl Nightly {
@@ -171,19 +169,24 @@ pub enum YdocVariant {
 mod tests {
     use super::*;
 
-
     #[test]
     fn parsing_nightly_prerelease() -> Result {
         let nightly = Version::from_str("2020.1.1-nightly.2020.12.31")?;
-        assert_eq!(NightlyPrerelease::try_from(&nightly)?, NightlyPrerelease {
-            date:  chrono::NaiveDate::from_ymd_opt(2020, 12, 31).unwrap(),
-            index: None,
-        });
+        assert_eq!(
+            NightlyPrerelease::try_from(&nightly)?,
+            NightlyPrerelease {
+                date: chrono::NaiveDate::from_ymd_opt(2020, 12, 31).unwrap(),
+                index: None,
+            }
+        );
         let nightly_with_index = Version::from_str("2020.1.1-nightly.2020.12.31.1")?;
-        assert_eq!(NightlyPrerelease::try_from(&nightly_with_index)?, NightlyPrerelease {
-            date:  chrono::NaiveDate::from_ymd_opt(2020, 12, 31).unwrap(),
-            index: Some(1),
-        });
+        assert_eq!(
+            NightlyPrerelease::try_from(&nightly_with_index)?,
+            NightlyPrerelease {
+                date: chrono::NaiveDate::from_ymd_opt(2020, 12, 31).unwrap(),
+                index: Some(1),
+            }
+        );
 
         let nightly_with_too_many_identifiers =
             Version::from_str("2020.1.1-nightly.2020.12.31.1.1")?;

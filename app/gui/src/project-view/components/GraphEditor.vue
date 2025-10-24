@@ -32,6 +32,7 @@ import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
 import GraphMouse from '@/components/GraphMouse.vue'
+import PopoverRootProvider from '@/components/PopoverRootProvider.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
@@ -49,7 +50,6 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
 import { provideLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
-import { providePopoverRoot } from '@/providers/popoverRoot'
 import { providePersisted } from '@/stores/persisted'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { assert, bail } from '@/util/assert'
@@ -110,8 +110,6 @@ onMounted(() => viewportElem.value?.focus())
 const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
 })
-
-providePopoverRoot(viewportElem)
 
 // === Client saved state ===
 
@@ -647,12 +645,12 @@ const contextMenuActions: DisplayableActionName[] = [
 <template>
   <div
     ref="root"
-    class="GraphEditor"
+    class="GraphEditor vertical"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <div class="vertical">
+    <PopoverRootProvider class="viewportPanel">
       <ContextMenuTrigger
         ref="viewportNode"
         class="viewport"
@@ -696,10 +694,12 @@ const contextMenuActions: DisplayableActionName[] = [
         <SceneScroller :navigator="graphNavigator" :scrollableArea="scrollBounds" />
         <GraphMouse />
       </ContextMenuTrigger>
+    </PopoverRootProvider>
+    <PopoverRootProvider class="bottomPanel">
       <BottomPanel v-model:show="showCodeEditor">
         <CodeEditor />
       </BottomPanel>
-    </div>
+    </PopoverRootProvider>
   </div>
 </template>
 
@@ -711,25 +711,15 @@ const contextMenuActions: DisplayableActionName[] = [
   user-select: none;
   /* Prevent touchpad back gesture, which can be triggered while panning. */
   overscroll-behavior-x: none;
-
-  display: flex;
-  flex-direction: row;
-  & .DockPanel {
-    flex: none;
-  }
-  & .vertical {
-    flex: auto;
-    overflow-x: hidden;
-  }
 }
 
 .vertical {
   display: flex;
   flex-direction: column;
-  & .BottomPanel {
+  & .bottomPanel {
     flex: none;
   }
-  & .viewport {
+  & .viewportPanel {
     flex: auto;
     min-height: 0;
   }
@@ -741,6 +731,8 @@ const contextMenuActions: DisplayableActionName[] = [
   contain: layout;
   overflow: clip;
   touch-action: none;
+  width: 100%;
+  height: 100%;
   --node-color-no-type: #596b81;
   --output-node-color: #006b8a;
 }

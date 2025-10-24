@@ -120,3 +120,18 @@ add_text_columns_specs suite_builder setup =
             result3 = table.set (expr "char_length(42)") 
             result3.should_fail_with Expression_Error
             result3.catch.should_equal (Expression_Error.Type_Error "method 'char_length' expected first argument to be Text_Column, but got Column.")
+
+    suite_builder.group prefix+"Text_Column (upper, lower, proper)" group_builder->
+        group_builder.specify "upper and lower work" <|
+            column = build_sorted_table [["X", ["street", "Main", "rOaD", "3rd floor flat"]]] . at 0
+            expected_upper_column = build_sorted_table [["upper([X])", ["STREET", "MAIN", "ROAD", "3RD FLOOR FLAT"]]] . at 0
+            expected_lower_column = build_sorted_table [["lower([X])", ["street", "main", "road", "3rd floor flat"]]] . at 0
+            column.upper . should_equal expected_upper_column
+            column.lower . should_equal expected_lower_column
+        group_builder.specify "upper and lower work with unicode case folding" <|
+            column = build_sorted_table [["X", ["Straße", "München", "Köln", "3. Bezirk"]]] . at 0
+            expected_upper_column = build_sorted_table [["upper([X])", ["STRASSE", "MÜNCHEN", "KÖLN", "3. BEZIRK"]]] . at 0
+            expected_lower_column = build_sorted_table [["lower([X])", ["straße", "münchen", "köln", "3. bezirk"]]] . at 0
+            if setup.flagged ..Supports_Unicode_Casing then
+                column.upper . should_equal expected_upper_column
+            column.lower . should_equal expected_lower_column

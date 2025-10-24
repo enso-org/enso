@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-
-
 #[derive(Debug)]
 pub struct Resolver<P> {
-    pub cwd:          PathBuf,
-    pub names:        Vec<OsString>,
-    pub lookup_dirs:  OsString,
+    pub cwd: PathBuf,
+    pub names: Vec<OsString>,
+    pub lookup_dirs: OsString,
     pub phantom_data: ZST<P>,
 }
 

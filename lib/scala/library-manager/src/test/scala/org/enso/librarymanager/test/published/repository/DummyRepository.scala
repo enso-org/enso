@@ -139,7 +139,7 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
   private def commandPrefix: Seq[String] =
     if (OS.isWindows) Seq("cmd.exe", "/c") else Seq.empty
 
-  private def npmCommand: String  = if (OS.isWindows) "npm.cmd" else "npm"
+  private def pnpmCommand: String = if (OS.isWindows) "pnpm.cmd" else "pnpm"
   private def nodeCommand: String = if (OS.isWindows) "node.exe" else "node"
 
   case class Server(process: WrappedProcess) extends AutoCloseable {
@@ -183,10 +183,10 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
         .normalize
 
     // We can omit installation step on CI because there is a separate step
-    // executing `npm install` command before the tests.
+    // executing `pnpm install` command before the tests.
     if (!DummyRepository.isCI) {
       val preinstallCommand =
-        commandPrefix ++ Seq(npmCommand, "install")
+        commandPrefix ++ Seq(pnpmCommand, "install", "--frozen-lockfile")
       val preinstallExitCode = new ProcessBuilder()
         .command(preinstallCommand: _*)
         .directory(serverDirectory.toFile)

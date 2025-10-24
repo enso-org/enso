@@ -51,3 +51,21 @@ type In_Memory_Text_Column_Implementation
             new_name = naming_helper.function_name "char_length" [column]
             operation = TextCharLengthOperation.INSTANCE
             apply_unary_operation column operation new_name
+
+    upper (column : Column & In_Memory_Column) =
+        Value_Type.expect_text column <|
+            new_name = naming_helper.function_name "upper" [column]
+            operation = CaseOperation.new Case.Upper.to_java Locale.default.java_locale
+            apply_unary_operation column operation new_name
+
+    lower (column : Column & In_Memory_Column) =
+        Value_Type.expect_text column <|
+            new_name = naming_helper.function_name "lower" [column]
+            operation = CaseOperation.new Case.Lower.to_java Locale.default.java_locale
+            apply_unary_operation column operation new_name
+
+    proper (column : Column & In_Memory_Column) =
+        Value_Type.expect_text column <|
+            new_name = naming_helper.function_name "proper" [column]
+            operation = CaseOperation.new Case.Title.to_java Locale.default.java_locale
+            apply_unary_operation column operation new_name
