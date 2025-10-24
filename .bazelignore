@@ -13,6 +13,7 @@ app/ydoc-server-nodejs/node_modules
 app/ydoc-server-polyglot/node_modules
 app/ydoc-shared/node_modules
 app/ydoc-shared/parser-codegen/node_modules
+tools/simple-library-server/node_modules
 
 #
 .bloop

@@ -6,6 +6,7 @@ from Standard.Table import all
 from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
+from Standard.Database.Errors import Unsupported_Database_Operation
 import Standard.Database.Dialects.Feature.Feature
 
 from Standard.Test import all
@@ -135,3 +136,10 @@ add_text_columns_specs suite_builder setup =
             if setup.flagged ..Supports_Unicode_Casing then
                 column.upper . should_equal expected_upper_column
             column.lower . should_equal expected_lower_column
+        group_builder.specify "proper works" <|
+            column = build_sorted_table [["X", ["street", "Main", "rOaD", "3rd floor flat"]]] . at 0
+            expected_proper_column = build_sorted_table [["proper([X])", ["Street", "Main", "Road", "3rd Floor Flat"]]] . at 0
+            result = column.proper 
+            case setup.flagged ..Supports_Proper_Casing of
+                True  -> result.should_equal expected_proper_column
+                False -> result.should_fail_with Unsupported_Database_Operation

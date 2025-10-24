@@ -3,8 +3,6 @@
 // === Non-Standard Linter Configuration ===
 #![allow(unused_qualifications)] // https://github.com/enso-org/enso/issues/5168
 
-
-
 mod format;
 
 use enso_prelude::*;
@@ -26,16 +24,12 @@ use websocket_lite::Message;
 use websocket_lite::Opcode;
 use websocket_lite::Result;
 
-
-
 // =================
 // === Constants ===
 // =================
 
 static EXPECT_TEXT_RESPONSE: &str = "t|";
 static EXPECT_BINARY_RESPONSE: &str = "b|";
-
-
 
 // =====================
 // === CLI Arguments ===
@@ -94,8 +88,6 @@ struct Args {
     wait_after_response: u64,
 }
 
-
-
 // =====================
 // === Sync Messages ===
 // =====================
@@ -105,8 +97,6 @@ struct Args {
 enum SyncMessage {
     ResponseReceived,
 }
-
-
 
 // =============
 // === Utils ===
@@ -119,8 +109,6 @@ async fn read_lines(path_buf: PathBuf) -> std::io::Result<Vec<String>> {
     let lines_stream = LinesStream::new(lines_reader);
     tokio_stream::StreamExt::collect(lines_stream).await
 }
-
-
 
 // ============
 // === Main ===

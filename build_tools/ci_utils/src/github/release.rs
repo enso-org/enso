@@ -11,14 +11,11 @@ use octocrab::models::ReleaseId;
 use reqwest::Body;
 use tracing::instrument;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub use octocrab::models::ReleaseId as Id;
-
-
 
 /// Extension of the preferred archive format for release assets on the current platform.
 pub fn archive_extension() -> &'static str {
@@ -254,8 +251,8 @@ impl<T> IsReleaseExt for T where T: IsRelease + Sync {}
 #[derive(Clone)]
 #[derive_where(Debug)]
 pub struct Handle {
-    pub repo:     Repo,
-    pub id:       ReleaseId,
+    pub repo: Repo,
+    pub id: ReleaseId,
     #[derive_where(skip)]
     pub octocrab: Octocrab,
 }
@@ -305,7 +302,6 @@ mod tests {
                 .await?
         };
 
-
         dbg!(&release);
 
         let mut header_map = HeaderMap::new();
@@ -316,7 +312,6 @@ mod tests {
             .build()?;
 
         // TODO label?
-
 
         let upload_url_string = release.upload_url.to_string();
         dbg!(&upload_url_string);
@@ -342,7 +337,6 @@ mod tests {
 
         dbg!(&request);
         let response = client.execute(request).await?;
-
 
         dbg!(&response);
         // debug!("{}", response.text().await?);

@@ -7,8 +7,6 @@ use crate::engine;
 use ide_ci::cache::goodie::graalvm;
 use ide_ci::define_env_var;
 
-
-
 define_env_var! {
     /// Factor applied to timeouts in tests. 1.0 means no change, 2.0 means double the timeout.
     CI_TEST_TIMEFACTOR, usize;

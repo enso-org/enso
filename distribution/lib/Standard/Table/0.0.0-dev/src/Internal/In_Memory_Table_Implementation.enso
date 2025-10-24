@@ -16,6 +16,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.File_Like.File_Like
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
 
@@ -689,8 +690,9 @@ type In_Memory_Table_Implementation
                     if is_write.not then Panic.throw caught_panic else
                         Error.throw (File_Error.Unsupported_Output_Type resolved_format Table)
                 Panic.catch No_Such_Method handler=handle_no_write_method <|
-                    to_write = if Context.Output.is_enabled then this_table else this_table.take 1000
-                    resolved_format.write_table path to_write on_existing_file match_columns on_problems
+                    if (path:File_Like).can_write_into_parent.not then Error.throw (File_Error.Not_Found (path:File_Like).parent) else
+                        to_write = if Context.Output.is_enabled then this_table else this_table.take 1000
+                        resolved_format.write_table path to_write on_existing_file match_columns on_problems
 
     to_csv (this_table : Table & In_Memory_Table) =
         Text.from this_table (..Delimited delimiter=",")

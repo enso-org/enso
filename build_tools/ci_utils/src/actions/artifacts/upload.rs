@@ -9,12 +9,10 @@ use anyhow::Context;
 use reqwest::Client;
 use std::sync::atomic::Ordering;
 
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct UploadOptions {
-    pub file_concurrency:  usize,
-    pub chunk_size:        usize,
+    pub file_concurrency: usize,
+    pub chunk_size: usize,
     // by default, file uploads will continue if there is an error unless specified differently in
     // the options
     pub continue_on_error: bool,
@@ -22,21 +20,17 @@ pub struct UploadOptions {
 
 impl Default for UploadOptions {
     fn default() -> Self {
-        UploadOptions {
-            chunk_size:        8 * 1024 * 1024,
-            file_concurrency:  10,
-            continue_on_error: true,
-        }
+        UploadOptions { chunk_size: 8 * 1024 * 1024, file_concurrency: 10, continue_on_error: true }
     }
 }
 
 #[derive(Debug)]
 pub struct ArtifactUploader {
-    pub client:        SessionClient,
+    pub client: SessionClient,
     pub artifact_name: String,
-    pub upload_url:    Url,
-    pub total_size:    std::sync::atomic::AtomicUsize,
-    pub cancel:        tokio_util::sync::CancellationToken,
+    pub upload_url: Url,
+    pub total_size: std::sync::atomic::AtomicUsize,
+    pub cancel: tokio_util::sync::CancellationToken,
 }
 
 impl ArtifactUploader {
@@ -53,13 +47,12 @@ impl ArtifactUploader {
         })
     }
 
-
     pub fn uploader(&self, options: &UploadOptions) -> FileUploader {
         FileUploader {
-            url:           self.upload_url.clone(),
-            client:        self.client.upload_client.clone(),
+            url: self.upload_url.clone(),
+            client: self.client.upload_client.clone(),
             artifact_name: PathBuf::from(&self.artifact_name),
-            chunk_size:    options.chunk_size,
+            chunk_size: options.chunk_size,
         }
     }
 
@@ -171,11 +164,11 @@ pub async fn upload_worker(
 
 #[derive_where(Debug)]
 pub struct FileUploader {
-    pub url:           Url,
+    pub url: Url,
     #[derive_where(skip)]
-    pub client:        Client,
+    pub client: Client,
     pub artifact_name: PathBuf,
-    pub chunk_size:    usize,
+    pub chunk_size: usize,
 }
 
 impl FileUploader {
@@ -189,16 +182,10 @@ impl FileUploader {
         )
         .await;
         match uploading_res {
-            Ok(len) => UploadResult {
-                result:                 Ok(()),
-                total_size:             len,
-                successful_upload_size: len,
-            },
-            Err(e) => UploadResult {
-                result:                 Err(e),
-                total_size:             0,
-                successful_upload_size: 0,
-            },
+            Ok(len) => {
+                UploadResult { result: Ok(()), total_size: len, successful_upload_size: len }
+            }
+            Err(e) => UploadResult { result: Err(e), total_size: 0, successful_upload_size: 0 },
         }
     }
 }
@@ -206,7 +193,7 @@ impl FileUploader {
 #[derive(Clone, Debug)]
 pub struct FileToUpload {
     /// Absolute path in the local filesystem.
-    pub local_path:  PathBuf,
+    pub local_path: PathBuf,
     /// Relative path within the artifact container. Does not include the leading segment with the
     /// artifact name.
     pub remote_path: PathBuf,
@@ -269,7 +256,7 @@ impl FileToUpload {
 
 #[derive(Debug)]
 pub struct UploadResult {
-    pub result:                 Result,
+    pub result: Result,
     pub successful_upload_size: usize,
-    pub total_size:             usize,
+    pub total_size: usize,
 }

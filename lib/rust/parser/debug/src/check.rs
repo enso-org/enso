@@ -2,8 +2,6 @@
 
 use enso_parser::source::code::debug::LocationCheck;
 
-
-
 // ========================
 // === Span consistency ===
 // ========================
@@ -53,7 +51,7 @@ pub fn validate_spans(
         }
     });
     if expected_span.is_empty() {
-        assert!(sum_span.map_or(true, |range| range.is_empty()));
+        assert!(sum_span.is_none_or(|range| range.is_empty()));
     } else {
         let sum_span = sum_span.unwrap_or_default();
         let sum_span = sum_span.start.utf16..sum_span.end.utf16;

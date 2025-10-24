@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-
-
 /// Wrapper for the [`vswhere`](https://github.com/microsoft/vswhere) program.
 ///
 /// It typically is installed as part of the Visual Studio installation.
@@ -61,13 +59,13 @@ impl VsWhere {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct InstanceInfo {
-    pub install_date:         chrono::DateTime<chrono::Utc>,
+    pub install_date: chrono::DateTime<chrono::Utc>,
     /// Example: `C:\Program Files\Microsoft Visual Studio\2022\Community`
-    pub installation_path:    PathBuf,
+    pub installation_path: PathBuf,
     pub installation_version: String,
-    pub is_prerelease:        bool,
-    pub display_name:         String,
-    pub catalog:              Catalog,
+    pub is_prerelease: bool,
+    pub display_name: String,
+    pub catalog: Catalog,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]

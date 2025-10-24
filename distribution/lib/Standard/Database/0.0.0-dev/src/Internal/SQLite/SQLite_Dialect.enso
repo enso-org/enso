@@ -335,6 +335,7 @@ type SQLite_Dialect
             Dialect_Flag.Allows_Mixed_Type_Comparisons -> True
             Dialect_Flag.Supports_Unicode_Normalization -> False
             Dialect_Flag.Supports_Unicode_Casing -> False
+            Dialect_Flag.Supports_Proper_Casing -> False
             Dialect_Flag.NaN_Non_Comparable -> True
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
             Dialect_Flag.Date_Time -> False

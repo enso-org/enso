@@ -1,10 +1,10 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks._
+import org.enso.build.BenchTasks.*
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers._
+import sbt.complete.DefaultParsers.*
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
@@ -13,8 +13,8 @@ import src.main.scala.licenses.{
   SBTDistributionComponent
 }
 
-import scala.sys.process._
-import Dependencies._
+import scala.sys.process.*
+import Dependencies.*
 import JarExtractor.{
   CopyToOutputJar,
   LinuxAMD64,
@@ -24,7 +24,7 @@ import JarExtractor.{
   WindowsAMD64
 }
 
-import java.nio.file.Files
+import java.nio.file.{Files, StandardCopyOption}
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
@@ -632,9 +632,16 @@ val generateRustParserLib =
       libDest
     )
   } else {
-    val log = state.value.log
+    val log        = state.value.log
+    val profile    = if (BuildInfo.isReleaseMode) "release" else "dev"
+    val profileDir = if (BuildInfo.isReleaseMode) "release" else "debug"
+    val libName    = System.mapLibraryName("enso_parser")
+    // The library will be copied into this location. It is required in various
+    // other places.
+    val copyLibDest =
+      (`syntax-rust-definition` / rustParserTargetDirectory).value / libName
     val libGlob =
-      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
+      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / libName
 
     val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
     if (
@@ -649,27 +656,46 @@ val generateRustParserLib =
         case _ =>
           None
       }
+      // Destination of the native library as built by Cargo
+      val libDest = target match {
+        case Some(someTarget) =>
+          (`syntax-rust-definition` / rustParserTargetDirectory).value / someTarget / profileDir / libName
+        case None =>
+          (`syntax-rust-definition` / rustParserTargetDirectory).value / profileDir / libName
+      }
       target.foreach { t =>
         Cargo.rustUp(t, log)
       }
-      val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
       val arguments = Seq(
         "build",
         "-p",
         "enso-parser-jni",
         "--profile",
-        profile,
-        "-Z",
-        "unstable-options"
+        profile
       ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
         Seq(
-          "--artifact-dir",
+          "--target-dir",
           (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
         )
       val envVars = target
         .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
         .getOrElse(Seq())
       Cargo.run(arguments, log, envVars)
+      if (!libDest.exists()) {
+        log.error(
+          s"Expected Rust parser library at ${libDest.toPath} but it does not exist after build."
+        )
+      }
+      Files.copy(
+        libDest.toPath,
+        copyLibDest.toPath,
+        StandardCopyOption.REPLACE_EXISTING
+      )
+      if (!Files.exists(copyLibDest.toPath)) {
+        log.error(
+          s"Failed to copy Rust parser library to ${copyLibDest.toPath}."
+        )
+      }
     }
     FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
   }
