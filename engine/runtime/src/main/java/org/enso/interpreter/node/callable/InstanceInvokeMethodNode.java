@@ -219,15 +219,17 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
       State state,
       UnresolvedSymbol symbol,
       DataflowError self,
-      Object[] arguments,
-      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
-    Function function =
-        methodResolverNode.executeResolution(
-            EnsoContext.get(this).getBuiltins().dataflowError(), symbol);
-    if (errorReceiverProfile.profile(function == null)) {
+      Object[] arguments) {
+    // Try to find the method directly on the `Error` type.
+    // If found, invoke it, if not, just propagate the error.
+    // Note that MethodResolverNode would try to find the method also
+    // on Any type, which is undesirable in this case.
+    var errType = EnsoContext.get(this).getBuiltins().dataflowError();
+    var errFunc = symbol.getScope().lookupMethodDefinition(errType, symbol.getName());
+    if (errorReceiverProfile.profile(errFunc == null)) {
       return self;
     } else {
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(errFunc, frame, state, arguments);
     }
   }
 
