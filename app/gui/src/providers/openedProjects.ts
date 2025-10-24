@@ -28,12 +28,17 @@ import {
   type ProjectState,
 } from './openedProjects/projectStates'
 
+/** A reason given to AbortController when opening, restoring or closing process is being aborted. */
 const PROCESS_ABORTED = 'aborted'
 
+/** A type of process */
 export type Process = 'opening' | 'closing' | 'restoring'
 
+/** A project opened by this app instance. */
 export interface Project {
+  /** Project state. See {@link ProjectState} for all possible project states. */
   state: ProjectState
+  /** A opening, closing or restoring step which is currently performed on given state. */
   nextTask:
     | {
         abort: AbortController
@@ -41,6 +46,7 @@ export interface Project {
         promise: Promise<Result<ProjectState>>
       }
     | undefined
+  /** Error of the last unsuccessful step of opening, closing or restoring. */
   error: ResultError | Error | undefined
 }
 
@@ -51,6 +57,9 @@ LocalStorage.registerKey('openedTabs', { schema: z.array(RUNNING_PROJECT_INFO_SC
  */
 export type OpenedProjectsStore = ReturnType<typeof useOpenedProjects>
 
+/**
+ * Constructor of Opened Project Store.
+ */
 export function createOpenedProjectsStore() {
   const auth = useAuth()
   const projects = shallowReactive(new Map<ProjectId, Project>())
@@ -99,6 +108,7 @@ export function createOpenedProjectsStore() {
     },
   }))
 
+  /** Open project. */
   function openProject(info: ProjectInfo) {
     const project =
       projects.get(info.id) ??
@@ -115,10 +125,12 @@ export function createOpenedProjectsStore() {
     return project
   }
 
+  /** Checks if project with given backend type may be opened locally. */
   function canOpenProjectLocally(backend: BackendType) {
     return modesForBackend.value.locally[backend] != null
   }
 
+  /** Open project locally, by asset data and backend type. */
   function openProjectLocally(info: Omit<ProjectInfo, 'mode'>, backend: BackendType) {
     const mode = modesForBackend.value.locally[backend]
     if (mode != null) {
@@ -126,10 +138,12 @@ export function createOpenedProjectsStore() {
     }
   }
 
+  /** Checks if project with given backend type may be opened natively. */
   function canOpenProjectNatively(backend: BackendType) {
     return modesForBackend.value.natively[backend] != null
   }
 
+  /** Open project natively, by asset data and backend type. */
   function openProjectNatively(info: Omit<ProjectInfo, 'mode'>, backend: BackendType) {
     const mode = modesForBackend.value.natively[backend]
     if (mode != null) {
@@ -137,6 +151,13 @@ export function createOpenedProjectsStore() {
     }
   }
 
+  /**
+   * Restore a project which was running on app close.
+   *
+   * The project may be opened or put in "closed by backend" state.
+   *
+   * In case of hybrid projects, the local version is assumed to be already downloaded.
+   */
   function restoreProject(info: RunningProjectInfo) {
     const existing = projects.get(info.id)
     if (
@@ -155,6 +176,10 @@ export function createOpenedProjectsStore() {
     }
   }
 
+  /**
+   * Close given project. If `backendProject` is provided, the project will be closed even if not
+   * running by current app instance.
+   */
   function closeProject(
     id: ProjectId,
     backendProject?: { asset: ProjectAsset; backendType: BackendType },
@@ -172,10 +197,12 @@ export function createOpenedProjectsStore() {
     performProcess(project, 'closing')
   }
 
+  /** Close all projects run by this app instance. */
   function closeAllProjects() {
     for (const id of projects.keys()) closeProject(id)
   }
 
+  /** Rename a running project. */
   async function renameProject(id: ProjectId, newName: string) {
     const project = projects.get(id)
     if (project?.state.status !== 'initialized') return Err('Cannot rename non-running project')
@@ -184,6 +211,7 @@ export function createOpenedProjectsStore() {
     return Ok()
   }
 
+  /** Perform a process across mulitple project states until finished or errored. */
   async function performProcess(project: Project, process: Process) {
     const abort = new AbortController()
     if (project.nextTask != null) {
@@ -214,50 +242,7 @@ export function createOpenedProjectsStore() {
           }
         }
         project.error = undefined
-        let promise
-        switch (project.state.status) {
-          case 'not-opened':
-            if (process === 'opening') promise = projectStates.openProject(project.state)
-            break
-          case 'hybrid-opened':
-            promise =
-              process === 'closing' ?
-                projectStates.closeHybridProject(project.state)
-              : projectStates.downloadHybridProject(project.state)
-            break
-          case 'hybrid-downloaded':
-            promise =
-              process === 'closing' ?
-                projectStates.closeHybridProject(project.state)
-              : projectStates.openLocalVersionOfHybridProject(project.state, abort.signal)
-            break
-          case 'opened':
-            promise =
-              process === 'closing' ?
-                projectStates.closeProject(project.state)
-              : projectStates.initializeProject(project.state)
-
-            break
-          case 'initialized':
-            if (process === 'closing') promise = projectStates.closeProject(project.state)
-            break
-          case 'hybrid-closed':
-            promise = projectStates.cleanupHybridProject(project.state)
-            break
-          case 'hybrid-uploaded':
-            promise = projectStates.closeHybridProject(project.state)
-            break
-          case 'to-restore':
-            promise =
-              process === 'restoring' ?
-                projectStates.restoreProject(project.state)
-              : projectStates.discardProject(project.state)
-            break
-          case 'closed-by-backend':
-            if (process === 'opening') promise = projectStates.reopenProject(project.state)
-            else if (process === 'closing') promise = projectStates.discardProject(project.state)
-            break
-        }
+        const promise = PROCESS_STEPS[process](project.state, abort.signal)
         project.nextTask = promise ? { abort, promise, process } : undefined
       } while (project.nextTask != null)
     } catch (err) {
@@ -270,6 +255,59 @@ export function createOpenedProjectsStore() {
     }
   }
 
+  const PROCESS_STEPS: {
+    [K in Process]: (
+      state: ProjectState,
+      abort: AbortSignal,
+    ) => Promise<Result<ProjectState>> | undefined
+  } = {
+    opening: (state: ProjectState, abort: AbortSignal) => {
+      switch (state.status) {
+        case 'not-opened':
+          return projectStates.openProject(state)
+        case 'hybrid-opened':
+          return projectStates.downloadHybridProject(state)
+        case 'hybrid-downloaded':
+          return projectStates.openLocalVersionOfHybridProject(state, abort)
+        case 'opened':
+          return projectStates.initializeProject(state)
+        case 'initialized':
+          break
+        case 'hybrid-closed':
+        case 'hybrid-uploaded':
+          return projectStates.reopenLocalVersionOfHybridProject(state)
+        case 'to-restore':
+          return projectStates.restoreProject(state)
+        case 'closed-by-backend':
+          return projectStates.reopenProject(state)
+      }
+    },
+    closing: (state: ProjectState) => {
+      switch (state.status) {
+        case 'not-opened':
+          break
+        case 'hybrid-opened':
+          return projectStates.closeHybridProject(state)
+        case 'hybrid-downloaded':
+          return projectStates.closeHybridProject(state)
+        case 'opened':
+        case 'initialized':
+          return projectStates.closeProject(state)
+        case 'hybrid-closed':
+          return projectStates.uploadHybridProjectOnClose(state)
+        case 'hybrid-uploaded':
+          return projectStates.closeHybridProject(state)
+        case 'to-restore':
+        case 'closed-by-backend':
+          return projectStates.discardProject(state)
+      }
+    },
+    restoring: (state: ProjectState, abort: AbortSignal) => {
+      if (state.status !== 'closed-by-backend') return PROCESS_STEPS.opening(state, abort)
+    },
+  }
+
+  /** Wait for the current project's process finish (including failure). */
   async function waitForProcess(project: Project) {
     while (project.nextTask != null) {
       await project.nextTask.promise.catch((err) =>
@@ -278,14 +316,17 @@ export function createOpenedProjectsStore() {
     }
   }
 
+  /** Get data of project with given id. */
   function get(id: ProjectId): Project | undefined {
     return projects.get(id)
   }
 
+  /** List all projects opened by current app instance. */
   function listProjects() {
     return projects.values()
   }
 
+  /** Check if given asset is in process of opening, either by us or in backend only. */
   function isProjectOpening(asset: ProjectAsset) {
     const openedByMe = projects.get(asset.id)
     if (openedByMe != null) {
@@ -295,16 +336,9 @@ export function createOpenedProjectsStore() {
     }
   }
 
+  /** Check if given asset is opened, either by us or in backend only. */
   function isProjectOpened(asset: ProjectAsset) {
     const openedByMe = projects.get(asset.id)
-    console.debug(
-      '>>>',
-      openedByMe != null,
-      openedByMe?.nextTask == null,
-      openedByMe?.state.status !== 'not-opened',
-      openedByMe?.state.status === 'initialized',
-      asset.projectState.type,
-    )
     if (openedByMe != null && openedByMe.state.status !== 'not-opened') {
       return openedByMe.nextTask == null && openedByMe.state.status === 'initialized'
     } else {
@@ -315,15 +349,21 @@ export function createOpenedProjectsStore() {
     }
   }
 
+  /** Check if given asset is in process of closing, either by us or in backend only. */
   function isProjectClosing(id: ProjectId) {
     return projects.get(id)?.nextTask?.process === 'closing'
   }
 
+  /** Register a callback fired every time a project changes it status to 'initialized'. */
   function onProjectReady(cb: (project: Project) => void) {
     projectReadyCallbacks.push(cb)
     return () => projectReadyCallbacks.splice(projectReadyCallbacks.indexOf(cb), 1)
   }
 
+  /**
+   * Read and restore projects from local storage, and then keep the storage up-to-date about
+   * currently opened projects.
+   */
   function syncWithLocalStorage() {
     for (const project of localStorage.get('openedTabs') ?? []) {
       restoreProject(project)
@@ -346,6 +386,10 @@ export function createOpenedProjectsStore() {
     })
   }
 
+  // A handler for uploading hybrid projects before app close.
+  //
+  // They are not removed from local backend, but synchronized with remote in case someone else
+  // would open it in the meantime.
   window.addEventListener('beforeunload', async (event) => {
     const hybrids = [...projects.values()].filter(
       (proj): proj is Project & { state: Initialized | HybridLocallyClosed } =>
@@ -353,9 +397,11 @@ export function createOpenedProjectsStore() {
         (proj.state.status === 'initialized' || proj.state.status === 'hybrid-closed'),
     )
     if (hybrids.length > 0) {
-      event.preventDefault()
-      // Browsers have their own `beforeunload` handling.
+      // Do not prevent default in browsers.
+      // In "real" browsers users will be unable to run hybrid projects anyway, but in dev
+      // servers the "data loss" messages are annoying.
       if (!isOnElectron()) return
+      event.preventDefault()
       closingOnAppExit.value = true
       const errors = (
         await Promise.all(
@@ -403,4 +449,7 @@ export function createOpenedProjectsStore() {
   }
 }
 
+/**
+ * A store containing states of all projects opened by this app instance.
+ */
 export const useOpenedProjects = createGlobalState(createOpenedProjectsStore)

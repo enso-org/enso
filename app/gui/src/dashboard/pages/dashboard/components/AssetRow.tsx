@@ -35,7 +35,6 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import { BUSY_PROJECT_STATES } from '$/providers/openedProjects/projectStates'
 import { useFullUserSession } from '$/providers/react'
 import { useIsProjectClosing } from '$/providers/react/openedProjects'
 import * as React from 'react'
@@ -373,7 +372,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
               if (
                 item.type === backendModule.AssetType.project &&
-                (BUSY_PROJECT_STATES.has(item.projectState.type) || isClosing)
+                (backendModule.IS_OPENING_OR_OPENED[item.projectState.type] || isClosing)
               ) {
                 event.preventDefault()
               }
