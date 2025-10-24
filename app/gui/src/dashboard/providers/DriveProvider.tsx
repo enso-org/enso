@@ -6,7 +6,6 @@ import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
 import { createStore, resetStoreOnLogout, useStore, type StoreApi } from '#/utilities/zustand'
 import { useFullUserSession } from '$/providers/react'
-import { EMPTY_ARRAY } from '$/utils/data/array'
 import {
   type AnyAsset,
   type AssetId,
@@ -186,11 +185,8 @@ export default function DriveProvider(props: DriveProviderProps) {
       setSelectedIds: (selectedIds) => {
         set({ selectedIds })
       },
-      selectedAssets: EMPTY_ARRAY,
+      selectedAssets: [],
       setSelectedAssets: (selectedAssets) => {
-        if (selectedAssets.length === 0) {
-          selectedAssets = EMPTY_ARRAY
-        }
         if (get().selectedAssets !== selectedAssets) {
           set({
             selectedAssets,
