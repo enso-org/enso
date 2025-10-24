@@ -5,7 +5,7 @@ import * as path from 'node:path'
 import trash from 'trash'
 import * as yaml from 'yaml'
 import * as nameValidation from './nameValidation.js'
-import { Path, type UUID } from './types'
+import { Path, type UUID } from './types.js'
 
 export interface Project {
   readonly id: UUID

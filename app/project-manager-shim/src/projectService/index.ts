@@ -6,20 +6,20 @@
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import * as crypto from 'node:crypto'
 import {
+  EnsoRunner,
+  findEnsoExecutable,
   type LanguageServerSockets,
   type Runner,
   type Socket,
-  EnsoRunner,
-  findEnsoExecutable,
 } from './ensoRunner.js'
 import * as nameValidation from './nameValidation.js'
 import {
+  ProjectFileRepository,
   type Project,
   type ProjectMetadata,
   type ProjectRepository,
-  ProjectFileRepository,
 } from './projectRepository.js'
-import { type Path, UUID } from './types'
+import { UUID, type Path } from './types.js'
 
 export interface RunningLanguageServerInfo {
   readonly sockets: LanguageServerSockets
