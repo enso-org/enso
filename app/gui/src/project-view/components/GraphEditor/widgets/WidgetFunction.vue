@@ -28,6 +28,7 @@ import { isIdentifier } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { computed } from 'vue'
 import { Err, Ok } from 'ydoc-shared/util/data/result'
+import { FunctionName } from './WidgetFunctionName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const { projectNames: projectNames, module, graph } = useCurrentProject()
@@ -69,7 +70,21 @@ const innerInput = computed(() => {
     input = { ...props.input }
   }
   const callInfo = methodCallInfo.value
-  if (callInfo) input[CallInfo] = callInfo
+  if (callInfo) {
+    input[CallInfo] = callInfo
+    if (input.value instanceof Ast.PropertyAccess || input.value instanceof Ast.Ident) {
+      const methodPointer = callInfo.methodCall.methodPointer
+      const definition = module.value.getMethodAst(methodPointer)
+      console.log('attempt functionName', methodPointer, definition)
+      if (definition.ok) {
+        input[FunctionName] = {
+          editableNameExpression: definition.value.name.externalId,
+          methodPointer,
+          requireUserAction: true,
+        }
+      }
+    }
+  }
   return input
 })
 

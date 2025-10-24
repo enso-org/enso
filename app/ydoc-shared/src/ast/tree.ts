@@ -484,11 +484,25 @@ export abstract class MutableAst extends Ast {
   }
 }
 
-/** TODO: Add docs */
-export function visitRecursive(ast: Ast, visit: (ast: Ast) => void | boolean): void {
-  if (visit(ast) === false) return
-  for (const child of ast.children()) {
-    if (!isToken(child)) visitRecursive(child, visit)
+/**
+ * Visit all AST nodes in depth-first order using given visitor function.
+ * If visitor returns `false` value, child nodes of currently visited node will be skipped.
+ * If visitor returns an Iterable of nodes, only those nodes will be visited.
+ */
+export function visitRecursive(
+  ast: Ast,
+  visit: (ast: Ast) => void | boolean | Iterable<Ast | undefined | null>,
+): void {
+  const visitResult = visit(ast)
+  if (visitResult === false) return
+  if (visitResult === true || visitResult == null) {
+    for (const child of ast.children()) {
+      if (child != null && !isToken(child)) visitRecursive(child, visit)
+    }
+  } else {
+    for (const child of visitResult) {
+      if (child != null) visitRecursive(child, visit)
+    }
   }
 }
 

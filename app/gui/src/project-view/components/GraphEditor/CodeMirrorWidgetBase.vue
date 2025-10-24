@@ -37,6 +37,7 @@ const model = defineModel<string>({ default: '' })
 const emit = defineEmits<{
   textEdited: [text: string]
   userAction: [text: string, selection: SelectionRange]
+  blur: []
 }>()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
@@ -88,6 +89,7 @@ const editing = WidgetEditHandler.New(props, {
 
 function blurEditor() {
   editorView.contentDOM.blur()
+  emit('blur')
 }
 
 function focusAndSelect() {

@@ -19,7 +19,10 @@ import { computed, useTemplateRef } from 'vue'
 import { newArgumentDefinition } from 'ydoc-shared/ast'
 import FormContainer from './FormContainer.vue'
 import FormRow from './FormRow.vue'
-import { renameArgumentInDefaultValue } from './GraphEditor/widgets/WidgetFunctionDef/argumentAst'
+import {
+  renameArgumentInDefaultValue,
+  replaceVariableUsages,
+} from './GraphEditor/widgets/WidgetFunctionDef/argumentAst'
 import ArgumentRow from './GraphEditor/widgets/WidgetFunctionDef/ArgumentRow.vue'
 import { FunctionName } from './GraphEditor/widgets/WidgetFunctionName.vue'
 import { DisplayIcon } from './GraphEditor/widgets/WidgetIcon.vue'
@@ -117,10 +120,7 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
     const newNameString = newName.code()
     if (newNameString == oldNameString) return
     renameArgumentInDefaultValue(definition, edit, newNameString)
-    Ast.visitRecursive(ast, (child) => {
-      if (child instanceof Ast.Ident && child.token.code() === oldNameString)
-        edit.replaceValue(child.id, newName)
-    })
+    replaceVariableUsages(edit, ast, newNameString, newName)
   })
 }
 

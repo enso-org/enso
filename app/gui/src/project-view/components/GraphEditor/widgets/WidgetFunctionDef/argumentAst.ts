@@ -1,6 +1,7 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { computed } from 'vue'
+import type { MutableModule } from 'ydoc-shared/ast'
 import { assertNever } from 'ydoc-shared/util/assert'
 
 const missingArgPattern = computed(() => Pattern.parseExpression('Missing_Argument.throw __'))
@@ -60,4 +61,27 @@ export function renameArgumentInDefaultValue(
       edit.replace(argument.id, Ast.TextLiteral.new(newArgumentName, edit))
     }
   }
+}
+
+/** Replace all variable position tokens with given name with a new token. */
+export function replaceVariableUsages(
+  edit: MutableModule,
+  ast: Ast.Ast,
+  oldNameString: string,
+  newName: Ast.Owned<Ast.MutableExpression>,
+) {
+  const newNameString = newName.code()
+  if (newNameString == oldNameString) return
+  Ast.visitRecursive(ast, (child) => {
+    if (child instanceof Ast.Ident && child.token.code() === newNameString) {
+      console.log('replace', child.id)
+      edit.replaceValue(child.id, newName)
+    } else if (child instanceof Ast.PropertyAccess) {
+      // Only attempt replacing tokens on the very left side of property accesses
+      return [child.lhs]
+    } else if (child instanceof Ast.App) {
+      // Do not replace named argument names
+      return [child.function, child.argument]
+    }
+  })
 }
