@@ -711,13 +711,13 @@ export default class LocalBackend extends Backend {
   }
 
   /** Upload a chunk of a large file. */
-  override uploadFileChunk(): Promise<backend.S3MultipartPart> {
+  override uploadFileChunk(): Promise<{ part: backend.S3MultipartPart; size: number }> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
-    return Promise.resolve({ eTag: '', partNumber: 0 })
+    return Promise.resolve({ part: { eTag: '', partNumber: 0 }, size: 0 })
   }
 
   /** Finish uploading a large file. */
-  override uploadFileEnd(body: backend.UploadFileEndRequestBody): Promise<backend.UploadedAsset> {
+  override uploadFileEnd(body: { uploadId: string }): Promise<backend.UploadedAsset> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
     const file = this.uploadedFiles.get(body.uploadId)
     invariant(file, 'Uploaded file not found')

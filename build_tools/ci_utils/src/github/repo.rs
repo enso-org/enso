@@ -21,8 +21,6 @@ use octocrab::params::actions::ArchiveFormat;
 use octocrab::params::repos::Reference;
 use reqwest::Response;
 
-
-
 /// Owned data denoting a specific GitHub repository.
 ///
 /// See also [`RepoRef`] for a non-owning equivalent.
@@ -32,7 +30,7 @@ pub struct Repo {
     /// Owner - an organization's or user's name.
     pub owner: String,
     /// Repository name.
-    pub name:  String,
+    pub name: String,
 }
 
 impl IsRepo for Repo {
@@ -73,7 +71,6 @@ impl Repo {
     }
 }
 
-
 /// Non-owning equivalent of `Repo`.
 ///
 /// Particularly useful for defining `const` repositories.
@@ -83,7 +80,7 @@ pub struct RepoRef<'a> {
     /// Owner - an organization's or user's name.
     pub owner: &'a str,
     /// Repository name.
-    pub name:  &'a str,
+    pub name: &'a str,
 }
 
 impl<'a> IsRepo for RepoRef<'a> {
@@ -101,7 +98,8 @@ impl<'a> RepoRef<'a> {
     pub fn new<T1, T2>(owner: &'a T1, name: &'a T2) -> Self
     where
         T1: AsRef<str> + ?Sized,
-        T2: AsRef<str> + ?Sized, {
+        T2: AsRef<str> + ?Sized,
+    {
         Self { owner: owner.as_ref(), name: name.as_ref() }
     }
 }
@@ -147,13 +145,17 @@ pub trait IsRepo: Display {
 
     /// Add GitHub API client to obtain the [`Handle`] to this repository.
     fn handle(&self, octocrab: &Octocrab) -> Handle<Self>
-    where Self: Clone + Sized {
+    where
+        Self: Clone + Sized,
+    {
         Handle { repo: self.clone(), octocrab: octocrab.clone() }
     }
 
     /// Add GitHub API client to obtain the [`Handle`] to this repository.
     fn into_handle(self, octocrab: &Octocrab) -> Handle<Self>
-    where Self: Sized {
+    where
+        Self: Sized,
+    {
         Handle { octocrab: octocrab.clone(), repo: self }
     }
 }
@@ -168,7 +170,7 @@ pub struct Handle<Repo> {
     #[derive_where(skip)]
     pub octocrab: Octocrab,
     /// Repository designation.
-    pub repo:     Repo,
+    pub repo: Repo,
 }
 
 impl<R: Display> Display for Handle<R> {
@@ -205,7 +207,7 @@ impl<R: IsRepo> Handle<R> {
 
     /// Get the [RepoHandler](octocrab::repos::RepoHandler), which is octocrab's entry point for
     /// most of the repository-related operations.
-    pub fn repos(&self) -> octocrab::repos::RepoHandler {
+    pub fn repos(&self) -> octocrab::repos::RepoHandler<'_> {
         self.octocrab.repos(self.owner(), self.name())
     }
 
@@ -343,7 +345,7 @@ impl<R: IsRepo> Handle<R> {
         let url = self.octocrab.absolute_url(path).unwrap();
         DownloadFile {
             client: self.octocrab.client.clone(),
-            key:    crate::cache::download::Key {
+            key: crate::cache::download::Key {
                 url,
                 additional_headers: HeaderMap::from_iter([(
                     reqwest::header::ACCEPT,

@@ -3,8 +3,6 @@ use crate::prelude::*;
 use ide_ci::extensions::child::ChildExt;
 use tokio::process::Child;
 
-
-
 pub mod env {
     use super::*;
 
@@ -20,7 +18,7 @@ pub mod env {
 #[derive(Debug)]
 pub struct Spawned {
     pub process: Child,
-    pub url:     Url,
+    pub url: Url,
 }
 
 pub async fn get_and_spawn_httpbin(
@@ -75,7 +73,6 @@ fn wait_for(addr: &str, timeout_seconds: u32) -> Result {
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use ide_ci::cache;
@@ -83,7 +80,6 @@ mod tests {
     use std::env::set_current_dir;
 
     use super::*;
-
 
     #[tokio::test]
     #[ignore]
@@ -93,15 +89,12 @@ mod tests {
         let cache = cache::Cache::new_default().await?;
         cache::goodie::sbt::Sbt.install_if_missing(&cache).await?;
 
-        let sbt = crate::engine::sbt::Context {
-            repo_root:         current_dir()?,
-            system_properties: vec![],
-        };
+        let sbt =
+            crate::engine::sbt::Context { repo_root: current_dir()?, system_properties: vec![] };
 
         let spawned = get_and_spawn_httpbin_on_free_port(&sbt).await?;
         std::thread::sleep(std::time::Duration::from_secs(20));
         dbg!(&spawned);
-
 
         Ok(())
     }

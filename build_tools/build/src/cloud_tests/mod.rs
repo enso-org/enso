@@ -8,14 +8,11 @@ use std::fs::File;
 use std::io::Write;
 use tempfile::NamedTempFile;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod env;
-
-
 
 pub fn build_auth_config_from_environment() -> Result<AuthConfig> {
     let web_client_id = env::ci_config::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID.get()?;
@@ -41,18 +38,18 @@ pub async fn build_credentials_file(auth_config: AuthConfig, path: &Path) -> Res
 #[derive(Debug)]
 pub struct AuthConfig {
     web_client_id: String,
-    user_pool_id:  String,
-    region:        String,
-    username:      String,
-    password:      String,
+    user_pool_id: String,
+    region: String,
+    username: String,
+    password: String,
 }
 
 struct Credentials {
-    client_id:     String,
-    access_token:  String,
+    client_id: String,
+    access_token: String,
     refresh_token: String,
-    refresh_url:   String,
-    expire_at:     String,
+    refresh_url: String,
+    expire_at: String,
 }
 
 async fn build_credentials(config: AuthConfig) -> Result<Credentials> {
@@ -102,9 +99,9 @@ fn aws_command() -> Command {
 }
 
 struct CognitoResponse {
-    access_token:  String,
+    access_token: String,
     refresh_token: String,
-    expires_in:    i64,
+    expires_in: i64,
 }
 
 fn parse_cognito_response(response: &str) -> Result<CognitoResponse> {

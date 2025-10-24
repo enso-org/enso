@@ -6,12 +6,10 @@ use crate::programs::git;
 
 use std::path::Component;
 
-
-
 #[derive(Clone, Debug)]
 pub struct DirectoryToClear<'a> {
     pub prefix: Vec<Component<'a>>,
-    pub trie:   &'a Trie<'a>,
+    pub trie: &'a Trie<'a>,
 }
 
 /// Run `git clean -xfd` but preserve the given paths.

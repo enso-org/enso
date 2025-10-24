@@ -47,7 +47,7 @@ use_repo(rules_ts_ext, "npm_typescript")
 ############
 ### RUST ###
 ############
-bazel_dep(name = "rules_rust", version = "0.59.2")
+bazel_dep(name = "rules_rust", version = "0.66.0")
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
@@ -60,14 +60,14 @@ rust.toolchain(
         "/nix/store/pff8c9a4l487r0jaipibq21mkww5f1yw-libiconv-109/lib",
     ],
     extra_target_triples = ["wasm32-unknown-unknown"],
-    versions = ["nightly/2024-08-08"],
+    versions = ["1.90.0"],
 )
 use_repo(rust, "rust_toolchains")
 
 register_toolchains("@rust_toolchains//:all")
 
 # Add wasm_bindgen toolchain, patch it to shorten the dirnames and avoid max_path issues
-bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.59.2")
+bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.66.0")
 single_version_override(
     module_name = "rules_rust_wasm_bindgen",
     patches = ["wasm_bindgen.patch"],

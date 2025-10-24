@@ -11,15 +11,14 @@ use crate::syntax::Inspect;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 use crate::syntax::TreeConsumer;
-use std::fmt::Debug;
 
+use std::fmt::Debug;
 
 // ===============
 // === Operand ===
 // ===============
 
 pub type Operand<'s> = MaybeSection<Tree<'s>>;
-
 
 // ================
 // === Operator ===
@@ -28,10 +27,10 @@ pub type Operand<'s> = MaybeSection<Tree<'s>>;
 /// An operator, whose arity and precedence have been determined.
 #[derive(Debug)]
 pub struct Operator<'s> {
-    pub left_precedence:  Option<ModifiedPrecedence>,
+    pub left_precedence: Option<ModifiedPrecedence>,
     pub right_precedence: Option<ModifiedPrecedence>,
-    pub associativity:    token::Associativity,
-    pub arity:            Arity<'s>,
+    pub associativity: token::Associativity,
+    pub arity: Arity<'s>,
 }
 
 impl<'s> Operator<'s> {
@@ -47,24 +46,18 @@ impl<'s> Operator<'s> {
     }
 }
 
-
 // === Arity ===
 
 /// Classifies the role of an operator.
 #[derive(Debug)]
 pub enum Arity<'s> {
     Unary(token::UnaryOperator<'s>),
-    Binary {
-        tokens:            Vec<Token<'s>>,
-        missing:           Option<BinaryOperand>,
-        reify_rhs_section: bool,
-    },
+    Binary { tokens: Vec<Token<'s>>, missing: Option<BinaryOperand>, reify_rhs_section: bool },
     App,
     NamedApp(Box<NamedApp<'s>>),
     Annotation(Annotation<'s>),
     UnappliedBlock(ApplicableBlock<'s>),
 }
-
 
 // === Binary operand ===
 
@@ -74,17 +67,16 @@ pub enum BinaryOperand {
     Right,
 }
 
-
 // === Modified precedence ===
 
 #[derive(Debug, Copy, Clone)]
 pub struct ModifiedPrecedence {
     value: u8,
-    mask:  u8,
+    mask: u8,
 }
 
 pub struct ModifiedPrecedenceComparisonResult {
-    pub is_greater:           bool,
+    pub is_greater: bool,
     pub inconsistent_spacing: bool,
 }
 
@@ -113,7 +105,6 @@ impl ModifiedPrecedence {
     }
 }
 
-
 // ================
 // === Warnings ===
 // ================
@@ -140,7 +131,6 @@ impl Warnings {
     }
 }
 
-
 // ======================================
 // === Operator and Operand Consumers ===
 // ======================================
@@ -156,7 +146,6 @@ pub trait OperatorConsumer<'s> {
 pub trait NamedOperandConsumer<'s> {
     fn push_maybe_named_operand(&mut self, operand: OperandMaybeNamed<'s>);
 }
-
 
 // === Debugging ===
 
@@ -174,11 +163,11 @@ impl<'s, Inner: OperatorConsumer<'s>> OperatorConsumer<'s> for Inspect<Inner> {
     }
 }
 
-
 // === Conversions ===
 
 impl<'s, T> OperandConsumer<'s> for T
-where T: NamedOperandConsumer<'s>
+where
+    T: NamedOperandConsumer<'s>,
 {
     fn push_operand(&mut self, operand: MaybeSection<Tree<'s>>) {
         self.push_maybe_named_operand(OperandMaybeNamed::Unnamed(operand));
@@ -186,13 +175,13 @@ where T: NamedOperandConsumer<'s>
 }
 
 impl<'s, T> TreeConsumer<'s> for T
-where T: OperandConsumer<'s>
+where
+    T: OperandConsumer<'s>,
 {
     fn push_tree(&mut self, tree: Tree<'s>) {
         self.push_operand(tree.into());
     }
 }
-
 
 // ======================
 // === Named Operands ===
@@ -204,7 +193,6 @@ pub enum OperandMaybeNamed<'s> {
     Unnamed(MaybeSection<Tree<'s>>),
     Named(NamedApp<'s>),
 }
-
 
 // ==========================
 // === SectionTermination ===

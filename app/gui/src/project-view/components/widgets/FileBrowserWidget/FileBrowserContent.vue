@@ -27,7 +27,7 @@ const emit = defineEmits<{
   renameDirectory: [
     Directory | undefined,
     string,
-    (action: Promise<CreatedDirectory | undefined>) => void,
+    (action: Promise<CreatedDirectory | null>) => void,
   ]
   enterDirectory: [Directory]
   choose: [AnyAsset, boolean]
