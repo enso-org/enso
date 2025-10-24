@@ -3,16 +3,18 @@ import {
   extractTypeFromId,
   type PathResolveResponse,
   type ProjectAsset,
-} from '../Backend.js'
-import type { LocalBackend } from '../LocalBackend.js'
-import type { RemoteBackend } from '../RemoteBackend.js'
-import { EnsoPath } from './types.js'
+} from 'enso-common/src/services/Backend'
+import { EnsoPath } from 'enso-common/src/services/Backend/types'
+import type { LocalBackend } from 'enso-common/src/services/LocalBackend'
+import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { ProjectService } from './projectService'
 
 /** Start a hybrid project. */
 export async function startHybridProject(
   path: EnsoPath,
   localBackend: LocalBackend,
   remoteBackend: RemoteBackend,
+  projectService = ProjectService.default(),
 ) {
   let launchedProjectAsset: ProjectAsset | undefined
   let asset: PathResolveResponse | undefined
@@ -45,7 +47,7 @@ export async function startHybridProject(
       throw new Error('Downloaded cloud project does not exist in Local Backend.')
     }
     launchedProjectAsset = project
-    await openProject(launchedProject)
+    projectService.openProject(project.id, project.parentId)
   } catch (error) {
     console.error(`Error starting hybrid project '${asset?.title ?? '(unknown)'}':`, error)
     if (launchedProjectAsset) {
