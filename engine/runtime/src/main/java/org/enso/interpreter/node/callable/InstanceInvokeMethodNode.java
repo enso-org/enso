@@ -12,7 +12,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.Node.Child;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
@@ -22,7 +21,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
-import org.enso.interpreter.node.BaseNode.TailStatus;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.HostMethodCallNode;
@@ -286,12 +285,13 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
     return null;
   }
 
-  Object[] argumentsWithExplicitSelf(FunctionSchema cachedSchema, Object[] arguments) {
+  private Object[] argumentsWithExplicitSelf(
+      FunctionSchema cachedSchema, Object[] arguments, Object explicitSelf) {
     Object[] arguments1;
     if (!cachedSchema.isFullyApplied()) {
       arguments1 = new Object[cachedSchema.getArgumentsCount()];
       System.arraycopy(arguments, 0, arguments1, 1, arguments.length);
-      arguments1[0] = arguments[0];
+      arguments1[0] = explicitSelf;
     } else {
       arguments1 = arguments;
     }
@@ -302,7 +302,7 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
     int length = invokeFunctionNode.getSchema().length;
     CallArgumentInfo[] schema = new CallArgumentInfo[length + 1];
     System.arraycopy(invokeFunctionNode.getSchema(), 0, schema, 1, length);
-    schema[0] = new CallArgumentInfo();
+    schema[0] = new CallArgumentInfo(ConstantsNames.SELF_ARGUMENT);
     return InvokeFunctionNode.build(
         schema,
         invokeFunctionNode.getDefaultsExecutionMode(),
@@ -330,8 +330,9 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
     // parameter. However, the constructed `InvokeFunctionNode` is missing that
     // information and the function, if called with `arguments`, will not be fully applied.
     // Hence, the synthetic construction of a new `InvokeFunctionNode` with the updated schema
-    // and call including an additional, dummy, argument.
-    Object[] arguments1 = argumentsWithExplicitSelf(cachedSchema, arguments);
+    // and call including a prepended `Warning` type argument.
+    var warnType = EnsoContext.get(this).getBuiltins().warning();
+    Object[] arguments1 = argumentsWithExplicitSelf(cachedSchema, arguments, warnType);
     return warningFunctionNode.execute(resolvedFunction, frame, state, arguments1);
   }
 
