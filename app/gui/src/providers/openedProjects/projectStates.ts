@@ -23,16 +23,11 @@ import { useUploadsToCloudStore } from '../upload'
 import { createGraphStore, type GraphStore } from './graph'
 import { createModuleStore, type ModuleStore } from './module'
 import { createProjectStore, type ProjectStore } from './project'
-import type { ProjectInfo, RunningProjectInfo } from './projectInfoStorage'
+import type { ProjectInfo, RunningProjectInfo } from './projectInfo'
 import { createProjectNameStore, type ProjectNameStore } from './projectNames'
 import { createSuggestionDbStore, type SuggestionDbStore } from './suggestionDatabase'
 import { WidgetRegistry } from './widgetRegistry'
 
-export interface LsUrls {
-  rpcUrl: string
-  dataUrl: string
-  ydocUrl: string
-}
 export interface NotOpened {
   status: 'not-opened'
   info: ProjectInfo
@@ -131,6 +126,7 @@ export function useProjectStates() {
   const closeRemoteProject = vueQuery.useMutation(
     backendMutationOptions('closeProject', backends.remoteBackend),
   )
+  const renameProjectMut = renameProjectMutation(queryClient)
 
   const catchNetworkError = rejectionToResult(NetworkError)
 
@@ -322,8 +318,7 @@ export function useProjectStates() {
       const store = createProjectStore(
         {
           projectId: runningId,
-          //TODO[ao]: fix before merge.
-          renameProject: () => Promise.resolve(),
+          projectAssetId: project.info.id,
           engine: {
             rpcUrl,
             dataUrl,
@@ -450,28 +445,25 @@ export function useProjectStates() {
     }
   }
 
-  async function uploadHybridProject(
-    project: HybridLocallyClosed,
-  ): Promise<Result<HybridUploaded>> {
-    if (backends.localBackend == null) {
-      return Err('Cannot close Hybrid Project without local backend')
-    }
+  async function uploadHybridProject(info: RunningProjectInfo & { mode: 'hybrid' }) {
     const fileName = 'project_root.enso-project'
-    const file = await backends.remoteBackend.getProjectArchive(
-      project.info.localParentId,
-      fileName,
-    )
+    const file = await backends.remoteBackend.getProjectArchive(info.localParentId, fileName)
     await uploads.uploadFile(
       file,
       {
-        fileId: project.info.id,
+        fileId: info.id,
         fileName,
-        parentDirectoryId: project.info.parentId,
+        parentDirectoryId: info.parentId,
       },
       'hybridSync',
     )
-    await deleteLocalVersionOfHybridProject(project.info)
+  }
 
+  async function cleanupHybridProject(
+    project: HybridLocallyClosed,
+  ): Promise<Result<HybridUploaded>> {
+    await uploadHybridProject(project.info)
+    await deleteLocalVersionOfHybridProject(project.info)
     return Ok({
       status: 'hybrid-uploaded',
       info: project.info,
@@ -501,6 +493,21 @@ export function useProjectStates() {
     } else {
       closeRemoteProject.mutate([project.id, project.title])
     }
+  }
+
+  async function renameProject(
+    project: Initialized,
+    newName: string,
+  ): Promise<Result<Initialized>> {
+    const backend = project.info.mode === 'local' ? backends.localBackend : backends.remoteBackend
+    if (backend == null) {
+      return Err('Failed to rename project: no Backend available')
+    }
+    const result = await catchNetworkError(
+      renameProjectMut.mutateAsync({ project: project.info, newName, backend }),
+    )
+    if (!result.ok) return result
+    return Ok(markRaw({ ...project, info: { ...project.info, title: newName } }))
   }
 
   async function restoreProject(project: ToRestore): Promise<Result<Opened | ClosedByBackend>> {
@@ -571,8 +578,10 @@ export function useProjectStates() {
     initializeProject,
     closeProject,
     uploadHybridProject,
+    cleanupHybridProject,
     closeHybridProject,
     closeProjectInBackend,
+    renameProject,
     restoreProject,
     reopenProject,
     discardProject,
@@ -618,7 +627,7 @@ async function getProjectDetailsFromBackend(
   const detailsQuery = scope.run(() =>
     vueQuery.useQuery(
       {
-        queryKey: ['project', id] as const,
+        queryKey: getProjectDetailsQueryKey(id),
         queryFn: () => backend.getProjectDetails(id),
         refetchIntervalInBackground: true,
         refetchOnWindowFocus: true,
@@ -686,4 +695,54 @@ async function getProjectDetailsFromBackend(
   })
 
   return details
+}
+
+function getProjectDetailsQueryKey(id: ProjectId) {
+  return ['project', id] as const
+}
+
+function renameProjectMutation(queryClient: vueQuery.QueryClient) {
+  return vueQuery.useMutation(
+    {
+      mutationKey: ['renameProject'],
+      mutationFn: ({
+        project,
+        backend,
+        newName,
+      }: {
+        project: ProjectInfo
+        backend: Backend
+        newName: string
+      }) => {
+        const { id, title } = project
+
+        return backend.updateProject(id, { projectName: newName }, title)
+      },
+      onMutate: async ({ project, newName }) => {
+        const queryKey = getProjectDetailsQueryKey(project.id)
+        await queryClient.cancelQueries({ queryKey })
+        // Optimistically update the project name.
+        queryClient.setQueryData<ProjectDetails>(queryKey, (data) => {
+          if (data == null) return undefined
+          return {
+            ...data,
+            name: newName,
+          }
+        })
+
+        return { queryKey }
+      },
+      onError: (_err, _variables, context) => {
+        if (context?.queryKey) {
+          // Invalidate the optimistic response.
+          return queryClient.invalidateQueries({ queryKey: context.queryKey })
+        }
+      },
+      meta: {
+        invalidates: [['listDirectory'], ['project'], ['getAssetDetails']],
+        awaitInvalidates: true,
+      },
+    },
+    queryClient,
+  )
 }

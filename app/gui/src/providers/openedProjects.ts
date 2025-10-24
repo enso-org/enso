@@ -11,12 +11,22 @@ import { assert } from '@/util/assert'
 import { createGlobalState } from '@vueuse/core'
 import { isOnElectron } from 'enso-common/src/detect'
 import { computed, ref, shallowReactive, watchEffect } from 'vue'
-import type { Result, ResultError } from 'ydoc-shared/util/data/result'
+import { Err, Ok, type Result, type ResultError } from 'ydoc-shared/util/data/result'
+import * as z from 'zod'
 import { useAuth } from './auth'
 import { useBackends } from './backends'
 import { useFeatureFlag } from './featureFlags'
-import type { ProjectInfo, RunningProjectInfo } from './openedProjects/projectInfoStorage'
-import { useProjectStates, type ProjectState } from './openedProjects/projectStates'
+import {
+  RUNNING_PROJECT_INFO_SCHEMA,
+  type ProjectInfo,
+  type RunningProjectInfo,
+} from './openedProjects/projectInfo'
+import {
+  useProjectStates,
+  type HybridLocallyClosed,
+  type Initialized,
+  type ProjectState,
+} from './openedProjects/projectStates'
 
 const PROCESS_ABORTED = 'aborted'
 
@@ -33,6 +43,8 @@ export interface Project {
     | undefined
   error: ResultError | Error | undefined
 }
+
+LocalStorage.registerKey('openedTabs', { schema: z.array(RUNNING_PROJECT_INFO_SCHEMA) })
 
 /**
  * A type for Opened Project Store.
@@ -137,9 +149,9 @@ export function createOpenedProjectsStore() {
         error: undefined,
       })
       projects.set(info.id, project)
-      performProcess(project, 'opening')
+      performProcess(project, 'restoring')
     } else {
-      performProcess(existing, 'opening')
+      performProcess(existing, 'restoring')
     }
   }
 
@@ -162,6 +174,14 @@ export function createOpenedProjectsStore() {
 
   function closeAllProjects() {
     for (const id of projects.keys()) closeProject(id)
+  }
+
+  async function renameProject(id: ProjectId, newName: string) {
+    const project = projects.get(id)
+    if (project?.state.status !== 'initialized') return Err('Cannot rename non-running project')
+    const renamed = await projectStates.renameProject(project.state, newName)
+    if (!renamed.ok) return renamed
+    return Ok()
   }
 
   async function performProcess(project: Project, process: Process) {
@@ -222,7 +242,7 @@ export function createOpenedProjectsStore() {
             if (process === 'closing') promise = projectStates.closeProject(project.state)
             break
           case 'hybrid-closed':
-            promise = projectStates.uploadHybridProject(project.state)
+            promise = projectStates.cleanupHybridProject(project.state)
             break
           case 'hybrid-uploaded':
             promise = projectStates.closeHybridProject(project.state)
@@ -257,44 +277,6 @@ export function createOpenedProjectsStore() {
       )
     }
   }
-
-  window.addEventListener('beforeunload', async (event) => {
-    const hybrids = [...projects.values()].filter(
-      (proj) =>
-        proj.state.info.mode === 'hybrid' &&
-        (proj.state.status === 'initialized' ||
-          proj.state.status === 'hybrid-closed' ||
-          proj.state.status === 'hybrid-uploaded'),
-    )
-    if (hybrids.length > 0) {
-      event.preventDefault()
-      // Browsers have their own `beforeunload` handling.
-      if (!isOnElectron()) return
-      closingOnAppExit.value = true
-      const errors = (
-        await Promise.all(
-          hybrids.map(async (project) => {
-            closeProject(project.state.info.id)
-            await waitForProcess(project)
-            return project
-          }),
-        )
-      ).filter((proj) => proj.error != null)
-      closingOnAppExit.value = false
-      if (errors.length == 0) {
-        window.close()
-      }
-    } else {
-      // Do the project cleanup, but do not close projects entirely.
-      // Local projects's PM process will be killed anyway, and
-      // Cloud projects should be kept opened.
-      for (const project of projects.values()) {
-        if (project.state.status === 'initialized') {
-          project.state.scope.stop()
-        }
-      }
-    }
-  })
 
   function get(id: ProjectId): Project | undefined {
     return projects.get(id)
@@ -342,24 +324,62 @@ export function createOpenedProjectsStore() {
     return () => projectReadyCallbacks.splice(projectReadyCallbacks.indexOf(cb), 1)
   }
 
-  for (const project of localStorage.get('openedTabs') ?? []) {
-    restoreProject(project)
+  function syncWithLocalStorage() {
+    for (const project of localStorage.get('openedTabs') ?? []) {
+      restoreProject(project)
+    }
+
+    return watchEffect(() => {
+      const openedTabs: RunningProjectInfo[] = []
+      for (const project of projects.values()) {
+        switch (project.state.status) {
+          case 'opened':
+          case 'initialized':
+          case 'hybrid-closed':
+          case 'to-restore':
+          case 'closed-by-backend':
+            openedTabs.push(project.state.info)
+            break
+        }
+      }
+      localStorage.set('openedTabs', openedTabs)
+    })
   }
 
-  watchEffect(() => {
-    const openedTabs: RunningProjectInfo[] = []
-    for (const project of projects.values()) {
-      switch (project.state.status) {
-        case 'opened':
-        case 'initialized':
-        case 'hybrid-closed':
-        case 'to-restore':
-        case 'closed-by-backend':
-          openedTabs.push(project.state.info)
-          break
+  window.addEventListener('beforeunload', async (event) => {
+    const hybrids = [...projects.values()].filter(
+      (proj): proj is Project & { state: Initialized | HybridLocallyClosed } =>
+        proj.state.info.mode === 'hybrid' &&
+        (proj.state.status === 'initialized' || proj.state.status === 'hybrid-closed'),
+    )
+    if (hybrids.length > 0) {
+      event.preventDefault()
+      // Browsers have their own `beforeunload` handling.
+      if (!isOnElectron()) return
+      closingOnAppExit.value = true
+      const errors = (
+        await Promise.all(
+          hybrids.map(async (project) => {
+            assert(project.state.info.mode === 'hybrid')
+            await projectStates.uploadHybridProject(project.state.info)
+            return project
+          }),
+        )
+      ).filter((proj) => proj.error != null)
+      closingOnAppExit.value = false
+      if (errors.length == 0) {
+        window.close()
+      }
+    } else {
+      // Do the project cleanup, but do not close projects entirely.
+      // Local projects's PM process will be killed anyway, and
+      // Cloud projects should be kept opened.
+      for (const project of projects.values()) {
+        if (project.state.status === 'initialized') {
+          project.state.scope.stop()
+        }
       }
     }
-    localStorage.set('openedTabs', openedTabs)
   })
 
   return {
@@ -370,6 +390,7 @@ export function createOpenedProjectsStore() {
     openProjectNatively,
     closeProject,
     closeAllProjects,
+    renameProject,
     get,
     listProjects,
     isProjectOpening,
@@ -378,6 +399,7 @@ export function createOpenedProjectsStore() {
     waitForProcess,
     closingOnAppExit: closingOnAppExit,
     onProjectReady,
+    syncWithLocalStorage,
   }
 }
 

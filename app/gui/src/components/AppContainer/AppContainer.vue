@@ -41,6 +41,8 @@ provideAsyncResources(openedProjects)
 provideRightPanelData(tab, props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
 
+openedProjects.syncWithLocalStorage()
+
 function loadingProjectSpinnerPhase(project: Project) {
   return project.state.info.mode === 'cloud' ? 'loading-slow' : 'loading-fast'
 }

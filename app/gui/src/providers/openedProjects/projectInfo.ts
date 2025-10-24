@@ -1,5 +1,4 @@
 import type { DirectoryId, EnsoPath, ProjectId, ProjectSessionId } from '#/services/Backend'
-import LocalStorage from '#/utilities/LocalStorage'
 import * as z from 'zod'
 
 declare module '#/utilities/LocalStorage' {
@@ -36,12 +35,10 @@ const RUNNING_HYBRID_PROJECT_INFO_SCHEMA = PROJECT_INFO_SCHEMA.extend({
   hybridSessionId: PROJECT_SESSION_ID_SCHEMA,
   localParentId: DIRECTORY_ID_SCHEMA,
 })
-const RUNNING_PROJECT_INFO_SCHEMA = z.discriminatedUnion('mode', [
+export const RUNNING_PROJECT_INFO_SCHEMA = z.discriminatedUnion('mode', [
   RUNNING_NATIVE_PROJECT_INFO_SCHEMA,
   RUNNING_HYBRID_PROJECT_INFO_SCHEMA,
 ])
-
-LocalStorage.registerKey('openedTabs', { schema: z.array(RUNNING_PROJECT_INFO_SCHEMA) })
 
 export type ProjectInfo = z.infer<typeof PROJECT_INFO_SCHEMA>
 export type RunningProjectInfo = z.infer<typeof RUNNING_PROJECT_INFO_SCHEMA>

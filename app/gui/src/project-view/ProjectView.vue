@@ -6,6 +6,7 @@ import { useText } from '$/providers/text'
 import GraphEditor from '@/components/GraphEditor.vue'
 import { provideVisibility } from '@/providers/visibility'
 import { provideSettings } from '@/stores/settings'
+import { ResultComponent } from '@/util/react'
 import { computed, onActivated, onDeactivated, onMounted, ref } from 'vue'
 
 const { projectId } = defineProps<{ projectId: ProjectId }>()
@@ -25,7 +26,7 @@ onDeactivated(() => (visible.value = false))
 
 <template>
   <div id="ProjectView" class="ProjectView">
-    <Result
+    <ResultComponent
       v-if="projectState?.status === 'closed-by-backend'"
       status="info"
       :title="getText('projectStopped')"
@@ -34,7 +35,7 @@ onDeactivated(() => (visible.value = false))
       <button @click="openedProjects.openProject(projectState.info)">
         {getText('openProject')}
       </button>
-    </Result>
+    </ResultComponent>
     <WithCurrentProject v-else :id="projectId">
       <!-- Key property is needed because of still many usages of deprecated useXStore 
        (see WithCurrentProject.vue). Once all those usages disappear, fully remouting GraphEditor
