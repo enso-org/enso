@@ -24,7 +24,8 @@ export function ApiKeySettingsSection() {
   const { getText } = useText()
   const { data: apiKeys } = useSuspenseQuery(backendQueryOptions(backend, 'listApiKeys', []))
   const apiKeyLimit = useFeatureFlag('apiKeyLimit')
-  const canCreateMoreApiKeys = apiKeys.length < apiKeyLimit
+  const apiKeysLeft = apiKeyLimit - apiKeys.length
+  const canCreateMoreApiKeys = apiKeysLeft > 0
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -37,6 +38,11 @@ export function ApiKeySettingsSection() {
             <NewApiKeyForm />
           </Popover>
         </Popover.Trigger>
+        <Text>
+          {apiKeysLeft <= 0 ?
+            getText('youHaveTheMaximumNumberOfApiKeys')
+          : getText('youCanCreateXMoreApiKeys', apiKeysLeft)}
+        </Text>
       </Button.Group>
       <Scroller
         scrollbar

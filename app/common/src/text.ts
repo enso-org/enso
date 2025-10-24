@@ -187,6 +187,8 @@ interface PlaceholderOverrides {
 
   readonly welcomeToTeam: [organizationName: string]
   readonly invitationText: [organizationName: string]
+
+  readonly youCanCreateXMoreApiKeys: [apiKeysLeft: number]
   readonly deleteApiKeyConfirmation: [tokenName: string]
 }
 
