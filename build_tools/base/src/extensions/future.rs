@@ -6,8 +6,6 @@ use futures_util::future::MapOk;
 use futures_util::FutureExt as _;
 use futures_util::TryFutureExt as _;
 
-
-
 /// Extension methods for [`Future`].
 pub trait FutureExt: Future {}
 
@@ -17,7 +15,9 @@ impl<T: ?Sized> FutureExt for T where T: Future {}
 pub trait TryFutureExt: TryFuture {
     /// Discard the result of successful future.
     fn void_ok(self) -> MapOk<Self, fn(Self::Ok) -> ()>
-    where Self: Sized {
+    where
+        Self: Sized,
+    {
         self.map_ok(drop)
     }
 
@@ -39,7 +39,8 @@ pub trait TryFutureExt: TryFuture {
         Self: Sized + Send + 'static,
         std::result::Result<Self::Ok, Self::Error>: anyhow::Context<Self::Ok, Self::Error>,
         F: FnOnce() -> C + Send + Sync + 'static,
-        C: Display + Send + Sync + 'static, {
+        C: Display + Send + Sync + 'static,
+    {
         self.into_future().map(|res| res.with_context(context)).boxed()
     }
 }

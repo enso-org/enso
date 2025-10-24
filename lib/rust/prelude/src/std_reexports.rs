@@ -1,6 +1,5 @@
 //! This module reexports several commonly used types defined in the standard library.
 
-
 // ==============
 // === Export ===
 // ==============
@@ -45,8 +44,6 @@ pub use std::rc::Weak;
 pub use std::slice;
 pub use std::slice::SliceIndex;
 pub use std::str::FromStr;
-
-
 
 /// Alias for `Default::default()`.
 pub fn default<T: Default>() -> T {

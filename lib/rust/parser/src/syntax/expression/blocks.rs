@@ -26,10 +26,10 @@ use crate::syntax::Tree;
 #[derive(Debug, Default)]
 pub struct FlattenBlockTrees<'s, Inner> {
     /// Consumes child blocks. Stores no semantic state, but is reused for performance.
-    child:         Option<Box<ExpressionParser<'s>>>,
+    child: Option<Box<ExpressionParser<'s>>>,
     block_builder: ApplicableBlockBuilder<'s>,
-    block_parser:  BodyBlockParser<'s>,
-    inner:         Inner,
+    block_parser: BodyBlockParser<'s>,
+    inner: Inner,
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
@@ -43,17 +43,18 @@ impl<'s> From<ApplicableBlock<'s>> for Operator<'s> {
     fn from(value: ApplicableBlock<'s>) -> Self {
         let precedence = ModifiedPrecedence::new(Spacing::Spaced, Precedence::Arrow, false);
         Operator {
-            left_precedence:  Some(precedence),
+            left_precedence: Some(precedence),
             right_precedence: None,
-            associativity:    Associativity::Left,
-            arity:            Arity::UnappliedBlock(value),
+            associativity: Associativity::Left,
+            arity: Arity::UnappliedBlock(value),
         }
     }
 }
 
 impl<'s, Inner> FlattenBlockTrees<'s, Inner>
-where Inner:
-        ItemConsumer<'s> + OperatorConsumer<'s> + Finish<Result = Option<MaybeSection<Tree<'s>>>>
+where
+    Inner:
+        ItemConsumer<'s> + OperatorConsumer<'s> + Finish<Result = Option<MaybeSection<Tree<'s>>>>,
 {
     pub fn run(
         &mut self,
@@ -99,8 +100,6 @@ where Inner:
     }
 }
 
-
-
 // === Applicable Block Builder ===
 
 /// Builds block that act as postfix operators applied to the preceding expression (argument blocks,
@@ -114,10 +113,10 @@ where Inner:
 /// - `body_lines is empty` -> `body_lines is not empty`
 #[derive(Debug, Default)]
 struct ApplicableBlockBuilder<'s> {
-    state:          State,
-    empty_lines:    Vec<token::Newline<'s>>,
+    state: State,
+    empty_lines: Vec<token::Newline<'s>>,
     operator_lines: Vec<OperatorLine<'s>>,
-    body_lines:     Vec<Line<'s>>,
+    body_lines: Vec<Line<'s>>,
 }
 
 #[derive(Debug, Default)]
@@ -147,10 +146,12 @@ pub enum ApplicableBlock<'s> {
 impl<'s> ApplicableBlock<'s> {
     fn apply(self, expression: Option<Tree<'s>>) -> Tree<'s> {
         match self {
-            Self::OperatorBlock { operator_lines, excess } =>
-                Tree::operator_block_application(expression, operator_lines, excess),
-            Self::ArgumentBlock { body_lines } =>
-                Tree::argument_block_application(expression, body_lines),
+            Self::OperatorBlock { operator_lines, excess } => {
+                Tree::operator_block_application(expression, operator_lines, excess)
+            }
+            Self::ArgumentBlock { body_lines } => {
+                Tree::argument_block_application(expression, body_lines)
+            }
         }
     }
 }
@@ -197,10 +198,12 @@ impl<'s> ApplicableBlockBuilder<'s> {
                 .push(Line { newline, expression: expression_parser.parse(&mut items) }),
             State::Operator if items.is_empty() => self.operator_lines.push(newline.into()),
             State::Operator => match to_operator_block_expression(items, expression_parser) {
-                Ok(expression) =>
-                    self.operator_lines.push(OperatorLine { newline, expression: Some(expression) }),
-                Err(expression) =>
-                    self.body_lines.push(Line { newline, expression: Some(expression) }),
+                Ok(expression) => {
+                    self.operator_lines.push(OperatorLine { newline, expression: Some(expression) })
+                }
+                Err(expression) => {
+                    self.body_lines.push(Line { newline, expression: Some(expression) })
+                }
             },
         }
     }

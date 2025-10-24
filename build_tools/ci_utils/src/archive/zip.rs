@@ -6,8 +6,6 @@ use anyhow::Context;
 use std::io::Cursor;
 use zip::read::ZipFile;
 
-
-
 pub use ::zip::*;
 
 pub fn open(path: impl AsRef<Path>) -> Result<ZipArchive<std::fs::File>> {
@@ -42,7 +40,6 @@ pub fn extract_file(file: &mut ZipFile, output: impl AsRef<Path>) -> Result {
     }
     Ok(())
 }
-
 
 #[tracing::instrument(
     name="Extracting subtree from archive.",

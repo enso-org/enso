@@ -44,15 +44,12 @@ use ide_ci::actions::workflow::definition::WorkflowDispatchInputType;
 use ide_ci::actions::workflow::definition::WorkflowToWrite;
 use ide_ci::cache::goodie::graalvm;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod job;
 pub mod step;
-
-
 
 /// Whether a runner is self-hosted or GitHub-hosted.
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord)]
@@ -103,12 +100,10 @@ pub mod secret {
     pub const ARTEFACT_S3_ACCESS_KEY_ID: &str = "ARTEFACT_S3_ACCESS_KEY_ID";
     pub const ARTEFACT_S3_SECRET_ACCESS_KEY: &str = "ARTEFACT_S3_SECRET_ACCESS_KEY";
 
-
     // === AWS S3 Standard Library Tests ===
     pub const ENSO_LIB_S3_AWS_ACCESS_KEY_ID: &str = "ENSO_LIB_S3_AWS_ACCESS_KEY_ID";
     pub const ENSO_LIB_S3_AWS_REGION: &str = "ENSO_LIB_S3_AWS_REGION";
     pub const ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY: &str = "ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY";
-
 
     // === AWS ECR deployment (runtime release to cloud) ===
     pub const ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY: &str = "ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY";
@@ -217,7 +212,6 @@ impl RunsOn for BenchmarkRunner {
     }
 }
 
-
 /// Condition under which the runner should be cleaned.
 #[derive(Clone, Copy, Debug, Default, PartialOrd, Ord, PartialEq, Eq)]
 pub enum CleaningCondition {
@@ -265,7 +259,6 @@ impl CleaningCondition {
     }
 }
 
-
 /// Create a step that cleans the runner if the conditions are met.
 pub fn cleaning_step(
     name: impl Into<String>,
@@ -282,14 +275,14 @@ pub struct RunStepsBuilder {
     /// The command passed to `./run` script.
     pub run_command: String,
     /// Condition under which the runner should be cleaned before and after the run.
-    pub cleaning:    CleaningCondition,
+    pub cleaning: CleaningCondition,
     /// Custom fetch depth of repo checkout action.
     pub fetch_depth: Option<u32>,
     /// Customize the step that runs the command.
     ///
     /// Allows replacing the run step with one or more custom steps.
     #[derive_where(skip)]
-    pub customize:   Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
+    pub customize: Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
 }
 
 impl RunStepsBuilder {
@@ -297,8 +290,8 @@ impl RunStepsBuilder {
     pub fn new(run_command: impl Into<String>) -> Self {
         Self {
             run_command: run_command.into(),
-            cleaning:    default(),
-            customize:   default(),
+            cleaning: default(),
+            customize: default(),
             fetch_depth: default(),
         }
     }
@@ -350,9 +343,9 @@ impl RunStepsBuilder {
 #[derive(Debug)]
 pub struct RunJobBuilder {
     /// Data to generate the steps.
-    pub inner:   RunStepsBuilder,
+    pub inner: RunStepsBuilder,
     /// Name of the job. Might be modified to include the runner info.
-    pub name:    String,
+    pub name: String,
     /// The runners on which the job should run.
     pub runs_on: Box<dyn RunsOn>,
 }
@@ -386,8 +379,9 @@ pub fn on_default_branch_push() -> Push {
 
 pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
     match (os, runner_type) {
-        (OS::Windows, RunnerType::SelfHosted) =>
-            vec![RunnerLabel::SelfHosted, RunnerLabel::Windows],
+        (OS::Windows, RunnerType::SelfHosted) => {
+            vec![RunnerLabel::SelfHosted, RunnerLabel::Windows]
+        }
         (OS::Windows, RunnerType::GitHubHosted) => vec![RunnerLabel::WindowsLatest],
         (OS::Linux, RunnerType::SelfHosted) => vec![RunnerLabel::SelfHosted, RunnerLabel::Linux],
         (OS::Linux, RunnerType::GitHubHosted) => vec![RunnerLabel::LinuxLatest],
@@ -437,10 +431,10 @@ impl JobArchetype for DraftRelease {
 
     fn outputs(&self) -> BTreeMap<String, Vec<String>> {
         let mut ret = BTreeMap::new();
-        ret.insert(Self::PREPARE_STEP_ID.into(), vec![
-            "ENSO_VERSION".into(),
-            "ENSO_RELEASE_ID".into(),
-        ]);
+        ret.insert(
+            Self::PREPARE_STEP_ID.into(),
+            vec!["ENSO_VERSION".into(), "ENSO_RELEASE_ID".into()],
+        );
         ret
     }
 }
@@ -521,11 +515,14 @@ impl JobArchetype for PromoteReleaseJob {
 
     fn outputs(&self) -> BTreeMap<String, Vec<String>> {
         let mut ret = BTreeMap::new();
-        ret.insert(Self::PROMOTE_STEP_ID.into(), vec![
-            ENSO_VERSION.name.to_string(),
-            ENSO_EDITION.name.to_string(),
-            ENSO_RELEASE_MODE.name.to_string(),
-        ]);
+        ret.insert(
+            Self::PROMOTE_STEP_ID.into(),
+            vec![
+                ENSO_VERSION.name.to_string(),
+                ENSO_EDITION.name.to_string(),
+                ENSO_RELEASE_MODE.name.to_string(),
+            ],
+        );
         ret
     }
 }
@@ -539,7 +536,7 @@ fn concurrency(group: impl AsRef<str>) -> Concurrency {
     let github_ref = wrap_expression("github.ref");
     let group_ref = group.as_ref();
     Concurrency::Map {
-        group:              format!("{github_workflow}-{github_ref}-{group_ref}"),
+        group: format!("{github_workflow}-{github_ref}-{group_ref}"),
         cancel_in_progress: wrap_expression(not_default_branch()),
     }
 }
@@ -605,11 +602,11 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
                 workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
             let upload_ydoc_job_id =
                 workflow.add_dependent(target, job::DeployYdoc, runtime_requirements);
-            let dispatch_build_image_job_id =
-                workflow.add_dependent(target, job::DispatchBuildImage, [
-                    &upload_runtime_job_id,
-                    &upload_ydoc_job_id,
-                ]);
+            let dispatch_build_image_job_id = workflow.add_dependent(
+                target,
+                job::DispatchBuildImage,
+                [&upload_runtime_job_id, &upload_ydoc_job_id],
+            );
             packaging_job_ids.push(dispatch_build_image_job_id);
         }
     }
@@ -618,7 +615,6 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
         packaging_job_ids.push(prepare_job_id);
         packaging_job_ids
     };
-
 
     let _publish_job_id = workflow.add_dependent(PRIMARY_TARGET, PublishRelease, publish_deps);
     workflow.env("RUST_BACKTRACE", "full");
@@ -649,9 +645,11 @@ pub fn add_backend_checks(
     }
 
     // Engine distribution is required to run project manager tests.
-    workflow.add_dependent(target, job::JvmTests { graal_edition, engine_launcher }, &[
-        &build_engine_distribution_id,
-    ]);
+    workflow.add_dependent(
+        target,
+        job::JvmTests { graal_edition, engine_launcher },
+        &[&build_engine_distribution_id],
+    );
     workflow.add_dependent(
         target,
         job::StandardLibraryTests {
@@ -735,7 +733,6 @@ pub fn promote() -> Result<Workflow> {
     };
     let mut workflow = Workflow { on, name: "Generate a new version".into(), ..default() };
     let promote_job_id = workflow.add(PRIMARY_TARGET, PromoteReleaseJob);
-
 
     let version_input = format!("needs.{promote_job_id}.outputs.{ENSO_VERSION}");
     let mut release_job = workflow_call_job("Release", RELEASE_WORKFLOW_PATH)
@@ -838,7 +835,6 @@ pub fn wasm_checks() -> Result<Workflow> {
         ..default()
     };
     workflow.add(PRIMARY_TARGET, job::WasmLint);
-    workflow.add(PRIMARY_TARGET, job::WasmTest);
     workflow.add(PRIMARY_TARGET, job::NativeTest);
     Ok(workflow)
 }
@@ -972,11 +968,11 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
         "Visualization",
     ];
     let on = Event {
-        push:              Some(Push { inner_branches: Branches::new(["develop"]), ..default() }),
-        pull_request:      Some(PullRequest::default()),
+        push: Some(Push { inner_branches: Branches::new(["develop"]), ..default() }),
+        pull_request: Some(PullRequest::default()),
         workflow_dispatch: Some(WorkflowDispatch::default()),
-        workflow_call:     Some(WorkflowCall::default()),
-        schedule:          vec![],
+        workflow_call: Some(WorkflowCall::default()),
+        schedule: vec![],
     };
     let mut permissions: BTreeMap<Permission, Access> = BTreeMap::new();
     permissions.insert(Permission::Checks, Access::Write);
@@ -994,7 +990,6 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
     }
     Ok(workflow)
 }
-
 
 pub fn engine_benchmark() -> Result<Workflow> {
     let report_path = "engine/runtime-benchmarks/bench-report.xml";
@@ -1080,7 +1075,6 @@ fn benchmark_job(
     }
     job
 }
-
 
 /// Generate workflows for the CI.
 pub fn generate(

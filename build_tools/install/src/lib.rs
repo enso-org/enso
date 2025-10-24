@@ -1,7 +1,5 @@
 //! This crate is linked in both by the installer and the uninstaller.
 
-
-
 pub mod prelude {
     pub use ide_ci::prelude::*;
 
@@ -22,7 +20,6 @@ use sysinfo::Pid;
 
 #[cfg(windows)]
 pub mod win;
-
 
 /// A macro for accessing compiled-in JSON data.
 ///

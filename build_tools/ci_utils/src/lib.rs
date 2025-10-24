@@ -1,7 +1,6 @@
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 
-
 // ==============
 // === Export ===
 // ==============
@@ -31,8 +30,6 @@ pub mod program;
 pub mod programs;
 pub mod reqwest;
 pub mod serde;
-
-
 
 pub mod prelude {
     pub use derive_more::*;
@@ -84,7 +81,9 @@ pub mod prelude {
     pub use crate::program::ProgramExt as _;
 
     pub fn into<T, U>(u: U) -> T
-    where U: Into<T> {
+    where
+        U: Into<T>,
+    {
         u.into()
     }
 }
