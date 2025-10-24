@@ -13,4 +13,9 @@ public record InternalUUID(UUID uuid) implements RuntimeID {
   public boolean isExternal() {
     return false;
   }
+
+  @Override
+  public boolean isCached() {
+    return false;
+  }
 }

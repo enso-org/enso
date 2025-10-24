@@ -3207,7 +3207,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         Api.Request(requestId, Api.PushContextRequest(contextId, item1))
       )
       context.receiveNIgnorePendingExpressionUpdates(
-        6
+        6,
+        180 // recompilation of visualizations triggers Standard.Base re-compilation which may take a while
       ) should contain theSameElementsAs Seq(
         Api.Response(requestId, Api.PushContextResponse(contextId)),
         context.Main.Update.mainX(contextId),
@@ -3396,7 +3397,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         Api.Request(requestId, Api.PushContextRequest(contextId, item1))
       )
       context.receiveNIgnorePendingExpressionUpdates(
-        6
+        6,
+        180 // recompilation of visualizations triggers Standard.Base re-compilation which may take a while
       ) should contain theSameElementsAs Seq(
         Api.Response(requestId, Api.PushContextResponse(contextId)),
         context.Main.Update.mainX(contextId),

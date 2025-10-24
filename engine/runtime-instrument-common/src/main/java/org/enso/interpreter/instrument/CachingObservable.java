@@ -20,12 +20,14 @@ public class CachingObservable implements Observable {
   private final Set<Observable> dependencies;
   private Object value;
   private final RuntimeID id;
+  private final boolean isCached;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CachingObservable.class);
 
-  public CachingObservable(RuntimeID id) {
+  public CachingObservable(RuntimeID id, boolean isCached) {
     assert id.isExternal();
     this.id = id;
+    this.isCached = isCached;
     this.visualizations = new ConcurrentHashMap<>();
     this.dependencies = new HashSet<>();
   }
@@ -55,7 +57,7 @@ public class CachingObservable implements Observable {
 
   @Override
   public synchronized boolean update(Object value, GuestExecutionService executionService) {
-    var shouldCacheValue = !(value instanceof DataflowError);
+    var shouldCacheValue = isCached && !(value instanceof DataflowError);
     if (shouldCacheValue) {
       this.value = value;
     }

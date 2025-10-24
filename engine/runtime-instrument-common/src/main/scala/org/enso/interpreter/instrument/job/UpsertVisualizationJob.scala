@@ -48,7 +48,7 @@ class UpsertVisualizationJob(
   val visualizationId: Api.VisualizationId,
   val expressionId: Api.ExpressionId,
   config: Api.VisualizationConfiguration,
-  prevArguments: Option[Vector[AnyRef]] = None
+  prevArguments: Option[Vector[AnyRef]]
 ) extends Job[Option[Executable]](
       List(config.executionContextId),
       false,
@@ -56,6 +56,15 @@ class UpsertVisualizationJob(
       true
     )
     with UniqueJob[Option[Executable]] {
+
+  def this(
+    @unused requestId: Option[Api.RequestId],
+    visualizationId: Api.VisualizationId,
+    expressionId: Api.ExpressionId,
+    config: Api.VisualizationConfiguration
+  ) = {
+    this(requestId, visualizationId, expressionId, config, None)
+  }
 
   /** @inheritdoc */
   override def equalsTo(that: UniqueJob[_]): Boolean =

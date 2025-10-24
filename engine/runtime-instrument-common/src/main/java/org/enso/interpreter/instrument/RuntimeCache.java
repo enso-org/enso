@@ -114,7 +114,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
 
   public CompletionStage<Boolean> registerAction(RuntimeID expressionId, ObservableVisualization action) {
     return cache
-        .computeIfAbsent(expressionId.uuid(), k -> new CachingObservable(expressionId))
+        .computeIfAbsent(expressionId.uuid(), k -> new CachingObservable(expressionId, true))
         .registerAction(action, executionService);
   }
 

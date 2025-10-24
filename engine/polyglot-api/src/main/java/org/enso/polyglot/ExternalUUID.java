@@ -7,11 +7,21 @@ import java.util.UUID;
  * be attached to them.
  *
  * @param uuid unique identifier
+ * @param cached flag indicating if the value of the given UUID will be cached internally
  */
-public record ExternalUUID(UUID uuid) implements RuntimeID {
+public record ExternalUUID(UUID uuid, boolean cached) implements RuntimeID {
+
+  public ExternalUUID(UUID uuid) {
+    this(uuid, true);
+  }
 
   @Override
   public boolean isExternal() {
     return true;
+  }
+
+  @Override
+  public boolean isCached() {
+    return cached;
   }
 }

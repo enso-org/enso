@@ -9,4 +9,7 @@ public sealed interface RuntimeID permits InternalUUID, ExternalUUID {
 
   /** Indicates if UUID represents an externally-visible entity. */
   boolean isExternal();
+
+  /** Indicates if the value of the given UUID will be cached internally. */
+  boolean isCached();
 }

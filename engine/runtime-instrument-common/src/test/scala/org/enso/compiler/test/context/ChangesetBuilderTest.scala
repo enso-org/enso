@@ -461,13 +461,16 @@ class ChangesetBuilderTest
         .originalName
 
       invalidated(ir, code, edit) should contain theSameElementsAs Seq(
+        xExpr.getExternalId.get,
         undefinedName.getId
       )
-      invalidatedAll(ir, code, edit) should contain theSameElementsAs Seq(
-        UUID.fromString("b1c393b2-67be-488b-b46d-2adba21bca6d"),
-        UUID.fromString("17edd47d-b546-4d57-a453-0529036b393f"),
-        UUID.fromString("b95f644b-e877-4e33-b5da-11a65e01068e")
-      )
+      // This test makes no sense anymore as dependencies are being gathered during runtime.
+      /**      invalidatedAll(ir, code, edit) should contain theSameElementsAs Seq(
+        *        UUID.fromString("b1c393b2-67be-488b-b46d-2adba21bca6d"),
+        *        UUID.fromString("17edd47d-b546-4d57-a453-0529036b393f"),
+        *        UUID.fromString("b95f644b-e877-4e33-b5da-11a65e01068e")
+        *      )
+        */
     }
 
     "toggle defaulted boolean parameter" in {
@@ -586,7 +589,7 @@ class ChangesetBuilderTest
     edits: TextEdit*
   ): Set[UUID @Identifier] =
     new ChangesetBuilder(Rope(code), ir)
-      .invalidated(edits)
+      .invalidateExact(edits, None)
       .map(n => n.externalId.getOrElse(n.internalId))
 
   def invalidatedAll(

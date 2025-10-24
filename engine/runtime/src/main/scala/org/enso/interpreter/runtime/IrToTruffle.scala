@@ -933,6 +933,30 @@ private[runtime] class IrToTruffle(
     expr
   }
 
+  /** Same as {@code setLocation} except that external UUID, if present, will not indicate
+    * caching of the value.
+    */
+  private def setLocationWithTransientId[T <: RuntimeExpression](
+    expr: T,
+    location: Option[IdentifiedLocation],
+    internalID: UUID
+  ): T = {
+    var idSet = false;
+    location.foreach { loc =>
+      expr.setSourceLocation(loc.start, loc.length)
+      loc.id.foreach { id =>
+        idSet = true
+        expr.setId(new ExternalUUID(id, false))
+      }
+    }
+
+    if (!idSet && internalID != null) {
+      expr.setId(new InternalUUID(internalID))
+    }
+
+    expr
+  }
+
   /** Sets the source section for a given expression node to the provided
     * location.
     *
@@ -1809,7 +1833,7 @@ private[runtime] class IrToTruffle(
         binding.expression.location(),
         binding.expression.getId
       )
-      setLocation(
+      setLocationWithTransientId(
         AssignmentNode.build(rhs, slotIdx),
         binding.location,
         binding.getId()

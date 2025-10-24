@@ -147,7 +147,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     nodeIds.map(_.id)
   }
 
-  private def invalidateExact(
+  def invalidateExact(
     edits: Seq[TextEdit],
     idMapOpt: Option[IdMap]
   ): Set[ChangesetBuilder.NodeId] = {
@@ -218,7 +218,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       .getOrElse(Seq.empty)
     val invalidatedByIdMapChanges =
       analyzeIdMapChanges(tree1, invalidatedByIdMap, mutable.HashSet())
-    val tree2 = ChangesetBuilder.buildTreeOfExternalIDs(ir)
+    val tree2 = ChangesetBuilder.buildTree(ir)
     go(tree2, source, mutable.Queue.from(edits), invalidatedByIdMapChanges)
   }
 
@@ -522,6 +522,12 @@ object ChangesetBuilder {
             case binding: Expression.Binding =>
               depthFirstSearch(binding.name, acc, true)
               depthFirstSearch(binding.expression, acc, false)
+            case defArg: DefinitionArgument =>
+              // Ensures that changes to arguments' default values are being invalidated
+              defArg
+                .defaultValue()
+                .foreach(e => Node.fromIr(e, false).foreach(acc.add))
+              currentIr.children.map(depthFirstSearch(_, acc, false))
             case _ =>
               currentIr.children.map(depthFirstSearch(_, acc, false))
           }
