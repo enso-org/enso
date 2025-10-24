@@ -8,7 +8,6 @@ import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
 
-import { basenameAndExtension, getFileName, getFolderPath, isFolderPath } from '$/utils/file'
 import {
   AssetType,
   DirectoryId,
@@ -334,7 +333,7 @@ function httpOkText(response: http.ServerResponse, content: string) {
 /** Get details for an asset by its path. */
 function apiGetAssetDetailsByPath<Type extends AssetType>({
   type,
-  path,
+  path: assetPath,
 }: {
   type?: Type
   path: Path
@@ -344,9 +343,9 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
     // If it is inferred, this means `type` is present and the constraint correctly falls back to
     // `AssetType`
     type ??= (() => {
-      const assetStat = fsSync.statSync(path)
+      const assetStat = fsSync.statSync(assetPath)
       if (assetStat.isDirectory()) {
-        const metadata = projectManagement.getMetadata(path)
+        const metadata = projectManagement.getMetadata(assetPath)
         if (metadata) {
           return AssetType.project
         } else {
@@ -357,22 +356,22 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
       }
     })()
     const shared = {
-      title: getFileName(path),
+      title: path.basename(assetPath),
       modifiedAt: toRfc3339(new Date()),
-      parentId: DirectoryId(`directory-${getFolderPath(path)}` as const),
+      parentId: DirectoryId(`directory-${path.dirname(assetPath)}` as const),
       extension: null,
       permissions: [],
       projectState: null,
       parentsPath: ParentsPath(''),
       virtualParentsPath: VirtualParentsPath(''),
-      ensoPath: EnsoPath(String(path)),
+      ensoPath: EnsoPath(String(assetPath)),
     } satisfies Partial<DirectoryAsset>
     switch (type) {
       case AssetType.project: {
         const result: ProjectAsset = {
           ...shared,
           type: AssetType.project,
-          id: ProjectId(`project-${encodeURIComponent(path)}`),
+          id: ProjectId(`project-${encodeURIComponent(assetPath)}`),
           // FIXME: Get correct state.
           projectState: { type: ProjectState.closed },
         }
@@ -383,8 +382,8 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
         const result: FileAsset = {
           ...shared,
           type: AssetType.file,
-          id: FileId(`file-${encodeURIComponent(path)}`),
-          extension: basenameAndExtension(path).extension,
+          id: FileId(`file-${encodeURIComponent(assetPath)}`),
+          extension: path.extname(assetPath),
         }
         // This is SAFE because `type` has been narrowed in the `switch` above.
         return result as AnyAsset<Type>
@@ -393,7 +392,7 @@ function apiGetAssetDetailsByPath<Type extends AssetType>({
         const result: DirectoryAsset = {
           ...shared,
           type: AssetType.directory,
-          id: DirectoryId(`directory-${encodeURIComponent(path)}` as const),
+          id: DirectoryId(`directory-${encodeURIComponent(assetPath)}` as const),
         }
         // This is SAFE because `type` has been narrowed in the `switch` above.
         return result as AnyAsset<Type>
@@ -429,7 +428,7 @@ function apiArchiveStream(assets: readonly AssetId[]) {
 
   const addProject = async (id: ProjectId, rootPath?: string) => {
     const assetPath = extractTypeAndPath(id).path
-    rootPath ??= getFolderPath(assetPath)
+    rootPath ??= path.dirname(assetPath)
     const pathInArchive = `${path.relative(rootPath, assetPath)}.enso-project`
     if (!(await fileExists(assetPath))) {
       return { type: 'error', error: 'notFound', id } as const
@@ -439,7 +438,7 @@ function apiArchiveStream(assets: readonly AssetId[]) {
 
   const addFile = async (id: FileId, rootPath?: string) => {
     const assetPath = extractTypeAndPath(id).path
-    rootPath ??= getFolderPath(assetPath)
+    rootPath ??= path.dirname(assetPath)
     const pathInArchive = path.relative(rootPath, assetPath)
     if (!(await fileExists(assetPath))) {
       return { type: 'error', error: 'notFound', id } as const
@@ -449,7 +448,7 @@ function apiArchiveStream(assets: readonly AssetId[]) {
 
   const addFolder = async (id: DirectoryId, rootPath?: string) => {
     const assetPath = extractTypeAndPath(id).path
-    rootPath ??= getFolderPath(assetPath)
+    rootPath ??= path.dirname(assetPath)
     const pathInArchive = path.relative(rootPath, assetPath)
     if (!(await fileExists(assetPath))) {
       return { type: 'error', error: 'notFound', id } as const
@@ -581,18 +580,17 @@ async function apiUploadArchive({
   const pathMapping: Record<string, string> = {}
 
   const getDirectoryPath = async (entryPathInArchive: string) => {
-    const isDirectory = isFolderPath(entryPathInArchive)
-    const parentPathInArchiveRaw = getFolderPath(entryPathInArchive)
+    const isDirectory = /[/\\]$/.test(entryPathInArchive)
+    const parentPathInArchiveRaw = path.dirname(entryPathInArchive)
     let parentPathInArchive =
       parentPathInArchiveRaw === entryPathInArchive ? '' : pathMapping[parentPathInArchiveRaw]
     if (parentPathInArchive == null) {
       await getDirectoryPath(parentPathInArchiveRaw)
       parentPathInArchive = pathMapping[parentPathInArchiveRaw] ?? ''
     }
-    let destinationPathInArchive = path.join(parentPathInArchive, getFileName(entryPathInArchive))
-    const { basename, extension: extensionRaw } = basenameAndExtension(
-      getFileName(entryPathInArchive),
-    )
+    let destinationPathInArchive = path.join(parentPathInArchive, path.basename(entryPathInArchive))
+    const extensionRaw = path.extname(destinationPathInArchive)
+    const basename = path.basename(entryPathInArchive, extensionRaw)
     const extension = (() => {
       switch (extensionRaw) {
         case 'enso-project':
@@ -623,12 +621,12 @@ async function apiUploadArchive({
   for await (const entry of await unzipEntries(filePath)) {
     const entryPathInArchive = entry.metadata.name
     const destinationPath = await getDirectoryPath(entryPathInArchive)
-    const isDirectory = isFolderPath(entryPathInArchive)
+    const isDirectory = /[/\\]$/.test(entryPathInArchive)
     const isProject = entryPathInArchive.endsWith('.enso-project')
     const shared = {
-      title: getFileName(destinationPath),
+      title: path.basename(destinationPath),
       modifiedAt: toRfc3339(new Date()),
-      parentId: DirectoryId(`directory-${getFolderPath(destinationPath)}` as const),
+      parentId: DirectoryId(`directory-${path.dirname(destinationPath)}` as const),
       extension: null,
       permissions: [],
       projectState: null,
@@ -655,8 +653,8 @@ async function apiUploadArchive({
       await entry.extract({
         rootDirectory: directory,
         transform: async (stream) => {
-          const parentDirectory = getFolderPath(destinationPath)
-          const fileName = getFileName(destinationPath)
+          const parentDirectory = path.dirname(destinationPath)
+          const fileName = path.basename(destinationPath)
           await projectManagement.uploadBundle(
             stream,
             parentDirectory,
@@ -671,7 +669,7 @@ async function apiUploadArchive({
         ...shared,
         type: AssetType.file,
         id: FileId(`file-${encodeURIComponent(destinationPath)}`),
-        extension: basenameAndExtension(destinationPath).extension,
+        extension: path.extname(destinationPath),
       })
       await entry.extract({ rootDirectory: directory, destinationPath })
     }
