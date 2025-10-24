@@ -1,4 +1,8 @@
 import project.Data.Text.Text
+import project.Metadata.Display
+import project.Metadata.Widget
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice
 
 polyglot java import org.enso.base.text.Case as Java_Case
 
@@ -11,6 +15,13 @@ type Case
     Upper
 
     ## First letter of each word in upper case, rest in lower case.
+    Proper
+
+    ## ---
+       private: true
+       deprecated: true
+       Deprecated use `Proper` instead.
+       ---
     Title
 
     ## ---
@@ -21,6 +32,7 @@ type Case
     to_java self -> Java_Case = case self of
         Case.Lower -> Java_Case.LOWER
         Case.Upper -> Java_Case.UPPER
+        Case.Proper -> Java_Case.TITLE
         Case.Title -> Java_Case.TITLE
 
     ## ---
@@ -29,4 +41,13 @@ type Case
     to_text self -> Text = case self of
         Case.Lower -> "Lowercase"
         Case.Upper -> "Uppercase"
+        Case.Proper -> "Proper Case"
         Case.Title -> "Title Case"
+
+    ## ---
+       private: true
+       ---
+       Gets the default drop down option for Case.
+    default_widget display:Display=..When_Modified -> Widget =
+        values = [Option "..Lower", Option "..Upper", Option "..Proper"]
+        Single_Choice values=values display=display

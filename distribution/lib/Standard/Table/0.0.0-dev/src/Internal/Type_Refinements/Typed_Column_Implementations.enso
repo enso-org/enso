@@ -67,5 +67,5 @@ type In_Memory_Text_Column_Implementation
     proper (column : Column & In_Memory_Column) =
         Value_Type.expect_text column <|
             new_name = naming_helper.function_name "proper" [column]
-            operation = CaseOperation.new Case.Title.to_java Locale.default.java_locale
+            operation = CaseOperation.new Case.Proper.to_java Locale.default.java_locale
             apply_unary_operation column operation new_name

@@ -2,6 +2,7 @@
 ## module Standard.Base.Data.Text.Case
 - type Case
     - Lower
+    - Proper
     - Title
     - Upper
     - to_java self -> Standard.Base.Data.Text.Case.Java_Case
