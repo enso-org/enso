@@ -110,8 +110,8 @@ public interface Observable {
    * @return new instance of {@link Observable}
    */
   static Observable fromUUID(RuntimeID id) {
-    if (id.isExternal()) return new CachingObservable(id, id.isCached());
-    else return new NonCachingObservable(id);
+    if (id.isExternal()) return new ExternalObservable(id, id.isCached());
+    else return new InternalObservable(id);
   }
 
   /**

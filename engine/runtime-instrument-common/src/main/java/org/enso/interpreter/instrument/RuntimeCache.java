@@ -17,7 +17,6 @@ import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.polyglot.RuntimeID;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.service.GuestExecutionService;
-import scala.collection.mutable.HashSet;
 
 /** A storage for computed values. */
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
@@ -114,7 +113,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
 
   public CompletionStage<Boolean> registerAction(RuntimeID expressionId, ObservableVisualization action) {
     return cache
-        .computeIfAbsent(expressionId.uuid(), k -> new CachingObservable(expressionId, true))
+        .computeIfAbsent(expressionId.uuid(), k -> new ExternalObservable(expressionId, true))
         .registerAction(action, executionService);
   }
 
@@ -159,7 +158,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   }
 
   public Set<Observable> allCached() {
-    return cache.values().stream().filter(v -> v instanceof CachingObservable).collect(Collectors.toSet());
+    return cache.values().stream().filter(v -> v instanceof ExternalObservable).collect(Collectors.toSet());
   }
 
   public void setEntryNode(RuntimeID id) {

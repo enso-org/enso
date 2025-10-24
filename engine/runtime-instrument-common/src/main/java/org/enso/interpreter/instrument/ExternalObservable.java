@@ -15,22 +15,23 @@ import org.enso.polyglot.RuntimeID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CachingObservable implements Observable {
+public class ExternalObservable implements Observable {
   private final Map<UUID, ObservableVisualization> visualizations;
   private final Set<Observable> dependencies;
   private Object value;
   private final RuntimeID id;
   private final boolean isCached;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CachingObservable.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExternalObservable.class);
 
-  public CachingObservable(RuntimeID id, boolean isCached) {
+  public ExternalObservable(RuntimeID id, boolean isCached) {
     assert id.isExternal();
     this.id = id;
     this.isCached = isCached;
     this.visualizations = new ConcurrentHashMap<>();
     this.dependencies = new HashSet<>();
   }
+  
 
   @Override
   public Observable register(Observable dependency) {
@@ -153,6 +154,6 @@ public class CachingObservable implements Observable {
 
   @Override
   public boolean equals(Object obj) {
-    return obj instanceof CachingObservable o && o.id == id;
+    return obj instanceof ExternalObservable o && o.id == id;
   }
 }

@@ -11,11 +11,11 @@ import org.enso.polyglot.RuntimeID;
  * underlying value of the node. As such, no visualizations can ever be attached to such {@code
  * Observable}.
  */
-public class NonCachingObservable implements Observable {
+public class InternalObservable implements Observable {
   private final RuntimeID id;
   private final Set<Observable> dependencies;
 
-  public NonCachingObservable(RuntimeID id) {
+  public InternalObservable(RuntimeID id) {
     assert !id.isExternal();
     this.id = id;
     this.dependencies = new HashSet<>();
