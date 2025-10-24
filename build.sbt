@@ -4040,6 +4040,13 @@ lazy val `engine-runner` = project
               "--enable-monitoring=heapdump"
             )
           else Seq()
+        val linkOpts = if (Platform.isWindows) {
+          val ensoExp = file("enso.exp")
+          Seq("-H:NativeLinkerOption=" + ensoExp)
+        } else {
+          Seq()
+        }
+
         val debugOpts =
           if (GraalVM.EnsoLauncher.debug)
             Seq(
@@ -4086,7 +4093,7 @@ lazy val `engine-runner` = project
               "--add-opens=java.base/java.nio=ALL-UNNAMED",
               // Needed for grpc-gax
               "--add-opens=java.base/java.time=ALL-UNNAMED"
-            ) ++ enableHeapDumpOpts ++ debugOpts,
+            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
