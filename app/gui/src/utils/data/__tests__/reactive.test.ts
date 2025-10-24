@@ -1,8 +1,8 @@
 import { fc, test as fctest } from '@fast-check/vitest'
-import { setsIntersect } from 'enso-common/src/utilities/data/set'
 import { expect, test } from 'vitest'
 import { computed, reactive, ref, shallowRef, toRaw, unref } from 'vue'
 import { cloneDeepUnref } from '../reactive'
+import { setsIntersect } from '../set'
 
 class MappedSet<T, U> {
   private readonly set: Set<U> = new Set()
