@@ -13,9 +13,9 @@ import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
+import { includes } from '$/utils/data/array'
 import { uniqueString } from '$/utils/uniqueString'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-import { includes } from 'enso-common/src/utilities/data/array'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
 

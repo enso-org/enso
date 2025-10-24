@@ -1,10 +1,11 @@
 import { useBackends } from '$/providers/backends'
-import type { BackendMutationMethod, BackendQueryMethod } from '$/utils/backendQuery'
 import {
   backendBaseOptions,
   backendQueryKey,
   INVALIDATE_ALL_QUERIES,
   INVALIDATION_MAP,
+  type BackendMutationMethod,
+  type BackendQueryMethod,
 } from '$/utils/backendQuery'
 import type { ToValue } from '@/util/reactivity'
 import type {

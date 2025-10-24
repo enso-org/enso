@@ -6,6 +6,7 @@ import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
 import { createStore, resetStoreOnLogout, useStore, type StoreApi } from '#/utilities/zustand'
 import { useFullUserSession } from '$/providers/react'
+import { EMPTY_ARRAY } from '$/utils/data/array'
 import {
   type AnyAsset,
   type AssetId,
@@ -13,7 +14,6 @@ import {
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
-import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 import { persist } from 'zustand/middleware'
