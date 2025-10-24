@@ -140,6 +140,6 @@ add_text_columns_specs suite_builder setup =
             column = build_sorted_table [["X", ["street", "Main", "rOaD", "3rd floor flat"]]] . at 0
             expected_proper_column = build_sorted_table [["proper([X])", ["Street", "Main", "Road", "3rd Floor Flat"]]] . at 0
             result = column.proper 
-            case setup.flagged ..Supports_Unicode_Casing of
+            case setup.flagged ..Supports_Proper_Casing of
                 True  -> result.should_equal expected_proper_column
                 False -> result.should_fail_with Unsupported_Database_Operation
