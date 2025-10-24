@@ -80,11 +80,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isOtherUserUsingProject =
     projectState.openedBy != null && projectState.openedBy !== user.email
 
-  console.debug('>', item, item.projectState.type)
   const isProjectOpening = useIsProjectOpening(item)
   const isProjectOpened = useIsProjectOpened(item)
   const isProjectClosing = useIsProjectClosing(item.id)
-  console.debug('>>', isProjectOpening, isProjectOpened, isProjectClosing)
 
   const areOtherProjectsOpening = useAreOtherProjectsOpening(item.id)
   const isAnotherProjectOpening = areOtherProjectsOpening && !isProjectOpening

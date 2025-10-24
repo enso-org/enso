@@ -16,7 +16,7 @@ import {
 } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { flagsStore } from '$/providers/featureFlags'
-import type { ProjectInfo } from '$/providers/openedProjects/projectStates'
+import type { ProjectInfo } from '$/providers/openedProjects/projectInfo'
 import { useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useOpenedProjects } from '$/providers/react/openedProjects'

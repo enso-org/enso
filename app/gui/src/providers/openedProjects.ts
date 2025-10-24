@@ -70,23 +70,6 @@ export function createOpenedProjectsStore() {
   const closingOnAppExit = ref(false)
   const projectReadyCallbacks: ((project: Project) => void)[] = []
 
-  watchEffect(
-    () =>
-      console.debug(
-        'PROJECTS',
-        [...projects.values()].map((proj) => proj.state),
-      ),
-    { flush: 'sync' },
-  )
-  watchEffect(
-    () =>
-      console.debug(
-        'PROJECTS TASKS',
-        [...projects.values()].map((proj) => proj.nextTask),
-      ),
-    { flush: 'sync' },
-  )
-
   /** Whether the user can run projects. */
   const modesForBackend = computed(() => ({
     locally: {

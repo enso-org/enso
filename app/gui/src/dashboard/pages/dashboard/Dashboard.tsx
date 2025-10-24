@@ -140,6 +140,7 @@ export function Dashboard() {
   )
 }
 
+/** A dialog informing user that some hybrid projects are uploaded after closing app. */
 function SyncingProjectsDialog() {
   const { getText } = useText()
   return (

@@ -27,6 +27,7 @@ export const CLOUD_WELCOME_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting
 
 type BackendAPI<B extends Backend> = Pick<B, 'rootPath' | 'listDirectory'>
 
+/** Open a project depending on path param in RounteLocation */
 export async function openProjectFromPath(to: RouteLocation) {
   if (to.params.path == null) return
   const { localBackend, remoteBackend } = useBackends()

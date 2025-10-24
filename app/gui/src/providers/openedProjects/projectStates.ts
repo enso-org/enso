@@ -426,7 +426,6 @@ export function useProjectStates() {
    * Get details of running version of the project.
    *
    * Hybrid projects will get details about local version.
-   *
    * @param details details of the original project from {@link getProjectDetails}.
    */
   async function getRunningProjectDetails(
