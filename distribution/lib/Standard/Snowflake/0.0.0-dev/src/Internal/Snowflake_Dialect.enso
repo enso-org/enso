@@ -306,6 +306,7 @@ type Snowflake_Dialect
             Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
             Dialect_Flag.Supports_Unicode_Normalization -> False
             Dialect_Flag.Supports_Unicode_Casing -> True
+            Dialect_Flag.Supports_Proper_Casing -> True
             Dialect_Flag.NaN_Non_Comparable -> False
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> False
             Dialect_Flag.Date_Time -> True
@@ -453,7 +454,7 @@ type Snowflake_Dialect
    ---
 make_dialect_operations =
     arith = [round_bankers]
-    cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
+    cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"], ["PROPER", Base_Generator.make_function "INITCAP"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST_IGNORE_NULLS"], ["ROW_MAX", Base_Generator.make_function "GREATEST_IGNORE_NULLS"]]
