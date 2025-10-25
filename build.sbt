@@ -4042,7 +4042,10 @@ lazy val `engine-runner` = project
           else Seq()
         val linkOpts = if (Platform.isWindows) {
           val ensoExp = file("enso.exp")
-          Seq("-H:NativeLinkerOption=" + ensoExp.getAbsolutePath)
+          Seq(
+            "-H:NativeLinkerOption=" + ensoExp.getAbsolutePath,
+            "-H:+TraceNativeToolUsage"
+          )
         } else {
           Seq()
         }
