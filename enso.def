@@ -1,1 +1,31 @@
 NAME "enso.exe"
+
+EXPORTS
+    getEncodingFromLangID
+    getJavaIDFromLangID
+    JDK_LoadSystemLibrary
+    jio_snprintf
+    JNI_CreateJavaVM
+    JNI_GetCreatedJavaVMs
+    JNI_GetDefaultJavaVMInitArgs
+    JNU_CallMethodByName
+    JNU_CallMethodByNameV
+    JNU_CallStaticMethodByName
+    JNU_ClassString
+    JNU_GetEnv
+    JNU_GetFieldByName
+    JNU_GetStaticFieldByName
+    JNU_IsInstanceOfByName
+    JNU_NewObjectByName
+    JNU_NewStringPlatform
+    JNU_SetFieldByName
+    JNU_ThrowArrayIndexOutOfBoundsException
+    JNU_ThrowByName
+    JNU_ThrowIllegalArgumentException
+    JNU_ThrowInternalError
+    JNU_ThrowIOException
+    JNU_ThrowNullPointerException
+    JNU_ThrowOutOfMemoryError
+    JVM_CurrentTimeMillis
+    JVM_IsStaticallyLinked
+    JVM_RaiseSignal
