@@ -2,8 +2,10 @@ package org.enso.runner;
 
 import static scala.jdk.javaapi.CollectionConverters.asJava;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashSet;
 import java.util.TreeSet;
 import org.enso.compiler.core.EnsoParser;
@@ -16,6 +18,7 @@ import org.graalvm.nativeimage.hosted.RuntimeReflection;
 public final class EnsoLibraryFeature implements Feature {
   @Override
   public void beforeAnalysis(BeforeAnalysisAccess access) {
+    makeEnsoLibAvailableForShims();
 
     var libs = new LinkedHashSet<Path>();
     for (var p : access.getApplicationClassPath()) {
@@ -96,5 +99,29 @@ public final class EnsoLibraryFeature implements Feature {
       System.err.println("  " + className);
     }
     System.err.println("Registered " + classes.size() + " classes for reflection");
+  }
+
+  private void makeEnsoLibAvailableForShims() {
+    boolean found = false;
+    try {
+      var from = new File("enso.lib").getAbsoluteFile();
+      System.err.println("Distributing enso.lib to (temporary) directories. From " + from);
+      var target = new File("target").getAbsoluteFile();
+      assert target.isDirectory() : "It is a dir " + target;
+      for (var ch : target.listFiles()) {
+        if (ch.isDirectory() && ch.getName().contains("SVM")) {
+          var to = new File(ch, "enso.lib");
+          System.err.println(" file to : " + to);
+          Files.copy(from.toPath(), to.toPath(), StandardCopyOption.REPLACE_EXISTING);
+          found = true;
+        }
+      }
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
+    if (!found) {
+      throw new IllegalStateException(
+          "Cannot copy enso.lib into temporary directory of native-image");
+    }
   }
 }
