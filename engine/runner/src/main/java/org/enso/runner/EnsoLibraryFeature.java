@@ -11,6 +11,7 @@ import java.util.TreeSet;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
 import org.enso.pkg.PackageManager$;
+import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeProxyCreation;
 import org.graalvm.nativeimage.hosted.RuntimeReflection;
@@ -18,7 +19,9 @@ import org.graalvm.nativeimage.hosted.RuntimeReflection;
 public final class EnsoLibraryFeature implements Feature {
   @Override
   public void beforeAnalysis(BeforeAnalysisAccess access) {
-    makeEnsoLibAvailableForShims();
+    if (Platform.includedIn(Platform.WINDOWS.class)) {
+      makeEnsoLibAvailableForShims();
+    }
 
     var libs = new LinkedHashSet<Path>();
     for (var p : access.getApplicationClassPath()) {
