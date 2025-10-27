@@ -122,12 +122,22 @@ module.exports = {
       to: '.',
       filter: ['package.json', '!**/node_modules/**/*'],
     },
+    // TODO: here we duplicate `from` location because stamping and non-stamping builds have different output directories.
+    // Can we do it in a more elegant way?
     {
       from: 'bundle/',
       to: '.',
     },
     {
+      from: 'bundle_stamped/',
+      to: '.',
+    },
+    {
       from: '../gui/dist',
+      to: 'assets',
+    },
+    {
+      from: '../gui/dist_stamped',
       to: 'assets',
     },
   ],

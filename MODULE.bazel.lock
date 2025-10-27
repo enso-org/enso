@@ -206,7 +206,7 @@
   "moduleExtensions": {
     "//:bazel_scripts/secrets.bzl%secrets": {
       "general": {
-        "bzlTransitiveDigest": "gAEoCrisX9JFPj8WI9Db0nShQ/mwAWt8x3lA90BT6NU=",
+        "bzlTransitiveDigest": "5mf8NtJeh5LCZ4m8yhsJZFmAZAYt4Dsr0HTB7lJBIwQ=",
         "usagesDigest": "XpF4JwX4Xgyq2sWdhsHsvJsiZPDee6VKhCcujEOouaE=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},

@@ -15,6 +15,5 @@
     "*.ts",
     "esbuild.config.mjs",
     "electron-builder-config.cjs",
-    "create-build-info.mjs"
   ]
 }

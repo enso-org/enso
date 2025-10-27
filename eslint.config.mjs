@@ -215,12 +215,13 @@ const config = [
         projectService: {
           allowDefaultProject: [
             'eslint.config.mjs',
+            'internal/envReplacer.mjs',
+            'internal/workspaceStatus.mjs',
             // 'app/ydoc-server/vitest.config.ts',
             'app/ydoc-shared/vitest.config.ts',
             'app/project-manager-shim/scripts/*.js',
             'app/ide-desktop/icons/src/index.js',
             'app/electron-client/electron-builder-config.cjs',
-            'app/electron-client/create-build-info.mjs',
             'app/electron-client/esbuild.config.mjs',
           ],
         },

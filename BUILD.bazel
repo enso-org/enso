@@ -8,6 +8,12 @@ load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
 npm_link_all_packages()
 
+config_setting(
+    name = "stamping",
+    values = {"stamp": "1"},
+    visibility = ["//visibility:public"],
+)
+
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
