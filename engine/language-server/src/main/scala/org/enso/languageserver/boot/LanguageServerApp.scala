@@ -1,10 +1,6 @@
 package org.enso.languageserver.boot
 
 import com.typesafe.scalalogging.Logger
-import org.enso.languageserver.boot.{
-  LanguageServerComponent,
-  LanguageServerConfig
-}
 import org.slf4j.event.Level
 
 import java.util.concurrent.Semaphore
@@ -12,8 +8,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.io.StdIn
 
-/** Language server runner.
-  */
+/** Language server runner. */
 object LanguageServerApp {
 
   private val semaphore   = new Semaphore(1)
@@ -30,6 +25,7 @@ object LanguageServerApp {
     logLevel: Level,
     daemonize: Boolean
   ): Unit = {
+    setupLogging(logLevel, config.logMasking)
     val server = new LanguageServerComponent(config, logLevel)
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
       stop(server, "shutdown hook")(config.computeExecutionContext)
@@ -70,5 +66,11 @@ object LanguageServerApp {
     task.onComplete(_ => semaphore.release())
 
     task
+  }
+
+  /** Setup the logging server. */
+  private def setupLogging(logLevel: Level, logMasking: Boolean): Unit = {
+    Logging.setup(logLevel, logMasking)
+    Logging.waitForSetup()
   }
 }

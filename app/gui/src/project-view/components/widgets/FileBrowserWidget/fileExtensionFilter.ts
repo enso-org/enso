@@ -1,6 +1,6 @@
 import { AssetType } from '#/services/Backend'
 import { splitFilename } from '@/components/widgets/FileBrowserWidget/nameBar'
-import { computed, ref, toValue, watch, WatchSource } from 'vue'
+import { computed, ref, toValue, watch, type WatchSource } from 'vue'
 
 export interface Asset {
   title: string

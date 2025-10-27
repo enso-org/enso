@@ -37,8 +37,12 @@ final class MockModule extends Module {
         new Name.MethodReference(
             Option.empty(), IRUtils.literal(methodName), null, new MetadataStorage());
     var methodIr =
-        new Method.Explicit(
-            methodRef, Reference.of(methodBody), true, false, false, null, new MetadataStorage());
+        Method.Explicit.builder()
+            .methodReference(methodRef)
+            .bodyReference(Reference.of(methodBody))
+            .isPrivate(true)
+            .isStatic(false)
+            .build();
     return new MockModule(
         nil(), nil(), cons(methodIr, nil()), false, null, new MetadataStorage(), null);
   }

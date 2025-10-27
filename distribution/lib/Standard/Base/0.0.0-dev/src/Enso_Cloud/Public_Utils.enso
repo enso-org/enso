@@ -5,8 +5,8 @@ import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Utils
 import project.Meta
 import project.Nothing.Nothing
-from project.Error import all
 from project.Data.Boolean import Boolean, True
+from project.Error import all
 
 ## ---
    private: true

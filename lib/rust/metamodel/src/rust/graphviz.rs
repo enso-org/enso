@@ -9,8 +9,6 @@ use crate::graphviz::NodeType;
 
 use std::collections::BTreeMap;
 
-
-
 // =============
 // === Graph ===
 // =============

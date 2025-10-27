@@ -155,17 +155,17 @@ public class DebuggingEnsoTest {
     final Value facFn =
         createEnsoMethod(
             """
-    from Standard.Base import all
+            from Standard.Base import all
 
-    fac : Number -> Number
-    fac n =
-        facacc : Number -> Number -> Number
-        facacc n accumulator =
-                stop = n <= 1
-                if stop then accumulator else @Tail_Call facacc n-1 n*accumulator
+            fac : Number -> Number
+            fac n =
+                facacc : Number -> Number -> Number
+                facacc n accumulator =
+                        stop = n <= 1
+                        if stop then accumulator else @Tail_Call facacc n-1 n*accumulator
 
-        facacc n 1
-    """,
+                facacc n 1
+            """,
             "fac");
 
     final var values = new TreeSet<Integer>();
@@ -195,14 +195,14 @@ public class DebuggingEnsoTest {
     Value fooFunc =
         createEnsoMethod(
             """
-        bar arg_bar =
-            loc_bar = arg_bar + 1
-            loc_bar
+            bar arg_bar =
+                loc_bar = arg_bar + 1
+                loc_bar
 
-        foo x =
-            loc_foo = 1
-            bar loc_foo
-        """,
+            foo x =
+                loc_foo = 1
+                bar loc_foo
+            """,
             "foo");
 
     try (DebuggerSession session =
@@ -210,13 +210,13 @@ public class DebuggingEnsoTest {
             (SuspendedEvent event) -> {
               // TODO[PM]: This is a workaround for proper breakpoints, which do not work atm.
               switch (event.getSourceSection().getCharacters().toString().strip()) {
-                  // In method "foo"
+                // In method "foo"
                 case "bar loc_foo" -> {
                   List<DebugStackFrame> stackFrames = getStackFramesFromEvent(event);
                   Assert.assertEquals(1, stackFrames.size());
                   expectStackFrame(stackFrames.get(0), Map.of("x", "42", "loc_foo", "1"));
                 }
-                  // In method "bar" called from "foo"
+                // In method "bar" called from "foo"
                 case "loc_bar" -> {
                   List<DebugStackFrame> stackFrames = getStackFramesFromEvent(event);
 
@@ -240,16 +240,16 @@ public class DebuggingEnsoTest {
     Value fooFunc =
         createEnsoMethod(
             """
-        polyglot java import java.nio.file.Path
-        polyglot java import java.util.ArrayList
+            polyglot java import java.nio.file.Path
+            polyglot java import java.util.ArrayList
 
-        foo x =
-            path = Path.of 'blaaaaa'
-            list = ArrayList.new
-            list.add 10
-            list.add 20
-            tmp = 42
-        """,
+            foo x =
+                path = Path.of 'blaaaaa'
+                list = ArrayList.new
+                list.add 10
+                list.add 20
+                tmp = 42
+            """,
             "foo");
 
     try (DebuggerSession session =
@@ -287,51 +287,51 @@ public class DebuggingEnsoTest {
     Value fooFunc =
         createEnsoMethod(
             """
-        from Standard.Base import Date, Date_Time, Dictionary
-        polyglot java import java.lang.String
-        polyglot java import java.util.List as JList
-        polyglot java import java.util.Map as JMap
+            from Standard.Base import Date, Date_Time, Dictionary
+            polyglot java import java.lang.String
+            polyglot java import java.util.List as JList
+            polyglot java import java.util.Map as JMap
 
-        foreign js js_date = '''
-            return new Date();
+            foreign js js_date = '''
+                return new Date();
 
-        foreign js js_str = '''
-            return "Hello_World";
+            foreign js js_str = '''
+                return "Hello_World";
 
-        foreign js js_list = '''
-            return [1, 2, 3];
+            foreign js js_list = '''
+                return [1, 2, 3];
 
-        foreign js js_map = '''
-            let m = new Map();
-            m.set('A', 1);
-            m.set('B', 2);
-            return m;
+            foreign js js_map = '''
+                let m = new Map();
+                m.set('A', 1);
+                m.set('B', 2);
+                return m;
 
-        foreign python py_list = '''
-            return [1, 2, 3]
+            foreign python py_list = '''
+                return [1, 2, 3]
 
-        foreign python py_dict = '''
-            return {'A': 1, 'B': 2}
+            foreign python py_dict = '''
+                return {'A': 1, 'B': 2}
 
-        foo _ =
-            d_enso = Date.new 2024 12 15
-            d_java = Date.parse "2024-12-15"
-            dt_enso = Date_Time.now
-            dt_java = Date_Time.parse "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
-            dt_js = js_date
-            str_enso = "Hello_World"
-            str_js = js_str
-            str_java = String.new "Hello_World"
-            list_enso = [1, 2, 3]
-            list_js = js_list
-            list_py = py_list
-            list_java = JList.of 1 2 3
-            dict_enso = Dictionary.from_vector [["A", 1], ["B", 2]]
-            dict_js = js_map
-            dict_py = py_dict
-            dict_java = JMap.of "A" 1 "B" 2
-            end = 42
-        """,
+            foo _ =
+                d_enso = Date.new 2024 12 15
+                d_java = Date.parse "2024-12-15"
+                dt_enso = Date_Time.now
+                dt_java = Date_Time.parse "2020-05-06 04:30:20" "yyyy-MM-dd HH:mm:ss"
+                dt_js = js_date
+                str_enso = "Hello_World"
+                str_js = js_str
+                str_java = String.new "Hello_World"
+                list_enso = [1, 2, 3]
+                list_js = js_list
+                list_py = py_list
+                list_java = JList.of 1 2 3
+                dict_enso = Dictionary.from_vector [["A", 1], ["B", 2]]
+                dict_js = js_map
+                dict_py = py_dict
+                dict_java = JMap.of "A" 1 "B" 2
+                end = 42
+            """,
             "foo");
 
     try (DebuggerSession session =
@@ -401,21 +401,21 @@ public class DebuggingEnsoTest {
     Value fooFunc =
         createEnsoMethod(
             """
-        import Standard.Base.Internal.Array_Like_Helpers
-        from Standard.Base import Any
-        from Standard.Base import Integer
+            import Standard.Base.Internal.Array_Like_Helpers
+            from Standard.Base import Any
+            from Standard.Base import Integer
 
-        new_vector_builder : Integer -> Any
-        new_vector_builder capacity = @Builtin_Method "Array_Like_Helpers.new_vector_builder"
+            new_vector_builder : Integer -> Any
+            new_vector_builder capacity = @Builtin_Method "Array_Like_Helpers.new_vector_builder"
 
-        type Builder
-            Value java_builder
+            type Builder
+                Value java_builder
 
-        foo x =
-            java_builder = new_vector_builder 1
-            builder = Builder.Value java_builder
-            end = 42
-        """,
+            foo x =
+                java_builder = new_vector_builder 1
+                builder = Builder.Value java_builder
+                end = 42
+            """,
             "foo");
 
     try (DebuggerSession session =
@@ -440,13 +440,13 @@ public class DebuggingEnsoTest {
     Value fooFunc =
         createEnsoMethod(
             """
-        polyglot java import java.nio.file.Path
+            polyglot java import java.nio.file.Path
 
-        foo x =
-            a = 10
-            b = 20
-            tmp = 42
-        """,
+            foo x =
+                a = 10
+                b = 20
+                tmp = 42
+            """,
             "foo");
 
     try (DebuggerSession session =
@@ -473,13 +473,13 @@ public class DebuggingEnsoTest {
         createEnsoMethod(
             """
 
-        import Standard.Base.Runtime.Debug
+            import Standard.Base.Runtime.Debug
 
-        foo x =
-            a = 6
-            b = 7
-            Debug.breakpoint
-        """,
+            foo x =
+                a = 6
+                b = 7
+                Debug.breakpoint
+            """,
             "foo");
 
     int[] res = {0};
@@ -507,12 +507,12 @@ public class DebuggingEnsoTest {
     Value fooFunc =
         createEnsoMethod(
             """
-        foo x =
-            a = 10
-            b = 20
-            tmp = a + b
-            end = 42
-        """,
+            foo x =
+                a = 10
+                b = 20
+                tmp = a + b
+                end = 42
+            """,
             "foo");
 
     try (DebuggerSession session =
@@ -547,15 +547,15 @@ public class DebuggingEnsoTest {
     Value fooFunc =
         createEnsoMethod(
             """
-        bar =
-            loc_bar = 42
+            bar =
+                loc_bar = 42
 
-        foo x =
-            a = 10  # Will get modified to 1
-            b = 20  # Will get modified to 2
-            bar
-            a + b
-        """,
+            foo x =
+                a = 10  # Will get modified to 1
+                b = 20  # Will get modified to 2
+                bar
+                a + b
+            """,
             "foo");
 
     try (DebuggerSession session =
@@ -626,13 +626,13 @@ public class DebuggingEnsoTest {
     var fooFunc =
         createEnsoMethod(
             """
-        type My_Type
-            Cons field_1 field_2
+            type My_Type
+                Cons field_1 field_2
 
-        foo x =
-            obj = My_Type.Cons 1 2
-            obj
-        """,
+            foo x =
+                obj = My_Type.Cons 1 2
+                obj
+            """,
             "foo");
     try (DebuggerSession session =
         debugger.startSession(
@@ -664,14 +664,14 @@ public class DebuggingEnsoTest {
     var fooFunc =
         createEnsoMethod(
             """
-        type My_Type
-            Cons_1 f1 f2
-            Cons_2 g1 g2 g3
+            type My_Type
+                Cons_1 f1 f2
+                Cons_2 g1 g2 g3
 
-        foo x =
-            obj = My_Type.Cons_1 1 2
-            obj
-        """,
+            foo x =
+                obj = My_Type.Cons_1 1 2
+                obj
+            """,
             "foo");
     try (DebuggerSession session =
         debugger.startSession(
@@ -767,14 +767,14 @@ public class DebuggingEnsoTest {
     Source src =
         createEnsoSource(
             """
-        baz x = x        # 1
-        bar x =          # 2
-            ret = baz x  # 3
-            ret          # 4
-        foo x =          # 5
-            bar 42       # 6
-            end = 0      # 7
-        """);
+            baz x = x        # 1
+            bar x =          # 2
+                ret = baz x  # 3
+                ret          # 4
+            foo x =          # 5
+                bar 42       # 6
+                end = 0      # 7
+            """);
     List<Integer> expectedLineNumbers = List.of(5, 6, 7);
     Queue<SuspendedCallback> steps = createStepOverEvents(expectedLineNumbers.size());
     testStepping(src, "foo", new Object[] {0}, steps, expectedLineNumbers);
@@ -789,19 +789,19 @@ public class DebuggingEnsoTest {
     Source src =
         createEnsoSource(
             """
-        from Standard.Base import Vector
-        import Standard.Base.Data.Vector.Builder
+            from Standard.Base import Vector
+            import Standard.Base.Data.Vector.Builder
 
-        bar vec num_elems =
-            vec.slice 0 num_elems
+            bar vec num_elems =
+                vec.slice 0 num_elems
 
-        foo x =
-            vec_builder = Builder.new
-            vec_builder.append 1
-            vec_builder.append 2
-            vec = bar (vec_builder.to_vector) (vec_builder.to_vector.length - 1)
-            end = 0
-        """);
+            foo x =
+                vec_builder = Builder.new
+                vec_builder.append 1
+                vec_builder.append 2
+                vec = bar (vec_builder.to_vector) (vec_builder.to_vector.length - 1)
+                end = 0
+            """);
 
     List<String> expectedLines =
         List.of(
@@ -821,12 +821,12 @@ public class DebuggingEnsoTest {
     Source src =
         createEnsoSource(
             """
-        baz x = x       # 1
-        bar x = baz x   # 2
-        foo x =         # 3
-            bar 42      # 4
-            end = 0     # 5
-        """);
+            baz x = x       # 1
+            bar x = baz x   # 2
+            foo x =         # 3
+                bar 42      # 4
+                end = 0     # 5
+            """);
     List<Integer> expectedLineNumbers = List.of(3, 4, 2, 1, 2, 4, 5);
     Queue<SuspendedCallback> steps =
         new ArrayDeque<>(
@@ -840,12 +840,12 @@ public class DebuggingEnsoTest {
     Source src =
         createEnsoSource(
             """
-        baz x = x        # 1
-        bar x = x        # 2
-        foo x =          # 3
-            bar (baz x)  # 4
-            end = 0      # 5
-        """);
+            baz x = x        # 1
+            bar x = x        # 2
+            foo x =          # 3
+                bar (baz x)  # 4
+                end = 0      # 5
+            """);
     List<Integer> expectedLineNumbers = List.of(3, 4, 1, 4, 2, 4, 5);
     Queue<SuspendedCallback> steps =
         new ArrayDeque<>(
@@ -858,20 +858,20 @@ public class DebuggingEnsoTest {
     var fooFunc =
         createEnsoMethod(
             """
-        from Standard.Base.Any import all
+            from Standard.Base.Any import all
 
-        type Generator
-            Value n ~next
+            type Generator
+                Value n ~next
 
-        natural =
-            gen n = Generator.Value n (gen n+1)
-            gen 2
+            natural =
+                gen n = Generator.Value n (gen n+1)
+                gen 2
 
-        foo x =
-            two = natural
-            three = two.next
-            end = 0
-        """,
+            foo x =
+                two = natural
+                three = two.next
+                end = 0
+            """,
             "foo");
     try (DebuggerSession session =
         debugger.startSession(
@@ -899,10 +899,10 @@ public class DebuggingEnsoTest {
     Value fooFunc =
         createEnsoMethod(
             """
-        from Standard.Base import Meta
-        foo x =
-            Meta.meta x
-        """,
+            from Standard.Base import Meta
+            foo x =
+                Meta.meta x
+            """,
             "foo");
 
     var interceptedKind = new int[] {-1};

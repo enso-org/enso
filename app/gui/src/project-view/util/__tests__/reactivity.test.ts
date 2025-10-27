@@ -1,7 +1,7 @@
 import { LazySyncEffectSet, syncSet, useWatchContext } from '@/util/reactivity'
 import { fc, test } from '@fast-check/vitest'
 import { describe, expect, vi } from 'vitest'
-import { nextTick, reactive, ref, watchEffect, WatchStopHandle } from 'vue'
+import { nextTick, reactive, ref, watchEffect, type WatchStopHandle } from 'vue'
 
 test('LazySyncEffectSet', async () => {
   const lazySet = new LazySyncEffectSet()

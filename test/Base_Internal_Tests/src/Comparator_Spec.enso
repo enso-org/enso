@@ -39,6 +39,11 @@ type Attach_Warning
     Value (n : Integer)
     Value2 (n : Integer)
 
+    > self that = Comparable.> self that
+    >= self that = Comparable.>= self that
+    < self that = Comparable.< self that
+    <= self that = Comparable.<= self that
+
 type Attach_Warning_Comparator
     compare (x : Attach_Warning) (y : Attach_Warning) =
         r = Ordering.compare x.n y.n

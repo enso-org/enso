@@ -3,8 +3,8 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
 import project.System.Input_Stream.Input_Stream
-from project.Error import all
 from project.Data.Boolean import Boolean, False, True
+from project.Error import all
 from project.Runtime import assert
 
 polyglot java import org.enso.base.encoding.DecodingProblemAggregator

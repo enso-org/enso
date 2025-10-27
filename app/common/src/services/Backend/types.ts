@@ -1,5 +1,9 @@
 import * as newtype from '../../utilities/data/newtype.js'
-import { IdType } from '../Backend.js'
+import type { IdType } from '../Backend.js'
+
+/** A KSUID.*/
+export type KSUID = newtype.Newtype<string, 'KSUID'>
+export const KSUID = newtype.newtypeConstructor<KSUID>()
 
 /** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>
@@ -90,9 +94,9 @@ export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
 export type AssetId = IdType[keyof IdType]
 export const AssetId = newtype.newtypeConstructor<AssetId>()
 
-/** Unique identifier for a payment checkout session. */
-export type CheckoutSessionId = newtype.Newtype<string, 'CheckoutSessionId'>
-export const CheckoutSessionId = newtype.newtypeConstructor<CheckoutSessionId>()
+/** Unique identifier for metadata. */
+export type MetadataId = newtype.Newtype<`metadata-${KSUID}`, 'MetadataId'>
+export const MetadataId = newtype.newtypeConstructor<MetadataId>()
 
 /** Unique identifier for a subscription. */
 export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
@@ -186,8 +190,15 @@ export interface StravaCredentialInput {
   readonly scopes: readonly string[]
 }
 
+/** User settings for an MS365 credential. */
+export interface MS365CredentialInput {
+  readonly type: 'MS365'
+  readonly scopes: readonly string[]
+}
+
 /** User settings for an arbitrary credential. */
 export type CredentialInput =
   | SnowflakeCredentialInput
   | GoogleCredentialInput
   | StravaCredentialInput
+  | MS365CredentialInput

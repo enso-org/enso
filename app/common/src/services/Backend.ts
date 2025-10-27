@@ -1,6 +1,6 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
-import { getText, Replacements, resolveDictionary, type TextId } from '../text.js'
+import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
 import * as array from '../utilities/data/array.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
@@ -12,6 +12,7 @@ import {
   DirectoryId,
   EnsoPath,
   FileId,
+  MetadataId,
   PaginationToken,
   ParentsPath,
   Path,
@@ -37,7 +38,7 @@ import {
   type UserId,
   type UserPermissionIdentifier,
 } from './Backend/types.js'
-import { HttpClient, HttpClientPostOptions, ResponseWithTypedJson } from './HttpClient.js'
+import { HttpClient, type HttpClientPostOptions, type ResponseWithTypedJson } from './HttpClient.js'
 export { prettifyError } from 'zod/v4'
 
 export * from './Backend/types.js'
@@ -192,11 +193,6 @@ export enum ProjectState {
    * `openInProgress`, but has not yet been added to the backend.
    */
   placeholder = 'Placeholder',
-  /**
-   * A frontend-specific state, representing a project that should be displayed as `closed`,
-   * but is still in the process of shutting down.
-   */
-  closing = 'Closing',
 }
 
 /** Wrapper around a project state value. */
@@ -224,7 +220,6 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.hybridOpened]: false,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
 }
 
 export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
@@ -238,7 +233,6 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.hybridOpened]: true,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
@@ -634,10 +628,9 @@ export interface CreateCustomerPortalSessionResponse {
 export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
 
 /** Response from "assets/${assetId}" endpoint. */
-export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
-  AnyAsset<RealAssetTypeId<Id>>,
-  'ensoPath'
-> | null
+export type AssetDetailsResponse<Id extends RealAssetId> =
+  | (Omit<Asset<RealAssetTypeId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId })
+  | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
 export function isUserOnPlanWithMultipleSeats(user: User) {
@@ -1260,6 +1253,7 @@ export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
   readonly title: string | null
+  readonly metadataId: MetadataId | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
@@ -1756,7 +1750,6 @@ export default abstract class Backend {
 
   /** Create a {@link LocalBackend}. */
   constructor(
-    private readonly logger: Logger,
     protected getText: GetText,
     private readonly client: HttpClient,
   ) {}
@@ -1779,7 +1772,7 @@ export default abstract class Backend {
     ...replacements: Replacements[K]
   ): Promise<never> {
     if (textId instanceof NetworkError) {
-      this.logger.error(textId.message)
+      console.error(textId.message)
 
       throw textId
     }
@@ -1790,7 +1783,7 @@ export default abstract class Backend {
       : await ((): Promise<Error> => response.json())()
 
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-    this.logger.error(message)
+    console.error(message)
 
     const status = response?.status
 
@@ -1966,11 +1959,20 @@ export default abstract class Backend {
   abstract uploadFileStart(
     params: UploadFileRequestParams,
     file: File,
+    abort?: AbortSignal,
   ): Promise<UploadLargeFileMetadata>
   /** Upload a chunk of a large file. */
-  abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>
+  abstract uploadFileChunk(
+    url: HttpsUrl,
+    file: Blob,
+    index: number,
+    abort?: AbortSignal,
+  ): Promise<{ part: S3MultipartPart; size: number }>
   /** Finish uploading a large file. */
-  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedAsset>
+  abstract uploadFileEnd(
+    body: UploadFileEndRequestBody,
+    abort?: AbortSignal,
+  ): Promise<UploadedAsset>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
 
@@ -2104,9 +2106,9 @@ export default abstract class Backend {
   }
 
   /** Send a binary HTTP POST request to the given path. */
-  protected postBinary<T = void>(path: string, payload: Blob) {
+  protected postBinary<T = void>(path: string, payload: Blob, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
-      this.client.postBinary<T>(this.resolvePath(path), payload),
+      this.client.postBinary<T>(this.resolvePath(path), payload, options),
     )
   }
 

@@ -106,10 +106,6 @@ class RuntimeExecutionEnvironmentTest
       out.reset()
       result.linesIterator.toList
     }
-
-    def analyzeJobFinished: Api.Response =
-      Api.Response(Api.AnalyzeModuleInScopeJobFinished())
-
   }
 
   override protected def beforeEach(): Unit = {

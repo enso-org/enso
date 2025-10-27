@@ -7,8 +7,6 @@ use crate::prelude::*;
 
 use crate::source::code::StrRef;
 
-
-
 // ============
 // === Tree ===
 // ============
@@ -21,13 +19,11 @@ pub fn serialize_tree(data: &crate::syntax::tree::Tree) -> Result<Vec<u8>, binco
 }
 
 /// Deserialize a `Tree` from its binary representation.
-pub fn deserialize_tree(data: &[u8]) -> Result<crate::syntax::tree::Tree, bincode::Error> {
+pub fn deserialize_tree(data: &'_ [u8]) -> Result<crate::syntax::tree::Tree<'_>, bincode::Error> {
     use bincode::Options;
     let options = bincode::DefaultOptions::new().with_fixint_encoding();
     options.deserialize(data)
 }
-
-
 
 // ============
 // === Code ===
@@ -39,24 +35,26 @@ pub(crate) struct Code {
     #[reflect(hide)]
     begin: u32,
     #[reflect(hide)]
-    len:   u32,
+    len: u32,
 }
 
 /// Serde wrapper to serialize a `Cow` as the `Code` representation.
 pub(crate) fn serialize_cow<S>(s: &StrRef, ser: S) -> Result<S::Ok, S::Error>
-where S: serde::Serializer {
+where
+    S: serde::Serializer,
+{
     let s = s.0;
     let s = Code { begin: str::as_ptr(s) as u32, len: s.len() as u32 };
     s.serialize(ser)
 }
 
 pub(crate) fn deserialize_cow<'c, 'de, D>(deserializer: D) -> Result<StrRef<'c>, D::Error>
-where D: serde::Deserializer<'de> {
+where
+    D: serde::Deserializer<'de>,
+{
     let _ = deserializer.deserialize_u64(DeserializeU64);
     Ok(StrRef(""))
 }
-
-
 
 // =============
 // === Error ===
@@ -73,8 +71,6 @@ impl From<Error> for crate::syntax::tree::Error {
     }
 }
 
-
-
 // ================
 // === Visitors ===
 // ================
@@ -89,7 +85,9 @@ impl<'de> serde::de::Visitor<'de> for DeserializeU64 {
     }
 
     fn visit_u64<E>(self, i: u64) -> Result<Self::Value, E>
-    where E: serde::de::Error {
+    where
+        E: serde::de::Error,
+    {
         Ok(i)
     }
 }
@@ -104,26 +102,28 @@ impl<'de> serde::de::Visitor<'de> for DeserializeU32 {
     }
 
     fn visit_u32<E>(self, i: u32) -> Result<Self::Value, E>
-    where E: serde::de::Error {
+    where
+        E: serde::de::Error,
+    {
         Ok(i)
     }
 }
-
-
 
 // ========================================
 // === General purpose value transforms ===
 // ========================================
 
 pub(crate) fn serialize_optional_int<S>(x: &Option<u32>, s: S) -> Result<S::Ok, S::Error>
-where S: serde::Serializer {
+where
+    S: serde::Serializer,
+{
     s.serialize_u32(x.unwrap_or(0xFFFF_FFFF))
 }
 
-pub(crate) fn deserialize_optional_int<'c, 'de, D>(
-    deserializer: D,
-) -> Result<Option<u32>, D::Error>
-where D: serde::Deserializer<'de> {
+pub(crate) fn deserialize_optional_int<'c, 'de, D>(deserializer: D) -> Result<Option<u32>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
     let value = deserializer.deserialize_u32(DeserializeU32)?;
     Ok(match value {
         0xFFFF_FFFF => None,

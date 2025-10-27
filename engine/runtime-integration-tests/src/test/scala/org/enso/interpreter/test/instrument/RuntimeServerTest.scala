@@ -6208,7 +6208,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Unexpected expression.",
+              "Unexpected token.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 30), model.Position(3, 31)))
             )
@@ -6218,8 +6218,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error.Error 'Unexpected expression'))",
-      "(Syntax_Error.Error 'Unexpected expression')"
+      "(Error: (Syntax_Error.Error 'Unexpected token'))",
+      "(Syntax_Error.Error 'Unexpected token')"
     )
   }
 

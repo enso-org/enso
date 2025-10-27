@@ -3,6 +3,7 @@
 - type File
     - / self subpath:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - absolute self -> Standard.Base.Any.Any
+    - can_write_into_parent self -> Standard.Base.Data.Boolean.Boolean
     - copy_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - create_directory self -> Standard.Base.Any.Any
     - create_dry_run_file self copy_original:Standard.Base.Any.Any= -> Standard.Base.Any.Any

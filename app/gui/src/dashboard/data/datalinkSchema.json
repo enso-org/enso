@@ -270,25 +270,96 @@
         },
         "credentials": {
           "title": "Credentials",
-          "type": "object",
-          "properties": {
-            "username": {
-              "title": "Username",
-              "$ref": "#/$defs/SecureValue"
-            },
-            "password": {
-              "title": "Password",
-              "$ref": "#/$defs/SecureValue"
-            }
-          },
-          "required": ["username", "password"]
+          "$ref": "#/$defs/SQLServerCredentials"
         },
         "table": {
           "title": "Table to access",
-          "$ref": "#/$defs/DatabaseTableDefinition"
+          "$ref": "#/$defs/SQLServerTableDefinition"
         }
       },
       "required": ["type", "libraryName", "host", "port", "database_name"]
+    },
+
+    "SQLServerCredentials": {
+      "title": "Credentials",
+      "anyOf": [
+        { "$ref": "#/$defs/SQLServerSqlAuth" },
+        { "$ref": "#/$defs/SQLServerNoAuth" },
+        { "$ref": "#/$defs/SQLServerADDefault" },
+        { "$ref": "#/$defs/SQLServerADIntegrated" },
+        { "$ref": "#/$defs/SQLServerADPassword" },
+        { "$ref": "#/$defs/SQLServerADServicePrincipal" }
+      ]
+    },
+    "SQLServerNoAuth": {
+      "title": "None",
+      "type": "object",
+      "properties": {},
+      "required": []
+    },
+    "SQLServerSqlAuth": {
+      "title": "Username/Password",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "UsernameAndPassword", "type": "string" },
+        "username": {
+          "title": "Username",
+          "$ref": "#/$defs/SecureValue"
+        },
+        "password": {
+          "title": "Password",
+          "$ref": "#/$defs/SecureValue"
+        }
+      },
+      "required": ["type", "username", "password"]
+    },
+    "SQLServerADDefault": {
+      "title": "Active Directory (Default)",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "ActiveDirectoryDefault", "type": "string" }
+      },
+      "required": ["type"]
+    },
+    "SQLServerADIntegrated": {
+      "title": "Active Directory (Integrated)",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "ActiveDirectoryIntegrated", "type": "string" }
+      },
+      "required": ["type"]
+    },
+    "SQLServerADPassword": {
+      "title": "Active Directory (Username/Password)",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "ActiveDirectoryPassword", "type": "string" },
+        "username": {
+          "title": "Username",
+          "$ref": "#/$defs/SecureValue"
+        },
+        "password": {
+          "title": "Password",
+          "$ref": "#/$defs/SecureValue"
+        }
+      },
+      "required": ["type", "username", "password"]
+    },
+    "SQLServerADServicePrincipal": {
+      "title": "Active Directory (Service Principal)",
+      "type": "object",
+      "properties": {
+        "type": { "title": "Type", "const": "ActiveDirectoryServicePrincipal", "type": "string" },
+        "id": {
+          "title": "Principal ID",
+          "$ref": "#/$defs/SecureValue"
+        },
+        "secret": {
+          "title": "Principal Secret",
+          "$ref": "#/$defs/SecureValue"
+        }
+      },
+      "required": ["type", "id", "secret"]
     },
 
     "Format": {
@@ -501,6 +572,49 @@
       "required": ["type", "subType"]
     },
 
+    "SQLServerTableDefinition": {
+      "title": "Query to read",
+      "anyOf": [
+        { "title": "Table", "type": "string" },
+        {
+          "title": "Table and Schema",
+          "type": "object",
+          "properties": {
+            "table": {
+              "title": "Table",
+              "type": "string"
+            },
+            "schema": {
+              "title": "Schema",
+              "type": "string"
+            }
+          },
+          "required": ["table", "schema"]
+        },
+        {
+          "title": "SQL Query",
+          "type": "object",
+          "properties": {
+            "query": {
+              "title": "SQL",
+              "type": "string"
+            }
+          },
+          "required": ["query"]
+        },
+        {
+          "title": "(Advanced) JSON serialized interpolated SQL statement",
+          "type": "object",
+          "properties": {
+            "sql_statement": {
+              "title": "SQL_Statement (JSON)",
+              "type": "string"
+            }
+          },
+          "required": ["sql_statement"]
+        }
+      ]
+    },
     "DatabaseTableDefinition": {
       "title": "Query to read",
       "anyOf": [

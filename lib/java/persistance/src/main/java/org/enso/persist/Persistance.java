@@ -13,10 +13,12 @@ import java.util.function.Function;
 /**
  * Central persistance class. Use {@link Pool#write(java.lang.Object, java.util.function.Function)
  * write} method to turn a graph of JVM objects into a {@code byte[]}. <br>
+ *
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="write"}
  *
  * <p>Use sibling {@link Persistance.Pool#read read} method to read the byte buffer back into their
  * memory representation. <br>
+ *
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
  *
  * <h2>Manual Persistance</h2>
@@ -25,13 +27,16 @@ import java.util.function.Function;
  * one to implement the persistance manually. For each class that one wants to support, one has to
  * subclass {@link Persistance} and implement its {@link Persistance#writeObject} and {@link
  * Persistance#readObject} method. <br>
- * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"} <br>
+ *
+ * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"}
+ *
+ * <br>
  * There is a semi-automatic way to generate such subclasses of {@link Persistance} via the {@link
  * Persistable @Persistable} annotation.
  *
  * @param <T> type this persistance subclass operates on
  */
-public abstract class Persistance<T> implements Cloneable {
+public abstract class Persistance<T> {
   final Class<T> clazz;
   final boolean includingSubclasses;
   final int id;
@@ -39,7 +44,10 @@ public abstract class Persistance<T> implements Cloneable {
   /**
    * Constructor for subclasses to register persistance for certain {@code clazz}. Sample
    * registration: <br>
-   * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"} <br>
+   *
+   * {@snippet file="org/enso/persist/PersistanceTest.java" region="manual"}
+   *
+   * <br>
    * Each persistance requires unique ID. A stream created by {@link Pool#write(Object,
    * Function<Object, Object>)} and read by {@link Pool#read(byte[], Function<Object, Object>)}
    * contains a header derived from the all the IDs present in the system. When versioning the
@@ -60,14 +68,6 @@ public abstract class Persistance<T> implements Cloneable {
     this.clazz = clazz;
     this.includingSubclasses = includingSubclasses;
     this.id = id;
-  }
-
-  final Persistance<?> newClone() {
-    try {
-      return (Persistance<?>) clone();
-    } catch (CloneNotSupportedException ex) {
-      throw raise(RuntimeException.class, ex);
-    }
   }
 
   /**
@@ -180,6 +180,7 @@ public abstract class Persistance<T> implements Cloneable {
     private final Function<Object, Object> readResolve;
     private final Function<Object, Object> writeReplace;
     private final Persistance[] all;
+    private final PerMap map;
 
     /**
      * Constructor for subclasses to create a new pool with provided persistance instances. The IDs
@@ -204,6 +205,7 @@ public abstract class Persistance<T> implements Cloneable {
       this.readResolve = readResolve;
       this.writeReplace = writeReplace;
       this.all = instances;
+      this.map = new PerMap(all);
     }
 
     /**
@@ -260,7 +262,11 @@ public abstract class Persistance<T> implements Cloneable {
 
     /**
      * Read object written down by {@link #write} from an array. <br>
-     * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"} <br>
+     *
+     * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
+     *
+     * <br>
+     *
      * {@snippet file="org/enso/persist/PersistanceTest.java" region="read"}
      *
      * @param arr the stored bytes
@@ -279,7 +285,6 @@ public abstract class Persistance<T> implements Cloneable {
      * @throws java.io.IOException when an I/O problem happens
      */
     public Reference<?> read(ByteBuffer buf) throws IOException {
-      var map = new PerMap(all);
       return PerInputImpl.readObject(map, buf, readResolve);
     }
 
@@ -292,7 +297,6 @@ public abstract class Persistance<T> implements Cloneable {
      * @throws IOException when an I/O problem happens
      */
     public byte[] write(Object obj) throws IOException {
-      var map = new PerMap(all);
       return PerGenerator.writeObject(map, obj, writeReplace);
     }
   }

@@ -79,7 +79,7 @@ final class EnsoPolyglotJava {
       var iop = InteropLibrary.getUncached();
       return obj != null
           && iop.hasLanguage(obj)
-          && iop.getLanguage(obj).getSimpleName().equals("OtherLanguage");
+          && iop.getLanguage(obj).getSimpleName().equals("EpbLanguage");
     } catch (UnsupportedMessageException ex) {
       return false;
     }
@@ -293,10 +293,15 @@ final class EnsoPolyglotJava {
       for (var entry : ctx.getHostClassLoading().split(",")) {
         var libState = entry.split(":");
         switch (libState.length) {
-          case 2 -> hostClassLoading.putIfAbsent(libState[0], libState[1]);
+          case 2 -> {
+            assert RuntimeOptions.HOST_CLASS_LOADING_HOSTED.equals(libState[1])
+                || RuntimeOptions.HOST_CLASS_LOADING_GUEST.equals(libState[1]);
+            hostClassLoading.putIfAbsent(libState[0], libState[1]);
+          }
           case 1 -> hostClassLoading.putIfAbsent("", libState[0]);
-          default -> throw new IllegalStateException(
-              "Expecting [<namespace.name>]:hosted|guest, but was: " + entry);
+          default ->
+              throw new IllegalStateException(
+                  "Expecting [<namespace.name>]:hosted|guest, but was: " + entry);
         }
       }
       assert hostClassLoading.containsKey("");

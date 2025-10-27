@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-
-
 /// All the configuration and constants needed to build the installer.
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -62,9 +60,9 @@ pub fn fill_config() -> Result<Config> {
                 enso_install::win::prog_id::PerceivedType::from_mime_type(&mime_type)?;
             let file_type = enso_install::win::prog_id::FileType {
                 application_path: executable_filename.clone(),
-                prog_id:          prog_id.clone(),
-                friendly_name:    file_association.name.clone(),
-                info_tip:         file_association.name.clone(),
+                prog_id: prog_id.clone(),
+                friendly_name: file_association.name.clone(),
+                info_tip: file_association.name.clone(),
             };
             let file_extension = enso_install::win::prog_id::FileExtension {
                 extension,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type Component } from '@/components/ComponentBrowser/component'
+import type { Component } from '@/components/ComponentBrowser/component'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { allRanges } from '@/util/data/range'
 import { sourceRangeKey } from 'ydoc-shared/util/data/text'

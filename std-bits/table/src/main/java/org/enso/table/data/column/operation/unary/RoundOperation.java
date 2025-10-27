@@ -103,42 +103,48 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
     int decimalPlaces = Math.toIntExact(decimalPlacesLong);
     var storage = ColumnStorageWithInferredStorage.resolveStorage(left);
     return switch (storage.getType()) {
-      case NullType nt -> decimalPlaces <= 0
-          ? new RoundOperation<>(
-              NumericColumnAdapter.DoubleColumnAdapter.INSTANCE,
-              true,
-              IntegerType.INT_64,
-              v -> null)
-          : new RoundOperation<>(
-              NumericColumnAdapter.DoubleColumnAdapter.INSTANCE,
-              true,
-              FloatType.FLOAT_64,
-              v -> null);
-      case BigDecimalType bd -> decimalPlaces <= 0
-          ? new RoundOperation<>(
-              NumericColumnAdapter.BigDecimalColumnAdapter.INSTANCE,
-              false,
-              BigIntegerType.INSTANCE,
-              roundBigDecimalToBigInteger(decimalPlaces, useBankers))
-          : new RoundOperation<>(
-              NumericColumnAdapter.BigDecimalColumnAdapter.INSTANCE,
-              false,
-              BigDecimalType.INSTANCE,
-              roundBigDecimal(decimalPlaces, useBankers));
-      case BigIntegerType bi -> decimalPlaces >= 0
-          ? UnaryOperation.IDENTITY
-          : new RoundOperation<>(
-              NumericColumnAdapter.BigIntegerColumnAdapter.INSTANCE,
-              BigIntegerType.INSTANCE,
-              roundBigInteger(decimalPlaces, useBankers));
-      case IntegerType lt -> decimalPlaces >= 0
-          ? UnaryOperation.IDENTITY
-          : createForLong(lt, roundLong(decimalPlaces, useBankers));
-      case FloatType ft -> decimalPlaces <= 0
-          ? createForDouble(IntegerType.INT_64, roundDoubleToLong(decimalPlaces, useBankers))
-          : createForDouble(FloatType.FLOAT_64, roundDouble(decimalPlaces, useBankers));
-      default -> throw new UnsupportedOperationException(
-          "Unsupported storage type for round operation: " + storage.getType());
+      case NullType nt ->
+          decimalPlaces <= 0
+              ? new RoundOperation<>(
+                  NumericColumnAdapter.DoubleColumnAdapter.INSTANCE,
+                  true,
+                  IntegerType.INT_64,
+                  v -> null)
+              : new RoundOperation<>(
+                  NumericColumnAdapter.DoubleColumnAdapter.INSTANCE,
+                  true,
+                  FloatType.FLOAT_64,
+                  v -> null);
+      case BigDecimalType bd ->
+          decimalPlaces <= 0
+              ? new RoundOperation<>(
+                  NumericColumnAdapter.BigDecimalColumnAdapter.INSTANCE,
+                  false,
+                  BigIntegerType.INSTANCE,
+                  roundBigDecimalToBigInteger(decimalPlaces, useBankers))
+              : new RoundOperation<>(
+                  NumericColumnAdapter.BigDecimalColumnAdapter.INSTANCE,
+                  false,
+                  BigDecimalType.INSTANCE,
+                  roundBigDecimal(decimalPlaces, useBankers));
+      case BigIntegerType bi ->
+          decimalPlaces >= 0
+              ? UnaryOperation.IDENTITY
+              : new RoundOperation<>(
+                  NumericColumnAdapter.BigIntegerColumnAdapter.INSTANCE,
+                  BigIntegerType.INSTANCE,
+                  roundBigInteger(decimalPlaces, useBankers));
+      case IntegerType lt ->
+          decimalPlaces >= 0
+              ? UnaryOperation.IDENTITY
+              : createForLong(lt, roundLong(decimalPlaces, useBankers));
+      case FloatType ft ->
+          decimalPlaces <= 0
+              ? createForDouble(IntegerType.INT_64, roundDoubleToLong(decimalPlaces, useBankers))
+              : createForDouble(FloatType.FLOAT_64, roundDouble(decimalPlaces, useBankers));
+      default ->
+          throw new UnsupportedOperationException(
+              "Unsupported storage type for round operation: " + storage.getType());
     };
   }
 

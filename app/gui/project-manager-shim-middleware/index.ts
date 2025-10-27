@@ -8,8 +8,6 @@ import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
 
-import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
-
 import {
   AssetType,
   DirectoryId,
@@ -49,7 +47,11 @@ import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 import * as projectManagement from 'project-manager-shim'
-import { handleFilesystemCommand, toJSONRPCError, toJSONRPCResult } from 'project-manager-shim'
+import {
+  handleFilesystemCommand,
+  handleProjectServiceRequest,
+  isProjectServiceRequest,
+} from 'project-manager-shim/handler'
 import { ProjectService } from 'project-manager-shim/projectService'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 
@@ -100,38 +102,7 @@ export class ProjectManagerShimMiddleware {
     if (!requestUrl.startsWith('/api/')) return next()
     const url = new URL(requestUrl, 'https://apishim.local')
     const requestPath = url.pathname
-    if (requestPath.startsWith('/api/project-manager/')) {
-      const urlString = requestUrl.replace(
-        /^\/api\/project-manager/,
-        GLOBAL_CONFIG.projectManagerHttpEndpoint,
-      )
-      const actualUrl = new URL(urlString)
-      request.pipe(
-        http.request(
-          // `...actualUrl` does NOT work because `URL` properties are not enumerable.
-          {
-            headers: request.headers,
-            host: actualUrl.host,
-            hostname: actualUrl.hostname,
-            method: request.method,
-            path: actualUrl.pathname,
-            port: actualUrl.port,
-            protocol: actualUrl.protocol,
-          },
-          (actualResponse) => {
-            response.writeHead(
-              // This is SAFE. The documentation says:
-              // Only valid for response obtained from ClientRequest.
-              actualResponse.statusCode!,
-              actualResponse.statusMessage,
-              actualResponse.headers,
-            )
-            actualResponse.pipe(response, { end: true })
-          },
-        ),
-        { end: true },
-      )
-    } else if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
+    if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
       switch (requestPath) {
         case '/api/cloud/download-project': {
           const downloadUrl = url.searchParams.get('downloadUrl')
@@ -212,30 +183,14 @@ export class ProjectManagerShimMiddleware {
           break
         }
       }
-    } else if (requestPath.startsWith('/api/project-service/')) {
-      switch (`${request.method} ${requestPath}`) {
-        case 'POST /api/project-service/project/create': {
-          interface ResponseBody {
-            readonly name: string
-            readonly projectsDirectory: Path
-          }
-          bodyJson<ResponseBody>(request)
-            .then(async (body) => {
-              const projectService = await this.getProjectService()
-              return projectService.createProject(body.name, body.projectsDirectory)
-            })
-            .then((result) => {
-              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(toJSONRPCResult(result))
-            })
-            .catch((err) => {
-              console.error(err)
-              response
-                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
-                .end(toJSONRPCError('project/create failed', err))
-            })
-          break
-        }
-      }
+    } else if (isProjectServiceRequest(requestPath)) {
+      handleProjectServiceRequest(
+        request,
+        response,
+        requestPath,
+        () => this.getProjectService(),
+        COMMON_HEADERS,
+      )
     } else if (requestPath.startsWith('/api/')) {
       switch (`${request.method} ${requestPath}`) {
         case `POST /api/${EXPORT_ARCHIVE_PATH}`: {
@@ -346,16 +301,6 @@ export class ProjectManagerShimMiddleware {
       next()
     }
   }
-}
-
-/** Read JSON from an HTTP request body. */
-async function bodyJson<T>(request: http.IncomingMessage): Promise<T> {
-  const chunks: Buffer[] = []
-  for await (const chunk of request) {
-    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
-  }
-  const body = Buffer.concat(chunks).toString('utf-8')
-  return JSON.parse(body) as T
 }
 
 /** Return whether a file exists. */

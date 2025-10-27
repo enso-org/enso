@@ -1,13 +1,13 @@
 /** @file Test that emails are preserved when navigating between auth pages. */
-import { expect, test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 
-import { VALID_EMAIL, mockAll } from './actions'
+import { VALID_EMAIL } from '../actions'
 
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } })
 
-test('preserve email input when changing pages', ({ page }) =>
-  mockAll({ page })
+test('preserve email input when changing pages', async ({ loginPage }) => {
+  await loginPage
     .fillEmail(VALID_EMAIL)
     .goToPage.register()
     .withEmailInput(async (emailInput) => {
@@ -27,4 +27,5 @@ test('preserve email input when changing pages', ({ page }) =>
     .goToPage.login()
     .withEmailInput(async (emailInput) => {
       await expect(emailInput).toHaveValue(`4${VALID_EMAIL}`)
-    }))
+    })
+})

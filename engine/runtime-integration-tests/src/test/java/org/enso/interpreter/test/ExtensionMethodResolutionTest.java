@@ -41,7 +41,8 @@ public class ExtensionMethodResolutionTest {
 
   @Test
   public void twoExtensionMethodsWithSameNameInOneModuleShouldFail() throws IOException {
-    var src = """
+    var src =
+        """
         type T
         T.foo x = x
         T.foo x y = x + y
@@ -51,7 +52,8 @@ public class ExtensionMethodResolutionTest {
 
   @Test
   public void extensionMethodAndNormalMethodConflictInOneModule() throws IOException {
-    var src = """
+    var src =
+        """
         type T
             foo x = x
         T.foo x y = x + y
@@ -97,7 +99,9 @@ public class ExtensionMethodResolutionTest {
   @Test
   public void secondResolutionIsInCurrentModuleScope() throws IOException {
     var xMod =
-        new SourceModule(QualifiedName.fromString("X"), """
+        new SourceModule(
+            QualifiedName.fromString("X"),
+            """
             type T
             """);
     var yMod =
@@ -131,7 +135,9 @@ public class ExtensionMethodResolutionTest {
   @Test
   public void resolutionFromImportedModulesIsDeterministic1() throws IOException {
     var xMod =
-        new SourceModule(QualifiedName.fromString("X"), """
+        new SourceModule(
+            QualifiedName.fromString("X"),
+            """
             type T
             """);
     var yMod =
@@ -173,7 +179,9 @@ public class ExtensionMethodResolutionTest {
   @Test
   public void resolutionFromImportedModulesIsDeterministic2() throws IOException {
     var xMod =
-        new SourceModule(QualifiedName.fromString("X"), """
+        new SourceModule(
+            QualifiedName.fromString("X"),
+            """
             type T
             """);
     var yMod =
@@ -276,7 +284,8 @@ public class ExtensionMethodResolutionTest {
   public void sameExtensionMethodInDifferentTypesInThreeModules() throws IOException {
     var mod2 =
         new SourceModule(
-            QualifiedName.fromString("Mod2"), """
+            QualifiedName.fromString("Mod2"),
+            """
             # An empty module
             """);
     // The type T defined in mod1 and mainMod have exactly the same location on purpose.

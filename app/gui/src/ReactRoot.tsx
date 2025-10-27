@@ -12,7 +12,7 @@ import { useBackends } from '$/providers/backends'
 import { useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { QueryClient } from '@tanstack/vue-query'
-import { PropsWithChildren, StrictMode } from 'react'
+import { StrictMode, type PropsWithChildren } from 'react'
 import invariant from 'tiny-invariant'
 
 interface ReactRootProps {

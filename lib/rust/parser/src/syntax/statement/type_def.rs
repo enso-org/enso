@@ -10,6 +10,7 @@ use crate::syntax::statement::function_def::parse_args;
 use crate::syntax::statement::function_def::parse_constructor_definition;
 use crate::syntax::statement::parse_statement;
 use crate::syntax::statement::scan_private_keywords;
+use crate::syntax::statement::BlockContext;
 use crate::syntax::statement::EvaluationContext;
 use crate::syntax::statement::Line;
 use crate::syntax::statement::StatementContext;
@@ -25,8 +26,6 @@ use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
-
-
 pub fn try_parse_type_def<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
@@ -40,12 +39,13 @@ pub fn try_parse_type_def<'s>(
     match items.get(start + 1) {
         Some(Item::Token(Token { variant: token::Variant::Ident(ident), .. })) if ident.is_type => {
         }
-        _ =>
+        _ => {
             return expression_parser
                 .parse_non_section_offset(start, items)
                 .unwrap()
                 .with_error(SyntaxError::TypeDefExpectedTypeName)
-                .into(),
+                .into()
+        }
     }
 
     let body = if let Some(Item::Block(lines)) = items.last_mut() {
@@ -92,6 +92,7 @@ fn parse_type_body_statement<'s>(
                     .items
                     .get(private_keywords + 1)
                     .is_some_and(|item| Spacing::of_item(item) == Spacing::Unspaced) =>
+        {
             parse_constructor_definition(
                 prefixes,
                 line,
@@ -100,7 +101,8 @@ fn parse_type_body_statement<'s>(
                 expression_parser,
                 args_buffer,
             )
-            .map_content(StatementOrPrefix::from),
+            .map_content(StatementOrPrefix::from)
+        }
         None => Line {
             newline: line.newline,
             content: apply_excess_private_keywords(
@@ -110,11 +112,17 @@ fn parse_type_body_statement<'s>(
             )
             .map(StatementOrPrefix::from),
         },
-        _ => parse_statement(prefixes, line, expression_parser, args_buffer, StatementContext {
-            evaluation_context: EvaluationContext::Lazy,
-            visibility_context: VisibilityContext::Public,
-            tail_expression:    false,
-        })
+        _ => parse_statement(
+            prefixes,
+            line,
+            expression_parser,
+            args_buffer,
+            StatementContext {
+                evaluation_context: EvaluationContext::Lazy,
+                visibility_context: VisibilityContext::Public,
+                block_context: BlockContext::BlockBody,
+            },
+        )
         .map_content(|statement_or_prefix| {
             statement_or_prefix.map_statement(|tree| {
                 let error = match &tree.variant {

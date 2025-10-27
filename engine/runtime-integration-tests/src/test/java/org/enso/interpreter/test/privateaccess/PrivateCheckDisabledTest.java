@@ -16,7 +16,8 @@ public class PrivateCheckDisabledTest {
 
   @Test
   public void privateCtorCanBeAccessedWhenPrivateCheckIsDisabled() throws IOException {
-    var libSrc = """
+    var libSrc =
+        """
         type T
             private Cons data
         """;

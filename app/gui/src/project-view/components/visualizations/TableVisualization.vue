@@ -26,43 +26,43 @@ import type {
   SortChangedEvent,
 } from 'ag-grid-enterprise'
 import {
-  ComponentInstance,
   computed,
   onMounted,
   ref,
   shallowRef,
   watch,
   watchEffect,
+  type ComponentInstance,
   type Ref,
 } from 'vue'
-import { ComponentExposed } from 'vue-component-type-helpers'
+import type { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
-  Error,
-  GenericGrid,
   isError,
   isGenericGrid,
+  type Error,
+  type GenericGrid,
 } from './TableVisualization/TableVisualisationTypes'
 import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
   createExpressionRowTemplate,
-  ValueTypeArgumentChild,
-  ValueTypes,
+  type ValueTypeArgumentChild,
+  type ValueTypes,
 } from './TableVisualization/TableVizDataSourceUtils'
 import {
   getCellDataType,
   getFilterParams,
   getFilterType,
 } from './TableVisualization/tableVizFilterSetUpUtils'
-import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
+import { makeFilterModelList, type GridFilterModel } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import {
   formatText,
   getCellValueType,
   isNumericType,
-  ValueType,
+  type ValueType,
 } from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'

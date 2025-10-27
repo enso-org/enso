@@ -1109,7 +1109,7 @@ add_aggregate_specs suite_builder setup =
             get_value t = Frame_Hider.hide <|
                 columns = materialize t . columns
                 columns.length . should_equal 1
-                columns.first.length  . should_equal 1
+                columns.first.row_count  . should_equal 1
                 columns.first . at 0
 
             ## TODO currently our builder does not allow all-null tables, so we

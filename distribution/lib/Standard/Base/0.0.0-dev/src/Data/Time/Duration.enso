@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Comparable
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
@@ -365,3 +366,35 @@ type Duration
         m = if self.minutes == 0 && (h=="" || s=="") then "" else self.minutes.to_text + "m "
 
         (h+m+s).trim
+
+    ## ---
+      aliases: [greater than]
+      group: Operators
+      icon: operators
+      ---
+      Checks if `self` is greater than `that`.
+    > self that = Comparable.> self that
+
+    ## ---
+       aliases: [greater than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than or equal to `that`.
+    >= self that = Comparable.>= self that
+
+    ## ---
+       aliases: [less than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than `that`.
+    < self that = Comparable.< self that
+
+    ## ---
+       aliases: [less than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than or equal to `that`.
+    <= self that = Comparable.<= self that

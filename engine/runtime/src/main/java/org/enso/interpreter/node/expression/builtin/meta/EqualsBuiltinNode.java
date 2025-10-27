@@ -12,18 +12,18 @@ import org.enso.interpreter.runtime.warning.AppendWarningNode;
     name = "==",
     description =
         """
-      Compares self with other object and returns True iff `self` is exactly the same as
-      the other object, including all its transitively accessible properties or fields,
-      False otherwise.
+        Compares self with other object and returns True iff `self` is exactly the same as
+        the other object, including all its transitively accessible properties or fields,
+        False otherwise.
 
-      Can handle arbitrary objects, including all foreign objects.
+        Can handle arbitrary objects, including all foreign objects.
 
-      Does not throw dataflow errors or panics.
+        Does not throw dataflow errors or panics.
 
-      Note that this is different than `Meta.is_same_object`, which checks whether two
-      references point to the same object on the heap. Moreover, `Meta.is_same_object`
-      implies `Any.==` for all object with the exception of `Number.nan`.
-      """)
+        Note that this is different than `Meta.is_same_object`, which checks whether two
+        references point to the same object on the heap. Moreover, `Meta.is_same_object`
+        implies `Any.==` for all object with the exception of `Number.nan`.
+        """)
 public final class EqualsBuiltinNode extends Node {
   @Child private EqualsNode node;
   @Child private AppendWarningNode append;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type AnyIcon } from '@/util/icons'
+import type { AnyIcon } from '@/util/icons'
 import SvgButton from './SvgButton.vue'
 
 const props = defineProps<{

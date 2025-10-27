@@ -15,37 +15,43 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
-
 mod metadata;
 
-use enso_parser_debug::test::block;
-use enso_parser_debug::test::expect_invalid_node;
 use enso_parser_debug::test::expect_multiple_operator_error;
 use enso_parser_debug::test::expect_valid;
-use enso_parser_debug::test::module;
-use enso_parser_debug::test::parse;
+use enso_parser_debug::test::parse_module;
 use insta::assert_snapshot;
-
-
 
 // ===========================
 // === Test support macros ===
 // ===========================
 
+macro_rules! test_parse {
+    ( $code:expr, @$expected:tt, $parse:ident ) => {
+        let code = $code;
+        let code = code.as_ref();
+        let tree = enso_parser_debug::test::$parse(code);
+        let s_expr = enso_parser_debug::to_s_expr(&tree, code).to_string();
+        let error = enso_parser_debug::test::first_error(&tree);
+        if let Some(error) = error {
+            assert_snapshot!(format!("{error}: {s_expr}"), @$expected)
+        } else {
+            assert_snapshot!(s_expr, @$expected)
+        }
+    };
+}
+
 macro_rules! test_module {
     ( $code:expr, @$expected:tt ) => {
-        assert_snapshot!(module($code), @$expected)
-    }
+        test_parse!($code, @$expected, parse_module);
+    };
 }
 
 macro_rules! test_block {
     ( $code:expr, @$expected:tt ) => {
-        assert_snapshot!(block($code), @$expected)
+        test_parse!($code, @$expected, parse_block);
     }
 }
-
-
 
 // ================================
 // === Language Construct Tests ===
@@ -66,8 +72,10 @@ fn application() {
 fn parentheses() {
     test_block!("(a b)",
         @"(BodyBlock #((ExpressionStatement () (Group (App (Ident a) (Ident b))))))");
-    expect_invalid_node("x)");
-    test_block!("(x", @"(BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("x)",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("(x",
+        @"Unclosed parenthesis in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
     test_block!("(a) (b)",
         @"(BodyBlock #((ExpressionStatement () (App (Group (Ident a)) (Group (Ident b))))))");
     test_block!("((a b) c)",
@@ -79,9 +87,9 @@ fn parentheses() {
 #[test]
 fn section_simple() {
     test_block!("+ a",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp () (Ok "+") (Ident a))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp () (Ok "+") (Ident a)))))"#);
     test_block!("a +",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp (Ident a) (Ok "+") ())))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp (Ident a) (Ok "+") ()))))"#);
 }
 
 #[test]
@@ -136,7 +144,10 @@ fn function_documentation() {
         @r#"(BodyBlock #((Function ((#((Section " The Identity Function") (Newline) (Newline) (Section "Arguments:") (Newline) (Section "- x: value to do nothing to"))) #(())) #() () () (Ident id) #((() (Ident x) () ())) () (Ident x))))"#);
     test_module!(&["type Foo", " ## Test indent handling", "  ", " foo bar = foo"].join("\n"),
         @r#"(BodyBlock #((TypeDef Foo #() #((Function ((#((Section " Test indent handling"))) #(() ())) #() () () (Ident foo) #((() (Ident bar) () ())) () (Ident foo))))))"#);
-    expect_invalid_node("expression ## unexpected doc comment on same line");
+    test_module!("expression ## unexpected",
+        @"Unexpected documentation at end of line: (BodyBlock #((ExpressionStatement () (App (Ident expression) (Invalid)))))");
+    test_block!("expression ## unexpected",
+        @"Unexpected documentation at end of line: (BodyBlock #((ExpressionStatement () (App (Ident expression) (Invalid)))))");
 }
 
 #[test]
@@ -151,7 +162,6 @@ fn unused_documentation() {
         @r#"(BodyBlock #((Documentation (#((Section " First docs")))) (Documentation (#((Section " More docs")))) () (Documentation (#((Section " More docs after a gap"))))))"#);
 }
 
-
 // === Type Definitions ===
 
 #[test]
@@ -165,7 +175,8 @@ fn type_definition_no_body() {
         @r#"(BodyBlock #((TypeDef A #((() (Ident a) () ((Number () "0" ())))) #())))"#);
     test_module!("type Existing_Headers (column_names : Vector Text)",
         @r#"(BodyBlock #((TypeDef Existing_Headers #((() (Ident column_names) (":" (App (Ident Vector) (Ident Text))) ())) #())))"#);
-    test_module!("type 1", @"(BodyBlock #((Invalid)))");
+    test_module!("type 1",
+        @"Expected type identifier in type declaration: (BodyBlock #((Invalid)))");
 }
 
 #[test]
@@ -182,7 +193,7 @@ fn type_constructors() {
     test_module!("type Foo\n Bar (a : B = C.D)",
         @r#"(BodyBlock #((TypeDef Foo #() #((ConstructorDefinition () #() () Bar #((() (Ident a) (":" (Ident B)) ((OprApp (Ident C) (Ok ".") (Ident D))))) #())))))"#);
     test_module!(["type A", "    Foo (a : Integer, b : Integer)"].join("\n"),
-        @r#"(BodyBlock #((TypeDef A #() #((ConstructorDefinition () #() () Foo #((() (Ident a) (":" (Invalid)) ())) #())))))"#);
+        @r#"Invalid use of syntactic operator in expression: (BodyBlock #((TypeDef A #() #((ConstructorDefinition () #() () Foo #((() (Ident a) (":" (Invalid)) ())) #())))))"#);
 }
 
 #[test]
@@ -222,7 +233,7 @@ fn type_methods() {
         ].join("\n"),
         @r#"(BodyBlock #((TypeDef Problem_Builder #() #((Function ((#((Section " Returns a vector containing all reported problems, aggregated."))) #(())) #() ((Ident build_problemset) ":" (Ident Vector)) () (Ident build_problemset) #((() (Ident self) () ())) () (BodyBlock #((ExpressionStatement () (Ident self)))))))))"#);
     test_module!("[foo., bar.]",
-        @r#"(BodyBlock #((ExpressionStatement () (Array (OprSectionBoundary 1 (OprApp (Ident foo) (Ok ".") ())) #(("," (OprSectionBoundary 1 (OprApp (Ident bar) (Ok ".") ()))))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (Array (OprApp (Ident foo) (Ok ".") ()) #(("," (OprApp (Ident bar) (Ok ".") ())))))))"#);
 }
 
 #[test]
@@ -236,11 +247,16 @@ fn type_operator_methods() {
         @r#"(BodyBlock #((TypeDef Foo #() #((Function () #() ((Ident +) ":" (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo)))) () (Ident +) #((() (Ident self) () ()) (() (Ident b) () ())) () (Ident b)) (Function () #() ((OprApp (Ident Foo) (Ok ".") (Ident +)) ":" (Ident Foo)) () (OprApp (Ident Foo) (Ok ".") (Ident +)) #((() (Ident self) () ()) (() (Ident b) () ())) () (Ident b))))))"#);
     test_block!("Any.==",
         @r#"(BodyBlock #((ExpressionStatement () (OprApp (Ident Any) (Ok ".") (Ident ==)))))"#);
-    expect_invalid_node("x.-y");
-    expect_invalid_node("x.-1");
-    expect_invalid_node("x.+y");
-    expect_invalid_node("x.+1");
-    expect_invalid_node("x.+'a'");
+    test_block!("x.-y",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("x.-1",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("x.+y",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("x.+1",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("x.+'a'",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
     // Compile-time operators are never operator-identifiers.
     test_block!("x.~y",
         @r#"(BodyBlock #((ExpressionStatement () (OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Ident y))))))"#);
@@ -268,7 +284,8 @@ fn type_def_full() {
 fn type_def_defaults() {
     test_module!("type Result error ok=Nothing\n    Ok value:ok=Nothing\n    Error (value:e = Nothing)",
         @r#"(BodyBlock #((TypeDef Result #((() (Ident error) () ()) (() (Ident ok) () ((Ident Nothing)))) #((ConstructorDefinition () #() () Ok #((() (Ident value) (":" (Ident ok)) ((Ident Nothing)))) #()) (ConstructorDefinition () #() () Error #((() (Ident value) (":" (Ident e)) ((Ident Nothing)))) #())))))"#);
-    expect_invalid_node("type Result\n    Ok value:ok = Nothing");
+    test_module!("type Result\n    Ok value:ok = Nothing",
+        @r#"Expected identifier or wildcard in argument binding: (BodyBlock #((TypeDef Result #() #((ConstructorDefinition () #() () Ok #((() (Ident value) (":" (Ident ok)) ()) (() (Invalid) () ((Invalid))) (() (Ident Nothing) () ())) #())))))"#);
 }
 
 #[test]
@@ -276,7 +293,6 @@ fn type_def_nested() {
     test_module!(["type Foo", "    type Bar", "    type Baz"].join("\n"),
         @"(BodyBlock #((TypeDef Foo #() #((TypeDef Bar #() #()) (TypeDef Baz #() #())))))");
 }
-
 
 // === Variable Assignment ===
 
@@ -288,11 +304,18 @@ fn assignment_simple() {
     // In a body block, this is a variable binding.
     test_block!("main =\n    foo = x",
         @"(BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((Assignment () (Ident foo) (Ident x)))))))");
+    test_module!("foo=x",
+        @"(BodyBlock #((Function () #() () () (Ident foo) #() () (Ident x))))");
     test_block!("foo=x",
         @"(BodyBlock #((Assignment () (Ident foo) (Ident x))))");
+    test_module!("foo= x",
+        @"(BodyBlock #((Function () #() () () (Ident foo) #() () (Ident x))))");
     test_block!("foo= x",
         @"(BodyBlock #((Assignment () (Ident foo) (Ident x))))");
-    expect_invalid_node("foo =x");
+    test_module!("foo =x",
+        @"Each operator on the left side of an assignment operator must be applied to two operands, with the same spacing on each side: (BodyBlock #((Invalid)))");
+    test_block!("foo =x",
+        @"Each operator on the left side of an assignment operator must be applied to two operands, with the same spacing on each side: (BodyBlock #((Invalid)))");
 }
 
 #[test]
@@ -300,7 +323,6 @@ fn assignment_documentation() {
     test_block!("## The Foo\nfoo = x",
         @r#"(BodyBlock #((Assignment ((#((Section " The Foo"))) #(())) (Ident foo) (Ident x))))"#);
 }
-
 
 // === Functions ===
 
@@ -314,7 +336,8 @@ fn function_inline_simple_args() {
         @"(BodyBlock #((Function () #() () () (Ident foo) #((() (Ident a) () ()) (() (Ident b) () ()) (() (Ident c) () ())) () (Ident x))))");
     test_module!("foo _ = x",
         @"(BodyBlock #((Function () #() () () (Ident foo) #((() (Wildcard -1) () ())) () (Ident x))))");
-    expect_invalid_node("foo a =x");
+    test_module!("foo a =x",
+        @"Each operator on the left side of an assignment operator must be applied to two operands, with the same spacing on each side: (BodyBlock #((Invalid)))");
 }
 
 #[test]
@@ -374,22 +397,40 @@ fn function_inline_return_specification() {
     // Edge case
     test_module!("number -> Integer = 23",
         @r#"(BodyBlock #((Function () #() () () (Ident number) #() ("->" (Ident Integer)) (Number () "23" ()))))"#);
-    expect_invalid_node("f x : Integer -> Integer = 23");
+    test_module!("f x : Integer -> Integer = 23",
+        @r#"Expected identifier or wildcard in argument binding: (BodyBlock #((Function () #() () () (Ident f) #((() (Ident x) () ()) (() (Invalid) (":" (Invalid)) ()) (() (Ident Integer) () ())) ("->" (Ident Integer)) (Number () "23" ()))))"#);
 }
 
+#[test]
+fn ignored_argument_patterns() {
+    test_block!("_ -> x",
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp (Wildcard 0) (Ok "->") (Ident x)))))"#);
+    test_block!("_-> x",
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp (Wildcard 0) (Ok "->") (Ident x)))))"#);
+    test_block!("_ = x", @"(BodyBlock #((Assignment () (Wildcard -1) (Ident x))))");
+    test_block!("_= x", @"(BodyBlock #((Assignment () (Wildcard -1) (Ident x))))");
+    test_block!("\\_ -> x",
+        @r#"(BodyBlock #((ExpressionStatement () (Lambda "\\" #((() (Wildcard -1) () ())) "->" (Ident x)))))"#);
+    test_block!("\\_-> x",
+        @r#"(BodyBlock #((ExpressionStatement () (Lambda "\\" #((() (Wildcard -1) () ())) "->" (Ident x)))))"#);
+}
 
 // === Named arguments ===
 
 #[test]
 fn named_arguments() {
-    test_module!("f x=y",
+    test_block!("f x=y",
         @"(BodyBlock #((ExpressionStatement () (NamedApp (Ident f) x (Ident y)))))");
-    test_module!("f (x = y)",
+    test_block!("f (x = y)",
         @"(BodyBlock #((ExpressionStatement () (NamedApp (Ident f) x (Ident y)))))");
-    expect_invalid_node("f (x = y");
-    expect_invalid_node("f (x=y");
-    expect_invalid_node("f x=)");
-    expect_invalid_node("f (x =)");
+    test_block!("f (x = y",
+        @"Unclosed parenthesis in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("f (x=y",
+        @"Unclosed parenthesis in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("f x=)",
+        @"Unmatched delimiter: (BodyBlock #((ExpressionStatement () (NamedApp (Ident f) x (Invalid)))))");
+    test_block!("f (x =)",
+        @"Operator must be applied to two operands: (BodyBlock #((ExpressionStatement () (App (Ident f) (Group (Invalid))))))");
     test_block!("(x a=b)",
         @"(BodyBlock #((ExpressionStatement () (Group (NamedApp (Ident x) a (Ident b))))))");
     test_block!("(x a=b.c)",
@@ -399,21 +440,22 @@ fn named_arguments() {
     test_block!("sort by=x-> y-> compare x y",
         @r#"(BodyBlock #((ExpressionStatement () (NamedApp (Ident sort) by (OprApp (Ident x) (Ok "->") (OprApp (Ident y) (Ok "->") (App (App (Ident compare) (Ident x)) (Ident y))))))))"#);
     test_block!("sort by=(<) xs",
-        @r#"(BodyBlock #((ExpressionStatement () (App (NamedApp (Ident sort) by (Group (OprSectionBoundary 2 (OprApp () (Ok "<") ())))) (Ident xs)))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (App (NamedApp (Ident sort) by (Group (OprApp () (Ok "<") ()))) (Ident xs)))))"#);
     test_block!("sort by=(x-> x) y-> compare x y",
         @r#"(BodyBlock #((ExpressionStatement () (App (NamedApp (Ident sort) by (Group (OprApp (Ident x) (Ok "->") (Ident x)))) (OprApp (Ident y) (Ok "->") (App (App (Ident compare) (Ident x)) (Ident y)))))))"#);
     test_block!("sort by=(x-> x) 1",
         @r#"(BodyBlock #((ExpressionStatement () (App (NamedApp (Ident sort) by (Group (OprApp (Ident x) (Ok "->") (Ident x)))) (Number () "1" ())))))"#);
-    test_block!("foo to=", @"(BodyBlock #((ExpressionStatement () (App (Ident foo) (Invalid)))))");
-    test_module!("foo to=", @"(BodyBlock #((ExpressionStatement () (App (Ident foo) (Invalid)))))");
+    test_block!("foo to=",
+        @"Operator must be applied to two operands: (BodyBlock #((ExpressionStatement () (App (Ident foo) (Invalid)))))");
+    test_module!("foo to=",
+        @"Operator must be applied to two operands: (BodyBlock #((ExpressionStatement () (App (Ident foo) (Invalid)))))");
     test_block!("(foo to=)",
-        @"(BodyBlock #((ExpressionStatement () (Group (App (Ident foo) (Invalid))))))");
+        @"Operator must be applied to two operands: (BodyBlock #((ExpressionStatement () (Group (App (Ident foo) (Invalid))))))");
     test_block!("filter (foo to=(1))",
         @r#"(BodyBlock #((ExpressionStatement () (App (Ident filter) (Group (NamedApp (Ident foo) to (Group (Number () "1" ()))))))))"#);
     test_block!("foo . bar baz=quux",
         @r#"(BodyBlock #((ExpressionStatement () (NamedApp (OprApp (Ident foo) (Ok ".") (Ident bar)) baz (Ident quux)))))"#);
 }
-
 
 // === Default arguments ===
 
@@ -440,21 +482,21 @@ fn complex_arguments() {
     test_module!("f (x = 1) = x",
         @r#"(BodyBlock #((Function () #() () () (Ident f) #((() (Ident x) () ((Number () "1" ())))) () (Ident x))))"#);
     test_module!("f ((x = 1) : Number) = x",
-        @r#"(BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) (":" (Ident Number)) ())) () (Ident x))))"#);
+        @r#"Expected identifier or wildcard in argument binding: (BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) (":" (Ident Number)) ())) () (Ident x))))"#);
     test_module!("f (x=1 : Number) = x",
-        @r#"(BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) (":" (Ident Number)) ())) () (Ident x))))"#);
+        @r#"Expected identifier or wildcard in argument binding: (BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) (":" (Ident Number)) ())) () (Ident x))))"#);
     test_module!("f (x : Number = 1) = x",
         @r#"(BodyBlock #((Function () #() () () (Ident f) #((() (Ident x) (":" (Ident Number)) ((Number () "1" ())))) () (Ident x))))"#);
     test_module!("f (x y) = x",
-        @"(BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) () ())) () (Ident x))))");
+        @"Expected identifier or wildcard in argument binding: (BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) () ())) () (Ident x))))");
     test_module!("f ((x : Number) = 1) = x",
         @r#"(BodyBlock #((Function () #() () () (Ident f) #((() (Ident x) (":" (Ident Number)) ((Number () "1" ())))) () (Ident x))))"#);
     test_module!("f ((x : Array Number) = 1) = x",
         @r#"(BodyBlock #((Function () #() () () (Ident f) #((() (Ident x) (":" (App (Ident Array) (Ident Number))) ((Number () "1" ())))) () (Ident x))))"#);
     test_module!("f (x):Number=1 = x",
-        @r#"(BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) (":" (Ident Number)) ((Number () "1" ())))) () (Ident x))))"#);
+        @r#"Expected identifier or wildcard in argument binding: (BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) (":" (Ident Number)) ((Number () "1" ())))) () (Ident x))))"#);
     test_module!("f ((x:Number=1)) = x",
-        @"(BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) () ())) () (Ident x))))");
+        @"Unexpected operator in parenthesized argument definition clause: (BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) () ())) () (Ident x))))");
     test_module!("f (x : Number)=1 = x",
         @r#"(BodyBlock #((Function () #() () () (Ident f) #((() (Ident x) (":" (Ident Number)) ((Number () "1" ())))) () (Ident x))))"#);
     test_module!("f (x:Number = 1) = x",
@@ -469,7 +511,6 @@ fn complex_arguments() {
     test_module!("f (~x = 1) = x",
         @r#"(BodyBlock #((Function () #() () () (Ident f) #(("~" (Ident x) () ((Number () "1" ())))) () (Ident x))))"#);
 }
-
 
 // === Code Blocks ===
 
@@ -516,9 +557,10 @@ fn argument_block_precedence() {
 
 #[test]
 fn dot_operator_blocks() {
-    test_module!(["rect1", "    . width * 7", "    . abs", "        + x"].join("\n"),
+    test_block!(["rect1", "    . width * 7", "    . abs", "        + x"].join("\n"),
         @r#"(BodyBlock #((ExpressionStatement () (OperatorBlockApplication (Ident rect1) #(((Ok ".") (OprApp (Ident width) (Ok "*") (Number () "7" ()))) ((Ok ".") (OperatorBlockApplication (Ident abs) #(((Ok "+") (Ident x))) #()))) #()))))"#);
-    expect_invalid_node("rect1\n    . width = 7");
+    test_block!("rect1\n    . width = 7",
+        @r#"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (OperatorBlockApplication (Ident rect1) #(((Ok ".") (Invalid))) #()))))"#);
 }
 
 #[test]
@@ -528,7 +570,7 @@ fn argument_blocks() {
     test_block!("value = foo\n    bar",
         @"(BodyBlock #((Assignment () (Ident value) (ArgumentBlockApplication (Ident foo) #((Ident bar))))))");
     test_block!(["value = foo", "    +x", "    bar"].join("\n"),
-        @r#"(BodyBlock #((Assignment () (Ident value) (ArgumentBlockApplication (Ident foo) #((OprSectionBoundary 1 (OprApp () (Ok "+") (Ident x))) (Ident bar))))))"#);
+        @r#"(BodyBlock #((Assignment () (Ident value) (ArgumentBlockApplication (Ident foo) #((OprApp () (Ok "+") (Ident x)) (Ident bar))))))"#);
 }
 
 #[test]
@@ -567,7 +609,7 @@ fn operator_block_nested() {
 #[test]
 fn operator_section_in_operator_block() {
     test_block!(["foo", "    + bar +"].join("\n"),
-        @r#"(BodyBlock #((ExpressionStatement () (OperatorBlockApplication (Ident foo) #(((Ok "+") (OprSectionBoundary 1 (OprApp (Ident bar) (Ok "+") ())))) #()))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OperatorBlockApplication (Ident foo) #(((Ok "+") (OprApp (Ident bar) (Ok "+") ()))) #()))))"#);
 }
 
 #[test]
@@ -575,7 +617,6 @@ fn first_line_indented() {
     test_module!(" a",
         @"(BodyBlock #((BodyBlock #((ExpressionStatement () (Ident a))))))");
 }
-
 
 // === Binary Operators ===
 
@@ -644,31 +685,31 @@ fn pipeline_operators() {
 fn accessor_operator() {
     // Test that the accessor operator `.` is treated like any other operator.
     test_block!("Console.",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp (Ident Console) (Ok ".") ())))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp (Ident Console) (Ok ".") ()))))"#);
     test_block!(".",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 2 (OprApp () (Ok ".") ())))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp () (Ok ".") ()))))"#);
     test_block!(".log",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp () (Ok ".") (Ident log))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp () (Ok ".") (Ident log)))))"#);
 }
 
 #[test]
 fn operator_sections() {
     test_block!(".map (+2 * 3) *7",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (App (App (OprApp () (Ok ".") (Ident map)) (Group (OprSectionBoundary 1 (OprApp (OprApp () (Ok "+") (Number () "2" ())) (Ok "*") (Number () "3" ()))))) (OprSectionBoundary 1 (OprApp () (Ok "*") (Number () "7" ()))))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (App (App (OprApp () (Ok ".") (Ident map)) (Group (OprApp (OprApp () (Ok "+") (Number () "2" ())) (Ok "*") (Number () "3" ())))) (OprApp () (Ok "*") (Number () "7" ()))))))"#);
     test_block!(".sum 1",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (App (OprApp () (Ok ".") (Ident sum)) (Number () "1" ()))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (App (OprApp () (Ok ".") (Ident sum)) (Number () "1" ())))))"#);
     test_block!("+1 + x",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp (OprApp () (Ok "+") (Number () "1" ())) (Ok "+") (Ident x))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp (OprApp () (Ok "+") (Number () "1" ())) (Ok "+") (Ident x)))))"#);
     test_block!("increment = 1 +",
-        @r#"(BodyBlock #((Assignment () (Ident increment) (OprSectionBoundary 1 (OprApp (Number () "1" ()) (Ok "+") ())))))"#);
+        @r#"(BodyBlock #((Assignment () (Ident increment) (OprApp (Number () "1" ()) (Ok "+") ()))))"#);
     test_block!("1+ << 2*",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp (OprApp (Number () "1" ()) (Ok "+") ()) (Ok "<<") (OprSectionBoundary 1 (OprApp (Number () "2" ()) (Ok "*") ())))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp (OprApp (Number () "1" ()) (Ok "+") ()) (Ok "<<") (OprApp (Number () "2" ()) (Ok "*") ())))))"#);
     test_block!("1+1+ << 2*2*",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp (OprApp (OprApp (Number () "1" ()) (Ok "+") (Number () "1" ())) (Ok "+") ()) (Ok "<<") (OprSectionBoundary 1 (OprApp (OprApp (Number () "2" ()) (Ok "*") (Number () "2" ())) (Ok "*") ())))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp (OprApp (OprApp (Number () "1" ()) (Ok "+") (Number () "1" ())) (Ok "+") ()) (Ok "<<") (OprApp (OprApp (Number () "2" ()) (Ok "*") (Number () "2" ())) (Ok "*") ())))))"#);
     test_block!("+1 << *2",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp (OprApp () (Ok "+") (Number () "1" ())) (Ok "<<") (OprSectionBoundary 1 (OprApp () (Ok "*") (Number () "2" ()))))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp (OprApp () (Ok "+") (Number () "1" ())) (Ok "<<") (OprApp () (Ok "*") (Number () "2" ()))))))"#);
     test_block!("+1+1 << *2*2",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp (OprApp (OprApp () (Ok "+") (Number () "1" ())) (Ok "+") (Number () "1" ())) (Ok "<<") (OprSectionBoundary 1 (OprApp (OprApp () (Ok "*") (Number () "2" ())) (Ok "*") (Number () "2" ()))))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp (OprApp (OprApp () (Ok "+") (Number () "1" ())) (Ok "+") (Number () "1" ())) (Ok "<<") (OprApp (OprApp () (Ok "*") (Number () "2" ())) (Ok "*") (Number () "2" ()))))))"#);
 }
 
 #[test]
@@ -681,7 +722,6 @@ fn template_functions() {
         @r#"(BodyBlock #((ExpressionStatement () (TemplateFunction 1 (OprApp (OprApp (Wildcard 0) (Ok "+") (Number () "1" ())) (Ok "+") (Ident x))))))"#);
 }
 
-
 // === Unary Operators ===
 
 #[test]
@@ -692,12 +732,14 @@ fn unevaluated_argument() {
 
 #[test]
 fn unary_operator_missing_operand() {
-    expect_invalid_node("main ~ = x");
+    test_module!("main ~ = x",
+        @r#"Expected identifier or wildcard in argument binding: (BodyBlock #((Function () #() () () (Ident main) #(("~" (Invalid) () ())) () (Ident x))))"#);
 }
 
 #[test]
 fn unary_operator_at_end_of_expression() {
-    expect_invalid_node("foo ~");
+    test_block!("foo ~",
+        @"Operator must be applied to an operand: (BodyBlock #((ExpressionStatement () (App (Ident foo) (Invalid)))))");
 }
 
 #[test]
@@ -707,9 +749,10 @@ fn unspaced_operator_sequence() {
         @r#"(BodyBlock #((Assignment () (Ident x) (OprApp (Ident y) (Ok "+") (UnaryOprApp "-" (Ident z))))))"#);
     // Create an operator section that adds a negated value to its input.
     test_block!("x = +-z",
-        @r#"(BodyBlock #((Assignment () (Ident x) (OprSectionBoundary 1 (OprApp () (Ok "+") (UnaryOprApp "-" (Ident z)))))))"#);
+        @r#"(BodyBlock #((Assignment () (Ident x) (OprApp () (Ok "+") (UnaryOprApp "-" (Ident z))))))"#);
     // The `-` can only be lexed as a unary operator, and unary operators cannot form sections.
-    expect_invalid_node("main =\n    x = y+-");
+    test_module!("main =\n    x = y+-",
+        @r#"Operator must be applied to an operand: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((Assignment () (Ident x) (OprApp (Ident y) (Ok "+") (Invalid))))))))"#);
     // Assign a negative number to x.
     test_block!("x=-1",
         @r#"(BodyBlock #((Assignment () (Ident x) (UnaryOprApp "-" (Number () "1" ())))))"#);
@@ -733,11 +776,11 @@ fn minus_binary() {
 #[test]
 fn minus_section() {
     test_block!("- x",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp () (Ok "-") (Ident x))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp () (Ok "-") (Ident x)))))"#);
     test_block!("(- x)",
-        @r#"(BodyBlock #((ExpressionStatement () (Group (OprSectionBoundary 1 (OprApp () (Ok "-") (Ident x)))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (Group (OprApp () (Ok "-") (Ident x))))))"#);
     test_block!("- (x * x)",
-        @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (OprApp () (Ok "-") (Group (OprApp (Ident x) (Ok "*") (Ident x))))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (OprApp () (Ok "-") (Group (OprApp (Ident x) (Ok "*") (Ident x)))))))"#);
 }
 
 #[test]
@@ -786,21 +829,33 @@ fn autoscope_operator() {
         @r#"(BodyBlock #((Assignment () (Ident x) (AutoscopedIdentifier ".." True))))"#);
     test_block!("x = f ..True",
         @r#"(BodyBlock #((Assignment () (Ident x) (App (Ident f) (AutoscopedIdentifier ".." True)))))"#);
-    expect_invalid_node("x = ..not_a_constructor");
-    expect_invalid_node("x = case a of ..True -> True");
-    expect_invalid_node("x = ..4");
-    expect_invalid_node("x = ..Foo.Bar");
-    expect_invalid_node("x = f .. True");
-    expect_invalid_node("x = f (.. ..)");
-    expect_invalid_node("x = f (.. *)");
-    expect_invalid_node("x = f (.. True)");
-    expect_invalid_node("x = True..");
-    expect_invalid_node("x = True..True");
-    expect_invalid_node("x = ..");
-    expect_invalid_node("x = .. True");
-    expect_invalid_node("x : .. True");
+    test_block!("x = ..not_a_constructor",
+        @"The auto-scope operator may only be applied to a capitalized identifier: (BodyBlock #((Assignment () (Ident x) (Invalid))))");
+    test_block!("x = case a of ..True -> True",
+        @r#"Expression invalid in a pattern: (BodyBlock #((Assignment () (Ident x) (CaseOf (Ident a) #(((() (Invalid) "->" (Ident True))))))))"#);
+    test_block!("x = ..4",
+        @"Space required between terms: (BodyBlock #((Assignment () (Ident x) (Invalid))))");
+    test_block!("x = ..Foo.Bar",
+        @"Space required between term and operator: (BodyBlock #((Assignment () (Ident x) (Invalid))))");
+    test_block!("x = f .. True",
+        @"The autoscope operator must be applied to an identifier: (BodyBlock #((Assignment () (Ident x) (App (App (Ident f) (Invalid)) (Ident True)))))");
+    test_block!("x = f (.. ..)",
+        @"The autoscope operator must be applied to an identifier: (BodyBlock #((Assignment () (Ident x) (App (Ident f) (Group (App (Invalid) (Invalid)))))))");
+    test_block!("x = f (.. *)",
+        @r#"The autoscope operator must be applied to an identifier: (BodyBlock #((Assignment () (Ident x) (App (Ident f) (Group (OprApp (Invalid) (Ok "*") ()))))))"#);
+    test_block!("x = f (.. True)",
+        @"The autoscope operator must be applied to an identifier: (BodyBlock #((Assignment () (Ident x) (App (Ident f) (Group (App (Invalid) (Ident True)))))))");
+    test_block!("x = True..",
+        @"Space required between terms: (BodyBlock #((Assignment () (Ident x) (Invalid))))");
+    test_block!("x = True..True",
+        @"Space required between terms: (BodyBlock #((Assignment () (Ident x) (Invalid))))");
+    test_block!("x = ..",
+        @"The autoscope operator must be applied to an identifier: (BodyBlock #((Assignment () (Ident x) (Invalid))))");
+    test_block!("x = .. True",
+        @"The autoscope operator must be applied to an identifier: (BodyBlock #((Assignment () (Ident x) (App (Invalid) (Ident True)))))");
+    test_block!("x : .. True",
+        @r#"The autoscope operator must be applied to an identifier: (BodyBlock #((ExpressionStatement () (TypeAnnotated (Ident x) ":" (App (Invalid) (Ident True))))))"#);
 }
-
 
 // === Import/Export ===
 
@@ -822,7 +877,8 @@ fn import() {
         @r#"(BodyBlock #((Import ((Ident polyglot) (Ident java)) () ((Ident import) (OprApp (OprApp (Ident java) (Ok ".") (Ident net)) (Ok ".") (Ident URI))) () ((Ident as) (Ident Java_URI)) ())))"#);
     test_module!("from Standard.Base import Foo, Bar, Baz",
         @r#"(BodyBlock #((Import () ((Ident from) (OprApp (Ident Standard) (Ok ".") (Ident Base))) ((Ident import) (OprApp (OprApp (Ident Foo) (Ok ",") (Ident Bar)) (Ok ",") (Ident Baz))) () () ())))"#);
-    expect_invalid_node("from Standard.Base.Data.Array import new as array_new");
+    test_module!("from Standard.Base.Data.Array import new as array_new",
+        @r#"Expected identifier: (BodyBlock #((Import () ((Ident from) (OprApp (OprApp (OprApp (Ident Standard) (Ok ".") (Ident Base)) (Ok ".") (Ident Data)) (Ok ".") (Ident Array))) ((Ident import) (Invalid)) () () ())))"#);
 }
 
 #[test]
@@ -833,13 +889,13 @@ fn export() {
         @"(BodyBlock #((Export () ((Ident export) (Ident Foo)) ((Ident as) (Ident Bar)))))");
     test_module!("from Foo export Bar, Baz",
         @r#"(BodyBlock #((Export ((Ident from) (Ident Foo)) ((Ident export) (OprApp (Ident Bar) (Ok ",") (Ident Baz))) ())))"#);
-    expect_invalid_node("from Foo export all hiding Bar, Baz");
-    test_module!("from Foo export all", @"(BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_module!("from Foo export all hiding Bar, Baz",
+        @r#""all" not allowed in export statement: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
+    test_module!("from Foo export all",
+        @r#""all" not allowed in export statement: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
 }
 
-
 // === Metadata ===
-
 
 #[test]
 fn metadata_raw() {
@@ -860,10 +916,9 @@ fn metadata_raw() {
 fn metadata_parsing() {
     let code = metadata::ORDERS_WITH_METADATA;
     let (meta, code) = enso_parser::metadata::parse(code).unwrap();
-    let _ast = parse(code);
+    let _ast = parse_module(code);
     let _meta: enso_parser::metadata::Metadata = meta.unwrap();
 }
-
 
 // === Type annotations and signatures ===
 
@@ -874,7 +929,7 @@ fn type_signatures() {
     test_block!("val : Bool\nval",
         @r#"(BodyBlock #((TypeSignatureDeclaration ((Ident val) ":" (Ident Bool))) (ExpressionStatement () (Ident val))))"#);
     test_block!("val : Bool",
-        @r#"(BodyBlock #((TypeAnnotated (Ident val) ":" (Ident Bool))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (TypeAnnotated (Ident val) ":" (Ident Bool)))))"#);
     test_module!("val : Bool\nval = True",
         @r#"(BodyBlock #((Function () #() ((Ident val) ":" (Ident Bool)) () (Ident val) #() () (Ident True))))"#);
     test_module!("val : Bool\n\nval = True",
@@ -909,7 +964,6 @@ fn type_annotations() {
         @r#"(BodyBlock #((ExpressionStatement () (OprApp (TypeAnnotated (Ident p) ":" (Ident Plus)) (Ok "+") (TypeAnnotated (Ident m) ":" (Ident Plus))))))"#);
 }
 
-
 // === Text Literals ===
 
 #[test]
@@ -936,7 +990,7 @@ fn inline_text_literals() {
         @"(BodyBlock #((ExpressionStatement () (TextLiteral #((Escape 2325) (Escape 2381) (Escape 2359) (Escape 2367))))))");
     test_block!(r#"('\n')"#,
         @"(BodyBlock #((ExpressionStatement () (Group (TextLiteral #((Escape 10)))))))");
-    test_block!(r#"`"#, @"(BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!(r#"`"#, @"Unexpected token: (BodyBlock #((ExpressionStatement () (Invalid))))");
     test_block!(r#"(")")"#,
         @r#"(BodyBlock #((ExpressionStatement () (Group (TextLiteral #((Section ")")))))))"#);
     test_block!(r#"'\x'"#,
@@ -1011,7 +1065,6 @@ fn interpolated_literals_in_multiline_text() {
         @r#"(BodyBlock #((ExpressionStatement () (TextLiteral #((Section "text with a ") (Splice (Ident splice)) (Newline) (Section "and some ") (Escape 10) (Section "escapes") (Escape 39))))))"#);
 }
 
-
 // === Lambdas ===
 
 #[test]
@@ -1038,12 +1091,18 @@ fn new_lambdas() {
         @r#"(BodyBlock #((ExpressionStatement () (Lambda "\\" #(("~" (Ident x) () ())) "->" (Ident x)))))"#);
     test_block!(r#"\a (b = f _ 1) -> f a"#,
         @r#"(BodyBlock #((ExpressionStatement () (Lambda "\\" #((() (Ident a) () ()) (() (Ident b) () ((App (App (Ident f) (TemplateFunction 1 (Wildcard 0))) (Number () "1" ()))))) "->" (App (Ident f) (Ident a))))))"#);
-    expect_invalid_node("\\");
-    expect_invalid_node("\\ v");
-    expect_invalid_node("\\v");
-    expect_invalid_node("\\v->");
-    expect_invalid_node("\\v->\n");
-    expect_invalid_node("\\v->\nv");
+    test_block!("\\",
+        @"Invalid macro invocation: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("\\ v",
+        @"Invalid macro invocation: (BodyBlock #((ExpressionStatement () (App (Invalid) (Ident v)))))");
+    test_block!("\\v",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("\\v->",
+        @r#"Expected tokens: (BodyBlock #((ExpressionStatement () (Lambda "\\" #((() (Ident v) () ())) "->" (Invalid)))))"#);
+    test_block!("\\v->\n",
+        @r#"Expected tokens: (BodyBlock #((ExpressionStatement () (Lambda "\\" #((() (Ident v) () ())) "->" (Invalid))) ()))"#);
+    test_block!("\\v->\nv",
+        @"This expression would define an unused function: (BodyBlock #((Invalid) (ExpressionStatement () (Ident v))))");
 }
 
 #[test]
@@ -1068,7 +1127,6 @@ fn old_lambdas() {
         @r#"(BodyBlock #((Assignment () (Ident foo) (OprApp (Ident x) (Ok "->") (OprApp (Group (OprApp (Ident y) (Ok "=") (App (Ident bar) (Ident x)))) (Ok "->") (OprApp (Ident x) (Ok "+") (Ident y)))))))"#);
 }
 
-
 // === Pattern Matching ===
 
 #[test]
@@ -1083,8 +1141,14 @@ fn pattern_irrefutable() {
 
 #[test]
 fn pattern_invalid() {
-    expect_invalid_node("x + y = z");
-    expect_invalid_node("(x y) = z");
+    test_block!("x + y = z",
+        @"Expected identifier or wildcard in argument binding: (BodyBlock #((Function () #() () () (Ident x) #((() (Invalid) () ()) (() (Ident y) () ())) () (Ident z))))");
+    test_module!("x + y = z",
+        @"Expected identifier or wildcard in argument binding: (BodyBlock #((Function () #() () () (Ident x) #((() (Invalid) () ()) (() (Ident y) () ())) () (Ident z))))");
+    test_block!("(x y) = z",
+        @"Expression invalid in a pattern: (BodyBlock #((Assignment () (Group (Invalid)) (Ident z))))");
+    test_module!("(x y) = z",
+        @"Unexpected variable assignment in module statement: (BodyBlock #((Invalid)))");
 }
 
 #[test]
@@ -1152,15 +1216,22 @@ fn suspended_default_arguments_in_expression() {
 
 #[test]
 fn private_keyword() {
-    test_module!("private", @"(BodyBlock #((Private private)))");
-    expect_invalid_node("private func");
-    // Private binding is not supported.
-    expect_invalid_node("main =\n    private var = 42");
-    // Private function is not allowed in body block.
-    expect_invalid_node("main =\n    private func x = 42");
-    expect_invalid_node("private ConstructorOutsideType");
-    expect_invalid_node("type My_Type\n    private");
-    expect_invalid_node("private type My_Type\n    Ctor");
+    test_module!("private",
+        @"(BodyBlock #((Private private)))");
+    test_module!("private func",
+        @r#"The "private" keyword cannot be applied to this type of symbol: (BodyBlock #((ExpressionStatement () (App (Invalid) (Ident func)))))"#);
+    test_module!("main =\n    private var = 42",
+        @r#"The "private" keyword is not expected in this context: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((App (Invalid) (Assignment () (Ident var) (Number () "42" ()))))))))"#);
+    test_module!("main =\n    private func x = 42",
+        @r#"The "private" keyword is not expected in this context: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((App (Invalid) (Function () #() () () (Ident func) #((() (Ident x) () ())) () (Number () "42" ()))))))))"#);
+    test_module!("private ConstructorOutsideType",
+        @r#"The "private" keyword cannot be applied to this type of symbol: (BodyBlock #((ExpressionStatement () (App (Invalid) (Ident ConstructorOutsideType)))))"#);
+    test_module!("type My_Type\n    private",
+        @r#"In a type definition, the "private" keyword can only be applied to a constructor or function definition: (BodyBlock #((TypeDef My_Type #() #((Invalid)))))"#);
+    test_module!("private type My_Type\n    Ctor",
+        @r#"The "private" keyword cannot be applied to this type of symbol: (BodyBlock #((App (Invalid) (TypeDef My_Type #() #((ConstructorDefinition () #() () Ctor #() #()))))))"#);
+    test_module!("private type T",
+        @r#"The "private" keyword cannot be applied to this type of symbol: (BodyBlock #((App (Invalid) (TypeDef T #() #()))))"#);
 }
 
 #[test]
@@ -1171,15 +1242,6 @@ fn private_methods() {
         @r#"(BodyBlock #((Function () #() () private (Ident method) #() () (BodyBlock #((ExpressionStatement () (Number () "42" ())))))))"#);
     test_module!("type T\n    private method x = x",
         @"(BodyBlock #((TypeDef T #() #((Function () #() () private (Ident method) #((() (Ident x) () ())) () (Ident x))))))");
-}
-
-#[test]
-#[ignore]
-fn private_is_first_statement() {
-    expect_invalid_node(&["type T", "", "private"].join("\n"));
-    // Comments and empty lines are allowed before `private`.
-    test_module!(["# Some comment", "# Other comment", "", "private"].join("\n"),
-        @"(BodyBlock #(() () () () () (Private private)))");
 }
 
 // === Array/tuple literals ===
@@ -1210,7 +1272,6 @@ fn tuple_literals() {
         @r#"(BodyBlock #((ExpressionStatement () (Tuple (Ident x) #(("," (Ident y)))))))"#);
 }
 
-
 // === Numeric literals ===
 
 #[cfg(test)]
@@ -1228,9 +1289,9 @@ mod numbers {
         test_block!("1 . 0",
             @r#"(BodyBlock #((ExpressionStatement () (OprApp (Number () "1" ()) (Ok ".") (Number () "0" ())))))"#);
         test_block!("1 .0",
-            @r#"(BodyBlock #((ExpressionStatement () (App (Number () "1" ()) (OprSectionBoundary 1 (OprApp () (Ok ".") (Number () "0" ())))))))"#);
+            @r#"(BodyBlock #((ExpressionStatement () (App (Number () "1" ()) (OprApp () (Ok ".") (Number () "0" ()))))))"#);
         test_block!("1. 0",
-            @r#"(BodyBlock #((ExpressionStatement () (OprSectionBoundary 1 (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ()))))))"#);
+            @r#"(BodyBlock #((ExpressionStatement () (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ())))))"#);
     }
 
     #[test]
@@ -1278,10 +1339,10 @@ mod numbers {
 
     #[test]
     fn old_hex() {
-        expect_invalid_node("16_17ffffffffffffffa");
+        test_block!("16_17ffffffffffffffa",
+            @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
     }
 }
-
 
 // === Whitespace ===
 
@@ -1293,13 +1354,18 @@ fn trailing_whitespace() {
         @"(BodyBlock #((Function () #() () () (Ident a) #() () (BodyBlock #((ExpressionStatement () (Ident x)))))))");
 }
 
-
 // === Annotations ===
 
 #[test]
 fn at_operator() {
-    expect_invalid_node("foo@bar");
-    expect_invalid_node("foo @ bar");
+    test_block!("foo@bar",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_module!("foo@bar",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("foo @ bar",
+        @"Operator must be applied to an operand: (BodyBlock #((ExpressionStatement () (App (App (Ident foo) (Invalid)) (Ident bar)))))");
+    test_module!("foo @ bar",
+        @"Operator must be applied to an operand: (BodyBlock #((ExpressionStatement () (App (App (Ident foo) (Invalid)) (Ident bar)))))");
 }
 
 #[test]
@@ -1308,6 +1374,10 @@ fn annotations() {
         @r#"(BodyBlock #((Function () #(((on_problems (OprApp (Ident P) (Ok ".") (Ident g))) #(()))) ((Ident select_columns) ":" (OprApp (Ident Text) (Ok "->") (Ident Table))) () (Ident select_columns) #((() (Ident text) () ())) () (App (Ident to_table) (Ident text)))))"#);
     test_module!("@a\n@b 1 + 1\nf x = x",
         @r#"(BodyBlock #((Function () #(((a ()) #(())) ((b (OprApp (Number () "1" ()) (Ok "+") (Number () "1" ()))) #(()))) () () (Ident f) #((() (Ident x) () ())) () (Ident x))))"#);
+    test_module!("@x `\nid x = x",
+        @"Unexpected token: (BodyBlock #((Function () #(((x (Invalid)) #(()))) () () (Ident id) #((() (Ident x) () ())) () (Ident x))))");
+    test_module!("@` foo\nid x = x",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (App (Invalid) (Ident foo))) (Function () #() () () (Ident id) #((() (Ident x) () ())) () (Ident x))))");
 }
 
 #[test]
@@ -1324,13 +1394,13 @@ fn annotations_on_type_constructors() {
 
 #[test]
 fn inline_builtin_annotations() {
-    test_module!("@Tail_Call go t",
-        @"(BodyBlock #((AnnotatedBuiltin Tail_Call #() (App (Ident go) (Ident t)))))");
-    test_module!("@Tail_Call go (x = y)",
-        @"(BodyBlock #((AnnotatedBuiltin Tail_Call #() (NamedApp (Ident go) x (Ident y)))))");
-    test_module!("@Tail_Call go\n a\n b",
-        @"(BodyBlock #((AnnotatedBuiltin Tail_Call #() (ArgumentBlockApplication (Ident go) #((Ident a) (Ident b))))))");
-    test_module!("map _-> @Tail_Call f",
+    test_block!("@Tail_Call go t",
+        @"(BodyBlock #((ExpressionStatement () (AnnotatedBuiltin Tail_Call #() (App (Ident go) (Ident t))))))");
+    test_block!("@Tail_Call go (x = y)",
+        @"(BodyBlock #((ExpressionStatement () (AnnotatedBuiltin Tail_Call #() (NamedApp (Ident go) x (Ident y))))))");
+    test_block!("@Tail_Call go\n a\n b",
+        @"(BodyBlock #((ExpressionStatement () (AnnotatedBuiltin Tail_Call #() (ArgumentBlockApplication (Ident go) #((Ident a) (Ident b)))))))");
+    test_block!("map _-> @Tail_Call f",
         @r#"(BodyBlock #((ExpressionStatement () (App (Ident map) (OprApp (Wildcard 0) (Ok "->") (AnnotatedBuiltin Tail_Call #() (Ident f)))))))"#);
 }
 
@@ -1339,7 +1409,6 @@ fn multiline_builtin_annotations() {
     test_module!("@Builtin_Type\ntype Date",
         @"(BodyBlock #((AnnotatedBuiltin Builtin_Type #(()) (TypeDef Date #() #()))))");
 }
-
 
 // === SKIP and FREEZE ===
 
@@ -1371,15 +1440,17 @@ fn skip() {
 
 #[test]
 fn statement_in_expression_context() {
-    test_block!("x = y = z", @"(BodyBlock #((Assignment () (Ident x) (Invalid))))");
-    test_block!("(y = z)", @"(BodyBlock #((ExpressionStatement () (Group (Invalid)))))");
+    test_block!("x = y = z",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((Assignment () (Ident x) (Invalid))))");
+    test_block!("(y = z)",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Group (Invalid)))))");
     test_block!("(y = z) x",
-        @"(BodyBlock #((ExpressionStatement () (App (Group (Invalid)) (Ident x)))))");
-    test_block!("(f x = x)", @"(BodyBlock #((ExpressionStatement () (Group (Invalid)))))");
-    test_block!("y = f x = x", @"(BodyBlock #((Assignment () (Ident y) (Invalid))))");
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (App (Group (Invalid)) (Ident x)))))");
+    test_block!("(f x = x)",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Group (Invalid)))))");
+    test_block!("y = f x = x",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((Assignment () (Ident y) (Invalid))))");
 }
-
-
 
 // =========================
 // === Scalability Tests ===
@@ -1402,84 +1473,131 @@ fn big_array() {
     expect_valid(&big_array);
 }
 
-
-
 // ==========================
 // === Syntax Error Tests ===
 // ==========================
 
 #[test]
 fn space_required() {
-    expect_invalid_node("foo = if cond.x else.y");
+    test_block!("foo = if cond.x else.y",
+        @r#"Invalid macro invocation: (BodyBlock #((Assignment () (Ident foo) (App (App (Invalid) (OprApp (Ident cond) (Ok ".") (Ident x))) (OprApp (Ident else) (Ok ".") (Ident y))))))"#);
 }
 
 #[test]
 fn incomplete_type_definition() {
-    expect_invalid_node("type");
+    test_module!("type", @"Expected type identifier in type declaration: (BodyBlock #((Invalid)))");
+    test_block!("type", @"Expected type identifier in type declaration: (BodyBlock #((Invalid)))");
 }
 
 #[test]
 fn bad_case() {
-    expect_invalid_node("foo = case x of\n 4");
-    expect_invalid_node("foo = case x of\n 4 ->");
-    expect_invalid_node("foo = case x of\n 4->");
+    test_block!("foo = case x of\n 4",
+        @"Invalid case expression: (BodyBlock #((Assignment () (Ident foo) (Invalid))))");
+    test_block!("foo = case x of\n 4 ->",
+        @"Invalid case expression: (BodyBlock #((Assignment () (Ident foo) (Invalid))))");
+    test_block!("foo = case x of\n 4->",
+        @"Invalid case expression: (BodyBlock #((Assignment () (Ident foo) (Invalid))))");
 }
 
 #[test]
 fn malformed_sequence() {
-    expect_invalid_node("(1, )");
-    expect_invalid_node("foo = (1, )");
+    test_block!("(1, )",
+        @"Operator must be applied to two operands: (BodyBlock #((ExpressionStatement () (Group (Invalid)))))");
+    test_block!("foo = (1, )",
+        @"Operator must be applied to two operands: (BodyBlock #((Assignment () (Ident foo) (Group (Invalid)))))");
 }
 
 #[test]
 fn unmatched_delimiter() {
-    expect_invalid_node("(");
-    expect_invalid_node(")");
-    expect_invalid_node("[");
-    expect_invalid_node("]");
-    expect_invalid_node("foo = (");
-    expect_invalid_node("foo = )");
-    expect_invalid_node("foo = [");
-    expect_invalid_node("foo = ]");
+    test_block!("(",
+        @"Unclosed parenthesis in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!(")", @"Unmatched delimiter: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("[",
+        @"Invalid macro invocation: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("]", @"Unmatched delimiter: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("foo = (",
+        @"Unclosed parenthesis in expression: (BodyBlock #((Assignment () (Ident foo) (Invalid))))");
+    test_module!("foo = (",
+        @"Unclosed parenthesis in expression: (BodyBlock #((Function () #() () () (Ident foo) #() () (Invalid))))");
+    test_block!("foo = )",
+        @"Unmatched delimiter: (BodyBlock #((Assignment () (Ident foo) (Invalid))))");
+    test_module!("foo = )",
+        @"Unmatched delimiter: (BodyBlock #((Function () #() () () (Ident foo) #() () (Invalid))))");
+    test_block!("foo = [",
+        @"Invalid macro invocation: (BodyBlock #((Assignment () (Ident foo) (Invalid))))");
+    test_module!("foo = [",
+        @"Invalid macro invocation: (BodyBlock #((Function () #() () () (Ident foo) #() () (Invalid))))");
+    test_block!("foo = ]",
+        @"Unmatched delimiter: (BodyBlock #((Assignment () (Ident foo) (Invalid))))");
+    test_module!("foo = ]",
+        @"Unmatched delimiter: (BodyBlock #((Function () #() () () (Ident foo) #() () (Invalid))))");
 }
 
 #[test]
 fn unexpected_special_operator() {
-    expect_invalid_node("foo = 1, 2");
+    test_block!("foo = 1, 2",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((Assignment () (Ident foo) (Invalid))))");
+    test_module!("foo = 1, 2",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((Function () #() () () (Ident foo) #() () (Invalid))))");
 }
 
 #[test]
 fn malformed_import() {
-    expect_invalid_node("import");
-    expect_invalid_node("import as Foo");
-    expect_invalid_node("import Foo as Foo, Bar");
-    expect_invalid_node("import Foo as Foo.Bar");
-    expect_invalid_node("import Foo as");
-    expect_invalid_node("import Foo as Bar.Baz");
-    expect_invalid_node("import Foo hiding");
-    expect_invalid_node("import Foo hiding X,");
-    expect_invalid_node("polyglot import Foo");
-    expect_invalid_node("polyglot java import");
-    expect_invalid_node("from import all");
-    expect_invalid_node("from Foo import all hiding");
-    expect_invalid_node("from Foo import all hiding X.Y");
-    expect_invalid_node("export");
-    expect_invalid_node("export as Foo");
-    expect_invalid_node("export Foo as Foo, Bar");
-    expect_invalid_node("export Foo as Foo.Bar");
-    expect_invalid_node("export Foo as");
-    expect_invalid_node("export Foo as Bar.Baz");
-    expect_invalid_node("export Foo hiding");
-    expect_invalid_node("export Foo hiding X,");
-    expect_invalid_node("from export all");
-    expect_invalid_node("from Foo export all hiding");
-    expect_invalid_node("from Foo export all hiding X.Y");
+    test_module!("import",
+        @r#"Expected name or "all" keyword following "import" keyword: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
+    test_module!("import as Foo",
+        @r#"Expected name or "all" keyword following "import" keyword: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
+    test_module!("import Foo as Foo, Bar",
+        @"Expected identifier: (BodyBlock #((Import () () ((Ident import) (Ident Foo)) () ((Ident as) (Invalid)) ())))");
+    test_module!("import Foo as Foo.Bar",
+        @"Expected identifier: (BodyBlock #((Import () () ((Ident import) (Ident Foo)) () ((Ident as) (Invalid)) ())))");
+    test_module!("import Foo as",
+        @"Expected tokens: (BodyBlock #((Import () () ((Ident import) (Ident Foo)) () ((Ident as) (Invalid)) ())))");
+    test_module!("import Foo as Bar.Baz",
+        @"Expected identifier: (BodyBlock #((Import () () ((Ident import) (Ident Foo)) () ((Ident as) (Invalid)) ())))");
+    test_module!("import Foo hiding",
+        @"Expected qualified name: (BodyBlock #((Import () () ((Ident import) (Invalid)) () () ())))");
+    test_module!("import Foo hiding X,",
+        @"Malformed comma-delimited sequence: (BodyBlock #((Import () () ((Ident import) (Invalid)) () () ())))");
+    test_module!("polyglot import Foo",
+        @"Expected tokens: (BodyBlock #((Import ((Ident polyglot) (Invalid)) () ((Ident import) (Ident Foo)) () () ())))");
+    test_module!("polyglot java import",
+        @r#"Expected name or "all" keyword following "import" keyword: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
+    test_module!("from import all",
+        @"Expected tokens: (BodyBlock #((Import () ((Ident from) (Invalid)) ((Ident import) ()) all () ())))");
+    test_module!("from Foo import all hiding",
+        @"Expected tokens: (BodyBlock #((Import () ((Ident from) (Ident Foo)) ((Ident import) ()) all () ((Ident hiding) (Invalid)))))");
+    test_module!("from Foo import all hiding X.Y",
+        @"Expected identifier: (BodyBlock #((Import () ((Ident from) (Ident Foo)) ((Ident import) ()) all () ((Ident hiding) (Invalid)))))");
+    test_module!("export",
+        @r#"Expected name following "export" keyword: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
+    test_module!("export as Foo",
+        @r#"Expected name following "export" keyword: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
+    test_module!("export Foo as Foo, Bar",
+        @"Expected identifier: (BodyBlock #((Export () ((Ident export) (Ident Foo)) ((Ident as) (Invalid)))))");
+    test_module!("export Foo as Foo.Bar",
+        @"Expected identifier: (BodyBlock #((Export () ((Ident export) (Ident Foo)) ((Ident as) (Invalid)))))");
+    test_module!("export Foo as",
+        @"Expected tokens: (BodyBlock #((Export () ((Ident export) (Ident Foo)) ((Ident as) (Invalid)))))");
+    test_module!("export Foo as Bar.Baz",
+        @"Expected identifier: (BodyBlock #((Export () ((Ident export) (Ident Foo)) ((Ident as) (Invalid)))))");
+    test_module!("export Foo hiding",
+        @"Expected qualified name: (BodyBlock #((Export () ((Ident export) (Invalid)) ())))");
+    test_module!("export Foo hiding X,",
+        @"Malformed comma-delimited sequence: (BodyBlock #((Export () ((Ident export) (Invalid)) ())))");
+    test_module!("from export all",
+        @r#""all" not allowed in export statement: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
+    test_module!("from Foo export all hiding",
+        @r#""all" not allowed in export statement: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
+    test_module!("from Foo export all hiding X.Y",
+        @r#""all" not allowed in export statement: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
 }
 
 #[test]
 fn invalid_token() {
-    expect_invalid_node("`");
-    expect_invalid_node("splice_outside_text = `");
+    test_block!("`", @"Unexpected token: (BodyBlock #((ExpressionStatement () (Invalid))))");
+    test_block!("splice_outside_text = `",
+        @"Unexpected token: (BodyBlock #((Assignment () (Ident splice_outside_text) (Invalid))))");
 }
 
 #[test]
@@ -1487,15 +1605,16 @@ fn illegal_foreign_body() {
     // Foreign is only a keyword on the LHS of an assignment operator.
     test_module!("foreign 4",
         @r#"(BodyBlock #((ExpressionStatement () (App (Ident foreign) (Number () "4" ())))))"#);
-    // Missing name
-    expect_invalid_node("foreign foo = \"4\"");
-    // Body must be a type
-    expect_invalid_node("foreign js foo = 4");
+    test_module!("foreign foo = \"4\"",
+        @"Expected function name in foreign function definition: (BodyBlock #((Invalid)))");
+    test_module!("foreign js foo = 4",
+        @"The body of a foreign function must be a text literal: (BodyBlock #((ForeignFunction js foo #() (Invalid))))");
 }
 
 #[test]
 fn unexpected_tokens_in_inner_macro_segment() {
-    expect_invalid_node("from Foo import all What_Is_This_Doing_Here hiding Bar");
+    test_module!("from Foo import all What_Is_This_Doing_Here hiding Bar",
+        @"Unexpected tokens in macro invocation: (BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident from) (Ident Foo)) ((Ident import) ()) ((Ident all) (Invalid)) ((Ident hiding) (Ident Bar)))))))");
 }
 
 #[test]
@@ -1507,7 +1626,8 @@ fn invalid_unspaced_operator_sequence() {
     //
     // Due to this special case, there is no reasonable way to interpret this type of expression as
     // valid when spaces are added in the following way:
-    expect_invalid_node("x = y +- z");
+    test_block!("x = y +- z",
+        @r#"Operator must be applied to an operand: (BodyBlock #((Assignment () (Ident x) (App (App (Ident y) (OprApp () (Ok "+") (Invalid))) (Ident z)))))"#);
     expect_multiple_operator_error("x =- y");
     //
     // Treating the `-` as a unary operator applied to `z` would be confusing, as it would be in
@@ -1519,28 +1639,79 @@ fn invalid_unspaced_operator_sequence() {
     // Lacking any reasonable valid interpretation, we treat this case as an error.
     //
     // Similar expressions with missing operands should be treated likewise:
-    expect_invalid_node("x = y +-");
-    expect_invalid_node("x = +- z");
+    test_block!("x = y +-",
+        @r#"Operator must be applied to an operand: (BodyBlock #((Assignment () (Ident x) (App (Ident y) (OprApp () (Ok "+") (Invalid))))))"#);
+    test_block!("x = +- z",
+        @r#"Operator must be applied to an operand: (BodyBlock #((Assignment () (Ident x) (App (OprApp () (Ok "+") (Invalid)) (Ident z)))))"#);
     expect_multiple_operator_error("x =-");
     expect_multiple_operator_error("=- y");
     expect_multiple_operator_error("=-");
 }
 
 #[test]
-fn nonsense_inputs() {
-    expect_invalid_node("`a (b = 1).`");
-    expect_invalid_node("type M = B<d f<'a> F(M<'a>) -> S>;");
-    expect_invalid_node("'`'\nx `y`\nz");
-    expect_invalid_node("if (asGuestValue\n  a");
-    expect_invalid_node("foo(\n  a");
-    expect_invalid_node("(Vector(), true)");
-    expect_invalid_node("x @Builtin_Method \"a\"");
+fn function_expression_in_statement_context() {
+    test_module!("main =\n    +x\n    x",
+        @"This expression would define an unused function; if you would like to create an operator block, each indented line must begin with an operator followed by a space: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((Invalid) (ExpressionStatement () (Ident x)))))))");
+    test_module!("main =\n    \\x -> x\n    x",
+        @"This expression would define an unused function: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((Invalid) (ExpressionStatement () (Ident x)))))))");
+    test_module!("main =\n    _ x\n    x",
+        @"This expression would define an unused function: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((Invalid) (ExpressionStatement () (Ident x)))))))");
+    // Catch a common error; See: https://github.com/enso-org/enso/issues/11203
+    test_module!("main =\n    x +\n        1 +\n        2",
+        @r#"This expression would define an unused function; if you would like to create an operator block, each indented line must begin with an operator followed by a space: (BodyBlock #((Function () #() () () (Ident main) #() () (BodyBlock #((ExpressionStatement () (OprApp (Ident x) (Ok "+") (BodyBlock #((Invalid) (ExpressionStatement () (Number () "2" ())))))))))))"#);
 }
 
 #[test]
 #[ignore]
+fn proposed_invalid_cases() {
+    // Disallow lambda arguments in property access position?
+    test_module!("run op =\n    op ._",
+        @r#"(BodyBlock #((Function () #() () () (Ident run) #((() (Ident op) () ())) () (BodyBlock #((ExpressionStatement () (App (Ident op) (TemplateFunction 1 (1 (OprApp () (Ok ".") (Wildcard 0)))))))))))"#);
+    test_block!("z = x. length",
+        @r#"(BodyBlock #((Assignment () (Ident z) (1 (App (OprApp (Ident x) (Ok ".") ()) (Ident length))))))"#);
+    // Maybe other arbitrary expressions too?
+    test_block!("y = x.('p')",
+        @r#"(BodyBlock #((Assignment () (Ident y) (OprApp (Ident x) (Ok ".") (Group (TextLiteral #((Section "p"))))))))"#);
+
+    // FIXME: Type operators must be fully-applied
+    test_module!("f : Text -> | Nothing -> Nothing\nf x = Nothing",
+        @r#"(BodyBlock #((Function () #() ((Ident f) ":" (OprApp (Ident Text) (Err (#("->" "|"))) (OprApp (Ident Nothing) (Ok "->") (Ident Nothing)))) () (Ident f) #((() (Ident x) () ())) () (Ident Nothing))))"#);
+    // FIXME: Annotation argument should be syntactically required
+    test_module!("@anno\nfn = 10",
+        @r#"(BodyBlock #((Function () #(((anno ()) #(()))) () () (Ident fn) #() () (Number () "10" ()))))"#);
+
+    // I think it may be better to treat this as a semantic error than a syntax error. The
+    // inter-line state we'd have to maintain to recognize this error would interfere with
+    // incremental parsing (which in the GUI we've discussed maybe wanting some day).
+    test_module!("private\nprivate", @"(BodyBlock #((Private private) (Private private)))");
+    test_module!("type T\nprivate", @"(BodyBlock #((TypeDef T #() #()) (Private private)))");
+    // Comments and empty lines are allowed before "private".
+    test_module!("# Some comment\n    # Other comment\n\n    \nprivate",
+        @"(BodyBlock #((BodyBlock #(() ())) () () () (Private private)))");
+}
+
+#[test]
+fn nonsense_inputs() {
+    test_module!("`a (b = 1).`",
+        @r#"Space required between terms: (BodyBlock #((ExpressionStatement () (OprApp (NamedApp (Invalid) b (Number () "1" ())) (Ok ".") (Invalid)))))"#);
+    test_module!("type M = B<d f<'a> F(M<'a>) -> S>;",
+        @"Expected identifier or wildcard in argument binding: (BodyBlock #((TypeDef M #((() (Invalid) () ((Invalid))) (() (Invalid) () ()) (() (Invalid) () ()) (() (Invalid) () ()) (() (Invalid) () ())) #())))");
+    test_module!("'`'\nx `y`\nz",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid)) (ExpressionStatement () (App (Ident x) (Invalid))) (ExpressionStatement () (Ident z))))");
+    test_module!("if (asGuestValue\n  a",
+        @"Invalid macro invocation: (BodyBlock #((ExpressionStatement () (ArgumentBlockApplication (App (Invalid) (Invalid)) #((Ident a))))))");
+    test_module!("foo(\n  a",
+        @"Space required between terms: (BodyBlock #((ExpressionStatement () (ArgumentBlockApplication (Invalid) #((Ident a))))))");
+    test_module!("(Vector(), true)",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Group (Invalid)))))");
+    test_module!("x @Builtin_Method \"a\"",
+        @"Unexpected expression annotation: (BodyBlock #((ExpressionStatement () (Invalid))))");
+}
+
+// FIXME: These cases are currently unparseable
+#[test]
+#[ignore]
 fn nonsense_inputs_broken() {
-    // FIXME
-    expect_invalid_node("'`\n");
-    expect_invalid_node(".'\\\n");
+    test_module!("'`\n", @"");
+    test_module!(".'\\\n", @"");
 }

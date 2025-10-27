@@ -12,10 +12,7 @@ import wasm from 'vite-plugin-wasm'
 import tailwindConfig from './tailwind.config'
 
 const isDevMode = process.env.NODE_ENV === 'development'
-const isE2E = process.env.INTEGRATION_TEST === 'true'
 const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
-
-const entrypoint = isE2E ? './src/project-view/test-entrypoint.ts' : './src/entrypoint.ts'
 
 if (isDevMode) {
   process.env.ENSO_IDE_YDOC_SERVER_URL ||= 'ws://__HOSTNAME__:5976'
@@ -95,8 +92,6 @@ export default defineConfig({
   resolve: {
     conditions: isDevMode ? ['source', ...defaultClientConditions] : [...defaultClientConditions],
     alias: {
-      '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
-      shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src/project-view', import.meta.url)),
       '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),
       $: fileURLToPath(new URL('./src', import.meta.url)),

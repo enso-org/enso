@@ -25,13 +25,13 @@ public class TypesFromSignaturesTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type A
-                    type B
-                    type C
-                        Value v
+                type A
+                type B
+                type C
+                    Value v
 
-                    f (x : A) (y : B) -> C = C.Value [x, y]
-                    """,
+                f (x : A) (y : B) -> C = C.Value [x, y]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -48,21 +48,21 @@ public class TypesFromSignaturesTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type A
-                        Value
-                        + self other = other
-                    type B
+                type A
+                    Value
+                    + self other = other
+                type B
 
-                    f1 (_ : A) -> B = 1
-                    f2 (x : A) -> B = x + 10
-                    f3 (x : A) -> B = [x]
-                    f4 (x : A) -> B = f1 x
-                    f5 (x : A) -> B = x
-                    f6 (x : A) -> B =
-                        y = x
-                        z = y
-                        z
-                    """,
+                f1 (_ : A) -> B = 1
+                f2 (x : A) -> B = x + 10
+                f3 (x : A) -> B = [x]
+                f4 (x : A) -> B = f1 x
+                f5 (x : A) -> B = x
+                f6 (x : A) -> B =
+                    y = x
+                    z = y
+                    z
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -83,18 +83,18 @@ public class TypesFromSignaturesTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type A
-                    type B
-                    type C
-                        Value v
+                type A
+                type B
+                type C
+                    Value v
 
-                    f0 = 0
+                f0 = 0
 
-                    f4 x y z w = [x, y, z, w]
+                f4 x y z w = [x, y, z, w]
 
-                    f2 : A -> B -> C
-                    f2 x y = [x, y]
-                    """,
+                f2 : A -> B -> C
+                f2 x y = [x, y]
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -126,11 +126,11 @@ public class TypesFromSignaturesTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type A
-                        static_method (x : A) -> A = x
-                        member_method self (x : A) -> A = x
-                    standalone_method (x : A) -> A = x
-                    """,
+                type A
+                    static_method (x : A) -> A = x
+                    member_method self (x : A) -> A = x
+                standalone_method (x : A) -> A = x
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -150,11 +150,11 @@ public class TypesFromSignaturesTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type A
+                type A
 
-                    A.extension_static_method (x : A) -> A = x
-                    A.extension_member_method self (x : A) -> A = x
-                    """,
+                A.extension_static_method (x : A) -> A = x
+                A.extension_member_method self (x : A) -> A = x
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();

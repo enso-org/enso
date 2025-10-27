@@ -49,14 +49,14 @@ public class SharedEngineTest {
       Source.newBuilder(
               "enso",
               """
-    from Standard.Base import Vector, Text, Number
+              from Standard.Base import Vector, Text, Number
 
-    check x = case x of
-        _ : Vector -> 1
-        _ : Text -> 2
-        _ : Number -> 3
-        _ -> 4
-    """,
+              check x = case x of
+                  _ : Vector -> 1
+                  _ : Text -> 2
+                  _ : Number -> 3
+                  _ -> 4
+              """,
               "type_case.enso")
           .buildLiteral();
 

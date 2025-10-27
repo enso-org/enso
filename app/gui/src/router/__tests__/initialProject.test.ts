@@ -1,11 +1,11 @@
 import {
-  AnyRealAsset,
+  type AnyRealAsset,
   AssetType,
   EmailAddress,
   OrganizationId,
   Path,
   Plan,
-  User,
+  type User,
   UserId,
 } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'

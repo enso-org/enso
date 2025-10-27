@@ -200,11 +200,14 @@ object DistributionPackage {
       log             = log
     )
 
-    if (!GraalVM.EnsoLauncher.shell) {
+    if (GraalVM.EnsoLauncher.native) {
       log.info(
-        s"Not using shell launchers as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
+        s"Using native launchers as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
       )
     } else {
+      log.info(
+        s"Using shell launchers as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
+      )
       copyDirectoryIncremental(
         file("distribution/bin"),
         distributionRoot / "bin",
@@ -719,7 +722,7 @@ object DistributionPackage {
 
     copyFilesIncremental(
       Seq(
-        file("distribution/launcher/.enso.portable"),
+        file("distribution/launcher/.enso.bundle"),
         file("distribution/launcher/README.md")
       ),
       distributionRoot,

@@ -40,13 +40,13 @@ public class CaseOfTest {
   private void doCaseOfBoolean(Object t, Object f) {
     var code =
         """
-                   from Standard.Base import True, False
+        from Standard.Base import True, False
 
-                   choose v = case v of
-                       True -> 1
-                       False -> 2
-                       _ -> 3
-                   """;
+        choose v = case v of
+            True -> 1
+            False -> 2
+            _ -> 3
+        """;
 
     var choose = ctxRule.evalModule(code, "choose.enso", "choose");
 

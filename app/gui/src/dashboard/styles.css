@@ -4,7 +4,7 @@
   background-blend-mode: lighten;
 }
 
-:where(body:not(.vibrancy)) {
+body {
   @apply bg-cover bg-dashboard;
 }
 

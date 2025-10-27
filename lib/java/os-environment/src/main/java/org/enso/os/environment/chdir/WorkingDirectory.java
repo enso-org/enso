@@ -92,9 +92,8 @@ public abstract sealed class WorkingDirectory
   private static boolean isPathAbsolute(String path) {
     return switch (Platform.getOperatingSystem()) {
       case LINUX, MACOS -> path.charAt(0) == Platform.separatorChar();
-      case WINDOWS -> path.length() > 2
-          && path.charAt(1) == ':'
-          && path.charAt(2) == Platform.separatorChar();
+      case WINDOWS ->
+          path.length() > 2 && path.charAt(1) == ':' && path.charAt(2) == Platform.separatorChar();
     };
   }
 }
