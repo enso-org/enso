@@ -537,6 +537,26 @@ type Snowflake_Connection
         self.execute_query query limit write_operation=False
 
     ## ---
+       icon: data_download
+       ---
+       Download one or more files from a stage to a local folder.
+
+       ## Arguments
+       - `stage`: The name (and optionally schema) of the stage to read the
+          properties from.
+       - `path`: The path (or prefix) to the files to list.
+       - `directory`: The local folder to save the files to.
+    @stage make_stage_selector
+    @directory (Folder_Browse display=..Always)
+    get_from_stage : Identifier -> Text -> File -> Text -> Table
+    get_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text=(Missing_Argument.throw "path") directory:File=(Missing_Argument.throw "directory") pattern:Text="" =
+        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
+            stage_and_path = stage.to_identifier + if path == "" then "" else '/' + path
+            file_uri = "'file://" + (directory.path.replace "\" "/" . replace "'" "''") + "'"
+            query = "GET '@" + (stage_and_path.replace "'" "''") + "' " + file_uri + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
+            self.execute_query query write_operation=True
+
+    ## ---
        icon: trash2
        ---
        Remove a file from a stage
@@ -547,7 +567,7 @@ type Snowflake_Connection
        - `path`: The path (or prefix) to the files to remove.
        - `pattern`: Optional regex pattern to match names against.
     @stage make_stage_selector
-    remove_from_stage : Identifier -> Text -> Text -> Integer
+    remove_from_stage : Identifier -> Text -> Text -> Table
     remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text="" pattern:Text="" =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
             stage_and_path = stage.to_identifier + if path == "" then "" else '/' + path
