@@ -7,6 +7,46 @@ import { basename, dirname, extname } from 'node:path'
 import { importProjectFromPath, isProjectBundle, isProjectRoot } from 'project-manager-shim'
 import { toElectronFileFilter, type FileFilter } from './fileBrowser'
 
+export type Electron = typeof import('electron')
+
+/**
+ * Set Chrome options based on the app configuration. For comprehensive list of available
+ * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches.
+ */
+export function setChromeOptions(electron: Electron) {
+  // Needed to accept localhost self-signed cert
+  electron.app.commandLine.appendSwitch('ignore-certificate-errors')
+  // Enable native CPU-mappable GPU memory buffer support on Linux.
+  electron.app.commandLine.appendSwitch('enable-native-gpu-memory-buffers')
+  // Override the list of blocked GPU hardware, allowing for GPU acceleration on system configurations
+  // that do not inherently support it. It should be noted that some hardware configurations may have
+  // driver issues that could result in rendering discrepancies. Despite this, the utilization of GPU
+  // acceleration has the potential to significantly enhance the performance of the application in our
+  // specific use cases. This behavior can be observed in the following example:
+  // https://groups.google.com/a/chromium.org/g/chromium-dev/c/09NnO6jYT6o.
+  electron.app.commandLine.appendSwitch('ignore-gpu-blocklist')
+}
+
+/** Register keyboard shortcuts that should be handled by Electron. */
+export function registerShortcuts(electron: Electron) {
+  electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
+    webContents.on('before-input-event', (_beforeInputEvent, input) => {
+      const { code, alt, control, shift, meta, type } = input
+      if (type === 'keyDown') {
+        const focusedWindow = electron.BrowserWindow.getFocusedWindow()
+        if (focusedWindow) {
+          if (control && alt && shift && !meta && code === 'KeyI') {
+            focusedWindow.webContents.toggleDevTools()
+          }
+          if (control && alt && shift && !meta && code === 'KeyR') {
+            focusedWindow.reload()
+          }
+        }
+      }
+    })
+  })
+}
+
 /**
  * Initialize Inter-Process Communication between the Electron application and the served
  * website.

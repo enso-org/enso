@@ -25,7 +25,7 @@ import * as authentication from '@/authentication'
 import * as configParser from '@/configParser'
 import * as contentConfig from '@/contentConfig'
 import * as debug from '@/debug'
-import { initIpc } from '@/electron'
+import { initIpc, registerShortcuts, setChromeOptions } from '@/electron'
 import * as fileAssociations from '@/fileAssociations'
 import * as ipc from '@/ipc'
 import * as log from '@/log'
@@ -284,24 +284,6 @@ function handleItemOpening(
   }
 }
 
-/**
- * Set Chrome options based on the app configuration. For comprehensive list of available
- * Chrome options refer to: https://peter.sh/experiments/chromium-command-line-switches.
- */
-function setChromeOptions(electron: Electron) {
-  // Needed to accept localhost self-signed cert
-  electron.app.commandLine.appendSwitch('ignore-certificate-errors')
-  // Enable native CPU-mappable GPU memory buffer support on Linux.
-  electron.app.commandLine.appendSwitch('enable-native-gpu-memory-buffers')
-  // Override the list of blocked GPU hardware, allowing for GPU acceleration on system configurations
-  // that do not inherently support it. It should be noted that some hardware configurations may have
-  // driver issues that could result in rendering discrepancies. Despite this, the utilization of GPU
-  // acceleration has the potential to significantly enhance the performance of the application in our
-  // specific use cases. This behavior can be observed in the following example:
-  // https://groups.google.com/a/chromium.org/g/chromium-dev/c/09NnO6jYT6o.
-  electron.app.commandLine.appendSwitch('ignore-gpu-blocklist')
-}
-
 /** Main app entry point. */
 async function main(app: App, args: Options, electron: Electron | undefined) {
   // We catch all errors here. Otherwise, it might be possible that the app will run partially
@@ -512,25 +494,6 @@ async function printVersion(): Promise<void> {
   for (const line of lines) {
     process.stdout.write(`${indent}${line}\n`)
   }
-}
-
-function registerShortcuts(electron: Electron) {
-  electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
-    webContents.on('before-input-event', (_beforeInputEvent, input) => {
-      const { code, alt, control, shift, meta, type } = input
-      if (type === 'keyDown') {
-        const focusedWindow = electron.BrowserWindow.getFocusedWindow()
-        if (focusedWindow) {
-          if (control && alt && shift && !meta && code === 'KeyI') {
-            focusedWindow.webContents.toggleDevTools()
-          }
-          if (control && alt && shift && !meta && code === 'KeyR') {
-            focusedWindow.reload()
-          }
-        }
-      }
-    })
-  })
 }
 
 // FIXME: Conditionally load `electron`
