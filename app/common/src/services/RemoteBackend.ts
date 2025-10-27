@@ -10,9 +10,11 @@ import { z } from 'zod'
 import * as detect from '../detect.js'
 import { delay } from '../utilities/async.js'
 import * as objects from '../utilities/data/object.js'
+import type { DownloadOptions } from '../utilities/download'
 import { getFileName, getFolderPath } from '../utilities/file.js'
 import * as backend from './Backend.js'
 import * as remoteBackendPaths from './Backend/remoteBackendPaths.js'
+import type { HttpClient } from './HttpClient'
 import { extractIdFromDirectoryId, organizationIdToDirectoryId } from './RemoteBackend/ids.js'
 
 /** HTTP status indicating that the resource does not exist. */
@@ -28,9 +30,19 @@ const IMPORT_STATUS_INTERVAL_MS = 5_000
 export class RemoteBackend extends backend.Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
-  // TODO: $config.API_URL
-  override readonly baseUrl = new URL(process.env.ENSO_IDE_API_URL ?? '', location.href)
+  override readonly baseUrl: URL
   private user: objects.Mutable<backend.User> | null = null
+
+  /** Create a {@link RemoteBackend}. */
+  constructor(
+    getText: backend.GetText,
+    client: HttpClient,
+    downloader: (options: DownloadOptions) => void | Promise<void>,
+    baseUrl: URL,
+  ) {
+    super(getText, client, downloader)
+    this.baseUrl = baseUrl
+  }
 
   /** The path to the root directory of this {@link Backend}. */
   override rootPath(user: backend.User) {

@@ -1752,7 +1752,7 @@ export abstract class Backend {
   private readonly client: HttpClient
   protected readonly downloader: (options: DownloadOptions) => void | Promise<void>
 
-  /** Create a {@link LocalBackend}. */
+  /** Create a {@link Backend}. */
   constructor(
     getText: GetText,
     client: HttpClient,

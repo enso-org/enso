@@ -42,7 +42,12 @@ function initializeBackends(
       )
     : null,
   )
-  const remoteBackend = new RemoteBackend(getText, httpClient, download)
+  const remoteBackend = new RemoteBackend(
+    getText,
+    httpClient,
+    download,
+    new URL($config.API_URL ?? '', location.href),
+  )
 
   watch(
     () => getText,
