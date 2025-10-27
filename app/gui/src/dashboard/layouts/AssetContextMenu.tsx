@@ -28,6 +28,7 @@ import * as backendModule from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
 import { useRightPanelData } from '$/providers/react/container'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import { useOpenedProjects } from '$/providers/react/openedProjects'
@@ -76,8 +77,19 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
     canOpenProjectNatively,
     closeProject,
   } = useOpenedProjects()
-  const canOpenLocally = canOpenProjectLocally(backend.type)
-  const canOpenNatively = canOpenProjectNatively(backend.type)
+  const canOpenLocally = useVueValue(
+    React.useCallback(
+      () => canOpenProjectLocally(backend.type),
+      [canOpenProjectLocally, backend.type],
+    ),
+  )
+  const canOpenNatively = useVueValue(
+    React.useCallback(
+      () => canOpenProjectNatively(backend.type),
+      [canOpenProjectNatively, backend.type],
+    ),
+  )
+  console.debug('>>', canOpenLocally, canOpenNatively)
   const deleteAssets = useMutationCallback(deleteAssetsMutationOptions(backend))
   const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
   const copyAssets = useMutationCallback(copyAssetsMutationOptions(backend))
@@ -235,7 +247,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           !isRunningProject &&
           !isOtherUserUsingProject && {
             action: 'open',
-            isDisabled: canOpenLocally,
+            isDisabled: !canOpenLocally,
             tooltip: disabledTooltip,
             doAction: () => {
               void goToDrive()
@@ -246,7 +258,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           isCloud &&
           localBackend != null && {
             action: 'run',
-            isDisabled: canOpenNatively,
+            isDisabled: !canOpenNatively,
             tooltip: disabledTooltip,
             doAction: () => {
               void goToDrive()

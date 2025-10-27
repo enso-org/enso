@@ -99,10 +99,12 @@ export async function maybeRedirectToProject(to: RouteLocation): Promise<Navigat
   // In case of not being logged in, the redirection should be managed by ProtectedLayout.
   if (auth.session == null) return
 
+  console.debug('option', config.params.startup.project)
   const pathFromOptions =
     config.params.startup.project && backends.localBackend ?
       await uploadProjectArchive(config.params.startup.project, backends.localBackend)
     : undefined
+  console.debug('Path', pathFromOptions)
 
   const initialPath =
     pathFromOptions ??

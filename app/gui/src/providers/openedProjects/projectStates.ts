@@ -21,7 +21,15 @@ import { injectGuiConfig } from '@/providers/guiConfig'
 import { assert, assertDefined } from '@/util/assert'
 import { Err, Ok, rejectionToResult, type Result } from '@/util/data/result'
 import * as vueQuery from '@tanstack/vue-query'
-import { computed, effectScope, markRaw, onScopeDispose, type EffectScope, type Ref } from 'vue'
+import {
+  computed,
+  effectScope,
+  markRaw,
+  onScopeDispose,
+  watchEffect,
+  type EffectScope,
+  type Ref,
+} from 'vue'
 import { useBackends } from '../backends'
 import { useSession } from '../session'
 import { useText } from '../text'
@@ -355,10 +363,22 @@ export function useProjectStates() {
     if (!runDetailsResult.ok) return runDetailsResult
     const runDetails = runDetailsResult.value
 
+    // Wait for project to be ready.
+    await new Promise((resolve) => {
+      scope.run(() => {
+        watchEffect(() => {
+          console.debug('STATE IS', runDetails.value.state.type)
+          if (runDetails.value.state.type === BackendProjectState.opened) {
+            resolve(undefined)
+          }
+        })
+      })
+    })
+
     return scope.run(() => {
       const runningId = project.info.mode === 'hybrid' ? project.info.runningId : project.info.id
       const projectNames = createProjectNameStore({
-        projectNamespace: undefined, // TODO[ao]: we should get project's namespace from cloud. This never worked in old Editor.tsx
+        projectNamespace: 'local', // Even in cloud, the namespace seems to be always "local".
         projectDisplayedName: details.value.name,
         projectInitialName: runDetails.value.packageName,
       })
