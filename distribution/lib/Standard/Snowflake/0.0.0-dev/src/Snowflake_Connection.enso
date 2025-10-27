@@ -546,7 +546,7 @@ type Snowflake_Connection
        - `path`: The path (or prefix) to the files to remove.
        - `pattern`: Optional regex pattern to match names against.
     remove_from_stage : Identifier -> Text -> Text -> Integer
-    remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") pattern:Text="" =
+    remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text="" pattern:Text="" =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
             stage_and_path = stage.to_identifier + if path == "" then "" else '/' + path
             query = "REMOVE '@" + (stage_and_path.replace "'" "''") + "'" + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
