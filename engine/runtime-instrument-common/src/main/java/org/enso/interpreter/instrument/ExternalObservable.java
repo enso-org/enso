@@ -58,7 +58,7 @@ public class ExternalObservable implements Observable {
 
   @Override
   public synchronized boolean update(Object value, GuestExecutionService executionService) {
-    var shouldCacheValue = isCached && !(value instanceof DataflowError);
+    var shouldCacheValue = isCached;
     if (shouldCacheValue) {
       this.value = value;
     }

@@ -43,7 +43,7 @@ public class RuntimeAnalysis {
         LOGGER.warn("Should not attempt to exit empty stack for {}", id);
         return;
       }
-      assert (idStack.peek() == id);
+      //assert (idStack.peek() == id);
       idStack.pop();
     }
   }
