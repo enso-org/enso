@@ -1,23 +1,25 @@
 import {
   AssetType,
+  extractTypeAndPath,
   extractTypeFromId,
   type PathResolveResponse,
-  type ProjectAsset,
 } from 'enso-common/src/services/Backend'
 import { EnsoPath } from 'enso-common/src/services/Backend/types'
-import type { LocalBackend } from 'enso-common/src/services/LocalBackend'
+import type { ProjectManager } from 'enso-common/src/services/ProjectManager/ProjectManager'
+import type { Path, ProjectEntry, UUID } from 'enso-common/src/services/ProjectManager/types'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import { ProjectService } from './projectService'
 
 /** Start a hybrid project. */
 export async function startHybridProject(
   path: EnsoPath,
-  localBackend: LocalBackend,
+  projectManager: ProjectManager,
   remoteBackend: RemoteBackend,
   projectService = ProjectService.default(),
 ) {
-  let launchedProjectAsset: ProjectAsset | undefined
+  let project: ProjectEntry | undefined
   let asset: PathResolveResponse | undefined
+  let projectId: UUID | undefined
   try {
     asset = await remoteBackend.resolveEnsoPath(path)
     const typeAndId = extractTypeFromId(asset.id)
@@ -25,33 +27,24 @@ export async function startHybridProject(
       throw new Error(`The path '${path}' does not point to a project.`)
     }
     const localProject = await remoteBackend.downloadProject(typeAndId.id)
-    let project
+    // @ts-expect-error `projectManager` is a private property that we need to access.
+    const projectManager = localBackend.projectManager as ProjectManager
+    let parentPath: Path | undefined
     for (const parentId of [localProject.parentId, localProject.projectRootId]) {
-      const { assets } = await localBackend.listDirectory({
-        parentId: parentId,
-        filterBy: null,
-        labels: null,
-        sortExpression: null,
-        sortDirection: null,
-        from: null,
-        pageSize: null,
-        recentProjects: false,
-      })
-      project = assets.filter((item) => item.type === AssetType.project).at(0)
-      if (project) {
-        break
-      }
+      parentPath = extractTypeAndPath(parentId).path
+      const entries = await projectManager.listDirectory(parentPath)
+      project = entries.filter((entry) => entry.type === 'ProjectEntry')[0]
+      if (project) break
     }
 
-    if (!project) {
+    if (!project || !parentPath) {
       throw new Error('Downloaded cloud project does not exist in Local Backend.')
     }
-    launchedProjectAsset = project
-    projectService.openProject(project.id, project.parentId)
+    projectService.openProject(project.metadata.id, parentPath)
   } catch (error) {
     console.error(`Error starting hybrid project '${asset?.title ?? '(unknown)'}':`, error)
-    if (launchedProjectAsset) {
-      await localBackend.closeProject(launchedProjectAsset.id, asset?.title ?? null)
+    if (projectId) {
+      await projectService.closeProject(projectId)
     }
   }
 }
