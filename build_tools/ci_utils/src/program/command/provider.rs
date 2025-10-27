@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-
-
 pub trait CommandProvider {
     fn command(&self) -> Result<Command>;
 }

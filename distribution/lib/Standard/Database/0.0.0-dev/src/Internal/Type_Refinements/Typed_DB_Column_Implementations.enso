@@ -46,3 +46,8 @@ type DB_Text_Column_Implementation
         Value_Type.expect_text column <|
             new_name = (naming_helper column).function_name "lower" [column]
             make_unary_op column "LOWER" new_name
+
+    proper column =
+        Value_Type.expect_text column <|
+            new_name = (naming_helper column).function_name "proper" [column]
+            make_unary_op column "PROPER" new_name

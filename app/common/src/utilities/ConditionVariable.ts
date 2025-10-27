@@ -16,20 +16,20 @@ export class ConditionVariable {
   }
 
   /** Resolve all promises in the queue. */
-  notifyAll(): Promise<boolean> {
+  notifyAll(): boolean {
     const success = this.resolveQueue.length !== 0
     for (const resolve of this.resolveQueue.splice(0, this.resolveQueue.length)) {
       resolve()
     }
     // Give the code after the resolved promises time to execute.
-    return Promise.resolve(success)
+    return success
   }
 
   /** Resolve a single promise in the queue. */
-  notifyOne(): Promise<boolean> {
+  notifyOne(): boolean {
     const resolve = this.resolveQueue.shift()
     resolve?.()
     // Give the code after the resolved promise time to execute.
-    return Promise.resolve(resolve != null)
+    return resolve != null
   }
 }

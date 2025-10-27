@@ -13,8 +13,6 @@ use reqwest::ClientBuilder;
 use reqwest::IntoUrl;
 use reqwest::Response;
 
-
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Key {
     pub url: Url,
@@ -27,18 +25,17 @@ pub struct Key {
 
 #[derive(Clone, Debug)]
 pub struct DownloadFile {
-    pub key:    Key,
+    pub key: Key,
     pub client: Client,
 }
 
 impl DownloadFile {
     pub fn new(url: impl IntoUrl) -> Result<Self> {
         Ok(Self {
-            key:    Key { url: url.into_url()?, additional_headers: default() },
+            key: Key { url: url.into_url()?, additional_headers: default() },
             client: ClientBuilder::new().user_agent("enso-build").build()?,
         })
     }
-
 
     pub fn send_request(&self) -> BoxFuture<'static, Result<Response>> {
         let response = self

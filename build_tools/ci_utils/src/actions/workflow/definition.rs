@@ -11,8 +11,6 @@ use std::collections::BTreeMap;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 
-
-
 /// Operating system and architecture.
 ///
 /// While this should be enough of a target information for a Job definition, it is not enough
@@ -134,19 +132,6 @@ pub fn setup_corepack() -> Step {
     }
 }
 
-pub fn setup_wasm_pack_step() -> Step {
-    Step {
-        name: Some("Installing wasm-pack".into()),
-        uses: Some("jetli/wasm-pack-action@v0.4.0".into()),
-        with: Some(step::Argument::Other(BTreeMap::from_iter([(
-            "version".into(),
-            "v0.12.1".into(),
-        )]))),
-        r#if: Some(is_github_hosted()),
-        ..default()
-    }
-}
-
 /// Step that executes a given [GitHub Script](https://github.com/actions/github-script).
 pub fn github_script_step(name: impl Into<String>, script: impl Into<String>) -> Step {
     Step {
@@ -218,7 +203,7 @@ pub enum Concurrency {
     Plain(String),
     #[serde(rename_all = "kebab-case")]
     Map {
-        group:              String,
+        group: String,
         cancel_in_progress: String,
     },
 }
@@ -261,29 +246,29 @@ pub enum Access {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Workflow {
-    pub name:        String,
+    pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    pub on:          Event,
+    pub on: Event,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub concurrency: Option<Concurrency>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub permissions: BTreeMap<Permission, Access>,
     // No additional clause, as the jobs must be non-empty.
-    pub jobs:        BTreeMap<String, Job>,
+    pub jobs: BTreeMap<String, Job>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub env:         BTreeMap<String, String>,
+    pub env: BTreeMap<String, String>,
 }
 
 impl Default for Workflow {
     fn default() -> Self {
         let mut ret = Self {
-            name:        default(),
+            name: default(),
             permissions: default(),
             description: default(),
-            on:          default(),
-            jobs:        default(),
-            env:         default(),
+            on: default(),
+            jobs: default(),
+            env: default(),
             concurrency: default(),
         };
         // By default CI should never check program versions.
@@ -362,13 +347,13 @@ pub struct Push {
     #[serde(flatten)]
     pub inner_branches: Branches,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub tags:           Vec<String>,
+    pub tags: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub tags_ignore:    Vec<String>,
+    pub tags_ignore: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub paths:          Vec<PathBuf>,
+    pub paths: Vec<PathBuf>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub paths_ignore:   Vec<PathBuf>,
+    pub paths_ignore: Vec<PathBuf>,
 }
 
 /// Common branch-related fields between some event triggers.
@@ -378,7 +363,7 @@ pub struct Push {
 #[serde(rename_all = "kebab-case")]
 pub struct Branches {
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub branches:        Vec<String>,
+    pub branches: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub branches_ignore: Vec<String>,
 }
@@ -418,7 +403,7 @@ pub struct PullRequest {
     #[serde(flatten)]
     pub inner_branches: Branches,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub types:          Vec<PullRequestActivityType>,
+    pub types: Vec<PullRequestActivityType>,
 }
 
 impl PullRequest {
@@ -491,16 +476,16 @@ impl Default for WorkflowDispatchInputType {
 #[serde(rename_all = "camelCase")]
 pub struct WorkflowDispatchInput {
     /// A string description of the input parameter.
-    pub description:         String,
+    pub description: String,
     /// A string shown to users using the deprecated input.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub deprecation_message: Option<String>,
     /// A boolean to indicate whether the action requires the input parameter. Set to true when the
     /// parameter is required.
-    pub required:            bool,
+    pub required: bool,
     /// A string representing the type of the input.
     #[serde(flatten)]
-    pub r#type:              WorkflowDispatchInputType,
+    pub r#type: WorkflowDispatchInputType,
 }
 
 impl WorkflowDispatchInput {
@@ -605,8 +590,9 @@ impl TryFrom<WorkflowDispatchInputType> for WorkflowCallInputType {
             WorkflowDispatchInputType::String { default } => Self::String { default },
             WorkflowDispatchInputType::Boolean { default } => Self::Boolean { default },
             WorkflowDispatchInputType::Choice { default, .. } => Self::String { default },
-            WorkflowDispatchInputType::Environment { .. } =>
-                bail!("Environment is not supported for workflow call inputs!"),
+            WorkflowDispatchInputType::Environment { .. } => {
+                bail!("Environment is not supported for workflow call inputs!")
+            }
         })
     }
 }
@@ -618,10 +604,10 @@ pub struct WorkflowCallInput {
     /// A string description of the input parameter.
     pub description: String,
     /// A boolean to indicate whether the action requires the input parameter.
-    pub required:    bool,
+    pub required: bool,
     /// A string representing the type of the input.
     #[serde(flatten)]
-    pub r#type:      WorkflowCallInputType,
+    pub r#type: WorkflowCallInputType,
 }
 
 impl TryFrom<WorkflowDispatchInput> for WorkflowCallInput {
@@ -630,8 +616,8 @@ impl TryFrom<WorkflowDispatchInput> for WorkflowCallInput {
     fn try_from(value: WorkflowDispatchInput) -> Result<Self> {
         Ok(Self {
             description: value.description,
-            required:    value.required,
-            r#type:      value.r#type.try_into()?,
+            required: value.required,
+            r#type: value.r#type.try_into()?,
         })
     }
 }
@@ -643,7 +629,7 @@ pub struct WorkflowCallOutput {
     /// A string description of the output parameter.
     pub description: String,
     /// Expression to defining the output parameter.
-    pub value:       String,
+    pub value: String,
 }
 
 /// A workflow call secret parameter.
@@ -652,14 +638,14 @@ pub struct WorkflowCallSecret {
     /// A string description of the secret parameter.
     pub description: String,
     /// A boolean specifying whether the secret must be supplied.
-    pub required:    bool,
+    pub required: bool,
 }
 
 /// A workflow call trigger.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct WorkflowCall {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub inputs:  BTreeMap<String, WorkflowCallInput>,
+    pub inputs: BTreeMap<String, WorkflowCallInput>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub outputs: BTreeMap<String, WorkflowCallOutput>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
@@ -684,15 +670,15 @@ impl TryFrom<WorkflowDispatch> for WorkflowCall {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Event {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub push:              Option<Push>,
+    pub push: Option<Push>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub pull_request:      Option<PullRequest>,
+    pub pull_request: Option<PullRequest>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub schedule:          Vec<Schedule>,
+    pub schedule: Vec<Schedule>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub workflow_dispatch: Option<WorkflowDispatch>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub workflow_call:     Option<WorkflowCall>,
+    pub workflow_call: Option<WorkflowCall>,
 }
 
 impl Event {
@@ -735,35 +721,35 @@ pub enum JobSecrets {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Job {
-    pub name:              String,
+    pub name: String,
     #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-    pub needs:             BTreeSet<String>,
+    pub needs: BTreeSet<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub r#if:              Option<String>,
+    pub r#if: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub runs_on:           Vec<RunnerLabel>,
+    pub runs_on: Vec<RunnerLabel>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub continue_on_error: Option<bool>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub steps:             Vec<Step>,
+    pub steps: Vec<Step>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub concurrency:       Option<Concurrency>,
+    pub concurrency: Option<Concurrency>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub outputs:           BTreeMap<String, String>,
+    pub outputs: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub env:               BTreeMap<String, String>,
+    pub env: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub strategy:          Option<Strategy>,
+    pub strategy: Option<Strategy>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timeout_minutes:   Option<u32>,
+    pub timeout_minutes: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub uses:              Option<String>,
+    pub uses: Option<String>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub with:              BTreeMap<String, String>,
+    pub with: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub secrets:           Option<JobSecrets>,
+    pub secrets: Option<JobSecrets>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub permissions:       BTreeMap<Permission, Access>,
+    pub permissions: BTreeMap<Permission, Access>,
 }
 
 impl Job {
@@ -861,7 +847,7 @@ impl Job {
 #[serde(rename_all = "kebab-case")]
 pub struct Strategy {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub matrix:    BTreeMap<String, serde_json::Value>,
+    pub matrix: BTreeMap<String, serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fail_fast: Option<bool>,
 }
@@ -905,25 +891,25 @@ impl Strategy {
 #[serde(rename_all = "kebab-case")]
 pub struct Step {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id:                Option<String>,
+    pub id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub r#if:              Option<String>,
+    pub r#if: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name:              Option<String>,
+    pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub uses:              Option<String>,
+    pub uses: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub run:               Option<String>,
+    pub run: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub shell:             Option<Shell>,
+    pub shell: Option<Shell>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub with:              Option<step::Argument>,
+    pub with: Option<step::Argument>,
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub env:               BTreeMap<String, String>,
+    pub env: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub continue_on_error: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timeout_minutes:   Option<u32>,
+    pub timeout_minutes: Option<u32>,
 }
 
 impl Step {
@@ -1057,7 +1043,6 @@ pub mod step {
     use super::*;
     use crate::github;
 
-
     #[derive(Clone, Debug, Serialize, Deserialize)]
     #[serde(rename_all = "kebab-case")]
     #[serde(untagged)]
@@ -1068,11 +1053,11 @@ pub mod step {
                 skip_serializing_if = "Option::is_none",
                 with = "crate::serde::via_string_opt"
             )]
-            repository:  Option<github::Repo>,
+            repository: Option<github::Repo>,
             #[serde(skip_serializing_if = "Option::is_none")]
-            clean:       Option<bool>,
+            clean: Option<bool>,
             #[serde(skip_serializing_if = "Option::is_none")]
-            submodules:  Option<CheckoutArgumentSubmodules>,
+            submodules: Option<CheckoutArgumentSubmodules>,
             #[serde(skip_serializing_if = "Option::is_none")]
             fetch_depth: Option<u32>,
         },
@@ -1171,7 +1156,7 @@ pub struct WorkflowToWrite {
     /// The workflow to be stored.
     pub workflow: Workflow,
     /// The path where the workflow should be stored.
-    pub path:     PathBuf,
+    pub path: PathBuf,
     /// Who generated this workflow.
-    pub source:   String,
+    pub source: String,
 }

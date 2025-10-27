@@ -390,6 +390,11 @@ type Enso_File
     ## ---
        private: true
        ---
+    can_write_into_parent self -> Boolean = self.parent.exists
+
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this S3_File.
     to_display_text : Text
     to_display_text self = "Enso_File {" + self.path + "}"

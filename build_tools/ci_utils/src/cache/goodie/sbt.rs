@@ -5,8 +5,6 @@ use crate::cache::Cache;
 use crate::env::known::PATH;
 use crate::programs;
 
-
-
 const DOWNLOAD_URL_TEXT: &str = "https://github.com/sbt/sbt/releases/download/v1.5.5/sbt-1.5.5.tgz";
 
 crate::define_env_var! {

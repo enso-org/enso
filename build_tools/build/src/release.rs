@@ -22,14 +22,11 @@ use reqwest::Response;
 use serde_json::json;
 use tempfile::tempdir;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod manifest;
-
-
 
 /// Generate placeholders for the release notes.
 pub fn release_body_placeholders(
@@ -367,13 +364,13 @@ mod tests {
         let version = Version::from_str("2024.1.1-nightly.2024.3.26")?;
         let triple = TargetTriple::new(Versions::new(version.clone()));
         let context = BuildContext {
-            inner:       project::Context {
+            inner: project::Context {
                 repo_root: crate::paths::new_repo_root(repo_root, &triple),
-                octocrab:  setup_octocrab().await?,
-                cache:     Cache::new_default().await?,
+                octocrab: setup_octocrab().await?,
+                cache: Cache::new_default().await?,
             },
             remote_repo: github::Repo::new("enso-org", "enso"),
-            triple:      TargetTriple::new(Versions::new(version.clone())),
+            triple: TargetTriple::new(Versions::new(version.clone())),
         };
 
         let release_body = generate_release_body(&context).await?;

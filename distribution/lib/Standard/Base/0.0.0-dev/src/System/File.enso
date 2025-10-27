@@ -1007,6 +1007,11 @@ type File
     ## ---
        private: true
        ---
+    can_write_into_parent self -> Boolean = self.parent.exists
+
+    ## ---
+       private: true
+       ---
        Return the path that this file represents.
     to_text : Text
     to_text self = self.path

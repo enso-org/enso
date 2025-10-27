@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-
-
 /// Extension methods for [`OsStr`].
 pub trait OsStrExt {
     /// Get the underlying string as `str`.

@@ -30,14 +30,12 @@ use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
-
-
 pub struct FunctionBuilder<'s> {
-    name:    Tree<'s>,
+    name: Tree<'s>,
     return_: Option<ReturnSpecification<'s>>,
-    args:    Vec<ArgumentDefinition<'s>>,
-    line:    item::Line<'s>,
-    start:   usize,
+    args: Vec<ArgumentDefinition<'s>>,
+    line: item::Line<'s>,
+    start: usize,
 }
 
 impl<'s> FunctionBuilder<'s> {
@@ -93,9 +91,9 @@ impl<'s> FunctionBuilder<'s> {
 
         #[derive(Default)]
         struct PrefixesAccumulator<'s> {
-            docs:        Option<DocLine<'s>>,
+            docs: Option<DocLine<'s>>,
             annotations: Option<Vec<AnnotationLine<'s>>>,
-            signature:   Option<TypeSignatureLine<'s>>,
+            signature: Option<TypeSignatureLine<'s>>,
         }
 
         let mut acc = PrefixesAccumulator::default();
@@ -167,8 +165,9 @@ fn qn_equivalent(a: &Tree, b: &Tree) -> bool {
     use tree::Variant::*;
     match (&a.variant, &b.variant) {
         (Ident(a), Ident(b)) => a.token.code.repr == b.token.code.repr,
-        (OprApp(a), OprApp(b)) =>
-            opt_qn_equivalent(&a.lhs, &b.lhs) && opt_qn_equivalent(&a.rhs, &b.rhs),
+        (OprApp(a), OprApp(b)) => {
+            opt_qn_equivalent(&a.lhs, &b.lhs) && opt_qn_equivalent(&a.rhs, &b.rhs)
+        }
         _ => false,
     }
 }
@@ -366,7 +365,7 @@ enum IsParenthesized {
 use IsParenthesized::*;
 
 struct ArgDefInfo {
-    type_:   Option<(IsParenthesized, usize)>,
+    type_: Option<(IsParenthesized, usize)>,
     default: Option<usize>,
 }
 

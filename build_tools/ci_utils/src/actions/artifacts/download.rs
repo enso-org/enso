@@ -12,14 +12,12 @@ use reqwest::header::ACCEPT;
 use reqwest::header::ACCEPT_ENCODING;
 use tokio::fs::create_dir_all;
 
-
-
 #[derive(Clone, Debug)]
 pub struct ArtifactDownloader {
-    pub client:        SessionClient,
+    pub client: SessionClient,
     pub artifact_name: String,
-    pub info:          ArtifactResponse,
-    pub items:         Vec<ContainerEntry>,
+    pub info: ArtifactResponse,
+    pub items: Vec<ContainerEntry>,
 }
 
 impl ArtifactDownloader {
@@ -69,11 +67,10 @@ impl ArtifactDownloader {
     }
 }
 
-
 #[derive(Clone, Debug)]
 pub struct FileToDownload {
     /// Absolute path in the local filesystem.
-    pub target:                 PathBuf,
+    pub target: PathBuf,
     /// Relative path within the artifact container. Does not include the leading segment with the
     /// artifact name.
     pub remote_source_location: Url,
@@ -83,7 +80,7 @@ impl FileToDownload {
     #[context("Failed to process entry {} from the artifact container.", entry.path.display())]
     pub fn new_to_subtree(target_root: impl AsRef<Path>, entry: &ContainerEntry) -> Result<Self> {
         Ok(Self {
-            target:                 target_root.as_ref().join(entry.relative_path()),
+            target: target_root.as_ref().join(entry.relative_path()),
             remote_source_location: entry.content_location.clone(),
         })
     }

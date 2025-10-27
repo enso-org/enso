@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct SevenZip;
 
@@ -40,9 +38,10 @@ impl Program for SevenZip {
 
 pub fn error_from_exit_code(code: i32) -> anyhow::Result<()> {
     let message = match code {
-        1 =>
+        1 => {
             "Warning (Non fatal error(s)). For example, one or more files were locked by some \
-            other application, so they were not compressed.",
+            other application, so they were not compressed."
+        }
         2 => "Fatal error.",
         7 => "Command line error.",
         8 => "Not enough memory for operation.",
