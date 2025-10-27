@@ -11,16 +11,14 @@ import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.
 import { registerWidgetActionHandlers } from '@/providers/widgetActions'
 import { usePersisted } from '@/stores/persisted'
 import { Ast } from '@/util/ast'
-import { Err, Ok, type Result } from '@/util/data/result'
+import { Err } from '@/util/data/result'
 import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { normalizeFunctionName } from '@/util/nameValidation'
-import type { ProjectPath } from '@/util/projectPath'
-import type { Identifier } from '@/util/qualifiedName'
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { MutableModule, PropertyAccess } from 'ydoc-shared/ast'
 import type { ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
-import { replaceVariableUsages } from './WidgetFunctionDef/argumentAst'
+import { generateUniqueName, replaceVariableUsages } from './WidgetFunctionDef/argumentAst'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const { projectNames: projectNames, module, graph, store: project } = useCurrentProject()
@@ -60,28 +58,36 @@ const name = computed(() =>
   props.input.value instanceof PropertyAccess ? props.input.value.rhs : props.input.value,
 )
 
+function isCurrentModuleExpression(expr: Ast.Expression) {
+  const projectPath = project.value.moduleProjectPath
+  if (!projectPath?.ok) return false
+
+  if (expr instanceof Ast.Ident) return expr.token.code() === projectPath.value.path
+  if (
+    expr instanceof Ast.PropertyAccess &&
+    expr.lhs instanceof Ast.PropertyAccess &&
+    expr.lhs.lhs instanceof Ast.Ident
+  ) {
+    return expr.code() === projectNames.value.serializeProjectPathForBackend(projectPath.value)
+  }
+  // projectNames.value
+  return expr instanceof Ast.Ident && expr.token.code() === 'Main'
+}
+
 const hideThisArg = computed(() => {
   const ast = thisArg.value
-  if (!ast) return false
-  // const [firstChild, nextChild] = ast.children()
-  return (
-    ast instanceof Ast.Ident && ast.token.code() === 'Main'
-    // nextChild == null &&
-    // firstChild != null &&
-    // Ast.isToken(firstChild) &&
-    // firstChild.code() === 'Main'
-  )
+  return ast && isCurrentModuleExpression(ast)
 })
 
 const nameCode = computed(() => name.value.code())
 async function renameFunction(userProvidedName: string): Promise<UpdateResult> {
-  const projectPath = project.value.moduleProjectPath
-  if (!projectPath?.ok) return Err('Unknown module Path')
   const editedName = props.input[FunctionName].editableNameExpression
   const oldMethodPointer = props.input[FunctionName].methodPointer
 
-  // TODO: make sure the name is unique
-  const newName = normalizeFunctionName(userProvidedName)
+  const newName = generateUniqueName(
+    normalizeFunctionName(userProvidedName),
+    module.value.ast?.root(),
+  )
 
   // We can use language-server provided refactoring method, but that introduces a lot of data races
   // that are hard to deal with on the client side, since they all can happen in any order:
@@ -89,22 +95,9 @@ async function renameFunction(userProvidedName: string): Promise<UpdateResult> {
   // - module code change
   // - execution context method pointer update
   // - suggestion database update
-  // To not deal with this complexity, we perform the refactor ourselves when the edited method is in local module,
-  // and only depend on LS-side rename for symbol usages in other modules.
+  // To not deal with this complexity, we perform the refactor ourselves on the client side. This also
+  // makes the edit transaction undoable by the user without any special handling.
   const newMethodPointer = { ...oldMethodPointer, name: newName }
-
-  // Queue remote refactor first, so LS processes them before code edits from client-side refactor.
-  callRenameSymbolRefactor(projectPath.value, editedName, newName).then((refactorResult) => {
-    if (refactorResult.ok && refactorResult.value !== newName) {
-      const lsGivenName = refactorResult.value
-      console.warn(
-        `Language server refactor changed function name in unexpected way! Expected '${newName}', got '${lsGivenName}'.`,
-      )
-
-      const correctedMethodPointer = { ...newMethodPointer, name: refactorResult.value }
-      rewriteMethodPointer(newMethodPointer, correctedMethodPointer)
-    }
-  })
 
   // Perform client-side refactor on local module.
   return module.value.edit((edit) => {
@@ -116,28 +109,13 @@ async function renameFunction(userProvidedName: string): Promise<UpdateResult> {
 
     // replace all occurences
     const newNameAst = Ast.Ident.new(MutableModule.Transient(), newName)
-    replaceVariableUsages(edit, moduleRoot, originalName, newNameAst)
+    replaceVariableUsages(edit, moduleRoot, originalName, newNameAst, isCurrentModuleExpression)
+    // Instantly update execution context and suggestion database, so we avoid blinking due to
+    // temporarily unsynchronized state and keeps this widget instance rendered. Real updates
+    // will arrive soon afterwards and they should have no additional effect.
     rewriteMethodPointer(oldMethodPointer, newMethodPointer)
     return props.updateCallback({ edit, directInteraction: true })
   })
-}
-
-/** Perform symbol refactoring by calling language server refactoring method. */
-async function callRenameSymbolRefactor(
-  projectPath: ProjectPath,
-  editedName: ExpressionId,
-  newName: Identifier,
-): Promise<Result<Identifier>> {
-  const modPath = projectNames.value.serializeProjectPathForBackend(projectPath)
-  const lsRpc = project.value.lsRpcConnection
-  const refactorResult = await lsRpc.renameSymbol(modPath, editedName, newName)
-  if (!refactorResult.ok) {
-    return Err(
-      refactorResult.error.message('Language server failed to apply function rename reafactor.'),
-    )
-  }
-  const resultName = refactorResult.value.newName
-  return Ok(resultName as Identifier)
 }
 
 function rewriteMethodPointer(oldMethodPointer: MethodPointer, newMethodPointer: MethodPointer) {

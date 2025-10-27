@@ -1345,10 +1345,10 @@ export class PropertyAccess extends BaseExpression {
     return this.module.getToken(this.fields.get('operator').node)
   }
   /** TODO: Add docs */
-  get rhs(): IdentifierOrOperatorIdentifierToken {
+  get rhs(): Ident {
     const ast = this.module.get(this.fields.get('rhs').node)
     assert(ast instanceof Ident)
-    return ast.token as IdentifierOrOperatorIdentifierToken
+    return ast
   }
 
   /** TODO: Add docs */

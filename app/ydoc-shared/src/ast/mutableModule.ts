@@ -174,7 +174,10 @@ export class MutableModule implements Module {
   /** @internal */
   importCopy<T extends Ast>(ast: T): Owned<Mutable<T>> {
     assert(ast.module !== this)
-    visitRecursive(ast, (ast) => this.nodes.set(ast.id, ast.fields.clone() as any))
+    visitRecursive(ast, (ast) => {
+      if (ast == null || ast.fields == null) debugger
+      this.nodes.set(ast.id, ast.fields.clone() as any)
+    })
     const fields = this.nodes.get(ast.id)
     assertDefined(fields)
     fields.set('parent', undefined)

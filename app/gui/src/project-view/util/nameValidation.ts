@@ -52,8 +52,9 @@ function toLowerSnakeCase(name: string): string {
     } else if (/^[a-z]$/.test(c)) {
       result += c
       lastWasUpper = false
-    } else if (i == 0 && /^[0-9]$/.test(c)) {
-      result += '_' + c
+    } else if (/^[0-9]$/.test(c)) {
+      if (i == 0) result += '_'
+      result += c
       lastWasUpper = false
     } else if (c == '_' || c == ' ') {
       result += '_'

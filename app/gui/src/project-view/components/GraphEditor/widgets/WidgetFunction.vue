@@ -72,10 +72,13 @@ const innerInput = computed(() => {
   const callInfo = methodCallInfo.value
   if (callInfo) {
     input[CallInfo] = callInfo
-    if (input.value instanceof Ast.PropertyAccess || input.value instanceof Ast.Ident) {
+    console.log(input)
+    if (
+      !(ArgumentApplicationKey in input) &&
+      (input.value instanceof Ast.PropertyAccess || input.value instanceof Ast.Ident)
+    ) {
       const methodPointer = callInfo.methodCall.methodPointer
       const definition = module.value.getMethodAst(methodPointer)
-      console.log('attempt functionName', methodPointer, definition)
       if (definition.ok) {
         input[FunctionName] = {
           editableNameExpression: definition.value.name.externalId,
