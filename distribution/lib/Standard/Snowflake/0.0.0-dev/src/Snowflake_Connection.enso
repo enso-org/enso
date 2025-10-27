@@ -490,10 +490,16 @@ type Snowflake_Connection
        private: true
        icon: metadata
        ---
-       Gets a list of stage names for current
+       Gets a list of stage names for current database.
     stage_names : Vector
     stage_names self =
-        self.connection.read_text_column "show stages in database" "name"
+        case self.schema of
+            "*" ->
+                self.execute_query "show stages in database" write_operation=False . rows
+                    . map r-> Identifier.Name_And_Schema (r.get "name") (r.get "schema_name")
+            _ ->
+                self.connection.read_text_column "show stages in schema" "name"
+                    . map n-> Identifier.Name n
 
     ## ---
        icon: metadata
@@ -502,10 +508,14 @@ type Snowflake_Connection
        copy, and location), as well as the default values for each property.
 
        ## Arguments
-        - `stage_name`: The name of the stage to read the properties from.
-    stage_properties : Text -> Table ! Table_Not_Found
-    stage_properties self stage_name:Text =
-        query = 'DESC STAGE "' + (stage_name.replace '"' '""') + '"'
+       - `stage`: The name (and schema) of the stage to read the properties from.
+
+       ## Returns
+       A table containing the properties of the stage.
+    @stage make_stage_selector include_home=False
+    stage_properties : Identifier -> Table ! Table_Not_Found
+    stage_properties self stage:Identifier=(Missing_Argument.throw "stage") =
+        query = 'DESC STAGE ' + stage.to_identifier
         self.execute_query query write_operation=False
 
     ## ---
@@ -515,12 +525,42 @@ type Snowflake_Connection
 
        ## Arguments
         - `stage_name`: The name of the stage to read the properties from.
-    @stage_name (self-> Single_Choice display=..Always values=(["~"] + self.stage_names).map d-> Option d d.pretty)
-    list_stage_objects : Text -> Text -> Table ! Table_Not_Found
-    list_stage_objects self stage_name:Text="~" prefix:Text="" =
-        query = if stage_name == '~' then 'LIST \'@~' else 'LIST \'@"' + (stage_name.replace '"' '""') + '"'
-            + if prefix == "'" then "" else '/' + (prefix.replace "'" "''") + "'"
-        self.execute_query query write_operation=False
+    @stage make_stage_selector
+    list_stage_objects : Identifier -> Text -> Rows_To_Read -> Table ! Table_Not_Found
+    list_stage_objects self stage:Identifier="~" prefix:Text="" (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        query = "LIST '@" + stage.to_identifier + if prefix == "" then "'" else '/' + (prefix.replace "'" "''") + "'"
+        self.execute_query query limit write_operation=False
+
+## Snowflake Identifier - with optional schema.
+type Identifier
+    ## An object in the current schema with specified name.
+    Name name:Text=(Missing_Argument.throw "name")
+
+    ## An object with specified schema and name.
+    Name_And_Schema name:Text=(Missing_Argument.throw "name") schema:Text=(Missing_Argument.throw "schema")
+
+    ## ---
+       private: true
+       ---
+    to_identifier self = case self of
+        Identifier.Name '~' -> '~'
+        Identifier.Name n -> '"' + (n.replace '"' '""') + '"'
+        Identifier.Name_And_Schema n s -> '"' + (s.replace '"' '""') + '"."' + (n.replace '"' '""') + '"'
+
+    ## ---
+       private: true
+       ---
+    to_option self = case self of
+        Identifier.Name n -> Option n "(..Name "+n.pretty+")"
+        Identifier.Name_And_Schema n s -> Option s+"."+n "(..Name_And_Schema "+n.pretty+" "+s.pretty+")"
+
+Identifier.from (that:Text) = Identifier.Name that
+
+private make_stage_selector connection include_home:Boolean=True =
+    stages = (if include_home then [Option "~" "..Name '~'"] else [])
+        + connection.stage_names.map .to_option
+        + [Option "<Name>" "..Name", Option "<Name and Schema>" "..Name_And_Schema"]
+    Single_Choice display=..Always values=stages
 
 private auth_jdbc_properties credentials = case credentials of
     Credentials.Username_And_Password username password ->
