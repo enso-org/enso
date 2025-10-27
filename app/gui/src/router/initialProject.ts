@@ -155,6 +155,7 @@ async function uploadProjectArchive(
   localBackend: Pick<LocalBackend, 'uploadFileStart' | 'uploadFileEnd' | 'rootPath'>,
 ) {
   const filePath = fileURLToPath(url)
+  console.debug('filePath', filePath)
   if (filePath == null) return
   const projectName = baseName(filePath)
   const parentDirectoryId = newDirectoryId(localBackend.rootPath())
@@ -170,6 +171,7 @@ async function uploadProjectArchive(
   const endMetadata = await localBackend.uploadFileEnd({
     ...metadata,
   })
+  console.debug('...', metadata, endMetadata)
   if (endMetadata.project == null) {
     return
   }
@@ -180,6 +182,7 @@ async function uploadProjectArchive(
 function fileURLToPath(url: string): string | null {
   if (URL.canParse(url)) {
     const parsed = new URL(url)
+    console.debug('Parsed', parsed)
     if (parsed.protocol === 'file:') {
       return decodeURIComponent(
         platform() === Platform.windows ?
