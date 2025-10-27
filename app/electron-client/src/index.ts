@@ -9,35 +9,38 @@
 
 import './cjs-shim' // must be imported first
 
-import * as fs from 'node:fs/promises'
-import * as os from 'node:os'
-import * as pathModule from 'node:path'
-import process from 'node:process'
-
-import * as common from 'enso-common'
+import type { BrowserWindowConstructorOptions, WebPreferences } from 'electron'
+import { DEEP_LINK_SCHEME, PRODUCT_NAME } from 'enso-common'
 import {
   buildWebAppURLSearchParamsFromArgs,
   defaultOptions,
   type Options,
 } from 'enso-common/src/options'
-
-import * as authentication from '@/authentication'
-import * as configParser from '@/configParser'
-import * as contentConfig from '@/contentConfig'
-import * as debug from '@/debug'
-import { initIpc, registerShortcuts, setChromeOptions } from '@/electron'
-import * as fileAssociations from '@/fileAssociations'
-import * as ipc from '@/ipc'
-import * as log from '@/log'
-import * as naming from '@/naming'
-import * as paths from '@/paths'
-import * as projectService from '@/projectService'
-import * as security from '@/security'
-import * as server from '@/server'
-import * as urlAssociations from '@/urlAssociations'
-import type { BrowserWindowConstructorOptions, WebPreferences } from 'electron'
-import * as projectManagement from 'project-manager-shim'
-import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
+import { access, constants, readFile, writeFile } from 'node:fs/promises'
+import { platform } from 'node:os'
+import { join as joinPath } from 'node:path'
+import process from 'node:process'
+import { downloadSamples } from 'project-manager-shim'
+import { initAuthentication } from './authentication.js'
+import { parseArgs } from './configParser.js'
+import { VERSION } from './contentConfig.js'
+import { printInfo, VERSION_INFO } from './debug.js'
+import { initIpc, registerShortcuts, setChromeOptions } from './electron.js'
+import {
+  argsDenoteFileOpenAttempt,
+  CLIENT_ARGUMENTS,
+  handleOpenFile,
+  setOpenFileEventHandler,
+} from './fileAssociations.js'
+import { Channel } from './ipc.js'
+import { setupLogger } from './log.js'
+import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems.js'
+import { capitalizeFirstLetter } from './naming.js'
+import { APP_PATH, ASSETS_PATH } from './paths.js'
+import { handleProjectProtocol, setupProjectService, version } from './projectService.js'
+import { enableAll } from './security.js'
+import { Config, Server } from './server.js'
+import { argsDenoteUrlOpenAttempt, handleOpenUrl, registerAssociations } from './urlAssociations.js'
 
 type Electron = typeof import('electron')
 
@@ -83,7 +86,7 @@ function pathToURL(path: string): URL {
  */
 interface App {
   window: import('electron').BrowserWindow | null
-  server: server.Server | null
+  server: Server | null
   webOptions: Options
   isQuitting: boolean
 }
@@ -99,19 +102,19 @@ const createApp = (): App => ({
 async function runApp(app: App, electron: Electron | undefined) {
   process.on('uncaughtException', (err, origin) => {
     console.error(`Uncaught exception: ${err.toString()}\nException origin: ${origin}`)
-    showErrorBox(common.PRODUCT_NAME, err.stack ?? err.toString(), electron)
+    showErrorBox(PRODUCT_NAME, err.stack ?? err.toString(), electron)
     exit(1, electron)
   })
-  log.setupLogger()
+  setupLogger()
   if (electron) {
-    urlAssociations.registerAssociations(electron)
+    registerAssociations(electron)
   }
   // Register file associations for macOS.
-  fileAssociations.setOpenFileEventHandler((path) => {
+  setOpenFileEventHandler((path) => {
     if (!electron) return
     if (electron.app.isReady()) {
-      const project = fileAssociations.handleOpenFile(path)
-      app.window?.webContents.send(ipc.Channel.openProject, project)
+      const project = handleOpenFile(path)
+      app.window?.webContents.send(Channel.openProject, project)
     } else {
       setProjectToOpenOnStartup(app, pathToURL(path), electron)
     }
@@ -122,7 +125,7 @@ async function runApp(app: App, electron: Electron | undefined) {
     return quit(electron)
   } else if (args.debug.info) {
     await electron?.app.whenReady()
-    await debug.printInfo()
+    await printInfo()
     return quit(electron)
   } else if (!electron) {
     return
@@ -134,7 +137,7 @@ async function runApp(app: App, electron: Electron | undefined) {
   if (isOriginalInstance) {
     handleItemOpening(app, fileToOpen, urlToOpen, electron)
     setChromeOptions(electron)
-    security.enableAll()
+    enableAll()
 
     onStart(electron).catch((err) => {
       console.error(err)
@@ -147,10 +150,10 @@ async function runApp(app: App, electron: Electron | undefined) {
     electron.app.on('second-instance', (_event, argv) => {
       console.error(`Got data from 'second-instance' event: '${argv.toString()}'.`)
 
-      const isWin = os.platform() === 'win32'
+      const isWin = platform() === 'win32'
 
       if (isWin) {
-        const ensoLinkInArgs = argv.find((arg) => arg.startsWith(common.DEEP_LINK_SCHEME))
+        const ensoLinkInArgs = argv.find((arg) => arg.startsWith(DEEP_LINK_SCHEME))
 
         if (ensoLinkInArgs != null) {
           electron.app.emit('open-url', new CustomEvent('open-url'), ensoLinkInArgs)
@@ -173,9 +176,7 @@ async function runApp(app: App, electron: Electron | undefined) {
         console.log('Electron application is ready.')
 
         electron.protocol.handle('enso', (request) =>
-          projectService.handleProjectProtocol(
-            decodeURIComponent(request.url.replace('enso://', '')),
-          ),
+          handleProjectProtocol(decodeURIComponent(request.url.replace('enso://', ''))),
         )
 
         await main(app, args, electron)
@@ -196,39 +197,37 @@ async function onStart(electron: Electron | undefined) {
   const writeVersionInfoPromise = (async () => {
     if (!electron) return
     const userData = electron.app.getPath('userData')
-    const versionInfoPath = pathModule.join(userData, 'version_info.json')
-    const versionInfoPathExists = await fs
-      .access(versionInfoPath, fs.constants.F_OK)
+    const versionInfoPath = joinPath(userData, 'version_info.json')
+    const versionInfoPathExists = await access(versionInfoPath, constants.F_OK)
       .then(() => true)
       .catch(() => false)
 
     if (versionInfoPathExists) {
-      const versionInfoText = await fs.readFile(versionInfoPath, 'utf8')
+      const versionInfoText = await readFile(versionInfoPath, 'utf8')
       const versionInfoJson = JSON.parse(versionInfoText)
 
-      if (debug.VERSION_INFO.version === versionInfoJson.version && !contentConfig.VERSION.isDev())
-        return
+      if (VERSION_INFO.version === versionInfoJson.version && !VERSION.isDev()) return
     }
 
-    return fs.writeFile(versionInfoPath, JSON.stringify(debug.VERSION_INFO), 'utf8')
+    return writeFile(versionInfoPath, JSON.stringify(VERSION_INFO), 'utf8')
   })()
 
-  const downloadSamplesPromise = projectManagement.downloadSamples()
+  const downloadSamplesPromise = downloadSamples()
 
   return Promise.allSettled([writeVersionInfoPromise, downloadSamplesPromise])
 }
 
 /** Process the command line arguments. */
-function processArguments(args = fileAssociations.CLIENT_ARGUMENTS) {
+function processArguments(args = CLIENT_ARGUMENTS) {
   // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
   // Electron-Proper distinction.
-  const fileToOpen = fileAssociations.argsDenoteFileOpenAttempt(args)
-  const urlToOpen = urlAssociations.argsDenoteUrlOpenAttempt(args)
+  const fileToOpen = argsDenoteFileOpenAttempt(args)
+  const urlToOpen = argsDenoteUrlOpenAttempt(args)
   // If we are opening a file (i.e. we were spawned with just a path of the file to open as
   // the argument) or URL, it means that effectively we don't have any non-standard arguments.
   // We just need to let caller know that we are opening a file.
   const argsToParse = fileToOpen != null || urlToOpen != null ? [] : args
-  return { args: configParser.parseArgs(argsToParse), fileToOpen, urlToOpen }
+  return { args: parseArgs(argsToParse), fileToOpen, urlToOpen }
 }
 
 /**
@@ -276,7 +275,7 @@ function handleItemOpening(
     }
 
     if (urlToOpen != null) {
-      urlAssociations.handleOpenUrl(urlToOpen)
+      handleOpenUrl(urlToOpen)
     }
   } catch {
     // If we failed to open the file, we should enter the usual welcome screen.
@@ -302,7 +301,7 @@ async function main(app: App, args: Options, electron: Electron | undefined) {
      * not yet created at this point, but it will be created by the time the
      * authentication module uses the lambda providing the window.
      */
-    authentication.initAuthentication(() => app.window!)
+    initAuthentication(() => app.window!)
   } catch (err) {
     console.error('Failed to initialize the application, shutting down. Error: ', err)
     quit(electron)
@@ -318,19 +317,19 @@ function createProjectService(args: Options) {
   const backendJvmOpts = args.useJvm ? ['--jvm'] : []
   const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
 
-  return projectService.setupProjectService(backendOpts)
+  return setupProjectService(backendOpts)
 }
 
 /** Start the content server, which will serve the application content (HTML) to the window. */
 async function startContentServerIfEnabled(app: App, args: Options) {
   if (!args.useServer) return
   console.log('Starting the content server.')
-  const serverCfg = new server.Config({
-    dir: paths.ASSETS_PATH,
+  const serverCfg = new Config({
+    dir: ASSETS_PATH,
     port: args.server.port,
   })
   const projectService = createProjectService(args)
-  app.server = await server.Server.create(serverCfg, projectService)
+  app.server = await Server.create(serverCfg, projectService)
   console.log('Content server started.')
 }
 
@@ -343,7 +342,7 @@ async function createWindowIfEnabled(app: App, args: Options, electron: Electron
   }
   console.log('Creating the window.')
   const webPreferences: WebPreferences = {
-    preload: pathModule.join(paths.APP_PATH, 'preload.mjs'),
+    preload: joinPath(APP_PATH, 'preload.mjs'),
     sandbox: true,
     spellcheck: false,
     ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
@@ -365,7 +364,7 @@ async function createWindowIfEnabled(app: App, args: Options, electron: Electron
         filter: [filterByRole('help')],
         replacement: (item) =>
           inheritMenuItem(item, undefined, [
-            makeMenuItem(window, `About ${common.PRODUCT_NAME}`, 'about'),
+            makeMenuItem(window, `About ${PRODUCT_NAME}`, 'about'),
           ]),
       },
       {
@@ -378,11 +377,11 @@ async function createWindowIfEnabled(app: App, args: Options, electron: Electron
       },
       {
         filter: [filterByRole('appMenu'), filterByRole('hide')],
-        replacement: (item) => inheritMenuItem(item, `Hide ${common.PRODUCT_NAME}`),
+        replacement: (item) => inheritMenuItem(item, `Hide ${PRODUCT_NAME}`),
       },
       {
         filter: [filterByRole('appMenu'), filterByRole('quit')],
-        replacement: (item) => inheritMenuItem(item, `Quit ${common.PRODUCT_NAME}`),
+        replacement: (item) => inheritMenuItem(item, `Quit ${PRODUCT_NAME}`),
       },
     ])
     electron.Menu.setApplicationMenu(newMenu)
@@ -478,18 +477,18 @@ async function loadWindowContent(app: App, args: Options) {
 async function printVersion(): Promise<void> {
   const indent = '    '
   let maxNameLen = 0
-  for (const name in debug.VERSION_INFO) {
+  for (const name in VERSION_INFO) {
     maxNameLen = Math.max(maxNameLen, name.length)
   }
   process.stdout.write('Frontend:\n')
-  for (const [name, value] of Object.entries(debug.VERSION_INFO)) {
-    const label = naming.capitalizeFirstLetter(name)
+  for (const [name, value] of Object.entries(VERSION_INFO)) {
+    const label = capitalizeFirstLetter(name)
     const spacing = ' '.repeat(maxNameLen - name.length)
     process.stdout.write(`${indent}${label}:${spacing} ${value}\n`)
   }
   process.stdout.write('\n')
   process.stdout.write('Backend:\n')
-  const backend = await projectService.version()
+  const backend = await version()
   const lines = backend.split(/\r?\n/).filter((line) => line.length > 0)
   for (const line of lines) {
     process.stdout.write(`${indent}${line}\n`)
