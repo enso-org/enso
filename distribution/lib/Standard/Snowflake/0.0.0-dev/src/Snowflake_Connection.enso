@@ -528,7 +528,8 @@ type Snowflake_Connection
     @stage make_stage_selector
     list_stage_objects : Identifier -> Text -> Rows_To_Read -> Table ! Table_Not_Found
     list_stage_objects self stage:Identifier="~" prefix:Text="" (limit : Rows_To_Read = ..First_With_Warning 1000) =
-        query = "LIST '@" + stage.to_identifier + if prefix == "" then "'" else '/' + (prefix.replace "'" "''") + "'"
+        stage_and_path = stage.to_identifier + if prefix == "" then "" else '/' + prefix
+        query = "LIST '@" + (stage_and_path.replace "'" "''") + "'"
         self.execute_query query limit write_operation=False
 
 ## Snowflake Identifier - with optional schema.
