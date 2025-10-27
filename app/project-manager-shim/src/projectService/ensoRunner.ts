@@ -54,6 +54,7 @@ interface RunningProject {
 }
 
 const DEFAULT_JSONRPC_PORT = 30616
+const LANGUAGE_SERVER_STARTUP_TIMEOUT = 30000
 
 /** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
@@ -238,13 +239,17 @@ export class EnsoRunner implements Runner {
           }
         })
 
-        // Timeout after 30 seconds if server doesn't start
-        setTimeout(() => {
-          if (!resolved) {
-            serverProcess.kill('SIGKILL')
-            reject(new Error('Language server startup timeout'))
-          }
-        }, 30000)
+        // Timeout if server doesn't start (skip timeout in debug mode)
+        const javaToolOptions = process.env.JAVA_TOOL_OPTIONS
+        const isDebugMode = javaToolOptions?.includes('jdwp')
+        if (!isDebugMode) {
+          setTimeout(() => {
+            if (!resolved) {
+              serverProcess.kill('SIGKILL')
+              reject(new Error('Language server startup timeout'))
+            }
+          }, LANGUAGE_SERVER_STARTUP_TIMEOUT)
+        }
       })
     })
     this.loadingProjects.set(projectId, promise)
