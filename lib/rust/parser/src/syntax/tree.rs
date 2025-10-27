@@ -153,6 +153,15 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub opr: OperatorOrError<'s>,
             pub rhs: Option<Tree<'s>>,
         },
+        /// Application of the `.` operator.
+        PropertyAccess {
+            pub lhs: Option<Tree<'s>>,
+            pub opr: token::DotOperator<'s>,
+            // FIXME: This is always an Ident; its type should be changed to token::Ident by
+            //  distinguishing property access earlier in the expression-parsing pipeline, before
+            //  operand Trees are constructed.
+            pub rhs: Tree<'s>,
+        },
         /// Application of a unary operator, like `-a` or `~handler`, to an operand.
         UnaryOprApp {
             pub opr: token::UnaryOperator<'s>,
@@ -1097,6 +1106,11 @@ pub fn apply_operator<'s>(
                 (token::Variant::TypeAnnotationOperator(annotation), Some(lhs), Some(rhs)) => {
                     Tree::type_annotated(lhs, opr.with_variant(annotation), rhs)
                 }
+                (
+                    token::Variant::DotOperator(dot),
+                    lhs,
+                    Some(rhs @ Tree { variant: Variant::Ident(_), .. }),
+                ) => Tree::property_access(lhs, opr.with_variant(dot), rhs),
                 (_, lhs, rhs) => {
                     Tree::opr_app(lhs, Ok(opr.with_variant(token::variant::Operator())), rhs)
                 }

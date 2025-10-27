@@ -678,7 +678,7 @@ final class TreeToIr {
         method = buildName(id);
         loc = getIdentifiedLocation(sig);
       }
-      case Tree.OprApp app when isDotOperator(app.getOpr().getRight()) -> {
+      case Tree.PropertyAccess app -> {
         var typeLoc = getIdentifiedLocation(app.getLhs());
         type = Option.apply(buildQualifiedName(app.getLhs(), typeLoc, false));
         method = buildName(app.getRhs());
@@ -788,9 +788,7 @@ final class TreeToIr {
         }
         default -> {
           Expression func;
-          if (tree instanceof Tree.OprApp oprApp
-              && isDotOperator(oprApp.getOpr().getRight())
-              && oprApp.getRhs() instanceof Tree.Ident) {
+          if (tree instanceof Tree.PropertyAccess oprApp) {
             func = translateExpression(oprApp.getRhs(), true);
             if (oprApp.getLhs() == null && args.isEmpty()) {
               return func;
@@ -901,6 +899,14 @@ final class TreeToIr {
             .canBeTCO(true)
             .build();
       }
+      case Tree.PropertyAccess app -> {
+        final IdentifiedLocation loc = getIdentifiedLocation(tree);
+        try {
+          yield buildQualifiedName(app, loc, false);
+        } catch (SyntaxException ex) {
+          yield ex.toError();
+        }
+      }
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
         if (op == null) {
@@ -916,15 +922,6 @@ final class TreeToIr {
           }
         }
         yield switch (op.codeRepr()) {
-          case "." -> {
-            final IdentifiedLocation loc = getIdentifiedLocation(tree);
-            try {
-              yield buildQualifiedName(app, loc, false);
-            } catch (SyntaxException ex) {
-              yield ex.toError();
-            }
-          }
-
           case "->" -> {
             // Old-style lambdas; this syntax will be eliminated after the parser transition is
             // complete.
@@ -1438,20 +1435,20 @@ final class TreeToIr {
           yield ex.toError();
         }
       }
+      case Tree.PropertyAccess app -> {
+        final IdentifiedLocation loc = getIdentifiedLocation(tree);
+        try {
+          yield buildQualifiedName(app, loc, false);
+        } catch (SyntaxException ex) {
+          yield ex.toError();
+        }
+      }
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
         if (op == null) {
           yield translateSyntaxError(app, Syntax.UnexpectedExpression$.MODULE$);
         }
         yield switch (op.codeRepr()) {
-          case "." -> {
-            final IdentifiedLocation loc = getIdentifiedLocation(tree);
-            try {
-              yield buildQualifiedName(app, loc, false);
-            } catch (SyntaxException ex) {
-              yield ex.toError();
-            }
-          }
           case "->" -> {
             var literal = translateType(app.getLhs());
             var body = translateType(app.getRhs());
@@ -1766,7 +1763,7 @@ final class TreeToIr {
             sanitizeName(buildName(id)), fields, getIdentifiedLocation(id), meta());
       }
       case Tree.Ident id -> new Pattern.Name(buildName(id), getIdentifiedLocation(id), meta());
-      case Tree.OprApp app when isDotOperator(app.getOpr().getRight()) -> {
+      case Tree.PropertyAccess app -> {
         var qualifiedName = buildQualifiedName(app);
         yield new Pattern.Constructor(qualifiedName, fields, getIdentifiedLocation(app), meta());
       }
@@ -1870,34 +1867,21 @@ final class TreeToIr {
     return elems;
   }
 
-  private Name qualifiedNameSegment(Tree tree, boolean generateId) throws SyntaxException {
-    return switch (tree) {
-      case Tree.Ident id -> sanitizeName(buildName(id, generateId));
-      case Tree.Wildcard wild ->
-          new Name.Blank(getIdentifiedLocation(wild.getToken(), generateId), meta());
-      default -> throw translateEntity(tree, "qualifiedNameSegment");
-    };
-  }
-
   private List<Name> qualifiedNameSegments(Tree t, boolean generateId) throws SyntaxException {
-    List<Name> result = nil();
-    var first = true;
-    for (var segment : unrollOprRhs(t, ".")) {
-      var qns =
-          switch (qualifiedNameSegment(segment, generateId)) {
-            case Name.Blank underscore -> {
-              if (first) {
-                yield underscore;
-              } else {
-                throw new SyntaxException(segment, Syntax.InvalidUnderscore$.MODULE$);
-              }
-            }
-            case Name any -> any;
-          };
-      result = join(qns, result);
-      first = false;
+    if (t instanceof Tree.Wildcard wild) {
+      return join(new Name.Blank(getIdentifiedLocation(wild.getToken(), generateId), meta()), nil());
     }
-    return result.reverse();
+    List<Name> names = nil();
+    while (t instanceof Tree.PropertyAccess app) {
+      names = join(sanitizeName(buildName((Tree.Ident)app.getRhs(), generateId)), names);
+      t = app.getLhs();
+    }
+    if (t instanceof Tree.Ident id) {
+      names = join(sanitizeName(buildName(id, generateId)), names);
+    } else {
+      throw translateEntity(t, "qualifiedNameSegment");
+    }
+    return names;
   }
 
   private List<Name.Literal> buildNameSequence(Tree t) throws SyntaxException {

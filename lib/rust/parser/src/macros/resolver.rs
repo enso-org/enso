@@ -24,20 +24,20 @@
 
 use crate::prelude::*;
 
+use crate::SyntaxError;
 use crate::im_list::List;
 use crate::lexer::GroupDelimiterConsumer;
 use crate::macros;
 use crate::macros::pattern;
 use crate::source::Code;
 use crate::syntax;
-use crate::syntax::token;
-use crate::syntax::token::Token;
 use crate::syntax::BlockHierarchyConsumer;
 use crate::syntax::Finish;
 use crate::syntax::Item;
 use crate::syntax::NewlineConsumer;
 use crate::syntax::TokenConsumer;
-use crate::SyntaxError;
+use crate::syntax::token;
+use crate::syntax::token::Token;
 
 use std::collections::HashMap;
 use std::collections::VecDeque;
@@ -421,9 +421,14 @@ impl<'s> ResolverState<'s> {
                     Self::move_to_next_segment(&mut current_macro.matched_macro_def, subsegments);
                 mem::swap(&mut new_match_tree, &mut current_macro.possible_next_segments);
                 return Step::StartSegment(token);
-            } else if let Some(popped) = self.pop_macro_stack_if_reserved(repr) {
-                self.resolve(popped);
-                return Step::MacroStackPop(token.into());
+            } else {
+                match self.pop_macro_stack_if_reserved(repr) {
+                    Some(popped) => {
+                        self.resolve(popped);
+                        return Step::MacroStackPop(token.into());
+                    }
+                    _ => {}
+                }
             }
         }
         if let Some(segments) = root_macro_map.get(repr, context) {

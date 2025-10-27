@@ -1,11 +1,11 @@
 use crate::prelude::*;
 use crate::syntax::expression::types::*;
 
-use crate::syntax::expression::whitespace::Spacing;
-use crate::syntax::token;
 use crate::syntax::Flush;
 use crate::syntax::GroupHierarchyConsumer;
 use crate::syntax::ScopeHierarchyConsumer;
+use crate::syntax::expression::whitespace::Spacing;
+use crate::syntax::token;
 
 // ===================
 // === Insert Apps ===
