@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.File_Type
+import Standard.Base.Runtime.Context as Execution_Context
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
@@ -545,6 +546,7 @@ type Snowflake_Connection
           properties from.
        - `path`: The path (or prefix) to the files to remove.
        - `pattern`: Optional regex pattern to match names against.
+    @stage make_stage_selector
     remove_from_stage : Identifier -> Text -> Text -> Integer
     remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text="" pattern:Text="" =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
