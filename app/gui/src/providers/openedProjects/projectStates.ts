@@ -8,6 +8,7 @@ import Backend, {
   BackendType,
   EnsoPath,
   IS_OPENING,
+  IS_OPENING_OR_OPENED,
   NetworkError,
   type DirectoryId,
   type ProjectAsset,
@@ -329,6 +330,10 @@ export function useProjectStates() {
       ),
     )
     if (!result.ok) return result
+    const hybridOpenedSet = await catchNetworkError(
+      backends.remoteBackend.setHybridOpened(info.id, info.title),
+    )
+    if (!hybridOpenedSet.ok) return hybridOpenedSet
     return Ok({
       status: 'opened',
       info,
@@ -504,7 +509,7 @@ export function useProjectStates() {
   async function uploadHybridProject(info: RunningProjectInfo & { mode: 'hybrid' }) {
     const fileName = 'project_root.enso-project'
     const file = await backends.remoteBackend.getProjectArchive(info.localParentId, fileName)
-    return catchNetworkError(
+    const result = await catchNetworkError(
       uploads.uploadFile(
         file,
         {
@@ -515,6 +520,10 @@ export function useProjectStates() {
         'hybridSync',
       ),
     )
+    if (result.ok) {
+      info.synced = true
+    }
+    return result
   }
 
   async function uploadHybridProjectOnClose(project: HybridLocallyClosed) {
@@ -587,10 +596,7 @@ export function useProjectStates() {
     const scope = effectScope()
     const details = await getProjectDetails(project.info, scope)
     if (!details.ok) return details
-    if (
-      project.info.mode === 'hybrid' &&
-      details.value.value.state.type === BackendProjectState.hybridOpened
-    ) {
+    if (project.info.mode === 'hybrid' && IS_OPENING_OR_OPENED[details.value.value.state.type]) {
       return openLocalVersionOfHybridProjectByRunningInfo(project.info, scope, details.value)
     }
     if (
@@ -614,18 +620,24 @@ export function useProjectStates() {
   }
 
   /** Confirm a restored cloud/hybrid project reopening. */
-  async function reopenProject(project: ClosedByBackend): Promise<Result<Opened>> {
+  async function reopenProject(project: ClosedByBackend): Promise<Result<Opened | HybridOpened>> {
     const opened = await openProject({ status: 'not-opened', info: project.info })
     if (!opened.ok) return opened
-    if (opened.value.status === 'hybrid-opened') {
+    // If the local version is not synced, we prefer to open it instead downloading from remote,
+    // so the user won't lose their changes.
+    // TODO[ao]: We should ask user about this.
+    const hybridNotSynced = project.info.mode === 'hybrid' ? !project.info.synced : false
+    if (opened.value.status === 'hybrid-opened' && hybridNotSynced) {
       assert(project.info.mode === 'hybrid')
-      // skip the project downloading, as we already have local copy.
       return openLocalVersionOfHybridProjectByRunningInfo(
         project.info,
         project.scope,
         project.details,
       )
     } else {
+      if (project.info.mode === 'hybrid') {
+        deleteLocalVersionOfHybridProject(project.info.localParentId)
+      }
       return Ok(opened.value)
     }
   }

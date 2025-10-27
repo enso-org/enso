@@ -144,7 +144,12 @@ export function Dashboard() {
 function SyncingProjectsDialog() {
   const { getText } = useText()
   return (
-    <Dialog title={getText('syncingProjectsTitle')} modalProps={{ defaultOpen: true }}>
+    <Dialog
+      title={getText('syncingProjectsTitle')}
+      isDismissable={false}
+      hideCloseButton={true}
+      modalProps={{ defaultOpen: true }}
+    >
       <Text>{getText('syncingProjectsMessage')}</Text>
     </Dialog>
   )

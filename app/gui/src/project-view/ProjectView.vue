@@ -33,7 +33,7 @@ onDeactivated(() => (visible.value = false))
       :subtitle="getText('projectStoppedDescription')"
     >
       <button @click="openedProjects.openProject(projectState.info)">
-        {getText('openProject')}
+        {{ getText('openProject') }}
       </button>
     </ResultComponent>
     <WithCurrentProject v-else :id="projectId">

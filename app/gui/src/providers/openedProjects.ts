@@ -9,7 +9,6 @@ import {
 import LocalStorage from '#/utilities/LocalStorage'
 import { assert } from '@/util/assert'
 import { createGlobalState } from '@vueuse/core'
-import { isOnElectron } from 'enso-common/src/detect'
 import { computed, ref, shallowReactive, watchEffect } from 'vue'
 import { Err, Ok, type Result, type ResultError } from 'ydoc-shared/util/data/result'
 import * as z from 'zod'
@@ -103,6 +102,9 @@ export function createOpenedProjectsStore() {
         nextTask: undefined,
         error: undefined,
       })
+    if (project.state.status === 'not-opened') {
+      project.state.info = info
+    }
     projects.set(info.id, project)
     performProcess(project, 'opening')
     return project
@@ -374,21 +376,22 @@ export function createOpenedProjectsStore() {
   // They are not removed from local backend, but synchronized with remote in case someone else
   // would open it in the meantime.
   window.addEventListener('beforeunload', async (event) => {
-    const hybrids = [...projects.values()].filter(
+    const hybridsToUpload = [...projects.values()].filter(
       (proj): proj is Project & { state: Initialized | HybridLocallyClosed } =>
+        (proj.state.status === 'initialized' || proj.state.status === 'hybrid-closed') &&
         proj.state.info.mode === 'hybrid' &&
-        (proj.state.status === 'initialized' || proj.state.status === 'hybrid-closed'),
+        !proj.state.info.synced,
     )
-    if (hybrids.length > 0) {
+    if (hybridsToUpload.length > 0) {
       // Do not prevent default in browsers.
       // In "real" browsers users will be unable to run hybrid projects anyway, but in dev
       // servers the "data loss" messages are annoying.
-      if (!isOnElectron()) return
+      // if (!isOnElectron()) return
       event.preventDefault()
       closingOnAppExit.value = true
       const errors = (
         await Promise.all(
-          hybrids.map(async (project) => {
+          hybridsToUpload.map(async (project) => {
             assert(project.state.info.mode === 'hybrid')
             await projectStates.uploadHybridProject(project.state.info)
             return project

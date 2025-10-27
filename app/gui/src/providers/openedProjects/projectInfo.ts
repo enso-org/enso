@@ -34,6 +34,7 @@ const RUNNING_HYBRID_PROJECT_INFO_SCHEMA = PROJECT_INFO_SCHEMA.extend({
   runningId: PROJECT_ID_SCHEMA,
   hybridSessionId: PROJECT_SESSION_ID_SCHEMA,
   localParentId: DIRECTORY_ID_SCHEMA,
+  synced: z.boolean().optional(),
 })
 export const RUNNING_PROJECT_INFO_SCHEMA = z.discriminatedUnion('mode', [
   RUNNING_NATIVE_PROJECT_INFO_SCHEMA,
