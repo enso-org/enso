@@ -1,5 +1,5 @@
 import { AssetType, DirectoryId } from '#/services/Backend'
-import { Err, Ok, Result } from '@/util/data/result'
+import { Err, Ok, type Result } from '@/util/data/result'
 import { uuidv4 } from 'lib0/random'
 import { describe, expect, test, vi } from 'vitest'
 import { ref, type Ref } from 'vue'

@@ -320,7 +320,9 @@ jobs:
         with:
           if-no-files-found: ignore
           name: Heap dumps (Standard Library Cloud Tests, linux, amd64)
-          path: "**/*.hprof"
+          path: |-
+            test/**/*.hprof
+            engine/**/*.hprof
           retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after

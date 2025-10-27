@@ -7,8 +7,6 @@ use syn::Data;
 use syn::DeriveInput;
 use syn::Fields;
 
-
-
 // ===================
 // === Entry Point ===
 // ===================
@@ -49,7 +47,6 @@ use syn::Fields;
 /// placed before `#[tagged_enum]`, as the results would differ for *active* or *inert*
 /// attributes[1].
 /// [1]: https://doc.rust-lang.org/reference/attributes.html#active-and-inert-attributes
-
 pub fn run(
     attr: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
@@ -76,8 +73,6 @@ pub fn run(
     };
 
     let mut output = vec![];
-
-
 
     // ========================
     // === Main Enum Struct ===
@@ -126,7 +121,6 @@ pub fn run(
         }
     });
 
-
     for variant in &data.variants {
         // =======================
         // === Variant Structs ===
@@ -150,8 +144,6 @@ pub fn run(
             #[allow(missing_docs)]
             #vis struct #variant_name #ty_generics #fields #where_clause
         });
-
-
 
         // ====================
         // === Constructors ===
@@ -192,8 +184,6 @@ pub fn run(
             }
         });
 
-
-
         // ========================================
         // === Unnamed Struct Like Constructors ===
         // ========================================
@@ -214,7 +204,6 @@ pub fn run(
                 #variant_name { #(#names),* }
             }
         });
-
 
         // ====================
         // === Type erasure ===
@@ -241,7 +230,6 @@ pub fn run(
                 }
             }
         });
-
 
         // ===================
         // === Downcasting ===
@@ -288,8 +276,6 @@ pub fn run(
         });
     }
 
-
-
     // =============================
     // === Final Code Generation ===
     // =============================
@@ -300,8 +286,6 @@ pub fn run(
 
     output.into()
 }
-
-
 
 // ==================
 // === Attributes ===

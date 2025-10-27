@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import { Ast } from '@/util/ast'
 const _props = defineProps(widgetProps(widgetDefinition))
 </script>

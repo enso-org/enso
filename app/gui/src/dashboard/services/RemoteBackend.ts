@@ -868,13 +868,14 @@ export default class RemoteBackend extends Backend {
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
     file: File,
+    abort?: AbortSignal,
   ): Promise<backend.UploadLargeFileMetadata> {
     const path = remoteBackendPaths.UPLOAD_FILE_START_PATH
     const requestBody: backend.UploadFileStartRequestBody = {
       fileName: body.fileName,
       size: file.size,
     }
-    const response = await this.post<backend.UploadLargeFileMetadata>(path, requestBody)
+    const response = await this.post<backend.UploadLargeFileMetadata>(path, requestBody, { abort })
     if (!response.ok) {
       return await this.throw(response, 'uploadFileStartBackendError')
     } else {
@@ -890,16 +891,17 @@ export default class RemoteBackend extends Backend {
     url: backend.HttpsUrl,
     file: Blob,
     index: number,
-  ): Promise<backend.S3MultipartPart> {
+    abort?: AbortSignal,
+  ): Promise<{ part: backend.S3MultipartPart; size: number }> {
     const start = index * backend.S3_CHUNK_SIZE_BYTES
     const end = Math.min(start + backend.S3_CHUNK_SIZE_BYTES, file.size)
     const body = file.slice(start, end)
-    const response = await fetch(url, { method: 'PUT', body })
+    const response = await fetch(url, { method: 'PUT', body, ...(abort ? { signal: abort } : {}) })
     const eTag = response.headers.get('ETag')
     if (!response.ok || eTag == null) {
       return await this.throw(response, 'uploadFileChunkBackendError')
     } else {
-      return { eTag, partNumber: index + 1 }
+      return { part: { eTag, partNumber: index + 1 }, size: body.size }
     }
   }
 
@@ -909,9 +911,10 @@ export default class RemoteBackend extends Backend {
    */
   override async uploadFileEnd(
     body: backend.UploadFileEndRequestBody,
+    abort?: AbortSignal,
   ): Promise<backend.UploadedAsset> {
     const path = remoteBackendPaths.UPLOAD_FILE_END_PATH
-    const response = await this.post<backend.UploadedAsset>(path, body)
+    const response = await this.post<backend.UploadedAsset>(path, body, { abort })
     if (!response.ok) {
       return await this.throw(response, 'uploadFileEndBackendError')
     } else {

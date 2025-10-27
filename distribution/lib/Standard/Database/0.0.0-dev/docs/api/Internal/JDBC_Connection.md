@@ -16,7 +16,7 @@
     - with_metadata self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_prepared_statement self query:Standard.Base.Any.Any statement_setter:Standard.Base.Any.Any action:Standard.Base.Any.Any skip_log:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - close_connection connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- create url:Standard.Base.Any.Any properties:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- create url:Standard.Base.Any.Any properties:Standard.Base.Any.Any database:Standard.Base.Data.Text.Text= schema:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
 - from_java java_jdbc_connection:Standard.Base.Any.Any sql_exception:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - get_pragma_value jdbc_connection:Standard.Base.Any.Any sql:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - handle_sql_errors ~action:Standard.Base.Any.Any related_query:Standard.Base.Any.Any= sql_exception:Standard.Base.Any.Any= -> Standard.Base.Any.Any

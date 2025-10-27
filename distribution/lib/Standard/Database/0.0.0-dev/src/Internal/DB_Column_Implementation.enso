@@ -70,15 +70,15 @@ type DB_Column_Implementation
     first (this_column : Column & DB_Column) = this_column.at 0
 
     value_type (this_column : Column & DB_Column) =
-        mapping = this_column.connection.dialect.get_type_mapping
+        mapping = this_column.connection.type_mapping
         mapping.sql_type_to_value_type this_column.sql_type_reference.get
 
     inferred_precise_value_type (this_column : Column & DB_Column) =
         this_column.value_type
 
     should_be_selected_by_type (this_column : Column & DB_Column) (value_type : Value_Type) =
-        type_mapping = this_column.connection.dialect.get_type_mapping
-        type_mapping.is_same_type this_column.value_type value_type
+        mapping = this_column.connection.type_mapping
+        mapping.is_same_type this_column.value_type value_type
 
     to_sql (this_column : Column & DB_Column) = this_column.to_table.to_sql
 
@@ -331,13 +331,13 @@ type DB_Column_Implementation
             make_unary_op this_column "LENGTH" new_name
 
     text_left (this_column : Column & DB_Column) n:Column|Integer =
-        Value_Type.expect_text this_column <| Helpers.expect_dialect_specific_integer_type this_column n <|
+        Value_Type.expect_text this_column <| Helpers.expect_specific_integer_type this_column n <|
             n2 = n.max 0
             new_name = (naming_helper this_column).function_name "text_left" [this_column, n]
             make_binary_op this_column "LEFT" n2 new_name
 
     text_right (this_column : Column & DB_Column) n:Column|Integer =
-        Value_Type.expect_text this_column <| Helpers.expect_dialect_specific_integer_type this_column n <|
+        Value_Type.expect_text this_column <| Helpers.expect_specific_integer_type this_column n <|
             n2 = n.max 0
             new_name = (naming_helper this_column).function_name "text_right" [this_column, n]
             make_binary_op this_column "RIGHT" n2 new_name
@@ -429,7 +429,7 @@ type DB_Column_Implementation
     date_add (this_column : Column & DB_Column) (amount : Column | Integer) (period : Date_Period | Time_Period) =
         Value_Type.expect_type this_column .is_date_or_time "date/time" <|
             my_type = this_column.inferred_precise_value_type
-            Helpers.expect_dialect_specific_integer_type this_column amount <|
+            Helpers.expect_specific_integer_type this_column amount <|
                 aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
                 aligned_period.if_not_error <|
                     new_name = (naming_helper this_column).function_name "date_add" [this_column, amount, period]
@@ -458,7 +458,7 @@ type DB_Column_Implementation
                 in_subquery = SQL_IR_Statement.Select [Pair.new column.name (column:DB_Column).expression] (column:DB_Column).context
                 new_expr = SQL_IR_Expression.Operation "IS_IN_COLUMN" [this_column.expression, in_subquery]
                 # This mapping should never be imprecise, if there are errors we need to amend the implementation.
-                sql_type = this_column.connection.dialect.get_type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error
+                sql_type = this_column.connection.type_mapping.value_type_to_sql Value_Type.Boolean Problem_Behavior.Report_Error
                 new_type_ref = SQL_Type_Reference.from_constant sql_type . catch Inexact_Type_Coercion _->
                     Error.throw (Illegal_State.Error "The dialect "+this_column.connection.dialect.name+" does not support a boolean type. The implementation of `is_in` should be revised to account for this. This is an internal issue with the Database library.")
                 DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
@@ -545,9 +545,10 @@ make_equality_check_with_floating_point_handling column other op =
 
 adapt_unified_column (column : Column & DB_Column) expected_type =
     dialect = column.connection.dialect
+    mapping = column.connection.type_mapping
     infer_return_type expression =
         SQL_Type_Reference.new column.connection column.context expression
-    adapted = dialect.adapt_unified_column (Internal_Column.from column) expected_type infer_return_type
+    adapted = dialect.adapt_unified_column (Internal_Column.from column) expected_type infer_return_type mapping
     DB_Column.new column.name column.connection adapted.sql_type_reference adapted.expression column.context
 
 
@@ -556,7 +557,7 @@ make_op this_column op_kind operands new_name metadata=Nothing =
     checked_support = if this_column.connection.dialect.is_operation_supported op_kind then True else
         Error.throw (Unsupported_Database_Operation.Error op_kind)
     checked_support.if_not_error <|
-        type_mapping = this_column.connection.dialect.get_type_mapping
+        mapping = this_column.connection.type_mapping
         prepare_operand operand = case operand of
             other_column : Column ->
                 if Helpers.check_integrity this_column other_column then (other_column:DB_Column).expression else
@@ -571,7 +572,7 @@ make_op this_column op_kind operands new_name metadata=Nothing =
 
         infer_from_database_callback expression =
             SQL_Type_Reference.new this_column.connection this_column.context expression
-        new_type_ref = type_mapping.infer_return_type infer_from_database_callback op_kind [this_column]+operands new_expr
+        new_type_ref = mapping.infer_return_type infer_from_database_callback op_kind [this_column]+operands new_expr
         DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
 
 make_binary_op : Column & DB_Column -> Text -> Text -> (Text | Nothing) -> Column
@@ -588,13 +589,12 @@ make_unary_op this_column op_kind new_name=Nothing =
 
 internal_do_cast : Column & DB_Column -> Value_Type -> Problem_Behavior -> Column
 internal_do_cast this_column value_type on_problems:Problem_Behavior =
-    dialect = this_column.connection.dialect
-    type_mapping = dialect.get_type_mapping
-    target_sql_type = type_mapping.value_type_to_sql value_type on_problems
+    mapping = this_column.connection.type_mapping
+    target_sql_type = mapping.value_type_to_sql value_type on_problems
     target_sql_type.if_not_error <|
         infer_from_database new_expression =
             SQL_Type_Reference.new this_column.connection this_column.context new_expression
-        new_column = dialect.make_cast (Internal_Column.from this_column) target_sql_type infer_from_database
+        new_column = this_column.connection.dialect.make_cast (Internal_Column.from this_column) mapping target_sql_type infer_from_database
         DB_Column.new new_column.name this_column.connection new_column.sql_type_reference new_column.expression this_column.context
 
 should_use_builtin_round : Column & DB_Column -> Integer -> Boolean -> Boolean

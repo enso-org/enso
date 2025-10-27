@@ -3,7 +3,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
-import { computed, reactive, type Ref } from 'vue'
+import { computed, reactive, watchEffect, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as z from 'zod'
 
@@ -131,6 +131,14 @@ export const [provideContainerData, useContainerData] = createContextStore(
       set: (page) => {
         router.push({ params: { path: page.split('/') }, query: route.query })
       },
+    })
+
+    // When the current tab is no longer valid (e.g. the project was closed), switch to the fallback tab.
+    watchEffect(() => {
+      const name = normalizeRouteParamToString(route.params.path)
+      if (!isValidTab(name)) {
+        tab.value = fallbackTab
+      }
     })
 
     const addLaunchedProject = (project: LaunchedProject) => {

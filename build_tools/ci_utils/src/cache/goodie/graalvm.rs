@@ -7,8 +7,6 @@ use crate::github::RepoRef;
 use crate::programs::java::JAVA_HOME;
 use crate::programs::Java;
 
-
-
 const PACKAGE_PREFIX_URL: &str = "graalvm-community";
 
 pub const CE_BUILDS_REPOSITORY: RepoRef = RepoRef { owner: "graalvm", name: "graalvm-ce-builds" };
@@ -63,7 +61,6 @@ impl Display for Edition {
     }
 }
 
-
 pub fn graal_version_from_version_string(version_string: &str) -> Result<(Version, Edition)> {
     let line = version_string
         .lines()
@@ -87,23 +84,21 @@ pub async fn find_graal_version() -> Result<(Version, Edition)> {
     graal_version_from_version_string(&text)
 }
 
-
 /// Description necessary to download and install GraalVM.
 #[derive(Clone, Debug)]
 pub struct GraalVM {
     /// Used to query GitHub about releases.
-    pub client:        Octocrab,
+    pub client: Octocrab,
     pub graal_version: Version,
-    pub edition:       Edition,
-    pub os:            OS,
-    pub arch:          Arch,
+    pub edition: Edition,
+    pub os: OS,
+    pub arch: Arch,
 }
 
 impl Goodie for GraalVM {
     fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
         goodie::download_try_future_url(self.url(), cache)
     }
-
 
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {
         let expected_graal_version = self.graal_version.clone();
@@ -226,7 +221,7 @@ OpenJDK 64-Bit Server VM GraalVM CE 17.0.7+7.1 (build 17.0.7+7-jvmci-23.0-b12, m
             major: 17,
             minor: 0,
             patch: 7,
-            pre:   Prerelease::EMPTY,
+            pre: Prerelease::EMPTY,
             build: BuildMetadata::new("7.1").unwrap(),
         };
         assert_eq!(found_graal_version, expected_graal_version);
@@ -248,7 +243,7 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LT
             major: 21,
             minor: 0,
             patch: 2,
-            pre:   Prerelease::EMPTY,
+            pre: Prerelease::EMPTY,
             build: BuildMetadata::new("13.1").unwrap(),
         };
         assert_eq!(found_graal_version, expected_graal_version);
@@ -267,7 +262,7 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LT
             major: 17,
             minor: 0,
             patch: 7,
-            pre:   Prerelease::EMPTY,
+            pre: Prerelease::EMPTY,
             build: BuildMetadata::new("7.1").unwrap(),
         };
         assert_eq!(graal_version, expected_graal_version);
@@ -276,11 +271,11 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LT
     #[tokio::test]
     async fn correct_url_for_enterprise_edition_21() {
         let graalvm = GraalVM {
-            client:        Octocrab::default(),
+            client: Octocrab::default(),
             graal_version: Version::new(21, 0, 2),
-            edition:       Edition::Enterprise,
-            os:            OS::Linux,
-            arch:          Arch::X86_64,
+            edition: Edition::Enterprise,
+            os: OS::Linux,
+            arch: Arch::X86_64,
         };
         let url = graalvm.url().await.unwrap();
         assert_eq!(url.to_string(), "https://download.oracle.com/graalvm/21/archive/graalvm-jdk-21.0.2_linux-x64_bin.tar.gz");
@@ -289,11 +284,11 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LT
     #[tokio::test]
     async fn correct_url_for_enterprise_edition_17() {
         let graalvm = GraalVM {
-            client:        Octocrab::default(),
+            client: Octocrab::default(),
             graal_version: Version::new(17, 0, 7),
-            edition:       Edition::Enterprise,
-            os:            OS::Linux,
-            arch:          Arch::X86_64,
+            edition: Edition::Enterprise,
+            os: OS::Linux,
+            arch: Arch::X86_64,
         };
         let url = graalvm.url().await.unwrap();
         assert_eq!(url.to_string(), "https://download.oracle.com/graalvm/17/archive/graalvm-jdk-17.0.7_linux-x64_bin.tar.gz");
@@ -302,11 +297,11 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LT
     #[tokio::test]
     async fn correct_url_for_community_edition() {
         let graalvm = GraalVM {
-            client:        Octocrab::default(),
+            client: Octocrab::default(),
             graal_version: Version::new(21, 0, 2),
-            edition:       Edition::Community,
-            os:            OS::Linux,
-            arch:          Arch::X86_64,
+            edition: Edition::Community,
+            os: OS::Linux,
+            arch: Arch::X86_64,
         };
         let url = graalvm.url().await.unwrap();
         assert_eq!(url.to_string(), "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-21.0.2/graalvm-community-jdk-21.0.2_linux-x64_bin.tar.gz");

@@ -1,4 +1,5 @@
 import { isMacLike, useEvent } from '@/composables/events'
+import { useGlobalEventRegistry, type GlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { ref, toRef, watch, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
@@ -19,12 +20,15 @@ export interface KeyboardComposable {
 }
 
 /** Composable containing reactive flags for modifier's press state. */
-export function useGlobalKeyboard(): KeyboardComposable {
+export function useGlobalKeyboard(
+  globalEventRegistry = useGlobalEventRegistry(),
+): KeyboardComposable {
   const { state, updateState, resetState } = useKeyboardState()
+  const { globalEventRegistryPre } = globalEventRegistry
 
-  useEvent(window, 'keydown', updateState, { capture: true })
-  useEvent(window, 'keyup', updateState, { capture: true })
-  useEvent(window, 'blur', resetState, { capture: true })
+  useEvent(globalEventRegistryPre, 'keydown', (event) => updateState(event), { capture: true })
+  useEvent(globalEventRegistryPre, 'keyup', updateState, { capture: true })
+  useEvent(globalEventRegistryPre, 'blur', resetState, { capture: true })
 
   return useKeyboardApi(state, updateState)
 }
@@ -43,8 +47,12 @@ function useEventListener<T extends keyof HTMLElementEventMap>(
  * Composable containing reactive flags for modifier's press state, considering only keys pressed
  * while focus was within a certain element.
  */
-export function useLocalKeyboard(element: ToValue<Opt<HTMLElement>>): KeyboardComposable {
+export function useLocalKeyboard(
+  globalEventRegistry: GlobalEventRegistry,
+  element: ToValue<Opt<HTMLElement>>,
+): KeyboardComposable {
   const { state, updateState, resetState } = useKeyboardState()
+  const { globalEventRegistryPre } = globalEventRegistry
 
   watch(
     toRef(element),
@@ -53,13 +61,11 @@ export function useLocalKeyboard(element: ToValue<Opt<HTMLElement>>): KeyboardCo
       if (element) {
         useEventListener(element, 'keydown', updateState, onCleanup)
         useEventListener(element, 'focusout', resetState, onCleanup)
-        element.addEventListener('focusout', resetState)
-        onCleanup(() => element.removeEventListener('focusout', resetState))
       }
     },
     { immediate: true },
   )
-  useEvent(window, 'keyup', updateState, { capture: true })
+  useEvent(globalEventRegistryPre, 'keyup', updateState, { capture: true })
 
   return useKeyboardApi(state, updateState)
 }

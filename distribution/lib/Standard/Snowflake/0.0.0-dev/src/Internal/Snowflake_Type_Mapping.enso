@@ -11,11 +11,14 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
+import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Type
+from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 polyglot java import java.sql.Types
 polyglot java import org.enso.snowflake.SnowflakeColumnFetcherFactory
+polyglot java import org.enso.snowflake.SnowflakeJDBCUtils
 
 ## ---
    private: true
@@ -169,6 +172,23 @@ type Snowflake_Type_Mapping
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         # Types are considered the same by original semantics, or additionally if both of them are an integer-like type as denoted by `is_integer_type`.
         (value_type1.is_same_type value_type2) || (Snowflake_Type_Mapping.is_integer_type value_type1 && Snowflake_Type_Mapping.is_integer_type value_type2)
+
+    ## ---
+       private: true
+       ---
+       Creates a Snowflake customised Statement_Setter.
+    statement_setter =
+        custom_fill_hole stmt i type_hint value = case value of
+            _ : Date_Time ->
+                keep_offset = case type_hint of
+                    Value_Type.Date_Time with_timezone -> with_timezone
+                    _ -> True
+                SnowflakeJDBCUtils.setDateTime stmt i value keep_offset
+            _ : Time_Of_Day -> SnowflakeJDBCUtils.setTimeOfDay stmt i value
+            _ : Date        -> SnowflakeJDBCUtils.setDate stmt i value
+            # Fallback to default logic for everything else
+            _ -> fill_hole_default stmt i type_hint value
+        Statement_Setter.Value custom_fill_hole
 
 ## ---
    private: true

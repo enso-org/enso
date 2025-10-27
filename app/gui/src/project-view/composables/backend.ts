@@ -58,11 +58,12 @@ export function backendQueryOptions<Method extends BackendQueryMethod, B extends
   }
 }
 
-type MutationOptions<Method extends BackendMutationMethod> = ToValue<
+type MutationOptions<Method extends BackendMutationMethod, B extends Backend | null> = ToValue<
   Omit<
     UnwrapRef<
       UseMutationOptions<
-        Awaited<ReturnType<Backend[Method]>> | undefined,
+        B extends Backend ? Awaited<ReturnType<Backend[Method]>>
+        : Awaited<ReturnType<Backend[Method]>> | null,
         Error,
         Parameters<Backend[Method]>
       >
@@ -74,12 +75,16 @@ type MutationOptions<Method extends BackendMutationMethod> = ToValue<
 /**
  * Create Tanstack Query mutation options for given backend method call.
  */
-export function backendMutationOptions<Method extends BackendMutationMethod>(
+export function backendMutationOptions<
+  Method extends BackendMutationMethod,
+  B extends Backend | null,
+>(
   method: Method,
-  backend: ToValue<Backend | null>,
-  options?: MutationOptions<Method>,
+  backend: ToValue<B>,
+  options?: MutationOptions<Method, B>,
 ): UseMutationOptions<
-  Awaited<ReturnType<Backend[Method]>> | undefined,
+  B extends Backend ? Awaited<ReturnType<Backend[Method]>>
+  : Awaited<ReturnType<Backend[Method]>> | null,
   Error,
   Parameters<Backend[Method]>
 > {
@@ -98,11 +103,15 @@ export function backendMutationOptions<Method extends BackendMutationMethod>(
       ...backendBaseOptions(backendVal),
       ...opts,
       mutationKey: [backendVal?.type, method, ...(toValue(opts?.mutationKey) ?? [])],
-      mutationFn: (args) => (backendVal ? (backendVal[method] as any)(...args) : undefined),
+      mutationFn: (args) =>
+        backendVal ? (backendVal[method] as any)(...args) : (Promise.resolve(null) as any),
       meta: {
         invalidates,
         awaitInvalidates: true,
-        refetchType: invalidates.some((key) => key[1] === 'listDirectory') ? 'all' : 'active',
+        refetchType:
+          invalidates.some((key) => key[1] === 'listDirectory') ?
+            ('all' as const)
+          : ('active' as const),
         ...opts?.meta,
       },
     }
@@ -117,7 +126,7 @@ export function backendMutationOptions<Method extends BackendMutationMethod>(
 export function useBackend(which: 'remote' | 'project') {
   const queryClient = useQueryClient()
   const { localBackend: project, remoteBackend: remote } = useBackends()
-  const backend = which === 'project' ? project : remote
+  const backend: Backend | null = which === 'project' ? project : remote
 
   /** Perform the specified query, and keep the result up-to-date if the provided arguments change. */
   function query<Method extends BackendQueryMethod>(
@@ -152,9 +161,9 @@ export function useBackend(which: 'remote' | 'project') {
 
   function mutation<Method extends BackendMutationMethod>(
     method: Method,
-    options?: MutationOptions<Method>,
+    options?: MutationOptions<Method, Backend | null>,
   ): UseMutationReturnType<
-    Awaited<ReturnType<Backend[Method]>> | undefined,
+    Awaited<ReturnType<Backend[Method]>> | null,
     Error,
     Parameters<Backend[Method]>,
     unknown

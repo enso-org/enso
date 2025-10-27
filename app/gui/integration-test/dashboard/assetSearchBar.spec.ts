@@ -1,6 +1,5 @@
 /** @file Test the search bar and its suggestions. */
-import { expect, test, type Page } from 'playwright/test'
-import { mockAllAndLogin } from './actions'
+import { expect, test, type Page } from 'integration-test/base'
 
 /** Find a search bar. */
 function locateSearchBar(page: Page) {
@@ -25,31 +24,50 @@ function locateSearchBarSuggestions(page: Page) {
 
 const FIRST_ASSET_NAME = 'foo'
 
-test('tags (positive)', ({ page }) =>
-  mockAllAndLogin({ page }).withSearchBar(async (searchBarInput) => {
+test('tags (positive)', async ({ drivePage, page }) => {
+  await drivePage.goToCategory.cloud().withSearchBar(async (searchBar) => {
     const tags = locateSearchBarTags(page)
 
-    await searchBarInput.click()
+    await searchBar.click()
     for (const positiveTag of await tags.all()) {
-      await searchBarInput.selectText()
-      await searchBarInput.press('Backspace')
+      await searchBar.selectText()
+      await page.keyboard.press('Backspace')
       const text = (await positiveTag.textContent()) ?? ''
       expect(text.length).toBeGreaterThan(0)
       await positiveTag.click()
-      await expect(searchBarInput).toHaveValue(text)
+      await expect(searchBar).toHaveValue(text)
     }
-  }))
+  })
+})
 
-test.skip('labels (were supported in list directory, but not supported in search)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addLabel('aaaa', { lightness: 50, chroma: 66, hue: 7 })
-      api.addLabel('bbbb', { lightness: 50, chroma: 66, hue: 34 })
-      api.addLabel('cccc', { lightness: 50, chroma: 66, hue: 80 })
-      api.addLabel('dddd', { lightness: 50, chroma: 66, hue: 139 })
-    },
-  }).withSearchBar(async (searchBar) => {
+test('tags (negative)', async ({ drivePage, page }) => {
+  await drivePage.goToCategory.cloud().withSearchBar(async (searchBar) => {
+    const tags = locateSearchBarTags(page)
+
+    await searchBar.click()
+    await page.keyboard.down('Shift')
+    for (const negativeTag of await tags.all()) {
+      await searchBar.selectText()
+      await searchBar.press('Backspace')
+      const text = (await negativeTag.textContent()) ?? ''
+      expect(text.length).toBeGreaterThan(0)
+      await negativeTag.click()
+      await expect(searchBar).toHaveValue(text)
+    }
+  })
+})
+
+test.skip('labels (were supported in list directory, but not supported in search)', async ({
+  drivePage,
+  page,
+  cloudApi,
+}) => {
+  cloudApi.addLabel('aaaa', { lightness: 50, chroma: 66, hue: 7 })
+  cloudApi.addLabel('bbbb', { lightness: 50, chroma: 66, hue: 34 })
+  cloudApi.addLabel('cccc', { lightness: 50, chroma: 66, hue: 80 })
+  cloudApi.addLabel('dddd', { lightness: 50, chroma: 66, hue: 139 })
+
+  await drivePage.goToCategory.cloud().withSearchBar(async (searchBar) => {
     const labels = locateSearchBarLabels(page)
 
     await searchBar.click()
@@ -61,18 +79,15 @@ test.skip('labels (were supported in list directory, but not supported in search
       await label.click()
       await expect(searchBar).toHaveValue('')
     }
-  }))
+  })
+})
 
-test('suggestions', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addDirectory({ title: 'foo' })
-      api.addProject({ title: 'bar' })
-      api.addSecret({ title: 'baz' })
-      api.addSecret({ title: 'quux' })
-    },
-  }).withSearchBar(async (searchBar) => {
+test('suggestions', async ({ drivePage, page, cloudApi }) => {
+  cloudApi.addDirectory({ title: 'foo' })
+  cloudApi.addProject({ title: 'bar' })
+  cloudApi.addSecret({ title: 'baz' })
+  cloudApi.addSecret({ title: 'quux' })
+  await drivePage.goToCategory.cloud().withSearchBar(async (searchBar) => {
     const suggestions = locateSearchBarSuggestions(page)
 
     await searchBar.click()
@@ -85,45 +100,41 @@ test('suggestions', ({ page }) =>
       await searchBar.selectText()
       await searchBar.press('Backspace')
     }
-  }))
+  })
+})
 
-test('suggestions (keyboard)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addDirectory({ title: 'foo' })
-      api.addProject({ title: 'bar' })
-      api.addSecret({ title: 'baz' })
-      api.addSecret({ title: 'quux' })
-    },
-  }).withSearchBar(async (searchBar) => {
+test('suggestions (keyboard)', async ({ drivePage, page, cloudApi }) => {
+  cloudApi.addDirectory({ title: 'foo' })
+  cloudApi.addProject({ title: 'bar' })
+  cloudApi.addSecret({ title: 'baz' })
+  cloudApi.addSecret({ title: 'quux' })
+
+  await drivePage.goToCategory.cloud().withSearchBar(async (searchBar) => {
     const suggestions = locateSearchBarSuggestions(page)
 
     await searchBar.click()
     for (const suggestion of await suggestions.all()) {
       const name = (await suggestion.textContent()) ?? ''
       expect(name.length).toBeGreaterThan(0)
-      await page.press('body', 'ArrowDown')
+      await page.keyboard.press('ArrowDown')
       await expect(searchBar).toHaveValue('name:' + name)
     }
-  }))
+  })
+})
 
-test('complex flows', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addDirectory({ title: FIRST_ASSET_NAME })
-      api.addProject({ title: 'bar' })
-      api.addSecret({ title: 'baz' })
-      api.addSecret({ title: 'quux' })
-    },
-  }).withSearchBar(async (searchBar) => {
+test('complex flows', async ({ drivePage, page, cloudApi }) => {
+  cloudApi.addDirectory({ title: FIRST_ASSET_NAME })
+  cloudApi.addProject({ title: 'bar' })
+  cloudApi.addSecret({ title: 'baz' })
+  cloudApi.addSecret({ title: 'quux' })
+  await drivePage.goToCategory.cloud().withSearchBar(async (searchBar) => {
     await searchBar.click()
-    await page.press('body', 'ArrowDown')
+    await page.keyboard.press('ArrowDown')
     await expect(searchBar).toHaveValue('name:' + FIRST_ASSET_NAME)
     await searchBar.selectText()
     await searchBar.press('Backspace')
     await expect(searchBar).toHaveValue('')
-    await page.press('body', 'ArrowDown')
+    await page.keyboard.press('ArrowDown')
     await expect(searchBar).toHaveValue('name:' + FIRST_ASSET_NAME)
-  }))
+  })
+})

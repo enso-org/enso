@@ -17,7 +17,6 @@ use ide_ci::future::AsyncPolicy;
 use ide_ci::github::Repo;
 use package::IsPackage;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -61,20 +60,21 @@ impl Benchmarks {
         match &self.bench_type {
             BenchmarkType::All => Some("bench".to_string()),
             BenchmarkType::Runtime => match &self.bench_name {
-                Some(name) if !name.is_empty() =>
-                    Some(format!("runtime-benchmarks/benchOnly {}", name)),
+                Some(name) if !name.is_empty() => {
+                    Some(format!("runtime-benchmarks/benchOnly {}", name))
+                }
                 _ => Some("runtime-benchmarks/bench".to_string()),
             },
             BenchmarkType::Enso => None,
             BenchmarkType::EnsoJMH => match &self.bench_name {
-                Some(name) if !name.is_empty() =>
-                    Some(format!("std-benchmarks/benchOnly {}", name)),
+                Some(name) if !name.is_empty() => {
+                    Some(format!("std-benchmarks/benchOnly {}", name))
+                }
                 _ => Some("std-benchmarks/bench".to_string()),
             },
         }
     }
 }
-
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Tests {
@@ -208,7 +208,8 @@ pub enum Filter<T> {
 }
 
 impl<T> Filter<T>
-where T: Eq + Hash
+where
+    T: Eq + Hash,
 {
     pub fn whitelist(items: impl IntoIterator<Item = T>) -> Self {
         Self::Whitelist(items.into_iter().collect())
@@ -370,7 +371,7 @@ pub enum ReleaseCommand {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ReleaseOperation {
     pub command: ReleaseCommand,
-    pub repo:    Repo,
+    pub repo: Repo,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -390,11 +391,11 @@ pub enum Operation {
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct BuiltArtifacts {
-    pub engine_package:          Option<generated::EnginePackage>,
-    pub launcher_package:        Option<generated::LauncherPackage>,
+    pub engine_package: Option<generated::EnginePackage>,
+    pub launcher_package: Option<generated::LauncherPackage>,
     pub project_manager_package: Option<generated::ProjectManagerPackage>,
-    pub launcher_bundle:         Option<generated::LauncherBundle>,
-    pub project_manager_bundle:  Option<generated::ProjectManagerBundle>,
+    pub launcher_bundle: Option<generated::LauncherBundle>,
+    pub project_manager_bundle: Option<generated::ProjectManagerBundle>,
 }
 
 impl BuiltArtifacts {
@@ -456,7 +457,7 @@ pub async fn deduce_graal_bundle(
 ) -> Result<GraalVmVersion> {
     let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
     Ok(GraalVmVersion {
-        graal:    get_graal_version(&deps_content)?,
+        graal: get_graal_version(&deps_content)?,
         packages: get_graal_packages_version(&deps_content)?,
     })
 }

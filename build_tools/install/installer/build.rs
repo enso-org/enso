@@ -14,8 +14,6 @@ use enso_install_config::INSTALLER_PAYLOAD_ID;
 use ide_ci::env::known::cargo::build::OUT_DIR;
 use ide_ci::programs::cargo;
 
-
-
 fn main() {
     let rc_file = OUT_DIR.get().unwrap().join("archive.rc");
     cargo::build::rerun_if_file_changed(&rc_file);

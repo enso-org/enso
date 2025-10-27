@@ -10,8 +10,6 @@ use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Target;
 use ide_ci::cache::goodie::graalvm;
 
-
-
 pub fn test_reporter(
     step_name: impl Into<String>,
     report_name: impl Into<serde_yaml::Value>,
@@ -56,7 +54,8 @@ pub fn extra_stdlib_test_reporter((os, arch): Target, graal_edition: graalvm::Ed
 /// Note that there may be multiple `*.hprof` files if multiple processes crashed.
 /// `artifact_name` should be unique for each job in the whole workflow.
 pub fn heapdump_upload(artifact_name: impl Into<String>) -> Step {
-    let path = "**/*.hprof";
+    let path = "test/**/*.hprof\nengine/**/*.hprof";
+
     let mut step = upload_artifact("Upload Heap Dumps")
         .with_custom_argument("name", artifact_name.into())
         .with_custom_argument("path", path)
@@ -138,11 +137,14 @@ pub fn cleanup_engine_distribution(engine_launcher: engine::EngineLauncher) -> S
 }
 
 fn built_distribution_directories(engine_launcher: engine::EngineLauncher) -> String {
-    format!("built-distribution{}", match engine_launcher {
-        engine::EngineLauncher::TestNative => " test",
-        engine::EngineLauncher::TestDebugNative => " test",
-        _ => "",
-    })
+    format!(
+        "built-distribution{}",
+        match engine_launcher {
+            engine::EngineLauncher::TestNative => " test",
+            engine::EngineLauncher::TestDebugNative => " test",
+            _ => "",
+        }
+    )
 }
 
 pub fn upload_artifact(step_name: impl Into<String>) -> Step {

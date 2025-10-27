@@ -11,14 +11,12 @@ use reqwest::header::ACCEPT_ENCODING;
 use reqwest::Client;
 use reqwest::ClientBuilder;
 
-
-
 #[derive(Clone, Debug)]
 pub struct Context {
-    pub runtime_url:   Url,
+    pub runtime_url: Url,
     pub runtime_token: String,
-    pub run_id:        String,
-    pub api_version:   String,
+    pub run_id: String,
+    pub api_version: String,
 }
 
 impl Context {

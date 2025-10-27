@@ -8,8 +8,6 @@ import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
 
-import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
-
 import {
   AssetType,
   DirectoryId,
@@ -104,38 +102,7 @@ export class ProjectManagerShimMiddleware {
     if (!requestUrl.startsWith('/api/')) return next()
     const url = new URL(requestUrl, 'https://apishim.local')
     const requestPath = url.pathname
-    if (requestPath.startsWith('/api/project-manager/')) {
-      const urlString = requestUrl.replace(
-        /^\/api\/project-manager/,
-        GLOBAL_CONFIG.projectManagerHttpEndpoint,
-      )
-      const actualUrl = new URL(urlString)
-      request.pipe(
-        http.request(
-          // `...actualUrl` does NOT work because `URL` properties are not enumerable.
-          {
-            headers: request.headers,
-            host: actualUrl.host,
-            hostname: actualUrl.hostname,
-            method: request.method,
-            path: actualUrl.pathname,
-            port: actualUrl.port,
-            protocol: actualUrl.protocol,
-          },
-          (actualResponse) => {
-            response.writeHead(
-              // This is SAFE. The documentation says:
-              // Only valid for response obtained from ClientRequest.
-              actualResponse.statusCode!,
-              actualResponse.statusMessage,
-              actualResponse.headers,
-            )
-            actualResponse.pipe(response, { end: true })
-          },
-        ),
-        { end: true },
-      )
-    } else if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
+    if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
       switch (requestPath) {
         case '/api/cloud/download-project': {
           const downloadUrl = url.searchParams.get('downloadUrl')

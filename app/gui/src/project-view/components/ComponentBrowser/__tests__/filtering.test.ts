@@ -1,7 +1,6 @@
-import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import { type SuggestionEntry } from '$/providers/openedProjects/suggestionDatabase/entry'
 import {
   makeConstructor,
   makeFunction,
@@ -10,7 +9,8 @@ import {
   makeModule,
   makeModuleMethod,
   makeStaticMethod,
-} from '@/stores/suggestionDatabase/mockSuggestion'
+} from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
+import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import { stdPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { describe, expect, test } from 'vitest'

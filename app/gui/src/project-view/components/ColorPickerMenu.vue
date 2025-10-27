@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { type NodeId } from '$/providers/openedProjects/graph'
 import ColorRing from '@/components/ColorRing.vue'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import type { NodeId } from '@/stores/graph'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { ref } from 'vue'
 
@@ -13,7 +13,7 @@ const emit = defineEmits<{
 
 const { getNodeColor, getNodeColors } = injectNodeColors()
 const selection = injectGraphSelection()
-const graphStore = useGraphStore()
+const { module, graph } = useCurrentProject()
 
 const displayedColors = new Set<string>(
   iter.filterDefined(iter.map(selection.selected, getNodeColor)),
@@ -24,16 +24,16 @@ const editedNodeInitialColors = new Map<NodeId, string | undefined>()
 
 function setColor(color: string | undefined) {
   currentColor.value = color
-  graphStore.batchEdits(() => {
+  module.value.batchEdits(() => {
     if (color) {
       for (const node of selection.selected) {
         if (!editedNodeInitialColors.has(node))
-          editedNodeInitialColors.set(node, graphStore.getNodeColorOverride(node))
-        graphStore.overrideNodeColor(node, color)
+          editedNodeInitialColors.set(node, graph.value.getNodeColorOverride(node))
+        graph.value.overrideNodeColor(node, color)
       }
     } else {
       for (const [node, color] of editedNodeInitialColors.entries())
-        graphStore.overrideNodeColor(node, color)
+        graph.value.overrideNodeColor(node, color)
     }
   })
 }

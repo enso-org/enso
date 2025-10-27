@@ -9,8 +9,6 @@
 use core::fmt::Debug;
 use core::marker::PhantomData;
 
-
-
 // ===========
 // === ZST ===
 // ===========
@@ -76,7 +74,9 @@ impl<T: ?Sized> std::hash::Hash for ZST<T> {
 impl<T: ?Sized> serde::Serialize for ZST<T> {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         serializer.serialize_unit_struct("ZST")
     }
 }
@@ -94,14 +94,18 @@ impl<'de, T: ?Sized> serde::de::Visitor<'de> for ZSTDataVisitor<T> {
     }
     #[inline]
     fn visit_unit<E>(self) -> Result<Self::Value, E>
-    where E: serde::de::Error {
+    where
+        E: serde::de::Error,
+    {
         Ok(ZST(PhantomData))
     }
 }
 
 impl<'de, T: ?Sized> serde::Deserialize<'de> for ZST<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: serde::Deserializer<'de> {
+    where
+        D: serde::Deserializer<'de>,
+    {
         let visitor = ZSTDataVisitor { _marker: ZST(PhantomData) };
         deserializer.deserialize_unit_struct("ZST", visitor)
     }

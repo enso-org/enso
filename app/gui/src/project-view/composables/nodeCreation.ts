@@ -1,3 +1,8 @@
+import { type GraphStore, type NodeId } from '$/providers/openedProjects/graph'
+import { asNodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import { type ModuleStore } from '$/providers/openedProjects/module'
+import type { RequiredImport } from '$/providers/openedProjects/module/imports'
+import type { Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
 import {
   DEFAULT_NODE_SIZE,
   mouseDictatedPlacement,
@@ -5,14 +10,11 @@ import {
   usePlacement,
 } from '@/components/ComponentBrowser/placement'
 import type { GraphNavigator } from '@/providers/graphNavigator'
-import type { GraphStore, NodeId } from '@/stores/graph'
-import { asNodeId } from '@/stores/graph/graphDatabase'
-import type { RequiredImport } from '@/stores/graph/imports'
-import type { Typename } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { isIdentifier, substituteIdentifier, type Identifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
+import { Ok } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
@@ -56,7 +58,8 @@ export interface NodeCreationOptions<Placement extends PlacementStrategy = Place
 
 /** TODO: Add docs */
 export function useNodeCreation(
-  graphStore: GraphStore,
+  moduleStore: ToValue<Pick<ModuleStore, 'edit' | 'addMissingImports'>>,
+  graphStore: ToValue<GraphStore>,
   viewport: ToValue<GraphNavigator['viewport']>,
   sceneMousePos: ToValue<GraphNavigator['sceneMousePos']>,
   onCreated: (nodes: Set<NodeId>) => void,
@@ -78,7 +81,7 @@ export function useNodeCreation(
       : placement.type === 'mouseRelative' ? (tryMouseRelative(placement.posOffset) ?? place())
       : placement.type === 'mouseEvent' ? mouseDictatedPlacement(placement.position)
       : placement.type === 'source' ?
-        place(iter.filterDefined([graphStore.visibleArea(placement.node)]))
+        place(iter.filterDefined([toValue(graphStore).visibleArea(placement.node)]))
       : placement.type === 'fixed' ? placement.position
       : assertNever(placement)
     )
@@ -108,7 +111,7 @@ export function useNodeCreation(
     // other uncommitted nodes already placed in the same batch.
     const adjust = (pos: Vec2) => seekHorizontal(new Rect(pos, DEFAULT_NODE_SIZE), rects)
     placedOptions.push(...Array.from(independentNodesOptions, doPlace(adjust)))
-    rects.push(...graphStore.visibleNodeAreas)
+    rects.push(...toValue(graphStore).visibleNodeAreas)
     placedOptions.push(...Array.from(dependentNodesOptions, doPlace()))
     return placedOptions
   }
@@ -116,7 +119,8 @@ export function useNodeCreation(
   function createNodes(nodesOptions: Iterable<NodeCreationOptions>) {
     const placedNodes = placeNodes(nodesOptions)
     if (placedNodes.length === 0) return new Set()
-    const methodAst = graphStore.currentMethod.ast
+    const graph = toValue(graphStore)
+    const methodAst = graph.currentMethod.ast
     if (!methodAst.ok) {
       methodAst.error.log(`BUG: Cannot add node: No current function.`)
       return new Set()
@@ -124,7 +128,7 @@ export function useNodeCreation(
     const created = new Set<NodeId>()
     const createdIdentifiers = new Set<Identifier>()
     const identifiersRenameMap = new Map<Identifier, Identifier>()
-    graphStore.edit((edit) => {
+    toValue(moduleStore).edit((edit) => {
       const statements = new Array<Ast.Owned<Ast.MutableStatement>>()
       for (const options of placedNodes) {
         const rhs = Ast.parseExpression(options.expression, edit)
@@ -144,11 +148,12 @@ export function useNodeCreation(
         statements.push(rootExpression)
         created.add(id)
         assert(options.metadata?.position != null, 'Node should already be placed')
-        graphStore.nodeRects.set(id, new Rect(Vec2.FromXY(options.metadata.position), Vec2.Zero))
+        graph.nodeRects.set(id, new Rect(Vec2.FromXY(options.metadata.position), Vec2.Zero))
       }
       insertNodeStatements(edit.getVersion(methodAst.value).bodyAsBlock(), statements)
+      return Ok()
     })
-    graphStore.doAfterUpdate(() => onCreated(created))
+    graph.doAfterUpdate(() => onCreated(created))
   }
 
   /** We resolve import conflicts and substitute identifiers if needed. */
@@ -169,7 +174,8 @@ export function useNodeCreation(
     }
 
     // Resolve import conflicts.
-    const conflicts = graphStore.addMissingImports(edit, options.requiredImports ?? []) ?? []
+    const conflicts =
+      toValue(moduleStore).addMissingImports(edit, options.requiredImports ?? []) ?? []
     for (const _conflict of conflicts) {
       // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
       // https://github.com/enso-org/enso/issues/9356
@@ -216,7 +222,7 @@ export function useNodeCreation(
       options.binding ? existingNameToPrefix(options.binding)
       : options.type ? typeToPrefix(options.type)
       : inferPrefixFromAst(expr)
-    const ident = graphStore.generateLocallyUniqueIdent(namePrefix, alreadyCreated)
+    const ident = toValue(graphStore).generateLocallyUniqueIdent(namePrefix, alreadyCreated)
     return ident
   }
 

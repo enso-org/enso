@@ -4,8 +4,6 @@ use crate::archive::Format;
 
 use std::vec::IntoIter;
 
-
-
 pub mod bsd {
     use super::*;
 
@@ -55,12 +53,16 @@ impl Compression {
 impl Display for Compression {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         use Compression::*;
-        write!(f, "{}", match self {
-            Bzip2 => "bzip2",
-            Gzip => "gzip",
-            Lzma => "lzma",
-            Xz => "xz",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Bzip2 => "bzip2",
+                Gzip => "gzip",
+                Lzma => "lzma",
+                Xz => "xz",
+            }
+        )
     }
 }
 
@@ -186,12 +188,13 @@ impl Tar {
             paths_to_pack.into_iter().map(|path| path.as_ref().to_owned()).collect();
 
         match paths.as_slice() {
-            [item] =>
+            [item] => {
                 if let Some(parent) = crate::fs::canonicalize(item)?.parent() {
                     cmd.args(&Switch::WorkingDir(parent));
                     cmd.arg(item.file_name().unwrap()); // None can happen only when path ends with
                                                         // ".." - that's why we canonicalize
-                },
+                }
+            }
             // [dir] if dir.is_dir() => {
             //     cmd.args(&Switch::WorkingDir(dir.to_owned()));
             //     cmd.arg(".");
@@ -211,7 +214,6 @@ impl Tar {
                *     }
                * } */
         }
-
 
         Ok(cmd)
         // cmd_from_args![Command::Create, val [switches], output_archive.as_ref(), ref
@@ -265,7 +267,6 @@ impl Tar {
     }
 }
 
-
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -290,7 +291,6 @@ pub mod tests {
         let archive_temp = tempfile::tempdir()?;
         let archive_path = archive_temp.path().join("archive.tar.gz");
 
-
         let temp = tempfile::tempdir()?;
         let filename = "bar.txt";
         crate::fs::tokio::write(temp.path().join(filename), "bar contents").await?;
@@ -309,7 +309,6 @@ pub mod tests {
             crate::fs::tokio::read(temp2.path().join(filename)).await?,
             "bar contents".as_bytes()
         );
-
 
         Ok(())
     }

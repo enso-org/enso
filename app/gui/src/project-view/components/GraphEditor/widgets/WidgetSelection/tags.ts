@@ -1,15 +1,22 @@
-import type { SubmenuEntry } from '@/components/GraphEditor/widgets/WidgetSelection/submenuEntry'
-import type { Choice, WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
-import type { GraphStore } from '@/stores/graph'
-import { printRequiredImport, requiredImports, type RequiredImport } from '@/stores/graph/imports'
-import type { ProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
+import { type ModuleStore } from '$/providers/openedProjects/module'
+import {
+  printRequiredImport,
+  requiredImports,
+  type RequiredImport,
+} from '$/providers/openedProjects/module/imports'
+import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
 import {
   entryDisplayPath,
   entryIsStatic,
   SuggestionKind,
   type SuggestionEntry,
-} from '@/stores/suggestionDatabase/entry'
+} from '$/providers/openedProjects/suggestionDatabase/entry'
+import type {
+  Choice,
+  WidgetConfiguration,
+} from '$/providers/openedProjects/widgetRegistry/configuration'
+import type { SubmenuEntry } from '@/components/GraphEditor/widgets/WidgetSelection/submenuEntry'
 import { Ast } from '@/util/ast'
 import type { Opt } from '@/util/data/opt'
 import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
@@ -135,9 +142,9 @@ export class ExpressionTag {
    * Add any needed imports to the provided module, and return the expression with any necessary
    * qualification.
    */
-  resolveExpression(edit: Ast.MutableModule, graph: GraphStore) {
+  resolveExpression(edit: Ast.MutableModule, module: ModuleStore) {
     if (this.requiredImports) {
-      const conflicts = graph.addMissingImports(edit, this.requiredImports)
+      const conflicts = module.addMissingImports(edit, this.requiredImports)
       if (conflicts != null && conflicts.length > 0) {
         // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
         // https://github.com/enso-org/enso/issues/9356
@@ -244,8 +251,8 @@ export interface Entry extends SubmenuEntry<Entry> {
 export interface DynamicConfigTagsOptions {
   dynamicConfig: ToValue<Opt<WidgetConfiguration>>
   staticTags: ToValue<Opt<string[]>>
-  suggestionDb: ToValue<Opt<SuggestionDb>>
-  projectNames: Readonly<Ref<Opt<ProjectNameStore>>>
+  suggestionDb: ToValue<SuggestionDb>
+  projectNames: Readonly<Ref<ProjectNameStore>>
 }
 /** @returns The dropdown tags applicable to an expression. */
 export function useExpressionTags({
@@ -255,19 +262,13 @@ export function useExpressionTags({
   projectNames,
 }: DynamicConfigTagsOptions): ComputedRef<(ExpressionTag | NestedChoiceTag)[]> {
   const staticExpressionTags = computed((): ExpressionTag[] | null => {
-    const suggestionDbValue = toValue(suggestionDb)
-    const projectNamesValue = projectNames.value
-    if (!suggestionDbValue || !projectNamesValue) return null
-
     const tags = toValue(staticTags)
     if (tags == null) return null
-    return tags.map((t) => ExpressionTag.FromExpression(suggestionDbValue, projectNamesValue, t))
+    return tags.map((t) =>
+      ExpressionTag.FromExpression(toValue(suggestionDb), projectNames.value, t),
+    )
   })
   const dynamicTags = computed((): (ExpressionTag | NestedChoiceTag)[] | null => {
-    const suggestionDbValue = toValue(suggestionDb)
-    const projectNamesValue = projectNames.value
-    if (!suggestionDbValue || !projectNamesValue) return null
-
     const config = toValue(dynamicConfig)
     if (config?.kind !== 'Single_Choice' && config?.kind !== 'Multiple_Choice') return null
 
@@ -275,8 +276,8 @@ export function useExpressionTags({
       Array.isArray(choice.value) ?
         new NestedChoiceTag(choice.label ?? '…', choice.value.map(choiceToTag))
       : ExpressionTag.FromExpression(
-          suggestionDbValue,
-          projectNamesValue,
+          toValue(suggestionDb),
+          projectNames.value,
           choice.value,
           choice.label,
           choice.icon,

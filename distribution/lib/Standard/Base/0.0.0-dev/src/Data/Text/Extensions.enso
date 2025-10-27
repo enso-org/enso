@@ -32,9 +32,9 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Time_Error.Time_Error
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.Internal.Reporting_Stream_Decoder_Helper
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import invert_range_selection
 from project.Data.Json import Invalid_JSON, JS_Object, Json
@@ -57,6 +57,63 @@ polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.WithProblems
 
 ## ---
+    group: Conversions
+    icon: text
+    ---
+    Generic conversion of an arbitrary Enso value to a corresponding textual
+    representation.
+
+    ## Examples
+    ### Getting a textual representation of the number 7.
+
+    ```
+            7.to_text
+    ```
+Any.to_text self -> Text = @Builtin_Method "Any.to_text"
+
+## ---
+    group: convert
+    icon: enso_logo
+    ---
+    Convert the value to a corresponding Enso code representation.
+
+    ## Examples
+    ### Getting the Enso code of the number 7.
+
+    ```
+            7.pretty
+    ```
+
+    Returns a Text
+
+            7
+
+    ### Getting the Enso code of the text Hello World!.
+
+    ```
+            "Hello World!".pretty
+    ```
+
+    Returns a Text
+
+            'Hello World!'
+Any.pretty self -> Text = @Builtin_Method "Any.pretty"
+
+## ---
+    private: true
+    ---
+    Generic conversion of an arbitrary Enso value to a corresponding short
+    human-readable representation.
+
+    ## Examples
+    ### Getting a short human-readable textual representation of the number 7.
+
+    ```
+            7.to_display_text
+    ```
+Any.to_display_text self -> Text = @Builtin_Method "Any.to_display_text"
+
+## ---
    group: Text
    icon: text
    ---
@@ -76,8 +133,7 @@ polyglot java import org.enso.base.WithProblems
    A character is defined as an Extended Grapheme Cluster, see Unicode Standard
    Annex 29. This is the smallest unit that still has semantic meaning in most
    text-processing applications.
-Text.reverse : Text
-Text.reverse self =
+Text.reverse self -> Text =
     reverseStringBuilder = StringBuilder.new self.length
     iterator = BreakIterator.getCharacterInstance
     iterator.setText self
@@ -1346,11 +1402,13 @@ Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
    Annex 29. This is the smallest unit that still has semantic meaning in most
    text-processing applications.
 
-   ### What is title case?
-   Title case capitalizes the first letter of every word and ensures that all the
-   remaining letters are in lower case. Some definitions of title case avoid
-   capitalizing minor words (like the article "the" in English) but this
-   implementation treats all words in the same way.
+   ### What is proper case?
+   Proper case (also called Title case) capitalizes the first letter of every 
+   word and ensures that all the remaining letters are in lower case. 
+   Some definitions of proper case avoid capitalizing minor words (like the
+   article "the" in English) but this implementation treats all words in
+   the same way.
+@case_option Case.default_widget
 @locale Locale.default_widget
 Text.to_case : Case -> Locale -> Text
 Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default =

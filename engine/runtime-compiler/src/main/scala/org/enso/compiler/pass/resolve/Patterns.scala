@@ -12,6 +12,7 @@ import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar.{GenerateMethodBodies, NestedPatternMatch}
+import org.enso.persist.Persistance
 
 /** Resolves constructors in pattern matches and validates their arity.
   */
@@ -76,7 +77,10 @@ object Patterns extends IRPass {
           )
           .map(_.target)
         val newBody = doExpression(method.body, bindings, resolution)
-        method.copy(body = newBody)
+        method
+          .copyBuilder()
+          .bodyReference(Persistance.Reference.of(newBody))
+          .build()
       case _ => ir.mapExpressions(doExpression(_, bindings, None))
     }
   }

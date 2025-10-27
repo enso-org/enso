@@ -10,6 +10,7 @@
     - / self name:Standard.Base.Data.Text.Text -> (Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Any.Any)!Standard.Base.Errors.Common.Not_Found
     - add_label self label:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_File.Enso_File
     - asset_type self -> Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
+    - can_write_into_parent self -> Standard.Base.Data.Boolean.Boolean
     - cloud_project_parent_directory -> Standard.Base.Any.Any
     - copy_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - create_directory self -> Standard.Base.Any.Any

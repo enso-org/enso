@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
-from project.Data.Boolean import Boolean, True
+from project.Data.Boolean import Boolean, True, False
 from project.Function import const
 
 ## The type that has only a singleton value. Nothing in Enso is used as an
@@ -69,3 +69,71 @@ type Nothing
     get self (key:(Text | Integer)=0) ~if_missing=Nothing =
         _ = key
         if_missing
+
+## ---
+   group: Logical
+   icon: metadata
+   ---
+   Checks if the type is an instance of `Nothing`.
+   Nothing in Enso is used as a universal value to indicate the lack of
+   presence of a value. This function is primarily useful in the IDE.
+
+   ## Examples
+   ### Checking if the value 1 is nothing.
+
+   ```
+         1.is_nothing
+   ```
+Any.is_nothing self -> Boolean = False
+
+## ---
+   group: Logical
+   icon: operators
+   ---
+   If `self` is Nothing then returns `other`.
+
+   ## Examples
+   ### If the value "Hello" is nothing return "".
+
+   ```
+         "Hello".if_nothing ""
+   ```
+Any.if_nothing self ~other =
+   const self other
+
+## ---
+   group: Logical
+   icon: operators
+   ---
+   If `self` is Nothing then returns Nothing, otherwise returns the result of
+   running the provided `action`.
+
+   ## Examples
+   ### Transform a value only if it is not nothing.
+
+   ```
+         my_result.if_not_nothing <| my_result + 1
+   ```
+Any.if_not_nothing : Any -> Any
+Any.if_not_nothing self ~action = action
+
+## ---
+   icon: column_add
+   ---
+   Applies the provided function to `self` unless `self` is `Nothing`, which
+   is returned unchanged.
+
+   ## Arguments
+   - `f`: The function to apply to `self` if `self` is not `Nothing`.
+
+   ## Examples
+   ### Applying a function over a value 10.
+
+   ```
+         10.map_nothing *2
+   ```
+Any.map_nothing : (Any -> Any) -> Any | Nothing
+Any.map_nothing self f = case self of
+   Nothing -> Nothing
+   a -> f a
+

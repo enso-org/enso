@@ -344,7 +344,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
           </div>
         ))}
 
-      {directories != null && window.fileBrowserApi && (
+      {directories != null && window.api && (
         <div className="flex">
           <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
 
@@ -355,7 +355,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             loaderPosition="icon"
             onPress={async () => {
               const [newDirectory] =
-                (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                (await window.api?.fileBrowser.openFileBrowser('directory')) ?? []
 
               if (newDirectory != null) {
                 const addedDirectory = directories.find(

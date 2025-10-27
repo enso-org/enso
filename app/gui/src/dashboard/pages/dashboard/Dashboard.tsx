@@ -121,10 +121,6 @@ export function Dashboard(props: DashboardProps) {
           null!,
         )
         const endMetadata = await localBackend.uploadFileEnd({
-          parentDirectoryId,
-          fileName: projectName,
-          assetId: null,
-          parts: [],
           ...metadata,
         })
         if (endMetadata.project == null) {
@@ -147,7 +143,7 @@ export function Dashboard(props: DashboardProps) {
   })
 
   React.useEffect(() => {
-    window.projectManagementApi?.setOpenProjectHandler((project) => {
+    window.api?.projectManagement.setOpenProjectHandler((project) => {
       setDriveLocation(null, 'local')
 
       const projectId = localBackendModule.newProjectId(project.projectRoot)
@@ -164,7 +160,7 @@ export function Dashboard(props: DashboardProps) {
     })
 
     return () => {
-      window.projectManagementApi?.setOpenProjectHandler(() => {})
+      window.api?.projectManagement.setOpenProjectHandler(() => {})
     }
   }, [openProjectLocally])
 
@@ -175,10 +171,10 @@ export function Dashboard(props: DashboardProps) {
       // We want to handle the back and forward buttons in electron the same way as in the browser.
       ...(detect.isOnElectron() && {
         goBack: () => {
-          window.navigationApi.goBack()
+          window.api?.navigation.goBack()
         },
         goForward: () => {
-          window.navigationApi.goForward()
+          window.api?.navigation.goForward()
         },
         goToAccountSettings: () => {
           goToSettingsTab(router, SettingsTabType.account)

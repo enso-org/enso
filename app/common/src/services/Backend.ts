@@ -1750,7 +1750,6 @@ export default abstract class Backend {
 
   /** Create a {@link LocalBackend}. */
   constructor(
-    private readonly logger: Logger,
     protected getText: GetText,
     private readonly client: HttpClient,
   ) {}
@@ -1773,7 +1772,7 @@ export default abstract class Backend {
     ...replacements: Replacements[K]
   ): Promise<never> {
     if (textId instanceof NetworkError) {
-      this.logger.error(textId.message)
+      console.error(textId.message)
 
       throw textId
     }
@@ -1784,7 +1783,7 @@ export default abstract class Backend {
       : await ((): Promise<Error> => response.json())()
 
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-    this.logger.error(message)
+    console.error(message)
 
     const status = response?.status
 
@@ -1960,11 +1959,20 @@ export default abstract class Backend {
   abstract uploadFileStart(
     params: UploadFileRequestParams,
     file: File,
+    abort?: AbortSignal,
   ): Promise<UploadLargeFileMetadata>
   /** Upload a chunk of a large file. */
-  abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>
+  abstract uploadFileChunk(
+    url: HttpsUrl,
+    file: Blob,
+    index: number,
+    abort?: AbortSignal,
+  ): Promise<{ part: S3MultipartPart; size: number }>
   /** Finish uploading a large file. */
-  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedAsset>
+  abstract uploadFileEnd(
+    body: UploadFileEndRequestBody,
+    abort?: AbortSignal,
+  ): Promise<UploadedAsset>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
 
@@ -2098,9 +2106,9 @@ export default abstract class Backend {
   }
 
   /** Send a binary HTTP POST request to the given path. */
-  protected postBinary<T = void>(path: string, payload: Blob) {
+  protected postBinary<T = void>(path: string, payload: Blob, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
-      this.client.postBinary<T>(this.resolvePath(path), payload),
+      this.client.postBinary<T>(this.resolvePath(path), payload, options),
     )
   }
 

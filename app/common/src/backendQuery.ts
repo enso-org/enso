@@ -65,6 +65,12 @@ export type BackendMutationMethod = DefineBackendMethods<
 /** Names of methods corresponding to queries. */
 export type BackendQueryMethod = Exclude<BackendMethods, BackendMutationMethod>
 
+export const STALE_TIME_MAP: Partial<Record<BackendQueryMethod, number>> = {
+  getOrganization: Infinity,
+  usersMe: Infinity,
+  listUsers: Infinity,
+}
+
 export const PERSISTENCE_MAP: Partial<Record<BackendQueryMethod, false>> = {
   listDirectory: false,
   searchDirectory: false,

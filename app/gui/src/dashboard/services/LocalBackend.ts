@@ -6,7 +6,6 @@
  * the API.
  */
 import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
-import type { Logger } from '#/providers/LoggerProvider'
 import Backend, * as backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 import type { ProjectManager } from '#/services/ProjectManager/ProjectManager'
@@ -84,13 +83,8 @@ export default class LocalBackend extends Backend {
   private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(
-    logger: Logger,
-    getText: GetText,
-    projectManagerInstance: ProjectManager,
-    client = new HttpClient(),
-  ) {
-    super(logger, getText, client)
+  constructor(getText: GetText, projectManagerInstance: ProjectManager, client = new HttpClient()) {
+    super(getText, client)
 
     this.projectManager = projectManagerInstance
   }
@@ -100,11 +94,6 @@ export default class LocalBackend extends Backend {
     return (
       localRootDirectoryStore.getState().localRootDirectory ?? this.projectManager.rootDirectory
     )
-  }
-
-  /** Tell the {@link projectManager.ProjectManager} to reconnect. */
-  async reconnectProjectManager() {
-    await this.projectManager.reconnect()
   }
 
   /** Return the ID of the root directory. */
@@ -381,7 +370,10 @@ export default class LocalBackend extends Backend {
         name: cachedProject.projectName,
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
-        ydocAddress: null,
+        ydocAddress:
+          cachedProject.languageServerYdocAddress ?
+            ipWithSocketToAddress(cachedProject.languageServerYdocAddress)
+          : backend.Address('ws://localhost:5976'),
         organizationId: backend.OrganizationId('organization-'),
         packageName: cachedProject.projectNormalizedName,
         projectId,
@@ -687,7 +679,7 @@ export default class LocalBackend extends Backend {
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
-    const sourcePath = body.filePath ?? window.systemApi?.getFilePath(file)
+    const sourcePath = body.filePath ?? window.api?.system?.getFilePath(file)
     const searchParams = new URLSearchParams([
       ['directory', newDirectoryId(parentPath)],
       ['file_name', body.fileName],
@@ -719,13 +711,13 @@ export default class LocalBackend extends Backend {
   }
 
   /** Upload a chunk of a large file. */
-  override uploadFileChunk(): Promise<backend.S3MultipartPart> {
+  override uploadFileChunk(): Promise<{ part: backend.S3MultipartPart; size: number }> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
-    return Promise.resolve({ eTag: '', partNumber: 0 })
+    return Promise.resolve({ part: { eTag: '', partNumber: 0 }, size: 0 })
   }
 
   /** Finish uploading a large file. */
-  override uploadFileEnd(body: backend.UploadFileEndRequestBody): Promise<backend.UploadedAsset> {
+  override uploadFileEnd(body: { uploadId: string }): Promise<backend.UploadedAsset> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
     const file = this.uploadedFiles.get(body.uploadId)
     invariant(file, 'Uploaded file not found')
