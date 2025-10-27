@@ -471,11 +471,9 @@ type Snowflake_Connection
     ## ---
        icon: folder
        ---
-       Returns the list of stages for the connection.
+       Returns the list of stages for the current database.
 
        ## Arguments
-        - `database`: The database name to search in (default is current).
-          Use an asterisk (`*`) to search in all databases.
         - `schema`: The schema name to search in (defaults to current). If an
           asterisk (`*`) is provided, all schemas are searched.
         - `pattern`: The stage name pattern to search for. Supports SQL
@@ -496,6 +494,33 @@ type Snowflake_Connection
     stage_names : Vector
     stage_names self =
         self.connection.read_text_column "show stages in database" "name"
+
+    ## ---
+       icon: metadata
+       ---
+       Reads the values specified for the properties in a stage (file format,
+       copy, and location), as well as the default values for each property.
+
+       ## Arguments
+        - `stage_name`: The name of the stage to read the properties from.
+    stage_properties : Text -> Table ! Table_Not_Found
+    stage_properties self stage_name:Text =
+        query = 'DESC STAGE "' + (stage_name.replace '"' '""') + '"'
+        self.execute_query query write_operation=False
+
+    ## ---
+       icon: folder
+       ---
+       List all the objects in a stage.
+
+       ## Arguments
+        - `stage_name`: The name of the stage to read the properties from.
+    @stage_name (self-> Single_Choice display=..Always values=(["~"] + self.stage_names).map d-> Option d d.pretty)
+    list_stage_objects : Text -> Text -> Table ! Table_Not_Found
+    list_stage_objects self stage_name:Text="~" prefix:Text="" =
+        query = if stage_name == '~' then 'LIST \'@~' else 'LIST \'@"' + (stage_name.replace '"' '""') + '"'
+            + if prefix == "'" then "" else '/' + (prefix.replace "'" "''") + "'"
+        self.execute_query query write_operation=False
 
 private auth_jdbc_properties credentials = case credentials of
     Credentials.Username_And_Password username password ->
