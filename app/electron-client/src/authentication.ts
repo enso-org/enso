@@ -40,8 +40,8 @@
  * credentials.
  *
  * To redirect the user from the IDE to an external source:
- * 1. Register a listener for {@link ipc.Channel.openUrlInSystemBrowser} IPC events.
- * 2. Emit an {@link ipc.Channel.openUrlInSystemBrowser} event. The listener registered in step
+ * 1. Register a listener for {@link Channel.openUrlInSystemBrowser} IPC events.
+ * 2. Emit an {@link Channel.openUrlInSystemBrowser} event. The listener registered in step
  * 1 will use the {@link opener} library to open the event's {@link URL}
  * argument in the system web browser, in a cross-platform way.
  *
@@ -58,7 +58,7 @@
  * To prepare the application to handle deep links:
  * - Register a custom URL protocol scheme with the OS (c.f., `electron-builder-config.ts`).
  * - Define a listener for Electron `OPEN_URL_EVENT`s.
- * - Define a listener for {@link ipc.Channel.openDeepLink} events (c.f., `preload.ts`).
+ * - Define a listener for {@link Channel.openDeepLink} events (c.f., `preload.ts`).
  *
  * Then when the user clicks on a deep link from an external source to the IDE:
  * - The OS redirects the user to the application.
@@ -66,28 +66,22 @@
  * - The `OPEN_URL_EVENT` listener checks if the {@link URL} is a deep link.
  * - If the {@link URL} is a deep link, the `OPEN_URL_EVENT` listener prevents Electron from
  * handling the event.
- * - The `OPEN_URL_EVENT` listener then emits an {@link ipc.Channel.openDeepLink} event.
- * - The {@link ipc.Channel.openDeepLink} listener registered by the dashboard receives the event.
+ * - The `OPEN_URL_EVENT` listener then emits an {@link Channel.openDeepLink} event.
+ * - The {@link Channel.openDeepLink} listener registered by the dashboard receives the event.
  * Then it parses the {@link URL} from the event's {@link URL} argument. Then it uses the
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`.
  */
-import * as fs from 'node:fs'
-import * as os from 'node:os'
-import * as path from 'node:path'
-
-import * as electron from 'electron'
+import type { BrowserWindow } from 'electron'
+import { DEEP_LINK_SCHEME, PRODUCT_NAME } from 'enso-common'
+import type { AccessToken } from 'enso-common/src/accessToken'
+import { mkdir, unlinkSync, writeFile } from 'node:fs'
+import { homedir } from 'node:os'
+import { join as joinPath } from 'node:path'
 import opener from 'opener'
-
-import * as common from 'enso-common'
-import type * as accessToken from 'enso-common/src/accessToken'
-
-import * as ipc from '@/ipc'
-import * as urlAssociations from '@/urlAssociations'
-
-// ========================================
-// === Initialize Authentication Module ===
-// ========================================
+import type { Electron } from './electron.js'
+import { Channel } from './ipc.js'
+import { registerUrlCallback } from './urlAssociations.js'
 
 /**
  * Configure all the functionality that must be set up in the Electron app to support
@@ -97,70 +91,67 @@ import * as urlAssociations from '@/urlAssociations'
  * does not use the `window` until after it is initialized, so while the lambda may return `null` in
  * theory, it never will in practice.
  */
-export function initAuthentication(window: () => electron.BrowserWindow) {
+export function initAuthentication(electron: Electron, window: () => BrowserWindow) {
   // Listen for events to open a URL externally in a browser the user trusts. This is used for
   // OAuth authentication, both for trustworthiness and for convenience (the ability to use the
   // browser's saved passwords).
-  electron.ipcMain.on(ipc.Channel.openUrlInSystemBrowser, (_event, url: string) => {
+  electron.ipcMain.on(Channel.openUrlInSystemBrowser, (_event, url: string) => {
     console.log(`Opening URL '${url}' in the default browser.`)
     opener(url)
   })
 
   // Listen for events to handle deep links.
-  urlAssociations.registerUrlCallback((url) => {
+  registerUrlCallback(electron, (url) => {
     console.log(`Received 'open-url' event for '${url.toString()}'.`)
-    if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
+    if (url.protocol !== `${DEEP_LINK_SCHEME}:`) {
       console.error(`'${url.toString()}' is not a deep link, ignoring.`)
     } else {
       console.log(`'${url.toString()}' is a deep link, sending to renderer.`)
-      window().webContents.send(ipc.Channel.openDeepLink, url.toString())
+      window().webContents.send(Channel.openDeepLink, url.toString())
     }
   })
 
   // Listen for events to save the given user credentials to `~/.enso/credentials`.
-  electron.ipcMain.on(
-    ipc.Channel.saveAccessToken,
-    (event, accessTokenPayload: accessToken.AccessToken | null) => {
-      event.preventDefault()
+  electron.ipcMain.on(Channel.saveAccessToken, (event, accessTokenPayload: AccessToken | null) => {
+    event.preventDefault()
 
-      /** Home directory for the credentials file.  */
-      const credentialsDirectoryName = `.${common.PRODUCT_NAME.toLowerCase()}`
-      /** File name of the credentials file. */
-      const credentialsFileName = 'credentials'
-      /** System agnostic credentials directory home path. */
-      const credentialsHomePath = path.join(os.homedir(), credentialsDirectoryName)
+    /** Home directory for the credentials file.  */
+    const credentialsDirectoryName = `.${PRODUCT_NAME.toLowerCase()}`
+    /** File name of the credentials file. */
+    const credentialsFileName = 'credentials'
+    /** System agnostic credentials directory home path. */
+    const credentialsHomePath = joinPath(homedir(), credentialsDirectoryName)
 
-      if (accessTokenPayload == null) {
-        try {
-          fs.unlinkSync(path.join(credentialsHomePath, credentialsFileName))
-        } catch {
-          // Ignored, most likely the path does not exist.
-        }
-      } else {
-        fs.mkdir(credentialsHomePath, { recursive: true }, (error) => {
-          if (error) {
-            console.error(`Could not create '${credentialsDirectoryName}' directory.`)
-          } else {
-            fs.writeFile(
-              path.join(credentialsHomePath, credentialsFileName),
-              JSON.stringify({
-                /* eslint-disable camelcase */
-                client_id: accessTokenPayload.clientId,
-                access_token: accessTokenPayload.accessToken,
-                refresh_token: accessTokenPayload.refreshToken,
-                refresh_url: accessTokenPayload.refreshUrl,
-                expire_at: accessTokenPayload.expireAt,
-                /* eslint-enable camelcase */
-              }),
-              (innerError) => {
-                if (innerError) {
-                  console.error(`Could not write to '${credentialsFileName}' file.`)
-                }
-              },
-            )
-          }
-        })
+    if (accessTokenPayload == null) {
+      try {
+        unlinkSync(joinPath(credentialsHomePath, credentialsFileName))
+      } catch {
+        // Ignored, most likely the path does not exist.
       }
-    },
-  )
+    } else {
+      mkdir(credentialsHomePath, { recursive: true }, (error) => {
+        if (error) {
+          console.error(`Could not create '${credentialsDirectoryName}' directory.`)
+        } else {
+          writeFile(
+            joinPath(credentialsHomePath, credentialsFileName),
+            JSON.stringify({
+              /* eslint-disable camelcase */
+              client_id: accessTokenPayload.clientId,
+              access_token: accessTokenPayload.accessToken,
+              refresh_token: accessTokenPayload.refreshToken,
+              refresh_url: accessTokenPayload.refreshUrl,
+              expire_at: accessTokenPayload.expireAt,
+              /* eslint-enable camelcase */
+            }),
+            (innerError) => {
+              if (innerError) {
+                console.error(`Could not write to '${credentialsFileName}' file.`)
+              }
+            },
+          )
+        }
+      })
+    }
+  })
 }

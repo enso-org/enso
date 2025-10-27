@@ -295,13 +295,15 @@ async function main(app: App, args: Options, electron: Electron | undefined) {
     await createWindowIfEnabled(app, args, electron)
     initIpc(app.window)
     await loadWindowContent(app, args)
-    /**
-     * The non-null assertion on the following line is safe because the window
-     * initialization is guarded by the `createWindowIfEnabled` method. The window is
-     * not yet created at this point, but it will be created by the time the
-     * authentication module uses the lambda providing the window.
-     */
-    initAuthentication(() => app.window!)
+    if (electron) {
+      /**
+       * The non-null assertion on the following line is safe because the window
+       * initialization is guarded by the `createWindowIfEnabled` method. The window is
+       * not yet created at this point, but it will be created by the time the
+       * authentication module uses the lambda providing the window.
+       */
+      initAuthentication(electron, () => app.window!)
+    }
   } catch (err) {
     console.error('Failed to initialize the application, shutting down. Error: ', err)
     quit(electron)
