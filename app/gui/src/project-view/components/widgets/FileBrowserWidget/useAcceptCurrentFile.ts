@@ -2,8 +2,8 @@
 import { mapPath, type EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
 import type { ToValue } from '@/util/reactivity'
 import { AssetType } from 'enso-common/src/services/Backend'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import { ref, toValue, type Ref } from 'vue'
-import type { Result } from 'ydoc-shared/util/data/result'
 
 export type AssetExists = { exists: true; type: AssetType } | { exists: false }
 

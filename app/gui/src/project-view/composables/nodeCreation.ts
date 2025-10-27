@@ -19,9 +19,9 @@ import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import { identity } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { nextTick, toValue } from 'vue'
 import { assert, assertNever } from 'ydoc-shared/util/assert'
-import { Ok } from 'ydoc-shared/util/data/result'
 import { mustExtend } from 'ydoc-shared/util/types'
 
 export type NodeCreation = ReturnType<typeof useNodeCreation>

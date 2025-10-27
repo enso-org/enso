@@ -22,9 +22,9 @@ import type { DataLoader } from '$/router'
 import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { computed, effectScope, EffectScope, watch, watchPostEffect } from 'vue'
 import { useRoute, useRouter, type RouteLocation } from 'vue-router'
-import { Err, Ok } from 'ydoc-shared/util/data/result'
 
 declare module 'vue-router' {
   interface RouteMeta {

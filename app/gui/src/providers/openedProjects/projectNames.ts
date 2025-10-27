@@ -1,10 +1,10 @@
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
 import { normalizeQualifiedName, qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
+import { Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { normalizeName } from 'enso-common/src/utilities/nameValidation'
 import { computed, ref, toValue } from 'vue'
 import type { Identifier, QualifiedName } from 'ydoc-shared/ast'
-import { Ok, type Result } from 'ydoc-shared/util/data/result'
 
 export type ProjectNameStore = ReturnType<typeof createProjectNameStore>
 

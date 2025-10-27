@@ -9,9 +9,9 @@ import { Vec2 } from '@/util/data/vec2'
 import { dataAttribute, selectorHierarchy } from '@/util/dom'
 import { identity } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import * as set from 'lib0/set'
 import { computed, ref, shallowReactive, shallowRef } from 'vue'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import type { NavigatorComposable } from './navigator'
 
 interface BaseSelectionOptions<T> {

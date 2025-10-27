@@ -6,8 +6,8 @@ import type { Identifier } from '@/util/ast/abstract'
 import { isIdentifier, moduleMethodNames } from '@/util/ast/abstract'
 import { Vec2 } from '@/util/data/vec2'
 import { tryIdentifier } from '@/util/qualifiedName'
+import { Err, Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import * as set from 'lib0/set'
-import { Err, Ok, unwrap, type Result } from 'ydoc-shared/util/data/result'
 import { frontmatter } from '../ComponentHelp/metadata'
 
 // === Types ===

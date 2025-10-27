@@ -10,6 +10,7 @@ import {
   type StackItem,
 } from '@/util/methodPointer'
 import { AsyncQueue, type AbortScope } from '@/util/net'
+import { Err, Ok, ResultError, type Result } from 'enso-common/src/utilities/data/result'
 import * as array from 'lib0/array'
 import { ObservableV2 } from 'lib0/observable'
 import { reactive } from 'vue'
@@ -30,7 +31,6 @@ import type {
   VisualizationConfiguration as LSVisualizationConfiguration,
   Uuid,
 } from 'ydoc-shared/languageServerTypes'
-import { Err, Ok, ResultError, type Result } from 'ydoc-shared/util/data/result'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 

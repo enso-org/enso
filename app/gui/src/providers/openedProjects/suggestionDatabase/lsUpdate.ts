@@ -29,13 +29,13 @@ import {
   type IdentifierOrOperatorIdentifier,
 } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
+import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 import { toValue, type DeepReadonly } from 'vue'
 import type {
   SuggestionArgumentUpdate,
   SuggestionsDatabaseUpdate,
 } from 'ydoc-shared/languageServerTypes/suggestions'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
-import { Err, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 
 interface UpdateContext {
   groups: DeepReadonly<GroupInfo[]>

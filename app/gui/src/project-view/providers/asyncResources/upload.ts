@@ -1,8 +1,8 @@
 import type { OpenedProject, OpenedProjectsStore } from '$/providers/openedProjects'
 import { useProjectFiles } from '@/stores/projectFiles'
 import { unsafeKeys } from 'enso-common/src/utilities/data/object'
+import { Err, mapOk, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
-import { Err, mapOk, Ok, type Result } from 'ydoc-shared/util/data/result'
 import type { FetchPartialProgress } from './AsyncResource'
 import type { ResourceContextSnapshot } from './context'
 

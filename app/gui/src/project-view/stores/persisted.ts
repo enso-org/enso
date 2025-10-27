@@ -6,9 +6,9 @@ import { Vec2 } from '@/util/data/vec2'
 import { encodeMethodPointer, type MethodPointer } from '@/util/methodPointer'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { until } from '@vueuse/core'
+import { Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { encoding } from 'lib0'
 import { computed, toValue } from 'vue'
-import { Ok, type Result } from 'ydoc-shared/util/data/result'
 import { type GraphStore } from '../../providers/openedProjects/graph'
 
 export type PersistedStore = ReturnType<typeof usePersisted>

@@ -1,4 +1,5 @@
 import { LRUCache } from '#/utilities/LruCache'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import {
   EffectScope,
   effectScope,
@@ -10,7 +11,6 @@ import {
   type Ref,
   type WatchHandle,
 } from 'vue'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 
 export type ResourceKey = string
 

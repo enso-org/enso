@@ -8,6 +8,8 @@ import { arrayEquals } from '@/util/equals'
 import { parseMethodPointer, type MethodCall } from '@/util/methodPointer'
 import type { ProjectPath } from '@/util/projectPath'
 import { clamp } from 'enso-common/src/utilities/data/math'
+import { isSome } from 'enso-common/src/utilities/data/opt'
+import { Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { markRaw } from 'vue'
 import type {
   ExpressionId,
@@ -16,8 +18,6 @@ import type {
   MethodCall as LSMethodCall,
   ProfilingInfo,
 } from 'ydoc-shared/languageServerTypes'
-import { isSome } from 'ydoc-shared/util/data/opt'
-import { Ok, type Result } from 'ydoc-shared/util/data/result'
 import { SuggestionDb } from '../suggestionDatabase'
 
 /**

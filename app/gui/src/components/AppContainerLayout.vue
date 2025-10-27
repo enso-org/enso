@@ -23,7 +23,7 @@ import { proxyRefs } from '@/util/reactivity'
 import { useQuery } from '@tanstack/vue-query'
 import * as backendModule from 'enso-common/src/services/Backend'
 import { computed, onMounted, onUnmounted } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
+import { Ok } from 'enso-common/src/utilities/data/result'
 
 const SetupOrganizationModal = reactComponent(SetupOrganizationModalReact)
 const TrialEndedModal = reactComponent(TrialEndedModalReact)

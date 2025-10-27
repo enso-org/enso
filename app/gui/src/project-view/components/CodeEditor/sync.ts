@@ -10,9 +10,9 @@ import {
   type Text,
 } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { createDebouncer } from 'lib0/eventloop'
 import { onUnmounted, type Ref, watch } from 'vue'
-import { Err, Ok } from 'ydoc-shared/util/data/result'
 import { type SourceRangeEdit, textChangeToEdits } from 'ydoc-shared/util/data/text'
 import { type Origin } from 'ydoc-shared/yjsModel'
 

@@ -20,11 +20,11 @@ import { ProjectPath } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, markRaw, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { SuggestionDatabaseUpdates } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 
 /**

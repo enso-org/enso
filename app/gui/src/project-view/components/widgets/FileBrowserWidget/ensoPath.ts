@@ -3,8 +3,14 @@ import type { UserFiles } from '@/components/widgets/FileBrowserWidget/userFiles
 import { findDifferenceIndex } from '@/util/data/array'
 import type { ToValue } from '@/util/reactivity'
 import type { DirectoryId } from 'enso-common/src/services/Backend'
+import {
+  andThen,
+  Err,
+  Ok,
+  unwrapOrWithLog,
+  type Result,
+} from 'enso-common/src/utilities/data/result'
 import { computed, toValue } from 'vue'
-import { andThen, Err, Ok, unwrapOrWithLog, type Result } from 'ydoc-shared/util/data/result'
 
 /** @internal */
 export function pathToSegments(path: string) {

@@ -9,10 +9,10 @@ import { Ast } from '@/util/ast'
 import { findExpressions } from '@/util/ast/__tests__/testCase'
 import { tryIdentifier } from '@/util/qualifiedName'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
 import { type Identifier } from 'ydoc-shared/ast'
-import { unwrap } from 'ydoc-shared/util/data/result'
 import { nodeIdFromOuterAst } from '../../../../providers/openedProjects/graph/graphDatabase'
 
 // ===============================

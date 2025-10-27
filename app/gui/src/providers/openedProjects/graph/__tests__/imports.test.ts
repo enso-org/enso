@@ -20,9 +20,9 @@ import {
 } from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
 import { Ast } from '@/util/ast'
 import { tryIdentifier, tryQualifiedName, type Identifier } from '@/util/qualifiedName'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { expect, test } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
-import { unwrap } from 'ydoc-shared/util/data/result'
 
 const qn = (s: string) => unwrap(tryQualifiedName(s))
 

@@ -33,6 +33,8 @@ import {
   syncSetDiff,
 } from '@/util/reactivity'
 import * as objects from 'enso-common/src/utilities/data/object'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import * as set from 'lib0/set'
 import {
   reactive,
@@ -43,8 +45,6 @@ import {
   type WatchStopHandle,
 } from 'vue'
 import type { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
-import type { Opt } from 'ydoc-shared/util/data/opt'
-import { unwrap } from 'ydoc-shared/util/data/result'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
 

@@ -19,6 +19,7 @@ import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import { ProjectId } from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { wait } from 'lib0/promise'
 import type { Ref, WatchSource } from 'vue'
 import {
@@ -35,7 +36,6 @@ import type { Identifier } from 'ydoc-shared/ast'
 import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol'
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { Diagnostic, ExpressionId } from 'ydoc-shared/languageServerTypes'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import type { AbortScope } from 'ydoc-shared/util/net'
 import {
   DistributedProject,

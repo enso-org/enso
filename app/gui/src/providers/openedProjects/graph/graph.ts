@@ -27,6 +27,7 @@ import type { MethodPointer } from '@/util/methodPointer'
 import { proxyRefs, useWatchContext } from '@/util/reactivity'
 import { useCallbackRegistry } from 'enso-common/src/utilities/data/callbacks'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { andThen, Err, Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import { map, set } from 'lib0'
 import {
   computed,
@@ -46,7 +47,6 @@ import {
 } from 'vue'
 import type { ExpressionUpdate } from 'ydoc-shared/languageServerTypes'
 import { reachable } from 'ydoc-shared/util/data/graph'
-import { andThen, Err, Ok, unwrap, type Result } from 'ydoc-shared/util/data/result'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { visMetadataEquals } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'

@@ -1,4 +1,5 @@
 import { assert } from '@/util/assert'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import {
   type Component,
   type ComponentOptionsMixin,
@@ -16,7 +17,6 @@ import {
   type SlotsType,
 } from 'vue'
 import type { NavigationGuardReturn, RouteLocationNormalizedGeneric } from 'vue-router'
-import type { Result } from 'ydoc-shared/util/data/result'
 
 /**
  * A loader which needs be exported from *.vue file to be wrapped in {@link withDataLoader}.

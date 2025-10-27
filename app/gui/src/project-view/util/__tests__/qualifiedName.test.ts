@@ -11,8 +11,8 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { expect, test } from 'vitest'
-import { unwrap } from 'ydoc-shared/util/data/result'
 
 const projectNames = mockProjectNameStore('local', 'Project')
 

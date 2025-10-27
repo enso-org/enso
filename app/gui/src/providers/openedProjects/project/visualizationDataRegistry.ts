@@ -1,5 +1,6 @@
 import type { ExecutionContext } from '$/providers/openedProjects/project/executionContext'
 import type { DataServer } from '@/util/net/dataServer'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { reactive } from 'vue'
 import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol'
 import type {
@@ -10,7 +11,6 @@ import type {
   ProfilingInfo,
   Uuid,
 } from 'ydoc-shared/languageServerTypes'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 
 export interface ExpressionInfo {
   typename: string | undefined

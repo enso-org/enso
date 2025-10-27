@@ -5,10 +5,10 @@ import {
 } from '$/providers/openedProjects/suggestionDatabase/documentation'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { expect, test } from 'vitest'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
-import { unwrap } from 'ydoc-shared/util/data/result'
 
 const projectNames = mockProjectNameStore('local', 'Project')
 

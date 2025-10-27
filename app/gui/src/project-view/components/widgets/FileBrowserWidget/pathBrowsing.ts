@@ -7,8 +7,8 @@ import {
   type DirectoryId,
   type ListDirectoryResponseBody,
 } from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, reactive, ref, toRaw, type Ref } from 'vue'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 
 /** A directory on browser's stack. */
 export interface Directory {

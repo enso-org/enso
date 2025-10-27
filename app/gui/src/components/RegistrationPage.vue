@@ -4,7 +4,7 @@ import { useUserAgreements } from '$/composables/userAgreements'
 import type { DataLoader } from '$/router'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
-import { Ok } from 'ydoc-shared/util/data/result'
+import { Ok } from 'enso-common/src/utilities/data/result'
 
 const Registration = reactComponent(RegistrationReact)
 
