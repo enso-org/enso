@@ -8,7 +8,6 @@ use crate::prelude::*;
 use crate::im_list;
 use crate::syntax;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -19,8 +18,6 @@ pub mod pattern;
 pub mod resolver;
 
 pub use pattern::Pattern;
-
-
 
 // ==================
 // === Definition ===
@@ -39,7 +36,7 @@ pub use pattern::Pattern;
 pub struct Definition<'a> {
     pub segments: im_list::NonEmpty<SegmentDefinition<'a>>,
     #[derive_where(skip)]
-    pub body:     Rc<DefinitionBody>,
+    pub body: Rc<DefinitionBody>,
 }
 
 /// A function that transforms matched macro tokens into [`syntax::Tree`].
@@ -47,8 +44,6 @@ pub type DefinitionBody = dyn for<'s, 'r> Fn(
     pattern::MatchedSegments<'s>,
     &'r mut syntax::expression::ExpressionParser<'s>,
 ) -> syntax::Tree<'s>;
-
-
 
 // =========================
 // === SegmentDefinition ===
@@ -59,7 +54,7 @@ pub type DefinitionBody = dyn for<'s, 'r> Fn(
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct SegmentDefinition<'a> {
-    pub header:  &'a str,
+    pub header: &'a str,
     pub pattern: Pattern,
 }
 
@@ -69,8 +64,6 @@ impl<'a> SegmentDefinition<'a> {
         Self { header, pattern }
     }
 }
-
-
 
 // ===================
 // === Rust Macros ===

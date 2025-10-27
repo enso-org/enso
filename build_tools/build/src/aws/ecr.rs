@@ -3,15 +3,12 @@ use crate::prelude::*;
 use aws_sdk_ecr::model::Repository;
 use ide_ci::programs::docker;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod runtime;
 pub mod ydoc;
-
-
 
 /// Lookup the repository by name.
 #[instrument(skip(client), err)]

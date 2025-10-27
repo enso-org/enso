@@ -2,16 +2,12 @@
 #![warn(trivial_casts)]
 #![warn(unused_qualifications)]
 
-
-
 extern crate core;
 
 use crate::prelude::*;
 
 use anyhow::Context;
 use regex::Regex;
-
-
 
 pub mod prelude {
     pub use ide_ci::prelude::*;
@@ -101,7 +97,6 @@ mod tests {
         let _client = setup_octocrab().await?;
         Ok(())
     }
-
 
     #[test]
     pub fn get_enso_version_test() -> Result {

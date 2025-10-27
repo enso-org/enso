@@ -29,14 +29,14 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni -Z unstable-options --target x86_64-unknown-linux-musl --out-dir target/lib/
+          cargo build --release -p enso-parser-jni --target x86_64-unknown-linux-musl --target-dir target/build
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: parser_linux
           path: |
-            target/lib/**
+            target/build/x86_64-unknown-linux-musl/release/libenso_parser.so
 
   build_mac_intel_parser:
     runs-on: macos-13
@@ -49,8 +49,8 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/x86_64
-
+          cargo build --release -p enso-parser-jni --target-dir target/build
+          mkdir -p target/lib/x86_64 && cp target/build/release/libenso_parser.dylib "$_"
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -69,8 +69,8 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/aarch64/
-
+          cargo build --release -p enso-parser-jni --target-dir target/build
+          mkdir -p target/lib/aarch64 && cp target/build/release/libenso_parser.dylib "$_"
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -89,14 +89,15 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/
-
+          cargo build --release -p enso-parser-jni --target-dir target/build
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: parser_windows
           path: |
-            target/lib/**
+            target/build/release/enso_parser.dll
+            target/build/release/enso_parser.dll.lib
+            target/build/release/enso_parser.pdb
 
   build_java:
     needs:

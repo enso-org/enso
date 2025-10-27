@@ -4,8 +4,6 @@
 
 use crate::prelude::*;
 
-
-
 /// Sets an environment variable.
 pub fn expose_env_var(var_name: impl AsRef<str>, var_value: impl AsRef<str>) {
     println!("cargo:rustc-env={}={}", var_name.as_ref(), var_value.as_ref());

@@ -7,8 +7,6 @@ use crate::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-
-
 extern crate native_windows_gui as nwg;
 
 use crate::win::app::InstallerApp;
@@ -18,7 +16,6 @@ use nwg::stretch::geometry::Size;
 use nwg::stretch::style::Dimension;
 use nwg::stretch::style::FlexDirection;
 use nwg::NativeUi;
-
 
 /// Size for the Enso icon displayed in the window next to the text label.
 pub const ICON_SIZE: u32 = 32;
@@ -31,7 +28,7 @@ pub const DEFAULT_FONT: &str = "Segoe UI";
 
 pub struct Ui {
     /// Inner application data, that is shared with the event callbacks.
-    inner:           Rc<InstallerApp>,
+    inner: Rc<InstallerApp>,
     /// Main events handler handle - so we can unbind it when the UI is dropped.
     default_handler: RefCell<Option<nwg::EventHandler>>,
 }
@@ -94,7 +91,7 @@ impl NativeUi<Ui> for InstallerApp {
             .flex_direction(FlexDirection::Row)
             .child(&ui.image)
             .child_size(Size {
-                width:  Dimension::Points(ICON_SIZE as f32),
+                width: Dimension::Points(ICON_SIZE as f32),
                 height: Dimension::Points(ICON_SIZE as f32),
             })
             .child(&ui.label)

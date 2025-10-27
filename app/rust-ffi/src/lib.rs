@@ -3,8 +3,6 @@ use wasm_bindgen::prelude::*;
 use enso_parser::syntax::token::TokenOperatorProperties;
 use enso_parser::Parser;
 
-
-
 thread_local! {
     pub static PARSER: Parser = Parser::new();
 }
@@ -63,7 +61,6 @@ pub fn self_arg_separator(code: &str) -> i32 {
     }
 }
 
-
 #[wasm_bindgen]
 pub fn is_numeric_literal(code: &str) -> bool {
     let parsed = PARSER.with(|parser| parser.parse_block(code));
@@ -75,9 +72,10 @@ pub fn is_numeric_literal(code: &str) -> bool {
     };
     match &stmt.expression.variant {
         enso_parser::syntax::tree::Variant::Number(_) => true,
-        enso_parser::syntax::tree::Variant::UnaryOprApp(app) =>
+        enso_parser::syntax::tree::Variant::UnaryOprApp(app) => {
             app.opr.code == "-"
-                && matches!(&app.rhs.variant, enso_parser::syntax::tree::Variant::Number(_)),
+                && matches!(&app.rhs.variant, enso_parser::syntax::tree::Variant::Number(_))
+        }
         _ => false,
     }
 }
@@ -86,7 +84,6 @@ pub fn is_numeric_literal(code: &str) -> bool {
 fn main() {
     console_error_panic_hook::set_once();
 }
-
 
 #[cfg(test)]
 mod tests {

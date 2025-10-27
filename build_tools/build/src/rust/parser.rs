@@ -11,8 +11,6 @@ use ide_ci::programs::Javac;
 use std::fs;
 use std::path::Path;
 
-
-
 const GENERATOR_CRATE_NAME: &str = "enso-parser-generate-java";
 const GENERATOR_BIN_NAME: &str = GENERATOR_CRATE_NAME;
 const TEST_GENERATOR_BIN_NAME: &str = "java-tests";

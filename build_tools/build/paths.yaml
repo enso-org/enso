@@ -165,4 +165,4 @@
   edition/:
     <edition>.yaml:
   runtime/:
-  .enso.portable:
+  .enso.bundle:

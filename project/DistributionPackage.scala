@@ -722,7 +722,7 @@ object DistributionPackage {
 
     copyFilesIncremental(
       Seq(
-        file("distribution/launcher/.enso.portable"),
+        file("distribution/launcher/.enso.bundle"),
         file("distribution/launcher/README.md")
       ),
       distributionRoot,

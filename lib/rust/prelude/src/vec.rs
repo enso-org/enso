@@ -7,8 +7,6 @@ use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
 
-
-
 // =====================
 // === VecAllocation ===
 // =====================
@@ -88,7 +86,6 @@ impl<T> VecAllocation<T> {
     }
 }
 
-
 // ================
 // === Cold Vec ===
 // ================
@@ -115,7 +112,7 @@ impl<T> ColdVec<T> {
         }
     }
 
-    pub fn iter(&self) -> std::slice::Iter<T> {
+    pub fn iter(&'_ self) -> std::slice::Iter<'_, T> {
         match self.elements.as_ref() {
             Some(elements) => elements.iter(),
             None => [].iter(),
@@ -147,7 +144,9 @@ impl<T> Default for ColdVec<T> {
 
 impl<T: Serialize> Serialize for ColdVec<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where S: Serializer {
+    where
+        S: Serializer,
+    {
         match &self.elements {
             Some(elements) => elements.serialize(serializer),
             None => Vec::<T>::new().serialize(serializer),
@@ -157,7 +156,9 @@ impl<T: Serialize> Serialize for ColdVec<T> {
 
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for ColdVec<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where D: Deserializer<'de> {
+    where
+        D: Deserializer<'de>,
+    {
         let elements = Vec::deserialize(deserializer)?;
         Ok(Self { elements: (!elements.is_empty()).then(|| Box::new(elements)) })
     }
