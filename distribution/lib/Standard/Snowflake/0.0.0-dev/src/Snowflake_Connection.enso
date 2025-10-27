@@ -508,7 +508,8 @@ type Snowflake_Connection
        copy, and location), as well as the default values for each property.
 
        ## Arguments
-       - `stage`: The name (and schema) of the stage to read the properties from.
+       - `stage`: The name (and optionally schema) of the stage to read the
+          properties from.
 
        ## Returns
        A table containing the properties of the stage.
@@ -524,13 +525,32 @@ type Snowflake_Connection
        List all the objects in a stage.
 
        ## Arguments
-        - `stage_name`: The name of the stage to read the properties from.
+       - `stage`: The name (and optionally schema) of the stage to read the
+          properties from.
+       - `path`: The path (or prefix) to the files to list.
     @stage make_stage_selector
     list_stage_objects : Identifier -> Text -> Rows_To_Read -> Table ! Table_Not_Found
-    list_stage_objects self stage:Identifier="~" prefix:Text="" (limit : Rows_To_Read = ..First_With_Warning 1000) =
-        stage_and_path = stage.to_identifier + if prefix == "" then "" else '/' + prefix
+    list_stage_objects self stage:Identifier="~" path:Text="" (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        stage_and_path = stage.to_identifier + if path == "" then "" else '/' + path
         query = "LIST '@" + (stage_and_path.replace "'" "''") + "'"
         self.execute_query query limit write_operation=False
+
+    ## ---
+       icon: trash2
+       ---
+       Remove a file from a stage
+
+       ## Arguments
+       - `stage`: The name (and optionally schema) of the stage to read the
+          properties from.
+       - `path`: The path (or prefix) to the files to remove.
+       - `pattern`: Optional regex pattern to match names against.
+    remove_from_stage : Identifier -> Text -> Text -> Integer
+    remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") pattern:Text="" =
+        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
+            stage_and_path = stage.to_identifier + if path == "" then "" else '/' + path
+            query = "REMOVE '@" + (stage_and_path.replace "'" "''") + "'" + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
+            self.execute_query query write_operation=True
 
 ## Snowflake Identifier - with optional schema.
 type Identifier
