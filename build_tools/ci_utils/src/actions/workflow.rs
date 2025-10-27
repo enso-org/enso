@@ -3,14 +3,11 @@ use crate::prelude::*;
 use crate::actions::env;
 use crate::actions::env_file;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod definition;
-
-
 
 /// Check if we are running in an environment that looks like being spawned by GitHub Actions
 /// workflow.
@@ -91,7 +88,7 @@ pub enum MessageLevel {
 #[derive(Clone, Debug)]
 pub struct Message {
     pub level: MessageLevel,
-    pub text:  String,
+    pub text: String,
     // TODO title, line, column
 }
 

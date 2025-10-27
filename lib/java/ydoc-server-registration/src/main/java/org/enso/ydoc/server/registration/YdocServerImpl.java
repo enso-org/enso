@@ -7,7 +7,6 @@ import org.enso.jvm.interop.api.OtherJvmClassLoader;
 import org.enso.runner.common.WrongOption;
 import org.enso.runner.common.YdocServerApi;
 import org.graalvm.nativeimage.ImageInfo;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.proxy.ProxyArray;
 
 public final class YdocServerImpl extends YdocServerApi {
@@ -20,9 +19,7 @@ public final class YdocServerImpl extends YdocServerApi {
     //   return launch(hostname, port);
     // but in the other JVM
     var isAot = ImageInfo.inImageRuntimeCode();
-    var ctx = Context.create("hosted");
-    var rawLoader = OtherJvmClassLoader.create("org.enso.ydoc.server", null, isAot, null);
-    var loader = ctx.asValue(rawLoader);
+    var loader = OtherJvmClassLoader.create("org.enso.ydoc.server", null, isAot, null);
     if (isAot) {
       // in AOT mode the org.enso.ydoc.server is the main module loaded
       // to the JVM's boot layer - e.g. its classes are available
@@ -38,16 +35,13 @@ public final class YdocServerImpl extends YdocServerApi {
                   .toURI());
       var ydocServerJar = new File(myJar.getParentFile(), "ydoc-server.jar");
       assert ydocServerJar.exists() : "Found " + ydocServerJar;
-      loader.invokeMember("addPath", ydocServerJar.getPath());
+      loader.addPath(ydocServerJar);
     }
     var fqn = "org.enso.ydoc.server.Main";
-    var impl = loader.getMember(fqn);
+    var impl = loader.loadClass(fqn);
     assert impl != null;
     var arr = ProxyArray.fromArray(hostname, "" + port);
     impl.invokeMember("main", arr);
-    return () -> {
-      loader.invokeMember("close");
-      ctx.close();
-    };
+    return loader;
   }
 }

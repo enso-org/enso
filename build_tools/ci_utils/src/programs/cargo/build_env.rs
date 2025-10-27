@@ -4,8 +4,6 @@
 
 use crate::prelude::*;
 
-
-
 crate::define_env_var! {
     /// Checks if the current build is targeting wasm32.
     ///
@@ -19,5 +17,5 @@ crate::define_env_var! {
 }
 
 pub fn targeting_wasm() -> bool {
-    TARGET.get().map_or(false, |target| target.contains("wasm32"))
+    TARGET.get().is_ok_and(|target| target.contains("wasm32"))
 }

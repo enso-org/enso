@@ -1,3 +1,4 @@
+import project.Data.Boolean
 import project.Data.Text.Text
 import project.System.File.File
 import project.System.File_Format_Metadata.File_Format_Metadata
@@ -33,6 +34,16 @@ type File_Like
        private: true
        ---
     to_display_text self -> Text = self.underlying.to_display_text
+
+    ## ---
+       private: true
+       ---
+    exists self = self.underlying.exists
+
+    ## ---
+       private: true
+       ---
+    can_write_into_parent self = self.underlying.can_write_into_parent
 
 ## ---
    private: true

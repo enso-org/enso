@@ -121,10 +121,6 @@ export function Dashboard(props: DashboardProps) {
           null!,
         )
         const endMetadata = await localBackend.uploadFileEnd({
-          parentDirectoryId,
-          fileName: projectName,
-          assetId: null,
-          parts: [],
           ...metadata,
         })
         if (endMetadata.project == null) {

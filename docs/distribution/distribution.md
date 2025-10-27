@@ -80,7 +80,7 @@ extraction-location
 │   ├── 2021.4.yaml
 │   └── nightly-2021-06-31.yaml
 ├── README.md               # Information on layout and usage of the Enso distribution.
-├── .enso.portable          # A file that allows the universal launcher to detect that if it is run from this directory, it should run in portable distribution mode.
+├── .enso.bundle            # A file that allows the universal launcher to detect that if it is run from this directory, it should run in portable distribution mode.
 └── THIRD-PARTY             # Contains licences of distributed components, including the NOTICE file.
 ```
 

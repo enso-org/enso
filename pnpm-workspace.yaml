@@ -12,6 +12,7 @@ packages:
   - app/ydoc-server-polyglot
   - app/ydoc-shared
   - lib/js/runner
+  - tools/simple-library-server
 catalog:
   typescript: ^5.7.2
   "@types/node": ^24.2.1

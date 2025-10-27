@@ -15,16 +15,12 @@
 #![warn(unused_import_braces)]
 #![warn(unused_qualifications)]
 
-
-
 mod metadata;
 
 use enso_parser_debug::test::expect_multiple_operator_error;
 use enso_parser_debug::test::expect_valid;
 use enso_parser_debug::test::parse_module;
 use insta::assert_snapshot;
-
-
 
 // ===========================
 // === Test support macros ===
@@ -56,8 +52,6 @@ macro_rules! test_block {
         test_parse!($code, @$expected, parse_block);
     }
 }
-
-
 
 // ================================
 // === Language Construct Tests ===
@@ -167,7 +161,6 @@ fn unused_documentation() {
     test_module!("## First docs\n## More docs\n\n## More docs after a gap",
         @r#"(BodyBlock #((Documentation (#((Section " First docs")))) (Documentation (#((Section " More docs")))) () (Documentation (#((Section " More docs after a gap"))))))"#);
 }
-
 
 // === Type Definitions ===
 
@@ -301,7 +294,6 @@ fn type_def_nested() {
         @"(BodyBlock #((TypeDef Foo #() #((TypeDef Bar #() #()) (TypeDef Baz #() #())))))");
 }
 
-
 // === Variable Assignment ===
 
 #[test]
@@ -331,7 +323,6 @@ fn assignment_documentation() {
     test_block!("## The Foo\nfoo = x",
         @r#"(BodyBlock #((Assignment ((#((Section " The Foo"))) #(())) (Ident foo) (Ident x))))"#);
 }
-
 
 // === Functions ===
 
@@ -424,7 +415,6 @@ fn ignored_argument_patterns() {
         @r#"(BodyBlock #((ExpressionStatement () (Lambda "\\" #((() (Wildcard -1) () ())) "->" (Ident x)))))"#);
 }
 
-
 // === Named arguments ===
 
 #[test]
@@ -466,7 +456,6 @@ fn named_arguments() {
     test_block!("foo . bar baz=quux",
         @r#"(BodyBlock #((ExpressionStatement () (NamedApp (OprApp (Ident foo) (Ok ".") (Ident bar)) baz (Ident quux)))))"#);
 }
-
 
 // === Default arguments ===
 
@@ -522,7 +511,6 @@ fn complex_arguments() {
     test_module!("f (~x = 1) = x",
         @r#"(BodyBlock #((Function () #() () () (Ident f) #(("~" (Ident x) () ((Number () "1" ())))) () (Ident x))))"#);
 }
-
 
 // === Code Blocks ===
 
@@ -630,7 +618,6 @@ fn first_line_indented() {
         @"(BodyBlock #((BodyBlock #((ExpressionStatement () (Ident a))))))");
 }
 
-
 // === Binary Operators ===
 
 #[test]
@@ -734,7 +721,6 @@ fn template_functions() {
     test_block!("_+1 + x",
         @r#"(BodyBlock #((ExpressionStatement () (TemplateFunction 1 (OprApp (OprApp (Wildcard 0) (Ok "+") (Number () "1" ())) (Ok "+") (Ident x))))))"#);
 }
-
 
 // === Unary Operators ===
 
@@ -871,7 +857,6 @@ fn autoscope_operator() {
         @r#"The autoscope operator must be applied to an identifier: (BodyBlock #((ExpressionStatement () (TypeAnnotated (Ident x) ":" (App (Invalid) (Ident True))))))"#);
 }
 
-
 // === Import/Export ===
 
 #[test]
@@ -910,9 +895,7 @@ fn export() {
         @r#""all" not allowed in export statement: (BodyBlock #((ExpressionStatement () (Invalid))))"#);
 }
 
-
 // === Metadata ===
-
 
 #[test]
 fn metadata_raw() {
@@ -936,7 +919,6 @@ fn metadata_parsing() {
     let _ast = parse_module(code);
     let _meta: enso_parser::metadata::Metadata = meta.unwrap();
 }
-
 
 // === Type annotations and signatures ===
 
@@ -981,7 +963,6 @@ fn type_annotations() {
     test_module!("p:Plus + m:Plus",
         @r#"(BodyBlock #((ExpressionStatement () (OprApp (TypeAnnotated (Ident p) ":" (Ident Plus)) (Ok "+") (TypeAnnotated (Ident m) ":" (Ident Plus))))))"#);
 }
-
 
 // === Text Literals ===
 
@@ -1084,7 +1065,6 @@ fn interpolated_literals_in_multiline_text() {
         @r#"(BodyBlock #((ExpressionStatement () (TextLiteral #((Section "text with a ") (Splice (Ident splice)) (Newline) (Section "and some ") (Escape 10) (Section "escapes") (Escape 39))))))"#);
 }
 
-
 // === Lambdas ===
 
 #[test]
@@ -1146,7 +1126,6 @@ fn old_lambdas() {
     test_block!("foo = x -> (y = bar x) -> x + y",
         @r#"(BodyBlock #((Assignment () (Ident foo) (OprApp (Ident x) (Ok "->") (OprApp (Group (OprApp (Ident y) (Ok "=") (App (Ident bar) (Ident x)))) (Ok "->") (OprApp (Ident x) (Ok "+") (Ident y)))))))"#);
 }
-
 
 // === Pattern Matching ===
 
@@ -1293,7 +1272,6 @@ fn tuple_literals() {
         @r#"(BodyBlock #((ExpressionStatement () (Tuple (Ident x) #(("," (Ident y)))))))"#);
 }
 
-
 // === Numeric literals ===
 
 #[cfg(test)]
@@ -1366,7 +1344,6 @@ mod numbers {
     }
 }
 
-
 // === Whitespace ===
 
 #[test]
@@ -1376,7 +1353,6 @@ fn trailing_whitespace() {
     test_module!("a = \n x",
         @"(BodyBlock #((Function () #() () () (Ident a) #() () (BodyBlock #((ExpressionStatement () (Ident x)))))))");
 }
-
 
 // === Annotations ===
 
@@ -1434,7 +1410,6 @@ fn multiline_builtin_annotations() {
         @"(BodyBlock #((AnnotatedBuiltin Builtin_Type #(()) (TypeDef Date #() #()))))");
 }
 
-
 // === SKIP and FREEZE ===
 
 #[test]
@@ -1477,8 +1452,6 @@ fn statement_in_expression_context() {
         @"Invalid use of syntactic operator in expression: (BodyBlock #((Assignment () (Ident y) (Invalid))))");
 }
 
-
-
 // =========================
 // === Scalability Tests ===
 // =========================
@@ -1499,8 +1472,6 @@ fn big_array() {
     big_array.push_str("1]");
     expect_valid(&big_array);
 }
-
-
 
 // ==========================
 // === Syntax Error Tests ===
