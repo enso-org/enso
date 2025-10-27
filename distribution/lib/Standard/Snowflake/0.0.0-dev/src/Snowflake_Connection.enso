@@ -468,6 +468,35 @@ type Snowflake_Connection
     to_js_object self =
         JS_Object.from_pairs <| [["type", "Snowflake_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
 
+    ## ---
+       icon: folder
+       ---
+       Returns the list of stages for the connection.
+
+       ## Arguments
+        - `database`: The database name to search in (default is current).
+          Use an asterisk (`*`) to search in all databases.
+        - `schema`: The schema name to search in (defaults to current). If an
+          asterisk (`*`) is provided, all schemas are searched.
+        - `pattern`: The stage name pattern to search for. Supports SQL
+          wildcards (`%`, `_`). Defaults to `""` which means all stages are
+          selected.
+    stages : Text -> Text -> Table
+    stages self schema:Text=self.schema pattern:Text='' =
+        parsed_schema = if schema == "*" then "" else
+            if schema == "" then " IN SCHEMA" +self.schema else ' IN SCHEMA "' + (schema.replace '"' '""') + '"'
+        query = "SHOW STAGES" + (if pattern.trim != "" then " LIKE '" + (pattern.replace "'" "''") + "'" else "") + " IN DATABASE" + parsed_schema
+        self.execute_query query write_operation=False . select_columns ["name", "database_name", "schema_name", "type", "cloud", "url", "created_on", "comment"] reorder=True error_on_missing_columns=False on_problems=..Ignore
+
+    ## ---
+       private: true
+       icon: metadata
+       ---
+       Gets a list of stage names for current
+    stage_names : Vector
+    stage_names self =
+        self.connection.read_text_column "show stages in database" "name"
+
 private auth_jdbc_properties credentials = case credentials of
     Credentials.Username_And_Password username password ->
         [Pair.new 'user' username, Pair.new 'password' password]
