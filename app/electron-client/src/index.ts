@@ -39,13 +39,12 @@ import type { BrowserWindowConstructorOptions, WebPreferences } from 'electron'
 import * as projectManagement from 'project-manager-shim'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems'
 
+type Electron = typeof import('electron')
+
 const DEFAULT_WINDOW_WIDTH = 1380
 const DEFAULT_WINDOW_HEIGHT = 900
 
-let electron: typeof import('electron') | undefined
-type Electron = typeof import('electron')
-
-function exit(code = 0) {
+function exit(code: number, electron: Electron | undefined) {
   if (electron) {
     electron.app.exit(code)
   } else {
@@ -53,7 +52,7 @@ function exit(code = 0) {
   }
 }
 
-function quit() {
+function quit(electron: Electron | undefined) {
   if (electron) {
     electron.app.quit()
   } else {
@@ -61,7 +60,7 @@ function quit() {
   }
 }
 
-function showErrorBox(title: string, content: string) {
+function showErrorBox(title: string, content: string, electron: Electron | undefined) {
   if (electron) {
     electron.dialog.showErrorBox(title, content)
   } else {
@@ -97,9 +96,16 @@ const createApp = (): App => ({
 })
 
 /** Initialize and run the Electron application. */
-async function runApp(app: App) {
+async function runApp(app: App, electron: Electron | undefined) {
+  process.on('uncaughtException', (err, origin) => {
+    console.error(`Uncaught exception: ${err.toString()}\nException origin: ${origin}`)
+    showErrorBox(common.PRODUCT_NAME, err.stack ?? err.toString(), electron)
+    exit(1, electron)
+  })
   log.setupLogger()
-  urlAssociations.registerAssociations()
+  if (electron) {
+    urlAssociations.registerAssociations(electron)
+  }
   // Register file associations for macOS.
   fileAssociations.setOpenFileEventHandler((path) => {
     if (!electron) return
@@ -107,85 +113,86 @@ async function runApp(app: App) {
       const project = fileAssociations.handleOpenFile(path)
       app.window?.webContents.send(ipc.Channel.openProject, project)
     } else {
-      setProjectToOpenOnStartup(app, pathToURL(path))
+      setProjectToOpenOnStartup(app, pathToURL(path), electron)
     }
   })
   const { args, fileToOpen, urlToOpen } = processArguments()
   if (args.version) {
     await printVersion()
-    quit()
+    return quit(electron)
   } else if (args.debug.info) {
     await electron?.app.whenReady()
     await debug.printInfo()
-    quit()
-  } else if (electron) {
-    const isOriginalInstance = electron.app.requestSingleInstanceLock({
-      fileToOpen,
-      urlToOpen,
+    return quit(electron)
+  } else if (!electron) {
+    return
+  }
+  const isOriginalInstance = electron.app.requestSingleInstanceLock({
+    fileToOpen,
+    urlToOpen,
+  })
+  if (isOriginalInstance) {
+    handleItemOpening(app, fileToOpen, urlToOpen, electron)
+    setChromeOptions(electron)
+    security.enableAll()
+
+    onStart(electron).catch((err) => {
+      console.error(err)
     })
-    if (isOriginalInstance) {
-      handleItemOpening(app, fileToOpen, urlToOpen)
-      setChromeOptions(electron)
-      security.enableAll()
 
-      onStart().catch((err) => {
-        console.error(err)
-      })
+    electron.app.on('before-quit', () => {
+      app.isQuitting = true
+    })
 
-      electron.app.on('before-quit', () => {
-        app.isQuitting = true
-      })
+    electron.app.on('second-instance', (_event, argv) => {
+      console.error(`Got data from 'second-instance' event: '${argv.toString()}'.`)
 
-      electron.app.on('second-instance', (_event, argv) => {
-        console.error(`Got data from 'second-instance' event: '${argv.toString()}'.`)
+      const isWin = os.platform() === 'win32'
 
-        const isWin = os.platform() === 'win32'
+      if (isWin) {
+        const ensoLinkInArgs = argv.find((arg) => arg.startsWith(common.DEEP_LINK_SCHEME))
 
-        if (isWin) {
-          const ensoLinkInArgs = argv.find((arg) => arg.startsWith(common.DEEP_LINK_SCHEME))
-
-          if (ensoLinkInArgs != null) {
-            electron.app.emit('open-url', new CustomEvent('open-url'), ensoLinkInArgs)
-          }
+        if (ensoLinkInArgs != null) {
+          electron.app.emit('open-url', new CustomEvent('open-url'), ensoLinkInArgs)
         }
+      }
 
-        // The second instances will close themselves, but our window likely is not in the
-        // foreground - the focus went to the "second instance" of the application.
-        if (app.window) {
-          if (app.window.isMinimized()) {
-            app.window.restore()
-          }
-          app.window.focus()
-        } else {
-          console.error('No window found after receiving URL from second instance.')
+      // The second instances will close themselves, but our window likely is not in the
+      // foreground - the focus went to the "second instance" of the application.
+      if (app.window) {
+        if (app.window.isMinimized()) {
+          app.window.restore()
         }
-      })
-      electron.app.whenReady().then(
-        async () => {
-          console.log('Electron application is ready.')
+        app.window.focus()
+      } else {
+        console.error('No window found after receiving URL from second instance.')
+      }
+    })
+    electron.app.whenReady().then(
+      async () => {
+        console.log('Electron application is ready.')
 
-          electron.protocol.handle('enso', (request) =>
-            projectService.handleProjectProtocol(
-              decodeURIComponent(request.url.replace('enso://', '')),
-            ),
-          )
+        electron.protocol.handle('enso', (request) =>
+          projectService.handleProjectProtocol(
+            decodeURIComponent(request.url.replace('enso://', '')),
+          ),
+        )
 
-          await main(app, args)
-        },
-        (error) => {
-          console.error('Failed to initialize Electron.', error)
-        },
-      )
-      registerShortcuts()
-    } else {
-      console.log('Another instance of the application is already running, exiting.')
-      quit()
-    }
+        await main(app, args, electron)
+      },
+      (error) => {
+        console.error('Failed to initialize Electron.', error)
+      },
+    )
+    registerShortcuts(electron)
+  } else {
+    console.log('Another instance of the application is already running, exiting.')
+    quit(electron)
   }
 }
 
 /** Background tasks scheduled on the application startup. */
-async function onStart() {
+async function onStart(electron: Electron | undefined) {
   const writeVersionInfoPromise = (async () => {
     if (!electron) return
     const userData = electron.app.getPath('userData')
@@ -232,7 +239,7 @@ function processArguments(args = fileAssociations.CLIENT_ARGUMENTS) {
  * an error will be logged, and the method will have no effect.
  * @param projectUrl - The `file://` url of project to be opened on startup.
  */
-function setProjectToOpenOnStartup(app: App, projectUrl: URL) {
+function setProjectToOpenOnStartup(app: App, projectUrl: URL, electron: Electron | undefined) {
   if (electron) {
     // Make sure that we are not initialized yet, as this method should be called before the
     // application is ready.
@@ -247,20 +254,25 @@ function setProjectToOpenOnStartup(app: App, projectUrl: URL) {
       )
     }
   } else {
-    //
+    // FIXME:
   }
 }
 /**
  * This method is invoked when the application was spawned due to being a default application
  * for a URL protocol or file extension.
  */
-function handleItemOpening(app: App, fileToOpen: string | null, urlToOpen: URL | null) {
+function handleItemOpening(
+  app: App,
+  fileToOpen: string | null,
+  urlToOpen: URL | null,
+  electron: Electron | undefined,
+) {
   console.log('Opening file or URL.', { fileToOpen, urlToOpen })
   try {
     if (fileToOpen != null) {
       // The IDE must receive the project path, otherwise if the IDE has a custom root directory
       // set then it is added to the (incorrect) default root directory.
-      setProjectToOpenOnStartup(app, pathToURL(fileToOpen))
+      setProjectToOpenOnStartup(app, pathToURL(fileToOpen), electron)
     }
 
     if (urlToOpen != null) {
@@ -291,7 +303,7 @@ function setChromeOptions(electron: Electron) {
 }
 
 /** Main app entry point. */
-async function main(app: App, args: Options) {
+async function main(app: App, args: Options, electron: Electron | undefined) {
   // We catch all errors here. Otherwise, it might be possible that the app will run partially
   // and enter a "zombie mode", where user is not aware of the app still running.
   try {
@@ -299,7 +311,7 @@ async function main(app: App, args: Options) {
     // Note that we want to do all the actions synchronously, so when the window
     // appears, it serves the website immediately.
     await startContentServerIfEnabled(app, args)
-    await createWindowIfEnabled(app, args)
+    await createWindowIfEnabled(app, args, electron)
     initIpc(app.window)
     await loadWindowContent(app, args)
     /**
@@ -311,7 +323,7 @@ async function main(app: App, args: Options) {
     authentication.initAuthentication(() => app.window!)
   } catch (err) {
     console.error('Failed to initialize the application, shutting down. Error: ', err)
-    quit()
+    quit(electron)
   }
 }
 
@@ -341,7 +353,7 @@ async function startContentServerIfEnabled(app: App, args: Options) {
 }
 
 /** Create the Electron window and display it on the screen. */
-async function createWindowIfEnabled(app: App, args: Options) {
+async function createWindowIfEnabled(app: App, args: Options, electron: Electron | undefined) {
   if (!args.displayWindow) return
   if (!electron) {
     console.error('Running in headless mode, window will not be created.')
@@ -502,8 +514,7 @@ async function printVersion(): Promise<void> {
   }
 }
 
-function registerShortcuts() {
-  if (!electron) return
+function registerShortcuts(electron: Electron) {
   electron.app.on('web-contents-created', (_webContentsCreatedEvent, webContents) => {
     webContents.on('before-input-event', (_beforeInputEvent, input) => {
       const { code, alt, control, shift, meta, type } = input
@@ -522,10 +533,5 @@ function registerShortcuts() {
   })
 }
 
-process.on('uncaughtException', (err, origin) => {
-  console.error(`Uncaught exception: ${err.toString()}\nException origin: ${origin}`)
-  showErrorBox(common.PRODUCT_NAME, err.stack ?? err.toString())
-  exit(1)
-})
-
-void runApp(createApp())
+// FIXME: Conditionally load `electron`
+void runApp(createApp(), undefined)
