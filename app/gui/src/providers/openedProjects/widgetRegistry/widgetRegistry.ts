@@ -10,9 +10,9 @@ import {
 import type { WidgetEditHandlerParent } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import type { PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import type { ViteHotContext } from 'vite/types/hot.js'
 import { computed, shallowReactive, type Component, type PropType } from 'vue'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import type { Class } from 'ydoc-shared/util/types'
 
 export type WidgetComponent<T extends WidgetInput> = Component<WidgetProps<T>>

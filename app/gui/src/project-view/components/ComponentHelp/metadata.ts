@@ -2,8 +2,8 @@
 import { assert } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
 import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import * as z from 'zod'
 
 /** A macro definition in the `macros` array. */

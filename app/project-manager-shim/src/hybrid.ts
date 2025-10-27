@@ -4,11 +4,11 @@ import {
   extractTypeFromId,
   type PathResolveResponse,
 } from 'enso-common/src/services/Backend'
-import { EnsoPath } from 'enso-common/src/services/Backend/types'
+import type { EnsoPath } from 'enso-common/src/services/Backend/types'
 import type { ProjectManager } from 'enso-common/src/services/ProjectManager/ProjectManager'
 import type { Path, ProjectEntry, UUID } from 'enso-common/src/services/ProjectManager/types'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
-import { ProjectService } from './projectService'
+import { ProjectService } from './projectService/index.js'
 
 /** Start a hybrid project. */
 export async function startHybridProject(
@@ -27,8 +27,6 @@ export async function startHybridProject(
       throw new Error(`The path '${path}' does not point to a project.`)
     }
     const localProject = await remoteBackend.downloadProject(typeAndId.id)
-    // @ts-expect-error `projectManager` is a private property that we need to access.
-    const projectManager = localBackend.projectManager as ProjectManager
     let parentPath: Path | undefined
     for (const parentId of [localProject.parentId, localProject.projectRootId]) {
       parentPath = extractTypeAndPath(parentId).path

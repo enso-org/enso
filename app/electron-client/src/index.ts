@@ -498,4 +498,4 @@ async function printVersion(): Promise<void> {
 }
 
 // FIXME: Conditionally load `electron`
-void runApp(createApp(), undefined)
+void runApp(createApp(), await import('electron'))

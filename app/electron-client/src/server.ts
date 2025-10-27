@@ -66,6 +66,7 @@ import { createReadStream, createWriteStream, statSync } from 'node:fs'
 import { access, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
+import { pathToFileURL } from 'node:url'
 import { createGzip } from 'node:zlib'
 import { ProjectService } from 'project-manager-shim/projectService'
 
@@ -231,14 +232,26 @@ export class Server {
           },
           handler: this.process.bind(this),
         },
-        (err, _) => {
-          void (async () => {
-            if (err) {
-              console.error(`Error creating server:`, err.http)
-              reject(err)
-            }
-            resolve()
-          })()
+        async (err, { https: httpsServer, http: httpServer }) => {
+          const server = httpsServer ?? httpServer
+          if (process.env.ELECTRON_DEV_MODE === 'true') {
+            const vite = (await import(
+              pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
+            )) as typeof import('vite')
+            this.devServer = await vite.createServer({
+              server: {
+                middlewareMode: true,
+                hmr: server ? { server } : {},
+              },
+              configFile: process.env.GUI_CONFIG_PATH ?? false,
+              mode: process.env.MODE ?? 'staging',
+            })
+          }
+          if (err) {
+            console.error('Error creating server:', err.http)
+            reject(err)
+          }
+          resolve()
         },
       )
     })
