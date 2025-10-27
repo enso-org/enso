@@ -19,6 +19,12 @@ coverage --build_runfile_links
 # Enable with --config=release
 build:release --stamp --workspace_status_command="node $(pwd)/internal/workspaceStatus.mjs"
 
+# Use processwrapper-sandbox strategy by default, to align behavior with CI.
+# Note: this is the default strategy inside Docker containers and on Ubuntu. 
+# See https://github.com/bazelbuild/bazel/issues/24081 for more details.
+build --spawn_strategy=processwrapper-sandbox
+run --spawn_strategy=processwrapper-sandbox
+
 ## JS
 
 # passes an argument `--skipLibCheck` to *every* spawn of tsc
