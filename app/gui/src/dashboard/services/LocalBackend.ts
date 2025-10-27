@@ -693,13 +693,12 @@ export default class LocalBackend extends Backend {
     if (!response.ok) {
       return this.throw(response, 'uploadFileBackendError')
     }
-    const sourceFilename = body.filePath != null ? getFileName(body.filePath) : file.name
-    if (backend.fileNameIsProject(sourceFilename)) {
+    if (backend.fileNameIsProject(body.fileName)) {
       const projectPath = backend.Path(await response.text())
       const projectId = newProjectId(projectPath)
       const project = await this.getProjectDetails(projectId)
       this.uploadedFiles.set(uploadId, { id: projectId, project, jobId: null })
-    } else if (backend.fileNameIsArchive(sourceFilename)) {
+    } else if (backend.fileNameIsArchive(body.fileName)) {
       this.uploadedFiles.set(uploadId, {
         id: newFileId(filePath),
         project: null,

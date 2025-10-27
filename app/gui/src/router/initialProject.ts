@@ -11,7 +11,7 @@ import Backend, {
 } from '#/services/Backend'
 import LocalBackend, { newDirectoryId } from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
-import { baseName } from '#/utilities/fileInfo'
+import { getFileName } from '#/utilities/fileInfo'
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { useOpenedProjects } from '$/providers/openedProjects'
@@ -120,8 +120,7 @@ async function shouldOpenWelcomeProject(
   const navigatedInDrive =
     window.localStorage.getItem('enso-category-id') ||
     window.localStorage.getItem('enso-current-directory-id')
-  // const anyProjectLaunched = LocalStorage.getInstance().get('launchedProjects')
-  if (navigatedInDrive /*|| anyProjectLaunched*/) return false
+  if (navigatedInDrive) return false
 
   const homeDirQuery = {
     parentId: null,
@@ -157,7 +156,7 @@ async function uploadProjectArchive(
   const filePath = fileURLToPath(url)
   console.debug('filePath', filePath)
   if (filePath == null) return
-  const projectName = baseName(filePath)
+  const projectName = getFileName(filePath)
   const parentDirectoryId = newDirectoryId(localBackend.rootPath())
   const metadata = await localBackend.uploadFileStart(
     {
