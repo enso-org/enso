@@ -5,7 +5,7 @@ import Standard.Base.Metadata.File_Type
 import Standard.Base.Runtime.Context as Execution_Context
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
+from Standard.Base.Metadata.Widget import File_Browse, Folder_Browse, Single_Choice, Text_Input
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
