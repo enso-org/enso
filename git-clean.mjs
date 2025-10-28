@@ -45,9 +45,9 @@ async function runGitClean() {
 
 async function runBazelClean() {
   let executable = 'bazel'
-  if (process.platform === 'win32') {
-    executable += '.exe'
-  }
+  //   if (process.platform === 'win32') {
+  //     executable += '.exe'
+  //   }
   return runCommand(executable, ['clean', '--expunge_async'])
 }
 
