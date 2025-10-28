@@ -16,6 +16,7 @@ import { registerHandlers } from '@/providers/action'
 import { provideAsyncResources } from '@/providers/asyncResources'
 import { provideFullscreenRoot } from '@/providers/fullscreenRoot'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import { reactComponent } from '@/util/react'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { onMounted, onUnmounted, shallowRef, toRefs } from 'vue'
@@ -86,6 +87,19 @@ useEvent(globalEventRegistry, 'keydown', (event) => {
   return keydownHandler(event)
 })
 
+function projectIcon(project: Project): Icon | undefined {
+  if (project.error != null) {
+    return 'error'
+  }
+  if (project.state.status === 'closed-by-backend') {
+    return 'warning'
+  }
+  if (project.nextTask?.process === 'opening' || project.nextTask?.process === 'restoring') {
+    return undefined
+  }
+  return 'graph_editor'
+}
+
 const onSignOut = () => {
   openedProjects.closeAllProjects()
 }
@@ -129,7 +143,7 @@ onUnmounted(() => {
             :key="project.state.info.id"
             data-testid="editor-tab-button"
             :selected="project.shown.value"
-            :icon="project.state.status === 'initialized' ? 'graph_editor' : undefined"
+            :icon="projectIcon(project)"
             :label="
               project.state.status === 'initialized' ?
                 project.state.name.value
@@ -139,7 +153,9 @@ onUnmounted(() => {
             @close="openedProjects.closeProject(project.state.info.id)"
           >
             <GrowingSpinner
-              v-if="project.state.status !== 'initialized'"
+              v-if="
+                project.nextTask?.process === 'opening' || project.nextTask?.process === 'restoring'
+              "
               :phase="loadingProjectSpinnerPhase(project)"
               :size="16"
             />

@@ -26,9 +26,7 @@ function isProjectShownAsTab(project: Project) {
   return (
     project.nextTask?.process === 'opening' ||
     project.error != null ||
-    (project.state.status !== 'not-opened' &&
-      project.state.status !== 'hybrid-closed' &&
-      project.state.status !== 'hybrid-uploaded')
+    (project.state.status !== 'not-opened' && project.nextTask?.process !== 'closing')
   )
 }
 
