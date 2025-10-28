@@ -99,7 +99,8 @@ class RuntimeRefactoringTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata    = new Metadata
-    val idOperator1 = metadata.addItem(42, 9)
+    val idOperator1 = metadata.addItem(42, 9, "aa")
+    val idOperator2 = metadata.addItem(73, 13, "bb")
     val code =
       """from Standard.Base import all
         |
@@ -140,8 +141,20 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idOperator2,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -169,10 +182,24 @@ class RuntimeRefactoringTest
     context.send(
       Api.Request(requestId, Api.RenameSymbol(moduleName, idOperator1, newName))
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
-      TestMessages.pending(contextId, idOperator1),
+      TestMessages.pending(contextId, idOperator2),
+      TestMessages.update(
+        contextId,
+        idOperator2,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        ),
+        fromCache   = false,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -185,6 +212,7 @@ class RuntimeRefactoringTest
 
     val metadata    = new Metadata
     val idOperator1 = metadata.addItem(42, 9)
+    val idOperator2 = metadata.addItem(73, 17, "bb")
     val code =
       """from Standard.Base import all
         |
@@ -225,8 +253,13 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idOperator2,
+        ConstantsGen.FUNCTION
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -254,10 +287,16 @@ class RuntimeRefactoringTest
     context.send(
       Api.Request(requestId, Api.RenameSymbol(moduleName, idOperator1, newName))
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
-      TestMessages.pending(contextId, idOperator1),
+      TestMessages.pending(contextId, idOperator2),
+      TestMessages.update(
+        contextId,
+        idOperator2,
+        ConstantsGen.FUNCTION,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -361,7 +400,7 @@ class RuntimeRefactoringTest
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
       TestMessages
-        .pending(contextId, symbolOperator1, exprOperator2, exprOperator1),
+        .pending(contextId, exprOperator2, exprOperator1),
       TestMessages.update(
         contextId,
         exprOperator1,
@@ -439,6 +478,7 @@ class RuntimeRefactoringTest
 
     val metadata    = new Metadata
     val idFunction1 = metadata.addItem(31, 9)
+    val idOperator2 = metadata.addItem(94, 24)
     val code =
       """from Standard.Base import all
         |
@@ -481,8 +521,21 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          idOperator2,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              moduleName,
+              moduleName,
+              "function1"
+            )
+          )
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -510,10 +563,23 @@ class RuntimeRefactoringTest
     context.send(
       Api.Request(requestId, Api.RenameSymbol(moduleName, idFunction1, newName))
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
-      TestMessages.pending(contextId, idFunction1),
+      TestMessages.pending(contextId, idOperator2),
+      TestMessages
+        .update(
+          contextId,
+          idOperator2,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              moduleName,
+              moduleName,
+              "function2"
+            )
+          )
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -526,6 +592,7 @@ class RuntimeRefactoringTest
 
     val metadata    = new Metadata
     val idFunction1 = metadata.addItem(31, 9)
+    val idOperator2 = metadata.addItem(94, 24)
     val code =
       """from Standard.Base import all
         |
@@ -568,8 +635,21 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          idOperator2,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              moduleName,
+              moduleName,
+              "function1"
+            )
+          )
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -596,10 +676,23 @@ class RuntimeRefactoringTest
     context.send(
       Api.Request(requestId, Api.RenameSymbol(moduleName, idFunction1, newName))
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
-      TestMessages.pending(contextId, idFunction1),
+      TestMessages.pending(contextId, idOperator2),
+      TestMessages
+        .update(
+          contextId,
+          idOperator2,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              moduleName,
+              moduleName,
+              "function2"
+            )
+          )
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -628,10 +721,23 @@ class RuntimeRefactoringTest
         Api.RenameSymbol(moduleName, idFunction1, originalName)
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(originalName)),
       Api.Response(None, expectedFileEdit1),
-      TestMessages.pending(contextId, idFunction1),
+      TestMessages.pending(contextId, idOperator2),
+      TestMessages
+        .update(
+          contextId,
+          idOperator2,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              moduleName,
+              moduleName,
+              "function1"
+            )
+          )
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -644,6 +750,7 @@ class RuntimeRefactoringTest
 
     val metadata    = new Metadata
     val idFunction1 = metadata.addItem(31, 9)
+    val idOperator2 = metadata.addItem(94, 21)
     val code =
       """from Standard.Base import all
         |
@@ -686,8 +793,14 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          idOperator2,
+          ConstantsGen.FUNCTION
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -715,10 +828,18 @@ class RuntimeRefactoringTest
     context.send(
       Api.Request(requestId, Api.RenameSymbol(moduleName, idFunction1, newName))
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
-      TestMessages.pending(contextId, idFunction1),
+      TestMessages.pending(contextId, idOperator2),
+      TestMessages
+        .update(
+          contextId,
+          idOperator2,
+          ConstantsGen.FUNCTION,
+          fromCache   = false,
+          typeChanged = false
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -731,6 +852,7 @@ class RuntimeRefactoringTest
 
     val metadata    = new Metadata
     val idFunction1 = metadata.addItem(31, 9)
+    val idOperator1 = metadata.addItem(75, 12)
     val code =
       """from Standard.Base import all
         |
@@ -772,8 +894,21 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          idOperator1,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              moduleName,
+              moduleName,
+              "function1"
+            )
+          )
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -801,10 +936,23 @@ class RuntimeRefactoringTest
     context.send(
       Api.Request(requestId, Api.RenameSymbol(moduleName, idFunction1, newName))
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
-      TestMessages.pending(contextId, idFunction1),
+      TestMessages.pending(contextId, idOperator1),
+      TestMessages
+        .update(
+          contextId,
+          idOperator1,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(
+            Api.MethodPointer(
+              moduleName,
+              moduleName,
+              "function2"
+            )
+          )
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -817,6 +965,7 @@ class RuntimeRefactoringTest
 
     val metadata    = new Metadata
     val idFunction1 = metadata.addItem(31, 9)
+    val idOperator2 = metadata.addItem(94, 16)
     val code =
       """from Standard.Base import all
         |
@@ -859,8 +1008,13 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idOperator2,
+        ConstantsGen.FUNCTION
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -888,10 +1042,16 @@ class RuntimeRefactoringTest
     context.send(
       Api.Request(requestId, Api.RenameSymbol(moduleName, idFunction1, newName))
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
-      TestMessages.pending(contextId, idFunction1),
+      TestMessages.pending(contextId, idOperator2),
+      TestMessages.update(
+        contextId,
+        idOperator2,
+        ConstantsGen.FUNCTION,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -990,7 +1150,7 @@ class RuntimeRefactoringTest
     context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
-      TestMessages.pending(contextId, symbolFunction1, exprOperator2),
+      TestMessages.pending(contextId, exprOperator2),
       TestMessages.update(
         contextId,
         exprOperator2,
@@ -1338,7 +1498,8 @@ class RuntimeRefactoringTest
     val newName    = "foobarbaz"
 
     val metadata    = new Metadata
-    val idOperator1 = metadata.addItem(42, 9)
+    val idOperator1 = metadata.addItem(42, 9, "aa")
+    val idOperator2 = metadata.addItem(73, 13, "bb")
     val code =
       s"""from Standard.Base import all
          |
@@ -1383,8 +1544,20 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idOperator2,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        )
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -1411,10 +1584,24 @@ class RuntimeRefactoringTest
     context.send(
       Api.Request(requestId, Api.RenameSymbol(moduleName, idOperator1, newName))
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.SymbolRenamed(newName)),
       Api.Response(None, expectedFileEdit),
-      TestMessages.pending(contextId, idOperator1),
+      TestMessages.pending(contextId, idOperator2),
+      TestMessages.update(
+        contextId,
+        idOperator2,
+        ConstantsGen.INTEGER,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Data.Numbers",
+            ConstantsGen.INTEGER,
+            "+"
+          )
+        ),
+        fromCache   = false,
+        typeChanged = false
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")

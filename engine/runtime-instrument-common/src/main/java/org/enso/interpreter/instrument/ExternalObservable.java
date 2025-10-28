@@ -9,7 +9,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.service.GuestExecutionService;
 import org.enso.polyglot.RuntimeID;
 import org.slf4j.Logger;
@@ -31,7 +30,6 @@ public class ExternalObservable implements Observable {
     this.visualizations = new ConcurrentHashMap<>();
     this.dependencies = new HashSet<>();
   }
-  
 
   @Override
   public Observable register(Observable dependency) {

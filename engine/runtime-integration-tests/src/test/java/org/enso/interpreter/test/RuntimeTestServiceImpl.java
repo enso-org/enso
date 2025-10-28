@@ -18,7 +18,8 @@ public class RuntimeTestServiceImpl implements RuntimeTestService {
   public UUID getNodeID(Node node) {
     if (node instanceof ExpressionNode exprNode) {
       return exprNode.getId().uuid();
-    } else if (node instanceof FunctionCallInstrumentationNode funcNode) {
+    } else if (node instanceof FunctionCallInstrumentationNode funcNode
+        && funcNode.getId() != null) {
       return funcNode.getId().uuid();
     }
     return null;
