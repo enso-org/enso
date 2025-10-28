@@ -1,5 +1,14 @@
 NAME "enso.exe"
 
+;
+; Workaround for "too many exported symbols" of OpenJDK25 static libraries
+; Based on investigation carried in https://github.com/JaroslavTulach/LaunchJdkViaJni/pull/4#discussion_r2461305126
+;
+; Use following command to regenerate `enso.exp` and `enso.lib` sibling files:
+;
+; "c:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lib.exe" /DEF:enso.def
+;
+
 EXPORTS
     getEncodingFromLangID
     getJavaIDFromLangID
