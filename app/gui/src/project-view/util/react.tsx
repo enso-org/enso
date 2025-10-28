@@ -1,10 +1,10 @@
 import { Dialog as DialogReact } from '#/components/Dialog'
 import { Result as ResultReact } from '#/components/Result'
 import { Suspense } from '#/components/Suspense'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import type { ReactNode } from 'react'
 // Imported here to implement the safer wrapper.
 // eslint-disable-next-line no-restricted-imports
-import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { applyPureReactInVue, type magicOptions } from 'veaury'
 import type { DefineComponent } from 'vue'
 
