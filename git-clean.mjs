@@ -45,9 +45,6 @@ async function runGitClean() {
 
 async function runBazelClean() {
   let executable = 'bazel'
-  //   if (process.platform === 'win32') {
-  //     executable += '.exe'
-  //   }
   return runCommand(executable, ['clean', '--expunge_async'])
 }
 
@@ -93,7 +90,7 @@ async function cleanJunctions() {
     'tools/simple-library-server/node_modules',
   ]
 
-  Promise.all(junctions.map((junction) => removeIfExists(junction)))
+  await Promise.all(junctions.map((junction) => removeIfExists(junction)))
 }
 
 if (CLEAN_BAZEL) {
