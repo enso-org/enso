@@ -515,10 +515,12 @@ type Snowflake_Connection
        ## Returns
        A table containing the properties of the stage.
     @stage make_stage_selector include_home=False
-    stage_properties : Identifier -> Table ! Table_Not_Found
+    stage_properties : Identifier -> Table ! Stage_Not_Found
     stage_properties self stage:Identifier=(Missing_Argument.throw "stage") =
-        query = 'DESC STAGE ' + stage.to_identifier
-        self.execute_query query write_operation=False
+        identifier = stage.to_identifier
+        Stage_Not_Found.rethrow identifier <|
+            query = 'DESC STAGE ' + identifier
+            self.execute_query query write_operation=False
 
     ## ---
        icon: folder
@@ -530,11 +532,13 @@ type Snowflake_Connection
           properties from.
        - `path`: The path (or prefix) to the files to list.
     @stage make_stage_selector
-    list_stage_objects : Identifier -> Text -> Rows_To_Read -> Table ! Table_Not_Found
+    list_stage_objects : Identifier -> Text -> Rows_To_Read -> Table ! Stage_Not_Found
     list_stage_objects self stage:Identifier="~" path:Text="" (limit : Rows_To_Read = ..First_With_Warning 1000) =
-        stage_and_path = stage.to_identifier + if path == "" then "" else '/' + path
-        query = "LIST '@" + (stage_and_path.replace "'" "''") + "'"
-        self.execute_query query limit write_operation=False
+        identifier = stage.to_identifier
+        Stage_Not_Found.rethrow identifier <|
+            stage_and_path = identifier + if path == "" then "" else '/' + path
+            query = "LIST '@" + (stage_and_path.replace "'" "''") + "'"
+            self.execute_query query limit write_operation=False
 
     ## ---
        icon: data_download
@@ -548,13 +552,15 @@ type Snowflake_Connection
        - `directory`: The local folder to save the files to.
     @stage make_stage_selector
     @directory (Folder_Browse display=..Always)
-    get_from_stage : Identifier -> Text -> File -> Text -> Table
+    get_from_stage : Identifier -> Text -> File -> Text -> Table ! Stage_Not_Found
     get_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text=(Missing_Argument.throw "path") directory:File=(Missing_Argument.throw "directory") pattern:Text="" =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
-            stage_and_path = stage.to_identifier + if path == "" then "" else '/' + path
-            file_uri = "'file://" + (directory.path.replace "\" "/" . replace "'" "''") + "'"
-            query = "GET '@" + (stage_and_path.replace "'" "''") + "' " + file_uri + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
-            self.execute_query query write_operation=True
+            identifier = stage.to_identifier
+            Stage_Not_Found.rethrow identifier <|
+                stage_and_path = identifier + if path == "" then "" else '/' + path
+                file_uri = "'file://" + (directory.path.replace "\" "/" . replace "'" "''") + "'"
+                query = "GET '@" + (stage_and_path.replace "'" "''") + "' " + file_uri + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
+                self.execute_query query write_operation=True
 
     ## ---
        icon: trash2
@@ -567,12 +573,14 @@ type Snowflake_Connection
        - `path`: The path (or prefix) to the files to remove.
        - `pattern`: Optional regex pattern to match names against.
     @stage make_stage_selector
-    remove_from_stage : Identifier -> Text -> Text -> Table
+    remove_from_stage : Identifier -> Text -> Text -> Table ! Stage_Not_Found
     remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text="" pattern:Text="" =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
-            stage_and_path = stage.to_identifier + if path == "" then "" else '/' + path
-            query = "REMOVE '@" + (stage_and_path.replace "'" "''") + "'" + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
-            self.execute_query query write_operation=True
+            identifier = stage.to_identifier
+            Stage_Not_Found.rethrow identifier <|
+                stage_and_path = identifier + if path == "" then "" else '/' + path
+                query = "REMOVE '@" + (stage_and_path.replace "'" "''") + "'" + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
+                self.execute_query query write_operation=True
 
 ## Snowflake Identifier - with optional schema.
 type Identifier
@@ -598,6 +606,31 @@ type Identifier
         Identifier.Name_And_Schema n s -> Option s+"."+n "(..Name_And_Schema "+n.pretty+" "+s.pretty+")"
 
 Identifier.from (that:Text) = Identifier.Name that
+
+type Stage_Not_Found
+    ## ---
+       private: true
+       ---
+       Indicates that a stage was not found in the database.
+
+       ## Arguments
+        - `name`: The name of the stage that was not found.
+    Error (name:Text)
+
+    ## ---
+       private: true
+       ---
+       Pretty print the stage not found error.
+    to_display_text : Text
+    to_display_text self = "Stage " + self.name + " was not found in the database."
+
+    private rethrow identifier ~action =
+        result = action
+        result.catch SQL_Error error->
+            java_message = error.java_exception.getMessage
+            if (java_message.match ".*Stage .* does not exist or not authorized.") == False then Error.throw result else
+                Error.throw (Stage_Not_Found.Error identifier)
+
 
 private make_stage_selector connection include_home:Boolean=True =
     stages = (if include_home then [Option "~" "..Name '~'"] else [])
@@ -641,4 +674,3 @@ Table_Viz_Data.from (that:Snowflake_Connection) =
         schemas = tables.at "Schema" . to_vector
         (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Schema" "Schema" "set_schema {{@Schema}}", Table_Viz_Header.Label "Name", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [schemas, names, types, descriptions])
       _ -> (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Name" "Name" "query {{@Name}}", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [names, types, descriptions])
-
