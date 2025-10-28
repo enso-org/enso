@@ -44,7 +44,11 @@ async function runGitClean() {
 }
 
 async function runBazelClean() {
-  return runCommand('bazel', ['clean', '--expunge_async'])
+  let executable = 'bazel'
+  if (process.platform === 'win32') {
+    executable += '.exe'
+  }
+  return runCommand(executable, ['clean', '--expunge_async'])
 }
 
 async function removeIfExists(path) {
