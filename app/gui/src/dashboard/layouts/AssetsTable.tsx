@@ -63,7 +63,6 @@ import { setModal, unsetModal } from '#/providers/ModalProvider'
 import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
 import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
-import { fileExtension } from '#/utilities/fileInfo'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import { withPresence } from '#/utilities/set'
@@ -94,6 +93,7 @@ import {
   userGroupIdToDirectoryId,
   userIdToDirectoryId,
 } from 'enso-common/src/services/RemoteBackend/ids'
+import { fileExtension } from 'enso-common/src/utilities/file'
 import {
   Children,
   cloneElement,

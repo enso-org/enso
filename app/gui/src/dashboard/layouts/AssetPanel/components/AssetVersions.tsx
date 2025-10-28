@@ -10,6 +10,7 @@ import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
+import { includes } from '$/utils/data/array'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import type {
   AnyAsset,
@@ -19,7 +20,6 @@ import type {
 } from 'enso-common/src/services/Backend'
 import { AssetType, BackendType, S3ObjectVersionId } from 'enso-common/src/services/Backend'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
-import { includes } from 'enso-common/src/utilities/data/array'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
@@ -152,9 +152,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   )
 }
 
-/**
- * Check if the asset is allowed to have versions.
- */
+/** Check if the asset is allowed to have versions. */
 function isAllowedAssetType(asset: AnyAsset): asset is DatalinkAsset | FileAsset | ProjectAsset {
   return includes([AssetType.project, AssetType.datalink, AssetType.file], asset.type)
 }

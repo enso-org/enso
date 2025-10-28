@@ -1,10 +1,9 @@
 /** @file Tests for `fileInfo.ts`. */
+import { fileExtension } from 'enso-common/src/utilities/file'
 import * as v from 'vitest'
 
-import * as fileInfo from '$/utils/file'
-
 v.test('fileExtension', () => {
-  v.expect(fileInfo.fileExtension('image.png')).toBe('png')
-  v.expect(fileInfo.fileExtension('.gif')).toBe('gif')
-  v.expect(fileInfo.fileExtension('fileInfo.spec.js')).toBe('js')
+  v.expect(fileExtension('image.png')).toBe('png')
+  v.expect(fileExtension('.gif')).toBe('gif')
+  v.expect(fileExtension('fileInfo.spec.js')).toBe('js')
 })
