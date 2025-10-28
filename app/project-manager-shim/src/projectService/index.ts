@@ -3,29 +3,23 @@
  * This module provides project management functionality including creating, deleting,
  * renaming, opening, closing, and duplicating projects.
  */
-
-import { UUID } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
-import { Path } from 'enso-common/src/utilities/file'
 import * as crypto from 'node:crypto'
 import {
+  EnsoRunner,
+  findEnsoExecutable,
   type LanguageServerSockets,
   type Runner,
   type Socket,
-  EnsoRunner,
-  findEnsoExecutable,
 } from './ensoRunner.js'
 import * as nameValidation from './nameValidation.js'
 import {
+  ProjectFileRepository,
   type Project,
   type ProjectMetadata,
   type ProjectRepository,
-  ProjectFileRepository,
 } from './projectRepository.js'
-
-// ==================
-// === Data Types ===
-// ==================
+import { UUID, type Path } from './types.js'
 
 export interface RunningLanguageServerInfo {
   readonly sockets: LanguageServerSockets
@@ -72,10 +66,6 @@ export interface DuplicatedProject {
   readonly projectPath: Path
   readonly projectNormalizedName: string
 }
-
-// =======================
-// === ProjectService ====
-// =======================
 
 /** Service for managing Enso projects. */
 export class ProjectService {
@@ -297,10 +287,6 @@ export class ProjectService {
       await repo.renameProjectDirectory(project.path, newNormalizedName)
     }
   }
-
-  // ========================
-  // === Helper Functions ===
-  // ========================
 
   private generateUUID(): UUID {
     return UUID(crypto.randomUUID())

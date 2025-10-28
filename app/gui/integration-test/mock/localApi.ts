@@ -1,3 +1,5 @@
+import { capitalizeFirst } from '#/utilities/string'
+import * as backend from 'enso-common/src/services/Backend'
 import {
   Path,
   ProjectName,
@@ -15,12 +17,10 @@ import {
   type ProjectEntry,
   type ProjectMetadata,
   type ProjectState,
-} from '#/services/ProjectManager/types'
-import { getDirectoryAndName } from '#/utilities/path'
-import { capitalizeFirst } from '#/utilities/string'
-import * as backend from 'enso-common/src/services/Backend'
+} from 'enso-common/src/services/ProjectManager/types'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { unsafeMutable } from 'enso-common/src/utilities/data/object'
+import { getDirectoryAndName } from 'enso-common/src/utilities/file'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { test } from 'integration-test/base'
 import { uuidv4 } from 'lib0/random.js'

@@ -608,7 +608,6 @@ function AssetsTable(props: AssetsTableProps) {
                 break
               }
               case AssetType.file:
-              case AssetType.specialUp:
               default: {
                 break
               }

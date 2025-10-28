@@ -59,7 +59,7 @@ export interface AssetRowProps {
   readonly contextMenuRef: React.RefObject<ContextMenuApi>
   readonly type: backendModule.AssetType
   readonly state: assetsTable.AssetsTableState
-  readonly columns: columnUtils.Column[]
+  readonly columns: readonly columnUtils.Column[]
   readonly isKeyboardSelected: boolean
   readonly labels: readonly Label[]
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
@@ -81,59 +81,8 @@ export interface AssetRowProps {
   readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
 }
 
-/** A row containing an {@link backendModule.AnyAsset}. */
-export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
-  const { type, columns, id, item } = props
-
-  switch (type) {
-    case backendModule.AssetType.specialUp: {
-      return <AssetSpecialRow columnsLength={columns.length} type={type} />
-    }
-    case backendModule.AssetType.project:
-    case backendModule.AssetType.file:
-    case backendModule.AssetType.secret:
-    case backendModule.AssetType.datalink:
-    case backendModule.AssetType.directory:
-    default: {
-      // This is safe because we filter out special asset types in the switch statement above.
-      // eslint-disable-next-line no-restricted-syntax
-      return <RealAssetRow {...props} id={id as backendModule.RealAssetId} item={item} />
-    }
-  }
-})
-
-/** Props for a {@link AssetSpecialRow}. */
-export interface AssetSpecialRowProps {
-  readonly type: backendModule.AssetType
-  readonly columnsLength: number
-}
-
-/** Renders a special asset row. */
-const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
-  const { type } = props
-
-  switch (type) {
-    case backendModule.AssetType.specialUp: {
-      // TODO: Implement this.
-      // @MrFlashAccount [Cloud v2 #1810](https://github.com/enso-org/cloud-v2/issues/1810)
-      return null
-    }
-    case backendModule.AssetType.project:
-    case backendModule.AssetType.file:
-    case backendModule.AssetType.secret:
-    case backendModule.AssetType.datalink:
-    case backendModule.AssetType.directory:
-    default: {
-      invariant(false, 'Unsupported special asset type: ' + type)
-    }
-  }
-})
-
-/** Props for a {@link RealAssetRow}. */
-type RealAssetRowProps = AssetRowProps
-
 /** Render a real asset row. */
-export function RealAssetRow(props: RealAssetRowProps) {
+export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const {
     id,
     parentId,
@@ -444,13 +393,8 @@ export function RealAssetRow(props: RealAssetRowProps) {
         </>
       )
     }
-    case backendModule.AssetType.specialUp:
     default: {
-      invariant(
-        false,
-        'Unsupported asset type, expected one of: directory, project, file, datalink, secret, but got: ' +
-          type,
-      )
+      invariant(false, `Unsupported asset type '${String(type)}'`)
     }
   }
-}
+})

@@ -63,6 +63,7 @@ export const commonContextMenuActions = {
  * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
  * and using common style for tables in our application.
  */
+import { LINE_BOUNDARIES } from '$/utils/data/string'
 import { gridBindings } from '@/bindings'
 import { clipboardNodeData, writeClipboard } from '@/components/GraphEditor/graphClipboard'
 import {
@@ -106,7 +107,6 @@ import type {
 } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
   computed,
   h,

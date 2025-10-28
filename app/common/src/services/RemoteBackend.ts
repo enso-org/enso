@@ -7,9 +7,9 @@
  */
 import { markRaw } from 'vue'
 import { z } from 'zod'
-import * as detect from '../detect.js'
 import { delay } from '../utilities/async.js'
 import * as objects from '../utilities/data/object.js'
+import * as detect from '../utilities/detect.js'
 import type { DownloadOptions } from '../utilities/download'
 import { getFileName, getFolderPath } from '../utilities/file.js'
 import * as backend from './Backend.js'
@@ -779,7 +779,7 @@ export class RemoteBackend extends backend.Backend {
    * @throws An {@link DirectoryDoesNotExistError} if the asset is a directory and does not exist.
    * @returns The asset details. Returns `null` if the asset is a root directory.
    */
-  override async getAssetDetails<Id extends backend.RealAssetId>(assetId: Id) {
+  override async getAssetDetails<Id extends backend.AssetId>(assetId: Id) {
     const path = remoteBackendPaths.getAssetDetailsPath(assetId)
     const response = await this.get<backend.AssetDetailsResponse<Id>>(path)
 
@@ -1334,7 +1334,6 @@ export class RemoteBackend extends backend.Backend {
       }
       case backend.AssetType.secret:
       case backend.AssetType.directory:
-      case backend.AssetType.specialUp:
       default: {
         throw new Error(`'${asset.type}' assets cannot be downloaded.`)
       }

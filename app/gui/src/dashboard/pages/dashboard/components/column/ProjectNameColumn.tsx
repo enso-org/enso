@@ -9,8 +9,8 @@ import { useDriveStore } from '#/providers/DriveProvider'
 import { isDoubleClick } from '#/utilities/event'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession } from '$/providers/react'
-import { isOnMacOS } from 'enso-common/src/detect'
 import { BackendType, titleSchema, type ProjectAsset } from 'enso-common/src/services/Backend'
+import { isOnMacOS } from 'enso-common/src/utilities/detect'
 import {
   PERMISSION_ACTION_CAN_EXECUTE,
   tryFindSelfPermission,

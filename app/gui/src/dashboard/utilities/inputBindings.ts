@@ -15,7 +15,7 @@ import {
   type ModifierKey,
   type PointerButtonFlags,
 } from '@/util/shortcuts'
-import { isOnMacOS } from 'enso-common/src/detect'
+import { isOnMacOS } from 'enso-common/src/utilities/detect'
 import { unsafeMutable } from 'enso-common/src/utilities/data/object'
 
 /** The target of a {@link KeyboardEvent}, {@link MouseEvent}, or {@link PointerEvent}. */

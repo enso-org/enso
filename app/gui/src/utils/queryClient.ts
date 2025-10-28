@@ -1,16 +1,13 @@
-/**
- * @file
- *
- * Tanstack Query client for Enso IDE and dashboard.
- */
+/** @file Tanstack Query client for Enso IDE and dashboard. */
 
+import { useCallbackRegistry } from '$/utils/data/callbacks'
+import { cloneDeepUnref } from '$/utils/data/reactive'
 import * as queryCore from '@tanstack/query-core'
 import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-persist-client-core'
 import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
 import { toRaw } from 'vue'
-import { useCallbackRegistry } from './utilities/data/callbacks'
-import { cloneDeepUnref } from './utilities/data/reactive'
+
 declare module '@tanstack/query-core' {
   /** Query client with additional methods. */
   interface QueryClient {
