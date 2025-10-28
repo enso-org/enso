@@ -13,6 +13,7 @@ jobs:
     steps:
       - uses: bazel-contrib/setup-bazel@0.13.0
         with:
+          bazelisk-version: 1.x
           bazelisk-cache: true
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
       - uses: actions/checkout@v4
@@ -56,6 +57,7 @@ jobs:
     steps:
       - uses: bazel-contrib/setup-bazel@0.13.0
         with:
+          bazelisk-version: 1.x
           bazelisk-cache: true
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
       - uses: actions/checkout@v4
