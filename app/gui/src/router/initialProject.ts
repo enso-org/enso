@@ -99,12 +99,10 @@ export async function maybeRedirectToProject(to: RouteLocation): Promise<Navigat
   // In case of not being logged in, the redirection should be managed by ProtectedLayout.
   if (auth.session == null) return
 
-  console.debug('option', config.params.startup.project)
   const pathFromOptions =
     config.params.startup.project && backends.localBackend ?
       await uploadProjectArchive(config.params.startup.project, backends.localBackend)
     : undefined
-  console.debug('Path', pathFromOptions)
 
   const initialPath =
     pathFromOptions ??
@@ -154,7 +152,6 @@ async function uploadProjectArchive(
   localBackend: Pick<LocalBackend, 'uploadFileStart' | 'uploadFileEnd' | 'rootPath'>,
 ) {
   const filePath = fileURLToPath(url)
-  console.debug('filePath', filePath)
   if (filePath == null) return
   const projectName = getFileName(filePath)
   const parentDirectoryId = newDirectoryId(localBackend.rootPath())
@@ -170,7 +167,6 @@ async function uploadProjectArchive(
   const endMetadata = await localBackend.uploadFileEnd({
     ...metadata,
   })
-  console.debug('...', metadata, endMetadata)
   if (endMetadata.project == null) {
     return
   }
@@ -181,7 +177,6 @@ async function uploadProjectArchive(
 function fileURLToPath(url: string): string | null {
   if (URL.canParse(url)) {
     const parsed = new URL(url)
-    console.debug('Parsed', parsed)
     if (parsed.protocol === 'file:') {
       return decodeURIComponent(
         platform() === Platform.windows ?

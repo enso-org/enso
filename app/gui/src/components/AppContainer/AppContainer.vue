@@ -61,7 +61,6 @@ function closeTab() {
     case 'drive':
       break
     default: {
-      // project id
       const project = projectTabs.value.find((proj) => proj.state.info.ensoPath === tab.value)
       if (project) openedProjects.closeProject(project.state.info.id)
       break

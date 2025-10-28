@@ -125,14 +125,12 @@ export function createOpenedProjectsStore() {
 
   /** Checks if project with given backend type may be opened natively. */
   function canOpenProjectNatively(backend: BackendType) {
-    console.debug('CAN OPEN NATIVELY', backend, modesForBackend.value.natively[backend])
     return modesForBackend.value.natively[backend] != null
   }
 
   /** Open project natively, by asset data and backend type. */
   function openProjectNatively(info: Omit<ProjectInfo, 'mode'>, backend: BackendType) {
     const mode = modesForBackend.value.natively[backend]
-    console.debug('OPEN NATIVELY', mode)
     if (mode != null) {
       return openProject({ ...info, mode })
     }

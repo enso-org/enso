@@ -89,7 +89,6 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
       [canOpenProjectNatively, backend.type],
     ),
   )
-  console.debug('>>', canOpenLocally, canOpenNatively)
   const deleteAssets = useMutationCallback(deleteAssetsMutationOptions(backend))
   const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
   const copyAssets = useMutationCallback(copyAssetsMutationOptions(backend))

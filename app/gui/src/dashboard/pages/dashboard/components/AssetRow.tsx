@@ -74,7 +74,6 @@ export interface AssetRowProps {
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
-  // readonly openProject: (projectId: backendModule.ProjectId) => void
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */

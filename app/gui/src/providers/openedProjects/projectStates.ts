@@ -26,7 +26,7 @@ import {
   effectScope,
   markRaw,
   onScopeDispose,
-  watchEffect,
+  watch,
   type EffectScope,
   type Ref,
 } from 'vue'
@@ -365,13 +365,17 @@ export function useProjectStates() {
 
     // Wait for project to be ready.
     await new Promise((resolve) => {
+      if (runDetails.value.state.type === BackendProjectState.opened) resolve(undefined)
       scope.run(() => {
-        watchEffect(() => {
-          console.debug('STATE IS', runDetails.value.state.type)
-          if (runDetails.value.state.type === BackendProjectState.opened) {
-            resolve(undefined)
-          }
-        })
+        const unwatch = watch(
+          () => runDetails.value.state.type,
+          (type) => {
+            if (type === BackendProjectState.opened) {
+              unwatch()
+              resolve(undefined)
+            }
+          },
+        )
       })
     })
 
