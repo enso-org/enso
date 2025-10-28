@@ -28,6 +28,7 @@ jobs:
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.13.0
         with:
+          bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
@@ -86,6 +87,7 @@ jobs:
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.13.0
         with:
+          bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
@@ -151,6 +153,7 @@ jobs:
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@0.13.0
         with:
+          bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.

@@ -101,6 +101,10 @@ pub fn setup_bazel() -> Step {
                 Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
             ),
             (
+                "bazelisk-version".to_string(),
+                Value::String("1.x".to_string()),
+            ),
+            (
                 "bazelrc".to_string(),
                 Value::String(
                     "build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header=\"authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}\"".to_string(),
