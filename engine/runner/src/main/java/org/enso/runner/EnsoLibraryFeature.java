@@ -107,14 +107,15 @@ public final class EnsoLibraryFeature implements Feature {
   private void makeEnsoLibAvailableForShims() {
     boolean found = false;
     try {
-      var from = new File("enso.lib").getAbsoluteFile();
+      var from = new File(new File(new File("distribution"), "bin"), "enso.lib").getAbsoluteFile();
       System.err.println("Distributing enso.lib to (temporary) directories. From " + from);
+      assert from.isFile() : "Found enso.lib file at " + from;
       var target = new File("target").getAbsoluteFile();
       assert target.isDirectory() : "It is a dir " + target;
       for (var ch : target.listFiles()) {
         if (ch.isDirectory() && ch.getName().contains("SVM")) {
           var to = new File(ch, "enso.lib");
-          System.err.println(" file to : " + to);
+          System.err.println("   enso.lib copied to " + to);
           Files.copy(from.toPath(), to.toPath(), StandardCopyOption.REPLACE_EXISTING);
           found = true;
         }
