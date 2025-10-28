@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.File_Type
 import Standard.Base.Runtime.Context as Execution_Context
@@ -481,6 +482,9 @@ type Snowflake_Connection
         - `pattern`: The stage name pattern to search for. Supports SQL
           wildcards (`%`, `_`). Defaults to `""` which means all stages are
           selected.
+
+       ## Returns
+       A table containing the list of stages.
     stages : Text -> Text -> Table
     stages self schema:Text=self.schema pattern:Text='' =
         parsed_schema = if schema == "*" then "" else
@@ -546,18 +550,27 @@ type Snowflake_Connection
        icon: data_download
        ---
        Download one or more files from a stage to a local folder.
-       This will overwrite existing files.
+       This will overwrite existing files. It will attempt to create the
+       directory if it does not exist.
 
        ## Arguments
        - `stage`: The name (and optionally schema) of the stage to read the
           properties from.
        - `path`: The path (or prefix) to the files to list.
        - `directory`: The local folder to save the files to.
+       - `pattern`: Optional regex pattern to match names against.
+       - `if_not_found`: what to return if no files are found. Defaults to
+          raising a `Not_Found` error.
+
+       ## Returns
+       A vector of files that were downloaded or if none were found, the
+       value specified by `if_not_found`.
     @stage make_stage_selector
     @directory (Folder_Browse display=..Always)
-    get_from_stage : Identifier -> Text -> File -> Text -> Table ! Stage_Not_Found
-    get_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text=(Missing_Argument.throw "path") directory:File=(Missing_Argument.throw "directory") pattern:Text="" =
-        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
+    get_from_stage : Identifier -> Text -> File -> Text -> Any -> Table ! Stage_Not_Found
+    get_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text=(Missing_Argument.throw "path") directory=(Missing_Argument.throw "directory") pattern:Text="" ~if_not_found=(Error.throw Not_Found) =
+        if directory.is_a File == False then Error.throw (Illegal_Argument.Error "Only local folders are supported for downloading from Snowflake stages.")
+        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot download from stage. Press the Write button ▶ to perform the operation." panic=False <|
             identifier = stage.to_identifier
             Stage_Not_Found.rethrow identifier <|
                 stage_and_path = identifier + if path == "" then "" else '/' + path
@@ -565,9 +578,43 @@ type Snowflake_Connection
                 query = "GET '@" + (stage_and_path.replace "'" "''") + "' " + file_uri + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
                 table = self.execute_query query Rows_To_Read.All_Rows write_operation=True
                 table.if_not_error <|
-                    if table.row_count == 0 then Error.throw Not_Found else
+                    if table.row_count == 0 then if_not_found else
                         names = table.at "file" . to_vector
                         names.map n-> directory / n
+
+    ## ---
+       icon: data_upload
+       ---
+       Upload a file to a stage to a local drive.
+       This will overwrite existing files.
+
+       ## Arguments
+       - `file`: The local file to upload.
+       - `stage`: The name (and optionally schema) of the stage to read the
+          properties from.
+       - `path`: The path (or prefix) to the files to list.
+    @stage make_stage_selector
+    put_to_stage : File -> Identifier -> Text -> Table ! Stage_Not_Found
+    put_to_stage self file stage:Identifier=(Missing_Argument.throw "stage") path:Text="" =
+        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot upload to stage. Press the Write button ▶ to perform the operation." panic=False <|
+            if file.exists == False then Error.throw (File_Error.Not_Found file)
+            if file.is_directory then Error.throw (Illegal_Argument.Error "Uploading directories is not supported. Please provide a file.")
+
+            ## Need to copy the file locally first if cloud-based.
+            used_file = case file of
+                _ : File -> file
+                _ ->
+                    file_extension = file.extension
+                    file_name = file.name.drop (..Last file_extension.length)
+                    temp_file = File.create_temporary_file file_name file_extension
+                    file.copy_to temp_file
+
+            identifier = stage.to_identifier
+            Stage_Not_Found.rethrow identifier <|
+                stage_and_path = identifier + if path == "" then "" else '/' + path
+                file_uri = "'file://" + (used_file.path.replace "\" "/" . replace "'" "''") + "'"
+                query = "PUT " + file_uri + " '@" + (stage_and_path.replace "'" "''") + "'"
+                self.execute_query query write_operation=True
 
     ## ---
        icon: trash2
@@ -580,8 +627,8 @@ type Snowflake_Connection
        - `path`: The path (or prefix) to the files to remove.
        - `pattern`: Optional regex pattern to match names against.
     @stage make_stage_selector
-    remove_from_stage : Identifier -> Text -> Text -> Table ! Stage_Not_Found
-    remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text="" pattern:Text="" =
+    remove_from_stage : Identifier -> Text -> Text -> Boolean -> Table ! Stage_Not_Found
+    remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text="" pattern:Text=""  =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
             identifier = stage.to_identifier
             Stage_Not_Found.rethrow identifier <|
