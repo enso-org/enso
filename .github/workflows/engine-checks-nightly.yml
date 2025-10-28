@@ -24,7 +24,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -85,7 +85,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -144,7 +144,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -204,7 +204,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -264,7 +264,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -326,7 +326,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -392,7 +392,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -468,7 +468,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -542,7 +542,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -617,7 +617,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -692,7 +692,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -767,7 +767,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -829,7 +829,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -918,7 +918,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -1005,7 +1005,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -1093,7 +1093,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -1181,7 +1181,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -1270,7 +1270,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -1357,7 +1357,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -1445,7 +1445,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -1533,7 +1533,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -1621,7 +1621,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -1709,7 +1709,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -1797,7 +1797,7 @@ jobs:
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
         shell: pwsh
       - name: Setup bazel environment
-        uses: bazel-contrib/setup-bazel@0.13.0
+        uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"

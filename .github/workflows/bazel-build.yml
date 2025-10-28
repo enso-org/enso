@@ -11,7 +11,7 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - uses: bazel-contrib/setup-bazel@0.13.0
+      - uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelisk-cache: true
@@ -55,7 +55,7 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - uses: bazel-contrib/setup-bazel@0.13.0
+      - uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x
           bazelisk-cache: true
