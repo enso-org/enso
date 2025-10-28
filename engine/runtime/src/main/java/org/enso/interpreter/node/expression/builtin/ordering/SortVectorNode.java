@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
@@ -705,6 +706,8 @@ public abstract class SortVectorNode extends Node {
      */
     abstract boolean hasFunctionSelfArgument(Object definedOn);
 
+    abstract Object getPreappliedSelfArgument();
+
     /**
      * Return a comparator function.
      *
@@ -729,6 +732,13 @@ public abstract class SortVectorNode extends Node {
       } else {
         return false;
       }
+    }
+
+    @Override
+    Object getPreappliedSelfArgument() {
+      // Note that the first argument should always be `self`.
+      assert function.getPreAppliedArguments().length > 0;
+      return function.getPreAppliedArguments()[0];
     }
 
     @Override
@@ -758,7 +768,16 @@ public abstract class SortVectorNode extends Node {
           methodResolverNode.expectNonNull(
               definedOn, typesLibrary.getType(definedOn), unresolvedSymbol);
       return resolvedFunction.getSchema().getArgumentsCount() > 0
-          && resolvedFunction.getSchema().getArgumentInfos()[0].getName().equals("self");
+          && resolvedFunction
+              .getSchema()
+              .getArgumentInfos()[0]
+              .getName()
+              .equals(ConstantsNames.SELF_ARGUMENT);
+    }
+
+    @Override
+    Object getPreappliedSelfArgument() {
+      return null;
     }
 
     @Override
@@ -841,7 +860,10 @@ public abstract class SortVectorNode extends Node {
         yConverted = y;
       }
       Object[] args;
-      if (compareFunc.hasFunctionSelfArgument(xConverted)) {
+      var preappliedSelfArg = compareFunc.getPreappliedSelfArgument();
+      if (preappliedSelfArg != null) {
+        args = new Object[] {preappliedSelfArg, xConverted, yConverted};
+      } else if (compareFunc.hasFunctionSelfArgument(xConverted)) {
         args = new Object[] {comparator, xConverted, yConverted};
       } else {
         args = new Object[] {xConverted, yConverted};
