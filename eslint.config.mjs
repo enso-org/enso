@@ -213,6 +213,7 @@ const config = [
         extraFileExtensions: ['.vue'],
         projectService: {
           allowDefaultProject: [
+            'git-clean.mjs',
             'eslint.config.mjs',
             // 'app/ydoc-server/vitest.config.ts',
             'app/ydoc-shared/vitest.config.ts',

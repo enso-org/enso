@@ -57,7 +57,6 @@ use enso_build::source::Source;
 use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
-use futures_util::future::try_join_all;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
 use ide_ci::fs::remove_if_exists;
@@ -67,7 +66,6 @@ use ide_ci::global;
 use ide_ci::ok_ready_boxed;
 use ide_ci::programs::cargo;
 use ide_ci::programs::git;
-use ide_ci::programs::git::clean;
 use ide_ci::programs::Cargo;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
@@ -779,67 +777,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
         Target::Runtime(runtime) => ctx.handle_runtime(runtime).await?,
         Target::Backend(backend) => ctx.handle_backend(backend).await?,
         Target::Ide(ide) => ctx.handle_ide(ide).await?,
-        Target::GitClean(options) => {
-            let arg::git_clean::Options { dry_run, cache, build_script } = options;
-            let mut exclusions: Vec<&str> = vec![".idea"];
-            if !build_script {
-                // Do not attempt to delete the very executable that runs the command.
-                // It will fail on windows due to file being locked.
-                exclusions.push("target/rust/debug/enso-build-cli.exe");
-                exclusions.push("target/rust/debug/enso_build_cli.pdb");
-                exclusions.push("target/rust/debug/deps/enso_build_cli.exe");
-                exclusions.push("target/rust/debug/deps/enso_build_cli.pdb");
-            }
-
-            if !dry_run {
-                enso_build::web::install(&ctx.repo_root).await?;
-                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean)
-                    .await?;
-            }
-
-            if !dry_run {
-                // On Windows, `pnpm` uses junctions as symbolic links for in-workspace dependencies.
-                // Unfortunately, Git for Windows treats those as hard links. That then leads to
-                // `git clean` recursing into those linked directories, happily deleting sources of
-                // whole linked packages or failing on files that were already deleted. Manually
-                // deleting junction directories before running clean prevents this from happening.
-                let junctions = [
-                    "bazel-enso",
-                    "bazel-out",
-                    "bazel-bin",
-                    "node_modules",
-                    "app/common/node_modules",
-                    "app/gui/node_modules",
-                    "app/electron-client/node_modules",
-                    "app/lang-markdown/node_modules",
-                    "app/lezer-markdown/node_modules",
-                    "app/project-manager-shim/node_modules",
-                    "app/rust-ffi/node_modules",
-                    "app/table-expression/node_modules",
-                    "app/ydoc-server/node_modules",
-                    "app/ydoc-server-nodejs/node_modules",
-                    "app/ydoc-server-polyglot/node_modules",
-                    "app/ydoc-shared/node_modules",
-                    "lib/js/runner/node_modules",
-                    "tools/simple-library-server/node_modules",
-                ];
-
-                try_join_all(junctions.map(|rel_path| {
-                    ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join(rel_path))
-                }))
-                .await?;
-            }
-
-            let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
-            let clean_cache = async {
-                if cache && !dry_run {
-                    ide_ci::fs::tokio::remove_dir_if_exists(ctx.cache.path()).await?;
-                }
-                Result::Ok(())
-            };
-
-            try_join!(git_clean, clean_cache)?;
-        }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;
             let prettier =
