@@ -73,3 +73,4 @@
              num_sold = aggregated.at "quantity" . reduce .sum . rename "num_sold"
              item_names.join [num_transactions, num_sold]
    ```
+

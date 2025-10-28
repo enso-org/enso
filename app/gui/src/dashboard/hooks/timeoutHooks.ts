@@ -95,37 +95,19 @@ export function useTimeoutCallback(
   const [startTimer, stopTimer, restartTimer] = useTimeoutApi({ callback, ms })
 
   useEffect(() => {
-    if (isDisabled) {
-      return
-    }
-
+    if (isDisabled) return
     startTimer()
-
-    return () => {
-      stopTimer()
-    }
-    // There is no way to enable compiler, but it's not needed here
-    // as everything is stable.
-    // eslint-disable-next-line react-compiler/react-compiler
+    return stopTimer
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ms, isDisabled, ...deps])
 
   return [restartTimer, stopTimer, startTimer]
 }
 
-/**
- * Hook that returns a boolean indicating whether the timeout has expired.
- */
+/** Hook that returns a boolean indicating whether the timeout has expired. */
 export function useTimeout(params: Pick<UseTimeoutCallbackOptions, 'deps' | 'ms'>) {
   const { ms, deps = STABLE_DEPS_ARRAY } = params
-
-  /**
-   * Get the default value for the timeout.
-   */
-  const getDefaultValue = useEventCallback(() => {
-    return ms === 0
-  })
-
+  const getDefaultValue = useEventCallback(() => ms === 0)
   const [isTimeout, setIsTimeout] = useState(getDefaultValue)
 
   const [restartTimer] = useTimeoutCallback({

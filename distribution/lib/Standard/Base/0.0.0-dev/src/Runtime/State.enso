@@ -1,64 +1,74 @@
 ## The runtime's integrated monadic state management.
-   A container type for functionality for working with the runtime's
-   integrated state functionality.
+   A container type for functionality for working with the runtime's integrated
+   state functionality.
 
 import project.Any.Any
 from project.Errors.Common import Uninitialized_State
 
-## PRIVATE
-   ADVANCED
+## ---
+   private: true
+   advanced: true
+   ---
    Executes a stateful computation in a local state environment.
 
-   Arguments:
-   - key: The key to associate your local_state with in the environment.
-     Use types as keys.
-   - local_state: The value to associate with key.
-   - computation: The computation to execute in the local state
-     environment.
+   ## Arguments
+    - `key`: The key to associate your local_state with in the environment. Use
+      types as keys.
+    - `local_state`: The value to associate with key.
+    - `computation`: The computation to execute in the local state environment.
 
-   > Example
-     Print a value from the state.
+   ## Examples
+   ### Print a value from the state.
+   ```
          import Standard.Base.Runtime.State
 
          State.run Integer 0 <| IO.println (State.get Integer)
+   ```
 run : Any -> Any -> Any -> Any
 run key local_state ~computation = @Builtin_Method "State.run"
 
-## PRIVATE
-   ADVANCED
-   Returns the current value for the provided key contained in the monadic
-   state.
-
-   Arguments:
-   - key: The key into the state to get the associated value for.
+## ---
+   private: true
+   advanced: true
+   ---
+   Returns the current value for the provided key contained in the monadic state.
 
    Returns an uninitialized state error if the user tries to read from an
    uninitialized slot.
 
-   > Example
-     Get the value of state for a key.
+   ## Arguments
+    - `key`: The key into the state to get the associated value for.
+
+   ## Examples
+   ### Get the value of state for a key.
+   ```
          import Standard.Base.Runtime.State
 
          State.get Float
+   ```
 get : Any -> Any ! Uninitialized_State
 get key = @Builtin_Method "State.get"
 
-## PRIVATE
-   ADVANCED
-   Associates a new_state with the provided key in the runtime's monadic
-   state, returning the provided state.
-
-   Arguments:
-   - key: The key with which to associate the new state.
-   - new_state: The new state to store.
+## ---
+   private: true
+   advanced: true
+   ---
+   Associates a new_state with the provided key in the runtime's monadic state,
+   returning the provided state.
 
    Returns an uninitialized state error if the user tries to put into an
    uninitialized slot.
 
-   > Example
-     Store a new value in the state for a given key.
+   ## Arguments
+    - `key`: The key with which to associate the new state.
+    - `new_state`: The new state to store.
+
+   ## Examples
+   ### Store a new value in the state for a given key.
+   ```
          import Standard.Base.Runtime.State
 
          State.put Text 2821
+   ```
 put : Any -> Any -> Any ! Uninitialized_State
 put key new_state = @Builtin_Method "State.put"

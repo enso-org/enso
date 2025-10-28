@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 import * as Y from 'yjs'
 import { assert, assertDefined } from '../../util/assert'
 import { parseModule } from '../parse'
-import { MutableBodyBlock, MutableFunctionDef, Statement } from '../tree'
+import { MutableBodyBlock, MutableFunctionDef, type Statement } from '../tree'
 
 describe('Component documentation (plain text)', () => {
   const plaintextDocumentableStatements = [
@@ -135,8 +135,8 @@ describe('Function documentation (Markdown)', () => {
       normalized: '## My function with one hard-wrapped paragraph',
     },
     {
-      source: '## ICON group\n   My function with an icon',
-      markdown: 'ICON group\nMy function with an icon',
+      source: '## ---\n   icon: group\n   ---\n   My function with an icon',
+      markdown: '---\nicon: group\n---\nMy function with an icon',
     },
     {
       source: '## My function\n   > Block quote\n   quote continuation',

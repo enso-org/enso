@@ -27,6 +27,7 @@ final class QualifiedAccessorNode extends EnsoRootNode {
         LocalScope.empty(),
         moduleScope,
         atomConstructor.getQualifiedName().toString(),
+        null,
         null);
     this.atomConstructor = atomConstructor;
   }

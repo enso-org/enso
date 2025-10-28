@@ -4,37 +4,46 @@ import project.Data.Numbers.Integer
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Internal.Array_Like_Helpers
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper type used for creating an array from a length and a callback
    providing its elements.
-
    It can be used to create an array from some non-standard underlying storage
    without copying. The created proxy is read only and behaves like any `Array`
-   type returned from polyglot calls to other languages. The most common
-   use-case for it is to pass it to `Vector.from_polyglot_array` to create a
-   vector backed by such custom storage.
+   type returned from polyglot calls to other languages. The most common use-case
+   for it is to pass it to `Vector.from_polyglot_array` to create a vector backed
+   by such custom storage.
 type Array_Proxy
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value ignore
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Creates a new `Array_Proxy` from a length and a callback.
 
-       Arguments:
-       - length: The length of the array to create.
-       - at: A function which returns each element of the array.
+       ## Arguments
+        - `length`: The length of the array to create.
+        - `at`: A function which returns each element of the array.
 
-       > Example
-         Create a Vector of 10 million elements without allocating any storage.
+       ## Examples
+       ### Create a Vector of 10 million elements without allocating any storage.
 
+       ```
              Vector.from_polyglot_array (Array_Proxy.new 10000000 (i -> i))
+       ```
     new : Integer -> (Integer -> Any) -> Array
     new length at = Illegal_Argument.handle_java_exception <|
         Array_Like_Helpers.new_array_proxy_builtin length at
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Creates a new `Array_Proxy` from an object providing `length` and `at`
        methods.
     from_proxy_object : Any -> Array

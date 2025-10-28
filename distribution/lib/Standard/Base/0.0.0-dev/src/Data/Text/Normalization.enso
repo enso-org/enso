@@ -2,8 +2,8 @@ import project.Any.Any
 
 polyglot java import com.ibm.icu.text.Normalizer2.Mode
 
-## Enso representations of `com.ibm.icu.text.Normalizer2.Mode`. Does not
-   include all values of `Mode`.
+## Enso representations of `com.ibm.icu.text.Normalizer2.Mode`. Does not include
+   all values of `Mode`.
 type Normalization
     ## Unicode NFC normalization mode.
     NFC
@@ -20,7 +20,9 @@ type Normalization
     ## Unicode NFKC_CF normalization mode.
     NFKCCasefold
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_java_mode : Any
     get_java_mode self = case self of
         Normalization.NFC -> Mode.COMPOSE
@@ -29,7 +31,9 @@ type Normalization
         Normalization.NFKD -> Mode.DECOMPOSE
         Normalization.NFKCCasefold -> Mode.COMPOSE
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     get_mode_name : Any
     get_mode_name self = case self of
         Normalization.NFC -> "nfc"

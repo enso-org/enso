@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import type { AnyIcon } from '@/util/icons'
 
 const toggledOn = defineModel<boolean | undefined>()
 defineProps<{
-  name?: Icon | URLString | undefined
+  name?: AnyIcon | undefined
   label?: string | undefined
   disabled?: boolean | undefined
   title?: string | undefined
@@ -36,10 +35,6 @@ const emit = defineEmits<{ activate: [] }>()
 
   &.disabled {
     opacity: 0.2;
-  }
-
-  &.toggledOn {
-    background-color: var(--color-menu-entry-selected-bg);
   }
 }
 </style>

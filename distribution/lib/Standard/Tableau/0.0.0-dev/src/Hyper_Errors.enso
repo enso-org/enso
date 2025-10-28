@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table.Errors import Unmatched_Columns, Column_Type_Mismatch
+from Standard.Table.Errors import Column_Type_Mismatch, Unmatched_Columns
 
 polyglot java import org.enso.tableau.HyperQueryError
 polyglot java import org.enso.tableau.HyperTableNotFound

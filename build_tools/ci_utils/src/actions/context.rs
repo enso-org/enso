@@ -2,36 +2,34 @@ use crate::prelude::*;
 
 use octocrab::models;
 
-
-
 /// Corresponds to https://github.com/actions/toolkit/blob/main/packages/github/src/interfaces.ts
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct WebhookPayload {
-    pub repository:   Option<models::Repository>,
-    pub issue:        Option<models::issues::Issue>,
+    pub repository: Option<models::Repository>,
+    pub issue: Option<models::issues::Issue>,
     pub pull_request: Option<models::pulls::PullRequest>,
-    pub sender:       Option<models::User>,
-    pub action:       Option<String>,
+    pub sender: Option<models::User>,
+    pub action: Option<String>,
     pub installation: Option<models::Installation>,
-    pub comment:      Option<models::issues::Comment>,
+    pub comment: Option<models::issues::Comment>,
 }
 
 /// Corresponds to https://github.com/actions/toolkit/blob/main/packages/github/src/context.ts
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Context {
     /// Webhook payload object that triggered the workflow.
-    pub payload:     WebhookPayload,
-    pub event_name:  String,
-    pub sha:         String,
-    pub r#ref:       String,
-    pub workflow:    String,
-    pub action:      String,
-    pub actor:       String,
-    pub job:         String,
-    pub run_number:  usize,
-    pub run_id:      models::RunId,
-    pub api_url:     Url,
-    pub server_url:  Url,
+    pub payload: WebhookPayload,
+    pub event_name: String,
+    pub sha: String,
+    pub r#ref: String,
+    pub workflow: String,
+    pub action: String,
+    pub actor: String,
+    pub job: String,
+    pub run_number: usize,
+    pub run_id: models::RunId,
+    pub api_url: Url,
+    pub server_url: Url,
     pub graphql_url: Url,
 }
 

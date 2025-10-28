@@ -95,23 +95,6 @@ export const DialogStackRegistrar = React.memo(function DialogStackRegistrar(
   return null
 })
 
-/** Props for {@link useDialogStackState} */
-export interface UseDialogStackStateProps {
-  readonly id: string
-}
-
-/** useDialogStackState is a custom hook that provides the state of the dialog stack. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useDialogStackState(props: UseDialogStackStateProps) {
-  const store = React.useContext(DialogStackContext)
-  invariant(store, 'useDialogStackState must be used within a DialogStackProvider')
-
-  const isLatest = useIsLatestDialogStackItem(props.id)
-  const index = useDialogStackIndex(props.id)
-
-  return { isLatest, index }
-}
-
 /**
  * Hook that returns true if the given id is the latest item in the dialog stack.
  */
@@ -121,17 +104,4 @@ export function useIsLatestDialogStackItem(id: string) {
   invariant(store, 'useIsLatestDialogStackItem must be used within a DialogStackProvider')
 
   return useStore(store, (state) => state.stack.at(-1)?.id === id, { unsafeEnableTransition: true })
-}
-
-/**
- * Hook that returns the index of the given id in the dialog stack.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useDialogStackIndex(id: string) {
-  const store = React.useContext(DialogStackContext)
-  invariant(store, 'useDialogStackIndex must be used within a DialogStackProvider')
-
-  return useStore(store, (state) => state.stack.findIndex((item) => item.id === id), {
-    unsafeEnableTransition: true,
-  })
 }

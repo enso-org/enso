@@ -12,8 +12,6 @@ use crate::project::IsTarget;
 use crate::source::WithDestination;
 use crate::version::Versions;
 
-
-
 const ARTIFACT_NAME: &str = "runtime";
 
 #[derive(Clone, Debug)]
@@ -85,7 +83,5 @@ impl AsRef<Path> for Artifact {
 }
 
 impl IsArtifact for Artifact {}
-
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////

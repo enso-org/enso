@@ -1,22 +1,32 @@
 import project.Data.Text.Text
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Date_Time_Format_Parse_Error
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Indicates an error during parsing of a date time format pattern.
     Error message:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self =
         "Error parsing date/time format pattern: " + self.message
 
 ## A warning indicating an unexpected date time format pattern.
 type Suspicious_Date_Time_Format
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Indicates a warning when parsing a date time format.
     Warning message:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = self.message

@@ -9,7 +9,6 @@ import {
   is_ident_or_operator,
   is_numeric_literal,
   parse_block,
-  parse_doc_to_json,
   parse_module,
   self_arg_separator,
 } from 'rust-ffi'
@@ -23,11 +22,4 @@ export function xxHash128(input: IDataType) {
 }
 
 /* eslint-disable camelcase */
-export {
-  is_ident_or_operator,
-  is_numeric_literal,
-  parse_block,
-  parse_doc_to_json,
-  parse_module,
-  self_arg_separator,
-}
+export { is_ident_or_operator, is_numeric_literal, parse_block, parse_module, self_arg_separator }

@@ -1,7 +1,7 @@
 /** @file Utilities for manipulating and displaying dates and times. */
 import { ZonedDateTime, getDayOfWeek } from '@internationalized/date'
-import type { TextId } from '../../text'
-import { type Newtype, newtypeConstructor } from './newtype'
+import type { TextId } from '../../text.js'
+import { newtypeConstructor, type Newtype } from './newtype.js'
 
 // 0 = Monday. Use `en-US` for 0 = Sunday.
 const DAY_OF_WEEK_LOCALE = 'en-GB'
@@ -433,7 +433,6 @@ export const WHITELISTED_TIME_ZONE_INFO = [
   { timeZone: 'Pacific/Chuuk', description: 'Chuuk' },
   { timeZone: 'Pacific/Saipan', description: 'Saipan' },
   { timeZone: 'Pacific/Port_Moresby', description: 'Guam, Port Moresby' },
-  { timeZone: 'Australia/LHI', description: 'Lord Howe Island' },
   { timeZone: 'Australia/Lord_Howe', description: 'Lord Howe Island' },
   { timeZone: 'Asia/Sakhalin', description: 'Sakhalin' },
   { timeZone: 'Asia/Srednekolymsk', description: 'Srednekolymsk' },
@@ -491,9 +490,16 @@ export const IanaTimeZone = newtypeConstructor<IanaTimeZone>()
  * @throws {Error} when the description does not correspond to the description for
  * one of the whitelisted timezones.
  */
-export function getDescriptionForTimeZone(timeZone: IanaTimeZone): string {
-  const description = WHITELISTED_TIME_ZONE_MAP.get(timeZone)?.description
+export function tryGetDescriptionForTimeZone(
+  timeZone: string | undefined,
+  fallbackTimeZone?: IanaTimeZone,
+): string {
+  const description = timeZone != null ? WHITELISTED_TIME_ZONE_MAP.get(timeZone)?.description : null
   if (!description) {
+    if (fallbackTimeZone) {
+      const fallbackDescription = WHITELISTED_TIME_ZONE_MAP.get(fallbackTimeZone)?.description
+      if (fallbackDescription) return fallbackDescription
+    }
     throw new Error(`Unknown timezone description for IANA identifier '${timeZone}'.`)
   }
   return description
@@ -504,12 +510,27 @@ export function getDescriptionForTimeZone(timeZone: IanaTimeZone): string {
  * @throws {Error} when the description does not correspond to the description for
  * one of the whitelisted timezones.
  */
-export function getTimeZoneFromDescription(description: string): IanaTimeZone {
+export function getDescriptionForTimeZone(timeZone: IanaTimeZone): string {
+  return tryGetDescriptionForTimeZone(timeZone)
+}
+
+/** Get the corresponding timezone given its description. */
+export function tryGetTimeZoneFromDescription(description: string): IanaTimeZone | null {
   const timeZone = WHITELISTED_TIME_ZONE_DESCRIPTION_MAP.get(description)?.timeZone
-  if (!timeZone) {
+  return timeZone != null ? IanaTimeZone(timeZone) : null
+}
+
+/**
+ * Get the corresponding timezone given its description.
+ * @throws {Error} when the description does not correspond to the description for
+ * one of the whitelisted timezones.
+ */
+export function getTimeZoneFromDescription(description: string): IanaTimeZone {
+  const timeZone = tryGetTimeZoneFromDescription(description)
+  if (timeZone == null) {
     throw new Error(`Unknown IANA identifier for timezone '${description}'.`)
   }
-  return IanaTimeZone(timeZone)
+  return timeZone
 }
 
 /** A string with date and time, following the RFC3339 specification. */

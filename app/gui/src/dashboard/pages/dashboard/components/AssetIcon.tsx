@@ -5,7 +5,7 @@ import * as fileIcon from '#/utilities/fileIcon'
 
 /** Props for an {@link AssetIcon}. */
 export interface AssetIconProps {
-  readonly asset: backend.AnyAsset
+  readonly asset: Pick<backend.AnyAsset, 'title' | 'type'>
   readonly className?: string
 }
 
@@ -27,10 +27,6 @@ export default function AssetIcon(props: AssetIconProps) {
     }
     case backend.AssetType.secret: {
       return <Icon icon="key" className={className} />
-    }
-    case backend.AssetType.specialUp: {
-      // It should not be possible for these to be displayed, but return something anyway.
-      return <Icon icon="ghost" className={className} />
     }
   }
 }

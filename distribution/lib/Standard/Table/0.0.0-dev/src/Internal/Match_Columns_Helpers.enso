@@ -6,22 +6,20 @@ import project.Columns_To_Keep.Columns_To_Keep
 import project.Match_Columns.Match_Columns
 from project.Errors import Column_Count_Mismatch, No_Output_Columns, Unmatched_Columns
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper that encapsulates the common backend-agnostic logic of matching
    columns in `Table.union`.
-
    It matches columns according to the provided matching settings and returns a
    list of column sets to be merged.
-
    Each column set consists of a name of the resulting column and a list of
    indices for columns in corresponding tables that will be merged to form this
    result column. The first column index corresponds to the first table in the
    input and so on. If no column corresponding to a given column set was matched
    in a particular table, its entry will be contain `Nothing` instead.
-
    The column sets are returned in the order in which the corresponding result
    columns should appear in the resulting table.
-
    The method assumes at least one table is provided in its input.
 match_columns tables matching_mode columns_to_keep problem_builder =
     assert tables.not_empty
@@ -29,7 +27,9 @@ match_columns tables matching_mode columns_to_keep problem_builder =
         Match_Columns.By_Name -> _match_columns_by_name tables columns_to_keep problem_builder
         Match_Columns.By_Position -> _match_columns_by_position tables columns_to_keep problem_builder
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private _match_columns_by_name tables columns_to_keep problem_builder = case columns_to_keep of
     Columns_To_Keep.In_List list -> if list.is_empty then Error.throw (Illegal_Argument.Error "The list of columns to keep cannot be empty.") else
         output_column_names = list.distinct
@@ -71,8 +71,8 @@ private _match_columns_by_name tables columns_to_keep problem_builder = case col
         _build_column_set_by_name tables output_column_names
 
 ## Common logic for computing the final result of by-name matching.
-   Once the set of output column names is determined, we compute the
-   `Column_Set` by finding the corresponding column indices in each table (if found).
+   Once the set of output column names is determined, we compute the `Column_Set`
+   by finding the corresponding column indices in each table (if found).
 private _build_column_set_by_name tables output_column_names =
     output_column_names.map name->
         column_indices = tables.map table->
@@ -116,9 +116,13 @@ private _match_columns_by_position tables columns_to_keep problem_builder = case
             Column_Set.Value name column_ids
         column_sets
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Column_Set
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (name : Text) (column_indices : Vector Integer)
 
     private resolve_columns self (all_tables : Vector) = self.column_indices.zip all_tables i-> parent_table->
@@ -134,7 +138,9 @@ private _find_column_counts tables =
             new_count = counts.get name 0 + 1
             counts.insert name new_count
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Returns a list of distinct column names, in the order of first appearance,
    starting from the first table.
 private _distinct_columns_in_appearance_order tables =

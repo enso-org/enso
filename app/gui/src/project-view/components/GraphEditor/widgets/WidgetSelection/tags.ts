@@ -1,21 +1,29 @@
-import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
-import { printRequiredImport, RequiredImport, requiredImports } from '@/stores/graph/imports'
-import { ProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
+import { type ModuleStore } from '$/providers/openedProjects/module'
+import {
+  printRequiredImport,
+  requiredImports,
+  type RequiredImport,
+} from '$/providers/openedProjects/module/imports'
+import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
 import {
   entryDisplayPath,
   entryIsStatic,
-  SuggestionEntry,
   SuggestionKind,
-} from '@/stores/suggestionDatabase/entry'
+  type SuggestionEntry,
+} from '$/providers/openedProjects/suggestionDatabase/entry'
+import type {
+  Choice,
+  WidgetConfiguration,
+} from '$/providers/openedProjects/widgetRegistry/configuration'
+import type { SubmenuEntry } from '@/components/GraphEditor/widgets/WidgetSelection/submenuEntry'
 import { Ast } from '@/util/ast'
-import { Opt } from '@/util/data/opt'
-import { Icon, isIconName } from '@/util/iconMetadata/iconName'
+import type { Opt } from '@/util/data/opt'
+import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import { type ToValue } from '@/util/reactivity'
-import { VNode } from 'vue'
-import { SubmenuEntry } from './submenuEntry'
+import type { ToValue } from '@/util/reactivity'
+import { computed, toValue, type ComputedRef, type Ref, type VNode } from 'vue'
 
 /**
  * The most basic dropdown item. When you click on it, the expression is inserted.
@@ -129,6 +137,25 @@ export class ExpressionTag {
   toString() {
     return `${this.label}[${this.requiredImports?.map(printRequiredImport).join(',')}]`
   }
+
+  /**
+   * Add any needed imports to the provided module, and return the expression with any necessary
+   * qualification.
+   */
+  resolveExpression(edit: Ast.MutableModule, module: ModuleStore) {
+    if (this.requiredImports) {
+      const conflicts = module.addMissingImports(edit, this.requiredImports)
+      if (conflicts != null && conflicts.length > 0) {
+        // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
+        // https://github.com/enso-org/enso/issues/9356
+        // And here it was wrong anyway: we should replace only conflicting name, not entire expression!
+        // // Is there is a conflict, it would be a single one, because we only ask about a single entry.
+        // return conflicts[0]?.fullyQualified!
+      }
+    }
+    // Unless a conflict occurs, we use the selected expression as is.
+    return this.expression
+  }
 }
 
 /**
@@ -221,12 +248,65 @@ export interface Entry extends SubmenuEntry<Entry> {
   tag: ExpressionTag | NestedChoiceTag | ActionTag
 }
 
-/** Check if a {@link DropdownEntry} is an {@link Entry}. */
-export function isEntry(entry: DropdownEntry): entry is Entry {
-  return (
-    'tag' in entry &&
-    (entry.tag instanceof ExpressionTag ||
-      entry.tag instanceof NestedChoiceTag ||
-      entry.tag instanceof ActionTag)
+export interface DynamicConfigTagsOptions {
+  dynamicConfig: ToValue<Opt<WidgetConfiguration>>
+  staticTags: ToValue<Opt<string[]>>
+  suggestionDb: ToValue<SuggestionDb>
+  projectNames: Readonly<Ref<ProjectNameStore>>
+}
+/** @returns The dropdown tags applicable to an expression. */
+export function useExpressionTags({
+  dynamicConfig,
+  staticTags,
+  suggestionDb,
+  projectNames,
+}: DynamicConfigTagsOptions): ComputedRef<(ExpressionTag | NestedChoiceTag)[]> {
+  const staticExpressionTags = computed((): ExpressionTag[] | null => {
+    const tags = toValue(staticTags)
+    if (tags == null) return null
+    return tags.map((t) =>
+      ExpressionTag.FromExpression(toValue(suggestionDb), projectNames.value, t),
+    )
+  })
+  const dynamicTags = computed((): (ExpressionTag | NestedChoiceTag)[] | null => {
+    const config = toValue(dynamicConfig)
+    if (config?.kind !== 'Single_Choice' && config?.kind !== 'Multiple_Choice') return null
+
+    const choiceToTag = (choice: Choice): ExpressionTag | NestedChoiceTag =>
+      Array.isArray(choice.value) ?
+        new NestedChoiceTag(choice.label ?? '…', choice.value.map(choiceToTag))
+      : ExpressionTag.FromExpression(
+          toValue(suggestionDb),
+          projectNames.value,
+          choice.value,
+          choice.label,
+          choice.icon,
+        )
+
+    return config.values.map(choiceToTag)
+  })
+  return computed(() => dynamicTags.value ?? staticExpressionTags.value ?? [])
+}
+
+/** @returns Dropdown {@link Entry}s for the given tags. */
+export function useTagEntries<T extends ExpressionTag | NestedChoiceTag | ActionTag>(
+  tags: ToValue<T[]>,
+  isSelected: (expression: string) => boolean,
+): ComputedRef<(Entry & { tag: T | ExpressionTag | NestedChoiceTag })[]> {
+  function tagToEntry(
+    tag: T | ExpressionTag | NestedChoiceTag,
+  ): Entry & { tag: T | ExpressionTag | NestedChoiceTag } {
+    return {
+      value: tag.label,
+      key: tag instanceof ExpressionTag ? tag.toString() : undefined,
+      selected: tag instanceof ExpressionTag && isSelected(tag.expression),
+      icon: tag instanceof ExpressionTag || tag instanceof ActionTag ? tag.icon : undefined,
+      tag,
+      isNested: tag instanceof NestedChoiceTag,
+      nestedValues: tag instanceof NestedChoiceTag ? tag.choices.map(tagToEntry) : [],
+    }
+  }
+  return computed((): (Entry & { tag: T | ExpressionTag | NestedChoiceTag })[] =>
+    toValue(tags).map(tagToEntry),
   )
 }

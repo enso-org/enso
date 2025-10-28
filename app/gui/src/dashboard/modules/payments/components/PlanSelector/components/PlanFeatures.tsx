@@ -9,7 +9,7 @@ import { Text } from '#/components/Text'
 
 /** Props for the PlanFeatures component */
 export interface PlanFeaturesProps {
-  readonly features: string[]
+  readonly features: readonly string[]
 }
 
 /** Render a list of features */

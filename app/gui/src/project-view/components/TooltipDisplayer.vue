@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { HoveredElement, type TooltipRegistry } from '@/providers/tooltipRegistry'
-import { Opt } from '@/util/data/opt'
-import { autoUpdate, flip, FloatingElement, offset, shift, useFloating } from '@floating-ui/vue'
+import type { HoveredElement, TooltipRegistry } from '@/providers/tooltipRegistry'
+import type { Opt } from '@/util/data/opt'
+import {
+  autoUpdate,
+  flip,
+  offset,
+  shift,
+  useFloating,
+  type FloatingElement,
+} from '@floating-ui/vue'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
 
 const props = defineProps<{ registry: TooltipRegistry }>()
@@ -54,22 +61,13 @@ watch(activeTooltip, (newValue, oldValue) => {
 const isDisplayed = (tooltip: Opt<HoveredElement>) => {
   if (tooltip == null) return false
   if (tooltip.entry.isHidden) return false
+  if (tooltip.entry.forceShow) return true
   if (!tooltip.element.isConnected) return false
-  switch (toValue(tooltip.entry.props.when)) {
-    case 'always':
-      return true
-    case 'whenOverflow':
-      return (
-        tooltip.element.scrollWidth > tooltip.element.clientWidth ||
-        tooltip.element.scrollHeight > tooltip.element.clientHeight
-      )
-    default:
-      return false
-  }
+  return toValue(tooltip.entry.props.enabled)
 }
 
 const displayedTooltip = computed(() => {
-  if (!show.value) return undefined
+  if (!show.value && !activeTooltip.value?.entry.forceShow) return undefined
   // When hovering the element, display its tooltip.
   if (isDisplayed(activeTooltip.value)) {
     return activeTooltip.value

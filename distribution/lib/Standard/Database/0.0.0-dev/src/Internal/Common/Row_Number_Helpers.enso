@@ -4,7 +4,9 @@ import project.Internal.IR.Operation_Metadata
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_row_number (from : Integer) (step : Integer) (order_descriptors : Vector Order_Descriptor) (grouping_expressions : Vector SQL_IR_Expression) -> SQL_IR_Expression =
     # The SQL row_number() counts from 1, so we adjust the offset.
     offset = (from - step) : Integer

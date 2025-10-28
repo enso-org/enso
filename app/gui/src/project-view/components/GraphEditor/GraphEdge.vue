@@ -1,25 +1,31 @@
 <script setup lang="ts">
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import type { Edge } from '$/providers/openedProjects/graph'
+import { isConnected } from '$/providers/openedProjects/graph'
 import { junctionPoints, pathElements, toSvgPath } from '@/components/GraphEditor/GraphEdge/layout'
 import { useComponentColors } from '@/composables/componentColors'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import type { Edge } from '@/stores/graph'
-import { isConnected } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme'
-import { computed, ref } from 'vue'
+import { computed, type CSSProperties, ref } from 'vue'
 
 const selection = injectGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 const graph = useGraphStore()
 
-const { edge, maskSource, animateFromSourceHover } = defineProps<{
+const {
+  edge,
+  maskSource,
+  animateFromSourceHover,
+  arrow = true,
+} = defineProps<{
   edge: Edge
   maskSource?: boolean
   animateFromSourceHover?: boolean
+  arrow?: boolean
 }>()
 defineOptions({
   inheritAttrs: false,
@@ -178,7 +184,7 @@ const basePath = computed(() => {
   if (!pathElements) return
   const { start, elements } = pathElements
   const origin = sourceOriginPoint.value
-  if (origin == null) return undefined
+  if (origin == null || !origin.isFinite() || !start.isFinite()) return undefined
   return toSvgPath(origin.add(start), elements)
 })
 
@@ -270,6 +276,7 @@ const backwardEdgeArrowTransform = computed<string | undefined>(() => {
 const arrowHeight = 9
 const arrowYOffset = 0
 const arrowTransform = computed<string | undefined>(() => {
+  if (!arrow) return
   const arrowTopOffset = 1
   const arrowWidth = 12
   const target = targetPos.value
@@ -289,14 +296,23 @@ const arrowPath = [
   'Z',
 ].join('')
 
-const sourceHoverAnimationStyle = computed(() => {
-  if (!animateFromSourceHover || !base.value || !sourceNode.value) return {}
-  const progress = graph.nodeOutputAnimations.get(sourceNode.value) ?? 0
-  if (progress === 1) return {}
-  const currentLength = progress * base.value.getTotalLength()
-  return {
-    strokeDasharray: `${currentLength}px 1000000px`,
-  }
+const VISIBILITY_HIDDEN = {
+  visibility: 'hidden',
+} as const
+
+function truncateStrokeToLength(lengthPx: number) {
+  return { strokeDasharray: `${lengthPx}px 1000000px` }
+}
+
+const sourceHoverAnimationStyle = computed((): CSSProperties => {
+  if (!animateFromSourceHover) return {}
+  if (!base.value || !sourceNode.value) return VISIBILITY_HIDDEN
+  const progress = graph.nodeOutputAnimations.get(sourceNode.value)
+  return (
+    !progress ? VISIBILITY_HIDDEN
+    : progress === 1 ? {}
+    : truncateStrokeToLength(progress * base.value.getTotalLength())
+  )
 })
 
 const baseClass = computed(() => {
@@ -335,22 +351,23 @@ const colorClasses = computed(() => {
         fill="black"
       />
     </mask>
-    <g v-bind="{ ...$attrs, ...(sourceMask ? { mask: `url('#${sourceMask.id}')` } : {}) }">
+    <g
+      v-bind="{ ...$attrs, ...(sourceMask ? { mask: `url('#${sourceMask.id}')` } : {}) }"
+      class="GraphEdge"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
+    >
       <path
         ref="base"
         :d="basePath"
         class="edge define-node-colors visible"
         :class="{ ...baseClass, ...colorClasses }"
         :style="{ ...baseStyle, ...sourceHoverAnimationStyle }"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
       />
       <path
         v-if="isConnected(edge)"
         :d="basePath"
         class="edge io clickable"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
         :data-testid="edgeIsBroken ? 'broken-edge' : null"
         @pointerdown.stop="click"
         @pointerenter="hovered = true"
@@ -362,8 +379,6 @@ const colorClasses = computed(() => {
         class="edge define-node-colors visible"
         :class="colorClasses"
         :style="{ ...baseStyle, ...activeStyle }"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
       />
       <path
         v-if="arrowTransform"
@@ -380,8 +395,6 @@ const colorClasses = computed(() => {
         class="arrow define-node-colors visible"
         :class="colorClasses"
         :style="baseStyle"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
       />
     </g>
   </template>

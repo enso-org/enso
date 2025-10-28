@@ -1,5 +1,6 @@
 package org.enso.database;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -9,9 +10,25 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 public class JDBCUtils {
+  /** Reads all values from a column in a ResultSet into a String array. */
+  public static String[] readTextColumn(ResultSet rs, String name) throws SQLException {
+    if (rs.isClosed()) {
+      return new String[0];
+    }
+
+    int index = rs.findColumn(name);
+
+    var results = new ArrayList<String>();
+    while (rs.next()) {
+      var value = rs.getString(index);
+      results.add(value);
+    }
+    return results.toArray(new String[0]);
+  }
 
   /** Gets a LocalDate from a ResultSet. */
   public static LocalDate getLocalDate(ResultSet rs, int columnIndex) throws SQLException {
@@ -21,8 +38,7 @@ public class JDBCUtils {
 
   /** Gets a LocalTime from a ResultSet. */
   public static LocalTime getLocalTime(ResultSet rs, int columnIndex) throws SQLException {
-    var sqlTime = rs.getObject(columnIndex, LocalTime.class);
-    return sqlTime == null ? null : sqlTime;
+    return rs.getObject(columnIndex, LocalTime.class);
   }
 
   /**
@@ -76,5 +92,28 @@ public class JDBCUtils {
       throws SQLException {
 
     stmt.setObject(columnIndex, localDate, Types.DATE);
+  }
+
+  /**
+   * Gets a BigDecimal from a ResultSet, but handles the case of databases without direct support
+   * for BigDecimals, which may return a float or double. In the case of nan / inf values, return
+   * null.
+   */
+  public static BigDecimal getBigDecimalHandleSpecialFloats(ResultSet rs, int columnIndex)
+      throws SQLException {
+    try {
+      return rs.getBigDecimal(columnIndex);
+    } catch (SQLException e) {
+      try {
+        double d = rs.getDouble(columnIndex);
+        if (Double.isNaN(d) || Double.isInfinite(d)) {
+          return null;
+        } else {
+          throw e;
+        }
+      } catch (SQLException eIgnore) {
+        throw e;
+      }
+    }
   }
 }

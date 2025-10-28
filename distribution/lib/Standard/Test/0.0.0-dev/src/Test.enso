@@ -23,22 +23,23 @@ type Test
         Suite.Impl groups_vec
 
     ## Expect a function to fail with the provided panic.
-
        It returns the caught panic if it matches the expected panic type,
        otherwise it fails the test.
 
-       Arguments:
-       - action: The action to evaluate that is expected to fail with a panic.
-       - matcher: The expected type of the panic thrown by `action`.
+       ## Arguments
+        - `action`: The action to evaluate that is expected to fail with a panic.
+        - `matcher`: The expected type of the panic thrown by `action`.
 
-       > Example
-         Expect that a computation should panic as part of a test.
+       ## Examples
+       ### Expect that a computation should panic as part of a test.
 
+       ```
              import Standard.Examples
              from Standard.Test import Test
 
              example_expect_panic_with =
                  Test.expect_panic_with Examples.throw_panic Examples.My_Error
+       ```
     expect_panic_with : Any -> Any -> Test_Result
     expect_panic_with ~action matcher = Frame_Hider.hide <|
         handle_panic caught_panic =
@@ -65,17 +66,17 @@ type Test
 
 
     ## Expect a function to fail with the provided panic.
-
        An alternative API to `expect_panic_with` where the order of arguments is
        more natural - as it allows blocks without reordering the arguments.
 
-       Arguments:
-       - matcher: The expected type of the panic thrown by `action`.
-       - action: The action to evaluate that is expected to fail with a panic.
+       ## Arguments
+        - `matcher`: The expected type of the panic thrown by `action`.
+        - `action`: The action to evaluate that is expected to fail with a panic.
 
-       > Example
-         Expect that a computation should panic as part of a test.
+       ## Examples
+       ### Expect that a computation should panic as part of a test.
 
+       ```
               import Standard.Examples
               from Standard.Test import Test
 
@@ -85,12 +86,12 @@ type Test
                       Examples.throw_panic
 
                       IO.println 'this is not reached'
+       ```
     expect_panic : Any -> Any -> Test_Result
     expect_panic matcher ~action = Frame_Hider.hide <| Test.expect_panic_with action matcher
 
 
     ## Checks that the provided action returns without any errors or warnings.
-
        If you just want to check for errors, usage of the `.should_succeed`
        extension function is preferred.
     assert_no_problems value = Frame_Hider.hide <|
@@ -103,21 +104,25 @@ type Test
 
     ## Fail a test with the given message.
 
-       Arguments:
-       - message: The message printed when failing the test.
+       ## Arguments
+        - `message`: The message printed when failing the test.
 
-       > Example
-         Failing a test manually.
+       ## Examples
+       ### Failing a test manually.
 
+       ```
              from Standard.Test import Test
 
              example_fail = Test.fail "Something went wrong."
+       ```
     fail : Text -> Nothing|Text -> Spec_Result
     fail message details=Nothing =
         failure = Spec_Result.Failure (Test.enrich_message_with_clue message) details
         Panic.throw failure
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     enrich_message_with_clue : Text -> Text
     enrich_message_with_clue message =
         clue = Panic.catch Uninitialized_State (State.get Clue) handler=(_-> Nothing)
@@ -125,7 +130,9 @@ type Test
             Clue.Value add_clue -> add_clue message
             _                   -> message
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Reports an unexpected dataflow error has occurred.
     fail_match_on_unexpected_error : Error -> Nothing
     fail_match_on_unexpected_error error = Frame_Hider.hide <|
@@ -133,17 +140,18 @@ type Test
         msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + Frame_Hider.get_top_stack_frame + ")."
         Test.fail msg details=error.get_stack_trace_text
 
-    ## Executes the block of code passed as behavior and adds a clue modifier which
-       changes how assertion failures are reported.
-
+    ## Executes the block of code passed as behavior and adds a clue modifier
+       which changes how assertion failures are reported.
        Nesting with_clue invocations results in clue aggregation.
 
-       Arguments:
-       - clue: either a text which gets prepended to the failure or a function which transforms the failure message
-       - behavior: the behavior to test
+       ## Arguments
+        - `clue`: either a text which gets prepended to the failure or a function
+          which transforms the failure message
+        - `behavior`: the behavior to test
 
-       > Example
-         Add a clue to a test
+       ## Examples
+       ### Add a clue to a test
+       ```
             from Standard.Test import Test, Test_Suite
             import Standard.Test.Extensions
             main = Test_Suite.run_main <|
@@ -153,6 +161,7 @@ type Test
                         xs.each x->
                             Test.with_clue ("["+x.to_text+"] ") <|
                                 x . should_equal 0
+       ```
     with_clue : Text|(Text -> Text) -> Any -> Any
     with_clue ~clue ~behavior =
         add_clue x = case clue of
@@ -172,17 +181,14 @@ type Test
 
     ## A helper method that retries the action a few times if it panics.
        It allows to make flaky tests more robust.
-
        It waits for a short period of time between retries (in case the failures
        are related e.g. to network conditions or propagation delays).
-
        This function should be placed inside of the `specify` block. It can be
        used to retry the whole test, or it can be applied to a specific block
        inside of the test to only re-run that specific block (in such case, any
        side-effects must be considered carefully).
-
-       The method returns the first successful value returned by the action,
-       or fails with the last error thrown by the action after exhausting retry
+       The method returns the first successful value returned by the action, or
+       fails with the last error thrown by the action after exhausting retry
        attempts.
     with_retries : Any -> Any
     with_retries ~action =

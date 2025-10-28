@@ -42,9 +42,8 @@ public final class Column {
           switch (name) {
             case null -> "Column name cannot be Nothing.";
             case "" -> "Column name cannot be empty.";
-            default -> (name.indexOf('\0') >= 0)
-                ? "Column name cannot contain the NUL character."
-                : null;
+            default ->
+                (name.indexOf('\0') >= 0) ? "Column name cannot contain the NUL character." : null;
           };
       throw new InvalidColumnNameException(name, extraMessage);
     }

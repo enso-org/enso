@@ -1,21 +1,22 @@
 import {
+  appBindings,
+  appContainerBindings,
+  commandPaletteBindings,
   componentBrowserBindings,
   documentationEditorFormatBindings,
   graphBindings,
   nodeEditBindings,
-  panelsBindings,
-  undoBindings,
   visualizationBindings,
 } from '@/bindings'
 import { createContextStore } from '@/providers'
-import { type ActionContext, injectActionContext } from '@/providers/actionContext'
+import { injectActionContext, type ActionContext } from '@/providers/actionContext'
 import { assert } from '@/util/assert'
-import { Icon } from '@/util/iconMetadata/iconName'
-import { type ToValue } from '@/util/reactivity'
-import { BindingInfo } from '@/util/shortcuts'
+import type { Icon } from '@/util/iconMetadata/iconName'
+import type { ToValue } from '@/util/reactivity'
+import type { BindingInfo } from '@/util/shortcuts'
 import { identity } from '@vueuse/core'
-import { type Ref, ref } from 'vue'
-import { type ForbidExcessProps } from 'ydoc-shared/util/types'
+import { ref, type Ref } from 'vue'
+import type { ForbidExcessProps } from 'ydoc-shared/util/types'
 
 /**
  * A definition of some action available via shortcut, button, and/or menu entry.
@@ -138,12 +139,12 @@ const displayableActions = {
   'graph.toggleCodeEditor': {
     icon: 'bottom_panel',
     description: 'Code Editor',
-    shortcut: panelsBindings.bindings['graph.toggleCodeEditor'],
+    shortcut: graphBindings.bindings['graph.toggleCodeEditor'],
   },
   'graph.toggleDocumentationEditor': {
     icon: 'right_panel',
     description: 'Documentation Editor',
-    shortcut: panelsBindings.bindings['graph.toggleDocumentationEditor'],
+    shortcut: graphBindings.bindings['graph.toggleDocumentationEditor'],
   },
   'graph.renameProject': {
     icon: 'edit',
@@ -160,12 +161,12 @@ const displayableActions = {
   'graph.undo': {
     icon: 'undo',
     description: 'Undo',
-    shortcut: undoBindings.bindings['graph.undo'],
+    shortcut: graphBindings.bindings['graph.undo'],
   },
   'graph.redo': {
     icon: 'redo',
     description: 'Redo',
-    shortcut: undoBindings.bindings['graph.redo'],
+    shortcut: graphBindings.bindings['graph.redo'],
   },
   'graph.fitAll': {
     icon: 'show_all',
@@ -271,9 +272,27 @@ const displayableActions = {
     icon: 'fullscreen',
     description: 'Fullscreen',
   },
+
+  // === Command Palette ===
+
+  'commandPalette.open': {
+    icon: 'code',
+    description: 'Open Command Palette',
+    shortcut: commandPaletteBindings.bindings['commandPalette.open'],
+  },
 } satisfies Record<string, DisplayableAction>
 export type DisplayableActionName = keyof typeof displayableActions
 const undisplayableActions = {
+  // === App ===
+
+  'app.cancel': {},
+  'app.close': {
+    shortcut: appBindings.bindings['app.close'],
+  },
+  'app.closeTab': {
+    shortcut: appContainerBindings.bindings['app.closeTab'],
+  },
+
   // === Component Browser ===
 
   'componentBrowser.acceptInput': {
@@ -341,10 +360,6 @@ const undisplayableActions = {
   'textEditor.deleteBack': {},
   'textEditor.deleteForward': {},
   'textEditor.newline': {},
-
-  // === Interactions ===
-
-  'interaction.cancel': {},
 }
 export type UndisplayableActionName = keyof typeof undisplayableActions
 
@@ -357,7 +372,7 @@ export type UndisplayableActionName = keyof typeof undisplayableActions
 export type ActionName = DisplayableActionName | UndisplayableActionName
 type DisplayableActions = Record<DisplayableActionName, DisplayableAction>
 type UndisplayableActions = Record<UndisplayableActionName, Action>
-type Actions = DisplayableActions & UndisplayableActions
+export type Actions = DisplayableActions & UndisplayableActions
 
 const [provideActions, injectActions] = createContextStore('Actions', identity<Actions>)
 
@@ -406,6 +421,7 @@ export function registerHandlers<Handlers extends Partial<Record<keyof Actions, 
     } as (typeof newActions)[typeof action]
   }
   provideActions(newActions)
+
   return newActions as Actions & Handlers
 }
 

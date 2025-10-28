@@ -183,8 +183,9 @@ trait CompilerRunner {
       * @return a method containing `ir` as its body
       */
     def asMethod: definition.Method = {
-      new definition.Method.Explicit(
-        definition.Method.Binding(
+      val methBinding = definition.Method.Binding
+        .builder()
+        .methodReference(
           Name.MethodReference(
             Some(
               Name.Qualified(
@@ -204,14 +205,13 @@ trait CompilerRunner {
               identifiedLocation = null
             ),
             identifiedLocation = null
-          ),
-          Nil,
-          false,
-          ir,
-          identifiedLocation = null
-        ),
-        ir
-      )
+          )
+        )
+        .arguments(Nil)
+        .isPrivate(false)
+        .body(ir)
+        .build()
+      definition.Method.Explicit.fromMethodBinding(methBinding, ir)
     }
 
     /** Hoists the provided expression as the default value of an atom argument.
@@ -222,14 +222,15 @@ trait CompilerRunner {
       Definition.Data(
         Name.Literal("TestAtom", isMethod = false, identifiedLocation = null),
         List(
-          new DefinitionArgument.Specified(
-            Name
-              .Literal("arg", isMethod = false, identifiedLocation = null),
-            None,
-            Some(ir),
-            suspended          = false,
-            identifiedLocation = null
-          )
+          DefinitionArgument.Specified
+            .builder()
+            .name(
+              Name
+                .Literal("arg", isMethod = false, identifiedLocation = null)
+            )
+            .defaultValue(Some(ir))
+            .suspended(false)
+            .build()
         ),
         List(),
         false,
@@ -301,7 +302,10 @@ trait CompilerRunner {
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
     val mod =
-      runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
+      runtime.Module.empty(
+        QualifiedName.simpleName("Test_Module"),
+        null
+      )
     ModuleTestUtils.unsafeSetIr(
       mod,
       Module(List(), List(), List(), false, identifiedLocation = null)

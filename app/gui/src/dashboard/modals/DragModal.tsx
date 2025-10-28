@@ -1,4 +1,4 @@
-/** @file Modal for confirming delete of any type of asset. */
+/** @file Modal for dragging an asset. */
 import { Badge } from '#/components/Badge'
 import { DIALOG_BACKGROUND } from '#/components/Dialog'
 import Portal from '#/components/Portal'
@@ -9,7 +9,7 @@ import {
   Children,
   startTransition,
   useEffect,
-  useState,
+  useRef,
   type DragEvent,
   type PropsWithChildren,
 } from 'react'
@@ -29,7 +29,7 @@ export interface DragModalProps
   readonly offsetYPx?: number
 }
 
-/** A modal for confirming the deletion of an asset. */
+/** A modal for dragging an asset. */
 export default function DragModal(props: DragModalProps) {
   const {
     hideBadge = false,
@@ -43,14 +43,14 @@ export default function DragModal(props: DragModalProps) {
     onDragEnd: onDragEndRaw,
     ...passthrough
   } = props
-  const [left, setLeft] = useState(event.pageX - (offsetPx ?? offsetXPx))
-  const [top, setTop] = useState(event.pageY - (offsetPx ?? offsetYPx))
+  const containerRef = useRef<HTMLDivElement>(null)
   const onDragEndOuter = useEventCallback(onDragEndRaw)
 
   const onDrag = useEventCallback((dragEvent: MouseEvent) => {
+    if (!containerRef.current) return
     if (dragEvent.pageX !== 0 || dragEvent.pageY !== 0) {
-      setLeft(dragEvent.pageX - (offsetPx ?? offsetXPx))
-      setTop(dragEvent.pageY - (offsetPx ?? offsetYPx))
+      containerRef.current.style.left = `${dragEvent.pageX - (offsetPx ?? offsetXPx)}px`
+      containerRef.current.style.top = `${dragEvent.pageY - (offsetPx ?? offsetYPx)}px`
     }
   })
 
@@ -80,8 +80,13 @@ export default function DragModal(props: DragModalProps) {
     <Portal>
       <div className="pointer-events-none absolute size-full overflow-hidden shadow-md">
         <div
+          ref={containerRef}
           {...passthrough}
-          style={{ left, top, ...style }}
+          style={{
+            left: event.pageX - (offsetPx ?? offsetXPx),
+            top: event.pageY - (offsetPx ?? offsetYPx),
+            ...style,
+          }}
           className={DIALOG_BACKGROUND({
             className: ['relative w-48 translate-x-3 translate-y-3', className],
           })}

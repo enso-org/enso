@@ -23,7 +23,9 @@ object Editions {
     "Standard.Google_Api",
     "Standard.Snowflake",
     "Standard.Microsoft",
-    "Standard.Tableau"
+    "Standard.Tableau",
+    "Standard.Saas",
+    "Standard.DuckDB"
   )
 
   case class ContribLibrary(name: String, version: String)

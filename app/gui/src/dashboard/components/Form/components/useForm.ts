@@ -8,9 +8,9 @@ import { useOffline, useOfflineChange } from '#/hooks/offlineHooks'
 import * as errorUtils from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
+import { IS_DEV_MODE } from '$/utils/detect'
 import * as zodResolver from '@hookform/resolvers/zod'
 import * as sentry from '@sentry/vue'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
 import * as React from 'react'
 import * as reactHookForm from 'react-hook-form'
 import invariant from 'tiny-invariant'
@@ -62,7 +62,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
   // but it's safe to do so, because we don't switch between the two types of arguments
   // and if we do, we throw an error.
 
-  /* eslint-disable react-compiler/react-compiler */
   /* eslint-disable react-hooks/rules-of-hooks */
   if ('formState' in optionsOrFormInstance) {
     return optionsOrFormInstance
@@ -172,7 +171,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     // We need to disable the eslint rules here, because we call hooks conditionally
     // but it's safe to do so, because we don't switch between the two types of arguments
     // and if we do, we throw an error.
-    /* eslint-disable react-compiler/react-compiler */
     /* eslint-disable react-hooks/rules-of-hooks */
     const formMutation = useMutationCallback({
       // We use template literals to make the mutation key more readable in the devtools
@@ -296,12 +294,11 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     return form
   }
   /* eslint-enable react-hooks/rules-of-hooks */
-  /* eslint-enable react-compiler/react-compiler */
 }
 
 /** Get the type of arguments passed to the useForm hook */
 function getArgsType<Schema extends types.TSchema, SubmitResult = void>(
   args: types.UseFormOptions<Schema, SubmitResult>,
 ) {
-  return 'formState' in args ? ('formInstance' as const) : ('formOptions' as const)
+  return 'formState' in args ? 'formInstance' : 'formOptions'
 }

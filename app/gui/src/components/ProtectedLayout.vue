@@ -4,7 +4,10 @@
  * if user lost privileges to see them. Also makes sure user will agree with Terms of Service and
  * privacy policy.
  */
-import { EnsoDevtools as EnsoDevToolsReact } from '#/components/Devtools'
+import {
+  EnsoDevtools as EnsoDevToolsReact,
+  ReactQueryDevtools as ReactQueryDevtoolsReact,
+} from '#/components/Devtools'
 import {
   AgreementsModal as AgreementsModalReact,
   type AgreementsModalProps,
@@ -12,7 +15,7 @@ import {
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH } from '$/appUtils'
 import { useUserAgreements } from '$/composables/userAgreements'
-import { AuthStore, useAuth } from '$/providers/auth'
+import { useAuth, type AuthStore } from '$/providers/auth'
 import { useSession } from '$/providers/session'
 import { useText } from '$/providers/text'
 import type { DataLoader } from '$/router'
@@ -20,7 +23,7 @@ import { Dialog, reactComponent, ResultComponent } from '@/util/react'
 import * as vueQuery from '@tanstack/vue-query'
 import { useQueryClient } from '@tanstack/vue-query'
 import { computed, effectScope, EffectScope, watch, watchPostEffect } from 'vue'
-import { RouteLocation, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, type RouteLocation } from 'vue-router'
 import { Err, Ok } from 'ydoc-shared/util/data/result'
 
 declare module 'vue-router' {
@@ -69,9 +72,12 @@ function requireUserAgreements(route: RouteLocation) {
 }
 
 let scope: EffectScope | undefined
-export const dataLoader: DataLoader<{
+
+type Props = {
   agreementsModalProps: AgreementsModalProps | undefined
-}> = {
+}
+
+export const dataLoader: DataLoader<Props> = {
   async beforeRouteEnter(to) {
     const queryClient = vueQuery.useQueryClient()
     const localStorage = LocalStorage.getInstance()
@@ -113,9 +119,7 @@ export const dataLoader: DataLoader<{
 </script>
 
 <script setup lang="ts">
-const props = defineProps<{
-  agreementsModalProps: AgreementsModalProps | undefined
-}>()
+const props = defineProps<Props>()
 
 const session = useSession()
 const auth = useAuth()
@@ -124,6 +128,7 @@ const router = useRouter()
 const queryClient = useQueryClient()
 const text = useText()
 const EnsoDevtools = reactComponent(EnsoDevToolsReact)
+const ReactQueryDevtools = reactComponent(ReactQueryDevtoolsReact)
 
 const allowed = computed(() => routeAllowed(route, auth))
 watch(
@@ -178,7 +183,9 @@ const shouldDisplayAgreementsModal = computed(
     v-if="allowed && agreementsModalProps && shouldDisplayAgreementsModal"
     v-bind="agreementsModalProps"
   />
-  <RouterView v-else-if="allowed" />
+  <RouterView v-else-if="allowed || route.meta.access == null || route.meta.access === 'guest'" />
+  <div v-else data-testid="content-not-allowed"></div>
 
   <EnsoDevtools v-if="displayDevTools" />
+  <ReactQueryDevtools v-if="displayDevTools" />
 </template>

@@ -3,19 +3,21 @@
 
 import project.Any.Any
 
-## PRIVATE
-   ADVANCED
-   Executes an action with a handler for the executing thread being
-   interrupted.
+## ---
+   private: true
+   advanced: true
+   ---
+   Executes an action with a handler for the executing thread being interrupted.
 
-   Arguments:
-   - action: The action to execute.
-   - interrupt_handler: The code to be executed if the thread is
-     interrupted.
+   ## Arguments
+    - `action`: The action to execute.
+    - `interrupt_handler`: The code to be executed if the thread is interrupted.
 
-   > Example
-     Die on thread interrupts.
+   ## Examples
+   ### Die on thread interrupts.
 
+   ```
          Thread.with_interrupt_handler (1 + 1) <| IO.println "I died!"
+   ```
 with_interrupt_handler : Any -> Any -> Any
 with_interrupt_handler ~action ~interrupt_handler = @Builtin_Method "Thread.with_interrupt_handler"

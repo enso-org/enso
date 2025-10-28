@@ -43,9 +43,7 @@ export function UpgradeButton<IconType extends string>(
       variant={variant ?? VARIANT_BY_LEVEL[level.name]}
       size={size}
       rounded={rounded}
-      href={
-        isEnterprise ? appUtils.getContactSalesURL() : (href ?? appUtils.getUpgradeURL(level.name))
-      }
+      href={isEnterprise ? appUtils.getContactPage() : (href ?? appUtils.getUpgradeURL(level.name))}
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
       {...(buttonProps as any)}

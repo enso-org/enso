@@ -14,7 +14,7 @@ import type { SpanMap } from './idMap'
 import { newExternalId } from './idMap'
 import type { Module } from './mutableModule'
 import { MutableModule, ROOT_ID } from './mutableModule'
-import { parseExpression, parseStatement } from './parse'
+import { parseBlockStatement, parseExpression, parseModuleStatement } from './parse'
 import type { RawConcreteChild } from './print'
 import {
   ensureSpaced,
@@ -50,6 +50,7 @@ import { Token, TokenType, isIdentifier, isToken, isTokenChild, isTokenId } from
 export type DeepReadonly<T> =
   T extends Builtin ? T
   : T extends FixedMap<infer V> ? FixedMapView<V>
+  : T extends Y.Map<infer V> ? ReadonlyMap<string, DeepReadonly<V>>
   : T extends Map<infer K, infer V> ? ReadonlyMap<DeepReadonly<K>, DeepReadonly<V>>
   : T extends ReadonlyMap<infer K, infer V> ? ReadonlyMap<DeepReadonly<K>, DeepReadonly<V>>
   : T extends WeakMap<infer K, infer V> ? WeakMap<DeepReadonly<K>, DeepReadonly<V>>
@@ -59,8 +60,9 @@ export type DeepReadonly<T> =
   : T extends Promise<infer U> ? Promise<DeepReadonly<U>>
   : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
   : Readonly<T>
+
 type Primitive = string | number | boolean | bigint | symbol | undefined | null
-type AnyFunction = () => void
+type AnyFunction = (...args: any[]) => unknown
 type Builtin = Primitive | AnyFunction | Date | Error | RegExp
 // Note that typescript doesn't consider this assignable to `DeepReadonly<T>`, so the intersection type can be useful.
 type DeepReadonlyExceptY<T> =
@@ -241,14 +243,6 @@ export abstract class Ast {
   /** Return source code representing this node. */
   code(): string {
     return printWithSpans(this).code
-  }
-
-  /** TODO: Add docs */
-  visitRecursive(visit: (ast: Ast) => void | boolean): void {
-    if (visit(this) === false) return
-    for (const child of this.children()) {
-      if (!isToken(child)) child.visitRecursive(visit)
-    }
   }
 
   /** TODO: Add docs */
@@ -487,6 +481,14 @@ export abstract class MutableAst extends Ast {
   /** TODO: Add docs */
   claimChild<T extends MutableAst>(child: Owned<T> | undefined): AstId | undefined {
     return child ? claimChild(this.module, child, this.id) : undefined
+  }
+}
+
+/** TODO: Add docs */
+export function visitRecursive(ast: Ast, visit: (ast: Ast) => void | boolean): void {
+  if (visit(ast) === false) return
+  for (const child of ast.children()) {
+    if (!isToken(child)) visitRecursive(child, visit)
   }
 }
 
@@ -1397,6 +1399,20 @@ export class TypeAnnotated extends BaseExpression {
     return asOwned(new MutableTypeAnnotated(module, fields))
   }
 
+  /** Create TypeAnnotated node. */
+  static new(
+    module: MutableModule,
+    expression: Owned<MutableExpression>,
+    typeNode: Owned<MutableExpression>,
+  ) {
+    return TypeAnnotated.concrete(
+      module,
+      autospaced(expression),
+      autospaced(Token.new(':', TokenType.TypeAnnotationOperator)),
+      autospaced(typeNode),
+    )
+  }
+
   /** The expression whose type is being annotated. */
   get expression(): Expression {
     return this.module.get(this.fields.get('expression').node) as Expression
@@ -1533,7 +1549,7 @@ export class Import extends BaseStatement {
 
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableImport> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseModuleStatement(source, module)
     if (parsed instanceof MutableImport) return parsed
   }
 
@@ -2034,7 +2050,7 @@ export class ExpressionStatement extends BaseStatement {
     source: string,
     module?: MutableModule,
   ): Owned<MutableExpressionStatement> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseBlockStatement(source, module)
     if (parsed instanceof MutableExpressionStatement) return parsed
   }
 
@@ -2449,7 +2465,7 @@ export class FunctionDef extends BaseStatement {
 
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableFunctionDef> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseModuleStatement(source, module)
     if (parsed instanceof MutableFunctionDef) return parsed
   }
 
@@ -2762,7 +2778,7 @@ export class Assignment extends BaseStatement {
 
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableAssignment> | undefined {
-    const parsed = parseStatement(source, module)
+    const parsed = parseBlockStatement(source, module)
     if (parsed instanceof MutableAssignment) return parsed
   }
 
@@ -3178,7 +3194,9 @@ export class Vector extends BaseExpression {
   /** TODO: Add docs */
   static tryParse(source: string, module?: MutableModule): Owned<MutableVector> | undefined {
     const parsed = parseExpression(source, module)
-    if (parsed instanceof MutableVector) return parsed
+    if (parsed instanceof MutableVector) {
+      return parsed
+    }
   }
 
   /** TODO: Add docs */

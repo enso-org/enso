@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
+
 /**
  * Assert that the current branch should be unreachable.
  * This function should never be called at runtime due to its parameter being of type `never`.
@@ -5,15 +7,20 @@
  * runtime.
  */
 export function assertNever(x: never): never {
-  bail('Unexpected object: ' + JSON.stringify(x))
+  bail('Unexpected object: ' + JSON.stringify(x), assertNever)
 }
 
 /**
  * A type assertion that a condition is `true`.
  * Throw an error if the condtion is `false`.
  */
-export function assert(condition: boolean, message?: string): asserts condition {
-  if (!condition) bail(message ? `Assertion failed: ${message}` : 'Assertion failed')
+export function assert(
+  condition: boolean,
+  message?: string,
+  constructorOpt: Function = assert,
+): asserts condition {
+  if (!condition)
+    bail(message ? `Assertion failed: ${message}` : 'Assertion failed', constructorOpt)
 }
 
 /**
@@ -29,7 +36,12 @@ export function assert(condition: boolean, message?: string): asserts condition 
  * if the assertion fails. If the iterable contains more than five elements,
  * the remaining elements will be represented as '...'.
  */
-export function assertLength<T>(iterable: Iterable<T>, length: number, message?: string): void {
+export function assertLength<T>(
+  iterable: Iterable<T>,
+  length: number,
+  message?: string,
+  constructorOpt: Function = assertLength,
+): void {
   const convertedArray = Array.from(iterable)
   const messagePrefix = message ? message + ' ' : ''
   const elementRepresentation =
@@ -39,35 +51,40 @@ export function assertLength<T>(iterable: Iterable<T>, length: number, message?:
   assert(
     convertedArray.length === length,
     `${messagePrefix}Expected iterable of length ${length}, got length ${convertedArray.length}. Elements: [${elementRepresentation}]`,
+    constructorOpt,
   )
 }
 
 /** Assert that an iterable contains zero elements. */
 export function assertEmpty<T>(iterable: Iterable<T>, message?: string): void {
-  assertLength(iterable, 0, message)
+  assertLength(iterable, 0, message, assertEmpty)
 }
 
 /** Assert that two values are equal (by reference for reference types, by value for value types). */
 export function assertEqual<T>(actual: T, expected: T, message?: string) {
   const messagePrefix = message ? message + ' ' : ''
-  assert(actual === expected, `${messagePrefix}Expected ${expected}, got ${actual}.`)
+  assert(actual === expected, `${messagePrefix}Expected ${expected}, got ${actual}.`, assertEqual)
 }
 
 /** Assert that two values are not equal (by reference for reference types, by value for value types). */
 export function assertNotEqual<T>(actual: T, unexpected: T, message?: string) {
   const messagePrefix = message ? message + ' ' : ''
-  assert(actual !== unexpected, `${messagePrefix}Expected not ${unexpected}, got ${actual}.`)
+  assert(
+    actual !== unexpected,
+    `${messagePrefix}Expected not ${unexpected}, got ${actual}.`,
+    assertNotEqual,
+  )
 }
 
 /** A type assertion that a given value is not `undefined`. */
 export function assertDefined<T>(x: T | undefined, message?: string): asserts x is T {
   const messagePrefix = message ? message + ' ' : ''
-  assert(x !== undefined, `${messagePrefix}Expected value to be defined.`)
+  assert(x !== undefined, `${messagePrefix}Expected value to be defined.`, assertDefined)
 }
 
 /** Assert that this case is unreachable. */
 export function assertUnreachable(): never {
-  bail('Unreachable code')
+  bail('Unreachable code', assertUnreachable)
 }
 
 /**
@@ -78,6 +95,10 @@ export function assertUnreachable(): never {
  * const x = foo?.bar.baz?.() ?? bail('Expected foo.bar.baz to exist')
  * ```
  */
-export function bail(message: string): never {
-  throw new Error(message)
+export function bail(message: string, constructorOpt: Function = bail): never {
+  const error = new Error(message)
+  if ('captureStackTrace' in Error) {
+    Error.captureStackTrace(error, constructorOpt)
+  }
+  throw error
 }

@@ -34,6 +34,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.desugar.ComplexType$;
 import org.enso.compiler.pass.desugar.FunctionBinding$;
 import org.enso.compiler.pass.desugar.GenerateMethodBodies$;
+import org.enso.persist.Persistance;
 import scala.Option;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
@@ -85,7 +86,7 @@ public final class MethodDefinitions implements MiniPassFactory {
   }
 
   private static boolean computeIsStatic(IR body) {
-    return Method.Explicit$.MODULE$.computeIsStatic(body);
+    return Function.computeIsStatic(body);
   }
 
   private static final class Mini extends MiniIRPass {
@@ -123,16 +124,11 @@ public final class MethodDefinitions implements MiniPassFactory {
                         case Method.Explicit explicitMethod -> {
                           var isStatic = computeIsStatic(explicitMethod.body());
                           var resolvedMethod =
-                              explicitMethod.copy(
-                                  resolvedMethodRef,
-                                  explicitMethod.body(),
-                                  isStatic,
-                                  explicitMethod.isPrivate(),
-                                  explicitMethod.isStaticWrapperForInstanceMethod(),
-                                  explicitMethod.location(),
-                                  explicitMethod.passData(),
-                                  explicitMethod.diagnostics(),
-                                  explicitMethod.id());
+                              explicitMethod
+                                  .copyBuilder()
+                                  .methodReference(resolvedMethodRef)
+                                  .isStatic(isStatic)
+                                  .build();
                           yield resolvedMethod;
                         }
                         case Method.Conversion conversionMethod -> {
@@ -140,24 +136,23 @@ public final class MethodDefinitions implements MiniPassFactory {
                           Name resolvedName =
                               switch (sourceTypeExpr) {
                                 case Name name -> resolveType(name, bindingsMap);
-                                default -> new Conversion(
-                                    sourceTypeExpr,
-                                    UnsupportedSourceType$.MODULE$,
-                                    new MetadataStorage());
+                                default ->
+                                    new Conversion(
+                                        sourceTypeExpr,
+                                        UnsupportedSourceType$.MODULE$,
+                                        new MetadataStorage());
                               };
                           var resolvedMethod =
-                              conversionMethod.copy(
-                                  resolvedMethodRef,
-                                  resolvedName,
-                                  conversionMethod.body(),
-                                  conversionMethod.location(),
-                                  conversionMethod.passData(),
-                                  conversionMethod.diagnostics(),
-                                  conversionMethod.id());
+                              conversionMethod
+                                  .copyBuilder()
+                                  .methodReference(resolvedMethodRef)
+                                  .sourceTypeName(resolvedName)
+                                  .build();
                           yield resolvedMethod;
                         }
-                        default -> throw new CompilerError(
-                            "Unexpected method type in MethodDefinitions pass.");
+                        default ->
+                            throw new CompilerError(
+                                "Unexpected method type in MethodDefinitions pass.");
                       };
                     } else {
                       return def;
@@ -204,39 +199,33 @@ public final class MethodDefinitions implements MiniPassFactory {
         // is
         // added to avoid modifying the dispatch mechanism.
         var syntheticModuleSelfArg =
-            new DefinitionArgument.Specified(
-                new Name.Self(null, true, new MetadataStorage()),
-                Option.empty(),
-                Option.empty(),
-                false,
-                null,
-                new MetadataStorage());
+            DefinitionArgument.Specified.builder()
+                .name(new Name.Self(null, true, new MetadataStorage()))
+                .suspended(false)
+                .build();
+        // Here we add the type ascription ensuring that the 'proper' self argument only
+        // accepts _instances_ of the type (or triggers conversions)
+        var newBodyRef =
+            Persistance.Reference.of(addTypeAscriptionToSelfArgument(dup.body()), true);
         var newBody =
-            new Function.Lambda(
-                // This is the synthetic Self argument that gets the static module
-                list(syntheticModuleSelfArg),
-                // Here we add the type ascription ensuring that the 'proper' self argument only
-                // accepts _instances_ of the type (or triggers conversions)
-                addTypeAscriptionToSelfArgument(dup.body()),
-                null,
-                true,
-                new MetadataStorage());
+            Function.Lambda.builder()
+                .arguments(
+                    // This is the synthetic Self argument that gets the static module
+                    list(syntheticModuleSelfArg))
+                .bodyReference(newBodyRef)
+                .canBeTCO(true)
+                .build();
         // The actual `self` argument that is referenced inside of method body is the second one in
         // the lambda.
         // This is the argument that will hold the actual instance of the object we are calling on,
         // e.g. `My_Type.method instance`.
         // We add a type check to it to ensure only `instance` of `My_Type` can be passed to it.
         var staticMethod =
-            dup.copy(
-                dup.methodReference(),
-                newBody,
-                true,
-                dup.isPrivate(),
-                true,
-                dup.location(),
-                dup.passData(),
-                dup.diagnostics(),
-                dup.id());
+            dup.copyBuilder()
+                .bodyReference(Persistance.Reference.of(newBody))
+                .isStatic(true)
+                .isStaticWrapperForInstanceMethod(true)
+                .build();
         return staticMethod;
       }
       return null;

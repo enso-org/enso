@@ -42,6 +42,7 @@ class RuntimeRefactoringTest
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
@@ -402,8 +403,9 @@ class RuntimeRefactoringTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, exprOperator1, exprOperator2),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       TestMessages
         .update(
           contextId,
@@ -1016,8 +1018,9 @@ class RuntimeRefactoringTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       TestMessages.pending(contextId, exprOperator1, exprOperator2),
+      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       TestMessages
         .update(
           contextId,

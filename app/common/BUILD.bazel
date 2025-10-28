@@ -14,7 +14,6 @@ ts_project(
     name = "tsc",
     srcs = glob([
         "src/**/*.ts",
-        "src/**/*.js",
     ]) + ["src/text/english.json"],
     allow_js = True,
     composite = True,
@@ -33,7 +32,6 @@ npm_package(
     name = "pkg",
     srcs = [
         "package.json",
-        "src/config.json",
         ":tsc",
     ],
     visibility = ["//visibility:public"],

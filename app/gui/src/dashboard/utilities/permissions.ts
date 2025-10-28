@@ -1,9 +1,10 @@
 /** @file Utilities for working with permissions. */
-import type * as backend from '#/services/Backend'
 import {
-  type AssetPermission,
   compareAssetPermissions,
+  type AnyAsset,
+  type AssetPermission,
   type User,
+  type UserGroup,
 } from 'enso-common/src/services/Backend'
 import { Permission, PermissionAction } from 'enso-common/src/utilities/permissions'
 export * from 'enso-common/src/utilities/permissions'
@@ -58,7 +59,7 @@ export function canPermissionModifyDirectoryContents(permission: PermissionActio
 }
 
 /** Replace the first owner permission with the permission of a new user or team. */
-export function tryGetOwnerPermission(asset: backend.AnyAsset) {
+export function tryGetOwnerPermission(asset: AnyAsset) {
   return asset.permissions?.find((permission) => permission.permission === PermissionAction.own)
 }
 
@@ -78,8 +79,8 @@ export function isTeamPath(path: string) {
 /** Find the new owner of an asset based on the path of its new parent directory. */
 export function newOwnerFromPath(
   path: string,
-  users: readonly backend.User[],
-  userGroups: readonly backend.UserGroup[],
+  users: readonly User[],
+  userGroups: readonly UserGroup[],
 ) {
   const [, userName] = path.match(USER_PATH_REGEX) ?? []
   if (userName != null) {

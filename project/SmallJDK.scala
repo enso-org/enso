@@ -90,7 +90,8 @@ object SmallJDK {
     val mp = modulePath()
       .map(_.toAbsolutePath.toString)
       .mkString(File.pathSeparator)
-    val modules = JDK_MODULES ++ NI_BASE_MODULES ++ PYTHON_MODULES
+    val modules =
+      JDK_MODULES ++ NI_BASE_MODULES ++ DEBUG_MODULES ++ PYTHON_MODULES
     val jlinkArgs = Seq(
       "--no-header-files",
       "--no-man-pages",

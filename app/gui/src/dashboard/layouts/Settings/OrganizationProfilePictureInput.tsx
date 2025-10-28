@@ -29,7 +29,9 @@ export default function OrganizationProfilePictureInput(
 
   return (
     <Form
-      schema={(z) => z.object({ picture: z.instanceof(File) })}
+      schema={(z) =>
+        z.object({ picture: z.instanceof(File).refine((file) => file.type.startsWith('image/')) })
+      }
       onSubmit={({ picture }) =>
         uploadOrganizationPicture.mutateAsync([{ fileName: picture.name }, picture])
       }
@@ -54,7 +56,7 @@ export default function OrganizationProfilePictureInput(
             className="pointer-events-none h-full w-full"
           />
 
-          <HiddenFile autoSubmit name="picture" />
+          <HiddenFile autoSubmit name="picture" accept="image/*" />
         </aria.Label>
       </FocusRing>
       <aria.Text className="w-profile-picture-caption py-profile-picture-caption-y">

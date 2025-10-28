@@ -1,17 +1,20 @@
 /** @file Plan selector component. */
 import { DIALOG_BACKGROUND } from '#/components/Dialog/variants'
+import { backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
-import { Plan } from '#/services/Backend'
+import * as backend from '#/services/Backend'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { useBackends } from '$/providers/backends'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { Card } from './components'
 
 /** Props for {@link PlanSelector} */
 export interface PlanSelectorProps extends VariantProps<typeof PLAN_SELECTOR_STYLES> {
-  readonly userPlan: Plan
+  readonly userPlan: backend.Plan
   readonly showFreePlan: boolean
   readonly isOrganizationAdmin: boolean
-  readonly plan?: Plan | null | undefined
+  readonly plan?: backend.Plan | null | undefined
 }
 
 const PLAN_SELECTOR_STYLES = tv({
@@ -19,11 +22,11 @@ const PLAN_SELECTOR_STYLES = tv({
     className: 'w-full snap-x overflow-auto rounded-4xl scroll-hidden',
   }),
   variants: {
-    showFreePlan: { true: { grid: '2xl:grid-cols-5' } },
+    showFreePlan: { true: { grid: '2xl:auto-cols-5' } },
   },
   slots: {
-    grid: 'inline-grid min-w-full gap-6 p-6 grid-cols-1fr justify-center md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
-    card: 'min-w-64 snap-center',
+    grid: 'inline-grid min-w-full gap-6 p-6 grid-flow-col auto-cols-1fr justify-center md:auto-cols-2 lg:auto-cols-3 xl:auto-cols-4',
+    card: 'min-w-72 snap-center',
   },
 })
 
@@ -41,34 +44,25 @@ export function PlanSelector(props: PlanSelectorProps) {
   } = props
 
   const { getPaywallLevel } = usePaywall({ plan: userPlan })
+  const { remoteBackend } = useBackends()
 
+  const { data: config } = useSuspenseQuery(
+    backendQueryOptions(remoteBackend, 'getPaymentsConfig', []),
+  )
   const classes = variants({ showFreePlan })
 
   return (
     <div className={classes.base()}>
       <div className={classes.grid()}>
-        {(
-          [
-            /* eslint-disable @typescript-eslint/no-magic-numbers */
-            { plan: Plan.free, period: 12 },
-            { plan: Plan.solo, period: 1 },
-            { plan: Plan.solo, period: 12 },
-            { plan: Plan.team, period: 12 },
-            { plan: Plan.enterprise, period: 12 },
-            /* eslint-enable @typescript-eslint/no-magic-numbers */
-          ] as const
-        ).map(({ plan: newPlan, period }) => {
-          if (!showFreePlan && newPlan === Plan.free) {
-            return
-          }
-
+        {config.cards.map(({ plan: newPlan, period, title, subtitle, pricing, features }) => {
           return (
             <Card
               key={`${newPlan}/${period}`}
               plan={newPlan}
               period={period}
+              texts={{ title, subtitle, pricing, features }}
               modalOpen={newPlan === plan}
-              userHasSubscription={userPlan !== Plan.free}
+              userHasSubscription={userPlan !== backend.Plan.free}
               isOrganizationAdmin={isOrganizationAdmin}
               isCurrent={newPlan === userPlan}
               paywallLevel={getPaywallLevel(newPlan)}

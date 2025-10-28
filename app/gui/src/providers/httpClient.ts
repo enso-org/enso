@@ -1,5 +1,5 @@
-import HttpClient from '#/utilities/HttpClient'
 import { createGlobalState } from '@vueuse/core'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
 
 function generateSessionID() {
   const sessionID = sessionStorage.getItem('sessionID')

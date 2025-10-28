@@ -1,0 +1,78 @@
+from Standard.Base import all
+
+## Set of static functions for expression support allowing callback to Enso code.
+type Expression_Statics
+    ## Obtains the current date from the system clock.
+    today -> Date =
+        Date.today
+
+    ## Obtains the current date-time from the system clock in the system timezone.
+    now -> Date_Time =
+        Date_Time.now
+
+    ## Obtains the current time from the system clock.
+    time -> Time_Of_Day =
+        Time_Of_Day.now
+
+    ## Obtains the previous date from the system clock.
+    yesterday -> Date =
+        Date.today - ..Day
+
+    ## Obtains the next date from the system clock.
+    tomorrow -> Date =
+        Date.today + ..Day
+
+    ## Creates a regular expression (alternatively use r/expression/)
+    regex expression = Regex.compile expression
+
+    ## Multiples two values.
+    * this that = this * that
+
+    ## Divides this by that.
+    / this that = this / that
+
+    ## Adds two values.
+    + this that = this + that
+
+    ## Subtracts that from this.
+    - this that = this - that
+
+    ## Compares two values for equality.
+    == this that = this == that
+
+    ## Compares two values for inequality.
+    != this that = this != that
+
+    ## Compute the result of raising this to the power that.
+    ^ this that = this ^ that
+
+    ## Computes the remainder when dividing this by that.
+    % this that = this % that
+
+    ## Compares if this is less than that
+    < this that = this < that
+
+    ## Compares if this is less than or equal to that
+    <= this that = this <= that
+
+    ## Compares if this is greater than that
+    > this that = this > that
+
+    ## Compares if this is greater than or equal to that
+    >= this that = this >= that
+
+    ## The mathematical constant pi, equal to the ratio of a circle circumference
+       to its diameter.
+    pi -> Float = Math.pi
+
+    ## The mathematical constant e, the base of the natural logarithm.
+    e -> Float = Math.e
+
+    ## Creates a Random number column with values between 0.0 and 1.0.
+    rand seed:Integer=0 =
+        generator = Random.new_generator seed
+        _ -> generator.float
+
+    ## Creates a UUID column with random UUID values (version 4).
+    uuid =
+        _ -> Random.uuid

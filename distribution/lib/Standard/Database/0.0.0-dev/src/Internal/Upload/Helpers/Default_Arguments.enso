@@ -7,7 +7,9 @@ import project.DB_Table.DB_Table
 from project.Internal.Upload.Helpers.Argument_Checks import check_target_table_for_update
 from project.Internal.Upload.Helpers.Prepare_Structure import align_vector_structure
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Returns the name of the first column in the provided table structure.
    It also verifies that the structure is correct.
    Used to provide the default value for `primary_key` in `create_table`.
@@ -16,15 +18,19 @@ first_column_name_in_structure structure = case structure of
     table : DB_Table  -> (table:Table).column_names.first
     table : Table -> table.column_names.first
 
-## PRIVATE
-   Extracts the default argument for `key_columns` parameter of the
-   `update_rows` operation.
+## ---
+   private: true
+   ---
+   Extracts the default argument for `key_columns` parameter of the `update_rows`
+   operation.
 default_key_columns (table : Table) = case table of
     db_table : DB_Table -> check_target_table_for_update table <|
         db_table.get_primary_key
     _ -> Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A variant of `default_key_columns` that will raise an error if no key columns
    were found.
 default_key_columns_required table = case table of

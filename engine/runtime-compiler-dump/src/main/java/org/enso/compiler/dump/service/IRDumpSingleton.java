@@ -1,12 +1,13 @@
 package org.enso.compiler.dump.service;
 
 import java.util.ServiceLoader;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 
 final class IRDumpSingleton {
-  static final IRDumpFactoryService DEFAULT = find();
+  static final IRDumpFactoryService<?> DEFAULT = find();
 
-  private static IRDumpFactoryService find() {
+  private static IRDumpFactoryService<?> find() {
     IRDumpFactoryService service = new NoDumping();
     var loader = ServiceLoader.load(IRDumpFactoryService.class);
     var it = loader.iterator();
@@ -18,19 +19,22 @@ final class IRDumpSingleton {
     return service;
   }
 
-  private static final class NoDumping implements IRDumpFactoryService, IRDumper {
+  private static final class NoDumping extends IRDumpFactoryService<Void> {
     @Override
-    public IRDumper create(String moduleName) {
-      return this;
+    public Void create(String moduleName) {
+      return null;
     }
 
     @Override
     public void shutdown() {}
 
     @Override
-    public void dumpModule(IRSource<Module> ir) {}
+    public void dumpModule(Void group, IRSource<Module> ir) {}
 
     @Override
-    public void close() {}
+    public void dumpExpression(Void group, IRSource<Expression> ir) {}
+
+    @Override
+    public void close(Void group) {}
   }
 }

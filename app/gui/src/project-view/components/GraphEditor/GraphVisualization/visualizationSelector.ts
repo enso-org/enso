@@ -57,7 +57,6 @@ export function useVisualizationSelector({ selectedType, types }: VisualizationS
       ...bindModelValue(selectedTypeKey),
       options: visualizationOptions.value,
       title: 'Visualization Selector',
-      alwaysShowArrow: true,
       entriesTestId: 'visualization-selector-entries',
     }),
   )

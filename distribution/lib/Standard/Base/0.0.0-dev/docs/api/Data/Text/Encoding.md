@@ -12,6 +12,7 @@
     - to_display_text self -> Standard.Base.Any.Any
     - to_java_charset self -> Standard.Base.Any.Any
     - to_java_charset_or_null self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
     - utf_16_be -> Standard.Base.Any.Any
     - utf_16_le -> Standard.Base.Any.Any
     - utf_32_be -> Standard.Base.Any.Any

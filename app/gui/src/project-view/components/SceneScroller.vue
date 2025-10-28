@@ -25,7 +25,7 @@ const scrollingState = ref<{
   readonly range: Vec2
   /** `pos` when scrolling started. */
   readonly scrollStartPos: Vec2
-  /** Viewport center, in scene coordinates, when scrolling started. */
+  /** Viewport left top corner, in scene coordinates, when scrolling started. */
   readonly scrollOrigin: Vec2
 }>()
 
@@ -33,7 +33,7 @@ function scroll(event: ScrollbarEvent) {
   switch (event.type) {
     case 'start': {
       const scrollStartPos = scrollInputs.value.pos
-      const scrollOrigin = props.navigator.viewport.center()
+      const scrollOrigin = props.navigator.viewport.pos
       scrollingState.value = { ...scrollInputs.value, scrollStartPos, scrollOrigin }
       break
     }
@@ -56,7 +56,7 @@ function scroll(event: ScrollbarEvent) {
       const proportionalPos = event.position / scrollInputs.value.range.getAxis(event.axis)
       const scaledPos = proportionalPos * props.scrollableArea.size.getAxis(event.axis)
       const pos = scaledPos + props.scrollableArea.pos.getAxis(event.axis)
-      props.navigator.scrollTo(props.navigator.viewport.center().setAxis(event.axis, pos))
+      props.navigator.scrollTo(props.navigator.viewport.pos.setAxis(event.axis, pos))
       break
     }
   }

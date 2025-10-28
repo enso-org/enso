@@ -10,7 +10,6 @@ import * as Y from 'yjs'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
-import WS from 'modern-isomorphic-ws'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
@@ -94,26 +93,19 @@ export class WSSharedDoc {
  * @param docName The name of the document to synchronize. When the document name is `index`, the
  * document is considered to be the root document of the `DistributedProject` data model.
  */
-export function setupGatewayClient(ws: WS, lsUrl: string | undefined | null, docName: string) {
-  let lsSession: LanguageServerSession
+export function setupGatewayClient(
+  ws: YjsSocket,
+  lsUrl: string | undefined | null,
+  docName: string,
+) {
   console.log(`setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName})`)
-  if (lsUrl) {
-    lsSession = LanguageServerSession.get(lsUrl)
-  } else {
-    const anySession = LanguageServerSession.sessions.values().next().value
-    if (anySession) {
-      lsSession = anySession
-    } else {
-      throw `There are too many sessions: ${Array.from(LanguageServerSession.sessions.keys())} - specify one via ?ls=... parameter!`
-    }
-  }
-
-  const wsDoc = lsSession.getYDoc(docName)
-  if (wsDoc == null) {
-    console.error(`Document '${docName}' not found in language server session '${lsUrl}'.`)
+  const lsSession = getSessionForUrl(lsUrl)
+  const wsDoc = getSessionDoc(lsSession, docName)
+  if (!wsDoc) {
     ws.close()
     return
   }
+
   const connection = new YjsConnection(ws, wsDoc)
   connection.once('close', async () => {
     try {
@@ -124,17 +116,61 @@ export function setupGatewayClient(ws: WS, lsUrl: string | undefined | null, doc
   })
 }
 
-class YjsConnection extends ObservableV2<{ close(): void }> {
-  ws: WS
+function getSessionForUrl(lsUrl: string | undefined | null) {
+  let lsSession: LanguageServerSession
+  if (lsUrl) {
+    lsSession = LanguageServerSession.get(lsUrl)
+  } else {
+    const anySession = LanguageServerSession.sessions.values().next().value
+    if (LanguageServerSession.sessions.size === 1 && anySession) {
+      lsSession = anySession
+    } else {
+      throw `There are too many sessions: ${Array.from(LanguageServerSession.sessions.keys())} - specify one via ?ls=... parameter!`
+    }
+  }
+  return lsSession
+}
+
+function getSessionDoc(lsSession: LanguageServerSession, docName: string) {
+  const wsDoc = lsSession.getYDoc(docName)
+  if (wsDoc == null) {
+    console.error(`Document '${docName}' not found in language server session.`)
+  }
+  return wsDoc
+}
+
+/** Subset of WebSocket that can be mocked */
+export interface YjsSocket {
+  binaryType: 'arraybuffer'
+  readonly readyState:
+    | typeof WebSocket.CONNECTING
+    | typeof WebSocket.OPEN
+    | typeof WebSocket.CLOSING
+    | typeof WebSocket.CLOSED
+  on(event: 'close', listener: (code: number, reason: Buffer) => void): this
+  on(event: 'message', listener: (data: ArrayBuffer | Buffer, isBinary: boolean) => void): this
+  on(event: 'ping' | 'pong', listener: (data: Buffer) => void): this
+  send(data: Uint8Array, cb?: (err?: Error) => void): void
+  ping(): void
+  close(): void
+}
+
+/**
+ * Connection that synchronizes state of given shared doc using specified websocket.
+ */
+export class YjsConnection extends ObservableV2<{ close(): void }> {
+  ws: YjsSocket
   wsDoc: WSSharedDoc
-  constructor(ws: WS, wsDoc: WSSharedDoc) {
+  /** Create new connection between specified websocket and document */
+  constructor(ws: YjsSocket, wsDoc: WSSharedDoc) {
     super()
     this.ws = ws
     this.wsDoc = wsDoc
     const isLoaded = wsDoc.conns.size > 0
     wsDoc.conns.set(this, new Set())
-    ws.binaryType = 'arraybuffer'
-    ws.on('message', (message: ArrayBuffer) => this.messageListener(new Uint8Array(message)))
+    ws.on('message', (message: ArrayBuffer | Buffer) =>
+      this.messageListener(new Uint8Array(message)),
+    )
     ws.on('close', () => this.close())
     if (!isLoaded) wsDoc.doc.load()
     this.initPing()
@@ -163,7 +199,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     this.ws.on('pong', () => (pongReceived = true))
   }
 
-  sendSyncMessage() {
+  private sendSyncMessage() {
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, messageSync)
     writeSyncStep1(encoder, this.wsDoc.doc)
@@ -180,8 +216,9 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     }
   }
 
+  /** Send raw message over websocket. */
   send(message: Uint8Array) {
-    if (this.ws.readyState !== WS.CONNECTING && this.ws.readyState !== WS.OPEN) {
+    if (this.ws.readyState !== WebSocket.CONNECTING && this.ws.readyState !== WebSocket.OPEN) {
       this.close()
     }
     try {
@@ -191,7 +228,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     }
   }
 
-  messageListener(message: Uint8Array) {
+  private messageListener(message: Uint8Array) {
     try {
       const encoder = encoding.createEncoder()
       const decoder = decoding.createDecoder(message)
@@ -221,7 +258,7 @@ class YjsConnection extends ObservableV2<{ close(): void }> {
     }
   }
 
-  close() {
+  private close() {
     const controlledIds = this.wsDoc.conns.get(this)
     this.wsDoc.conns.delete(this)
     if (controlledIds != null) {

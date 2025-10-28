@@ -1,7 +1,5 @@
 //! The expression parser.
 
-
-
 mod annotations;
 mod application;
 mod apply;
@@ -17,8 +15,6 @@ mod reducer;
 mod section;
 mod types;
 mod whitespace;
-
-
 
 // ===============
 // === Exports ===

@@ -2,7 +2,7 @@
 import DismissIcon from '#/assets/dismiss.svg'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
-import { isOnMacOS } from 'enso-common/src/detect'
+import { isOnMacOS } from '$/utils/detect'
 import { memo } from 'react'
 import { Button } from './Button'
 import type { ButtonProps } from './types'
@@ -24,7 +24,7 @@ export const CloseButton = memo(function CloseButton<IconType extends string>(
     icon = DismissIcon,
     tooltip = false,
     'aria-label': ariaLabel = getText('closeModalShortcut'),
-    testId = 'close-button',
+    testId,
     ...buttonProps
   } = props
 

@@ -1,4 +1,3 @@
-import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import * as Y from 'yjs'
 import { ensoMarkdownParser, ensoStandardMarkdownParser } from './ensoMarkdown'
 import { xxHash128 } from './ffi'
@@ -6,6 +5,9 @@ import type { ConcreteChild, RawConcreteChild } from './print'
 import { firstChild, preferUnspaced, unspaced } from './print'
 import { Token, TokenType } from './token'
 import type { ConcreteRefs, DeepReadonly, DocLine, TextToken } from './tree'
+
+/** See http://www.unicode.org/reports/tr18/#Line_Boundaries */
+export const LINE_BOUNDARIES = /\r\n|[\n\v\f\r\x85\u2028\u2029]/g
 
 // === AST logic ===
 
@@ -201,7 +203,6 @@ export function prerenderMarkdown(markdown: string): string {
  * representation, with paragraphs hard-wrapped and separated by blank lines.
  */
 function standardizeMarkdown(prerenderedMarkdown: string, textConsumer: TextConsumer): void {
-  let printingTags = true
   const cursor = ensoMarkdownParser.parse(prerenderedMarkdown).cursor()
 
   function standardizeDocument() {
@@ -214,7 +215,7 @@ function standardizeMarkdown(prerenderedMarkdown: string, textConsumer: TextCons
         for (const _match of betweenText.matchAll(LINE_BOUNDARIES)) {
           textConsumer.newline()
         }
-        if (cursor.name === 'Paragraph' && prevName === 'Paragraph' && !printingTags) {
+        if (cursor.name === 'Paragraph' && prevName === 'Paragraph') {
           textConsumer.newline()
         }
       }
@@ -226,7 +227,6 @@ function standardizeMarkdown(prerenderedMarkdown: string, textConsumer: TextCons
           if (i > 0) textConsumer.newline()
           textConsumer.text(line)
         })
-        printingTags = false
       }
       prevTo = cursor.to
       prevName = cursor.name
@@ -236,21 +236,12 @@ function standardizeMarkdown(prerenderedMarkdown: string, textConsumer: TextCons
   function standardizeParagraph(lines: string[]) {
     let printingNonTags = false
     lines.forEach((line, i) => {
-      if (printingTags) {
-        if (cursor.name === 'Paragraph' && line.startsWith('ICON ')) {
-          textConsumer.text(line)
-        } else {
-          printingTags = false
-        }
+      if (i > 0) {
+        textConsumer.newline()
+        if (printingNonTags) textConsumer.newline()
       }
-      if (!printingTags) {
-        if (i > 0) {
-          textConsumer.newline()
-          if (printingNonTags) textConsumer.newline()
-        }
-        textConsumer.wrapText(line)
-        printingNonTags = true
-      }
+      textConsumer.wrapText(line)
+      printingNonTags = true
     })
   }
 

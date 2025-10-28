@@ -1,12 +1,13 @@
+import { type ProjectStore } from '$/providers/openedProjects/project'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import * as geoMapVisualization from '@/components/visualizations/GeoMapVisualization.vue'
 import * as imageBase64Visualization from '@/components/visualizations/ImageBase64Visualization.vue'
-import * as jsonVisualization from '@/components/visualizations/JSONVisualization.vue'
+import * as jsonVisualization from '@/components/visualizations/JSONVisualization'
 import * as scatterplotVisualization from '@/components/visualizations/ScatterplotVisualization.vue'
 import * as sqlVisualization from '@/components/visualizations/SQLVisualization.vue'
 import * as tableVisualization from '@/components/visualizations/TableVisualization.vue'
 import * as warningsVisualization from '@/components/visualizations/WarningsVisualization.vue'
 import { createContextStore } from '@/providers'
-import { type ProjectStore } from '@/stores/project'
 import {
   compile,
   currentProjectProtocol,
@@ -250,15 +251,26 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
       }
     })
 
-    function* byType(type: Opt<ProjectPath>): IterableIterator<VisualizationIdentifier> {
+    function* byType(
+      typeInfo: Opt<TypeInfo>,
+      typeName: Opt<ProjectPath>,
+    ): IterableIterator<VisualizationIdentifier> {
       const types =
-        type == null ?
+        typeInfo == null ?
+          typeName == null ?
+            []
+          : [typeName]
+        : [...(typeInfo?.visibleTypes ?? []), ...(typeInfo?.hiddenTypes ?? [])]
+      const vizzes =
+        types.length === 0 ?
           metadata.keys()
         : new Set([
-            ...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? []),
+            ...types.flatMap((type) => [
+              ...(metadata.visualizationIdToType.reverseLookup(type.key()) ?? []),
+            ]),
             ...(metadata.visualizationIdToType.reverseLookup(ANY_TYPE_QN) ?? []),
           ])
-      for (const type of types) yield fromVisualizationId(type)
+      for (const viz of vizzes) yield fromVisualizationId(viz)
     }
 
     function icon(type: VisualizationIdentifier) {

@@ -1,6 +1,8 @@
 from Standard.Base import all
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Named_Pattern
     ## Matches one or more whitespace characters at the beginning of a string.
     Leading_Whitespace
@@ -41,7 +43,9 @@ type Named_Pattern
     ## Matches any characters that are not an alphabetic character, digit, or whitespace.
     Symbols
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     regex_pattern self = case self of
         Named_Pattern.Leading_Whitespace -> "^\s+"
         Named_Pattern.Trailing_Whitespace -> "\s+$"
@@ -57,5 +61,7 @@ type Named_Pattern
         Named_Pattern.Punctuation -> '[,.!?():;\'\"]'
         Named_Pattern.Symbols -> "[^a-zA-Z\d\s]"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Regex.from (that:Named_Pattern) = Regex.compile that.regex_pattern

@@ -17,7 +17,7 @@ const tvConstructor = createTV({ twMergeConfig: TAILWIND_MERGE_CONFIG })
 export const tv: typeof tvConstructor = function tvWithLRU(
   construct: Parameters<typeof tvConstructor>[0],
 ) {
-  const cache = new LRUCache<string, unknown>(MAX_CACHE_SIZE)
+  const cache = new LRUCache<string, { value: unknown }>(MAX_CACHE_SIZE)
   /**
    * Get a cache key for a given set of arguments.
    */
@@ -35,7 +35,7 @@ export const tv: typeof tvConstructor = function tvWithLRU(
     const cached = cache.get(cacheKey)
 
     if (cached != null) {
-      return cached
+      return cached.value
     }
 
     const result: unknown = baseVariants(args)
@@ -56,14 +56,14 @@ export const tv: typeof tvConstructor = function tvWithLRU(
             const slotCache = cache.get(slotCacheKey)
 
             if (slotCache != null) {
-              return slotCache
+              return slotCache.value
             }
 
             // @ts-expect-error - This is a valid assignment.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const classes = value(props)
 
-            cache.set(slotCacheKey, classes)
+            cache.set(slotCacheKey, { value: classes })
 
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return classes
@@ -72,7 +72,7 @@ export const tv: typeof tvConstructor = function tvWithLRU(
       }
     }
 
-    cache.set(cacheKey, result)
+    cache.set(cacheKey, { value: result })
     return result
   }
   // Extend the prototype of the `variantsWithLRU` function with the `baseVariants` function.

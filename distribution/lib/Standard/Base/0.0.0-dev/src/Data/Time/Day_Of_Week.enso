@@ -29,13 +29,15 @@ type Day_Of_Week
     ## Day_Of_Week representing Saturday.
     Saturday
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Convert the Day_Of_Week to an Integer.
 
-       Arguments:
-       - `first_day`: The first day of the week.
-       - `start_at_zero`: If True, first day of the week is 0 otherwise is 1.
+       ## Arguments
+        - ``first_day``: The first day of the week.
+        - ``start_at_zero``: If True, first day of the week is 0 otherwise is 1.
     to_integer : Day_Of_Week -> Boolean -> Integer
     to_integer self first_day=Day_Of_Week.Sunday start_at_zero=False =
         day_number = case self of
@@ -53,7 +55,9 @@ type Day_Of_Week
 
         shifted + if start_at_zero then 0 else 1
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_java : DayOfWeek
     to_java self = case self of
         Day_Of_Week.Sunday -> DayOfWeek.SUNDAY
@@ -64,27 +68,37 @@ type Day_Of_Week
         Day_Of_Week.Friday -> DayOfWeek.FRIDAY
         Day_Of_Week.Saturday -> DayOfWeek.SATURDAY
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Day_Of_Week_Comparator
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     compare : Day_Of_Week -> Day_Of_Week -> Ordering
     compare x y =
         Ordering.compare x.to_integer y.to_integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     hash : Day_Of_Week -> Integer
     hash x = x.to_integer
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Comparable.from (that:Day_Of_Week) = Comparable.new that Day_Of_Week_Comparator
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Convert from an integer to a Day_Of_Week
 
-   Arguments:
-   - `that`: The first day of the week.
-   - `first_day`: The first day of the week.
-   - `start_at_zero`: If True, first day of the week is 0 otherwise is 1.
+   ## Arguments
+    - `that`: The first day of the week.
+    - `first_day`: The first day of the week.
+    - `start_at_zero`: If True, first day of the week is 0 otherwise is 1.
 Day_Of_Week.from (that : Integer) (first_day:Day_Of_Week=Day_Of_Week.Sunday) (start_at_zero:Boolean=False) =
     shifted = if start_at_zero then that else that - 1
 

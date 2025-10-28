@@ -24,4 +24,7 @@ module org.enso.runner {
   requires org.jline.reader;
   requires scala.library;
   requires org.slf4j;
+
+  // required by Snowflake
+  requires java.rmi;
 }

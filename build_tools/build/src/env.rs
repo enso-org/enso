@@ -4,8 +4,6 @@ use crate::prelude::*;
 use ide_ci::define_env_var;
 use ide_ci::programs::docker::ContainerId;
 
-
-
 define_env_var! {
     ENSO_RELEASE_ID, octocrab::models::ReleaseId;
 

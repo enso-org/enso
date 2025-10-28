@@ -24,50 +24,53 @@ from project.In_Memory_Table import from_java_table
 polyglot java import java.util.HashSet
 
 type Table_Column_Helper
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Helps managing table columns.
 
-       Arguments:
-       - columns: A list of columns in the table.
-       - internal_columns: A list of all columns in a table. (In_DB this is different from columns)
-       - make_column: A function which takes the internal column and creates a
-         fully fledged column from it.
-       - table: A reference to the table.
-       - materialize: A function which takes a table and materializes it to
-         in-memory.
+       ## Arguments
+        - `columns`: A list of columns in the table.
+        - `internal_columns`: A list of all columns in a table. (In_DB this is
+          different from columns)
+        - `make_column`: A function which takes the internal column and creates a
+          fully fledged column from it.
+        - `table`: A reference to the table.
+        - `materialize`: A function which takes a table and materializes it to
+          in-memory.
     Value columns internal_columns make_column table materialize
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A helper function encapsulating shared code for `select_columns`
        implementations of various Table variants. See the documentation for the
        Table type for details.
-
        It returns the selected columns. It is the responsibility of each
-       implementation to reconstruct a proper table from the
-       resulting list of columns.
+       implementation to reconstruct a proper table from the resulting list of
+       columns.
 
-       Arguments:
-       - selectors: Single instance or a Vector of names, indexes or
-         regular expressions.
-       - case_sensitivity: Specifies whether the column name matching should be
-         case sensitive.
-       - reorder: Specifies whether to reorder the matched columns according to
-         the order of the selection criteria.
-         If `False`, the matched entries are returned in the same order as in
-         the input.
-         If `True`, the matched entries are returned in the order of the
-         criteria matching them. If a single object has been matched by multiple
-         criteria, it is placed in the group belonging to the first matching
-         criterion on the list. If a single criterion's group has more than one
-         element, their relative order is the same as in the input.
-       - error_on_missing_columns: Specifies if missing columns should be raised
-         as error regardless of `on_problems`.
-       - on_problems: Specifies the behavior when a problem occurs during the
-         operation. By default, a warning is issued, but the operation proceeds.
-         If set to `Report_Error`, the operation fails with a dataflow error.
-         If set to `Ignore`, the operation proceeds without errors or warnings.
-       - error_on_empty: Specifies if the operation should fail if no columns
-         are selected.
+       ## Arguments
+        - `selectors`: Single instance or a Vector of names, indexes or regular
+          expressions.
+        - `case_sensitivity`: Specifies whether the column name matching should
+          be case sensitive.
+        - `reorder`: Specifies whether to reorder the matched columns according
+          to the order of the selection criteria. If `False`, the matched entries
+          are returned in the same order as in the input. If `True`, the matched
+          entries are returned in the order of the criteria matching them. If a
+          single object has been matched by multiple criteria, it is placed in
+          the group belonging to the first matching criterion on the list. If a
+          single criterion's group has more than one element, their relative
+          order is the same as in the input.
+        - `error_on_missing_columns`: Specifies if missing columns should be
+          raised as error regardless of `on_problems`.
+        - `on_problems`: Specifies the behavior when a problem occurs during the
+          operation. By default, a warning is issued, but the operation proceeds.
+          If set to `Report_Error`, the operation fails with a dataflow error. If
+          set to `Ignore`, the operation proceeds without errors or warnings.
+        - `error_on_empty`: Specifies if the operation should fail if no columns
+          are selected.
     select_columns : Text | Integer | Regex | By_Type | Vector (Integer | Text | Regex | By_Type) -> Case_Sensitivity -> Boolean -> Boolean -> Problem_Behavior -> Boolean -> Vector
     select_columns self (selectors:(Text | Integer | Regex | By_Type | Vector)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) (error_on_empty:Boolean=True) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
@@ -75,14 +78,16 @@ type Table_Column_Helper
         problem_builder.attach_problems_before on_problems <|
             if error_on_empty && result.is_empty then problem_builder.raise_no_output_columns_with_cause else result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A helper to returns a set of columns filtered by the type of the column.
 
-       Arguments:
-       - types: The types of columns to select.
-       - strict: If `True`, only columns with exactly the specified types will
-         be selected. If `False`, columns with types that are subtypes of the
-         specified types will also be selected (i.e. ignore size, precision).
+       ## Arguments
+        - `types`: The types of columns to select.
+        - `strict`: If `True`, only columns with exactly the specified types will
+          be selected. If `False`, columns with types that are subtypes of the
+          specified types will also be selected (i.e. ignore size, precision).
     select_by_type : Vector Value_Type -> Boolean -> Vector
     select_by_type self types:Vector strict:Boolean=False =
         parsed_types = types.map t-> t:Value_Type
@@ -91,26 +96,27 @@ type Table_Column_Helper
         if selected_columns.length == 0 then Error.throw (No_Output_Columns.Error "No columns of the specified types were found.") else
             selected_columns
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A helper function encapsulating shared code for `remove_columns`
        implementations of various Table variants. See the documentation for the
        Table type for details.
-
        It returns the columns which should be kept. It is the responsibility of
        each implementation to reconstruct a proper table from the resulting list
        of columns.
 
-       Arguments:
-       - selectors: Single instance or a Vector of names, indexes or
-         regular expressions.
-       - case_sensitivity: Specifies whether the column name matching should be
-         case sensitive.
-       - error_on_missing_columns: Specifies if missing columns should be raised
-         as error regardless of `on_problems`.
-       - on_problems: Specifies the behavior when a problem occurs during the
-         operation. By default, a warning is issued, but the operation proceeds.
-         If set to `Report_Error`, the operation fails with a dataflow error.
-         If set to `Ignore`, the operation proceeds without errors or warnings.
+       ## Arguments
+        - `selectors`: Single instance or a Vector of names, indexes or regular
+          expressions.
+        - `case_sensitivity`: Specifies whether the column name matching should
+          be case sensitive.
+        - `error_on_missing_columns`: Specifies if missing columns should be
+          raised as error regardless of `on_problems`.
+        - `on_problems`: Specifies the behavior when a problem occurs during the
+          operation. By default, a warning is issued, but the operation proceeds.
+          If set to `Report_Error`, the operation fails with a dataflow error. If
+          set to `Ignore`, the operation proceeds without errors or warnings.
     remove_columns : Text | Integer | Regex | Vector (Integer | Text | Regex) -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Vector
     remove_columns self (selectors:(Text | Integer | Regex | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
@@ -122,42 +128,45 @@ type Table_Column_Helper
         if result.is_empty then Error.throw No_Output_Columns.Error else
             problem_builder.attach_problems_after on_problems result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A helper to returns a set of columns filtering out based on the type of
        the column.
 
-       Arguments:
-       - types: The types of columns to remove.
-       - strict: If `True`, only columns with exactly the specified types will
-         be selected. If `False`, columns with types that are subtypes of the
-         specified types will also be selected (i.e. ignore size, precision).
+       ## Arguments
+        - `types`: The types of columns to remove.
+        - `strict`: If `True`, only columns with exactly the specified types will
+          be selected. If `False`, columns with types that are subtypes of the
+          specified types will also be selected (i.e. ignore size, precision).
     remove_by_type : Vector Value_Type -> Boolean -> Vector
     remove_by_type self types:Vector strict:Boolean=False =
         if strict then self.columns.filter (c->(types.contains c.value_type).not) else
             self.columns.filter c->(types.all (t->(c.value_type.is_same_type t . not)))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A helper function encapsulating shared code for `reorder_columns`
        implementations of various Table variants. See the documentation for the
        Table type for details.
-
        It returns the columns which should be kept. It is the responsibility of
        each implementation to reconstruct a proper table from the resulting list
        of columns.
 
-       Arguments:
-       - selectors: Single instance or a Vector of names, indexes or
-         regular expressions.
-       - position: Specifies how to place the selected columns in relation to
-         the columns which were not matched by the `selector` (if any).
-       - case_sensitivity: Specifies whether the column name matching should be
-         case sensitive.
-       - error_on_missing_columns: Specifies if missing columns should be raised
-         as error regardless of `on_problems`.
-       - on_problems: Specifies the behavior when a problem occurs during the
-         operation. By default, a warning is issued, but the operation proceeds.
-         If set to `Report_Error`, the operation fails with a dataflow error.
-         If set to `Ignore`, the operation proceeds without errors or warnings.
+       ## Arguments
+        - `selectors`: Single instance or a Vector of names, indexes or regular
+          expressions.
+        - `position`: Specifies how to place the selected columns in relation to
+          the columns which were not matched by the `selector` (if any).
+        - `case_sensitivity`: Specifies whether the column name matching should
+          be case sensitive.
+        - `error_on_missing_columns`: Specifies if missing columns should be
+          raised as error regardless of `on_problems`.
+        - `on_problems`: Specifies the behavior when a problem occurs during the
+          operation. By default, a warning is issued, but the operation proceeds.
+          If set to `Report_Error`, the operation fails with a dataflow error. If
+          set to `Ignore`, the operation proceeds without errors or warnings.
     reorder_columns : Text | Integer | Regex | Vector (Integer | Text | Regex) -> Position -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Vector
     reorder_columns self (selectors:(Text | Integer | Regex | Vector)) (position:Position) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
@@ -172,22 +181,25 @@ type Table_Column_Helper
                 Position.After_Other_Columns -> other_columns + selection
             result
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A helper function which selects columns from the table based on the
        provided selection criteria.
 
-       Arguments:
-       - selectors: Single instance or a Vector of names, indexes or regular
-         expressions.
-       - case_sensitivity: Specifies whether to match the column names ignoring
-         case.
-       - reorder: Specifies whether to reorder the matched columns according to
-         the order of the selection criteria. If `False`, the matched entries
-         are returned in the same order as in the input. If `True`, the matched
-         entries are returned in the order of the first criteria matching them.
-         If a single criterion matches more than one column, their order is the
-         same as in the input table.
-       - problem_builder: Encapsulates the aggregation of encountered problems.
+       ## Arguments
+        - `selectors`: Single instance or a Vector of names, indexes or regular
+          expressions.
+        - `case_sensitivity`: Specifies whether to match the column names
+          ignoring case.
+        - `reorder`: Specifies whether to reorder the matched columns according
+          to the order of the selection criteria. If `False`, the matched entries
+          are returned in the same order as in the input. If `True`, the matched
+          entries are returned in the order of the first criteria matching them.
+          If a single criterion matches more than one column, their order is the
+          same as in the input table.
+        - `problem_builder`: Encapsulates the aggregation of encountered
+          problems.
     select_columns_helper : Text | Integer | Regex | By_Type | Vector (Integer | Text | Regex | By_Type) -> Case_Sensitivity -> Boolean -> Problem_Builder -> Vector
     select_columns_helper self (selectors:(Text | Integer | Regex | By_Type | Vector)) (case_sensitivity:Case_Sensitivity) (reorder:Boolean) (problem_builder:Problem_Builder) =
         resolve_selector selector:(Text | Integer | Regex | By_Type) =
@@ -210,9 +222,10 @@ type Table_Column_Helper
             dict = Dictionary.from_vector (selected_columns.map column-> [column.name, True]) error_on_duplicates=False
             self.columns.filter column-> dict.contains_key column.name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A helper function which selects a single column from the table.
-
        It may allow selection of columns by index, name or computing a derived
        expression.
     resolve_column_or_expression : (Integer | Text | Expression) -> Problem_Builder -> Any | Nothing
@@ -233,15 +246,16 @@ type Table_Column_Helper
                 problem_builder.report_oob_indices [selector]
                 Nothing
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A helper method that gets the columns from the provided table that are
        completely blank or have some blanks.
 
-       Arguments:
        -TODO docs
        - when: By default, only columns consisting of all blank cells are
-         selected. If set to Blank_Selector.Any_Cell, columns with one or more blank values are
-         selected.
+         selected. If set to Blank_Selector.Any_Cell, columns with one or more
+         blank values are selected.
        - treat_nans_as_blank: If `True`, then `Number.nan` is considered as
          blank.
        - invert_selection: If `True`, then the selection is inverted.
@@ -289,7 +303,9 @@ type Table_Column_Helper
             message = if invert_selection then "All columns were blank." else "No columns were blank."
             Error.throw (No_Output_Columns.Error message)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper function which takes a Table like object and a Table for a name
    mapping and returns a new Table with the columns renamed according to the
    mapping.
@@ -304,28 +320,29 @@ read_name_mapping_from_table column_map:Table = case column_map.column_count of
             Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
     _ -> Error.throw (Illegal_Argument.Error "Expected a table with one or two columns of text values.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper function encapsulating shared code for `rename_columns`
-   implementations of various Table variants. See the documentation for the
-   Table type for details.
+   implementations of various Table variants. See the documentation for the Table
+   type for details.
+   It takes a list of columns and a mapping, and returns the complete new set of
+   column names which should be applied to the table. It is the responsibility of
+   each implementation to reconstruct a proper table from the resulting list of
+   names.
 
-   It takes a list of columns and a mapping, and returns the complete new set
-   of column names which should be applied to the table. It is the
-   responsibility of each implementation to reconstruct a proper table from the
-   resulting list of names.
-
-   Arguments:
-   - internal_columns: A list of all columns in a table.
-   - mapping: A selector specifying which columns should be moved and the order
-     in which they should appear in the result.
-   - case_sensitivity: Specifies whether to match the column names ignoring
-     case.
-   - error_on_missing_columns: If set to `True`, missing columns are treated as
-     error regardless of `on_problems`.
-   - on_problems: Specifies the behavior when a problem occurs during the
-     operation. By default, a warning is issued, but the operation proceeds.
-     If set to `Report_Error`, the operation fails with a dataflow error.
-     If set to `Ignore`, the operation proceeds without errors or warnings.
+   ## Arguments
+    - `internal_columns`: A list of all columns in a table.
+    - `mapping`: A selector specifying which columns should be moved and the
+      order in which they should appear in the result.
+    - `case_sensitivity`: Specifies whether to match the column names ignoring
+      case.
+    - `error_on_missing_columns`: If set to `True`, missing columns are treated
+      as error regardless of `on_problems`.
+    - `on_problems`: Specifies the behavior when a problem occurs during the
+      operation. By default, a warning is issued, but the operation proceeds. If
+      set to `Report_Error`, the operation fails with a dataflow error. If set to
+      `Ignore`, the operation proceeds without errors or warnings.
 rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) (mapping:(Dictionary | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
     ## Convert Vector of Pairs to Dictionary
     is_vec_pairs = mapping.is_a Vector && mapping.length > 0 && (mapping.first.is_a Text . not)
@@ -403,23 +420,26 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
                 problem_builder.report_unique_name_strategy unique
                 problem_builder.attach_problems_before on_problems new_column_names
 
-## PRIVATE
+## ---
+   private: true
+   ---
    An internal marker type for `rename_columns`.
 type Not_Renamed
 
-## PRIVATE
-   A helper function encapsulating shared code for `sort_columns`
-   implementations of various Table variants. See the documentation for the
-   Table type for details.
+## ---
+   private: true
+   ---
+   A helper function encapsulating shared code for `sort_columns` implementations
+   of various Table variants. See the documentation for the Table type for
+   details.
+   It takes a list of columns and returns the columns in the new order. It is the
+   responsibility of each implementation to reconstruct a proper table from the
+   resulting list of columns.
 
-   It takes a list of columns and returns the columns in the new order. It is
-   the responsibility of each implementation to reconstruct a proper table from
-   the resulting list of columns.
-
-   Arguments:
-   - internal_columns: A list of all columns in a table.
-   - order: Whether sorting should be in ascending or descending order.
-   - text_ordering: The sort methodology to use.
+   ## Arguments
+    - `internal_columns`: A list of all columns in a table.
+    - `order`: Whether sorting should be in ascending or descending order.
+    - `text_ordering`: The sort methodology to use.
 sort_columns : Vector -> Sort_Direction -> Text_Ordering -> Vector
 sort_columns internal_columns order text_ordering =
     case_sensitivity = text_ordering.case_sensitivity.if_nothing Case_Sensitivity.Sensitive
@@ -433,16 +453,18 @@ sort_columns internal_columns order text_ordering =
         False -> Ordering.compare
     internal_columns.sort order=order on=mapper by=comparator
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Selects element from the vector based on the given indices.
-
    The elements are returned in the same order as their provided indices.
 select_indices_reordering vector indices =
     indices.map vector.at
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Selects element from the vector based on the given indices.
-
    The elements are returned in the same order as they appeared in the original
    vector.
 select_indices_preserving_order vector indices =
@@ -450,13 +472,17 @@ select_indices_preserving_order vector indices =
     vector.filter_with_index ix-> _->
         indices_to_keep.get ix False
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Checks if the given index is in the valid range for the provided vector.
 is_index_valid : Integer -> Integer -> Boolean
 is_index_valid length ix =
     (ix >= -length) && (ix<length)
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper method to match columns by name
 match_columns : Text | Regex -> Case_Sensitivity -> Vector -> Vector
 match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) (columns : Vector) =
@@ -468,13 +494,19 @@ match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) (colum
         _ : Regex -> name.recompile case_sensitivity . matches
     columns.filter c-> match c.name
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper type used by transform helpers.
 type Column_Transform_Element
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value column associated_selector
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Resolves the `Sort_Column` selectors and ensures that at least one column was
    selected.
 prepare_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) -> Problem_Builder -> Vector Column_Transform_Element
@@ -484,9 +516,11 @@ prepare_order_by internal_columns column_selectors problem_builder =
         problem_builder.report_other_warning No_Input_Columns_Selected
     selected_elements
 
-## PRIVATE
-   Resolves the `Sort_Column` selectors and returns a list of elements
-   containing the original selector and the selected column.
+## ---
+   private: true
+   ---
+   Resolves the `Sort_Column` selectors and returns a list of elements containing
+   the original selector and the selected column.
 resolve_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) -> Problem_Builder -> Vector Column_Transform_Element
 resolve_order_by internal_columns column_selectors problem_builder =
     resolve_selector selector:Sort_Column = case selector of
@@ -502,7 +536,9 @@ resolve_order_by internal_columns column_selectors problem_builder =
             matches.map c-> Column_Transform_Element.Value c selector
     Vector.unify_vector_or_element column_selectors . flat_map resolve_selector
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper method gathering the common logic for constructing expressions that
    can filter out blank rows.
 filter_blank_rows : Table -> Blank_Selector -> Boolean -> Table
@@ -518,7 +554,9 @@ filter_blank_rows table when treat_nans_as_blank =
             table.filter non_missing_mask Filter_Condition.Is_True
         False -> table
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper method that resolves what should be the result type of a particular
    column set based on the union settings.
 unify_result_type_for_union (column_set : Column_Set) (all_tables : Vector) (problem_builder : Problem_Builder) -> Union_Result_Type =
@@ -541,20 +579,31 @@ unify_result_type_for_union (column_set : Column_Set) (all_tables : Vector) (pro
                     problem_builder.report_other_warning (No_Common_Type.Warning_Convert_To_Text types column_set.name)
                     Union_Result_Type.Fallback_To_Text
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Union_Result_Type
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Common_Type (value_type : Value_Type)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Fallback_To_Text
 
-    ## PRIVATE
-       This case is returned if the requested column was missing from _all_ tables,
-       so there were no types to unify. An all-null column should be created.
+    ## ---
+       private: true
+       ---
+       This case is returned if the requested column was missing from _all_
+       tables, so there were no types to unify. An all-null column should be
+       created.
     No_Types_To_Unify
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Replace a set of columns in the table with a new set of columns. The old
    columns must all exist in the table, and the list of new columns must be the
    same length and have the same names.
@@ -566,10 +615,12 @@ replace_columns_with_columns table old_columns new_columns =
         table.set new_column old_column.name set_mode=Set_Mode.Update
     old_columns.zip new_columns . fold table reducer
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Replace a set of columns in the table with a new set of columns produced by
-   transforming the old columns. The old columns must all exist in the table,
-   and the new columns must all have the same name.
+   transforming the old columns. The old columns must all exist in the table, and
+   the new columns must all have the same name.
 replace_columns_with_transformed_columns : Table -> Text | Integer | Regex | Vector (Integer | Text | Regex) -> (Column -> Column) -> Boolean -> Problem_Behavior -> Table
 replace_columns_with_transformed_columns table selectors transformer error_on_missing_columns=True on_problems:Problem_Behavior=..Report_Warning =
     internal_columns = table.columns_helper.select_columns selectors Case_Sensitivity.Default reorder=False error_on_missing_columns=error_on_missing_columns on_problems=on_problems
@@ -578,10 +629,13 @@ replace_columns_with_transformed_columns table selectors transformer error_on_mi
     replace_columns_with_columns table columns new_columns
 
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Takes a table and a list of counts and returns a new table with the rows
    duplicated according to the counts.
-   The vector should have the same number of elements as the number of rows in the table.
+   The vector should have the same number of elements as the number of rows in
+   the table.
 duplicate_rows table (counts : Vector Integer) -> Table =
     Runtime.assert (table.row_count == counts.length) "The number of counts ("+counts.length.to_text+") must match the number of rows in the table ("+table.row_count.to_text+")."
     mask_array = counts

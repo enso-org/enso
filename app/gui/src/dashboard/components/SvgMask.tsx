@@ -23,7 +23,7 @@ const SvgMask = React.forwardRef(function SvgMask(
   props: SvgMaskProps,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {
-  const { invert = false, alt = '', src, style, color, className, testId = 'svg-mask' } = props
+  const { invert = false, alt = '', src, style, color, className, testId } = props
   const urlSrc = `url(${JSON.stringify(src)})`
   const mask = invert ? `${urlSrc}, linear-gradient(white 0 0)` : urlSrc
 

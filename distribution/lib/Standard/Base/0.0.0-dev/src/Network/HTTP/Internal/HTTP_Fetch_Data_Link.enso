@@ -14,12 +14,18 @@ from project.Enso_Cloud.Data_Link_Capabilities import Data_Link_With_Input_Strea
 from project.Enso_Cloud.Data_Link_Helpers import parse_format
 from project.Enso_Cloud.Public_Utils import get_optional_field, get_required_field
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type HTTP_Fetch_Data_Link
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (request : Request) format_json
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     parse json source -> HTTP_Fetch_Data_Link =
         _ = source
         uri = get_required_field "uri" json expected_type=Text
@@ -30,18 +36,24 @@ type HTTP_Fetch_Data_Link
         request = Request.new method uri headers
         HTTP_Fetch_Data_Link.Value request format_json
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     read self (format = Auto_Detect) (on_problems : Problem_Behavior) =
         _ = on_problems
         effective_format = if format != Auto_Detect then format else parse_format self.format_json
         response = HTTP.new.request self.request
         response.decode effective_format
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     with_input_stream self (open_options : Vector) (action : Input_Stream -> Any) -> Any =
         File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read] open_options <|
             response = HTTP.new.request self.request
             response.body.with_stream action
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Data_Link_With_Input_Stream.from (that:HTTP_Fetch_Data_Link) = Data_Link_With_Input_Stream.Value that

@@ -3,6 +3,7 @@
 - type File
     - / self subpath:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - absolute self -> Standard.Base.Any.Any
+    - can_write_into_parent self -> Standard.Base.Data.Boolean.Boolean
     - copy_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - create_directory self -> Standard.Base.Any.Any
     - create_dry_run_file self copy_original:Standard.Base.Any.Any= -> Standard.Base.Any.Any
@@ -46,8 +47,9 @@
     - to_text self -> Standard.Base.Any.Any
     - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_output_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type File_System_SPI
+    - new protocol:Standard.Base.Data.Text.Text typ:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - file_as_java file:Standard.Base.System.File.File -> Standard.Base.Any.Any
-- file_types -> Standard.Base.Any.Any
 - find_extension_from_name name:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - get_child_widget file:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - list_descendants file:Standard.Base.Any.Any -> Standard.Base.Any.Any

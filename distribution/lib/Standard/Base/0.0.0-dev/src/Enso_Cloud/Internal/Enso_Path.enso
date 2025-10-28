@@ -11,14 +11,20 @@ import project.Network.URI.URI
 from project.Data.Boolean import Boolean, False
 from project.Data.Text.Extensions import all
 
-## PRIVATE
-   UNSTABLE
+## ---
+   private: true
+   unstable: true
+   ---
    This is a helper for handling `enso://` paths.
 type Enso_Path
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     private Value (path_segments : Vector Text)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     parse (path : Text) -> Enso_Path =
         if path.starts_with Enso_Path.protocol_prefix . not then Error.throw (Illegal_Argument.Error "Invalid path - it should start with `enso://`.") else
             raw_segments = if path.match ".*%\d\d.*" . not then path.drop Enso_Path.protocol_prefix.length . split Enso_Path.delimiter else
@@ -29,40 +35,58 @@ type Enso_Path
                 normalized = normalize segments
                 Enso_Path.Value normalized
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     root = Enso_Path.Value []
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_root self -> Boolean =
         self.path_segments.is_empty
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     parent self -> Enso_Path =
         if self.is_root then Error.throw (Illegal_Argument.Error "Cannot get parent of the root directory.") else
             Enso_Path.Value (self.path_segments.drop (..Last 1))
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     resolve self (subpath : Text) -> Enso_Path =
         new_segments = subpath.split Enso_Path.delimiter . filter (p-> p.is_empty.not)
         normalized_segments = normalize (self.path_segments + new_segments)
         Enso_Path.Value normalized_segments
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_descendant_of self (other : Enso_Path) -> Boolean =
         if self.path_segments.length < other.path_segments.length then False else
             (self.path_segments.take other.path_segments.length) == other.path_segments
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self -> Text =
         Enso_Path.protocol_prefix + self.path_segments.join Enso_Path.delimiter
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     delimiter = "/"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     protocol_prefix = "enso://"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 normalize segments =
     after_resolving_dots = Path_Helpers.normalize_segments segments (x->x)
     starts_with_tilde = after_resolving_dots.take 1 == ["~"]

@@ -4,75 +4,92 @@ import project.System
 import project.System.Process.Exit_Code.Exit_Code
 from project.Data.Boolean import Boolean, False
 
-## PRIVATE
-   ADVANCED
+## ---
+   private: true
+   advanced: true
+   ---
    The builder object that is used to create operating system processes.
 type Process_Builder
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A builder object that is used to create operating system processes.
 
-       Arguments:
-       - command: The command to execute on the system.
-       - arguments: The arguments to pass to `command`. These must be text.
-       - stdin: Any content to pass to the standard input for `command`.
+       ## Arguments
+        - `command`: The command to execute on the system.
+        - `arguments`: The arguments to pass to `command`. These must be text.
+        - `stdin`: Any content to pass to the standard input for `command`.
 
-       ? Creating a Builder
-         We recommend that you use this type with its builder interface. Start
-         by creating a `Builder "command"` and then call functions on it to
-         set arguments and standard output. It results in much clearer code.
+       ## Remarks
+
+       ### Creating a Builder
+       We recommend that you use this type with its builder interface. Start by
+       creating a `Builder "command"` and then call functions on it to set
+       arguments and standard output. It results in much clearer code.
     Value command arguments stdin
 
-    ## ICON edit
+    ## ---
+       icon: edit
+       ---
        Sets the arguments that should be passed to the created process.
 
-       Arguments:
-       - arguments: The arguments to pass to the process.
+       ## Arguments
+        - `arguments`: The arguments to pass to the process.
 
-       > Example
-         Set the arguments to the process using a builder.
+       ## Examples
+       ### Set the arguments to the process using a builder.
 
+       ```
              import Standard.Base.System.Process
 
              example_set_args =
                  builder = Process.new_builder "echo"
                  builder.set_arguments ["hello, world!"]
+       ```
     set_arguments : Vector Text -> Process_Builder
     set_arguments self arguments = Process_Builder.Value self.command arguments self.stdin
 
-    ## ICON edit
+    ## ---
+       icon: edit
+       ---
        Sets the text that will be used to feed standard input to the created
        process.
 
-       Arguments:
-       - stdin: The standard input contents to pass to the process.
+       ## Arguments
+        - `stdin`: The standard input contents to pass to the process.
 
-       > Example
-         Set the standard input to a process using a builder.
+       ## Examples
+       ### Set the standard input to a process using a builder.
 
+       ```
              import Standard.Base.System.Process
 
              example_set_args =
                  builder = Process.new_builder "echo"
                  builder.set_stdin "hello, world!"
+       ```
     set_stdin : Text -> Process_Builder
     set_stdin self stdin = Process_Builder.Value self.command self.arguments stdin
 
-    ## ICON system
+    ## ---
+       icon: system
+       ---
        Create a process using a builder returning the result of execution.
 
-       Arguments:
-       - redirect_out_err: Redirect stdout/stderr to `Process_Result`.
+       ## Arguments
+        - `redirect_out_err`: Redirect stdout/stderr to `Process_Result`.
 
-       > Example
-         Execute the process contained in the builder.
+       ## Examples
+       ### Execute the process contained in the builder.
 
+       ```
              import Standard.Base.System.Process
 
              example_create =
                  builder = Process.new_builder "echo"
                  with_args = builder.set_arguments ["hello, world!"]
                  with_args.create
+       ```
     create : Boolean -> Process_Result
     create self redirect_out_err:Boolean=False =
         result = System.create_process self.command self.arguments self.stdin redirect_in=(self.stdin == False) redirect_out=redirect_out_err redirect_err=redirect_out_err
@@ -80,10 +97,14 @@ type Process_Builder
         Process_Result.Value exit_code result.stdout result.stderr
 
 type Process_Result
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value exit_code:Exit_Code stdout:Text stderr:Text
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to a display representation of this Process_Result.
     to_display_text : Text
     to_display_text self = case self.exit_code of

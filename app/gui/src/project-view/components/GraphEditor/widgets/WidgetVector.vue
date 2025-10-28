@@ -1,33 +1,40 @@
 <script setup lang="ts">
-import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import {
+  defineWidget,
+  Score,
+  WidgetInput,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import type { PortId } from '@/providers/portInfo'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { computed, shallowRef, toRef, toValue, watchEffect, type WatchSource } from 'vue'
 import { isAstId, MutableModule } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
+const project = useCurrentProject()
 const tree = injectWidgetTree()
 
 function doEdit(editFn: (ast: Ast.MutableVector) => void) {
-  if (props.input.value instanceof Ast.Vector) {
-    const edit = graph.startEdit()
-    editFn(edit.getVersion(props.input.value))
-    props.onUpdate({ edit, directInteraction: true })
-  } else {
-    const value = Ast.Vector.new(MutableModule.Transient(), [])
-    editFn(value)
-    props.onUpdate({
-      portUpdate: { value, origin: props.input.portId },
-      directInteraction: true,
-    })
-  }
+  project.module.value.edit((edit) => {
+    if (props.input.value instanceof Ast.Vector) {
+      editFn(edit.getVersion(props.input.value))
+      return props.updateCallback({ edit, directInteraction: true })
+    } else {
+      const value = Ast.Vector.new(MutableModule.Transient(), [])
+      editFn(value)
+      return props.updateCallback({
+        edit,
+        portUpdate: { value, origin: props.input.portId },
+        directInteraction: true,
+      })
+    }
+  })
 }
 
 const itemConfig = computed(() =>
@@ -70,7 +77,7 @@ const value = computed({
     // Getting/setting an Array is incompatible with ideal synchronization anyway;
     // `DraggableList` needs to operate on the `Ast.Vector` for edits to be merged as `Y.Array` operations.
     const newAst = Ast.Vector.build(value, (element, tempModule) => tempModule.copy(element))
-    props.onUpdate({
+    props.updateCallback({
       portUpdate: { value: newAst, origin: props.input.portId },
       directInteraction: true,
     })

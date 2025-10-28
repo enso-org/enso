@@ -1,13 +1,13 @@
+import { type FileType } from '$/providers/openedProjects/widgetRegistry/configuration'
 import { type BrowserItem } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
 import {
   type Actions,
   type CustomDropdownItem,
 } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import FileBrowserWidget from '@/components/widgets/FileBrowserWidget.vue'
-import { FileType } from '@/providers/widgetRegistry/configuration'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type ToValue } from '@/util/reactivity'
-import { Component, computed, type ComputedRef, h, toValue } from 'vue'
+import { computed, type ComputedRef, h, toValue } from 'vue'
 
 const TYPES = new Map<BrowserItem, { label: string; icon?: Icon }>([
   ['directory', { label: 'Choose directory in cloud…' }],
@@ -33,7 +33,7 @@ export function useCloudBrowser({
     setActivity(
       computed(() => {
         const type = toValue(dialogKind)
-        return h(FileBrowserWidget as Component, {
+        return h(FileBrowserWidget, {
           type,
           writeMode: toValue(write),
           choosenPath: toValue(currentPath) ?? '',

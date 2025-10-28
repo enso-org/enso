@@ -4,8 +4,6 @@
 
 use crate::prelude::*;
 
-
-
 /// A git reference.
 ///
 /// It is a name that points to an object in the repository or another reference.
@@ -40,7 +38,7 @@ pub enum Ref {
     /// tag points to either a tag or a commit object).
     Tag {
         /// Name of the tag. Any trailing `^{}` suffix is stripped.
-        name:   String,
+        name: String,
         /// Whether the tag was peeled, i.e. had `^{}` suffix.
         peeled: bool,
     },
@@ -108,8 +106,9 @@ impl Display for Ref {
             Ref::Head => write!(f, "HEAD"),
             Ref::Branch { name } => write!(f, "refs/heads/{name}"),
             Ref::RemoteBranch { remote, branch } => write!(f, "refs/remotes/{remote}/{branch}"),
-            Ref::Tag { name, peeled } =>
-                write!(f, "refs/tags/{name}{}", if *peeled { "^{}" } else { "" }),
+            Ref::Tag { name, peeled } => {
+                write!(f, "refs/tags/{name}{}", if *peeled { "^{}" } else { "" })
+            }
             Ref::Other { name } => write!(f, "{name}"),
         }
     }

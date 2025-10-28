@@ -5,12 +5,11 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.distribution.DistributionManager
 import org.enso.languageserver.runtime.events.RuntimeEventsMonitor
 import org.enso.logger.masking.MaskedPath
-import org.enso.profiling.events.{EventsMonitor, NoopEventsMonitor}
-import org.enso.profiling.sampler.{MethodsSampler, OutputStreamSampler}
+import org.enso.profiling.events.EventsMonitor
+import org.enso.profiling.sampler.MethodsSampler
 import org.enso.profiling.snapshot.{HeapDumpSnapshot, ProfilingSnapshot}
 
-import java.io.{ByteArrayOutputStream, PrintStream}
-import java.nio.charset.StandardCharsets
+import java.io.ByteArrayOutputStream
 import java.nio.file.{Files, Path}
 import java.time.{Clock, Instant, ZoneOffset}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
@@ -48,13 +47,19 @@ final class ProfilingManager(
         case Some(_) =>
           sender() ! ProfilingProtocol.ProfilingStartResponse
         case None =>
-          val instant = clock.instant()
-          val result  = new ByteArrayOutputStream()
-          val sampler = new OutputStreamSampler(result)
+          val instant           = clock.instant()
+          val result            = new ByteArrayOutputStream()
+          val eventsLogFileName = createEventsFileName(instant)
+          val eventsLogPath =
+            distributionManager.paths.profiling.resolve(eventsLogFileName)
+          val sampler = MethodsSampler.create(
+            result,
+            Files.newOutputStream(eventsLogPath)
+          )
 
           sampler.start()
 
-          val eventsMonitor = createEventsMonitor(instant)
+          val eventsMonitor = createEventsMonitor(sampler)
           eventsMonitorActor ! EventsMonitorProtocol.RegisterEventsMonitor(
             eventsMonitor
           )
@@ -86,7 +91,7 @@ final class ProfilingManager(
                 eventsMonitor
               )
             ) =>
-          sampler.stop()
+          sampler.close()
           eventsMonitor.close()
 
           Try(saveSamplerResult(result.toByteArray, instant)) match {
@@ -104,7 +109,7 @@ final class ProfilingManager(
           }
 
           eventsMonitorActor ! EventsMonitorProtocol.RegisterEventsMonitor(
-            new NoopEventsMonitor
+            EventsMonitor.NOOP
           )
 
           sender() ! ProfilingProtocol.ProfilingStopResponse
@@ -154,12 +159,10 @@ final class ProfilingManager(
     heapDumpPath
   }
 
-  private def createEventsMonitor(instant: Instant): RuntimeEventsMonitor = {
-    val eventsLogFileName = createEventsFileName(instant)
-    val eventsLogPath =
-      distributionManager.paths.profiling.resolve(eventsLogFileName)
-    val out = new PrintStream(eventsLogPath.toFile, StandardCharsets.UTF_8)
-    new RuntimeEventsMonitor(out)
+  private def createEventsMonitor(
+    sampler: MethodsSampler
+  ): RuntimeEventsMonitor = {
+    new RuntimeEventsMonitor(sampler.log)
   }
 }
 

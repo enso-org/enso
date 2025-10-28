@@ -68,12 +68,15 @@ async function renameBreadcrumb(index: number, newName: string) {
   gap: 12px;
   padding-left: 8px;
   padding-right: 10px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .NavBreadcrumbs {
   display: flex;
   align-items: center;
   gap: 2px;
+  min-width: 0;
 }
 
 .arrow {

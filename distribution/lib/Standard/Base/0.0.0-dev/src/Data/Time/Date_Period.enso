@@ -17,7 +17,6 @@ polyglot java import org.enso.base.Time_Utils
 ## Represents a unit of time longer on the scale of days (longer than a day).
 type Date_Period
     ## Represents a date period of a calendar year.
-
        Its length in days will depend on context (accounting for leap years).
     Year
 
@@ -25,19 +24,15 @@ type Date_Period
     Quarter
 
     ## Represents a date period of a month.
-
        Its length in days will depend on context of what month it is used.
     Month
 
     ## Represents a 7-day week starting at a given day.
-
        By default, the first day of the week is Monday, but this can be adjusted
        to any other day.
-
        The starting day will be ignored for methods that just compute the time
        differences. It only matters for methods that need to find a beginning or
        end of a specific period (like `start_of` or `end_of`).
-
        The `date_part` method will return the ISO 8601 week of year number,
        regardless of the starting day.
     Week (first_day:Day_Of_Week = Day_Of_Week.Monday)
@@ -45,7 +40,9 @@ type Date_Period
     ## Represents a time period of a single calendar day.
     Day
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     adjust_start : (Date | Date_Time) -> (Date | Date_Time)
     adjust_start self date =
         adjuster = case self of
@@ -56,7 +53,9 @@ type Date_Period
             Date_Period.Day -> Date_Period_Utils.day_start
         (Time_Utils.utils_for date).apply_adjuster date adjuster
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     adjust_end : (Date | Date_Time) -> (Date | Date_Time)
     adjust_end self date =
         adjuster = case self of
@@ -67,7 +66,9 @@ type Date_Period
             Date_Period.Day -> Date_Period_Utils.day_end
         (Time_Utils.utils_for date).apply_adjuster date adjuster
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_period : Period
     to_period self = case self of
         Date_Period.Year -> Period.new years=1
@@ -76,7 +77,9 @@ type Date_Period
         Date_Period.Week _ -> Period.new days=7
         Date_Period.Day -> Period.new days=1
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_java_unit : TemporalUnit
     to_java_unit self = case self of
         Date_Period.Year -> ChronoUnit.YEARS

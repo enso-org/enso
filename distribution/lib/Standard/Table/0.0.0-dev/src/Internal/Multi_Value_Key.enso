@@ -6,14 +6,20 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Column.Column
 import project.Value_Type.Value_Type
 
-## PRIVATE
+## ---
+   private: true
+   ---
    An Enso implementation mirroring `UnorderedMultiValueKey` from the Java
    helpers.
 type Unordered_Multi_Value_Key
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Key hash_code:Integer columns:(Vector Column) row_index:Integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     from_row columns row_index =
         # TODO floating point grouping warning?
         arr = Array_Proxy.new columns.length column_ix->
@@ -22,7 +28,9 @@ type Unordered_Multi_Value_Key
         hash_code = Ordering.hash vector
         Unordered_Multi_Value_Key.Key hash_code columns row_index
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Checks which column may cause problems in the grouping due to imprecise
        floating-point values.
     validate_grouping_columns columns problem_builder =
@@ -34,9 +42,13 @@ type Unordered_Multi_Value_Key
                 problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
         columns.each validate_column
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Unordered_Multi_Value_Key_Comparator
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     compare x y =
         if x.hash_code != y.hash_code then Nothing else
             n = x.columns.length
@@ -48,26 +60,39 @@ type Unordered_Multi_Value_Key_Comparator
                         @Tail_Call go (ix + 1)
             go 0
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     hash x = x.hash_code
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Comparable.from (that:Unordered_Multi_Value_Key) = Comparable.new that Unordered_Multi_Value_Key_Comparator
 
-## PRIVATE
-   An Enso implementation mirroring `OrderedMultiValueKey` from the Java
-   helpers.
+## ---
+   private: true
+   ---
+   An Enso implementation mirroring `OrderedMultiValueKey` from the Java helpers.
 type Ordered_Multi_Value_Key
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Key columns:(Vector Column) flip_direction:(Vector Boolean) row_index:Integer
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     from_row columns flip_directions row_index =
         Ordered_Multi_Value_Key.Key columns flip_directions row_index
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Ordered_Multi_Value_Key_Comparator
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     compare x y =
         n = x.columns.length
         adapt_direction ix cmp =
@@ -88,10 +113,14 @@ type Ordered_Multi_Value_Key_Comparator
                         @Tail_Call go (ix + 1)
             go 0
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     hash x =
         _ = [x]
         Error.throw (Illegal_State.Error "Ordered_Multi_Value_Key is not intended for usage in unordered collections.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Comparable.from (that:Ordered_Multi_Value_Key) = Comparable.new that Ordered_Multi_Value_Key_Comparator

@@ -49,3 +49,4 @@
 
          example_parse = URI.parse "http://example.com"
    ```
+

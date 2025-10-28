@@ -35,8 +35,10 @@ type HTTP_Method
     ## Custom unsupported HTTP method.
     Custom verb:Text
 
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Convert to a Text of the HTTP method name.
     to_http_method_name : Text
     to_http_method_name self =  case self of
@@ -51,27 +53,35 @@ type HTTP_Method
         HTTP_Method.Connect -> "CONNECT"
         HTTP_Method.Custom verb -> verb
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_display_text : Text
     to_display_text self = case self of
         HTTP_Method.Custom verb -> "Custom: "+verb.to_display_text
         _ -> self.to_http_method_name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Widget for get operations
     default_fetch_widget : Widget
     default_fetch_widget =
         values = ["..Get", "..Head", "..Options", "..Trace"].map v-> [v, v]
         make_single_choice values
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Widget for get operations
     default_post_widget : Widget
     default_post_widget =
         values = ["..Post", "..Put", "..Patch", "..Delete"].map v-> [v, v]
         make_single_choice values
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Converts from Text to an HTTP_Method.
 HTTP_Method.from (that:Text) = case that.to_case Case.Upper of
     "OPTIONS" -> HTTP_Method.Options

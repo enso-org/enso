@@ -1,9 +1,8 @@
-import { PortId } from '@/providers/portInfo'
+import { type PortId } from '@/providers/portInfo'
 import { useResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import assert from 'assert'
-import { expect, test } from 'vitest'
+import { assert, expect, test } from 'vitest'
 import { nextTick, ref } from 'vue'
 
 const NODE_PADDING = 4

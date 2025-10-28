@@ -3,13 +3,14 @@ package org.enso.table.data.column.operation.masks;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.Storage;
 
-public class MaskedStorage<T> implements ColumnStorage<T> {
+public class MaskedStorage<T> extends Storage<T> {
   private final ColumnStorage<T> parent;
   private final IndexMapper indexMapper;
 
   MaskedStorage(ColumnStorage<T> parent, IndexMapper indexMapper) {
+    super(parent.getType());
     this.parent = parent;
     this.indexMapper = indexMapper;
   }
@@ -30,18 +31,8 @@ public class MaskedStorage<T> implements ColumnStorage<T> {
   }
 
   @Override
-  public long uniqueKey() {
-    return parent.uniqueKey();
-  }
-
-  @Override
   public long getSize() {
     return indexMapper.size();
-  }
-
-  @Override
-  public StorageType<T> getType() {
-    return parent.getType();
   }
 
   @Override

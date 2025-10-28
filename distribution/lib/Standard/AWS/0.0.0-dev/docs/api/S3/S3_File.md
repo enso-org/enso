@@ -2,6 +2,7 @@
 ## module Standard.AWS.S3.S3_File
 - type S3_File
     - / self subpath:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - can_write_into_parent self -> Standard.Base.Data.Boolean.Boolean
     - copy_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - create_directory self -> Standard.Base.Any.Any
     - creation_time self -> Standard.Base.Any.Any
@@ -27,6 +28,7 @@
     - resolve_single_part self part:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - size self -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
     - uri self -> Standard.Base.Data.Text.Text
     - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any

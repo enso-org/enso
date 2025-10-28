@@ -10,156 +10,187 @@ from project.Data.Boolean import False, True
 from project.Network.Extensions import all
 
 type Request
-    ## ICON data_download
+    ## ---
+       icon: data_download
+       ---
        Create new HTTP request.
 
-       Arguments:
-       - method: The HTTP method represented by the request.
-       - url: The address for the request.
-       - headers: A vector containing headers for the request.
-       - body: The body of the request.
+       ## Arguments
+        - `method`: The HTTP method represented by the request.
+        - `url`: The address for the request.
+        - `headers`: A vector containing headers for the request.
+        - `body`: The body of the request.
 
-       > Example
-         Create a new post request with no headers and no body.
+       ## Examples
+       ### Create a new post request with no headers and no body.
 
+       ```
              import Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.URI.URI
 
              example_new = Request.new Method.Post (URI.parse "http://example.com")
+       ```
     new : HTTP_Method -> URI -> Vector Header -> Request_Body -> Request
     new (method:HTTP_Method) (url:URI) (headers:(Vector Header)=[]) (body:Request_Body=..Empty) =
         Request.Value method url headers body
 
-    ## ICON find
+    ## ---
+       icon: find
+       ---
        Create an Options request.
 
-       Arguments:
+       ## Examples
+       ### Create a new options request.
 
-       > Example
-         Create a new options request.
-
+       ```
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.URI.URI
 
              example_options = Request.options (URI.parse "http://example.com")
+       ```
     options : (Text | URI) -> Vector -> Request
     options url (headers = []) = Request.new HTTP_Method.Options url headers
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create a Get request.
 
-       Arguments:
-       - url: The address for the request.
-       - headers: A vector containing headers for the request.
+       ## Arguments
+        - `url`: The address for the request.
+        - `headers`: A vector containing headers for the request.
 
-       > Example
-         Create a new get request.
+       ## Examples
+       ### Create a new get request.
 
+       ```
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.URI.URI
 
              example_get = Request.get (URI.parse "http://example.com")
+       ```
     get : (Text | URI) -> Vector -> Request
     get url (headers = []) = Request.new HTTP_Method.Get url headers
 
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Create a Head request.
 
-       Arguments:
-       - url: The address for the request.
-       - headers: A vector containing headers for the request.
+       ## Arguments
+        - `url`: The address for the request.
+        - `headers`: A vector containing headers for the request.
 
-       > Example
-         Create a new head request.
+       ## Examples
+       ### Create a new head request.
 
+       ```
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.URI.URI
 
              example_head = Request.head (URI.parse "http://example.com")
+       ```
     head : (Text | URI) -> Vector -> Request
     head url (headers = []) = Request.new HTTP_Method.Head url headers
 
-    ## ALIAS http post, upload
-       ICON data_upload
+    ## ---
+       aliases: [http post, upload]
+       icon: data_upload
+       ---
        Create a Post request.
 
-       Arguments:
-       - url: The address for the request.
-       - body: The body for the request.
-       - headers: A vector containing headers for the request.
+       ## Arguments
+        - `url`: The address for the request.
+        - `body`: The body for the request.
+        - `headers`: A vector containing headers for the request.
 
-       > Example
-         Create a new post request.
+       ## Examples
+       ### Create a new post request.
 
+       ```
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.Request_Body.Request_Body
              import Standard.Base.Network.URI.URI
 
              example_post = Request.post (URI.parse "http://example.com") Request_Body.Empty
+       ```
     post : (Text | URI) -> Request_Body -> Vector -> Request
     post url body (headers = []) = Request.new HTTP_Method.Post url headers body
 
-    ## ICON data_upload
+    ## ---
+       icon: data_upload
+       ---
        Create a Put request.
 
-       Arguments:
-       - url: The address for the request.
-       - body: The body for the request.
-       - headers: A vector containing headers for the request.
+       ## Arguments
+        - `url`: The address for the request.
+        - `body`: The body for the request.
+        - `headers`: A vector containing headers for the request.
 
-       > Example
-         Create a new put request.
+       ## Examples
+       ### Create a new put request.
 
+       ```
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.HTTP.Request_Body.Request_Body
              import Standard.Base.Network.URI.URI
 
              example_put = Request.put (URI.parse "http://example.com") Request_Body.Empty
+       ```
     put : (Text | URI) -> Request_Body -> Vector -> Request
     put url body (headers = []) = Request.new HTTP_Method.Put url headers body
 
-    ## ICON trash
+    ## ---
+       icon: trash
+       ---
        Create a Delete request.
 
-       Arguments:
-       - url: The address for the request.
-       - headers: A vector containing headers for the request.
+       ## Arguments
+        - `url`: The address for the request.
+        - `headers`: A vector containing headers for the request.
 
-       > Example
-         Create a new delete request.
+       ## Examples
+       ### Create a new delete request.
 
+       ```
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.URI.URI
 
              example_delete = Request.delete (URI.parse "http://example.com")
+       ```
     delete : (Text | URI) -> Vector -> Request
     delete url (headers = []) = Request.new HTTP_Method.Delete url headers
 
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        A type representing an HTTP request.
 
-       Arguments:
-       - method: The HTTP method represented by the request.
-       - uri: The URI for the request.
-       - headers: A vector containing headers for the request.
-       - body: The body of the request.
+       ## Arguments
+        - `method`: The HTTP method represented by the request.
+        - `uri`: The URI for the request.
+        - `headers`: A vector containing headers for the request.
+        - `body`: The body of the request.
     Value (method : HTTP_Method) (uri : URI) (headers : Vector) (body : Request_Body)
 
-    ## ICON edit
+    ## ---
+       icon: edit
+       ---
        Sets the header for the request.
 
-       Arguments:
-       - key: The name for the header in this request.
-       - val: The value for the header in this request.
+       ## Arguments
+        - `key`: The name for the header in this request.
+        - `val`: The value for the header in this request.
 
-       > Example
-         Create a request and add a new header to it.
+       ## Examples
+       ### Create a request and add a new header to it.
 
+       ```
              import Standard.Base.Network.HTTP.Request.Request
 
              example_with_header = Request.delete.with_header "Foo" "bar"
+       ```
     with_header : Text -> Text -> Request
     with_header self key val =
        new_header = Header.new key val
@@ -172,76 +203,93 @@ type Request
            Pair.Value acc False -> acc + [new_header]
        Request.Value self.method self.uri new_headers self.body
 
-    ## ICON edit
+    ## ---
+       icon: edit
+       ---
        Sets the headers in the request.
 
-       Arguments:
-       - new_headers: A vector of headers to put in the request. If `self` has
-         any headers they will be replaced with new_headers.
+       ## Arguments
+        - `new_headers`: A vector of headers to put in the request. If `self` has
+          any headers they will be replaced with new_headers.
 
-       > Example
-         Create a request and unset all the headers.
+       ## Examples
+       ### Create a request and unset all the headers.
 
+       ```
              import Standard.Base.Network.HTTP.Request.Request
 
              example_with_headers = Request.delete.with_headers []
+       ```
     with_headers : Vector Header -> Request
     with_headers self new_headers =
         update_header req new_header = req.with_header new_header.name new_header.value
         new_headers.fold self update_header
 
-    ## ICON edit
+    ## ---
+       icon: edit
+       ---
        Set the body for the request.
 
-       Arguments:
-       - new_body: The body to insert into the request.
+       ## Arguments
+        - `new_body`: The body to insert into the request.
 
-       > Example
-         Unsetting the body in a post request.
+       ## Examples
+       ### Unsetting the body in a post request.
 
+       ```
             import Standard.Base.Network.HTTP.Request.Request
             import Standard.Base.Network.HTTP.Request_Body.Request_Body
             import Standard.Base.Network.URI.URI
 
             example_with_body =
                 Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_body Request_Body.Empty
+       ```
     with_body : Request_Body -> Request
     with_body self new_body = Request.Value self.method self.uri self.headers new_body
 
-    ## ICON edit
+    ## ---
+       icon: edit
+       ---
        Set the body text in the request encoded as "application/json".
 
-       Arguments:
-       - json_body: The body to add to the request. It must be textual JSON.
+       ## Arguments
+        - `json_body`: The body to add to the request. It must be textual JSON.
 
-       > Example
-         Setting the body in a post request to some JSON.
+       ## Examples
+       ### Setting the body in a post request to some JSON.
 
+       ```
             import Standard.Base.Network.HTTP.Request.Request
             import Standard.Base.Network.HTTP.Request_Body.Request_Body
             import Standard.Base.Network.URI.URI
 
             example_with_json =
                 Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_json '{ "a": "b" }'
+       ```
     with_json : Text -> Request
     with_json self json_body =
         new_body = Request_Body.Json json_body
         Request.Value self.method self.uri self.headers new_body . with_headers [Header.application_json]
 
-    ## ICON data_input
-       Set body as vector of parts encoded as "application/x-www-form-urlencoded".
+    ## ---
+       icon: data_input
+       ---
+       Set body as vector of parts encoded as
+       "application/x-www-form-urlencoded".
 
-       Arguments:
-       - parts: The parts of the form, or a form itself.
+       ## Arguments
+        - `parts`: The parts of the form, or a form itself.
 
-       > Example
-         Create a delete request with an empty form.
+       ## Examples
+       ### Create a delete request with an empty form.
 
+       ```
              import Standard.Base.Network.HTTP.Request.Request
              import Standard.Base.Network.URI.URI
 
              example_delete =
                 Request.delete (URI.parse "http://example.com") . with_form []
+       ```
     with_form : (Vector | Dictionary) -> Request
     with_form self parts =
         form_data = case parts of

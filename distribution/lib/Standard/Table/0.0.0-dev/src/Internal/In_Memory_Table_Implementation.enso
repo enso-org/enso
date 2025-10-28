@@ -2,7 +2,6 @@ private
 
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
-import Standard.Base.Data.Filter_Condition as Filter_Condition_Module
 import Standard.Base.Data.Time.Errors.Date_Time_Format_Parse_Error
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
@@ -17,6 +16,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.File_Like.File_Like
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
 
@@ -31,7 +31,9 @@ import project.Data_Formatter.Data_Formatter
 import project.Expression.Expression
 import project.Fill_With.Fill_With
 import project.Generate_Rows_Range.Generate_Rows_Range
+import project.Grouping_Method.Group_Row
 import project.Grouping_Method.Grouping_Method
+import project.Grouping_Method.Predicate_Over
 import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Add_Group_Number
@@ -71,11 +73,11 @@ import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Errors import all
 from project.Extensions.Table_Conversions import all
+from project.In_Memory_Table import from_java_table
 from project.Internal.Add_Row_Number import rename_columns_if_needed
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Storage import java_to_enso
-from project.In_Memory_Table import from_java_table
 
 polyglot java import org.enso.base.ObjectComparator
 polyglot java import org.enso.table.data.index.MultiValueIndex
@@ -83,7 +85,6 @@ polyglot java import org.enso.table.data.table.join.conditions.Between as Java_J
 polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
 polyglot java import org.enso.table.data.table.join.lookup.LookupJoin
-polyglot java import org.enso.table.data.table.Row as Java_Row
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.TableToXml as Java_TableToXml
 polyglot java import org.enso.table.error.NonUniqueLookupKey
@@ -126,7 +127,7 @@ type In_Memory_Table_Implementation
     get_row (this_table : Table & In_Memory_Table) index:Integer ~if_missing:Any =
         if index < -this_table.row_count || index >= this_table.row_count then if_missing else
             used_index = (if index < 0 then index + this_table.row_count else index)
-            Row.Value (Java_Row.new this_table.java_table used_index)
+            Row.Value (this_table.java_table.row used_index)
 
     first_value (this_table : Table & In_Memory_Table) = this_table.at 0 . at 0
 
@@ -211,7 +212,10 @@ type In_Memory_Table_Implementation
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by this_table.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|
-            java_columns = columns_for_ordering.map c->(c.column:In_Memory_Column).java_column
+            java_storages = columns_for_ordering.map c->
+                raw_column = (c.column:In_Memory_Column).java_column
+                raw_column.getStorage
+
             directions = columns_for_ordering.map c->c.associated_selector.direction.to_sign
 
             comparator = case text_ordering.sort_digits_as_numbers of
@@ -224,7 +228,7 @@ type In_Memory_Table_Implementation
                     Case_Sensitivity.Insensitive locale -> ObjectComparator.new False locale.java_locale
 
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
-                this_table.java_table.orderBy java_columns directions comparator
+                this_table.java_table.orderBy this_table java_storages directions comparator
             from_java_table java_table
 
     order_by (this_table : Table & In_Memory_Table) (columns : Vector (Text | Sort_Column) | Text) text_ordering:Text_Ordering error_on_missing_columns:Boolean on_problems:Problem_Behavior =
@@ -349,10 +353,10 @@ type In_Memory_Table_Implementation
             mask filter_column = from_java_table (this_table.java_table.filter (filter_column:In_Memory_Column).java_column)
             filter_condition = Filter_Condition.resolve_auto_scoped filter
             case filter_condition of
+                Filter_Condition.Predicate p -> mask (column.map p)
                 _ : Filter_Condition ->
                     resolved = (this_table:Table_Ref).resolve_condition filter_condition
                     mask (make_filter_column column resolved on_problems)
-                _ : Function -> mask (column.map filter_condition)
         _ : Expression -> this_table.filter (this_table.evaluate_expression column on_problems) filter on_problems
         _ ->
             table_at = this_table.at column
@@ -376,6 +380,23 @@ type In_Memory_Table_Implementation
 
     add_group_number (this_table : Table & In_Memory_Table) (grouping_method : Grouping_Method) name:Text from:Integer step:Integer on_problems:Problem_Behavior =
         Incomparable_Values.handle_errors <| Add_Group_Number.add_group_number this_table grouping_method name from step on_problems
+
+    find_group_number (this_table : Table & In_Memory_Table) predicate over:Predicate_Over group_row:Group_Row name:Text from:Integer step:Integer on_problems:Problem_Behavior =
+        ## Resolve over
+        resolved_column = case over of
+            Predicate_Over.Row -> Nothing
+            Predicate_Over.Name column_name -> In_Memory_Table_Implementation.at this_table column_name
+            Predicate_Over.Index index -> In_Memory_Table_Implementation.at this_table index
+
+        ## Resolve predicate
+        used_predicate = case Nothing == resolved_column of
+            True ->
+                group->current-> predicate (Row.Value group) (Row.Value current)
+            False ->
+                group->current-> predicate (java_to_enso group) (java_to_enso current)
+
+        ## Construct Group
+        Add_Group_Number.add_flagged_group this_table resolved_column used_predicate group_row name from step on_problems
 
     set (this_table : Table & In_Memory_Table) (value : Text | Expression | Column | Constant_Column | Simple_Expression) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
         problem_builder = Problem_Builder.new
@@ -406,29 +427,18 @@ type In_Memory_Table_Implementation
                     Error.throw (Missing_Column.Error renamed.name)
 
             new_table = check_add_mode.if_not_error <|
-                if resolved.length != this_table.row_count then Error.throw (Row_Count_Mismatch.Error this_table.row_count resolved.length) else
+                if resolved.row_count != this_table.row_count then Error.throw (Row_Count_Mismatch.Error this_table.row_count resolved.row_count) else
                     from_java_table (this_table.java_table.addOrReplaceColumn (renamed:In_Memory_Column).java_column)
 
             problem_builder.report_unique_name_strategy unique
             problem_builder.attach_problems_after on_problems new_table
 
-    evaluate_expression (this_table : Table & In_Memory_Table) expression:(Text | Expression) on_problems:Problem_Behavior = if expression.is_a Text then this_table.evaluate_expression (Expression.Value expression) on_problems else
-        get_column name = this_table.at name
-        make_constant_column value = case value of
-            _ : Column -> value
-            _ -> this_table.make_constant_column value
-        is_column value = value.is_a Column
-        new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Table.Column" "Column" Column_Type_Helpers.var_args_functions
-        problems = Warning.get_all new_column . map .value
-        result = new_column.rename (this_table.column_naming_helper.sanitize_name expression.expression)
-        on_problems.attach_problems_before problems <|
-            Warning.set result []
-
     make_table_from_dictionary (this_table : Table & In_Memory_Table) dict key_column_name value_column_name =
         keys_and_values = dict.to_vector
         this_table.make_table_from_vectors [keys_and_values.map .first, keys_and_values.map .second] [key_column_name, value_column_name]
 
-    make_table_from_vectors _ column_vectors column_names =
+    make_table_from_vectors (this_table : Table & In_Memory_Table) column_vectors column_names =
+        _ = this_table
         # Assume the columns are all the same length; if not, it will be an error anyway.
         if column_vectors.is_empty then Error.throw (Illegal_Argument.Error "Vectors cannot be empty") else
             Runtime.assert (column_vectors.length == column_names.length) "column_vectors and column_names must have the same length"
@@ -445,7 +455,8 @@ type In_Memory_Table_Implementation
 
     columns (this_table : Table & In_Memory_Table) = Vector.from_polyglot_array <|
         Array_Proxy.new this_table.java_table.getColumns.length i->
-            In_Memory_Column.from_java_column (this_table.java_table.getColumns.at i)
+            java_column = this_table.java_table.getColumns.at i
+            In_Memory_Column.from_java_column java_column
 
     column_names (this_table : Table & In_Memory_Table) = Vector.from_polyglot_array <|
         Array_Proxy.new this_table.java_table.getColumns.length i->
@@ -679,8 +690,9 @@ type In_Memory_Table_Implementation
                     if is_write.not then Panic.throw caught_panic else
                         Error.throw (File_Error.Unsupported_Output_Type resolved_format Table)
                 Panic.catch No_Such_Method handler=handle_no_write_method <|
-                    to_write = if Context.Output.is_enabled then this_table else this_table.take 1000
-                    resolved_format.write_table path to_write on_existing_file match_columns on_problems
+                    if (path:File_Like).can_write_into_parent.not then Error.throw (File_Error.Not_Found (path:File_Like).parent) else
+                        to_write = if Context.Output.is_enabled then this_table else this_table.take 1000
+                        resolved_format.write_table path to_write on_existing_file match_columns on_problems
 
     to_csv (this_table : Table & In_Memory_Table) =
         Text.from this_table (..Delimited delimiter=",")
@@ -739,19 +751,25 @@ type In_Memory_Table_Implementation
         range_col = over.get_range_column this_table on_problems
         renamed_table.set range_col as=resolved_as . expand_to_rows resolved_as
 
-    column_naming_helper _ = Column_Naming_Helper.in_memory
+    column_naming_helper (this_table : Table & In_Memory_Table) =
+        _ = this_table
+        Column_Naming_Helper.in_memory
 
     pretty_implementation (this_table : Table & In_Memory_Table) =
         data = this_table.columns.map c->("[" + c.name.pretty + ", " + c.to_vector.pretty + "]") . join ", "
         "Table.new [" + data + "]"
 
-## PRIVATE
+## ---
+   private: true
+   ---
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
     normalized = normalize_ranges ranges
     from_java_table (table.java_table.slice normalized)
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_join_helpers left_table right_table =
     make_equals _ left right = Java_Join_Equals.new (left:In_Memory_Column).java_column (right:In_Memory_Column).java_column
     make_equals_ignore_case _ left right locale =

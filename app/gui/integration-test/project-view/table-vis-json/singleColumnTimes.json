@@ -2,7 +2,6 @@
   "header": ["Value"],
   "value_type": [
     {
-      "type": "Value_Type",
       "constructor": "Time",
       "display_text": "Time"
     }

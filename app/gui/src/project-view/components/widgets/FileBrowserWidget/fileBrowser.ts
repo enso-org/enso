@@ -23,6 +23,10 @@ export function listDirectoryArgs(params: ToValue<Directory | undefined>) {
             filterBy: null,
             labels: null,
             recentProjects: false,
+            from: null,
+            pageSize: null,
+            sortDirection: null,
+            sortExpression: null,
           },
           paramsValue.title,
         ]
@@ -91,7 +95,7 @@ export function useCurrentPath({
 
   const chosenFilename = computed(
     () =>
-      (!!chosenFile.value &&
+      (chosenFile.value != null &&
         ensoPathEqual(currentDirPath.value, chosenFile.value.path) &&
         chosenFile.value.name) ||
       null,
@@ -144,7 +148,7 @@ export function useUpsertDirectory({
   function acceptName(
     editedAsset: Directory | undefined,
     name: string,
-    handler: (action: Promise<CreatedDirectory | undefined>) => void,
+    handler: (action: Promise<CreatedDirectory | null>) => void,
   ) {
     const parentId = toValue(currentDirectory)?.id
     if (parentId == null) {
@@ -155,7 +159,7 @@ export function useUpsertDirectory({
       editedAsset == null ? createDir.mutateAsync([{ title: name, parentId }, false])
       : editedAsset.title != name ?
         updateDir.mutateAsync([editedAsset.id, { title: name }, editedAsset.title])
-      : Promise.resolve(undefined)
+      : Promise.resolve(null)
     handler(action)
   }
 

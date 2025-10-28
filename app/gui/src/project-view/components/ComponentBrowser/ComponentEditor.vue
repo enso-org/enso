@@ -22,22 +22,20 @@ const graphStore = useGraphStore()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 
-const { syncExt, connectSync } = useStringSync()
+const { syncExt, setText } = useStringSync({
+  onUserAction: (text, selection) =>
+    (content.value = {
+      text,
+      selection: Range.unsafeFromBounds(selection.from, selection.to),
+    }),
+})
 const { editorView } = useCodeMirror(editorRoot, {
   extensions: [syncExt],
   contentTestId: 'component-editor-content',
   lineMode: 'single',
 })
 
-const { onUserAction, setText } = connectSync(editorView)
-onUserAction(
-  (text, selection) =>
-    (content.value = {
-      text,
-      selection: Range.unsafeFromBounds(selection.from, selection.to),
-    }),
-)
-watch(content, ({ text, selection }) => setText(text, selection), { immediate: true })
+watch(content, ({ text, selection }) => setText(editorView, text, selection), { immediate: true })
 
 const icon = computed(() => {
   if (props.mode.mode === 'componentBrowsing') return 'find'
@@ -76,18 +74,20 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <div v-if="props.mode.mode === 'componentBrowsing'" class="componentEditorLabel">
-      <ComponentEditorLabel
-        testId="component-editor-label"
-        :typeInfo="
-          props.mode.filter.selfArg?.type === 'known' ?
-            props.mode.filter.selfArg.typeInfo
-          : undefined
-        "
-        :unknownLabel="props.mode.filter.selfArg == null ? 'Input' : undefined"
-      />
+    <div class="componentEditorContent">
+      <CodeMirrorRoot ref="editorRoot" class="componentEditorInput" />
+      <div v-if="props.mode.mode === 'componentBrowsing'" class="componentEditorLabel">
+        <ComponentEditorLabel
+          testId="component-editor-label"
+          :typeInfo="
+            props.mode.filter.selfArg?.type === 'known' ?
+              props.mode.filter.selfArg.typeInfo
+            : undefined
+          "
+          :unknownLabel="props.mode.filter.selfArg == null ? 'Input' : undefined"
+        />
+      </div>
     </div>
-    <CodeMirrorRoot ref="editorRoot" />
   </div>
 </template>
 
@@ -97,6 +97,7 @@ const rootStyle = computed(() => {
   --icon-size: 16px;
   border-radius: 22px;
   background-color: var(--background-color);
+  /*noinspection CssUnresolvedCustomProperty*/
   padding: var(--component-editor-padding);
   display: flex;
   flex-direction: row;
@@ -121,10 +122,18 @@ const rootStyle = computed(() => {
   }
 }
 
-.componentEditorLabel {
-  position: absolute;
+.componentEditorContent {
+  display: flex;
   width: 100%;
-  padding-right: 20px;
-  text-align: right;
+  flex-direction: row;
+  align-items: center;
+}
+
+.componentEditorInput {
+  flex-grow: 1;
+}
+
+.componentEditorLabel {
+  margin: 0 4px;
 }
 </style>

@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
-import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import {
   defineWidget,
-  HandledUpdate,
   Score,
   WidgetInput,
   widgetProps,
-} from '@/providers/widgetRegistry'
+  type HandledUpdate,
+} from '$/providers/openedProjects/widgetRegistry'
+import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import { Ast } from '@/util/ast'
 import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { BodyBlock, MutableModule } from 'ydoc-shared/ast'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -21,7 +21,7 @@ const astCode = computed(() => {
 })
 
 function acceptValue(value: string): HandledUpdate {
-  return props.onUpdate({
+  return props.updateCallback({
     portUpdate: {
       value: Ast.parseExpression(value),
       origin: props.input.portId,
@@ -40,11 +40,13 @@ const extensions = [
   syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
   ensoSyntax(moduleRoot),
 ]
+
+const cmWidget = useTemplateRef('cmWidget')
 </script>
 
 <script lang="ts">
 export const EnsoExpression: unique symbol = Symbol.for('WidgetInput:EnsoExpression')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [EnsoExpression]?: {
       weakMatch?: boolean
@@ -63,8 +65,12 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetEnsoExpression widgetRounded widgetPill">
+  <div
+    class="WidgetEnsoExpression widgetRounded widgetPill"
+    @click.stop="cmWidget?.focusAndSelect()"
+  >
     <CodeMirrorWidgetBase
+      ref="cmWidget"
       v-model="astCode"
       :widgetTypeId="widgetTypeId"
       :input="input"

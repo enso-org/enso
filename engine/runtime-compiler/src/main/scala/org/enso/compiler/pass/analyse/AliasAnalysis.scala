@@ -32,6 +32,7 @@ import org.enso.compiler.pass.analyse.alias.graph.GraphBuilder
 import org.enso.compiler.pass.analyse.alias.graph.Graph.Scope
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.persist.Persistance
 
 import scala.collection.mutable
 
@@ -178,14 +179,14 @@ case object AliasAnalysis extends IRPass {
             case Some(meta) =>
               val newMeta = meta match {
                 case root: alias.AliasMetadata.RootScope =>
-                  root.copy(graph = copyRootScopeGraph)
+                  root.copy(copyRootScopeGraph)
                 case child: alias.AliasMetadata.ChildScope =>
                   child.copy(
-                    graph = copyRootScopeGraph,
-                    scope = child.scope.deepCopy(scopeMapping)
+                    copyRootScopeGraph,
+                    child.scope.deepCopy(scopeMapping)
                   )
                 case occ: alias.AliasMetadata.Occurrence =>
-                  occ.copy(graph = copyRootScopeGraph)
+                  occ.copy(copyRootScopeGraph)
               }
               alias.AliasMetadata.updateMetadata(copyNode, newMeta)
             case None =>
@@ -236,13 +237,16 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Conversion =>
         m.body match {
           case _: Function =>
-            val c = m.copy(
-              body = analyseExpression(
-                m.body,
-                builder,
-                lambdaReuseScope = true
+            val c = m
+              .copyBuilder()
+              .body(
+                analyseExpression(
+                  m.body,
+                  builder,
+                  lambdaReuseScope = true
+                )
               )
-            )
+              .build()
             alias.AliasMetadata.updateMetadata(
               c,
               new alias.AliasMetadata.RootScope(builder.toGraph())
@@ -255,13 +259,18 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Explicit =>
         m.body match {
           case _: Function =>
-            val c = m.copy(
-              body = analyseExpression(
-                m.body,
-                builder,
-                lambdaReuseScope = true
+            val c = m
+              .copyBuilder()
+              .bodyReference(
+                Persistance.Reference.of(
+                  analyseExpression(
+                    m.body,
+                    builder,
+                    lambdaReuseScope = true
+                  )
+                )
               )
-            )
+              .build()
             alias.AliasMetadata.updateMetadata(
               c,
               new alias.AliasMetadata.RootScope(builder.toGraph())
@@ -602,8 +611,8 @@ case object AliasAnalysis extends IRPass {
     application match {
       case app: Application.Prefix =>
         app.copy(
-          function  = analyseExpression(app.function, builder),
-          arguments = analyseCallArguments(app.arguments, builder)
+          analyseExpression(app.function, builder),
+          analyseCallArguments(app.arguments, builder)
         )
       case app: Application.Force =>
         app.copyWithTarget(analyseExpression(app.target, builder))
@@ -669,9 +678,9 @@ case object AliasAnalysis extends IRPass {
     function match {
       case lambda: Function.Lambda =>
         val lc = lambda
-          .copy(
-            arguments = analyseArgumentDefs(lambda.arguments, currentScope),
-            body = analyseExpression(
+          .copyWithArgumentsAndBody(
+            analyseArgumentDefs(lambda.arguments, currentScope),
+            analyseExpression(
               lambda.body,
               currentScope
             )

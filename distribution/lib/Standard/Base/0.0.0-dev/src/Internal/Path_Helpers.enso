@@ -8,10 +8,11 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 from project.Data.Boolean import Boolean, True
 from project.Data.Text.Extensions import all
 
-## PRIVATE
-   A helper that gathers the common logic of normalizing the `..` and `.`
-   entries in paths.
-
+## ---
+   private: true
+   ---
+   A helper that gathers the common logic of normalizing the `..` and `.` entries
+   in paths.
    It raises `Illegal_Argument` if the `..` entries try to go above the root of
    the path.
 normalize_segments (segments : Vector) (get_name : Any -> Text) -> Vector ! Illegal_Argument =
@@ -23,21 +24,31 @@ normalize_segments (segments : Vector) (get_name : Any -> Text) -> Vector ! Ille
         _ -> List.Cons part stack
     new_stack.to_vector.reverse
 
-## PRIVATE
+## ---
+   private: true
+   ---
    The method splits the `subpath` into parts based on the `/` delimiter and
    applies each part iteratively using the `resolve_single_part` method on the
    file objects.
-
    Each delimiter is applied together with the file part preceding it (if any),
-   so call `resolve_many_parts f "/a/b/c"` translates into
-   `f.resolve_single_part "/" . resolve_single_part "a/" . resolve_single_part "b/" . resolve_single_part "c"`.
+   so call `resolve_many_parts f "/a/b/c"` translates into:
+
+   ```
+       f.resolve_single_part "/"
+        . resolve_single_part "a/"
+        . resolve_single_part "b/"
+        . resolve_single_part "c"`
+   ```
+
    Keeping the delimiter is needed for some systems to be able to distinguish
    directories from regular files (e.g. S3).
 resolve_many_parts (base_file : Any) (subpath : Text) (windows_delimiter : Boolean = True) =
     parts = split_path subpath windows_delimiter
     parts.fold base_file f-> part-> f.resolve_single_part part
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Splits the given path into parts based on the delimiter.
 split_path (path : Text) (windows_delimiter : Boolean = True) -> Vector Text =
     # The `\` is doubled to escape it in the regex.

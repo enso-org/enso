@@ -6,7 +6,7 @@
 import { objectEquality, refEquality, shallowEquality } from '#/utilities/equalities'
 import type { DispatchWithoutAction, Reducer, RefObject } from 'react'
 import { useEffect, useReducer, useRef } from 'react'
-import { type StoreApi } from 'zustand'
+import type { StoreApi } from 'zustand'
 import { useStoreWithEqualityFn } from 'zustand/traditional'
 
 /**
@@ -73,7 +73,7 @@ export function useStore<State, Slice>(
 }
 
 /** A hook that allows to use React transitions with Zustand store. */
-export function useTearingTransitionStore<State, Slice>(
+function useTearingTransitionStore<State, Slice>(
   store: StoreApi<State>,
   selector: (state: State) => Slice,
   areEqual: AreEqual<Slice> = 'shallow',
@@ -150,7 +150,6 @@ function useNonCompilableConditionalStore<State, Slice>(
   equalityFunction: EqualityFunction<Slice>,
   prevUnsafeEnableTransition: RefObject<boolean>,
 ) {
-  /* eslint-disable react-compiler/react-compiler */
   /* eslint-disable react-hooks/rules-of-hooks */
   if (prevUnsafeEnableTransition.current !== unsafeEnableTransition) {
     throw new Error(
@@ -160,6 +159,5 @@ function useNonCompilableConditionalStore<State, Slice>(
   return unsafeEnableTransition ?
       useTearingTransitionStore(store, selector, equalityFunction)
     : useStoreWithEqualityFn(store, selector, equalityFunction)
-  /* eslint-enable react-compiler/react-compiler */
   /* eslint-enable react-hooks/rules-of-hooks */
 }

@@ -368,34 +368,104 @@ add_direct_specs suite_builder =
             err . should_fail_with No_Column_Names_Found
             err.catch.to_display_text . should_equal "No column names were found in the header line."
 
-        group_builder.specify "should work with all kinds of line endings" pending="https://github.com/enso-org/enso/issues/13137" <|
+        group_builder.specify "Should treat empty fields as the empty string" <|
             descs = []
-                + [Fixed_Width_Column_Description.Start_And_Width 0 1 "x"]
-                + [Fixed_Width_Column_Description.Width 1 "y"]
-                + [Fixed_Width_Column_Description.Width 1 "z"]
+                + [Fixed_Width_Column_Description.Start_And_Width 5 3]
+                + [Fixed_Width_Column_Description.Start_And_Width 13 5]
             layout = Fixed_Width_Layout.from_descriptions descs
+            t = empty_fields.read (Fixed_Width_Format.Fixed_Width layout on_empty_field=..As_Empty_String)
+            t.at "Column 1" . to Vector . should_equal ["", '678']
+            t.at "Column 2" . to Vector . should_equal ['98765', ""]
 
-            path name = enso_project.data / 'transient' / name
-            create_file name ending_style =
+        group_builder.specify "Can infer headers (left justified)" <|
+            t = infer_headers_left.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left)
+            t.column_names . should_equal ['one', 'two', 'three', 'four', 'five', 'six']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+            t.at 'two' . to_vector . should_equal ['abcde', 'zbcde']
+            t.at 'three' . to_vector . should_equal [234567, 834567]
+            t.at 'four' . to_vector . should_equal ['bcdef', 'zcdef']
+            t.at 'five' . to_vector . should_equal [3456789, 8456789]
+            t.at 'six' . to_vector . should_equal ['cdefg', 'zdefg']
+
+        group_builder.specify "Can infer headers (right justified)" <|
+            t = infer_headers_right.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Right)
+            t.column_names . should_equal ['one', 'two', 'three', 'four', 'five', 'six']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+            t.at 'two' . to_vector . should_equal ['abcde', 'zbcde']
+            t.at 'three' . to_vector . should_equal [234567, 834567]
+            t.at 'four' . to_vector . should_equal ['bcdef', 'zcdef']
+            t.at 'five' . to_vector . should_equal [3456789, 8456789]
+            t.at 'six' . to_vector . should_equal ['cdefg', 'zdefg']
+
+        group_builder.specify "Can infer headers when there is one column (left justified)" <|
+            t = infer_headers_one_left.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left)
+            t.column_names . should_equal ['one']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+
+        group_builder.specify "Can infer headers when there is one column (right justified)" <|
+            t = infer_headers_one_right.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Right)
+            t.column_names . should_equal ['one']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+
+        group_builder.specify "Can infer headers after skipping rows" <|
+            t = infer_headers_skip.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left skip_rows=3)
+            t.column_names . should_equal ['one', 'two', 'three', 'four', 'five', 'six']
+            t.at 'one' . to_vector . should_equal [12345, 82345]
+            t.at 'two' . to_vector . should_equal ['abcde', 'zbcde']
+            t.at 'three' . to_vector . should_equal [234567, 834567]
+            t.at 'four' . to_vector . should_equal ['bcdef', 'zcdef']
+            t.at 'five' . to_vector . should_equal [3456789, 8456789]
+            t.at 'six' . to_vector . should_equal ['cdefg', 'zdefg']
+
+        group_builder.specify "Throws an exception when inferring headers and the header row has no columns" <|
+            err = infer_headers_no_headers.read (Fixed_Width_Format.Fixed_Width Infer_Layout.Left)
+            err . should_fail_with No_Column_Names_Found
+            err.catch.to_display_text . should_equal "No column names were found in the header line."
+
+        test_with_line_endings line_endings_string line_endings =
+            file = enso_project.data / 'transient' / 'line_endings.txt'
+            Panic.with_finalizer file.delete <|
+                descs = []
+                    + [Fixed_Width_Column_Description.Start_And_Width 0 1 "x"]
+                    + [Fixed_Width_Column_Description.Width 1 "y"]
+                    + [Fixed_Width_Column_Description.Width 1 "z"]
+                layout = Fixed_Width_Layout.from_descriptions descs
+
                 lines = ['abc', 'def', '123']
-                text = lines.join ending_style
-                text.write (path name)
+                text = lines.join line_endings_string
+                text.write file
 
-            test_file name =
-                table = Data.read (path name) (Fixed_Width_Format.Fixed_Width layout) ..Report_Error
+                table = Data.read file (Fixed_Width_Format.Fixed_Width layout line_endings=line_endings) ..Report_Error
                 table.columns.map .name . should_equal ['x', 'y', 'z']
                 table.at 'x' . to_vector . should_equal ['a', 'd', '1']
                 table.at 'y' . to_vector . should_equal ['b', 'e', '2']
                 table.at 'z' . to_vector . should_equal ['c', 'f', '3']
 
-            create_file 'crlf.csv' '\r\n'
-            test_file 'crlf.csv'
-            create_file 'lf.csv' '\n'
-            test_file 'lf.csv'
-            create_file 'cr.csv' '\r'
-            test_file 'cr.csv'
+        group_builder.specify "should handle different line endings" <|
+                test_with_line_endings '\r\n' Infer
+                test_with_line_endings '\r\n' Line_Ending_Style.Windows
+                test_with_line_endings '\n' Infer
+                test_with_line_endings '\n' Line_Ending_Style.Unix
+                test_with_line_endings '\r' Infer
+                test_with_line_endings '\r' Line_Ending_Style.Mac_Legacy
+                test_with_line_endings '5q.' (Custom_Line_Ending.Value '5q.')
+                test_with_line_endings 'q' (Custom_Line_Ending.Value 'q')
+                test_with_line_endings 'bq.' (Custom_Line_Ending.Value 'bq.')
+                test_with_line_endings 'bc.' (Custom_Line_Ending.Value 'bc.')
+                test_with_line_endings '' (Custom_Line_Ending.Value '')
+                test_with_line_endings '' No_Line_Ending
 
-            ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
+        group_builder.specify "cannot infer line endings with an empty line ending" <|
+            format = Fixed_Width_Format.Fixed_Width Infer_Layout.Left line_endings=No_Line_Ending
+            err = Data.read fixed_file format ..Report_Error
+            err . should_fail_with Illegal_Argument
+            err . catch . message . should_contain "the layout must be specified and cannot be inferred"
+
+        group_builder.specify "custom line endings must be ASCII" <|
+            format = Fixed_Width_Format.Fixed_Width Infer_Layout.Left line_endings=(Custom_Line_Ending.Value '𐍈')
+            err = Data.read fixed_file format ..Report_Error
+            err . should_fail_with Illegal_Argument
+            err . catch . message . should_contain "Line endings must be ASCII characters"
 
         group_builder.specify "Should report row and column for bad characters" <|
             descs = []

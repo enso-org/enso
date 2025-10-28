@@ -14,7 +14,9 @@ type Fill_With
     ## Fills the gaps created by offset with the values that got slid off the other end 
     Wrap_Around
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_java self = case self of
         Fill_With.Nothing -> Java_Fill_With.NOTHING
         Fill_With.Closest_Value -> Java_Fill_With.CLOSEST_VALUE

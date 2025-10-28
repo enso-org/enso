@@ -10,7 +10,9 @@ from project.Internal.Upload.Helpers.Constants import dry_run_row_limit
 from project.Internal.Upload.Helpers.Error_Helpers import handle_upload_errors
 from project.Internal.Upload.Operations.Upload_Table import create_table_upload_operation, resolve_temp_table_name
 
-## PRIVATE
+## ---
+   private: true
+   ---
 select_into_table_implementation source_table connection table_name primary_key temporary on_problems:Problem_Behavior =
     connection.base_connection.maybe_run_maintenance
     resolved_table_name = resolve_temp_table_name connection temporary table_name
@@ -37,12 +39,14 @@ select_into_table_implementation source_table connection table_name primary_key 
                                     . catch Table_Already_Exists _->
                                         # Another dry-run table was created in the meantime - we restart to now DROP it and try again.
                                         create_dry_run_table Nothing
-                            temporary_table = connection.base_connection.internal_allocate_dry_run_table table.name
+                            temporary_table = connection.base_connection.internal_allocate_dry_run_table table.name connection
                             warning = Dry_Run_Operation.Warning "Only a dry run of `select_into_database_table` was performed - a temporary table ("+tmp_table_name+") was created, containing a sample of the data.  Press the Write button ▶ to write to the actual table."
                             Warning.attach warning temporary_table
                         create_dry_run_table Nothing
 
-## PRIVATE
+## ---
+   private: true
+   ---
 upload_table_in_transaction source_table connection table_name primary_key temporary on_problems row_limit =
     upload_operation = create_table_upload_operation source_table connection table_name primary_key=primary_key temporary=temporary on_problems=on_problems row_limit=row_limit
     DDL_Transaction.run_transaction_with_tables connection [upload_operation.table_description] _->

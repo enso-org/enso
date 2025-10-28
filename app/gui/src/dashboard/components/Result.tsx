@@ -93,16 +93,7 @@ export interface ResultProps
 
 /** Display the result of an operation. */
 export function Result(props: ResultProps) {
-  const {
-    title,
-    children,
-    status = 'success',
-    subtitle,
-    className,
-    icon,
-    testId = 'Result',
-    centered,
-  } = props
+  const { title, children, status = 'success', subtitle, className, icon, testId, centered } = props
 
   const statusIcon = typeof status === 'string' ? STATUS_ICON_MAP[status] : null
   const showIcon = icon !== false

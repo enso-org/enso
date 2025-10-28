@@ -37,7 +37,7 @@ public class TestKeyGenerator {
     keyPairGenerator.initialize(2048);
     KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
-    if (passphrase == null) {
+    if (passphrase.isEmpty()) {
       savePrivateKey(keyPair.getPrivate(), privateKeyFile);
     } else {
       savePrivateKeyEncrypted(keyPair.getPrivate(), privateKeyFile, passphrase);

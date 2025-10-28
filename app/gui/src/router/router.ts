@@ -12,6 +12,7 @@ import {
 } from '$/appUtils'
 import { flagsStore } from '$/providers/featureFlags'
 import { withDataLoader } from '$/router/dataLoader'
+import { maybeRedirectToInitialProject } from '$/router/initialProject'
 import { reactComponent } from '@/util/react'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
@@ -44,9 +45,10 @@ const routes = [
         beforeEnter: requireCloudBrowserEnabled,
         children: [
           {
-            path: DASHBOARD_PATH,
-            component: () =>
-              import('#/pages/dashboard/Dashboard').then((mod) => reactComponent(mod.default)),
+            name: 'dashboard',
+            path: '/:path(.*)*',
+            beforeEnter: maybeRedirectToInitialProject,
+            component: withDataLoader(() => import('$/components/AppContainer.vue')),
           },
           {
             path: SUBSCRIBE_PATH,
@@ -64,7 +66,7 @@ const routes = [
           ),
       },
       {
-        path: '/',
+        path: '/cloudDisabled',
         name: 'cloudDisabled',
         meta: { access: 'anyLoggedIn' },
         component: () =>

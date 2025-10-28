@@ -10,13 +10,17 @@ from Standard.Table import Table
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
 
-## PRIVATE
+## ---
+   private: true
+   ---
 align_structure : Connection | Any -> Table & Table | Vector Column_Description -> Vector Column_Description
 align_structure connection table_or_columns = case table_or_columns of
     vector : Vector   -> align_vector_structure vector
     table : Table     -> structure_from_existing_table connection table
 
-## PRIVATE
+## ---
+   private: true
+   ---
 align_vector_structure vector =
     if vector.is_empty then Error.throw (Illegal_Argument.Error "A table with no columns cannot be created. The `structure` must consist of at list one column description.") else
         vector.map def-> case def of
@@ -26,16 +30,19 @@ align_vector_structure vector =
             _ ->
                 Error.throw (Illegal_Argument.Error "The structure must be an existing Table or vector of Column_Description.")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 structure_from_existing_table connection table:Table =
     table.columns.map column->
         value_type = connection.dialect.value_type_for_upload_of_existing_column column
         Column_Description.Value column.name value_type
 
-## PRIVATE
-   Verifies that the provided structure is valid, and runs the provided action
-   or raises an error.
-
+## ---
+   private: true
+   ---
+   Verifies that the provided structure is valid, and runs the provided action or
+   raises an error.
    In particular it checks if there are no clashing column names.
 validate_structure column_naming_helper structure ~action =
     column_names = structure.map .name
@@ -50,7 +57,9 @@ validate_structure column_naming_helper structure ~action =
         problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
             action
 
-## PRIVATE
+## ---
+   private: true
+   ---
 verify_structure_hint structure_hint column_names =
     if structure_hint.is_nothing.not then
         column_names.zip structure_hint expected_name-> column_description->

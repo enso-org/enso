@@ -52,7 +52,7 @@ object Name {
       with LazyDiagnosticStorage
       with LazyId {
 
-    override val name: String = showCode()
+    override lazy val name: String = showCode()
 
     /** Creates a copy of `this`.
       *

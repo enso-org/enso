@@ -1414,7 +1414,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   None
                 )
               ),
-              selfType      = "Standard.Base.Data.Numbers.Number",
+              selfType      = "Test.Foo",
               returnType    = "Test.Foo",
               documentation = Some(" My conversion")
             ),
@@ -1520,7 +1520,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                     Some("1")
                   )
               ),
-              selfType      = "Standard.Base.Data.Numbers.Number",
+              selfType      = "Test.Foo",
               returnType    = "Test.Foo",
               documentation = None
             ),
@@ -1633,7 +1633,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                     )
                   )
               ),
-              selfType      = "Standard.Base.Data.Numbers.Number",
+              selfType      = "Test.Foo",
               returnType    = "Test.Foo",
               documentation = None
             ),

@@ -7,8 +7,6 @@ use crate::programs::cmd::args::RUN_COMMAND;
 use std::process::Stdio;
 use unicase::UniCase;
 
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct Cmd;
 
@@ -23,7 +21,6 @@ pub mod args {
     /// Carries out the command specified by string and then terminates.
     pub const RUN_COMMAND: &str = "/C";
 }
-
 
 impl Program for Cmd {
     type Command = Command;
@@ -68,7 +65,8 @@ impl Shell for Cmd {
 pub fn run_commands<Cmds, Arg>(commands: Cmds) -> anyhow::Result<Command>
 where
     Cmds: IntoIterator<Item: IntoIterator<Item = Arg>>,
-    Arg: AsRef<OsStr>, {
+    Arg: AsRef<OsStr>,
+{
     let mut ret = Cmd.run_command()?;
     ret.stdin(Stdio::null()).stdout(Stdio::piped());
 
@@ -120,7 +118,7 @@ pub async fn compare_env(
         .filter_map(|(variable_name, new_value)| {
             let path_like = is_path_like(&variable_name);
             let action = match environment_before.remove(&variable_name) {
-                Some(old_value) =>
+                Some(old_value) => {
                     if new_value != old_value {
                         if path_like {
                             // Check which elements are new and whether they are prepended.
@@ -131,9 +129,11 @@ pub async fn compare_env(
                         }
                     } else {
                         return None;
-                    },
-                None if path_like =>
-                    Action::PrependPaths(std::env::split_paths(&new_value).collect()),
+                    }
+                }
+                None if path_like => {
+                    Action::PrependPaths(std::env::split_paths(&new_value).collect())
+                }
                 None => Action::Set(new_value),
             };
             Some(Modification { variable_name, action })
@@ -185,13 +185,12 @@ mod tests {
     fn env_commands() {
         let set_foobar = Modification {
             variable_name: "FOOBAR".into(),
-            action:        Action::Set("foobar_value".into()),
+            action: Action::Set("foobar_value".into()),
         };
-        let unset_foobar =
-            Modification { variable_name: "FOOBAR".into(), action: Action::Remove };
+        let unset_foobar = Modification { variable_name: "FOOBAR".into(), action: Action::Remove };
         let prepend_path = Modification {
             variable_name: "PATH".into(),
-            action:        Action::PrependPaths(vec!["C:\\foo".into(), "C:\\bar".into()]),
+            action: Action::PrependPaths(vec!["C:\\foo".into(), "C:\\bar".into()]),
         };
         assert_eq!(Cmd.modify_env(&set_foobar).unwrap(), "set FOOBAR=foobar_value");
         assert_eq!(Cmd.modify_env(&unset_foobar).unwrap(), "set FOOBAR=");

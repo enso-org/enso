@@ -13,6 +13,7 @@ import org.enso.compiler.core.ir.{
   Name
 }
 import org.enso.compiler.pass.MiniIRPass
+import org.enso.persist.Persistance
 
 class LambdaShorthandToLambdaMini(
   protected val freshNameSupply: FreshNameSupply,
@@ -75,23 +76,27 @@ class LambdaShorthandToLambdaMini(
       case blank: Name.Blank if !shouldSkipBlanks =>
         val newName = freshNameSupply.newName()
 
-        new Function.Lambda(
-          List(
-            new DefinitionArgument.Specified(
-              Name.Literal(
-                newName.name,
-                isMethod = false,
-                null
-              ),
-              None,
-              None,
-              false,
-              null
+        Function.Lambda
+          .builder()
+          .arguments(
+            List(
+              DefinitionArgument.Specified
+                .builder()
+                .name(
+                  Name.Literal(
+                    newName.name,
+                    isMethod = false,
+                    null
+                  )
+                )
+                .suspended(false)
+                .build(
+                )
             )
-          ),
-          newName,
-          blank.location.orNull
-        )
+          )
+          .bodyReference(Persistance.Reference.of(newName, true))
+          .location(blank.location.orNull)
+          .build()
       case _ => name
     }
   }
@@ -140,38 +145,51 @@ class LambdaShorthandToLambdaMini(
         }
 
         val processedApp = p.copy(
-          function  = updatedFn,
-          arguments = updatedArgs
+          updatedFn,
+          updatedArgs
         )
 
         // Wrap the app in lambdas from right to left, 1 lambda per shorthand
         // arg
         val appResult =
           actualDefArgs.foldRight(processedApp: Expression)((arg, body) =>
-            new Function.Lambda(List(arg), body, null)
+            Function.Lambda
+              .builder()
+              .arguments(List(arg))
+              .bodyReference(Persistance.Reference.of(body))
+              .build()
           )
 
         // If the function is shorthand, do the same
         val resultExpr = if (functionIsShorthand) {
-          new Function.Lambda(
-            List(
-              new DefinitionArgument.Specified(
-                Name
-                  .Literal(
-                    updatedName.get,
-                    isMethod = false,
-                    p.function.location.orNull
+          Function.Lambda
+            .builder()
+            .arguments(
+              List(
+                DefinitionArgument.Specified
+                  .builder()
+                  .name(
+                    Name
+                      .Literal(
+                        updatedName.get,
+                        isMethod = false,
+                        p.function.location.orNull
+                      )
                   )
+                  .build()
               )
-            ),
-            appResult,
-            null
-          )
+            )
+            .bodyReference(Persistance.Reference.of(appResult, true))
+            .build()
         } else appResult
 
         resultExpr match {
-          case lam: Function.Lambda => lam.copy(location = p.location)
-          case result               => result
+          case lam: Function.Lambda =>
+            Function.Lambda
+              .builder(lam)
+              .location(p.identifiedLocation())
+              .build()
+          case result => result
         }
 
       case vector: Application.Sequence =>
@@ -193,8 +211,17 @@ class LambdaShorthandToLambdaMini(
         val locWithoutId =
           newVec.location.map(l => new IdentifiedLocation(l.location()))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
-          val defArg = new DefinitionArgument.Specified(bindingName)
-          new Function.Lambda(List(defArg), body, locWithoutId.orNull)
+          val defArg = DefinitionArgument.Specified
+            .builder()
+            .name(bindingName)
+            .suspended(false)
+            .build();
+          Function.Lambda
+            .builder()
+            .bodyReference(Persistance.Reference.of(body, true))
+            .arguments(List(defArg))
+            .location(locWithoutId.orNull)
+            .build()
         }
 
       case _: Operator =>
@@ -248,7 +275,7 @@ class LambdaShorthandToLambdaMini(
               diagnostics = s.value.diagnostics
             )
 
-          s.copy(value = newName)
+          s.copy(newName)
         } else s
     }
   }
@@ -277,15 +304,13 @@ class LambdaShorthandToLambdaMini(
             )
 
           Some(
-            new DefinitionArgument.Specified(
-              defArgName,
-              None,
-              None,
-              suspended = false,
-              null,
-              specified.passData.duplicate,
-              specified.diagnosticsCopy
-            )
+            DefinitionArgument.Specified
+              .builder()
+              .name(defArgName)
+              .suspended(false)
+              .passData(specified.passData.duplicate)
+              .diagnostics(specified.diagnosticsCopy())
+              .build()
           )
       }
     } else None
@@ -320,13 +345,11 @@ class LambdaShorthandToLambdaMini(
               diagnostics = nameBlank.diagnostics
             )
 
-        val lambdaArg = new DefinitionArgument.Specified(
-          scrutineeName.copy(id = null),
-          None,
-          None,
-          suspended = false,
-          null
-        )
+        val lambdaArg = DefinitionArgument.Specified
+          .builder()
+          .name(scrutineeName.copy(id = null))
+          .suspended(false)
+          .build()
 
         val newCaseExpr = caseExpr.copy(
           scrutineeName,
@@ -334,12 +357,14 @@ class LambdaShorthandToLambdaMini(
           caseExpr.isNested
         )
 
-        new Function.Lambda(
-          caseExpr,
-          List(lambdaArg),
-          newCaseExpr,
-          caseExpr.location.orNull
-        )
+        Function.Lambda
+          .builder()
+          .bodyReference(Persistance.Reference.of(newCaseExpr, true))
+          .arguments(List(lambdaArg))
+          .canBeTCO(true)
+          .passData(caseExpr.passData().duplicate())
+          .location(caseExpr.location.orNull)
+          .build()
 
       case _ => caseExpr
     }

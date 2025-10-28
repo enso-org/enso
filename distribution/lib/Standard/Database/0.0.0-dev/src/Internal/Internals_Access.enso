@@ -1,10 +1,8 @@
 ## We do not want to expose column internals to users, but we need to allow
    external libraries implementing additional database connectors to be able to
    access them.
-
-   To alleviate that, we provide the `Internals_Access` module that exposes
-   these internals.
-
+   To alleviate that, we provide the `Internals_Access` module that exposes these
+   internals.
    This module should never be imported by user code. It should only be used by
    providers of new database dialects.
 
@@ -16,14 +14,22 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 
-## PRIVATE
+## ---
+   private: true
+   ---
 column_expression (column : DB_Column | Internal_Column) -> SQL_IR_Expression = column.expression
 
-## PRIVATE
+## ---
+   private: true
+   ---
 get_connection (thing : DB_Column | DB_Table) = thing.connection
 
-## PRIVATE
+## ---
+   private: true
+   ---
 get_context (thing : DB_Column | DB_Table) -> SQL_IR_Source = thing.context
 
-## PRIVATE
+## ---
+   private: true
+   ---
 internal_columns (table : DB_Table) -> Vector Internal_Column = table.internal_columns

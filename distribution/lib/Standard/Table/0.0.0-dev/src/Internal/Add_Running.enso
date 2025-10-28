@@ -17,7 +17,9 @@ polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.table.data.column.storage.LongRangeStorage
 polyglot java import org.enso.table.operations.AddRunning
 
-## PRIVATE
+## ---
+   private: true
+   ---
 add_running : Table -> Statistic -> (Text|Integer) -> Text -> Set_Mode -> Vector (Text | Integer | Regex) | Text | Integer | Regex -> Vector (Text | Sort_Column) | Text -> Problem_Behavior -> Table
 add_running table (statistic:Statistic=Statistic.Count) (of:Text|Integer=0) (as:Text='') (set_mode:Set_Mode=..Add) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
     check_running_support [statistic] <|

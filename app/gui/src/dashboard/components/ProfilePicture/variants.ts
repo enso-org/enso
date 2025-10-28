@@ -1,9 +1,7 @@
 /** @file Variants for the ProfilePicture component. */
 import { tv } from '#/utilities/tailwindVariants'
 
-/**
- * Variants for the ProfilePicture component.
- */
+/** Variants for the ProfilePicture component. */
 export const PROFILE_PICTURE_STYLES = tv({
   base: 'aspect-square flex-none object-cover',
   variants: {

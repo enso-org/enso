@@ -18,13 +18,13 @@ add_specs suite_builder =
 
         group_builder.specify "works for `get` and `at`" <|
             choices = mock_table.column_names . map n-> Choice.Option n n.pretty
-            expect = [["selector", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            expect = '[["selector",' + Widget.Single_Choice choices Nothing Display.Always . to_json + ']]'
             Widgets.get_widget_json mock_table .get ["selector"] . should_equal expect
             Widgets.get_widget_json mock_table .at ["selector"] . should_equal expect
 
         group_builder.specify "works for `filter`" <|
             choices = [Choice.Option "<Expression>" "(expr '[A]')"] + mock_table.column_names . map n-> Choice.Option n n.pretty
-            expect = [["column", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            expect = '[["column",' + Widget.Single_Choice choices Nothing Display.Always . to_json + ']]'
             Widgets.get_widget_json mock_table .filter ["column"] . should_equal expect
 
         group_builder.specify "works for `join` with `right` table" <|
@@ -62,7 +62,7 @@ add_specs suite_builder =
 
         group_builder.specify "works for `geo_distance`" <|
             choices = [Choice.Option "<Number Value>" "0", Choice.Option "<Expression>" "(expr '[A]')"]
-            expect = [["lat1", Widget.Single_Choice choices Nothing Display.Always]] . to_json
+            expect = '[["lat1",' + Widget.Single_Choice choices Nothing Display.Always . to_json + ']]'
             Widgets.get_widget_json mock_table .geo_distance ["lat1"] . should_equal expect
 
 main filter=Nothing =

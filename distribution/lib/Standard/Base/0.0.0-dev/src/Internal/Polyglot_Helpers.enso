@@ -3,7 +3,9 @@ import project.Panic.Panic
 
 polyglot java import org.enso.base.polyglot.WrappedDataflowError
 
-## PRIVATE
+## ---
+   private: true
+   ---
 handle_polyglot_dataflow_errors ~action =
     Panic.catch WrappedDataflowError action caught_panic->
         Error.throw caught_panic.payload.getDataflowError

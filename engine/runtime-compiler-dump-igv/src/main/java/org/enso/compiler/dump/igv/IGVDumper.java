@@ -15,12 +15,11 @@ import jdk.graal.compiler.graphio.GraphOutput;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.dump.service.IRDumper;
 import org.enso.compiler.dump.service.IRSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class IGVDumper implements IRDumper {
+final class IGVDumper {
 
   private static final String DEFAULT_DUMP_DIR = "ir-dumps";
   private static final Logger LOGGER = LoggerFactory.getLogger(IGVDumper.class);
@@ -73,13 +72,11 @@ public final class IGVDumper implements IRDumper {
     return channel;
   }
 
-  @Override
   public void dumpModule(IRSource<Module> ctx) {
     assert ctx.name().equals(this.moduleName);
     dumpTask(ctx);
   }
 
-  @Override
   public void dumpExpression(IRSource<Expression> ctx) {
     dumpTask(ctx);
   }
@@ -121,7 +118,6 @@ public final class IGVDumper implements IRDumper {
     return props;
   }
 
-  @Override
   public void close() {
     if (groupCreated) {
       assert graphOutput != null;

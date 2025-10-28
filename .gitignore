@@ -115,6 +115,9 @@ bench-report*.xml
 *.pdb
 *.so
 *.jar
+*.so_linux_amd64
+*.so_osx_universal
+*.so_windows_amd64
 
 
 #########
@@ -187,6 +190,12 @@ test-results
 
 .direnv
 
+########################
+## Nix-specific shims ##
+########################
+
+nix/shims/
+
 ##########################
 ## Playwright artifacts ##
 ##########################
@@ -195,6 +204,7 @@ test-results/
 test-traces/
 playwright-report/
 playwright/.cache/
+playwright/.auth/
 
 #########
 ## Git ##

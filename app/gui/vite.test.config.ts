@@ -11,14 +11,6 @@ export default mergeConfig(
   defineConfig({
     mode: 'testing', // load environment from .env.testing file
     resolve: {
-      alias: {
-        '@stripe/stripe-js/pure': fileURLToPath(
-          new URL('./integration-test/dashboard/mock/stripe.ts', import.meta.url),
-        ),
-        '@stripe/react-stripe-js': fileURLToPath(
-          new URL('./integration-test/dashboard/mock/react-stripe.tsx', import.meta.url),
-        ),
-      },
       extensions: [
         '.mock.mjs',
         '.mock.js',

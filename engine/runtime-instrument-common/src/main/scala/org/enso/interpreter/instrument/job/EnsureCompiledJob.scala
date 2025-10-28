@@ -3,7 +3,7 @@ package org.enso.interpreter.instrument.job
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import org.enso.common.{CachePreferences, CompilationStage}
+import org.enso.common.CachePreferences
 import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -89,7 +89,7 @@ class EnsureCompiledJob(
     val moduleCompilationStatus = modules.map(ensureCompiledModule)
     val modulesInScope =
       getProjectModulesInScope.filterNot(m => modules.exists(_ == m))
-    val scopeCompilationStatus = ensureCompiledScope(modulesInScope)
+    val scopeCompilationStatus = modulesInScope.flatMap(ensureCompiledModule)
     (moduleCompilationStatus.flatten ++ scopeCompilationStatus).maxOption
       .getOrElse(CompilationStatus.Success)
   }
@@ -122,18 +122,9 @@ class EnsureCompiledJob(
           invalidateCaches(module, changeset)
           val state =
             ctx.state.suggestions.getOrCreateFresh(module, module.getIr)
-          if (state.isIndexed) {
-            ctx.jobProcessor.runBackground(
-              AnalyzeModuleJob(module, state, module.getIr(), changeset)
-            )
-          } else {
-            AnalyzeModuleJob.analyzeModule(
-              module,
-              state,
-              module.getIr(),
-              changeset
-            )
-          }
+          ctx.jobProcessor.runBackground(
+            AnalyzeModuleJob(module, state, module.getIr(), changeset)
+          )
           runCompilationDiagnostics(module)
         }
         .fold(
@@ -147,61 +138,6 @@ class EnsureCompiledJob(
           identity
         )
     }
-  }
-
-  /** Compile all modules in the scope and send the extracted suggestions.
-    *
-    * @param ctx the runtime context
-    */
-  private def ensureCompiledScope(modulesInScope: Iterable[Module])(implicit
-    ctx: RuntimeContext
-  ): Iterable[CompilationStatus] = {
-    val notIndexedModulesInScope =
-      modulesInScope.filter(m => {
-        val state = ctx.state.suggestions.find(m)
-        state == null || !state.isIndexed
-      })
-    val (modulesToAnalyzeBuilder, compilationStatusesBuilder) =
-      notIndexedModulesInScope.foldLeft(
-        (Set.newBuilder[Module], Vector.newBuilder[CompilationStatus])
-      ) { case ((modules, statuses), module) =>
-        compile(module) match {
-          case Left(err) =>
-            logger.error(s"Compilation error in ${module.getName}", err)
-            sendFailureUpdate(
-              Api.ExecutionResult.Failure(
-                err.getMessage,
-                Option(module.getPath).map(new File(_))
-              )
-            )
-            (modules, statuses += CompilationStatus.Failure)
-          case Right(compilerResult) =>
-            val status = runCompilationDiagnostics(module)
-            (
-              modules
-                .addAll(
-                  compilerResult.compiledModules.map(Module.fromCompilerModule)
-                )
-                .addOne(module),
-              statuses += status
-            )
-        }
-      }
-    val modulesToAnalyze = modulesToAnalyzeBuilder.result()
-    if (modulesToAnalyze.nonEmpty) {
-      ctx.jobProcessor.runBackground(
-        AnalyzeModuleInScopeJob(
-          modulesToAnalyze.map(m =>
-            (
-              m,
-              ctx.state.suggestions.getOrCreateFresh(m, m.getIr),
-              m.getSource() != null
-            )
-          )
-        )
-      )
-    }
-    compilationStatusesBuilder.result()
   }
 
   /** Extract compilation diagnostics from the module and send the diagnostic
@@ -287,11 +223,7 @@ class EnsureCompiledJob(
     idMapOpt: Option[IdMap] = None
   )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] =
     try {
-      val compilationStage = module.getCompilationStage
-      if (
-        !compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)
-        || idMapOpt.isDefined
-      ) {
+      if (module.needsCompilation() || idMapOpt.isDefined) {
         logger.trace(s"Compiling ${module.getName}.")
         val compiler = ctx.executionService.getContext.getCompiler
 
@@ -372,16 +304,19 @@ class EnsureCompiledJob(
     * @param changeset the [[Changeset]] object capturing the previous
     * version of IR
     * @param ir the IR of compiled module
+    * @param reason human-readable explanation for invalidation
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
-    ir: IR
+    ir: IR,
+    reason: String
   ): Seq[CacheInvalidation] = {
     val resolutionErrors = findNodesWithResolutionErrors(ir)
     val invalidateExpressionsCommand =
       CacheInvalidation.Command.InvalidateKeys(
-        changeset.invalidated ++ resolutionErrors
+        changeset.invalidated ++ resolutionErrors,
+        reason
       )
     val moduleIds = getModuleIds(ir)
     val invalidateStaleCommand =
@@ -458,7 +393,7 @@ class EnsureCompiledJob(
     changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
     val invalidationCommands =
-      buildCacheInvalidationCommands(changeset, module.getIr)
+      buildCacheInvalidationCommands(changeset, module.getIr, "changeset")
     ctx.contextManager.getAllContexts.values
       .foreach { stack =>
         if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
@@ -514,25 +449,9 @@ class EnsureCompiledJob(
   private def sendDiagnosticUpdates(
     diagnostics: Seq[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit =
-    if (diagnostics.nonEmpty) {
-      ctx.contextManager.getAllContexts.keys.foreach { contextId =>
-        ctx.endpoint.sendToClient(
-          Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
-        )
-      }
-    }
-
-  /** Send notification about the compilation status.
-    *
-    * @param failure the execution failure
-    * @param ctx the runtime context
-    */
-  private def sendFailureUpdate(
-    failure: Api.ExecutionResult.Failure
-  )(implicit ctx: RuntimeContext): Unit =
     ctx.contextManager.getAllContexts.keys.foreach { contextId =>
       ctx.endpoint.sendToClient(
-        Api.Response(Api.ExecutionFailed(contextId, failure))
+        Api.Response(Api.ExecutionUpdate(contextId, diagnostics))
       )
     }
 
@@ -595,9 +514,9 @@ class EnsureCompiledJob(
     val packageRepository =
       ctx.executionService.getContext.getCompiler.packageRepository
     packageRepository.getMainProjectPackage
-      .map(pkg =>
+      .map(mainPkg =>
         packageRepository
-          .getModulesForLibrary(pkg.libraryName)
+          .getModulesForLibrary(mainPkg.libraryName)
           .map(Module.fromCompilerModule(_))
       )
       .getOrElse(Seq())

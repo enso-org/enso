@@ -75,7 +75,12 @@ class ModifyVisualizationCmd(
           case Some(exec) =>
             for {
               _ <- ctx.jobProcessor.run(EnsureCompiledJob(exec.stack))
-              _ <- ctx.jobProcessor.run(ExecuteJob(exec))
+              _ <- ctx.jobProcessor.run(
+                ExecuteJob(
+                  exec,
+                  "modify/upsert visualization (id=" + request.visualizationId + ")"
+                )
+              )
             } yield ()
         }
     }

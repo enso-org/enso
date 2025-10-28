@@ -1,5 +1,7 @@
 package org.enso.compiler.benchmarks.exportimport;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -65,9 +67,10 @@ public class ExportImportResolutionBenchmark {
     var ensoCtx = ctx.ensoContext();
     this.mainModule = ensoCtx.getPackageRepository().getLoadedModule("local.Proj.Main").get();
     var mainRuntimeMod = Module.fromCompilerModule(mainModule);
+    assertTrue("main module should not yet be compiled", mainRuntimeMod.needsCompilation());
     assertThat(
         "main module should not yet be compiled",
-        mainRuntimeMod.getCompilationStage().equals(CompilationStage.INITIAL));
+        mainModule.getCompilationStage().equals(CompilationStage.INITIAL));
     this.importResolver = new ImportResolver(ensoCtx.getCompiler());
     this.exportsResolution = new ExportsResolution(ensoCtx.getCompiler().context());
   }

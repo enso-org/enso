@@ -1,7 +1,4 @@
-/**
- * @file
- * A menu displays a list of actions or options that a user can choose.
- */
+/** @file A menu containing a list of options. */
 import * as React from 'react'
 
 import { createHideableComponent, createLeafComponent } from '@react-aria/collections'
@@ -11,7 +8,6 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
 import { twJoin } from '#/utilities/tailwindMerge'
 import { memo } from 'react'
-import { AnimatedBackground } from '../AnimatedBackground'
 import { Popover } from '../Dialog'
 import { Separator, SEPARATOR_STYLES, type SeparatorProps } from '../Separator'
 import { Text } from '../Text'
@@ -96,7 +92,7 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
     children,
     variants = MENU_STYLES,
     placement,
-    testId = 'menu',
+    testId,
     ...menuProps
   } = props
 
@@ -111,11 +107,9 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
       rounded="xxxlarge"
     >
       {() => (
-        <AnimatedBackground>
-          <aria.Menu<T> data-testid={testId} className={styles.base({ className })} {...menuProps}>
-            {children}
-          </aria.Menu>
-        </AnimatedBackground>
+        <aria.Menu<T> data-testid={testId} className={styles.base({ className })} {...menuProps}>
+          {children}
+        </aria.Menu>
       )}
     </Popover>
   )
@@ -140,7 +134,7 @@ function MenuSection<T extends object>(props: MenuSectionProps<T>) {
     items,
     children,
     variants = MENU_SECTION_STYLES,
-    testId = 'menu-section',
+    testId,
     ...sectionProps
   } = props
 
@@ -177,12 +171,7 @@ export interface MenuSectionHeaderProps
 export const MenuSectionHeader = createLeafComponent(
   'header',
   function MenuSectionHeader(props: MenuSectionHeaderProps) {
-    const {
-      className,
-      title,
-      variants = MENU_SECTION_STYLES,
-      testId = 'menu-section-header',
-    } = props
+    const { className, title, variants = MENU_SECTION_STYLES, testId } = props
 
     const styles = variants()
 

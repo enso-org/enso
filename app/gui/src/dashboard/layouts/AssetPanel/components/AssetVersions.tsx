@@ -1,9 +1,4 @@
 /** @file A list of previous versions of an asset. */
-
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
-
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
@@ -17,8 +12,10 @@ import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
-} from '$/providers/react/rightPanel'
-import { includes } from 'enso-common/src/utilities/data/array'
+} from '$/providers/react/container'
+import { includes } from '$/utils/data/array'
+import { uniqueString } from '$/utils/uniqueString'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
 
@@ -130,7 +127,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   }
 
   return (
-    <div className="flex w-full flex-col ">
+    <div className="flex h-full w-full flex-col overflow-auto">
       {versions.map((version, index) => (
         <div key={version.versionId}>
           <AssetVersion

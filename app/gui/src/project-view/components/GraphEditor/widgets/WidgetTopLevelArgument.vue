@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
+import { provideTopLevelArgument } from '@/providers/topLevelArgument'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
-import { Opt } from '@/util/data/opt'
+import { useTemplateRef } from 'vue'
 
-const props = defineProps(widgetProps(widgetDefinition))
+defineProps(widgetProps(widgetDefinition))
+
+provideTopLevelArgument(useTemplateRef('element'))
 </script>
 
 <script lang="ts">
@@ -19,24 +22,11 @@ export const widgetDefinition = defineWidget(
   },
   import.meta.hot,
 )
-
-/** If the element is the recursively-first-child of a top-level argument, return the top-level argument element. */
-export function enclosingTopLevelArgument(
-  element: Opt<HTMLElement>,
-  rootElement: Opt<HTMLElement>,
-): HTMLElement | undefined {
-  return (
-    element?.dataset.topLevelArgument !== undefined ? element
-    : !element || element === rootElement || element.parentElement?.firstElementChild !== element ?
-      undefined
-    : enclosingTopLevelArgument(element.parentElement, rootElement)
-  )
-}
 </script>
 
 <template>
-  <div class="WidgetTopLevelArgument widgetResetPadding" data-top-level-argument>
-    <NodeWidget :input="props.input" />
+  <div ref="element" class="WidgetTopLevelArgument widgetResetPadding">
+    <NodeWidget :input="input" />
   </div>
 </template>
 
@@ -45,7 +35,6 @@ export function enclosingTopLevelArgument(
   display: flex;
   flex-direction: row;
   place-items: center;
-  overflow-x: clip;
 
   &:before {
     content: '';

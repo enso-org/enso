@@ -1,106 +1,131 @@
 import project.Any.Any
 
-## PRIVATE
-   ADVANCED
+## ---
+   private: true
+   advanced: true
+   ---
    A mutable reference type.
 @Builtin_Type
 type Ref
-    ## PRIVATE
-       ADVANCED
+    ## ---
+       private: true
+       advanced: true
+       ---
        Creates a new reference containing the provided value.
 
-       Arguments:
-       - value: The value to be contained in the ref.
+       ## Arguments
+        - `value`: The value to be contained in the ref.
 
-       > Example
-         Creating a new reference containing the value 7.
+       ## Examples
+       ### Creating a new reference containing the value 7.
 
+       ```
              Ref.new 7
+       ```
     new : Any -> Ref
     new value = @Builtin_Method "Ref.new"
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Gets the contents of this mutable reference ref.
 
-       > Example
-         Getting the contents of a reference.
+       ## Examples
+       ### Getting the contents of a reference.
 
+       ```
              (Ref.new 0) . get
+       ```
     get : Any
     get self = @Builtin_Method "Ref.get"
 
-    ## ICON edit
+    ## ---
+       icon: edit
+       ---
        Puts a new value into this reference, returning the old value.
 
-       Arguments:
-       - new_value: The new value to store in this ref.
+       ## Arguments
+        - `new_value`: The new value to store in this ref.
 
-       > Example
-         Storing the value 10 in a reference.
+       ## Examples
+       ### Storing the value 10 in a reference.
 
+       ```
              (Ref.new 0) . put 10
+       ```
     put : Any -> Any
     put self new_value = @Builtin_Method "Ref.put"
 
-    ## GROUP Calculations
-       ICON edit
+    ## ---
+       group: Calculations
+       icon: edit
+       ---
        Gets the contents of this mutable reference, transform it using the
        provided function, and put the new value into the reference.
-
        Returns the original value.
 
-       Arguments:
-       - fun: the function to transform the value in the ref
+       ## Arguments
+        - `fun`: the function to transform the value in the ref
 
-       > Example
-         Increment the integer stored in a ref, and receive the old value.
+       ## Examples
+       ### Increment the integer stored in a ref, and receive the old value.
 
           (Ref.new 10) . modify (_+1)
           # => 10
     modify : (Any -> Any) -> Any
     modify self fun = self.put (fun self.get)
 
-    ## GROUP Calculations
-       ICON edit
+    ## ---
+       group: Calculations
+       icon: edit
+       ---
        Temporarily change the value of this mutable reference during the
        execution of an action.
 
+       ## Arguments
+        - `new_value`: the value to set during the execution of the action
+        - `action`: the action to execute with the modified value set
+
+       ## Returns
        Returns the value of the action.
 
-       Arguments:
-       - new_value: the value to set during the execution of the action
-       - action: the action to execute with the modified value set
+       ## Examples
+       ### Execute an action with a temporarily incremented value.
 
-       > Example
-         Execute an action with a temporarily incremented value.
-
+       ```
              r = Ref.new 10
              r.with_value 11 <|
                  r.get == 11  # True
              r.get == 10  # True
+       ```
     with_value self (new_value : Any) (~action : Any) =
         self.with_modification (_ -> new_value) action
 
-    ## GROUP Calculations
-       ICON edit
+    ## ---
+       group: Calculations
+       icon: edit
+       ---
        Temporarily change the value of this mutable reference during the
        execution of an action, using a modification function.
 
+       ## Arguments
+        - `modifier`: the function used to modify the value during the execution
+          of the action
+        - `action`: the action to execute with the modified value set
+
+       ## Returns
        Returns the value of the action.
 
-       Arguments:
-       - modifier: the function used to modify the value during the execution of
-         the action
-       - action: the action to execute with the modified value set
+       ## Examples
+       ### Execute an action with a temporarily incremented value.
 
-       > Example
-         Execute an action with a temporarily incremented value.
-
+       ```
              r = Ref.new 10
              r.with_modification (_+1) <|
                  r.get == 11  # True
              r.get == 10  # True
+       ```
     with_modification self (modifier : Any -> Any) (~action : Any) =
         old_value = self.modify modifier
         r = action

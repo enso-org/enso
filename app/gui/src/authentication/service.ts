@@ -3,15 +3,18 @@
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron.
  */
-import { type Logger } from '#/providers/LoggerProvider'
+import type { Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
 import * as cognitoModule from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
 import { useFeatureFlag } from '$/providers/featureFlags'
+import { useText } from '$/providers/text'
+import * as detect from '$/utils/detect'
+import { parseEnsoDeeplink } from '@/util/url'
 import * as amplify from '@aws-amplify/auth'
 import * as common from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
-import * as detect from 'enso-common/src/detect'
+import * as toastify from 'react-toastify'
 import { useRouter } from 'vue-router'
 
 /**
@@ -132,17 +135,19 @@ function loadAmplifyConfig(
   let urlOpener: ((url: string) => void) | null = null
   let saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null =
     null
-  if ('authenticationApi' in window) {
+  if (window.api != null) {
+    const { authentication } = window.api
     // When running on desktop we want to have option to save access token to a file,
     // so it can be reused later when issuing requests to the Cloud API.
     //
     // Note: Wrapping this function in an arrow function ensures that the current Authentication API
     // is always used.
     saveAccessToken = (accessToken: saveAccessTokenModule.AccessToken | null) => {
-      window.authenticationApi.saveAccessToken(accessToken)
+      authentication.saveAccessToken(accessToken)
     }
   }
-  if (supportsDeepLinks) {
+  if (supportsDeepLinks && window.api != null) {
+    const { authentication } = window.api
     // The default URL opener opens the URL in the desktop app, but the user should be sent to
     // their system browser instead, because:
     // - users trust their system browser with their credentials more than they trust the app;
@@ -152,7 +157,7 @@ function loadAmplifyConfig(
     // Note: Wrapping this function in an arrow function ensures that the current Authentication API
     // is always used.
     urlOpener = (url: string) => {
-      window.authenticationApi.openUrlInSystemBrowser(url)
+      authentication.openUrlInSystemBrowser(url)
     }
   }
   if (detect.isOnElectron()) {
@@ -199,55 +204,71 @@ function loadAmplifyConfig(
  * ignored by this handler.
  */
 function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
-  window.authenticationApi.setDeepLinkHandler((urlString: string) => {
-    const url = new URL(urlString)
-    logger.log(`Parsed pathname: ${url.pathname}`)
-    // Remove the trailing slash in the pathname - it is present on Windows but not on macOS.
-    const pathname = url.pathname.replace(/\/$/, '')
-    switch (pathname) {
+  window.api?.authentication.setDeepLinkHandler((urlString: string) => {
+    const result = parseEnsoDeeplink(urlString)
+    if (!result.ok) {
+      logger.log(result.error.message())
+      return
+    }
+    const deeplink = result.value
+    switch (deeplink.pathname) {
       // If the user is being redirected after clicking the registration confirmation link in their
       // email, then the URL will be for the confirmation page path.
-      case '//auth/confirmation': {
-        const verificationCode = url.searchParams.get('verification_code')
+      case 'auth/confirmation': {
+        const verificationCode = deeplink.searchParams.get('verification_code')
 
         let redirectUrl = ''
 
         // In case if the verifaction code is present, then we need to navigate to the confirmation
         // page, because the URL is a deep link for confirmation page and user is not yet confirmed.
         if (verificationCode != null) {
-          redirectUrl = `${appUtils.CONFIRM_REGISTRATION_PATH}${url.search}`
+          redirectUrl = `${appUtils.CONFIRM_REGISTRATION_PATH}${deeplink.search}`
         } else {
           // Otherwise, we need to navigate to the setup page, because user is already confirmed.
           // but the redirect link navigates to the confirmation page, for some reason.
-          redirectUrl = `${appUtils.DASHBOARD_PATH}${url.search}`
+          redirectUrl = `${appUtils.DASHBOARD_PATH}${deeplink.search}`
         }
         navigate(redirectUrl)
 
         break
       }
-      case '//auth': {
-        if (url.search === '') {
+      case 'auth': {
+        if (deeplink.search === '') {
           // Signing out.
           navigate(appUtils.LOGIN_PATH)
         } else {
           // Signing in.
           void (async () => {
-            // Temporarily override the `history` object so that Amplify doesn't try to call
-            // `history.replaceState` (which doesn't work in the renderer process because of
-            // Electron's `webSecurity`). This is a hack, but it is the only way to get Amplify to
-            // work with a custom URL protocol in Electron.
-            // `history.replaceState` is only being saved here to be restored later.
-            // It will never be called without a bound `this`.
-            const replaceState = history.replaceState
-            history.replaceState = () => false
-            try {
-              // @ts-expect-error `_handleAuthResponse` is a private method without typings.
-              await amplify.Auth._handleAuthResponse(url.toString())
+            // Try to find `error_description` and `error` in search params. This means something went wrong e.g
+            // missing user email address while using microsoft account.
+            const queryParams = new URLSearchParams(deeplink.search)
+            const error = queryParams.get('error')
+            const errorDescription = queryParams.get('error_description')
+            const text = useText()
+            if (error && errorDescription) {
+              if (errorDescription?.includes('Missing required user email value')) {
+                toastify.toast.error(text.getText('missingEmailError'))
+              } else {
+                toastify.toast.error(text.getText('registrationError'))
+              }
+            } else {
+              // Temporarily override the `history` object so that Amplify doesn't try to call
+              // `history.replaceState` (which doesn't work in the renderer process because of
+              // Electron's `webSecurity`). This is a hack, but it is the only way to get Amplify to
+              // work with a custom URL protocol in Electron.
+              // `history.replaceState` is only being saved here to be restored later.
+              // It will never be called without a bound `this`.
+              const replaceState = history.replaceState
+              history.replaceState = () => false
+              try {
+                // `_handleAuthResponse` is a private method without typings.
+                await amplify.Auth['_handleAuthResponse'](urlString)
 
-              navigate(appUtils.DASHBOARD_PATH)
-            } finally {
-              // Restore the original `history.replaceState` function.
-              history.replaceState = replaceState
+                navigate(appUtils.DASHBOARD_PATH)
+              } finally {
+                // Restore the original `history.replaceState` function.
+                history.replaceState = replaceState
+              }
             }
           })()
         }
@@ -255,26 +276,26 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
       }
       // If the user is being redirected after finishing the password reset flow, then the URL will
       // be for the login page.
-      case '//auth/login': {
+      case 'auth/login': {
         navigate(appUtils.LOGIN_PATH)
         break
       }
-      case '//auth/registration': {
-        navigate(`${appUtils.REGISTRATION_PATH}${url.search}`)
+      case 'auth/registration': {
+        navigate(`${appUtils.REGISTRATION_PATH}${deeplink.search}`)
         break
       }
-      case '//payments/success': {
-        navigate(`${appUtils.PAYMENTS_SUCCESS_PATH}${url.search}`)
+      case 'payments/success': {
+        navigate(`${appUtils.PAYMENTS_SUCCESS_PATH}${deeplink.search}`)
         break
       }
       // If the user is being redirected from a password reset email, navigate to the password
       // reset page, with the verification code and email prefilled.
-      case appUtils.RESET_PASSWORD_PATH: {
-        navigate(`${appUtils.RESET_PASSWORD_PATH}${url.search}`)
+      case 'password-reset': {
+        navigate(`${appUtils.RESET_PASSWORD_PATH}${deeplink.search}`)
         break
       }
       default: {
-        navigate(pathname.slice(1))
+        navigate(`/${deeplink.pathname}`)
         break
       }
     }

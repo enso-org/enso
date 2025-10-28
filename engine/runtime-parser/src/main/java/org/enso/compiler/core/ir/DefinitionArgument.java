@@ -43,34 +43,12 @@ public interface DefinitionArgument extends IR {
       super(name, ascribedType, defaultValue, suspended, identifiedLocation, passData, diagnostics);
     }
 
-    public Specified(
-        Name name,
-        Option<Expression> ascribedType,
-        Option<Expression> defaultValue,
-        boolean suspended,
-        IdentifiedLocation identifiedLocation) {
-      this(
-          name,
-          ascribedType,
-          defaultValue,
-          suspended,
-          identifiedLocation,
-          new MetadataStorage(),
-          null);
+    public static Builder builder() {
+      return new Builder().ascribedType(Option.empty()).defaultValue(Option.empty());
     }
 
-    public Specified(
-        Name name,
-        Option<Expression> ascribedType,
-        Option<Expression> defaultValue,
-        boolean suspended,
-        IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      this(name, ascribedType, defaultValue, suspended, identifiedLocation, passData, null);
-    }
-
-    public Specified(Name name) {
-      this(name, Option.empty(), Option.empty(), false, null, new MetadataStorage());
+    public static Builder builder(Specified original) {
+      return new Builder(original);
     }
 
     @Override
@@ -101,38 +79,31 @@ public interface DefinitionArgument extends IR {
 
     @Override
     public DefinitionArgument withName(Name ir) {
-      return copy(
-          diagnostics, passData, location, id, ir, ascribedType(), defaultValue(), suspended());
+      return new Builder(this).name(ir).build();
     }
 
     public Specified copyWithAscribedType(Option<Expression> ascribedType) {
-      return copy(
-          diagnostics, passData, location, id, name(), ascribedType, defaultValue(), suspended());
+      return new Builder(this).ascribedType(ascribedType).build();
     }
 
     public Specified copyWithDefaultValue(Option<Expression> defaultValue) {
-      return copy(
-          diagnostics, passData, location, id, name(), ascribedType(), defaultValue, suspended());
+      return new Builder(this).defaultValue(defaultValue).build();
     }
 
     public Specified copyWithSuspended(boolean suspended) {
-      return copy(
-          diagnostics, passData, location, id, name(), ascribedType(), defaultValue(), suspended);
+      return new Builder(this).suspended(suspended).build();
     }
 
     public Specified copy(Option<Expression> defaultValue, Option<Expression> ascribedType) {
-      return copy(
-          diagnostics, passData, location, id, name(), ascribedType, defaultValue, suspended());
+      return new Builder(this).defaultValue(defaultValue).ascribedType(ascribedType).build();
     }
 
     public Specified copy(Name name, Option<Expression> defaultValue) {
-      return copy(
-          diagnostics, passData, location, id, name, ascribedType(), defaultValue, suspended());
+      return new Builder(this).name(name).defaultValue(defaultValue).build();
     }
 
     public Specified copyWithNameAndAscribedType(Name name, Option<Expression> ascribedType) {
-      return copy(
-          diagnostics, passData, location, id, name, ascribedType, defaultValue(), suspended());
+      return new Builder(this).name(name).ascribedType(ascribedType).build();
     }
   }
 }

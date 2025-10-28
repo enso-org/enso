@@ -20,11 +20,13 @@ const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatin
 </script>
 
 <template>
-  <div ref="floating" class="LinkEditPopup" :style="floatingStyles" @pointerdown.stop.prevent>
-    <a class="link" :href="href" target="_blank" rel="noopener,noreferrer">Follow link</a> ({{
-      textEditorsBindings.bindings.openLink.humanReadable
-    }})
-  </div>
+  <teleport to="#floatingLayer">
+    <div ref="floating" class="LinkEditPopup" :style="floatingStyles" @pointerdown.stop.prevent>
+      <a class="link" :href="href" target="_blank" rel="noopener,noreferrer">Follow link</a> ({{
+        textEditorsBindings.bindings.openLink.humanReadable
+      }})
+    </div>
+  </teleport>
 </template>
 
 <style scoped>

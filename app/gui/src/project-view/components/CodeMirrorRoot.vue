@@ -12,11 +12,6 @@ defineExpose({ highlightClasses })
 </template>
 
 <style scoped>
-.CodeMirrorRoot {
-  width: 100%;
-  height: 100%;
-}
-
 .CodeMirrorRoot :deep(.cm-content) {
   cursor: text;
 }
@@ -36,6 +31,10 @@ defineExpose({ highlightClasses })
 .CodeMirrorRoot :deep(.cm-placeholder) {
   color: inherit;
   opacity: 0.6;
+}
+
+.CodeMirrorRoot :deep(.cm-tooltip-autocomplete) {
+  text-align: left;
 }
 </style>
 
@@ -58,7 +57,7 @@ defineExpose({ highlightClasses })
 
 .literal,
 .string {
-  color: #a11;
+  color: #650000;
 }
 .escape {
   color: #e40;

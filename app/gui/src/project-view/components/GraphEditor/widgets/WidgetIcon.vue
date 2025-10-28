@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import { Score, defineWidget, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { Score, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { type URLString } from '@/util/data/urlString'
-import { type Icon } from '@/util/iconMetadata/iconName'
+import { type AnyWidgetIcon } from '@/util/icons'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -14,10 +13,10 @@ const icon = computed(() => props.input[DisplayIcon].icon)
 
 <script lang="ts">
 export const DisplayIcon: unique symbol = Symbol.for('WidgetInput:DisplayIcon')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [DisplayIcon]?: {
-      icon: Icon | URLString | '$evaluating'
+      icon: AnyWidgetIcon
       allowChoice?: boolean
       showContents?: boolean
       noGap?: boolean

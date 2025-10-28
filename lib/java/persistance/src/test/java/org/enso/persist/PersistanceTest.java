@@ -292,4 +292,21 @@ public class PersistanceTest {
     var inner1 = loaded1.y().get(LongerLoop2.class);
     assertSame("The reference points to null", null, inner1);
   }
+
+  @Test
+  public void testEnumPersistance() throws Exception {
+    var yes = serde(Logical.class, Logical.YES, -1);
+    assertSame(yes, Logical.YES);
+    var no = serde(Logical.class, Logical.NO, -1);
+    assertSame(no, Logical.NO);
+    var maybe = serde(Logical.class, Logical.MAYBE, -1);
+    assertSame(maybe, Logical.MAYBE);
+  }
+
+  @Persistable(id = 432442)
+  public enum Logical {
+    YES,
+    NO,
+    MAYBE;
+  }
 }

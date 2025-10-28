@@ -1,5 +1,6 @@
 /** @file A page in which the currently active payment plan can be changed. */
 import { Button } from '#/components/Button'
+import { Suspense } from '#/components/Suspense'
 import { Text } from '#/components/Text'
 import { PlanSelector } from '#/modules/payments'
 import { isPlan } from '#/services/Backend'
@@ -48,12 +49,14 @@ export function Subscribe() {
           </Text.Heading>
         </div>
 
-        <PlanSelector
-          plan={chosenPlan}
-          showFreePlan={false}
-          userPlan={user.plan}
-          isOrganizationAdmin={user.isOrganizationAdmin}
-        />
+        <Suspense>
+          <PlanSelector
+            plan={chosenPlan}
+            showFreePlan={false}
+            userPlan={user.plan}
+            isOrganizationAdmin={user.isOrganizationAdmin}
+          />
+        </Suspense>
       </div>
     </div>
   )

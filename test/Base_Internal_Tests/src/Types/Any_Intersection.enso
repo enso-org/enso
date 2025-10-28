@@ -1,0 +1,18 @@
+private
+
+import project.Types.Any_Intersection_Conv
+
+type A
+    a = "a"
+type B
+    B v
+
+    b self = "b"
+
+type C
+    C v
+
+    c self = "c"
+
+abc = Any_Intersection_Conv.abc
+ac_hidden_b = Any_Intersection_Conv.ac_hidden_b

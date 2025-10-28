@@ -17,7 +17,6 @@ use ide_ci::future::AsyncPolicy;
 use ide_ci::github::Repo;
 use package::IsPackage;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -61,20 +60,21 @@ impl Benchmarks {
         match &self.bench_type {
             BenchmarkType::All => Some("bench".to_string()),
             BenchmarkType::Runtime => match &self.bench_name {
-                Some(name) if !name.is_empty() =>
-                    Some(format!("runtime-benchmarks/benchOnly {}", name)),
+                Some(name) if !name.is_empty() => {
+                    Some(format!("runtime-benchmarks/benchOnly {}", name))
+                }
                 _ => Some("runtime-benchmarks/bench".to_string()),
             },
             BenchmarkType::Enso => None,
             BenchmarkType::EnsoJMH => match &self.bench_name {
-                Some(name) if !name.is_empty() =>
-                    Some(format!("std-benchmarks/benchOnly {}", name)),
+                Some(name) if !name.is_empty() => {
+                    Some(format!("std-benchmarks/benchOnly {}", name))
+                }
                 _ => Some("std-benchmarks/bench".to_string()),
             },
         }
     }
 }
-
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Tests {
@@ -92,11 +92,17 @@ pub enum Tests {
     /// Run the Snowflake tests.
     StdSnowflake,
 
+    /// Run the Snowflake tests in `--jvm` mode.
+    StdSnowflakeJVM,
+
     /// Run a subset of Standard Library tests that deals with Cloud-related functionality.
     StdCloudRelated,
 
     /// Run Microsoft tests.
     StdMicrosoft,
+
+    /// Run Microsoft tests in dual JVM mode
+    StdMockDualMicrosoft,
 }
 
 /// Configuration for how the binary inside the engine distribution should be built.
@@ -156,6 +162,8 @@ pub struct BuildConfigurationFlags {
     /// Whether the Enso standard library should be tested.
     pub test_standard_library: Option<StandardLibraryTestsSelection>,
     pub extra_engine_runner_args: Option<Vec<String>>,
+    /// Extra options passed via `JAVA_TOOL_OPTIONS` env var for the engine runner process.
+    pub extra_java_tool_opts: Option<Vec<String>>,
     /// Whether benchmarks are compiled.
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
@@ -200,7 +208,8 @@ pub enum Filter<T> {
 }
 
 impl<T> Filter<T>
-where T: Eq + Hash
+where
+    T: Eq + Hash,
 {
     pub fn whitelist(items: impl IntoIterator<Item = T>) -> Self {
         Self::Whitelist(items.into_iter().collect())
@@ -314,6 +323,14 @@ impl BuildConfigurationFlags {
             self.extra_engine_runner_args = Some(vec![flag.into()]);
         }
     }
+
+    pub fn add_java_tool_opt(&mut self, flag: &str) {
+        if let Some(java_tool_opts) = &mut self.extra_java_tool_opts {
+            java_tool_opts.push(flag.into());
+        } else {
+            self.extra_java_tool_opts = Some(vec![flag.into()]);
+        }
+    }
 }
 
 impl Default for BuildConfigurationFlags {
@@ -322,6 +339,7 @@ impl Default for BuildConfigurationFlags {
             test_jvm: false,
             test_standard_library: None,
             extra_engine_runner_args: None,
+            extra_java_tool_opts: None,
             build_small_jdk: false,
             small_jdk_dir: None,
             build_benchmarks: false,
@@ -353,7 +371,7 @@ pub enum ReleaseCommand {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ReleaseOperation {
     pub command: ReleaseCommand,
-    pub repo:    Repo,
+    pub repo: Repo,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -373,11 +391,11 @@ pub enum Operation {
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct BuiltArtifacts {
-    pub engine_package:          Option<generated::EnginePackage>,
-    pub launcher_package:        Option<generated::LauncherPackage>,
+    pub engine_package: Option<generated::EnginePackage>,
+    pub launcher_package: Option<generated::LauncherPackage>,
     pub project_manager_package: Option<generated::ProjectManagerPackage>,
-    pub launcher_bundle:         Option<generated::LauncherBundle>,
-    pub project_manager_bundle:  Option<generated::ProjectManagerBundle>,
+    pub launcher_bundle: Option<generated::LauncherBundle>,
+    pub project_manager_bundle: Option<generated::ProjectManagerBundle>,
 }
 
 impl BuiltArtifacts {
@@ -439,7 +457,7 @@ pub async fn deduce_graal_bundle(
 ) -> Result<GraalVmVersion> {
     let deps_content = ide_ci::fs::tokio::read_to_string(deps).await?;
     Ok(GraalVmVersion {
-        graal:    get_graal_version(&deps_content)?,
+        graal: get_graal_version(&deps_content)?,
         packages: get_graal_packages_version(&deps_content)?,
     })
 }

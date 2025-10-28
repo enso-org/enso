@@ -14,62 +14,74 @@ import project.Internal.Type_Refinements.DB_Column_Refinements
 import project.SQL.SQL_Statement
 
 type DB_Column
-    ## PRIVATE
-
+    ## ---
+       private: true
+       ---
        Represents a single column backed by a database.
 
-       Arguments:
-       - internal_name: The name of the column.
-       - connection: The connection with which the column is associated.
-       - sql_type_reference: Lazily computed SQL type of the column.
-       - expression: The expressions to apply to the column.
-       - context: The SQl context in which the column exists.
+       These columns may come from the Table or can be created by combining other
+       columns with operators. Expressions created in this way may be
+       materialized or used to apply filters, groupings etc. to tables from which
+       they come. Combined expressions must come from the same context - they
+       must both have the same filtering, grouping etc. rules applied to be able
+       to be combined.
 
-       These columns may come from the Table or can be created by combining
-       other columns with operators. Expressions created in this way may be
-       materialized or used to apply filters, groupings etc. to tables from
-       which they come. Combined expressions must come from the same context -
-       they must both have the same filtering, grouping etc. rules applied to be
-       able to be combined.
+       ## Arguments
+        - `internal_name`: The name of the column.
+        - `connection`: The connection with which the column is associated.
+        - `sql_type_reference`: Lazily computed SQL type of the column.
+        - `expression`: The expressions to apply to the column.
+        - `context`: The SQl context in which the column exists.
     private Value internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source
 
     ## The internal constructor used to construct a DB_Column instance.
-
-       It can perform some additional operations, like refining the type,
-       so it should always be preferred over calling `DB_Column.Value` directly.
+       It can perform some additional operations, like refining the type, so it
+       should always be preferred over calling `DB_Column.Value` directly.
     private new internal_name:Text connection:(Connection | Any) sql_type_reference:SQL_Type_Reference expression:SQL_IR_Expression context:SQL_IR_Source =
         DB_Column_Refinements.refine_column <|
             DB_Column.Value internal_name connection sql_type_reference expression context
 
-    ## ICON metadata
+    ## ---
+       icon: metadata
+       ---
        The name of the SQL Dialect used by the table.
     dialect_name self -> Text = self.connection.dialect.name
 
-    ## ALIAS import, load
-       GROUP Standard.Base.Input
-       ICON data_input
+    ## ---
+       aliases: [import, load]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
        Returns a materialized column containing rows of this column.
 
-       Arguments:
-       - max_rows: specifies the maximum number of rows to read.
+       ## Arguments
+        - `max_rows`: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
     read self (max_rows : Rows_To_Read = ..First_With_Warning 1000) -> Column | Any =
         ## This method clashes with one defined on `Column` to redefine it as a public method.
            (On base Column it is purposefully hidden).
         self.to_table.read max_rows . at 0
 
-    ## ICON convert
+    ## ---
+       icon: convert
+       ---
        Returns an SQL statement that will be used for materializing this column.
     to_sql self -> SQL_Statement = (self:Column).to_table.to_sql
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     pretty self -> Text =
         "DB_Column " + (self:Column).name.pretty
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     to_text self -> Text = "DB_Column " + (self:Column).name
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     let self (name : Text) (callback : (Column -> Column)) =
         use_ctes = self.connection.dialect.flagged ..Supports_Nested_With_Clause
 
@@ -83,13 +95,18 @@ type DB_Column
             let_expression = SQL_IR_Expression.Let name binder self.expression inner_value.expression
             DB_Column.new inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
 
-    ## PRIVATE
-       A method that allows to check if the given object represents a `DB_Column`.
+    ## ---
+       private: true
+       ---
+       A method that allows to check if the given object represents a
+       `DB_Column`.
     is_database_column object:Any -> Boolean =
         Panic.catch Type_Error handler=_->False <|
             _ = object:DB_Column
             True
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Column.from (that : DB_Column) =
     column_from_implementation that DB_Column_Implementation

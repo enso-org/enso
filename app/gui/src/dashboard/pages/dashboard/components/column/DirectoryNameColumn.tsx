@@ -1,17 +1,19 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
 import { Button } from '#/components/Button'
 import EditableSpan from '#/components/EditableSpan'
+import { useRenameAsset } from '#/hooks/backendHooks'
+import { useStore } from '#/hooks/storeHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
-import type { AssetColumnProps } from '#/pages/dashboard/components/column'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
+import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
 import { titleSchema, type DirectoryAsset } from '#/services/Backend'
-import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 import { useTransition } from 'react'
 
 /** Props for a {@link DirectoryNameColumn}. */
-export interface DirectoryNameColumnProps extends AssetColumnProps {
+export interface DirectoryNameColumnProps extends AssetNameColumnProps {
   readonly item: DirectoryAsset
 }
 
@@ -21,20 +23,22 @@ export interface DirectoryNameColumnProps extends AssetColumnProps {
  * This should never happen.
  */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, rowState, setRowState, isEditable, isNavigating, renameAsset } = props
-  const [isLoading, startNavigation] = useTransition()
+  const { item, isEditable, isNavigating } = props
 
+  const { associatedBackend: backend } = useCategoriesAPI()
+  const [isLoading, startNavigation] = useTransition()
   const { getText } = useText()
   const driveStore = useDriveStore()
   const getAssetChildren = useGetAssetChildren()
+  const renameAsset = useRenameAsset(backend)
 
-  const setIsEditing = (isEditingName: boolean) => {
-    if (isEditable) {
-      setRowState(merger({ isEditingName }))
+  const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
+  const setIsEditing = (isEditing: boolean) => {
+    if (isEditable && isEditing) {
+      driveStore.setState({ assetToRename: item.id })
     }
-
-    if (!isEditingName) {
-      driveStore.setState({ newestFolderId: null })
+    if (!isEditing) {
+      driveStore.setState({ assetToRename: null })
     }
   }
 
@@ -47,7 +51,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
     <div
       className="group flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
@@ -69,14 +73,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
       <EditableSpan
         data-testid="asset-row-name"
-        editable={rowState.isEditingName}
+        editable={isEditingName}
         className={twMerge(
           'cursor-pointer bg-transparent font-naming',
-          rowState.isEditingName ? 'cursor-text' : 'cursor-pointer',
+          isEditingName ? 'cursor-text' : 'cursor-pointer',
         )}
         schema={() =>
           titleSchema({
-            asset: item,
+            id: item.id,
             siblings: getAssetChildren(item.parentId),
           })
         }

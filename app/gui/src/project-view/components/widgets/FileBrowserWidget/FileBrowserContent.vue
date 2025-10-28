@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import FileBrowserEntry from '@/components/widgets/FileBrowserWidget/FileBrowserEntry.vue'
-import { type Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
+import type { Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
 import { useToast } from '@/util/toast'
 import {
   type AnyAsset,
@@ -27,7 +27,7 @@ const emit = defineEmits<{
   renameDirectory: [
     Directory | undefined,
     string,
-    (action: Promise<CreatedDirectory | undefined>) => void,
+    (action: Promise<CreatedDirectory | null>) => void,
   ]
   enterDirectory: [Directory]
   choose: [AnyAsset, boolean]
@@ -218,6 +218,7 @@ defineExpose({
     class="FileBrowserContent"
     :class="{ centerContent: isEmpty }"
     @click.stop="focused = undefined"
+    @wheel.stop.passive
   >
     <div v-if="isEmpty" class="centerContent">Directory is empty</div>
     <ContextMenuTrigger v-show="!isEmpty" :actions="['fileBrowser.renameDirectory']">

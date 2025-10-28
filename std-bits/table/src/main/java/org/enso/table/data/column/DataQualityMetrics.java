@@ -9,14 +9,17 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.operation.JsonOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
@@ -48,6 +51,7 @@ public abstract class DataQualityMetrics {
   public static final String IS_INCOMPLETE = "_Is Incomplete";
   public static final String NOTHING_COUNT = "# Nothing";
   public static final String DISTINCT_COUNT = "# Distinct";
+  public static final String DISTINCT_JSON = "_Distinct JSON";
   public static final String SINGLE_VALUE = "_Single Value";
   public static final String MINIMUM = "Minimum";
   public static final String MAXIMUM = "Maximum";
@@ -57,6 +61,9 @@ public abstract class DataQualityMetrics {
   public static final String ODD_SPACE_COUNT = "@ Non-Trivial Whitespace";
   public static final String NEEDS_FORMATTING = "_Needs Formatting";
   public static final String TYPE_RECORD = "Types and Counts";
+
+  // Default threshold for checking distinct values count.
+  public static final int DISTINCT_THRESHOLD = 100;
 
   // Default seed for random number generation (no specific reason for this value, just stability on
   // results).
@@ -136,22 +143,25 @@ public abstract class DataQualityMetrics {
     return switch (resolvedStorage.getType()) {
       case NullType nullType -> new NullQualityMetrics(resolvedStorage);
       case TextType textType -> new StringQualityMetrics(textType.asTypedStorage(resolvedStorage));
-      case FloatType floatType -> NumericQualityMetrics.forDouble(
-          floatType.asTypedStorage(resolvedStorage));
-      case IntegerType integerType -> NumericQualityMetrics.forLong(
-          integerType.asTypedStorage(resolvedStorage));
-      case BigIntegerType bigIntegerType -> NumericQualityMetrics.forBigInteger(
-          bigIntegerType.asTypedStorage(resolvedStorage));
-      case BigDecimalType bigDecimalType -> NumericQualityMetrics.forBigDecimal(
-          bigDecimalType.asTypedStorage(resolvedStorage));
-      case DateType dateType -> new MinMaxQualityMetrics<>(
-          dateType.asTypedStorage(resolvedStorage), LocalDate::compareTo);
-      case TimeOfDayType timeType -> new MinMaxQualityMetrics<>(
-          timeType.asTypedStorage(resolvedStorage), LocalTime::compareTo);
-      case DateTimeType dateTimeType -> new MinMaxQualityMetrics<>(
-          dateTimeType.asTypedStorage(resolvedStorage), ZonedDateTime::compareTo);
-      case AnyObjectType anyObjectType -> new AnyObjectQualityMetric(
-          anyObjectType.asTypedStorage(resolvedStorage));
+      case FloatType floatType ->
+          NumericQualityMetrics.forDouble(floatType.asTypedStorage(resolvedStorage));
+      case IntegerType integerType ->
+          NumericQualityMetrics.forLong(integerType.asTypedStorage(resolvedStorage));
+      case BigIntegerType bigIntegerType ->
+          NumericQualityMetrics.forBigInteger(bigIntegerType.asTypedStorage(resolvedStorage));
+      case BigDecimalType bigDecimalType ->
+          NumericQualityMetrics.forBigDecimal(bigDecimalType.asTypedStorage(resolvedStorage));
+      case DateType dateType ->
+          new MinMaxQualityMetrics<>(
+              dateType.asTypedStorage(resolvedStorage), LocalDate::compareTo);
+      case TimeOfDayType timeType ->
+          new MinMaxQualityMetrics<>(
+              timeType.asTypedStorage(resolvedStorage), LocalTime::compareTo);
+      case DateTimeType dateTimeType ->
+          new MinMaxQualityMetrics<>(
+              dateTimeType.asTypedStorage(resolvedStorage), ZonedDateTime::compareTo);
+      case AnyObjectType anyObjectType ->
+          new AnyObjectQualityMetric(anyObjectType.asTypedStorage(resolvedStorage));
       default -> new BaseQualityMetrics(resolvedStorage);
     };
   }
@@ -172,19 +182,11 @@ public abstract class DataQualityMetrics {
       nothingCount = columnStorage.getSize();
     }
 
-    public Long getNothingCount() {
-      return nothingCount;
-    }
-
-    public Long getDistinctCount() {
-      return 0L;
-    }
-
     @Override
     public Map<String, Object> getMetrics() {
       var current = super.getMetrics();
-      current.put(NOTHING_COUNT, getNothingCount());
-      current.put(DISTINCT_COUNT, getDistinctCount());
+      current.put(NOTHING_COUNT, nothingCount);
+      current.put(DISTINCT_COUNT, 0L);
       return current;
     }
   }
@@ -203,17 +205,28 @@ public abstract class DataQualityMetrics {
       }
 
       public Result getResult() {
-        return new Result(nothingCount, distinct.size());
+        String distinctJson = null;
+        if (distinct.size() < DISTINCT_THRESHOLD) {
+          distinctJson =
+              "["
+                  + distinct.stream()
+                      .map(v -> JsonOperation.objectToJson(v, o -> null))
+                      .filter(Objects::nonNull)
+                      .sorted()
+                      .collect(Collectors.joining())
+                  + "]";
+        }
+        return new Result(nothingCount, distinct.size(), distinctJson);
       }
     }
 
-    private record Result(long nothingCount, long distinctCount) {}
+    private record Result(long nothingCount, long distinctCount, String distinctJson) {}
 
     private final CompletableFuture<Result> result;
 
     public BaseQualityMetrics(ColumnStorage<?> storage) {
       if (storage.getType() instanceof NullType) {
-        result = CompletableFuture.completedFuture(new Result(0, 0));
+        result = CompletableFuture.completedFuture(new Result(0, 0, ""));
       } else {
         result =
             CompletableFuture.supplyAsync(
@@ -232,16 +245,6 @@ public abstract class DataQualityMetrics {
       super.join();
     }
 
-    public Long getNothingCount() {
-      var current = result.getNow(null);
-      return current != null ? current.nothingCount : null;
-    }
-
-    public Long getDistinctCount() {
-      var current = result.getNow(null);
-      return current != null ? current.distinctCount : null;
-    }
-
     @Override
     public Map<String, Object> getMetrics() {
       var current = super.getMetrics();
@@ -250,6 +253,9 @@ public abstract class DataQualityMetrics {
       if (currentResult != null) {
         current.put(NOTHING_COUNT, currentResult.nothingCount);
         current.put(DISTINCT_COUNT, currentResult.distinctCount);
+        if (currentResult.distinctJson != null) {
+          current.put(DISTINCT_JSON, currentResult.distinctJson);
+        }
       } else if (!result.isDone()) {
         current.put(IS_INCOMPLETE, true);
       }
@@ -308,13 +314,11 @@ public abstract class DataQualityMetrics {
     }
 
     public T getMinimum() {
-      var current = result.getNow(null);
-      return current != null ? current.minimum : null;
+      return result.thenApply(Result::minimum).getNow(null);
     }
 
     public T getMaximum() {
-      var current = result.getNow(null);
-      return current != null ? current.maximum : null;
+      return result.thenApply(Result::maximum).getNow(null);
     }
 
     @Override
@@ -382,26 +386,6 @@ public abstract class DataQualityMetrics {
     protected void join() {
       result.join();
       super.join();
-    }
-
-    public Boolean getSampled() {
-      var current = result.getNow(null);
-      return current != null ? current.sampled : null;
-    }
-
-    public Long getEmptyCount() {
-      var current = result.getNow(null);
-      return current != null ? current.empty : null;
-    }
-
-    public Long getUntrimmedCount() {
-      var current = result.getNow(null);
-      return current != null ? current.untrimmed : null;
-    }
-
-    public Long getNonTrivialWhitespaceCount() {
-      var current = result.getNow(null);
-      return current != null ? current.notTrivialWhitespace : null;
     }
 
     @Override
@@ -556,11 +540,6 @@ public abstract class DataQualityMetrics {
     protected void join() {
       result.join();
       super.join();
-    }
-
-    public String getTypeRecord() {
-      var current = result.getNow(null);
-      return current != null ? current.typeRecord : null;
     }
 
     @Override

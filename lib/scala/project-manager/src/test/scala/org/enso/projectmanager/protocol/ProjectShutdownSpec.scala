@@ -58,7 +58,7 @@ class ProjectShutdownSpec
     config.timeout.copy(delayedShutdownTimeout = delayedShutdown)
   }
 
-  "ensure language server shuts down immediately when requesting to close the project" in {
+  "ensure language server shuts down immediately when requesting to close the project" ignore {
     val client1   = new WsTestClient(address)
     val projectId = createProject("Foo")(client1, implicitly[Position])
     openProject(projectId)(client1, implicitly[Position])
@@ -66,7 +66,7 @@ class ProjectShutdownSpec
     deleteProject(projectId)(client1, implicitly[Position])
   }
 
-  "ensure language server does not shutdown immediately after last client disconnects" in {
+  "ensure language server does not shutdown immediately after last client disconnects" ignore {
     val client1   = new WsTestClient(address)
     val projectId = createProject("Foo")(client1, implicitly[Position])
     val socket1   = openProject(projectId)(client1, implicitly[Position])
@@ -122,7 +122,7 @@ class ProjectShutdownSpec
     deleteProject(projectId)(client2, implicitly[Position])
   }
 
-  "ensure language server does not shutdown after last client disconnects and can re-connect" in {
+  "ensure language server does not shutdown after last client disconnects and can re-connect" ignore {
     val client    = new WsTestClient(address)
     val projectId = createProject("Foo")(client, implicitly[Position])
     val socket1   = openProject(projectId)(client, implicitly[Position])

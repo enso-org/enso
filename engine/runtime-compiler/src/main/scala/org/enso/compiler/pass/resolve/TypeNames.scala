@@ -132,11 +132,14 @@ case object TypeNames extends IRPass {
     def go(ir: Expression): Expression = {
       val processedIr = ir match {
         case fn: Function.Lambda =>
-          fn.copy(arguments =
-            fn.arguments.map(
-              doResolveType(selfTypeInfo, bindingsMap, _)
+          Function.Lambda
+            .builder(fn)
+            .arguments(
+              fn.arguments.map(
+                doResolveType(selfTypeInfo, bindingsMap, _)
+              )
             )
-          )
+            .build()
         case x => x
       }
       doResolveType(
@@ -160,7 +163,7 @@ case object TypeNames extends IRPass {
             TypeSignatures,
             TypeSignatures.Signature(
               resolveSignature(selfTypeInfo, bindingsMap, s.signature),
-              s.comment
+              s.reason
             )
           )
         )

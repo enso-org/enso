@@ -7,8 +7,6 @@ use crate::prelude::*;
 use ide_ci::io::retry;
 use ide_ci::programs::Pnpm;
 
-
-
 /// Result of root-level `npm install` call. Should not be accessed directly.
 static ONCE_INSTALL: tokio::sync::OnceCell<Result> = tokio::sync::OnceCell::const_new();
 
@@ -65,6 +63,7 @@ pub fn assume_installed() {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Script {
+    BazelClean,
     CiCheck,
     Format,
     #[strum(serialize = "format:workflows")]

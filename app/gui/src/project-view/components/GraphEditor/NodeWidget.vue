@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useWidgetRegistry } from '$/components/WithCurrentProject.vue'
-import type { UpdateHandler, WidgetModule } from '@/providers/widgetRegistry'
-import { WidgetInput } from '@/providers/widgetRegistry'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import type { UpdateHandler, WidgetModule } from '$/providers/openedProjects/widgetRegistry'
+import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import {
   injectWidgetUsageInfo,
   provideWidgetUsageInfo,
@@ -21,15 +21,15 @@ const props = defineProps<{
   allowEmpty?: boolean
   /**
    * A function that intercepts and handles an update emitted by this widget. It can internally
-   * call `props.onUpdate` in order to propagate it upwards, or stop propagation by either returning
+   * call `props.updateCallback` in order to propagate it upwards, or stop propagation by either returning
    * a success or error value. If the update handler for given widget is not specified, the emitted
    * widget update is automatically propagated up the tree.
    */
-  onUpdate?: UpdateHandler
+  updateCallback?: UpdateHandler
 }>()
 defineOptions({ inheritAttrs: false })
 
-const registry = useWidgetRegistry()
+const currentProject = useCurrentProject()
 const parentUsageInfo = injectWidgetUsageInfo(true)
 
 const usageKey = computed(() => usageKeyForInput(props.input))
@@ -40,7 +40,8 @@ const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest ===
 
 const selectedWidget = shallowRef<WidgetModule<WidgetInput> | undefined>()
 const updateSelection = withCtx(() => {
-  selectedWidget.value = registry.select(
+  const registry = currentProject.widgetRegistry.value
+  selectedWidget.value = registry?.select(
     {
       input: props.input,
       nesting: nesting.value,
@@ -52,9 +53,9 @@ watchEffect(() => updateSelection())
 
 const updateHandler = computed(
   () =>
-    props.onUpdate ??
+    props.updateCallback ??
     parentUsageInfo?.updateHandler ??
-    bail('Widget tree onUpdate handler missing.'),
+    bail('Widget tree updateCallback handler missing.'),
 )
 
 const previouslyUsed = computed(() => {
@@ -81,7 +82,7 @@ provideWidgetUsageInfo(proxyRefs({ usageKey, nesting, updateHandler, previouslyU
     :input="props.input"
     :nesting="nesting"
     :data-port="props.input.portId"
-    :onUpdate="updateHandler"
+    :updateCallback="updateHandler"
   />
   <span
     v-else-if="!props.allowEmpty"

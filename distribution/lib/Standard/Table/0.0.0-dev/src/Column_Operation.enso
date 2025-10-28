@@ -6,8 +6,9 @@ import project.Expression.Expression
 import project.Simple_Expression.Simple_Calculation
 import project.Simple_Expression.Simple_Expression
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Defines a column operation generally acting on each row producing a new
    column. Deprecated in favour of `Simple_Expression`.
 type Column_Operation
@@ -23,8 +24,8 @@ type Column_Operation
     ## Divide a fixed value or column by another value or column.
     Divide (input : Column_Ref|Expression|Number) (rhs : Column_Ref|Expression|Number)
 
-    ## Compute the remainder of a fixed value or column divided by another
-       value or column.
+    ## Compute the remainder of a fixed value or column divided by another value
+       or column.
     Mod (input : Column_Ref|Expression|Number) (rhs : Column_Ref|Expression|Number)
 
     ## Raise a fixed value or column to the power of another value or column.
@@ -68,7 +69,6 @@ type Column_Operation
     Or (input : Column_Ref|Expression|Boolean) (rhs : Column_Ref|Expression|Boolean)
 
     ## If input meets a condition return true value, otherwise false value.
-
        The `true_value` and `false_value` can be either a constant or a column.
     If (input : Column_Ref|Expression|Any) (condition:Filter_Condition) (true_value:Column_Ref|Expression|Any = True) (false_value:Column_Ref|Expression|Any = False)
 
@@ -76,7 +76,9 @@ type Column_Operation
        start, the end, or both ends of the input.
     Trim (input : Column_Ref|Expression|Text) (where:Location=..Both) (what:Text|Column_Ref = "")
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Simple_Expression.from (that:Column_Operation) =
     derived = case that of
         Column_Operation.Add input rhs -> Simple_Expression.Simple_Expr input (Simple_Calculation.Add rhs)

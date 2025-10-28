@@ -18,12 +18,14 @@ type Case_Sensitivity
 
     ## Represents a case-insensitive comparison mode.
 
-       Arguments:
-       - locale: The locale used for the comparison.
+       ## Arguments
+        - `locale`: The locale used for the comparison.
     @locale Locale.default_widget
     Insensitive (locale : Locale = Locale.default)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert Case_Sensitivity to a friendly string.
     to_display_text : Text
     to_display_text self = case self of
@@ -32,7 +34,9 @@ type Case_Sensitivity
         Case_Sensitivity.Insensitive locale ->
             if locale == Locale.default then "Insensitive" else "Insensitive(" + locale.to_text + ")"
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a Java `TextFoldingStrategy` from the case sensitivity setting.
     folding_strategy : Case_Sensitivity -> TextFoldingStrategy
     folding_strategy case_sensitivity = case case_sensitivity of
@@ -41,7 +45,9 @@ type Case_Sensitivity
         Case_Sensitivity.Insensitive locale ->
             TextFoldingStrategy.caseInsensitiveFold locale.java_locale
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Is case insensitive when in memory. This requires that, if
        case-insensitive, that the locale be the default locale, and if it's not,
        throws Illegal_Argument.
@@ -55,14 +61,18 @@ type Case_Sensitivity
                 msg = "Custom locales are not supported for this operation."
                 Error.throw (Illegal_Argument.Error msg)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Convert to either Sensitive or Insensitive, for the in-memory case.
     to_explicit_sensitivity_in_memory : Case_Sensitivity
     to_explicit_sensitivity_in_memory self = case self of
         Case_Sensitivity.Default -> Case_Sensitivity.Sensitive
         _ -> self
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Throws an error if self is Insensitive with a non-default locale
     disallow_non_default_locale : Any -> Any
     disallow_non_default_locale self ~action = case self of

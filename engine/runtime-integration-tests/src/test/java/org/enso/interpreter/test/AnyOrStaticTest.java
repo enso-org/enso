@@ -17,13 +17,13 @@ public class AnyOrStaticTest {
   public void methodOnModuleAny() throws Exception {
     var code =
         """
-    from Standard.Base import Any
+        from Standard.Base import Any
 
-    check_is v t = "check of "+v.to_text+" and "+t.to_text
-    Any.check_is self t = "got to Any for "+self.to_text+" and "+t.to_text
+        check_is v t = "check of "+v.to_text+" and "+t.to_text
+        Any.check_is self t = "got to Any for "+self.to_text+" and "+t.to_text
 
-    dispatch a b = Checker.check_is a b
-    """;
+        dispatch a b = Checker.check_is a b
+        """;
     var src = Source.newBuilder(LanguageInfo.ID, code, "Checker.enso").build();
 
     var module = ctxRule.eval(src);
@@ -38,15 +38,15 @@ public class AnyOrStaticTest {
   public void methodOnTypeAndAny() throws Exception {
     var code =
         """
-    from Standard.Base import Any
+        from Standard.Base import Any
 
-    type Type_With_Check
-        check_is v t = "check of "+v.to_text+" and "+t.to_text
+        type Type_With_Check
+            check_is v t = "check of "+v.to_text+" and "+t.to_text
 
-    Any.check_is self t = "got to Any for "+self.to_text+" and "+t.to_text
+        Any.check_is self t = "got to Any for "+self.to_text+" and "+t.to_text
 
-    dispatch a = Type_With_Check.check_is a
-    """;
+        dispatch a = Type_With_Check.check_is a
+        """;
     var src = Source.newBuilder(LanguageInfo.ID, code, "Typer.enso").build();
 
     var module = ctxRule.eval(src);

@@ -4,7 +4,9 @@ from Standard.Base.Metadata import Display, make_single_choice, Widget
 import project.Errors.Not_All_Rows_Downloaded
 import project.Table.Table
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Rows_To_Read
     ## Read all rows.
     All_Rows
@@ -17,44 +19,59 @@ type Rows_To_Read
        This is the default for database reading.
     First_With_Warning rows:Integer=1000
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     default_widget display:Display=..When_Modified -> Widget =
         make_single_choice [["All_Rows", "..All_Rows"], ["First", "..First"]] display=display
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the number of rows to read (or Nothing if all rows).
-       For the First_With_Warning case, the number of rows is one more than maximum rows.
+       For the First_With_Warning case, the number of rows is one more than
+       maximum rows.
     rows_to_read self -> Integer | Nothing = case self of
         Rows_To_Read.All_Rows -> Nothing
         Rows_To_Read.First rows -> rows
         Rows_To_Read.First_With_Warning rows -> rows+1
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the number of rows to write (or Nothing if all rows).
     rows_to_write self -> Integer | Nothing = case self of
         Rows_To_Read.All_Rows -> Nothing
         Rows_To_Read.First rows -> rows
         Rows_To_Read.First_With_Warning rows -> rows
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     attach_warning_vector self input:Vector -> Vector = case self of
         Rows_To_Read.First_With_Warning rows -> if input.length <= rows then input else
             Problem_Behavior.Report_Warning.attach_problem_after (input.take (..First rows)) <|
                 Not_All_Rows_Downloaded.Warning rows
         _ -> input
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     attach_warning self input:Table -> Table = case self of
         Rows_To_Read.First_With_Warning rows -> if input.row_count <= rows then input else
             Problem_Behavior.Report_Warning.attach_problem_after (input.take (..First rows)) <|
                 Not_All_Rows_Downloaded.Warning rows
         _ -> input
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Rows_To_Read.from (that:Nothing) =
     _ = that
     Rows_To_Read.All_Rows
 
-## PRIVATE
+## ---
+   private: true
+   ---
 Rows_To_Read.from (that:Integer) =
     Rows_To_Read.First that

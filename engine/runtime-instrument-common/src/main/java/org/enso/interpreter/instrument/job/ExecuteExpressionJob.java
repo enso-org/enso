@@ -31,6 +31,10 @@ public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<E
     this.expression = expression;
   }
 
+  public UUID getExpressionId() {
+    return expressionId;
+  }
+
   @Override
   public Executable runImpl(RuntimeContext ctx) {
     return ctx.locking()
@@ -53,5 +57,14 @@ public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<E
       return contextId == job.contextId && expressionId == job.expressionId;
     }
     return false;
+  }
+
+  @Override
+  public String toString() {
+    return "ExecuteExpressionJob[visualizationId="
+        + visualizationId
+        + ",expressionId="
+        + expressionId
+        + "]";
   }
 }

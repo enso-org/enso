@@ -2,12 +2,10 @@
  * @file The React provider for localStorage, along with hooks to use the provider
  * via the shared React context.
  */
-import * as React from 'react'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-
-import { type LocalStorageData, type LocalStorageKey } from '#/utilities/LocalStorage'
+import type { LocalStorageData, LocalStorageKey } from '#/utilities/LocalStorage'
 import { useLocalStorage } from '$/providers/react'
+import * as React from 'react'
 
 /** Options for {@link useLocalStorageState}. */
 export interface LocalStorageStateOptions<K extends LocalStorageKey> {
@@ -59,7 +57,6 @@ export function useLocalStorageState<K extends LocalStorageKey>(
     (newValue: React.SetStateAction<LocalStorageData[K] | undefined>) => {
       privateSetValue((currentValue) => {
         const nextValue = typeof newValue === 'function' ? newValue(currentValue) : newValue
-
         if (nextValue === undefined) {
           localStorage.delete(key)
         } else {

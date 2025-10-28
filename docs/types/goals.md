@@ -38,7 +38,7 @@ Clear error messages are essential for figuring out what the user needs to
 change in own program to eliminate the error. This is true for both:
 
 - the runtime type errors
-- the lints provided by _static type checker_
+- the lints provided by [static type checker](./inference-and-checking.md)
 
 Ideally a type error shall contain proper identification of the error
 origin/location and clear indication of what shall be changed to eliminate it.

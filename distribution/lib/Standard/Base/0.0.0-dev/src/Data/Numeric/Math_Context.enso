@@ -5,9 +5,10 @@ polyglot java import java.math.MathContext
 
 ## Specifies infinite precision in a `Math_Context`.
 
-   > Example
-     Specify infinite precision in constructing a Decimal.
+   ## Examples
+   ### Specify infinite precision in constructing a Decimal.
 
+   ```
          d1 = Decimal.new "1"
          d3 = Decimal.new "3"
          d4 = Decimal.new "4"
@@ -20,27 +21,31 @@ polyglot java import java.math.MathContext
 
          d1.divide d4 (Math_Context.new Unlimited)
          # => 0.25
+   ```
 type Unlimited
 
 ## A wrapper around the Java
    [`MathContext`](https://docs.oracle.com/javase/8/docs/api/java/math/MathContext.html)
    class.
-
-   `Math_Context` is used to specify finite or infinite precision requirements
-   to operations that construct `Decimal` values, or that compute them from
-   other values. It can also specify the `Rounding_Mode` to use when rounding is
-   used to meet precision requirements. See `Decimal` for more details.
+   `Math_Context` is used to specify finite or infinite precision requirements to
+   operations that construct `Decimal` values, or that compute them from other
+   values. It can also specify the `Rounding_Mode` to use when rounding is used
+   to meet precision requirements. See `Decimal` for more details.
 type Math_Context
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (math_context:MathContext)
 
-    ## ICON math
+    ## ---
+       icon: math
+       ---
        Construct a `Math_Context` value.
 
-       Arguments:
-       - precision: The non-negative int precision setting. A value of `0`
-         specifies exact operations.
-       - rounding_mode: The rounding mode to use.
+       ## Arguments
+        - `precision`: The non-negative int precision setting. A value of `0`
+          specifies exact operations.
+        - `rounding_mode`: The rounding mode to use.
     new : Integer | Unlimited -> Rounding_Mode -> Math_Context
     new (precision : Integer | Unlimited) (rounding_mode : Rounding_Mode = Rounding_Mode.Half_Up) =
         case precision of

@@ -43,7 +43,7 @@ interface BaseFormProps<Schema extends components.TSchema>
           readonly form: components.UseFormReturn<Schema>
         },
       ) => React.ReactNode)
-  readonly formRef?: React.MutableRefObject<components.UseFormReturn<Schema>>
+  readonly formRef?: React.Ref<components.UseFormReturn<Schema>>
 
   readonly className?: string | ((props: components.UseFormReturn<Schema>) => string)
 

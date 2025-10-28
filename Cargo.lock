@@ -1308,19 +1308,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-doc-parser"
-version = "0.1.0"
-dependencies = [
- "enso-metamodel",
- "enso-metamodel-lexpr",
- "enso-parser",
- "enso-prelude",
- "enso-reflect",
- "lexpr",
- "serde",
-]
-
-[[package]]
 name = "enso-formatter"
 version = "0.1.0"
 dependencies = [
@@ -1455,6 +1442,7 @@ dependencies = [
  "enso-metamodel-lexpr",
  "enso-parser",
  "enso-reflect",
+ "insta",
  "lexpr",
  "serde",
  "serde_json",
@@ -2297,6 +2285,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64e9829a50b42bb782c1df523f78d332fe371b10c661e78b7a3c34b0198e9fac"
 
 [[package]]
+name = "insta"
+version = "1.43.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46fdb647ebde000f43b5b53f773c30cf9b0cb4300453208713fa38b2c70935a0"
+dependencies = [
+ "console",
+ "once_cell",
+ "similar",
+]
+
+[[package]]
 name = "instant"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2527,9 +2526,9 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
 name = "minicov"
-version = "0.3.5"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c71e683cd655513b99affab7d317deb690528255a0d5f717f1024093c12b169"
+checksum = "f27fe9f1cc3c22e1687f9446c2083c4c5fc7f0bcf1c7a86bdbded14985895b4b"
 dependencies = [
  "cc",
  "walkdir",
@@ -2812,9 +2811,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.19.0"
+version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
+checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
 name = "openssl"
@@ -3408,7 +3407,6 @@ name = "rust-ffi"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
- "enso-doc-parser",
  "enso-parser",
  "serde_json",
  "wasm-bindgen",
@@ -3762,6 +3760,12 @@ checksum = "a9e9e0b4211b72e7b8b6e85c807d36c212bdb33ea8587f7569562a84df5465b1"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "similar"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
 name = "simple_asn1"

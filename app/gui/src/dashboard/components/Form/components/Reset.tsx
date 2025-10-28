@@ -27,7 +27,7 @@ export function Reset<IconType extends string>(props: ResetProps<IconType>): Rea
   const {
     variant = 'outline',
     size = 'medium',
-    testId = 'form-reset-button',
+    testId,
     children = getText('reset'),
     onPress,
     form,

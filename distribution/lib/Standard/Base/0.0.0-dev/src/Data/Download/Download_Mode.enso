@@ -13,9 +13,11 @@ type Download_Mode
     ## Always download.
     Always
 
-    ## PRIVATE
-       Determine if a file should be downloaded, based on the file type,
-       download mode, and file age.
+    ## ---
+       private: true
+       ---
+       Determine if a file should be downloaded, based on the file type, download
+       mode, and file age.
     should_download self (file:Writable_File) -> Boolean =
         case self of
             Download_Mode.If_Not_Exists ->

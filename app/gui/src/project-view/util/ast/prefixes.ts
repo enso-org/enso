@@ -1,4 +1,4 @@
-import { Ast } from '@/util/ast'
+import type { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { unsafeKeys } from 'enso-common/src/utilities/data/object'
 

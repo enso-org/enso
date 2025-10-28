@@ -4,8 +4,6 @@ use crate::version::promote::Designation;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use strum::IntoEnumIterator;
 
-
-
 pub mod name {
 
     pub const DESIGNATOR: &str = "designator";
@@ -27,7 +25,7 @@ pub fn ydoc() -> WorkflowDispatchInput {
         "What kind of Ydoc image to build.",
         false,
         YdocVariant::iter().map(|v| v.as_ref().to_string()),
-        Some(YdocVariant::Nodejs.as_ref()),
+        Some(YdocVariant::Polyglot.as_ref()),
     )
     .unwrap()
 }

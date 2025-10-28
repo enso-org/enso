@@ -9,7 +9,7 @@ import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
-} from '$/providers/react/rightPanel'
+} from '$/providers/react/container'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { ProjectSession } from './ProjectSession'
 

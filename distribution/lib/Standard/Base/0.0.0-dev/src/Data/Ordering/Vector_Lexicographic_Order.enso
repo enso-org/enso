@@ -3,33 +3,41 @@ import project.Data.Ordering.Ordering
 import project.Data.Vector.Vector
 from project.Data.Boolean import False, True
 
-## PRIVATE
-   ADVANCED
+## ---
+   private: true
+   advanced: true
+   ---
    Compares two Vectors according to the lexicographic ordering.
 
-   Arguments:
-   - vector1: The first vector to compare.
-   - vector2: The second vector to compare.
-   - element_comparator (optional): A custom compare function defining the order
-     between particular elements. Uses the default ordering by default.
-
    Returns whether `vector1` is less, equal or greater than `vector2` according
-   to the lexicographic ordering. The ordering is defined as follows:
-   - If `vector1` is empty and `vector2` is not, than `Less` is returned;
-     similarly if `vector1` is non-empty, but `vector2` is empty, `Greater` is
-     returned.
-   - If the first element of `vector1` is less or greater than the first element
-     of `vector2` than this is specifies the ordering between the vectors. If
-     the first element is equal, the tails of both vectors are compared
-     according to the same algorithm.
+   to the lexicographic ordering.
 
-   > Example
-     Compare two vectors lexicographically.
+   ## Arguments
+    - `vector1`: The first vector to compare.
+    - `vector2`: The second vector to compare.
+    - `element_comparator (optional)`: A custom compare function defining the
+      order between particular elements. Uses the default ordering by default.
 
+   ## Examples
+   ### Compare two vectors lexicographically.
+
+   ```
          Vector_Lexicographic_Order.compare [1, 2, 3] [1, 3, 0] == Ordering.Less
          Vector_Lexicographic_Order.compare [1, 2, 3] [1, 2] == Ordering.Greater
          Vector_Lexicographic_Order.compare [] [1] == Ordering.Less
          Vector_Lexicographic_Order.compare [1] [1] == Ordering.Equal
+   ```
+
+   ## Remarks
+   ### Lexicographical Ordering
+   The ordering is defined as follows:
+   - If `vector1` is empty and `vector2` is not, than `Less` is returned;
+     similarly if `vector1` is non-empty, but `vector2` is empty, `Greater` is
+     returned.
+   - If the first element of `vector1` is less or greater than the first element
+     of `vector2` than this is specifies the ordering between the vectors. If the
+     first element is equal, the tails of both vectors are compared according to
+     the same algorithm.
 compare : Vector -> Vector -> (Any -> Any -> Ordering) -> Ordering
 compare vector1 vector2 (element_comparator = Ordering.compare _ _) =
     is_index_contained_in_both ix = ix<vector1.length && ix<vector2.length

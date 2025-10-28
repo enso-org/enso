@@ -8,6 +8,7 @@
     - properties self credentials:Standard.Google.Google_Credential.Google_Credential= limit:Standard.Table.Rows_To_Read.Rows_To_Read= include_deleted:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - region_code self -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Google_Analytics_Account_Filter
     - Account account:(Standard.Base.Data.Text.Text|Standard.Google.Google_Analytics_Account.Google_Analytics_Account)

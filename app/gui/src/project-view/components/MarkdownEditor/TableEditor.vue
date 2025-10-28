@@ -2,8 +2,8 @@
 import MarkdownEditorImpl from '@/components/MarkdownEditor/MarkdownEditorImpl.vue'
 import type { Text } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import { SyntaxNode, TreeCursor } from '@lezer/common'
-import { computed, watch, WatchSource } from 'vue'
+import { TreeCursor, type SyntaxNode } from '@lezer/common'
+import { computed, watch, type WatchSource } from 'vue'
 
 const { source, parsed } = defineProps<{
   source: Text
@@ -62,7 +62,7 @@ const sync = (text: WatchSource<string | undefined>) => (view: EditorView) => {
           <MarkdownEditorImpl
             :toolbar="false"
             readonly
-            @editorReady="sync(() => content.headers[c])"
+            :editorReadyCallback="sync(() => content.headers[c])"
           />
         </th>
       </tr>
@@ -73,7 +73,7 @@ const sync = (text: WatchSource<string | undefined>) => (view: EditorView) => {
           <MarkdownEditorImpl
             :toolbar="false"
             readonly
-            @editorReady="sync(() => content.rows[r]?.[c])"
+            :editorReadyCallback="sync(() => content.rows[r]?.[c])"
           />
         </td>
       </tr>

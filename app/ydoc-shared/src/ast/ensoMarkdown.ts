@@ -7,10 +7,10 @@ import {
   BlockContext,
   parser as commonmarkParser,
   Line,
-  MarkdownConfig,
   Strikethrough,
   Table,
   type BlockParser,
+  type MarkdownConfig,
   type MarkdownExtension,
   type MarkdownParser,
 } from '@lezer/markdown'

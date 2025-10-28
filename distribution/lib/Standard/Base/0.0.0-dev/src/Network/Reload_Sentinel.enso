@@ -3,14 +3,15 @@ import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Data.Boolean import True
 
-## PRIVATE
+## ---
+   private: true
+   ---
    This is used by ReloadDetector.java to create a `Managed_Resource` that is
    garbage collected when the reload button is pressed.
-
-   The managed resource contains a Ref containing a 0 (the value is
-   unimportant). When the reload button is pressed, the ref is removed and
-   attempting to access it using `with` throws an `Uninitialized_State`. When
-   the `Uninitialized_State` is detected, it indicates that the reload has been
+   The managed resource contains a Ref containing a 0 (the value is unimportant).
+   When the reload button is pressed, the ref is removed and attempting to access
+   it using `with` throws an `Uninitialized_State`. When the
+   `Uninitialized_State` is detected, it indicates that the reload has been
    initiated.
 type Reload_Sentinel
     private Value mr:Managed_Resource
@@ -24,8 +25,12 @@ type Reload_Sentinel
     has_reload_occurred self =
         self.mr.has_been_finalized
 
-## PRIVATE
+## ---
+   private: true
+   ---
 simulate_reload_test_only reload_sentinel = reload_sentinel.mr.finalize
 
-## PRIVATE
+## ---
+   private: true
+   ---
 create_reload_sentinel = Reload_Sentinel.new

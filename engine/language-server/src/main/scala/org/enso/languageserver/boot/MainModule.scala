@@ -10,6 +10,7 @@ import org.enso.distribution.locking.{
 import org.enso.logger.Converter
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
+import org.enso.profiling.events.EventsMonitor
 import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
 import org.enso.runner.common.CompilerBasedDependencyExtractor
@@ -23,7 +24,8 @@ import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.{
   HealthCheckEndpoint,
   IdlenessEndpoint,
-  IdlenessMonitor
+  IdlenessMonitor,
+  RenameProjectEndpoint
 }
 import org.enso.languageserver.profiling.{EventsMonitorActor, ProfilingManager}
 import org.enso.languageserver.protocol.binary.{
@@ -47,13 +49,15 @@ import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
-import org.enso.common.RuntimeOptions
-import org.enso.common.ContextFactory
-import org.enso.common.HostEnsoUtils
+import org.enso.common.{
+  ContextFactory,
+  HostEnsoUtils,
+  PythonHomeFinder,
+  RuntimeOptions
+}
 import org.enso.filewatcher.WatcherFactory
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
-import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.enso.version.BuildVersion
@@ -184,9 +188,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     languageServerConfig.profiling.profilingEventsLogPath match {
       case Some(path) =>
         val out = new PrintStream(path.toFile, StandardCharsets.UTF_8)
-        new RuntimeEventsMonitor(out) -> Some(())
+        def logInstantMsg(at: java.time.Instant, msg: String) = {
+          out.println(s"$at $msg")
+        }
+        new RuntimeEventsMonitor(logInstantMsg) -> Some(())
       case None =>
-        new NoopEventsMonitor() -> None
+        EventsMonitor.NOOP -> None
     }
   log.trace(
     "Started runtime events monitor [{}]",
@@ -327,6 +334,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     log.info("Running Language Server in JVM mode")
   }
 
+  private val pythonHome = PythonHomeFinder.findPythonHome() match {
+    case path if path != null =>
+      path.getParent.toFile.getCanonicalPath
+    case _ => null
+  }
+
   private val builder = ContextFactory
     .create()
     .projectRoot(serverConfig.contentRootPath)
@@ -337,6 +350,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
+    .pythonResourceDir(pythonHome)
     .disableLinting(true)
     .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
@@ -435,6 +449,13 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val idlenessEndpoint =
     new IdlenessEndpoint(idlenessMonitor)
 
+  private val renameProjectEndpoint =
+    RenameProjectEndpoint(
+      timeout          = 10.seconds,
+      runtimeConnector = runtimeConnector,
+      actorFactory     = system
+    )(serverConfig.computeExecutionContext)
+
   private val jsonRpcProtocolFactory = new JsonRpcProtocolFactory
 
   private val initializationComponent =
@@ -490,7 +511,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
           lazyMessageTimeout = 10.seconds,
           secureConfig       = secureConfig
         ),
-      List(healthCheckEndpoint, idlenessEndpoint),
+      List(healthCheckEndpoint, idlenessEndpoint, renameProjectEndpoint),
       messagesCallback
     )(system, materializer)
   log.trace("Created JSON RPC Server [{}]", jsonRpcServer)
@@ -509,6 +530,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )(system, materializer)
   log.trace("Created Binary WebSocket Server [{}]", binaryServer)
 
+  private val ydoc = {
+    val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
+    org.enso.runner.common.YdocServerApi.launchYdocServer(c.hostname, c.port)
+  }
+
   log.debug(
     "Main module of the Language Server initialized with config [{}]",
     languageServerConfig
@@ -518,9 +544,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     contextSupervisor.close()
+    ydoc.close()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
-    MDC.remove("project.id")
+    MDC.remove("projectLocalId")
+    MDC.remove("projectId")
+    MDC.remove("projectSessionId")
   }
 
   private def akkaHttpsConfig(): com.typesafe.config.Config = {

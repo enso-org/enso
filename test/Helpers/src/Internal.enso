@@ -20,3 +20,5 @@ type Priv_Type
 
 type Implicitly_Private
     Cons data
+
+priv_func x = x

@@ -10,7 +10,7 @@ import { validateDatalink } from '#/data/datalinkValidator'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
-import { type Category } from '#/layouts/Drive/Categories'
+import type { Category } from '#/layouts/Drive/Categories'
 import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { SharedWithColumn } from '#/pages/dashboard/components/column'
 import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
@@ -30,11 +30,11 @@ import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
-import { useFeatureFlags } from '$/providers/react/featureFlags'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
-} from '$/providers/react/rightPanel'
+} from '$/providers/react/container'
+import { useFeatureFlags } from '$/providers/react/featureFlags'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import * as React from 'react'
@@ -52,7 +52,6 @@ export function AssetProperties() {
   const focusedAsset = useRightPanelFocusedAsset()
   const category = useRightPanelContextCategory()
   const { getText } = useText()
-  const isReadonly = category?.type === 'trash'
 
   if (category?.backend !== BackendType.remote) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
@@ -68,7 +67,6 @@ export function AssetProperties() {
         key={focusedAsset.id}
         backend={remoteBackend}
         item={focusedAsset}
-        isReadonly={isReadonly}
         category={category}
       />
     </ErrorBoundary>
@@ -79,13 +77,12 @@ export function AssetProperties() {
 export interface AssetPropertiesInternalProps {
   readonly backend: Backend
   readonly category: Category
-  readonly isReadonly: boolean
   readonly item: AnyAsset
 }
 
 /** Display and modify the properties of an asset. */
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
-  const { backend, item, category, isReadonly = false } = props
+  const { backend, item, category } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
   const rightPanel = useRightPanelData()
   const spotlightOn = useVueValue(
@@ -156,7 +153,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           </Heading>
           <table>
             <tbody>
-              {item.ensoPath != null && item.ensoPathValue && (
+              {item.ensoPath != null && (
                 <tr data-testid="asset-panel-path" className="h-row">
                   <td className="my-auto min-w-side-panel-label p-0">
                     <Text>{getText('path')}</Text>
@@ -166,7 +163,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                       <Text className="w-0 grow" truncate="1">
                         {item.ensoPath}
                       </Text>
-                      <CopyButton copyText={item.ensoPathValue} />
+                      <CopyButton copyText={encodeURI(item.ensoPath)} />
                     </div>
                   </td>
                 </tr>
@@ -246,11 +243,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                     <Text className="inline-block">{getText('sharedWith')}</Text>
                   </td>
                   <td className="flex w-full gap-1 p-0">
-                    <SharedWithColumn
-                      isReadonly={isReadonly}
-                      item={item}
-                      state={{ backend, category, setQuery: () => {} }}
-                    />
+                    <SharedWithColumn item={item} state={{ category }} />
                   </td>
                 </tr>
               )}

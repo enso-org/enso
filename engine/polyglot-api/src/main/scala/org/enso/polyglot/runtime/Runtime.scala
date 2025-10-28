@@ -10,7 +10,6 @@ import org.enso.text.editing.model
 import org.enso.text.editing.model.{IdMap, Range, TextEdit}
 
 import java.io.File
-import java.util.Arrays
 import java.util.UUID
 
 object Runtime {
@@ -232,9 +231,10 @@ object Runtime {
       /** An object representing invalidation of a list of expressions.
         *
         * @param value a list of expressions to invalidate.
+        * @param reason human-readable explanation for invalidation
         */
       @named("expressions")
-      case class Expressions(value: Vector[ExpressionId])
+      case class Expressions(value: Vector[ExpressionId], reason: String)
           extends InvalidatedExpressions
     }
 
@@ -768,7 +768,7 @@ object Runtime {
       override def toLogString(shouldMask: Boolean): String = {
         "VisualizationUpdate(" +
         s"visualizationContext=$visualizationContext,data=" +
-        (if (shouldMask) STUB else Arrays.asList(data)) +
+        (if (shouldMask) STUB else new String(data)) +
         ")"
       }
     }
@@ -1420,10 +1420,6 @@ object Runtime {
         s"suggestions=${suggestions.map(_.toLogString(shouldMask))}" +
         ")"
     }
-
-    /** A notification about the finished background analyze job. */
-    @named("analyzeModuleInScopeJobFinished")
-    final case class AnalyzeModuleInScopeJobFinished() extends ApiNotification
 
     /** A request to invalidate the indexed flag of the modules. */
     @named("invalidateModulesIndexRequest")

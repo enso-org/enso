@@ -89,13 +89,13 @@ export function AlertDialog(props: AlertDialogProps) {
 
           <Button.Group align="end">
             {typeof cancelButton === 'string' ?
-              <AlertDialog.Dismiss isLoading={false} variant="ghost">
+              <DismissAlertDialog isLoading={false} variant="ghost">
                 {cancelButton}
-              </AlertDialog.Dismiss>
+              </DismissAlertDialog>
             : cancelButton}
 
             {typeof confirmButton === 'string' ?
-              <AlertDialog.Confirm>{confirmButton}</AlertDialog.Confirm>
+              <ConfirmAlertDialog>{confirmButton}</ConfirmAlertDialog>
             : confirmButton}
           </Button.Group>
 
@@ -125,9 +125,7 @@ function AlertDialogBody(props: AlertDialogBodyProps) {
   return typeof renderChildren === 'string' ? <Text>{renderChildren}</Text> : renderChildren
 }
 
-/**
- * Props for the {@link AlertDialog.Dismiss} component.
- */
+/** Props for the {@link DismissAlertDialog} component. */
 export type AlertDialogDismissProps<IconType extends string> = SubmitProps<
   IconType,
   TSchema<ZodObject<{ response: ZodEnum<['cancel']> }>>,
@@ -135,12 +133,8 @@ export type AlertDialogDismissProps<IconType extends string> = SubmitProps<
   unknown
 >
 
-/**
- * A button that dismisses the alert dialog.
- */
-AlertDialog.Dismiss = function Dismiss<IconType extends string>(
-  props: AlertDialogDismissProps<IconType>,
-) {
+/** A button that dismisses an alert dialog. */
+function DismissAlertDialog<IconType extends string>(props: AlertDialogDismissProps<IconType>) {
   const form = Form.useFormContext(props.form)
 
   return (
@@ -167,12 +161,8 @@ export type AlertDialogConfirmProps<IconType extends string> = SubmitProps<
   readonly variant?: 'delete' | 'primary'
 }
 
-/**
- * A button that confirms the alert dialog.
- */
-AlertDialog.Confirm = function Confirm<IconType extends string>(
-  props: AlertDialogConfirmProps<IconType>,
-) {
+/** A button that confirms an alert dialog. */
+function ConfirmAlertDialog<IconType extends string>(props: AlertDialogConfirmProps<IconType>) {
   const { isDestructive } = AlertDialogProvider.useContextStrict()
   const { variant = isDestructive ? 'delete' : 'primary', ...rest } = props
 

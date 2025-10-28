@@ -12,37 +12,50 @@ from project.Errors import Missing_Input_Columns, No_Common_Type, No_Output_Colu
 
 polyglot java import org.enso.table.data.table.join.lookup.LookupColumnDescription
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Lookup_Column
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A key column used to correlate rows between the two tables.
     Key_Column base_column lookup_column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A column from the base table that is kept as-is.
     Keep_Column base_column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A column that is present in both tables.
-       If the row is matched with a row from the lookup table, the value from
-       the lookup table is used; otherwise the value from the base table is kept.
+       If the row is matched with a row from the lookup table, the value from the
+       lookup table is used; otherwise the value from the base table is kept.
     Replace_Column base_column lookup_column (common_type : Value_Type)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        A new column added from the lookup table.
        If the row has no match, it will be `Nothing`.
     Add_Column lookup_column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     is_key : Boolean
     is_key self = case self of
         Lookup_Column.Key_Column _ _ -> True
         _ -> False
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Checks if `key_columns` are present in both tables and returns settings
    indicating which columns will be updated and which will be added.
-
    It also reports any errors or warnings related to selecting these columns.
 prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_columns allow_unmatched_rows on_problems:Problem_Behavior =
     key_columns = base_table.select_columns key_columns_selector . column_names . catch No_Output_Columns _->
@@ -83,7 +96,9 @@ prepare_columns_for_lookup base_table lookup_table key_columns_selector add_new_
         on_problems.attach_problems_before problems_to_add.to_vector <|
             my_updated_columns+to_add
 
-## PRIVATE
+## ---
+   private: true
+   ---
 merge_columns base_column lookup_column allow_unmatched_rows =
     case allow_unmatched_rows of
         True ->
@@ -101,7 +116,9 @@ merge_columns base_column lookup_column allow_unmatched_rows =
         False ->
             Lookup_Column.Add_Column lookup_column
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_java_lookup_column_description lookup_column = case lookup_column of
     Lookup_Column.Key_Column base_column _ ->
         LookupColumnDescription.KeepOriginal.new (base_column:In_Memory_Column).java_column

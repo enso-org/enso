@@ -2,10 +2,11 @@
 ## module Standard.Table.Expression
 - type Expression
     - Value expression:Standard.Base.Data.Text.Text
-    - evaluate expression:Standard.Table.Expression.Expression get_column:Standard.Base.Any.Any make_constant:Standard.Base.Any.Any is_column:Standard.Base.Any.Any module_name:Standard.Base.Any.Any type_name:Standard.Base.Any.Any var_args_functions:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - evaluate expression:Standard.Table.Expression.Expression table:Standard.Table.Table.Table -> Standard.Base.Any.Any
 - type Expression_Error
     - Argument_Mismatch message:Standard.Base.Data.Text.Text
     - Syntax_Error message:Standard.Base.Data.Text.Text line:Standard.Base.Data.Numbers.Integer column:Standard.Base.Data.Numbers.Integer
+    - Type_Error message:Standard.Base.Data.Text.Text
     - Unsupported_Operation name:Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Any.Any
 - expr expression:Standard.Base.Data.Text.Text -> Standard.Table.Expression.Expression

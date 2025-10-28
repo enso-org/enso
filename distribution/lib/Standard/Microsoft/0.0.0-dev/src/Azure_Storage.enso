@@ -14,6 +14,7 @@ polyglot java import org.enso.microsoft.azure.AzureBlobStorage
 polyglot java import org.enso.microsoft.azure.AzureCredential
 polyglot java import org.enso.microsoft.azure.AzureResourceManager
 
+## Access Azure Storage resources.
 type Azure_Storage
     ## Lists the storage accounts in the given subscription.
     @subscription make_subscription_selector
@@ -48,6 +49,7 @@ type Azure_Storage
         File.new path
 
 type Azure_Blob_Storage
+    ## Represents an Azure Blob Storage SAS Credential.
     SAS_Token (token : (Text|Enso_Secret) = (Missing_Argument.throw "token"))
 
     ## ---
@@ -90,4 +92,11 @@ type Azure_Storage_Account
        private: true
        ---
     to_display_text self -> Text = "Storage Account {" + self.name + " (" + self.id + ")}"
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Azure_Storage_Account"], ["name", self.name], ["id", self.id]]
 

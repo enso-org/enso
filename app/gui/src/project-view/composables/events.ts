@@ -10,7 +10,9 @@ import { proxyRefs } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
 import {
   computed,
+  onMounted,
   onScopeDispose,
+  onUnmounted,
   ref,
   shallowRef,
   toValue,
@@ -116,28 +118,15 @@ export function useEventConditional(
   handler: (event: unknown) => void,
   options?: boolean | AddEventListenerOptions,
 ): void {
-  watch(condition, (conditionMet, _, onCleanup) => {
-    if (conditionMet) {
-      target.addEventListener(event, handler, options)
-      onCleanup(() => target.removeEventListener(event, handler, options))
-    }
-  })
-}
-
-/** Whether any element currently has keyboard focus. */
-export function keyboardBusy(): boolean {
-  return (
-    document.activeElement !== document.body &&
-    document.activeElement instanceof HTMLElement &&
-    isEditable(document.activeElement)
-  )
-}
-
-function isEditable(element: HTMLElement) {
-  return (
-    element.isContentEditable ||
-    element instanceof HTMLInputElement ||
-    element instanceof HTMLTextAreaElement
+  watch(
+    condition,
+    (conditionMet, _, onCleanup) => {
+      if (conditionMet) {
+        target.addEventListener(event, handler, options)
+        onCleanup(() => target.removeEventListener(event, handler, options))
+      }
+    },
+    { immediate: true },
   )
 }
 
@@ -150,9 +139,12 @@ const hasWindow = typeof window !== 'undefined'
 const platform = hasWindow ? (window.navigator?.platform ?? '') : ''
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
 
+/** Platform-dependant property name for Mod modifier key. */
+export const modKeyProp = isMacLike ? 'metaKey' : 'ctrlKey'
+
 /** Check if `mod` key (ctrl or cmd) appropriate for current platform is used */
 export function modKey(e: KeyboardEvent | MouseEvent): boolean {
-  return isMacLike ? e.metaKey : e.ctrlKey
+  return e[modKeyProp]
 }
 
 /**
@@ -662,9 +654,14 @@ export function useStateBeforePointerdown<T>(
   const stateBeforeClick = ref<T>()
 
   const { globalEventRegistryPre } = useGlobalEventRegistry()
-  useEvent(globalEventRegistryPre, 'pointerdown', (e) => {
-    if (unrefElement(element)?.contains(e.target as Node)) stateBeforeClick.value = getState()
-  })
+  useEvent(
+    globalEventRegistryPre,
+    'pointerdown',
+    (e) => {
+      if (unrefElement(element)?.contains(e.target as Node)) stateBeforeClick.value = getState()
+    },
+    { capture: true },
+  )
 
   return {
     /**
@@ -673,4 +670,16 @@ export function useStateBeforePointerdown<T>(
      */
     stateBeforeClick,
   }
+}
+
+/** Calls the provide function on mount, and calls the function's return value on unmount. */
+export function useMounted(hook: () => (() => void) | undefined) {
+  let unmountedHook: (() => void) | undefined = undefined
+  onMounted(() => {
+    unmountedHook = hook()
+  })
+  onUnmounted(() => {
+    unmountedHook?.()
+    unmountedHook = undefined
+  })
 }

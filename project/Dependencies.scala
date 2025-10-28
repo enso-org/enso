@@ -271,6 +271,8 @@ object Dependencies {
   val slf4jApi = Seq(
     "org.slf4j" % "slf4j-api" % slf4jVersion
   )
+  val slf4jNop       = "org.slf4j" % "slf4j-nop" % slf4jVersion
+  val slf4jNopModule = "org.slf4j.nop"
 
   // === Other ==================================================================
 
@@ -312,6 +314,7 @@ object Dependencies {
   val googleProtobufVersion   = "3.25.1"
   val shapelessVersion        = "2.3.10"
   val postgresVersion         = "42.4.0"
+  val duckdbVersion           = "1.4.0.0"
   val h2Version               = "2.3.232"
   val jimFsVersion            = "1.3.0"
 }

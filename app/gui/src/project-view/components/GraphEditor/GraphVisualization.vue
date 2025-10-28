@@ -11,7 +11,7 @@ import { registerHandlers } from '@/providers/action'
 import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
-import { type BoundsSet, Rect } from '@/util/data/rect'
+import { Rect, type BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import type { ProjectPath } from '@/util/projectPath'
 import { proxyRefs } from '@/util/reactivity'
@@ -28,6 +28,7 @@ const MIN_CONTENT_HEIGHT_PX = 32
 const DEFAULT_CONTENT_HEIGHT_PX = 150
 
 const props = defineProps<{
+  show: boolean
   currentType?: Opt<VisualizationIdentifier>
   isFullscreenAllowed: boolean
   isResizable: boolean
@@ -72,6 +73,7 @@ const {
   selectedVis: toRef(props, 'currentType'),
   dataSource: toRef(props, 'dataSource'),
   typename: toRef(props, 'typename'),
+  typeinfo: toRef(props, 'typeinfo'),
 })
 
 // ===========
@@ -132,10 +134,11 @@ const keydownHandler = visualizationBindings.handler({
   },
 })
 
-// TODO[ao]: we use `document` to make sure it takes precedence before GraphEditor handlers
+// TODO[ao]: we use `globalEventRegistryPre` to make sure it takes precedence before GraphEditor handlers
 //  (deselectAllNodes in particular). But this is quick workaround, the proper solution
-//  should be soon delivered as part of https://github.com/enso-org/enso/issues/13002
-useEvent(document, 'keydown', keydownHandler)
+//  should be soon delivered as part of https://github.com/enso-org/enso/issues/13695
+const { globalEventRegistryPre } = useGlobalEventRegistry()
+useEvent(globalEventRegistryPre, 'keydown', keydownHandler)
 
 // =============================
 // === Sizing and Fullscreen ===
@@ -199,7 +202,7 @@ watch(
 )
 
 // Use proxy object instead of computed to keep granular reactive updates across the `params` prop fields.
-const visParams = proxyRefs({
+const visParams: VisualizationHostParams = proxyRefs({
   visualization: effectiveVisualization,
   data: effectiveVisualizationData,
   size: contentElementSize,
@@ -211,8 +214,11 @@ const resizableWidgets = injectResizableWidgetRegistry(true)
 </script>
 
 <script lang="ts">
-import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import VisualizationHost, {
+  type VisualizationHostParams,
+} from '@/components/visualizations/VisualizationHost.vue'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { defineCustomElement } from 'vue'
 
 // ==========================
@@ -231,11 +237,12 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 
 <template>
   <div
+    v-if="props.show"
     class="GraphVisualization"
     :style="style"
     :class="{ isFocused }"
-    @pointerenter="emit('update:hovered', false)"
-    @pointerleave="emit('update:hovered', true)"
+    @pointerenter="emit('update:hovered', true)"
+    @pointerleave="emit('update:hovered', false)"
   >
     <WithFullscreenMode
       v-model="isFullscreen"
@@ -253,6 +260,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
         <VisualizationToolbar
           :currentVis="currentVisualization"
           :showControls="!isPreview"
+          :isFocused="isFocused"
           :allVisualizations="allVisualizations"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
           :typename="typename"

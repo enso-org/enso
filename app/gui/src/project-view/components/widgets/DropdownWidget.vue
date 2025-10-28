@@ -4,19 +4,15 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref } from 'vue'
 
-enum SortDirection {
-  none = 'none',
-  ascending = 'ascending',
-  descending = 'descending',
-}
+type SortDirection = 'none' | 'ascending' | 'descending'
 
-const props = defineProps<{ color: string; backgroundColor: string; entries: Entry[] }>()
+const props = defineProps<{ entries: Entry[] }>()
 const emit = defineEmits<{
   clickEntry: [entry: Entry, keepOpen: boolean, htmlElement: HTMLElement]
   scroll: []
 }>()
 
-const sortDirection = ref<SortDirection>(SortDirection.none)
+const sortDirection = ref<SortDirection>('none')
 const graphNavigator = injectGraphNavigator(true)
 
 function lexicalCmp(a: string, b: string) {
@@ -29,38 +25,21 @@ function lexicalCmp(a: string, b: string) {
 
 const sortedValues = computed<Entry[]>(() => {
   switch (sortDirection.value) {
-    case SortDirection.ascending: {
+    case 'ascending': {
       return [...props.entries].sort((a, b) => lexicalCmp(a.value, b.value))
     }
-    case SortDirection.descending: {
+    case 'descending': {
       return [...props.entries].sort((a, b) => lexicalCmp(b.value, a.value))
     }
-    case SortDirection.none:
+    case 'none':
     default: {
       return props.entries
     }
   }
 })
 
-const ICON_LOOKUP: Record<SortDirection, Icon> = {
-  [SortDirection.none]: 'sort',
-  [SortDirection.ascending]: 'sort_ascending',
-  [SortDirection.descending]: 'sort_descending',
-}
-
-const NEXT_SORT_DIRECTION: Record<SortDirection, SortDirection> = {
-  [SortDirection.none]: SortDirection.ascending,
-  [SortDirection.ascending]: SortDirection.descending,
-  [SortDirection.descending]: SortDirection.none,
-}
-
-// Currently unused.
-const enableSortButton = ref(false)
-
 const styleVars = computed(() => {
   return {
-    '--dropdown-fg': props.color,
-    '--dropdown-bg': props.backgroundColor,
     // Slightly shift the top border of drawn dropdown away from node's top border by a fraction of
     // a pixel, to prevent it from poking through and disturbing node's siluette.
     '--extend-margin': `${0.2 / (graphNavigator?.scale ?? 1)}px`,
@@ -84,27 +63,19 @@ export interface DropdownEntry {
 <template>
   <div class="DropdownWidget" :style="styleVars">
     <ul class="list scrollable" @wheel.stop.passive @scroll="emit('scroll')">
-      <li
-        v-for="entry in sortedValues"
-        :key="entry.key ?? entry.value"
-        :class="{ selected: entry.selected }"
-        class="item clickable"
-        @click.stop="handleClick(entry, $event.altKey, $event.currentTarget)"
-      >
-        <div class="item-inner">
+      <li v-for="entry in sortedValues" :key="entry.key ?? entry.value">
+        <button
+          :class="{ selected: entry.selected }"
+          class="item clickable"
+          @pointerdown.prevent
+          @click.stop="handleClick(entry, $event.altKey, $event.currentTarget)"
+          @keydown.enter.stop
+        >
           <SvgIcon v-if="entry.icon" :name="entry.icon" class="menu-icon" />
-          <div class="itemContent" v-text="entry.value"></div>
-        </div>
+          <span class="itemContent" v-text="entry.value"></span>
+        </button>
       </li>
     </ul>
-    <div v-if="enableSortButton" class="sort">
-      <div class="sort-background"></div>
-      <SvgIcon
-        :name="ICON_LOOKUP[sortDirection]"
-        class="clickable"
-        @click="sortDirection = NEXT_SORT_DIRECTION[sortDirection]"
-      />
-    </div>
   </div>
 </template>
 
@@ -124,6 +95,8 @@ export interface DropdownEntry {
   background-color: var(--dropdown-bg);
   border-radius: calc(var(--item-height) / 2 + var(--dropdown-padding));
   color: var(--dropdown-fg);
+  /* Clip content, including selection highlight and scrollbar */
+  overflow: clip;
 }
 
 /** 
@@ -133,6 +106,7 @@ export interface DropdownEntry {
 .ExtendUpwards {
   margin-top: calc(0px - var(--dropdown-extend));
   padding-top: var(--dropdown-extend);
+
   &:before {
     content: '';
     display: block;
@@ -164,9 +138,11 @@ export interface DropdownEntry {
   text-align: left;
   max-width: 100%;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 
   &:hover {
-    background-color: color-mix(in oklab, var(--dropdown-bg) 50%, white 50%);
+    background-color: var(--dropdown-item-hover-bg);
     .itemContent {
       --text-scroll-max: calc(var(--dropdown-max-width) - 28px);
       will-change: transform;
@@ -175,7 +151,7 @@ export interface DropdownEntry {
   }
 
   &.selected {
-    background-color: var(--color-port-connected);
+    background-color: var(--dropdown-item-selected-bg);
 
     & + .selected {
       border-top-left-radius: 0;
@@ -200,11 +176,6 @@ export interface DropdownEntry {
   text-overflow: ellipsis;
 }
 
-.item-inner {
-  display: flex;
-  align-items: center;
-}
-
 .menu-icon {
   margin-left: -4px;
   margin-right: 6px;
@@ -217,6 +188,7 @@ export interface DropdownEntry {
     max-width: unset;
     transform: translateX(0);
   }
+
   50%,
   70% {
     max-width: unset;

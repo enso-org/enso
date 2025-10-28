@@ -5,7 +5,7 @@ import java.util.Map;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.dump.service.IRDumpFactoryService;
+import org.enso.compiler.dump.service.IRDumper;
 import org.enso.compiler.dump.service.IRSource;
 
 /** Utility class for {@link org.enso.compiler.dump.service.IRDumper}. */
@@ -21,7 +21,7 @@ public final class IRDumperTestWrapper implements AutoCloseable {
   public void dump(IR ir, String moduleName, String passName) {
     var dumper = dumpers.get(moduleName);
     if (dumper == null) {
-      dumper = IRDumpFactoryService.DEFAULT.create(moduleName);
+      dumper = IRDumper.create(moduleName);
       dumpers.put(moduleName, dumper);
     }
     if (ir instanceof Module modIr) {

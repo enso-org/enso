@@ -1,7 +1,8 @@
 private
 
-## PRIVATE
-
+## ---
+   private: true
+   ---
    Returns a raw representation of the current execution stack trace.
    You probably want `Runtime.get_stack_trace` instead.
 primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"

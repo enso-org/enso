@@ -22,7 +22,7 @@ import { unsafeWriteValue } from '#/utilities/write'
 import { LOGIN_PATH } from '$/appUtils'
 import { useBackends, useRouter, useSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
-import { type GetText } from '$/providers/text'
+import type { GetText } from '$/providers/text'
 import { toast } from 'react-toastify'
 import * as z from 'zod'
 

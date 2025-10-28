@@ -24,6 +24,7 @@ export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPat
   readonly className?: string
   readonly style?: CSSProperties
   readonly labelPosition?: 'after' | 'before' | undefined
+  readonly halfway?: boolean | undefined
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -31,6 +32,12 @@ export const SWITCH_STYLES = tv({
   base: '',
   variants: {
     disabled: { true: 'cursor-not-allowed opacity-50' },
+    halfway: {
+      true: {
+        background: 'bg-primary/50',
+        thumb: 'translate-x-[50%]',
+      },
+    },
     size: {
       small: {
         background: 'h-4 w-7 p-0.5',
@@ -68,6 +75,7 @@ export const Switch = forwardRef(function Switch<
     label,
     isDisabled = false,
     isRequired = false,
+    halfway = false,
     defaultValue,
     className,
     name,
@@ -98,7 +106,7 @@ export const Switch = forwardRef(function Switch<
     }),
   })
 
-  const styles = SWITCH_STYLES({ size, disabled: fieldProps.disabled })
+  const styles = SWITCH_STYLES({ size, disabled: fieldProps.disabled, halfway })
 
   return (
     <Form.Field

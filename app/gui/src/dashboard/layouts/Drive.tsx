@@ -11,12 +11,12 @@ import AssetsTable, { AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
-import { setDriveLocation } from '#/providers/DriveProvider'
+import DriveProvider, { setDriveLocation } from '#/providers/DriveProvider'
 import { BackendType, DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
+import { OfflineError } from '#/utilities/error'
 import * as github from '#/utilities/github'
-import { OfflineError } from '#/utilities/HttpClient'
 import * as appUtils from '$/appUtils'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
@@ -25,13 +25,19 @@ import { toast } from 'react-toastify'
 import { Suspense } from '../components/Suspense'
 import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
 
-/** Props for a {@link Drive}. */
-export interface DriveProps {
-  readonly initialProjectName: string | null
-}
+/** Contains directory path and directory contents (projects, folders, secrets and files). */
+export const Drive = React.memo(function Drive() {
+  return (
+    <ErrorBoundary>
+      <DriveProvider>
+        <DriveInner />
+      </DriveProvider>
+    </ErrorBoundary>
+  )
+})
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-function Drive(props: DriveProps) {
+function DriveInner() {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
@@ -112,7 +118,7 @@ function Drive(props: DriveProps) {
           }}
         >
           <Suspense>
-            <DriveAssetsView {...props} />
+            <DriveAssetsView />
           </Suspense>
         </ErrorBoundary>
       )
@@ -121,9 +127,7 @@ function Drive(props: DriveProps) {
 }
 
 /** The assets view of the Drive. */
-function DriveAssetsView(props: DriveProps) {
-  const { initialProjectName } = props
-
+function DriveAssetsView() {
   const { getText } = useText()
   const { isOffline } = offlineHooks.useOffline()
   const { associatedBackend } = useCategoriesAPI()
@@ -156,11 +160,7 @@ function DriveAssetsView(props: DriveProps) {
             {!isInaccessible && (
               <Suspense>
                 <ErrorBoundary>
-                  <AssetsTable
-                    query={query}
-                    setQuery={setQuery}
-                    initialProjectName={initialProjectName}
-                  />
+                  <AssetsTable query={query} setQuery={setQuery} />
                 </ErrorBoundary>
               </Suspense>
             )}
@@ -209,5 +209,3 @@ function OfflineMessage(props: OfflineMessageProps) {
     </result.Result>
   )
 }
-
-export default React.memo(Drive)

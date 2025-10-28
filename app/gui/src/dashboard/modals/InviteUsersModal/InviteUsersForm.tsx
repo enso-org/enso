@@ -1,6 +1,6 @@
 /** @file A modal with inputs for user email and permission level. */
 import { Form } from '#/components/Form'
-import { ResizableContentEditableInput } from '#/components/Inputs/ResizableInput'
+import { Input } from '#/components/Inputs/Input'
 import * as paywallComponents from '#/components/Paywall'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
@@ -133,7 +133,7 @@ export function InviteUsersForm(props: InviteUsersFormProps) {
         })
       }}
     >
-      <ResizableContentEditableInput
+      <Input
         ref={inputRef}
         name="emails"
         label={getText('inviteEmailFieldLabel')}

@@ -1,15 +1,15 @@
+import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
+import type { WidgetConfiguration } from '$/providers/openedProjects/widgetRegistry/configuration'
+import * as widgetCfg from '$/providers/openedProjects/widgetRegistry/configuration'
+import { DisplayMode } from '$/providers/openedProjects/widgetRegistry/configuration'
 import { syntheticPortId, type PortId } from '@/providers/portInfo'
-import { WidgetInput } from '@/providers/widgetRegistry'
-import type { WidgetConfiguration } from '@/providers/widgetRegistry/configuration'
-import * as widgetCfg from '@/providers/widgetRegistry/configuration'
-import { DisplayMode } from '@/providers/widgetRegistry/configuration'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { type GraphDb, type MethodCallInfo } from '@/stores/graph/graphDatabase'
+import { type GraphDb, type MethodCallInfo } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   isRequiredArgument,
   type CallableSuggestionEntry,
   type SuggestionEntryArgument,
-} from '@/stores/suggestionDatabase/entry'
+} from '$/providers/openedProjects/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
@@ -81,12 +81,12 @@ abstract class Argument {
     return false
   }
 
-  toWidgetInput(): WidgetInput {
+  toWidgetInput(callInfo: MethodCallInfo | undefined): WidgetInput {
     return {
       portId: this.portId,
       value: this.value,
       expectedType: this.argInfo?.reprType,
-      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId },
+      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId, callInfo },
       dynamicConfig: this.dynamicConfig,
     }
   }
@@ -218,6 +218,7 @@ interface CallInfo {
   suggestion?: CallableSuggestionEntry | undefined
   widgetCfg?: widgetCfg.FunctionCall | undefined
   subjectAsSelf?: boolean | undefined
+  suppressPlaceholders?: boolean | undefined
 }
 
 /** TODO: Add docs */
@@ -253,7 +254,8 @@ export class ArgumentApplication {
   }
 
   private static FromInterpretedPrefix(interpreted: InterpretedPrefix, callInfo: CallInfo) {
-    const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf } = callInfo
+    const { notAppliedArguments, suggestion, widgetCfg, subjectAsSelf, suppressPlaceholders } =
+      callInfo
 
     const knownArguments = suggestion?.arguments
     const allPossiblePrefixArguments = Array.from(knownArguments ?? [], (_, i) => i)
@@ -268,7 +270,9 @@ export class ArgumentApplication {
       allPossiblePrefixArguments.shift()
     }
 
-    const notAppliedOriginally = new Set(notAppliedArguments ?? allPossiblePrefixArguments)
+    const notAppliedOriginally = new Set(
+      suppressPlaceholders ? [] : (notAppliedArguments ?? allPossiblePrefixArguments),
+    )
     const argumentsLeftToMatch = allPossiblePrefixArguments.filter((i) =>
       notAppliedOriginally.has(i),
     )
@@ -470,23 +474,23 @@ export class ArgumentApplication {
 
     const argsExternalIds: Record<string, ExternalId> = {}
     let index = 'self' === mci?.suggestion.arguments[0]?.name ? 1 : 0
-    for (const nameAndExtenalId of namesAndExternalIds) {
+    for (const { uuid } of namesAndExternalIds) {
       const notApplied = mci?.methodCall.notAppliedArguments ?? []
       while (notApplied.indexOf(index) != -1) {
         index++
       }
-      if (nameAndExtenalId.uuid) {
-        argsExternalIds['' + index] = nameAndExtenalId.uuid
-      }
-      const suggestedName: string | undefined = mci?.suggestion.arguments[index]?.name
-      if (suggestedName && nameAndExtenalId.uuid) {
-        argsExternalIds[suggestedName] = nameAndExtenalId.uuid
+      if (uuid) {
+        argsExternalIds['' + index] = uuid
+        const suggestedName: string | undefined = mci?.suggestion.arguments[index]?.name
+        if (suggestedName) {
+          argsExternalIds[suggestedName] = uuid
+        }
       }
       index++
     }
-    for (const nameAndExternalId of namesAndExternalIds) {
-      if (nameAndExternalId.name && nameAndExternalId.uuid) {
-        argsExternalIds[nameAndExternalId.name] = nameAndExternalId.uuid
+    for (const { name, uuid } of namesAndExternalIds) {
+      if (name && uuid) {
+        argsExternalIds[name] = uuid
       }
     }
     return argsExternalIds
@@ -501,7 +505,7 @@ const unknownArgInfoNamed = (name: string) => ({
 })
 
 /** TODO: Add docs */
-export function getAccessOprSubject(app: Ast.Expression): Ast.Expression | undefined {
+export function getAccessOprSubject(app: Ast.Expression | undefined): Ast.Expression | undefined {
   if (app instanceof Ast.PropertyAccess) return app.lhs
 }
 
@@ -558,13 +562,15 @@ export function getMethodCallInfoRecursively(
 
 export const ArgumentApplicationKey: unique symbol = Symbol.for('WidgetInput:ArgumentApplication')
 export const ArgumentInfoKey: unique symbol = Symbol.for('WidgetInput:ArgumentInfo')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [ArgumentApplicationKey]?: ArgumentApplication
     [ArgumentInfoKey]?: {
       appKind: ApplicationKind
       info: SuggestionEntryArgument | undefined
       argId: string | undefined
+      // Call info inherited from the parent function call.
+      callInfo: MethodCallInfo | undefined
     }
   }
 }

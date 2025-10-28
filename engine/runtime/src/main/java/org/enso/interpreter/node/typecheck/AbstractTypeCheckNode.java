@@ -13,7 +13,11 @@ import org.enso.interpreter.runtime.data.text.Text;
  * detail. The API to perform the check or conversion is in {@link TypeCheckValueNode}.
  */
 abstract sealed class AbstractTypeCheckNode extends Node
-    permits OneOfTypesCheckNode, AllOfTypesCheckNode, SingleTypeCheckNode, MetaTypeCheckNode {
+    permits OneOfTypesCheckNode,
+        AllOfTypesCheckNode,
+        SingleTypeCheckNode,
+        MetaTypeCheckNode,
+        FailCheckNode {
   private final String comment;
   @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
 
@@ -31,7 +35,7 @@ abstract sealed class AbstractTypeCheckNode extends Node
   final boolean isAllTypes() {
     Node p = this;
     CompilerAsserts.partialEvaluationConstant(p);
-    for (; ; ) {
+    while (p != null) {
       if (p instanceof TypeCheckValueNode vn) {
         CompilerAsserts.partialEvaluationConstant(vn);
         var allTypes = vn.isAllTypes();
@@ -40,6 +44,7 @@ abstract sealed class AbstractTypeCheckNode extends Node
       }
       p = p.getParent();
     }
+    return false;
   }
 
   /**

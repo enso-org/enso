@@ -136,9 +136,15 @@ class Runner(
         options.dataPort.toString,
         "--log-level",
         logLevel.name
-      ) ++ options.secureRpcPort
-        .map(port => Seq("--secure-rpc-port", port.toString))
+      ) ++ options.projectCloudId
+        .map(id => Seq("--cloud-project-id", id))
         .getOrElse(Seq.empty) ++
+        options.projectCloudSessionId
+          .map(id => Seq("--cloud-project-session-id", id))
+          .getOrElse(Seq.empty) ++
+        options.secureRpcPort
+          .map(port => Seq("--secure-rpc-port", port.toString))
+          .getOrElse(Seq.empty) ++
         options.secureDataPort
           .map(port => Seq("--secure-data-port", port.toString))
           .getOrElse(Seq.empty) ++

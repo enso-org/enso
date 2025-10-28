@@ -31,4 +31,15 @@ public final class MethodNames {
     public static final String SET_SOURCE = "set_source";
     public static final String SET_SOURCE_FILE = "set_source_file";
   }
+
+  public static class Builtins {
+
+    private Builtins() {}
+
+    public static final String PACKAGE_NAME = "Builtins";
+    public static final String NAMESPACE = "Standard";
+    public static final String MODULE_NAME = NAMESPACE + "." + PACKAGE_NAME + ".Main";
+
+    public static final String EVAL = "eval";
+  }
 }

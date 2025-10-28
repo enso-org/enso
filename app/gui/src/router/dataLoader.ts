@@ -1,22 +1,22 @@
 import { assert } from '@/util/assert'
-import { Result } from '@/util/data/result'
+import type { Result } from '@/util/data/result'
 import {
-  Component,
-  ComponentOptionsMixin,
-  ComponentProvideOptions,
-  ComputedOptions,
+  type Component,
+  type ComponentOptionsMixin,
+  type ComponentProvideOptions,
+  type ComputedOptions,
   defineComponent,
-  DefineComponent,
-  Directive,
+  type DefineComponent,
+  type Directive,
   effectScope,
-  EffectScope,
-  EmitsOptions,
+  type EffectScope,
+  type EmitsOptions,
   h,
-  MethodOptions,
+  type MethodOptions,
   reactive,
-  SlotsType,
+  type SlotsType,
 } from 'vue'
-import { NavigationGuardReturn, RouteLocationNormalizedGeneric } from 'vue-router'
+import type { NavigationGuardReturn, RouteLocationNormalizedGeneric } from 'vue-router'
 
 /**
  * A loader which needs be exported from *.vue file to be wrapped in {@link withDataLoader}.
@@ -26,10 +26,10 @@ export type DataLoader<Props> = {
    * Like `beforeRouteEnter` nagivation guard, but returns data to be passed as component props,
    * or `Err` with proper response for navigation failure/redirect.
    */
-  beforeRouteEnter: (
+  beforeRouteEnter(
     to: RouteLocationNormalizedGeneric,
     from: RouteLocationNormalizedGeneric,
-  ) => Promise<Result<Props, Exclude<NavigationGuardReturn, void | undefined | true>>>
+  ): Promise<Result<Props, Exclude<NavigationGuardReturn, void | undefined | true>>>
 
   /**
    * Like `beforeRouteUpdate` nagivation guard, but is given `data` object which may be modified

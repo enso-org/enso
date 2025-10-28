@@ -1,6 +1,6 @@
 import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import * as iter from 'enso-common/src/utilities/data/iter'
+import { zipLongest } from 'enso-common/src/utilities/data/iter'
 
 /**
  * A pattern is an AST object with "placeholder" expressions.
@@ -68,7 +68,7 @@ export class Pattern<T extends Ast.Ast = Ast.Expression> {
   ): Ast.Owned<Ast.Mutable<T>> {
     const template = edit.copy(this.template)
     const placeholders = findPlaceholders(template, this.placeholder).map((ast) => edit.tryGet(ast))
-    for (const [placeholder, replacement] of iter.zipLongest(placeholders, subtrees)) {
+    for (const [placeholder, replacement] of zipLongest(placeholders, subtrees)) {
       assertDefined(placeholder)
       assertDefined(replacement)
       placeholder.replace(replacement)
@@ -94,7 +94,7 @@ export class Pattern<T extends Ast.Ast = Ast.Expression> {
 
 function findPlaceholders(ast: Ast.Ast, placeholder: string): Ast.AstId[] {
   const placeholders: Ast.AstId[] = []
-  ast.visitRecursive((child) => {
+  Ast.visitRecursive(ast, (child) => {
     if (child instanceof Ast.Ident && child.code() === placeholder) placeholders.push(child.id)
   })
   return placeholders
@@ -118,7 +118,7 @@ function matchSubtree(
       }
     }
   }
-  for (const [patternNode, targetNode] of iter.zipLongest(pattern.children(), target.children())) {
+  for (const [patternNode, targetNode] of zipLongest(pattern.children(), target.children())) {
     if (!patternNode || !targetNode) return false
     if (patternNode instanceof Ast.Token && targetNode instanceof Ast.Token) {
       if (patternNode.code() !== targetNode.code()) return false

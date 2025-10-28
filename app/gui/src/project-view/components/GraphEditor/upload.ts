@@ -1,5 +1,5 @@
 import { Awareness } from '@/stores/awareness'
-import { ProjectFiles, useProjectFiles } from '@/stores/projectFiles'
+import { useProjectFiles, type ProjectFiles } from '@/stores/projectFiles'
 import { Vec2 } from '@/util/data/vec2'
 import type { DataServer } from '@/util/net/dataServer'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
@@ -8,7 +8,7 @@ import { escapeTextLiteral } from 'ydoc-shared/ast/text'
 import type { LanguageServer } from 'ydoc-shared/languageServer'
 import type { Path, Uuid } from 'ydoc-shared/languageServerTypes'
 import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
-import { type ExternalId } from 'ydoc-shared/yjsModel'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 // === Constants ===
 
@@ -56,6 +56,7 @@ export class Uploader {
       awareness: Awareness
     },
     private file: File,
+    private filePath: string | undefined,
     private position: Vec2,
     private isOnLocalBackend: boolean,
     private disableDirectRead: boolean,
@@ -81,7 +82,16 @@ export class Uploader {
     disableDirectRead: boolean,
     method: ExternalId,
   ): Uploader {
-    return new Uploader(projectStore, file, position, isOnLocalBackend, disableDirectRead, method)
+    const filePath = window.api?.system?.getFilePath(file)
+    return new Uploader(
+      projectStore,
+      file,
+      filePath,
+      position,
+      isOnLocalBackend,
+      disableDirectRead,
+      method,
+    )
   }
 
   private progressUpdate(sizePercentage: number) {
@@ -95,13 +105,8 @@ export class Uploader {
   /** Start the upload process */
   async upload(): Promise<Result<UploadResult>> {
     // This non-standard property is defined in Electron.
-    if (
-      this.isOnLocalBackend &&
-      !this.disableDirectRead &&
-      'path' in this.file &&
-      typeof this.file.path === 'string'
-    ) {
-      return Ok({ source: 'FileSystemRoot', name: this.file.path })
+    if (this.isOnLocalBackend && !this.disableDirectRead && this.filePath != null) {
+      return Ok({ source: 'FileSystemRoot', name: this.filePath })
     }
     const rootId = await this.projectFiles.projectRootId
     if (rootId == null) return Err('Could not identify project root.')

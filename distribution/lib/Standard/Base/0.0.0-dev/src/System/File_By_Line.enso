@@ -21,13 +21,17 @@ polyglot java import org.enso.base.arrays.LongArrayList
 polyglot java import org.enso.base.FileLineReader
 
 type File_By_Line
-    ## ICON data_input
+    ## ---
+       icon: data_input
+       ---
        Creates a new File_By_Line object.
 
-       Arguments:
-       - file: The file to read.
-       - encoding: The encoding to use when reading the file (defaults to UTF 8).
-       - offset: The position within the file to read from (defaults to first byte).
+       ## Arguments
+        - `file`: The file to read.
+        - `encoding`: The encoding to use when reading the file (defaults to UTF
+          8).
+        - `offset`: The position within the file to read from (defaults to first
+          byte).
     new : File -> Encoding -> Integer -> File_By_Line
     new file:File encoding:Encoding=Encoding.utf_8 offset:Integer=0 =
         # TODO we might want to support Encoding.default here, but that requires modifying the FileLineReader a bit
@@ -38,42 +42,54 @@ type File_By_Line
             row_map
         File_By_Line.Reader file encoding Nothing Nothing create_row_map
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a new File_By_Line object.
 
-       Arguments:
-       - file: The file to read.
-       - encoding: The encoding to use when reading the file (defaults to UTF 8).
-       - limit_lines: The number of lines to read (defaults to all lines).
-       - filter_func: The filter to apply to each line (defaults to no filter).
-       - row_map: The row map to use (defaults to a new row map).
-       - file_end: The end of the file in bytes.
+       ## Arguments
+        - `file`: The file to read.
+        - `encoding`: The encoding to use when reading the file (defaults to UTF
+          8).
+        - `limit_lines`: The number of lines to read (defaults to all lines).
+        - `filter_func`: The filter to apply to each line (defaults to no
+          filter).
+        - `row_map`: The row map to use (defaults to a new row map).
+        - `file_end`: The end of the file in bytes.
     Reader file:File encoding:Encoding limit_lines:(Integer|Nothing) filter_func row_map file_end=file.size
 
-    ## GROUP Selections
-       ICON parse3
+    ## ---
+       group: Selections
+       icon: parse3
+       ---
        Reads a specific line from the file.
 
-       Arguments:
-       - line: The line to read (0 indexed).
+       ## Arguments
+        - `line`: The line to read (0 indexed).
     get : Integer -> Text
     get self line:Integer=0 = if self.limit_lines.is_nothing.not && line>self.limit_lines then Error.throw (Index_Out_Of_Bounds.Error line self.limit_lines) else
         read_line self line
 
-    ## GROUP Selections
-       ICON parse3
+    ## ---
+       group: Selections
+       icon: parse3
+       ---
        Reads the first line
     first : Text
     first self = self.get 0
 
-    ## GROUP Selections
-       ICON parse3
+    ## ---
+       group: Selections
+       icon: parse3
+       ---
        Reads the first line
     second : Text
     second self = self.get 1
 
-    ## GROUP Metadata
-       ICON metadata
+    ## ---
+       group: Metadata
+       icon: metadata
+       ---
        Counts the number of lines in the file.
     count : Integer
     count self =
@@ -83,65 +99,77 @@ type File_By_Line
            As row_map can be shared if we have a limit return that.
         if end_at == -1 then self.row_map.getSize-1 else end_at.min self.row_map.getSize-1
 
-    ## GROUP Conversions
-       ICON convert
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
        Returns the lines in the file as a vector.
     to_vector : Vector Text
     to_vector self = File_Error.handle_java_exceptions self.file <|
         end_at = if self.limit_lines.is_nothing then -1 else self.limit_lines-1
         FileLineReader.readLines self.java_file self.file_end self.row_map 0 end_at self.charset self.filter_func
 
-    ## ICON parse3
+    ## ---
+       icon: parse3
+       ---
        Performs an action on each line.
 
-       Arguments:
-       - function: The action to perform on each line.
+       ## Arguments
+        - `function`: The action to perform on each line.
     each : (Text -> Any) -> Nothing
     each self function =
         new_function _ t = function t
         self.each_with_index new_function
 
-    ## ICON parse3
+    ## ---
+       icon: parse3
+       ---
        Performs an action on each line.
 
-       Arguments:
-       - function: A function to apply that takes an index and an item.
+       The function is called with both the element index as well as the element
+       itself.
 
-       The function is called with both the element index as well as the
-       element itself.
+       ## Arguments
+        - `function`: A function to apply that takes an index and an item.
     each_with_index : (Integer -> Text -> Any) -> Nothing
     each_with_index self function =
         end_at = if self.limit_lines.is_nothing then Nothing else self.limit_lines-1
         for_each_lines self 0 end_at function
 
-    ## ICON column_add
+    ## ---
+       icon: column_add
+       ---
        Transforms each line in the file and returns the result as a vector.
 
-       Arguments:
-       - action: The action to perform on each line.
+       ## Arguments
+        - `action`: The action to perform on each line.
     map : (Text -> Any) -> Vector Any
     map self action =
         Vector.build builder->
             wrapped_action _ t = builder.append (action t)
             self.each_with_index wrapped_action
 
-    ## ICON column_add
+    ## ---
+       icon: column_add
+       ---
        Transforms each line in the file and returns the result as a vector.
 
-       Arguments:
-       - action: The action to perform on each line.
+       ## Arguments
+        - `action`: The action to perform on each line.
     map_with_index : (Integer -> Text -> Any) -> Vector Any
     map_with_index self action =
         Vector.build builder->
             wrapped_action i t = builder.append (action i t)
             self.each_with_index wrapped_action
 
-    ## GROUP Selections
-       ICON select_row
+    ## ---
+       group: Selections
+       icon: select_row
+       ---
        Skips the specified number of lines.
 
-       Arguments:
-       - lines: The number of lines to skip.
+       ## Arguments
+        - `lines`: The number of lines to skip.
     skip : Integer -> File_By_Line
     skip self lines:Integer =
         ## Read the line
@@ -156,22 +184,26 @@ type File_By_Line
         new_limit = if self.limit_lines.is_nothing then lines else lines.min self.limit_lines
         File_By_Line.Reader self.file self.encoding new_limit self.filter_func (create_row_map self lines) self.file_end
 
-    ## GROUP Selections
-       ICON parse3
+    ## ---
+       group: Selections
+       icon: parse3
+       ---
        Limits a file to a specific number of lines.
 
-       Arguments:
-       - lines: The number of lines to limit the file to.
+       ## Arguments
+        - `lines`: The number of lines to limit the file to.
     limit : Integer -> File_By_Line
     limit self lines:Integer =
         File_By_Line.Reader self.file self.encoding lines self.filter_func self.row_map self.file_end
 
-    ## GROUP Selections
-       ICON preparation
+    ## ---
+       group: Selections
+       icon: preparation
+       ---
        Filters the file by a predicate.
 
-       Arguments:
-       - predicate: The predicate to filter by.
+       ## Arguments
+        - `predicate`: The predicate to filter by.
     @predicate (Widget.Text_Input display=Display.Always)
     filter : Text | (Text -> Boolean) -> File_By_Line
     filter self predicate =
@@ -204,30 +236,40 @@ type File_By_Line
                 file_len
             File_By_Line.Reader self.file self.encoding Nothing new_predicate (make_filter_map self new_filter) (index_of self self.limit_lines)
 
-    ## ADVANCED
-       ICON metadata
+    ## ---
+       advanced: true
+       icon: metadata
+       ---
        Exports the row_map
     row_positions : Vector Integer
     row_positions self = Vector.from_polyglot_array <|
         Array_Proxy.new self.row_map.getSize (self.row_map.get _)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the Java_File for the backing file.
     java_file : Java_File
     java_file self = Java_File.new self.file.path
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the encoding as a Java Charset.
     charset : Charset
     charset self = self.encoding.to_java_charset
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Reads a specific line from the file.
 read_line : File_By_Line -> Integer -> Any -> Any
 read_line file:File_By_Line line:Integer=0 ~default=Nothing = File_Error.handle_java_exceptions file.file <|
     FileLineReader.readSingleLine file.java_file file.file_end file.row_map line file.charset file.filter_func . if_nothing default
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Performs an action on each line in the file.
 for_each_lines : File_By_Line -> Integer -> (Integer|Nothing) -> Any -> Any
 for_each_lines file:File_By_Line start_at:Integer end_at:(Integer|Nothing) action = File_Error.handle_java_exceptions file.file <|

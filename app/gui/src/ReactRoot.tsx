@@ -1,7 +1,6 @@
 /** @file A file containing setup for React part of application. */
 
 import App from '#/App.tsx'
-import { ReactQueryDevtools } from '#/components/Devtools'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { OfflineNotificationManager } from '#/components/OfflineNotificationManager'
 import { Suspense } from '#/components/Suspense'
@@ -13,7 +12,7 @@ import { useBackends } from '$/providers/backends'
 import { useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { QueryClient } from '@tanstack/vue-query'
-import { PropsWithChildren, StrictMode } from 'react'
+import { StrictMode, type PropsWithChildren } from 'react'
 import invariant from 'tiny-invariant'
 
 interface ReactRootProps {
@@ -55,8 +54,6 @@ export default function ReactRoot(props: PropsWithChildren<ReactRootProps>) {
                 </LoggerProvider>
               </OfflineNotificationManager>
             </Suspense>
-
-            <ReactQueryDevtools />
           </UIProviders>
         </ErrorBoundary>
       </QueryClientProvider>

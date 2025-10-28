@@ -1,5 +1,6 @@
 package org.enso.logger;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -16,12 +17,15 @@ import org.slf4j.event.Level;
  */
 public final class ObservedMessage {
   private final Level level;
+  private final Instant instant;
   private final String msg;
   private final Object[] args;
   private final Supplier<String> formattedMsg;
 
-  private ObservedMessage(Level level, String msg, Object[] args, Supplier<String> formattedMsg) {
+  private ObservedMessage(
+      Level level, Instant instant, String msg, Object[] args, Supplier<String> formattedMsg) {
     this.level = level;
+    this.instant = instant;
     this.msg = msg;
     this.args = args;
     this.formattedMsg = formattedMsg;
@@ -70,6 +74,15 @@ public final class ObservedMessage {
    */
   public Level getLevel() {
     return level;
+  }
+
+  /**
+   * When the message was logged.
+   *
+   * @return the instant of the message
+   */
+  public Instant getInstant() {
+    return instant;
   }
 
   /**
@@ -124,14 +137,15 @@ public final class ObservedMessage {
      * Factory method to create instance of {@link ObservedMessage}.
      *
      * @param level defines {@link ObservedMessage#getLevel()}
+     * @param at when the event happened
      * @param msg defines {@link ObservedMessage#getMessage()}
      * @param args defines {@link ObservedMessage#getArguments()}
      * @param formattedMsg defines {@link ObservedMessage#getFormattedMessage()}
      * @return new instance of a message
      */
     protected final ObservedMessage newMessage(
-        Level level, String msg, Object[] args, Supplier<String> formattedMsg) {
-      return new ObservedMessage(level, msg, args, formattedMsg);
+        Level level, Instant at, String msg, Object[] args, Supplier<String> formattedMsg) {
+      return new ObservedMessage(level, at, msg, args, formattedMsg);
     }
   }
 }

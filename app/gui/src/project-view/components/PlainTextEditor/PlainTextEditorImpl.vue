@@ -4,7 +4,7 @@ import { linkifyUrls } from '@/components/PlainTextEditor/linkifyUrls'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { useLinkTitles } from '@/util/codemirror/links'
-import { Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { useTemplateRef, type ComponentInstance } from 'vue'
 
@@ -12,12 +12,12 @@ const {
   extensions = [],
   readonly = false,
   contentTestId,
-  onEditorReady = () => {},
+  editorReadyCallback = () => {},
 } = defineProps<{
   extensions?: Extension | undefined
   readonly?: boolean | undefined
   contentTestId?: string | undefined
-  onEditorReady: (view: EditorView) => void
+  editorReadyCallback: (view: EditorView) => void
 }>()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
@@ -31,7 +31,7 @@ const { editorView, contentElement } = useCodeMirror(editorRoot, {
 
 useLinkTitles(editorView, { readonly })
 
-onEditorReady(editorView)
+editorReadyCallback(editorView)
 
 defineExpose({
   contentElement,

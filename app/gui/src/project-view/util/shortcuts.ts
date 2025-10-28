@@ -1,5 +1,6 @@
-import { isMacLike } from '@/composables/events'
+import { isOnMacOS } from '$/utils/detect'
 import { assert } from '@/util/assert'
+import { unsafeKeys } from 'enso-common/src/utilities/data/object'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
@@ -17,10 +18,9 @@ const RAW_MODIFIER_FLAG = {
 }
 
 const MODIFIER_FLAG: Record<Modifier, number> = {
-  Mod: isMacLike ? RAW_MODIFIER_FLAG.Meta : RAW_MODIFIER_FLAG.Ctrl,
+  Mod: isOnMacOS() ? RAW_MODIFIER_FLAG.Meta : RAW_MODIFIER_FLAG.Ctrl,
   Alt: RAW_MODIFIER_FLAG.Alt,
   Shift: RAW_MODIFIER_FLAG.Shift,
-  Meta: RAW_MODIFIER_FLAG.Meta,
 }
 
 /** A number representing the unique combination of modifier flags. */
@@ -30,6 +30,11 @@ function modifierFlagsForModifiers(modifiers: Modifier[]): ModifierFlags {
     result |= MODIFIER_FLAG[modifier]
   }
   return result as ModifierFlags
+}
+
+/** The names of all {@link Modifier}s in this {@link ModifierFlags}, in the OS' preferred order. */
+export function modifiersForModifierFlags(modifierFlags: ModifierFlags): Modifier[] {
+  return ALL_MODIFIERS.filter((modifier) => (MODIFIER_FLAG[modifier] & modifierFlags) !== 0)
 }
 
 /**
@@ -44,7 +49,7 @@ interface EventWithModifiers {
 }
 
 /** A number representing the unique combination of modifier flags for an event.. */
-function modifierFlagsForEvent(event: EventWithModifiers): ModifierFlags {
+export function modifierFlagsForEvent(event: EventWithModifiers): ModifierFlags {
   return ((event.ctrlKey ? RAW_MODIFIER_FLAG.Ctrl : 0) |
     (event.altKey ? RAW_MODIFIER_FLAG.Alt : 0) |
     (event.shiftKey ? RAW_MODIFIER_FLAG.Shift : 0) |
@@ -55,22 +60,13 @@ function modifierFlagsForEvent(event: EventWithModifiers): ModifierFlags {
  * These values MUST match the flags on `MouseEvent#buttons`.
  * See https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons
  */
-const POINTER_BUTTON_FLAG = {
+export const POINTER_BUTTON_FLAG = {
   PointerMain: 1 << 0,
   PointerSecondary: 1 << 1,
   PointerAux: 1 << 2,
   PointerBack: 1 << 3,
   PointerForward: 1 << 4,
 } satisfies Record<Pointer, number> as Record<Pointer, PointerButtonFlags>
-
-/** Human-readable variants of pointer keys, for displaying to the user. Used in {@link BindingInfo} */
-const HUMAN_READABLE_POINTER = {
-  PointerMain: 'Click',
-  PointerSecondary: 'Right click',
-  PointerAux: 'Middle click',
-  PointerBack: 'Mouse Back',
-  PointerForward: 'Mouse Forward',
-}
 
 /**
  * Mapping from the MouseEvent's `button` field to PointerButtonFlags.
@@ -113,135 +109,57 @@ export function pointerButtonToEventInfo(key: Pointer): {
 // === Autocomplete types ===
 // ==========================
 
-const allModifiers = ['Mod', 'Alt', 'Shift', 'Meta'] as const
-export type Modifier = (typeof allModifiers)[number]
-type ModifierPlus = `${Modifier}+`
+// 'Mod' functions Cmd on MacOS and Ctrl on every other platform.
+const ALL_MODIFIERS = ['Mod', 'Alt', 'Shift'] as const
+export type Modifier = (typeof ALL_MODIFIERS)[number]
 type LowercaseModifier = Lowercase<Modifier>
-const allPointers = [
+const ALL_POINTERS = [
   'PointerMain',
   'PointerSecondary',
   'PointerAux',
   'PointerBack',
   'PointerForward',
 ] as const
-type Pointer = (typeof allPointers)[number]
+/** All valid mouse pointer buttons. */
+export type Pointer = (typeof ALL_POINTERS)[number]
 type LowercasePointer = Lowercase<Pointer>
-/** This list is non-exhaustive. It is intentionally  */
-const allKeys = [
-  'Escape',
-  'Enter',
-  'Backspace',
-  'Delete',
-  // The key labeled as `Delete` - `Backspace` on macOS, `Delete` on all other platforms.
-  'OsDelete',
-  'Tab',
-  'ArrowUp',
-  'ArrowDown',
-  'ArrowLeft',
-  'ArrowRight',
-  'Home',
-  'End',
-  'PageUp',
-  'PageDown',
-  'Insert',
-  'Space',
-  ' ',
-  'A',
-  'B',
-  'C',
-  'D',
-  'E',
-  'F',
-  'G',
-  'H',
-  'I',
-  'J',
-  'K',
-  'L',
-  'M',
-  'N',
-  'O',
-  'P',
-  'Q',
-  'R',
-  'S',
-  'T',
-  'U',
-  'V',
-  'W',
-  'X',
-  'Y',
-  'Z',
-  '0',
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  '`',
-  '-',
-  '=',
-  '~',
-  '!',
-  '@',
-  '#',
-  '$',
-  '%',
-  '^',
-  '&',
-  '*',
-  '(',
-  ')',
-  '_',
-  '+',
-  '[',
-  ']',
-  '\\',
-  '{',
-  '}',
-  '|',
-  ';',
-  "'",
-  ':',
-  '"',
-  ',',
-  '.',
-  '/',
-  '<',
-  '>',
-  '?',
-  'F1',
-  'F2',
-  'F3',
-  'F4',
-  'F5',
-  'F6',
-  'F7',
-  'F8',
-  'F9',
-  'F10',
-  'F11',
-  'F12',
+// prettier-ignore
+/** This list is non-exhaustive. It is intentionally limited to keys found on most keyboards. */
+const ALL_KEYS = [
+  'Escape', 'Enter', 'Backspace', 'Insert', 'Delete',
+  'OsDelete', // The key labeled as `Delete` - `Backspace` on macOS, `Delete` on all other platforms.
+  'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+  'Home', 'End', 'PageUp', 'PageDown', 'Tab', 'Space',
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+  'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+  '`', '-', '=', '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_',  '+',
+  '[', ']', '\\', '{', '}', '|', ';', "'", ':', '"', ',', '.', '/', '<', '>', '?',
+  'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+  // Not part of most layouts, but can still be manually mapped by custom keyboards or OS tools
 ] as const
-type Key = (typeof allKeys)[number]
+/** Common keyboard keys. */
+type Key = (typeof ALL_KEYS)[number]
 type LowercaseKey = Lowercase<Key>
 type KeybindSegment = Modifier | Pointer | Key
 /** @internal */
 export const normalizedKeyboardSegmentLookup = Object.fromEntries<string>(
-  [...allModifiers, ...allPointers, ...allKeys].map((entry) => [entry.toLowerCase(), entry]),
+  [...ALL_MODIFIERS, ...ALL_POINTERS, ...ALL_KEYS].map((entry) => [entry.toLowerCase(), entry]),
 )
 normalizedKeyboardSegmentLookup[''] = '+'
 normalizedKeyboardSegmentLookup['space'] = ' '
-normalizedKeyboardSegmentLookup['osdelete'] = isMacLike ? 'Backspace' : 'Delete'
+normalizedKeyboardSegmentLookup['osdelete'] = isOnMacOS() ? 'Backspace' : 'Delete'
+/**
+ * A mapping between the lowercased segment of a keyboard shortcut to its properly capitalized
+ * normalized form.
+ */
 type NormalizeKeybindSegment = {
   [K in KeybindSegment as Lowercase<K>]: K
 }
-type SuggestedKeybindSegment = ModifierPlus | Pointer | Key
-type AutocompleteKeybind<T extends string, Key extends string = never> =
+/** A segment suggestible by autocomplete. */
+type SuggestedKeybindSegment = Key | Pointer | `${Modifier}+`
+/** A helper type used to autocomplete and validate a single keyboard shortcut in the editor. */
+export type AutocompleteKeybind<T extends string, FoundKeyName extends string = never> =
   T extends '+' ? T
   : T extends `${infer First}+${infer Rest}` ?
     Lowercase<First> extends LowercaseModifier ?
@@ -252,30 +170,22 @@ type AutocompleteKeybind<T extends string, Key extends string = never> =
   : T extends '' ? SuggestedKeybindSegment
   : Lowercase<T> extends LowercasePointer | LowercaseKey ? NormalizeKeybindSegment[Lowercase<T>]
   : Lowercase<T> extends LowercaseModifier ?
-    [Key] extends [never] ?
+    [FoundKeyName] extends [never] ?
       `${NormalizeKeybindSegment[Lowercase<T>] & string}+${SuggestedKeybindSegment}`
-    : `${NormalizeKeybindSegment[Lowercase<T>] & string}+${Key}`
-  : [Key] extends [never] ? SuggestedKeybindSegment
-  : Key
+    : `${NormalizeKeybindSegment[Lowercase<T>] & string}+${FoundKeyName}`
+  : [FoundKeyName] extends [never] ? SuggestedKeybindSegment
+  : FoundKeyName
 
-type AutocompleteKeybinds<T extends string[]> = {
-  [K in keyof T]: AutocompleteKeybind<T[K]>
-}
-
-/** Some keys have not human-friendly name, these are overwritten here for {@link BindingInfo}. */
-const HUMAN_READABLE_KEYS: Partial<Record<Key, string>> = {
-  ArrowLeft: 'Arrow left',
-  ArrowRight: 'Arrow right',
-  ArrowUp: 'Arrow up',
-  ArrowDown: 'Arrow down',
-  PageUp: 'Page up',
-  PageDown: 'Page down',
-  ' ': 'Space',
+export type AutocompleteKeybinds<T extends readonly KeybindDefinition[]> = {
+  [K in keyof T]: T[K] extends FullKeybindDefinition ?
+    FullKeybindDefinition<AutocompleteKeybind<T[K]['key']>>
+  : T[K] extends string ? AutocompleteKeybind<T[K]>
+  : never
 }
 
 // `never extends T ? Result : InferenceSource` is a trick to unify `T` with the actual type of the
 // argument.
-type Keybinds<T extends Record<K, string[]>, K extends keyof T = keyof T> =
+type Keybinds<T extends Record<K, KeybindDefinition[]>, K extends keyof T = keyof T> =
   never extends T ?
     {
       [K in keyof T]: AutocompleteKeybinds<T[K]>
@@ -285,13 +195,21 @@ type Keybinds<T extends Record<K, string[]>, K extends keyof T = keyof T> =
 declare const brandKey: unique symbol
 type Key_ = string & { [brandKey]: never }
 declare const brandModifierFlags: unique symbol
-type ModifierFlags = number & { [brandModifierFlags]: never }
+export type ModifierFlags = number & { [brandModifierFlags]: never }
 declare const brandPointerButtonFlags: unique symbol
-type PointerButtonFlags = number & { [brandPointerButtonFlags]: never }
+export type PointerButtonFlags = number & { [brandPointerButtonFlags]: never }
 
 const definedNamespaces = new Set<string>()
 
 export const DefaultHandler = Symbol('default handler')
+
+interface KeybindOptions {
+  allowRepeat?: boolean
+}
+export interface FullKeybindDefinition<T = string> extends KeybindOptions {
+  key: T
+}
+export type KeybindDefinition = string | FullKeybindDefinition
 
 /**
  * Define key bindings for given namespace.
@@ -350,7 +268,7 @@ export const DefaultHandler = Symbol('default handler')
  *
  * And then pass the handler to the event listener:
  * ```
- * useEvent(window, 'keydown', graphBindingsHandler)
+ * useEvent(eventRegistry, 'keydown', graphBindingsHandler)
  * ```
  *
  * Use `bindingsInfo` to display the current binding in UI:
@@ -359,7 +277,7 @@ export const DefaultHandler = Symbol('default handler')
  * ```
  */
 export function defineKeybinds<
-  T extends Record<BindingName, [] | string[]>,
+  T extends Record<BindingName, [] | KeybindDefinition[]>,
   BindingName extends keyof T = keyof T,
 >(namespace: string, bindings: Keybinds<T>) {
   if (definedNamespaces.has(namespace)) {
@@ -370,12 +288,21 @@ export function defineKeybinds<
   const keyboardShortcuts: Partial<Record<Key_, Record<ModifierFlags, Set<BindingName>>>> = {}
   const mouseShortcuts: Record<PointerButtonFlags, Record<ModifierFlags, Set<BindingName>>> = []
 
+  function fullKeybind(keybind: KeybindDefinition): FullKeybindDefinition {
+    return typeof keybind === 'string' ? { key: keybind } : keybind
+  }
+
   const bindingsInfo = {} as Record<BindingName, BindingInfo>
-  for (const [name_, keybindStrings] of Object.entries(bindings)) {
+  const bindingsOptions = {} as Record<BindingName, KeybindOptions>
+  for (const [name_, keybindValues] of Object.entries(bindings)) {
     const name = name_ as BindingName
-    for (const keybindString of keybindStrings as string[]) {
-      const { bind: keybind, info } = parseKeybindString(keybindString)
-      if (bindingsInfo[name] == null) bindingsInfo[name] = info
+    for (const keybindValue of keybindValues as KeybindDefinition[]) {
+      const keybindDef = fullKeybind(keybindValue)
+      const { bind: keybind, info } = parseKeybindString(keybindDef.key)
+      if (bindingsInfo[name] == null) {
+        bindingsInfo[name] = info
+        bindingsOptions[name] = keybindDef
+      }
       switch (keybind.type) {
         case 'keybind': {
           const shortcutsByKey = (keyboardShortcuts[keybind.key] ??= [])
@@ -414,27 +341,26 @@ export function defineKeybinds<
     handlers: Partial<
       Record<BindingName | typeof DefaultHandler, (event: Event_) => boolean | void>
     >,
-  ): (event: Event_, stopAndPrevent?: boolean) => boolean {
-    return (event, stopAndPrevent = true) => {
-      // Do not handle repeated keyboard events (held down key).
-      if (event instanceof KeyboardEvent && event.repeat) return false
-
+  ): (event: Event_) => boolean {
+    return (event) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
       const keybinds =
         event instanceof KeyboardEvent ?
           keyboardShortcuts[eventKey(event)]?.[eventModifierFlags]
         : mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
 
+      const isRepeat = event instanceof KeyboardEvent && event.repeat
       let handled = false
       if (keybinds != null) {
-        for (const bindingName in handlers) {
-          if (keybinds.has(bindingName as BindingName)) {
+        for (const bindingName of unsafeKeys(handlers)) {
+          if (isRepeat && !bindingsOptions[bindingName].allowRepeat) continue
+          if (keybinds.has(bindingName)) {
             const handle = handlers[bindingName as BindingName]
             handled = handle && handle(event) !== false
             if (DEBUG_LOG)
               console.log(
                 `Event ${event.type} (${event instanceof KeyboardEvent ? event.key : buttonFlagsForEvent(event)})`,
-                `${handled ? 'handled' : 'processed'} by ${namespace}.${bindingName}`,
+                `${handled ? 'handled' : 'processed'} by ${namespace}.${String(bindingName)}`,
               )
             if (handled) break
           }
@@ -443,7 +369,7 @@ export function defineKeybinds<
       if (!handled && handlers[DefaultHandler] != null) {
         handled = handlers[DefaultHandler](event) !== false
       }
-      if (handled && stopAndPrevent) {
+      if (handled) {
         event.stopImmediatePropagation()
         // We don't prevent default on PointerEvents, because it may prevent emitting
         // mousedown/mouseup events, on which external libraries may rely (like AGGrid for hiding
@@ -463,12 +389,14 @@ function includesPredicate<T extends U, U>(array: readonly T[]) {
   return (element: unknown): element is T => array_.includes(element)
 }
 
-export const isModifier = includesPredicate(allModifiers)
-export const isPointer = includesPredicate(allPointers)
-// isKey is pretty much useless outside this module, because the enum is not exhaustive.
-const isKey = includesPredicate(allKeys)
+export const isModifier = includesPredicate(ALL_MODIFIERS)
+export const isPointer = includesPredicate(ALL_POINTERS)
 
-/** @internal */
+/**
+ * Convert a keybind string to an intermediate form containing both the key and its modifiers
+ * (if any).
+ *  @internal
+ */
 export function decomposeKeybindString(string: string): ModifierStringDecomposition {
   const parts = string
     .trim()
@@ -482,11 +410,19 @@ export function decomposeKeybindString(string: string): ModifierStringDecomposit
   }
 }
 
-function parseKeybindString(string: string): { bind: Keybind | Mousebind; info: BindingInfo } {
+/**
+ * Parse a keybind string into a {@link Mousebind} if the key name describes a mouse button,
+ * otherwise parse it into a {@link Keybind}.
+ */
+export function parseKeybindString(string: string): {
+  bind: Keybind | Mousebind
+  info: BindingInfo
+} {
   const decomposed = decomposeKeybindString(string)
-  const humanReadableModifiers = decomposed.modifiers.map(humanReadableModifier)
+  const humanReadableSegments = [...decomposed.modifiers, decomposed.key].map(humanReadableKey)
   const info = {
-    humanReadable: `${[...humanReadableModifiers, humanReadableKey(decomposed.key)].join(' + ')}`,
+    humanReadableSegments,
+    humanReadable: humanReadableSegments.join(' + '),
     key: decomposed.key,
     modifiers: decomposed.modifiers,
   }
@@ -511,48 +447,59 @@ function parseKeybindString(string: string): { bind: Keybind | Mousebind; info: 
   }
 }
 
-function humanReadableKey(key: string): string {
-  if (isPointer(key)) {
-    return HUMAN_READABLE_POINTER[key]
-  } else if (isKey(key)) {
-    return HUMAN_READABLE_KEYS[key] ?? key
-  } else {
-    return key
-  }
-}
+/** Pointers and some keys have not human-friendly name, these are overwritten here for {@link BindingInfo}. */
+const HUMAN_READABLE_POINTERS_AND_KEYS: Map<string, string> = new Map(
+  Object.entries({
+    PointerMain: 'Click',
+    PointerSecondary: 'Right click',
+    PointerAux: 'Middle click',
+    PointerBack: 'Mouse Back',
+    PointerForward: 'Mouse Forward',
+    ArrowLeft: 'Arrow left',
+    ArrowRight: 'Arrow right',
+    ArrowUp: 'Arrow up',
+    ArrowDown: 'Arrow down',
+    PageUp: 'Page up',
+    PageDown: 'Page down',
+    ' ': 'Space',
+    Mod: isOnMacOS() ? 'Cmd' : 'Ctrl',
+    Alt: isOnMacOS() ? 'Option' : 'Alt',
+  }),
+)
 
-function humanReadableModifier(modifier: Modifier): string {
-  switch (modifier) {
-    case 'Mod':
-      return isMacLike ? 'Cmd' : 'Ctrl'
-    case 'Alt':
-      return isMacLike ? 'Option' : 'Alt'
-    default:
-      return modifier
-  }
+function humanReadableKey(key: string): string {
+  return HUMAN_READABLE_POINTERS_AND_KEYS.get(key) ?? key
 }
 
 /** Information about binding for displaying to the user or usage in tests. */
 export interface BindingInfo {
   /** Human-readable representation of keys and modifiers in the binding. No specific format. */
   humanReadable: string
+  /** Human-readable representation of keys and modifiers in the binding, key by key. */
+  humanReadableSegments: string[]
   /** The key of a binding. */
   key: string
   /** The list of modifiers in the binding. */
   modifiers: Modifier[]
 }
 
+/**
+ * An intermediate representation of a keybind, in which all segments have been tokenized but
+ * before converting into either a {@link Keybind} or a {@link Mousebind}.
+ */
 interface ModifierStringDecomposition {
   key: string
   modifiers: Modifier[]
 }
 
+/** A keyboard shortcut. */
 interface Keybind {
   type: 'keybind'
   key: Key_
   modifierFlags: ModifierFlags
 }
 
+/** A mouse shortcut. */
 interface Mousebind {
   type: 'mousebind'
   key: PointerButtonFlags

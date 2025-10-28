@@ -23,7 +23,7 @@ import java.util.logging.Level
   *
   * @param compiler the compiler instance for the compiling context.
   */
-final class ImportResolver(compiler: Compiler) extends ImportResolutionForIR {
+final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
 
   /** Runs the import mapping logic.
     *

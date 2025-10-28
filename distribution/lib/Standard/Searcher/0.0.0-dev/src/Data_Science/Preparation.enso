@@ -41,3 +41,4 @@
 
          example_fill_missing = Examples.decimal_column.fill_nothing 20.5
    ```
+

@@ -1,13 +1,11 @@
 use crate::prelude::*;
 
-
-
 #[derive(Clone, Debug, derive_more::Deref, derive_more::DerefMut, PartialEq, Eq)]
 pub struct Location<P> {
     #[deref]
     #[deref_mut]
     pub executable_path: PathBuf,
-    pub phantom_data:    ZST<P>,
+    pub phantom_data: ZST<P>,
 }
 
 impl<P> AsRef<Path> for Location<P> {

@@ -1,61 +1,60 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
-import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
-import { PortId, syntheticPortId } from '@/providers/portInfo'
 import {
   rewritePortValueUpdate,
-  UpdateHandler,
   WidgetInput,
-  WidgetUpdate,
-} from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
+  type UpdateHandler,
+  type WidgetUpdate,
+} from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import { EnsoExpression } from '@/components/GraphEditor/widgets/WidgetEnsoExpression.vue'
+import {
+  createDefaultExpressionOfKind,
+  getArgumentDefaultKind,
+  type ArgumentDefaultKind,
+} from '@/components/GraphEditor/widgets/WidgetFunctionDef/argumentAst'
+import SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
+import { EnsoTypeExpression } from '@/components/GraphEditor/widgets/WidgetTypeExpression.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
+import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import { syntheticPortId, type PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
-import { unwrapGroups } from '@/util/ast/abstract'
-import { endOnClick, targetIsOutside } from '@/util/autoBlur'
-import { mapOrUndefined, Opt } from '@/util/data/opt'
+import { mapOrUndefined, type Opt } from '@/util/data/opt'
 import { Err, Ok } from '@/util/data/result'
 import { proxyRefs } from '@/util/reactivity'
 import { computed, useTemplateRef } from 'vue'
-import { ComponentProps } from 'vue-component-type-helpers'
-import { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
-import { EnsoExpression } from '../WidgetEnsoExpression.vue'
-import SelectionSubmenu from '../WidgetSelection/SelectionSubmenu.vue'
-import { EnsoTypeExpression } from '../WidgetTypeExpression.vue'
-import {
-  ArgumentDefaultKind,
-  createDefaultExpressionOfKind,
-  getArgumentDefaultKind,
-} from './argumentAst'
+import type { ComponentProps } from 'vue-component-type-helpers'
+import type { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
+import WidgetTreeRoot from '../../WidgetTreeRoot.vue'
 
-const { definition, onUpdate, portIdBase } = defineProps<{
+const { definition, updateCallback, portIdBase } = defineProps<{
   root: Opt<HTMLElement>
   definition: ArgumentDefinition<ConcreteRefs>
-  onUpdate: UpdateHandler
+  updateCallback: UpdateHandler
   portIdBase: PortId
 }>()
+
 const emit = defineEmits<{
   rename: [value: Ast.Owned<Ast.MutableExpression>]
   updateType: [value: Ast.Owned<Ast.MutableExpression>]
   updateDefault: [value: Ast.Owned<Ast.MutableExpression> | undefined]
 }>()
-type WidgetProps = ComponentProps<typeof NodeWidget>
-const openedProject = useCurrentProject().ref
+type TreeProps = ComponentProps<typeof WidgetTreeRoot>
+const openedProject = useCurrentProject()
 
-function defaultWidget(ast: Ast.Token | Ast.Ast): WidgetProps {
-  return { input: WidgetInput.FromAst(ast) }
+function defaultWidget(ast: Ast.Token | Ast.Ast): TreeProps {
+  return { input: WidgetInput.FromAst(ast), updateCallback }
 }
 
-function patternWidget(pattern: Ast.Expression): WidgetProps {
+function patternWidget(pattern: Ast.Expression): TreeProps {
   return {
     input: {
       portId: pattern.id,
       value: pattern,
       [EnsoExpression]: {},
     },
-    onUpdate(update: WidgetUpdate) {
-      return rewritePortValueUpdate(update, onUpdate, pattern.id, (value) => {
+    updateCallback(update: WidgetUpdate) {
+      return rewritePortValueUpdate(update, updateCallback, pattern.id, (value) => {
         if (value instanceof Ast.Ast && value instanceof Ast.Ident) {
           emit('rename', value)
           return Ok()
@@ -69,14 +68,14 @@ function patternWidget(pattern: Ast.Expression): WidgetProps {
 
 function mkWidget<T extends Ast.Ast | Ast.Token>(
   child: () => Ast.NodeChild<T> | undefined,
-  toProps: (ast: T) => WidgetProps = defaultWidget,
+  toProps: (ast: T) => TreeProps = defaultWidget,
 ) {
   return computed(() => mapOrUndefined(child()?.node, toProps))
 }
 
 const nodeSuspension = mkWidget(() => definition.suspension)
 const nodePattern = mkWidget(() => definition.pattern, patternWidget)
-const nodeType = computed((): WidgetProps => {
+const nodeType = computed((): TreeProps => {
   const ty = definition.type?.type?.node
   const syntheticId = syntheticPortId(portIdBase, 'type')
   return {
@@ -84,8 +83,8 @@ const nodeType = computed((): WidgetProps => {
       ...WidgetInput.FromAstOrPlaceholder(ty, () => syntheticId),
       [EnsoTypeExpression]: {},
     },
-    onUpdate(update: WidgetUpdate) {
-      return rewritePortValueUpdate(update, onUpdate, syntheticId, (rawValue) => {
+    updateCallback(update: WidgetUpdate) {
+      return rewritePortValueUpdate(update, updateCallback, syntheticId, (rawValue) => {
         const value = typeof rawValue === 'string' ? Ast.parseExpression(rawValue) : rawValue
         if (value instanceof Ast.Ast && value.isExpression()) {
           emit('updateType', value)
@@ -102,17 +101,19 @@ function resolveType(typeExpr: Ast.Ast) {
   const tyCode = typeExpr.code()
   // Hack: We have to resolve the fully qualified type name ourselves based on present imports.
   // To avoid implementing that for now, we only look up types selectable from dropdown.
-  const matchingTypeEntry = openedProject.value?.suggestionDb.entries.selectableTypes.value.find(
+  const matchingTypeEntry = openedProject.suggestionDb.value.entries.selectableTypes.value.find(
     (ty) => ty.name === tyCode,
   )
   return matchingTypeEntry ?
-      openedProject.value?.names.printProjectPath(matchingTypeEntry.definitionPath)
+      openedProject.projectNames.value.printProjectPath(matchingTypeEntry.definitionPath)
     : undefined
 }
 
 const nodeDefaultPortId = computed(() => syntheticPortId(portIdBase, 'defaultExpr'))
-const nodeDefault = computed((): WidgetProps => {
-  let expr = unwrapGroups(definition.defaultValue?.expression?.node)
+const nodeDefault = computed((): TreeProps | undefined => {
+  if (defaultKind.value !== 'explicit') return
+
+  let expr = Ast.unwrapGroups(definition.defaultValue?.expression?.node)
   if (expr instanceof Ast.Group || expr instanceof Ast.Invalid) expr = undefined
   const syntheticId = nodeDefaultPortId.value
   const expectedType = mapOrUndefined(definition.type?.type?.node, resolveType)
@@ -120,13 +121,12 @@ const nodeDefault = computed((): WidgetProps => {
     input: {
       ...WidgetInput.FromAstOrPlaceholder(expr, () => syntheticId),
       expectedType,
-      editHandler: defaultValueDropdownInteraction.value,
       [EnsoExpression]: {
         weakMatch: true,
       },
     },
-    onUpdate(update: WidgetUpdate) {
-      return rewritePortValueUpdate(update, onUpdate, syntheticId, (rawValue) => {
+    updateCallback(update: WidgetUpdate) {
+      return rewritePortValueUpdate(update, updateCallback, syntheticId, (rawValue) => {
         const value = typeof rawValue === 'string' ? Ast.parseExpression(rawValue) : rawValue
         if (value instanceof Ast.Ast && value.isExpression()) {
           emit('updateDefault', value)
@@ -141,25 +141,27 @@ const nodeDefault = computed((): WidgetProps => {
 
 const submenuRef = useTemplateRef('submenuRef')
 const defaultValueRoot = useTemplateRef<HTMLElement>('defaultValueRoot')
-function isOutsideDropdown(event: Event) {
-  return submenuRef.value?.isTargetOutside(event) ?? false
-}
-
-function isOutsideWidget(event: Event) {
-  return targetIsOutside(event, defaultValueRoot.value)
-}
 
 // Close the dropdown when clicking outside of it, but also end parent interaction when clicking outside of both.
 const defaultValueDropdownInteraction = WidgetEditHandler.NewNested(
   nodeDefaultPortId,
   () => undefined,
-  endOnClick((event) => isOutsideDropdown(event) && !isOutsideWidget(event), {
-    end() {},
-    cancel() {},
-  }),
+  {
+    pointerdown: (ev) => {
+      if (submenuRef.value?.isTargetOutside(ev)) defaultValueDropdownInteraction.value.end()
+    },
+  },
 )
 
 const defaultKind = computed(() => getArgumentDefaultKind(definition))
+const defaultKindText = computed(
+  (): string =>
+    ({
+      required: 'required',
+      optional: 'optional',
+      explicit: 'default',
+    })[defaultKind.value],
+)
 
 function defaultOnClick(entry: (typeof defaultEntries)[number]) {
   if (entry.value !== defaultKind.value) {
@@ -184,15 +186,15 @@ const defaultEntries = [
 </script>
 
 <template>
-  <div class="ArgumentRow pad-right">
-    <NodeWidget v-if="nodeSuspension" v-bind="nodeSuspension" />
-    <NodeWidget v-if="nodePattern" v-bind="nodePattern" />
+  <div class="ArgumentRow">
+    <WidgetTreeRoot v-if="nodeSuspension" v-bind="nodeSuspension" />
+    <WidgetTreeRoot v-if="nodePattern" v-bind="nodePattern" />
     <span class="tokenText">&nbsp;:&nbsp;</span>
-    <NodeWidget v-bind="nodeType" />
+    <WidgetTreeRoot v-bind="nodeType" />
     <span class="tokenText">&nbsp;=&nbsp;</span>
     <div
       ref="defaultValueRoot"
-      class="defaultValueRoot"
+      class="defaultValueRoot clickable"
       @click.stop="defaultValueDropdownInteraction.start()"
     >
       <SvgIcon
@@ -210,17 +212,14 @@ const defaultEntries = [
         :extendUpwards="false"
         @clickedEntry="defaultOnClick"
       />
-      <template v-if="defaultKind == 'optional'">
-        <span class="tokenText">optional</span>
-      </template>
-      <template v-else-if="defaultKind == 'required'">
-        <span class="tokenText">required</span>
-      </template>
-      <template v-else>
-        <span class="tokenText pad-right">default</span>
-        <NodeWidget v-bind="nodeDefault" />
-      </template>
+      <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>
     </div>
+    <WidgetTreeRoot
+      v-if="nodeDefault"
+      v-bind="nodeDefault"
+      class="pad-left"
+      data-testid="missing-default-value"
+    />
   </div>
 </template>
 
@@ -233,8 +232,8 @@ const defaultEntries = [
   overflow-x: clip;
 }
 
-.pad-right {
-  margin-right: 4px;
+.pad-left {
+  margin-left: 4px;
 }
 
 .defaultValueRoot {
@@ -243,7 +242,7 @@ const defaultEntries = [
 
 svg.dropdownArrow {
   position: absolute;
-  bottom: -8px;
+  bottom: -10px;
   left: 50%;
   transform: translateX(-50%) rotate(90deg) scale(0.7);
   transform-origin: center;

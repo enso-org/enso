@@ -714,6 +714,12 @@ type S3_File
     ## ---
        private: true
        ---
+    can_write_into_parent self -> Boolean =
+        (S3_File.new self.s3_path.bucket_root.to_text self.credentials).exists
+
+    ## ---
+       private: true
+       ---
        Return the absolute path of this S3_File.
     to_text : Text
     to_text self = self.uri
@@ -724,6 +730,13 @@ type S3_File
        Convert to a display representation of this S3_File.
     to_display_text : Text
     to_display_text self = "S3_File {" + self.to_text + "}"
+
+    ## ---
+       private: true
+       ---
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "S3_File"], ["uri", self.uri]]
 
 ## ---
    private: true

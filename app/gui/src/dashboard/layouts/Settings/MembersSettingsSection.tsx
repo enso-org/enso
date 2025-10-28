@@ -6,7 +6,9 @@ import { Scroller } from '#/components/Scroller'
 import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import * as billingHooks from '#/hooks/billing'
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import InviteUsersModal from '#/modals/InviteUsersModal'
+import { setModal } from '#/providers/ModalProvider'
 import type * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 import * as authProvider from '$/providers/react'
@@ -100,7 +102,12 @@ export default function MembersSettingsSection() {
                     {getText('active')}
                     {member.email !== user.email && isAdmin && (
                       <Button.Group gap="small" className="mt-0.5">
-                        <RemoveMemberButton backend={backend} userId={member.userId} />
+                        <RemoveMemberButton
+                          backend={backend}
+                          userId={member.userId}
+                          userEmail={member.email}
+                          userUsername={member.name}
+                        />
                       </Button.Group>
                     )}
                   </div>
@@ -178,11 +185,13 @@ function ResendInvitationButton(props: ResendInvitationButtonProps) {
 interface RemoveMemberButtonProps {
   readonly backend: RemoteBackend
   readonly userId: backendModule.UserId
+  readonly userEmail: string
+  readonly userUsername: string
 }
 
 /** Action button for removing a member. */
 function RemoveMemberButton(props: RemoveMemberButtonProps) {
-  const { backend, userId } = props
+  const { backend, userId, userUsername, userEmail } = props
   const { getText } = useText()
 
   const removeMutation = useMutation(
@@ -193,7 +202,24 @@ function RemoveMemberButton(props: RemoveMemberButtonProps) {
   )
 
   return (
-    <Button variant="icon" size="custom" onPress={() => removeMutation.mutateAsync([userId])}>
+    <Button
+      variant="icon"
+      size="custom"
+      onPress={() => {
+        setModal(
+          <ConfirmDeleteModal
+            defaultOpen={true}
+            cannotUndo={true}
+            actionText={getText('deleteUserConfirmation', userUsername, userEmail)}
+            alert={getText('deleteUserAlert')}
+            onConfirm={async () => {
+              await removeMutation.mutateAsync([userId])
+            }}
+            actionButtonLabel={getText('remove')}
+          />,
+        )
+      }}
+    >
       {getText('remove')}
     </Button>
   )

@@ -26,7 +26,9 @@ type Generate_Rows_Range
     ## An existing column of integers that will be used to to create a 0 to n range for each row
     Integer_Column value:Column
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Gets the column of ranges to use for generating rows
     get_range_column self table on_problems -> Column =
         resolve_to_from value col_type arg_name -> Column =
@@ -56,7 +58,9 @@ type Generate_Rows_Range
             Generate_Rows_Range.Integer_Column column ->
                 column.map t->(0.up_to t)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Create a widget for operation
     default_widget table:Table_Ref display:Display=..Always -> Widget =
         integer_input_column = Widget_Helpers.make_column_ref_by_name_selector table add_number=True

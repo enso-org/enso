@@ -1,6 +1,6 @@
 /** @file Displays the description of an element on hover or focus. */
 import * as aria from '#/components/aria'
-import { useStrictPortalContext } from '#/components/Portal'
+import { usePortalContext } from '#/components/Portal'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { ResetButtonGroupContext } from '../Button/shared'
 import { DIALOG_BACKGROUND } from '../Dialog/variants'
@@ -73,7 +73,7 @@ export function Tooltip(props: TooltipProps) {
     ...ariaTooltipProps
   } = props
 
-  const root = useStrictPortalContext()
+  const root = usePortalContext()
 
   return (
     <ResetButtonGroupContext>

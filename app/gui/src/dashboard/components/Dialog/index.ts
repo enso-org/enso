@@ -5,7 +5,6 @@
  */
 export * from './Close'
 export * from './Dialog'
-export * from './DialogDismiss'
 export { useDialogContext, useDialogStrictContext, type DialogContextValue } from './DialogProvider'
 export {
   DialogStackProvider,

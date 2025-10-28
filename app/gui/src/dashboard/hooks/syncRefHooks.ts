@@ -1,5 +1,5 @@
 /** @file A hook that returns a ref object whose `current` property is always in sync with the provided value. */
-import { type MutableRefObject, useRef } from 'react'
+import { useRef, type MutableRefObject } from 'react'
 
 /** A hook that returns a ref object whose `current` property is always in sync with the provided value. */
 export function useSyncRef<T>(value: T): MutableRefObject<T> {
@@ -12,9 +12,7 @@ export function useSyncRef<T>(value: T): MutableRefObject<T> {
 
     React compiler works on the file level, so disabling the rule for this one line is fine as it won't affect other files.
    */
-  // eslint-disable-next-line react-compiler/react-compiler
   if (ref.current !== value) {
-    // eslint-disable-next-line react-compiler/react-compiler
     ref.current = value
   }
 

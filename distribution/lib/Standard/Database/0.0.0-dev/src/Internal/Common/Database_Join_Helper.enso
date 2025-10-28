@@ -13,7 +13,9 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_From_Part.SQL_IR_From_Part
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 
-## PRIVATE
+## ---
+   private: true
+   ---
 make_join_helpers left_table right_table left_column_mapping right_column_mapping =
     ## Resolves the column in the original table and finds the expression
        corresponding to it in the subquery.
@@ -37,7 +39,9 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
         SQL_IR_Expression.Operation "BETWEEN" args
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
 
-## PRIVATE
+## ---
+   private: true
+   ---
    Takes columns from the left and right subquery, a list of redundant column
    names and returns a list of new columns that should be present in the join
    result (depending on the kind of performed join), ensuring that any colliding
@@ -59,12 +63,18 @@ select_columns_for_join column_naming_helper join_kind left_new_columns right_ne
             new_columns = left_new_columns + right_renamed_kept_columns
             new_columns
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Join_Subquery_Setup
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     Value (subquery : SQL_IR_From_Part) (new_columns : Vector Internal_Column) (old_columns : Vector Internal_Column) (indicator_column : Nothing | Internal_Column)
 
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
        Creates a mapping from names of columns in the original table to
        corresponding columns in the created subquery.
     column_mapping : Dictionary Text Internal_Column
@@ -72,7 +82,9 @@ type Join_Subquery_Setup
         Dictionary.from_vector <|
             self.old_columns.zip self.new_columns old->new->[old.name, new]
 
-## PRIVATE
+## ---
+   private: true
+   ---
 prepare_subqueries : Connection -> Table & DB_Table -> Table & DB_Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
 prepare_subqueries connection left right needs_left_indicator needs_right_indicator =
     table_naming_helper = connection.base_connection.table_naming_helper

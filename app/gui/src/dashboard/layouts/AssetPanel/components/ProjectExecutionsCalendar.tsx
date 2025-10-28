@@ -34,7 +34,7 @@ import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
-} from '$/providers/react/rightPanel'
+} from '$/providers/react/container'
 import {
   CalendarDate,
   getLocalTimeZone,

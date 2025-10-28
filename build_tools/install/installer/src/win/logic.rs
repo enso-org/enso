@@ -8,8 +8,6 @@ use crate::Payload;
 use enso_install_config::UNINSTALLER_NAME;
 use flate2::read::GzDecoder;
 
-
-
 /// Register file extensions and their associations in the Windows registry.
 pub fn register_file_associations(
     file_associations: &[(
@@ -156,7 +154,6 @@ pub fn install_with_updates(
     // last file.
     bytes_extracted += bytes_being_extracted;
 
-
     let post_extraction_progress = extraction_progress_start + extraction_progress_step;
 
     stage_at!(post_extraction_progress, "Registering file types.");
@@ -186,7 +183,6 @@ pub fn install_with_updates(
     stage_at!(0.98, "Creating Desktop shortcut.");
     enso_install::win::shortcut::Location::Desktop
         .create_shortcut(&config.shortcut_name, &executable_location)?;
-
 
     stage_at!(1.0, "Installation complete.");
     send(crate::InstallerUpdate::Finished(Ok(())));

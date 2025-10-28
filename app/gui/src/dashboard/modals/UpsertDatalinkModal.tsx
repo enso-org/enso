@@ -49,7 +49,7 @@ export default function UpsertDatalinkModal(props: UpsertDatalinkModalProps) {
 
         <Button.Group>
           <Form.Submit>{getText('create')}</Form.Submit>
-          <Dialog.Dismiss />
+          <Dialog.Close variant="outline">{getText('cancel')}</Dialog.Close>
         </Button.Group>
 
         <Form.FormError />
