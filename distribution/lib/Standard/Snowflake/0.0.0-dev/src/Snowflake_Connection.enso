@@ -532,6 +532,7 @@ type Snowflake_Connection
        - `stage`: The name (and optionally schema) of the stage to read the
           properties from.
        - `path`: The path (or prefix) to the files to list.
+       - `limit`: The maximum number of rows to read.
     @stage make_stage_selector
     list_stage_objects : Identifier -> Text -> Rows_To_Read -> Table ! Stage_Not_Found
     list_stage_objects self stage:Identifier="~" path:Text="" (limit : Rows_To_Read = ..First_With_Warning 1000) =
@@ -545,6 +546,7 @@ type Snowflake_Connection
        icon: data_download
        ---
        Download one or more files from a stage to a local folder.
+       This will overwrite existing files.
 
        ## Arguments
        - `stage`: The name (and optionally schema) of the stage to read the
@@ -561,10 +563,11 @@ type Snowflake_Connection
                 stage_and_path = identifier + if path == "" then "" else '/' + path
                 file_uri = "'file://" + (directory.path.replace "\" "/" . replace "'" "''") + "'"
                 query = "GET '@" + (stage_and_path.replace "'" "''") + "' " + file_uri + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
-                table = self.execute_query query write_operation=True
+                table = self.execute_query query Rows_To_Read.All_Rows write_operation=True
                 table.if_not_error <|
-                    if table.row_count > 0 then table else
-                        Error.throw Not_Found
+                    if table.row_count == 0 then Error.throw Not_Found else
+                        names = table.at "file" . to_vector
+                        names.map n-> directory / n
 
     ## ---
        icon: trash2
