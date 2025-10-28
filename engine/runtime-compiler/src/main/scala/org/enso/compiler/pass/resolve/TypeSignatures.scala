@@ -202,7 +202,7 @@ case object TypeSignatures extends IRPass {
       .map(asc => errors.Unexpected.TypeSignature(asc))
       .toList
 
-    mod.copy(
+    mod.copyWithBindings(
       bindings = newBindings
     )
   }
