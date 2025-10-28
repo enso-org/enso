@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.File_Type
 import Standard.Base.Runtime.Context as Execution_Context
@@ -560,7 +561,10 @@ type Snowflake_Connection
                 stage_and_path = identifier + if path == "" then "" else '/' + path
                 file_uri = "'file://" + (directory.path.replace "\" "/" . replace "'" "''") + "'"
                 query = "GET '@" + (stage_and_path.replace "'" "''") + "' " + file_uri + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
-                self.execute_query query write_operation=True
+                table = self.execute_query query write_operation=True
+                table.if_not_error <|
+                    if table.row_count > 0 then table else
+                        Error.throw Not_Found
 
     ## ---
        icon: trash2
