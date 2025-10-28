@@ -1,6 +1,6 @@
+import { transpose } from '$/utils/data/array'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { transpose } from 'enso-common/src/utilities/data/array'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import Papa from 'papaparse'
 import { computed } from 'vue'
