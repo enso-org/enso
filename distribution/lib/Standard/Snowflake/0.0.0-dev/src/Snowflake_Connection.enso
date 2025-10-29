@@ -30,6 +30,7 @@ from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_co
 from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
 
 import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
+import project.Errors.Snowflake_Error
 import project.Internal.Snowflake_Dialect
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 
@@ -593,9 +594,14 @@ type Snowflake_Connection
        - `stage`: The name (and optionally schema) of the stage to read the
           properties from.
        - `path`: The path (or prefix) to the files to list.
+       - `overwrite`: If set to `True`, will overwrite existing files. Defaults
+          to `False`.
+
+       ## Returns
+       The name of the uploaded file in the stage.
     @stage make_stage_selector
-    put_to_stage : File -> Identifier -> Text -> Table ! Stage_Not_Found
-    put_to_stage self file stage:Identifier=(Missing_Argument.throw "stage") path:Text="" =
+    put_to_stage : File -> Identifier -> Text -> Boolean -> Text ! Stage_Not_Found | Snowflake_Error
+    put_to_stage self file stage:Identifier=(Missing_Argument.throw "stage") path:Text="" overwrite:Boolean=False =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot upload to stage. Press the Write button ▶ to perform the operation." panic=False <|
             if file.exists == False then Error.throw (File_Error.Not_Found file)
             if file.is_directory then Error.throw (Illegal_Argument.Error "Uploading directories is not supported. Please provide a file.")
@@ -607,14 +613,24 @@ type Snowflake_Connection
                     file_extension = file.extension
                     file_name = file.name.drop (..Last file_extension.length)
                     temp_file = File.create_temporary_file file_name file_extension
-                    file.copy_to temp_file
+                    file.copy_to temp_file replace_existing=True
 
             identifier = stage.to_identifier
             Stage_Not_Found.rethrow identifier <|
                 stage_and_path = identifier + if path == "" then "" else '/' + path
                 file_uri = "'file://" + (used_file.path.replace "\" "/" . replace "'" "''") + "'"
-                query = "PUT " + file_uri + " '@" + (stage_and_path.replace "'" "''") + "'"
-                self.execute_query query write_operation=True
+                query = "PUT " + file_uri + " '@" + (stage_and_path.replace "'" "''") + "'" + (if overwrite then " OVERWRITE=TRUE" else " OVERWRITE=FALSE")
+                result = self.execute_query query write_operation=True
+                if used_file != file then used_file.delete_if_exists
+                result.if_not_error <|
+                    case result.row_count of
+                        0 -> Error.throw (Snowflake_Error.Unexpected_Result "Uploading to stage did not report any uploaded files.")
+                        1 ->
+                            status = result.get_value "status" . if_nothing "<UNKNOWN>"
+                            if status=="UPLOADED" then result.get_value "target" else
+                                message = result.get_value "message" . if_nothing ""
+                                Error.throw (Snowflake_Error.Unexpected_Result status+": "+message result)
+                        _ -> Error.throw (Snowflake_Error.Unexpected_Result "Uploading to stage reported multiple uploaded files." result)
 
     ## ---
        icon: trash2

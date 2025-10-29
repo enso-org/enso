@@ -1,0 +1,17 @@
+from Standard.Base import all
+
+## An unexpected result was returned from a Snowflake query.
+type Snowflake_Error
+    private Unexpected_Result message:Text internal_payload:Any=Nothing
+
+    ## Access the payload of the unexpected result error.
+    payload self -> Any = self.internal_payload
+
+    ## Access the message of the unexpected result error.
+    error_message self -> Text = self.message
+
+    ## ---
+       private: true
+       ---
+    to_display_text self -> Text =
+        "Snowflake_Error: " + self.message
