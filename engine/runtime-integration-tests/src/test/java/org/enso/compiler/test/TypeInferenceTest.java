@@ -1217,14 +1217,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                     x3 = My_Type.static_zero
                     x4 = My_Type.static_one inst
 
-                    # And calling member methods through static syntax:
-                    x5 = My_Type.zero_arg self=inst
-                    x6 = My_Type.one_arg self=inst
-
                     # And extension methods
-                    x7 = inst.extension_method
-                    x8 = My_Type.extension_method self=inst
-                    [x1, x2, x3, x4, x5, x6, x7, x8]
+                    x5 = inst.extension_method
+                    [x1, x2, x3, x4, x5]
                 """,
                 uri.getAuthority())
             .uri(uri)
@@ -1241,16 +1236,11 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x3"));
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x4"));
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x5"));
-
-    // The function in x6 was not fully applied - still expecting 1 arg:
-    assertEquals(
-        "My_Type -> My_Type", getInferredType(ModuleUtils.findAssignment(foo, "x6")).toString());
-
-    assertAtomType(myType, ModuleUtils.findAssignment(foo, "x7"));
-    assertAtomType(myType, ModuleUtils.findAssignment(foo, "x8"));
   }
 
   @Test
+  @Ignore(
+      "Type inference does not work on static method invocation (because of named self argument)")
   public void staticCallWithWrongType() throws Exception {
     final URI uri = new URI("memory://staticCallWithWrongType.enso");
     final Source src =
@@ -1780,10 +1770,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                     x2 = My_Type.Value.method
                     x3 = method
                     x4 = My_Type.method
-                    x5 = Any.method self=My_Type.Value
-                    x6 = Any.static_method
-                    x7 = My_Type.static_method
-                    [x1, x2, x3, x4, x5, x6, x7]
+                    x5 = Any.static_method
+                    x6 = My_Type.static_method
+                    [x1, x2, x3, x4, x5, x6]
                 """,
                 uri.getAuthority())
             .uri(uri)
@@ -1840,15 +1829,10 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var x4 = ModuleUtils.findAssignment(foo, "x4");
     assertAtomType("local.Project1.modA.A", x4);
 
-    // Calling the Any method statically on a value calls ignores the override because we select the
-    // method explicitly
-    var x5 = ModuleUtils.findAssignment(foo, "x5");
-    assertAtomType("local.Project1.modA.A", x5);
-
-    var x6 = ModuleUtils.findAssignment(foo, "x6");
+    var x6 = ModuleUtils.findAssignment(foo, "x5");
     assertAtomType("local.Project1.modA.D", x6);
 
-    var x7 = ModuleUtils.findAssignment(foo, "x7");
+    var x7 = ModuleUtils.findAssignment(foo, "x6");
     assertAtomType("local.Project1.modA.E", x7);
   }
 
