@@ -72,7 +72,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetSelfAccessChain">
+  <div class="WidgetSelfAccessChain" :data-port="iconInput?.portId">
     <NodeWidget v-if="iconInput" :input="iconInput" />
     <NodeWidget v-if="props.input.value.rhs" :input="WidgetInput.FromAst(props.input.value.rhs)" />
   </div>
@@ -84,5 +84,20 @@ export const widgetDefinition = defineWidget(
   flex-direction: row;
   align-items: center;
   gap: var(--widget-token-pad-unit);
+  position: relative;
+}
+
+.GraphEditor.draggingEdge .WidgetSelfAccessChain[data-port]::before {
+  pointer-events: all;
+  content: '';
+  position: absolute;
+  display: block;
+  left: 0;
+  right: 0;
+  inset: var(--widget-port-drag-inset);
+}
+
+.App.debugHoverAreas .GraphEditor.draggingEdge .WidgetSelfAccessChain[data-port]::before {
+  background: rgba(255, 0, 0, 0.3);
 }
 </style>

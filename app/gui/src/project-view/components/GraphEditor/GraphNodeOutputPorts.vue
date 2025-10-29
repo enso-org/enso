@@ -253,9 +253,16 @@ graph.value?.suggestEdgeFromOutput(outputHovered)
   stroke-width: var(--output-port-hover-width);
   stroke: transparent;
   /* Make stroke visible to debug the active area: */
-  /* stroke: red; */
   stroke-linecap: butt;
   pointer-events: stroke;
+}
+
+.GraphEditor.draggingEdge .outputPortHoverArea {
+  display: none;
+}
+
+.App.debugHoverAreas .outputPortHoverArea {
+  stroke: rgba(0, 0, 0, 0.1);
 }
 
 .portClip {
