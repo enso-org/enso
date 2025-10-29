@@ -147,7 +147,7 @@ git_override(
     commit = "81fc9b2de33c0429b716f1bfcd3223a82c0e1085",
     patch_strip = 1,
     patches = [
-        "patches/rules_graalvm_java24.patch",
+        "patches/rules_graalvm_java25.patch",
         "patches/rules_graalvm_tool_toolchain.patch",
     ],
     remote = "https://github.com/sgammon/rules_graalvm.git",
@@ -157,8 +157,8 @@ gvm = use_extension("@rules_graalvm//:extensions.bzl", "graalvm")
 gvm.graalvm(
     name = "graalvm",
     distribution = "ce",  # `oracle`, `ce`, or `community`
-    java_version = "24",  # `17`, `20`, `21`, or `22` as supported by the version provided
-    version = "24.0.1",  # gvm sdk version format like `24.x.x` also supported
+    java_version = "25",  # `17`, `20`, `21`, or `22` as supported by the version provided
+    version = "25.0.0",  # gvm sdk version format like `24.x.x` also supported
 )
 use_repo(gvm, "graalvm")
 
