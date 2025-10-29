@@ -8,9 +8,6 @@ use crate::project::IsTarget;
 use crate::source::WithDestination;
 use crate::version::Versions;
 
-use ide_ci::archive::is_archive_name;
-use octocrab::models::repos::Asset;
-
 #[derive(Clone)]
 #[derive_where(Debug)]
 pub struct BuildInput {
@@ -146,7 +143,7 @@ impl IsTarget for Backend {
         async move {
             ensure!(
                 target_os == TARGET_OS,
-                "Enso Project Manager cannot be built on '{target_os}' for target '{TARGET_OS}'.",
+                "Enso Engine cannot be built on '{target_os}' for target '{TARGET_OS}'.",
             );
             let config = BuildConfigurationFlags {
                 build_engine_bundle: true,
@@ -156,9 +153,8 @@ impl IsTarget for Backend {
             };
             let context = inner.prepare_context(context, config)?;
             let artifacts = context.build().await?;
-            let project_manager =
-                artifacts.project_manager_bundle.context("Missing project manager bundle!")?;
-            ide_ci::fs::mirror_directory(&project_manager, &destination).await?;
+            let engine_bundle = artifacts.engine_bundle.context("Missing engine bundle!")?;
+            ide_ci::fs::mirror_directory(&engine_bundle, &destination).await?;
             this.adapt_artifact(destination).await
         }
         .boxed()
