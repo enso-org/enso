@@ -12,7 +12,7 @@ import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilitie
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession } from '$/providers/react'
 import { useOpenedProjects } from '$/providers/react/openedProjects'
-import { isOnMacOS } from 'enso-common/src/detect'
+import { isOnMacOS } from '$/utils/detect'
 import { useStore } from 'zustand'
 
 /** Props for a {@link ProjectNameColumn}. */

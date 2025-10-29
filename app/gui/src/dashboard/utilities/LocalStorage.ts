@@ -5,7 +5,7 @@ import * as common from 'enso-common'
 
 import * as object from '#/utilities/object'
 import { useVueValue } from '$/providers/react/common'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { IS_DEV_MODE } from '$/utils/detect'
 import { useCallback } from 'react'
 import invariant from 'tiny-invariant'
 import { shallowReactive, toRaw } from 'vue'

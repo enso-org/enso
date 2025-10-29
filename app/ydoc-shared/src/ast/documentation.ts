@@ -1,4 +1,3 @@
-import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import * as Y from 'yjs'
 import { ensoMarkdownParser, ensoStandardMarkdownParser } from './ensoMarkdown'
 import { xxHash128 } from './ffi'
@@ -6,6 +5,9 @@ import type { ConcreteChild, RawConcreteChild } from './print'
 import { firstChild, preferUnspaced, unspaced } from './print'
 import { Token, TokenType } from './token'
 import type { ConcreteRefs, DeepReadonly, DocLine, TextToken } from './tree'
+
+/** See http://www.unicode.org/reports/tr18/#Line_Boundaries */
+export const LINE_BOUNDARIES = /\r\n|[\n\v\f\r\x85\u2028\u2029]/g
 
 // === AST logic ===
 

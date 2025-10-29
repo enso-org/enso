@@ -7,12 +7,12 @@ import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import { unsetModal } from '#/providers/ModalProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
+import { isOnMacOS } from '$/utils/detect'
 import {
   modifierFlagsForEvent,
   modifiersForModifierFlags,
   normalizedKeyboardSegmentLookup,
 } from '@/util/shortcuts'
-import { isOnMacOS } from 'enso-common/src/detect'
 import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 
 const DISALLOWED_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])

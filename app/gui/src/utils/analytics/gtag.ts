@@ -1,13 +1,11 @@
 /** @file API for sending events to Google Analytics. */
 import { noop } from '#/utilities/functions'
-import * as load from 'enso-common/src/load'
+import { loadScript } from '$/utils/load'
 
 const GOOGLE_ANALYTICS_TAG = typeof $config !== 'undefined' && $config.GOOGLE_ANALYTICS_TAG
 
 if (GOOGLE_ANALYTICS_TAG) {
-  void load
-    .loadScript(`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_TAG}`)
-    .catch(noop)
+  void loadScript(`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_TAG}`).catch(noop)
 }
 
 // @ts-expect-error This is explicitly not given types as it is a mistake to acess this

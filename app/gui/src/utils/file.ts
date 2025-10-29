@@ -1,5 +1,9 @@
-import { isOnWindows } from '../detect.js'
-import { newtypeConstructor, type Newtype } from './data/newtype.js'
+import { isOnWindows } from '$/utils/detect'
+import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
+
+/** A filesystem path. */
+export type Path = Newtype<string, 'Path'>
+export const Path = newtypeConstructor<Path>()
 
 /** @file Functions related to files. */
 export type FileExtension = `.${string}`
@@ -75,10 +79,6 @@ export function basenameAndExtension(name: string) {
   const [, basename, extension] = name.match(/^([^.]*)[.](.+)$/) ?? []
   return { basename: basename ?? name, extension: extension ?? '' }
 }
-
-/** A filesystem path. */
-export type Path = Newtype<string, 'Path'>
-export const Path = newtypeConstructor<Path>()
 
 /** Construct a {@link Path} from an existing {@link Path} of the parent directory. */
 export function joinPath(directoryPath: Path, fileName: string) {

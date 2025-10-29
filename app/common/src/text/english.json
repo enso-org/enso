@@ -196,7 +196,6 @@
   "fileAssetType": "file",
   "datalinkAssetType": "Datalink",
   "secretAssetType": "secret",
-  "specialUpAssetType": "up",
   "uploadingXFilesWithProgressNotification": "Uploading $0/$1 file(s)... ($2/$3MB)",
   "uploadedXFilesNotification": "Uploaded $0 file(s).",
   "upgradeToUseCloud": "Upgrade your plan to use Enso Cloud.",

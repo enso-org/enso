@@ -1,7 +1,7 @@
 /** @file Tests for `dateTime.ts`. */
 import * as v from 'vitest'
 
-import * as detect from 'enso-common/src/detect'
+import * as detect from '$/utils/detect'
 
 import { decomposeKeybindString } from '@/util/shortcuts'
 
