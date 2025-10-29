@@ -166,10 +166,6 @@ async function findPort(port: number): Promise<number> {
   return await portfinder.getPortPromise({ port, startPort: port, stopPort: port + 4 })
 }
 
-// ==============
-// === Server ===
-// ==============
-
 /**
  * A simple server implementation.
  *
@@ -186,7 +182,7 @@ export class Server {
     public config: Config,
     projectService: ProjectService,
   ) {
-    this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
+    this.projectsRootDirectory = projectManagement.getProjectsDirectory()
     this.projectService = projectService
   }
 

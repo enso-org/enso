@@ -88,9 +88,7 @@ export class ProjectService {
     return new ProjectService(runner, extraArgs)
   }
 
-  /**
-   * Creates a new user project with the specified configuration.
-   */
+  /** Creates a new user project with the specified configuration. */
   async createProject(
     projectName: string,
     projectsDirectory: Path,

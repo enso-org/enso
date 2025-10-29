@@ -26,20 +26,12 @@ import * as desktopEnvironment from './desktopEnvironment.js'
 
 const logger = console
 
-// =================
-// === Constants ===
-// =================
-
 export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
 export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 
 const SAMPLES_URL = 'https://github.com/enso-org/project-templates/archive/refs/heads/main.tar.gz'
 const SAMPLES_DIRECTORY_NAME = 'Samples'
 const BUNDLED_PROJECT_SUFFIX = '.enso-project'
-
-// ===================
-// === ProjectInfo ===
-// ===================
 
 /** Metadata for a newly imported project. */
 export interface ProjectInfo {
@@ -48,10 +40,6 @@ export interface ProjectInfo {
   readonly projectRoot: Path
   readonly parentDirectory: string
 }
-
-// ======================
-// === Project Import ===
-// ======================
 
 /**
  * Check if the given path is a project bundle.
@@ -420,9 +408,9 @@ export function getProjectsDirectory(): string {
   const documentsPath = desktopEnvironment.DOCUMENTS
 
   if (documentsPath === undefined) {
-    return pathModule.join(os.homedir(), 'enso', 'projects')
+    return pathModule.join(os.homedir(), 'enso', 'projects').replace(/\\/g, '/')
   } else {
-    return pathModule.join(documentsPath, 'enso-projects')
+    return pathModule.join(documentsPath, 'enso-projects').replace(/\\/g, '/')
   }
 }
 

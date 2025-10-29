@@ -16,11 +16,27 @@ import {
   defaultOptions,
   type Options,
 } from 'enso-common/src/options'
+import { EnsoPath } from 'enso-common/src/services/Backend'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
+import { ProjectManager } from 'enso-common/src/services/ProjectManager/ProjectManager'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import {
+  getText as originalGetText,
+  TEXTS,
+  type Replacements,
+  type TextId,
+} from 'enso-common/src/text'
+import { Path } from 'enso-common/src/utilities/file'
 import { access, constants, readFile, writeFile } from 'node:fs/promises'
 import { platform } from 'node:os'
 import { join as joinPath } from 'node:path'
 import process from 'node:process'
-import { downloadSamples } from 'project-manager-shim'
+import {
+  downloadSamples,
+  getProjectsDirectory,
+  runHybridProjectByUrl,
+  runLocalProjectByPath,
+} from 'project-manager-shim'
 import { initAuthentication } from './authentication.js'
 import { parseArgs } from './configParser.js'
 import { VERSION } from './contentConfig.js'
@@ -488,6 +504,34 @@ async function printVersion(): Promise<void> {
   }
 }
 
+function createProjectManager() {
+  const rootPath = Path(getProjectsDirectory())
+  return new ProjectManager(rootPath)
+}
+
+/**
+ * A function that gets localized text for a given key, with optional replacements.
+ * @param key - The key of the text to get.
+ * @param replacements - The replacements to insert into the text.
+ * If the text contains placeholders like `$0`, `$1`, etc.,
+ * they will be replaced with the corresponding replacement.
+ */
+export type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
+
+const getText: GetText = (key, ...replacements) => {
+  return originalGetText(TEXTS.english, key, ...replacements)
+}
+
+function createRemoteBackend() {
+  // TODO: pass authentication headers to `HttpClient` constructor
+  const httpClient = new HttpClient()
+  const downloader = () => {
+    // TODO: implement downloading (low priority but might as well do it now)
+  }
+  const baseUrl = new URL('https://api.cloud.enso.org')
+  return new RemoteBackend(getText, httpClient, downloader, baseUrl)
+}
+
 /** Initialize and run the Electron application. */
 async function runApp(app: App, parsedArguments: ParsedArguments, electron: Electron | undefined) {
   const { args, fileToOpen, urlToOpen } = parsedArguments
@@ -508,9 +552,13 @@ async function runApp(app: App, parsedArguments: ParsedArguments, electron: Elec
     runElectronApp(electron, app, args, fileToOpen, urlToOpen)
   } else {
     if (parsedArguments.urlToOpen != null) {
-      // TODO: run hybrid project
+      await runHybridProjectByUrl(
+        EnsoPath(String(parsedArguments.urlToOpen)),
+        createProjectManager(),
+        createRemoteBackend(),
+      )
     } else if (parsedArguments.fileToOpen != null) {
-      // TODO: run local project
+      await runLocalProjectByPath(Path(parsedArguments.fileToOpen), createProjectManager())
     } else {
       console.error('Running in headless mode, no action specified.')
       return exit(1, electron)

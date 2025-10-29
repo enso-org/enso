@@ -45,12 +45,29 @@ export interface Socket {
   readonly port: number
 }
 
-export type ShutdownHookType = 'rename-project-directory'
+/**
+ * Use declaration merging to allow extension of ShutdownHookRegistry in other modules.
+ * This enables adding new shutdown hook types without modifying the original interface.
+ *
+ * For example, in another module, you can add:
+ * ```ts
+ * declare module './projectService/ensoRunner.js' {
+ *   interface ShutdownHookRegistry {
+ *     'my-new-hook-type': true
+ *   }
+ * }
+ * ```
+ */
+export interface ShutdownHookRegistry {
+  'rename-project-directory': true
+}
+
+export type ShutdownHookType = keyof ShutdownHookRegistry
 
 interface RunningProject {
   process: childProcess.ChildProcess
   sockets: LanguageServerSockets
-  shutdownHooks: Map<ShutdownHookType, () => Promise<void>>
+  shutdownHooks: Map<ShutdownHookType, () => void | Promise<void>>
 }
 
 const DEFAULT_JSONRPC_PORT = 30616
@@ -322,7 +339,7 @@ export class EnsoRunner implements Runner {
   async registerShutdownHook(
     projectId: string,
     hookType: ShutdownHookType,
-    hook: () => Promise<void>,
+    hook: () => void | Promise<void>,
   ): Promise<void> {
     const runningProject = this.runningProjects.get(projectId)
 
