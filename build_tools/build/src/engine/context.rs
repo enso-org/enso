@@ -120,7 +120,6 @@ impl RunContext {
         let prepare_simple_library_server = {
             if self.config.test_jvm {
                 let simple_server_path = &self.paths.repo_root.tools.simple_library_server;
-                ide_ci::programs::Pnpm.cmd()?.run("git-clean").run_ok().await?;
                 ide_ci::programs::Pnpm
                     .cmd()?
                     .current_dir(simple_server_path)
