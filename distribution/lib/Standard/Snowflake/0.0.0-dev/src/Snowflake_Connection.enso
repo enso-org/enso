@@ -1,10 +1,13 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+import Standard.Base.Errors.Common.Not_Found
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.File_Type
+import Standard.Base.Runtime.Context as Execution_Context
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
+from Standard.Base.Metadata.Widget import File_Browse, Folder_Browse, Single_Choice, Text_Input
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
@@ -468,6 +471,227 @@ type Snowflake_Connection
     to_js_object self =
         JS_Object.from_pairs <| [["type", "Snowflake_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
 
+    ## ---
+       icon: folder
+       ---
+       Returns the list of stages for the current database.
+
+       ## Arguments
+        - `schema`: The schema name to search in (defaults to current). If an
+          asterisk (`*`) is provided, all schemas are searched.
+        - `pattern`: The stage name pattern to search for. Supports SQL
+          wildcards (`%`, `_`). Defaults to `""` which means all stages are
+          selected.
+
+       ## Returns
+       A table containing the list of stages.
+    stages : Text -> Text -> Table
+    stages self schema:Text=self.schema pattern:Text='' =
+        parsed_schema = if schema == "*" then "" else
+            if schema == "" then " IN SCHEMA" +self.schema else ' IN SCHEMA "' + (schema.replace '"' '""') + '"'
+        query = "SHOW STAGES" + (if pattern.trim != "" then " LIKE '" + (pattern.replace "'" "''") + "'" else "") + " IN DATABASE" + parsed_schema
+        self.execute_query query write_operation=False . select_columns ["name", "database_name", "schema_name", "type", "cloud", "url", "created_on", "comment"] reorder=True error_on_missing_columns=False on_problems=..Ignore
+
+    ## ---
+       private: true
+       icon: metadata
+       ---
+       Gets a list of stage names for current database.
+    stage_names : Vector
+    stage_names self =
+        case self.schema of
+            "*" ->
+                self.execute_query "show stages in database" write_operation=False . rows
+                    . map r-> Identifier.Name_And_Schema (r.get "name") (r.get "schema_name")
+            _ ->
+                self.connection.read_text_column "show stages in schema" "name"
+                    . map n-> Identifier.Name n
+
+    ## ---
+       icon: metadata
+       ---
+       Reads the values specified for the properties in a stage (file format,
+       copy, and location), as well as the default values for each property.
+
+       ## Arguments
+       - `stage`: The name (and optionally schema) of the stage to read the
+          properties from.
+
+       ## Returns
+       A table containing the properties of the stage.
+    @stage make_stage_selector include_home=False
+    stage_properties : Identifier -> Table ! Stage_Not_Found
+    stage_properties self stage:Identifier=(Missing_Argument.throw "stage") =
+        identifier = stage.to_identifier
+        Stage_Not_Found.rethrow identifier <|
+            query = 'DESC STAGE ' + identifier
+            self.execute_query query write_operation=False
+
+    ## ---
+       icon: folder
+       ---
+       List all the objects in a stage.
+
+       ## Arguments
+       - `stage`: The name (and optionally schema) of the stage to read the
+          properties from.
+       - `path`: The path (or prefix) to the files to list.
+       - `limit`: The maximum number of rows to read.
+    @stage make_stage_selector
+    list_stage_objects : Identifier -> Text -> Rows_To_Read -> Table ! Stage_Not_Found
+    list_stage_objects self stage:Identifier="~" path:Text="" (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        identifier = stage.to_identifier
+        Stage_Not_Found.rethrow identifier <|
+            stage_and_path = identifier + if path == "" then "" else '/' + path
+            query = "LIST '@" + (stage_and_path.replace "'" "''") + "'"
+            self.execute_query query limit write_operation=False
+
+    ## ---
+       icon: data_download
+       ---
+       Download one or more files from a stage to a local folder.
+       This will overwrite existing files. It will attempt to create the
+       directory if it does not exist.
+
+       ## Arguments
+       - `stage`: The name (and optionally schema) of the stage to read the
+          properties from.
+       - `path`: The path (or prefix) to the files to list.
+       - `directory`: The local folder to save the files to.
+       - `pattern`: Optional regex pattern to match names against.
+       - `if_not_found`: what to return if no files are found. Defaults to
+          raising a `Not_Found` error.
+
+       ## Returns
+       A vector of files that were downloaded or if none were found, the
+       value specified by `if_not_found`.
+    @stage make_stage_selector
+    @directory (Folder_Browse display=..Always)
+    get_from_stage : Identifier -> Text -> File -> Text -> Any -> Table ! Stage_Not_Found
+    get_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text=(Missing_Argument.throw "path") directory=(Missing_Argument.throw "directory") pattern:Text="" ~if_not_found=(Error.throw Not_Found) =
+        if directory.is_a File == False then Error.throw (Illegal_Argument.Error "Only local folders are supported for downloading from Snowflake stages.")
+        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot download from stage. Press the Write button ▶ to perform the operation." panic=False <|
+            identifier = stage.to_identifier
+            Stage_Not_Found.rethrow identifier <|
+                stage_and_path = identifier + if path == "" then "" else '/' + path
+                file_uri = "'file://" + (directory.path.replace "\" "/" . replace "'" "''") + "'"
+                query = "GET '@" + (stage_and_path.replace "'" "''") + "' " + file_uri + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
+                table = self.execute_query query Rows_To_Read.All_Rows write_operation=True
+                table.if_not_error <|
+                    if table.row_count == 0 then if_not_found else
+                        names = table.at "file" . to_vector
+                        names.map n-> directory / n
+
+    ## ---
+       icon: data_upload
+       ---
+       Upload a file to a stage to a local drive.
+       This will overwrite existing files.
+
+       ## Arguments
+       - `file`: The local file to upload.
+       - `stage`: The name (and optionally schema) of the stage to read the
+          properties from.
+       - `path`: The path (or prefix) to the files to list.
+    @stage make_stage_selector
+    put_to_stage : File -> Identifier -> Text -> Table ! Stage_Not_Found
+    put_to_stage self file stage:Identifier=(Missing_Argument.throw "stage") path:Text="" =
+        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot upload to stage. Press the Write button ▶ to perform the operation." panic=False <|
+            if file.exists == False then Error.throw (File_Error.Not_Found file)
+            if file.is_directory then Error.throw (Illegal_Argument.Error "Uploading directories is not supported. Please provide a file.")
+
+            ## Need to copy the file locally first if cloud-based.
+            used_file = case file of
+                _ : File -> file
+                _ ->
+                    file_extension = file.extension
+                    file_name = file.name.drop (..Last file_extension.length)
+                    temp_file = File.create_temporary_file file_name file_extension
+                    file.copy_to temp_file
+
+            identifier = stage.to_identifier
+            Stage_Not_Found.rethrow identifier <|
+                stage_and_path = identifier + if path == "" then "" else '/' + path
+                file_uri = "'file://" + (used_file.path.replace "\" "/" . replace "'" "''") + "'"
+                query = "PUT " + file_uri + " '@" + (stage_and_path.replace "'" "''") + "'"
+                self.execute_query query write_operation=True
+
+    ## ---
+       icon: trash2
+       ---
+       Remove a file from a stage
+
+       ## Arguments
+       - `stage`: The name (and optionally schema) of the stage to read the
+          properties from.
+       - `path`: The path (or prefix) to the files to remove.
+       - `pattern`: Optional regex pattern to match names against.
+    @stage make_stage_selector
+    remove_from_stage : Identifier -> Text -> Text -> Boolean -> Table ! Stage_Not_Found
+    remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text="" pattern:Text=""  =
+        Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
+            identifier = stage.to_identifier
+            Stage_Not_Found.rethrow identifier <|
+                stage_and_path = identifier + if path == "" then "" else '/' + path
+                query = "REMOVE '@" + (stage_and_path.replace "'" "''") + "'" + (if pattern=="" then "" else "pattern='" + (pattern.replace "'" "''") + "'")
+                self.execute_query query write_operation=True
+
+## Snowflake Identifier - with optional schema.
+type Identifier
+    ## An object in the current schema with specified name.
+    Name name:Text=(Missing_Argument.throw "name")
+
+    ## An object with specified schema and name.
+    Name_And_Schema name:Text=(Missing_Argument.throw "name") schema:Text=(Missing_Argument.throw "schema")
+
+    ## ---
+       private: true
+       ---
+    to_identifier self = case self of
+        Identifier.Name '~' -> '~'
+        Identifier.Name n -> '"' + (n.replace '"' '""') + '"'
+        Identifier.Name_And_Schema n s -> '"' + (s.replace '"' '""') + '"."' + (n.replace '"' '""') + '"'
+
+    ## ---
+       private: true
+       ---
+    to_option self = case self of
+        Identifier.Name n -> Option n "(..Name "+n.pretty+")"
+        Identifier.Name_And_Schema n s -> Option s+"."+n "(..Name_And_Schema "+n.pretty+" "+s.pretty+")"
+
+Identifier.from (that:Text) = Identifier.Name that
+
+type Stage_Not_Found
+    ## ---
+       private: true
+       ---
+       Indicates that a stage was not found in the database.
+
+       ## Arguments
+        - `name`: The name of the stage that was not found.
+    Error (name:Text)
+
+    ## ---
+       private: true
+       ---
+       Pretty print the stage not found error.
+    to_display_text : Text
+    to_display_text self = "Stage " + self.name + " was not found in the database."
+
+    private rethrow identifier ~action =
+        result = action
+        result.catch SQL_Error error->
+            java_message = error.java_exception.getMessage
+            if (java_message.match ".*Stage .* does not exist or not authorized.") == False then Error.throw result else
+                Error.throw (Stage_Not_Found.Error identifier)
+
+
+private make_stage_selector connection include_home:Boolean=True =
+    stages = (if include_home then [Option "~" "..Name '~'"] else [])
+        + connection.stage_names.map .to_option
+        + [Option "<Name>" "..Name", Option "<Name and Schema>" "..Name_And_Schema"]
+    Single_Choice display=..Always values=stages
+
 private auth_jdbc_properties credentials = case credentials of
     Credentials.Username_And_Password username password ->
         [Pair.new 'user' username, Pair.new 'password' password]
@@ -504,4 +728,3 @@ Table_Viz_Data.from (that:Snowflake_Connection) =
         schemas = tables.at "Schema" . to_vector
         (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Schema" "Schema" "set_schema {{@Schema}}", Table_Viz_Header.Label "Name", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [schemas, names, types, descriptions])
       _ -> (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Name" "Name" "query {{@Name}}", Table_Viz_Header.Label "Type", Table_Viz_Header.Label "Description"] [names, types, descriptions])
-
