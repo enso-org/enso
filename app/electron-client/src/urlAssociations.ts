@@ -1,8 +1,13 @@
 /** @file URL associations for the IDE. */
+
+import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
+
 import * as common from 'enso-common'
 
-type Electron = typeof import('electron')
+// ============================
+// === Protocol Association ===
+// ============================
 
 /**
  * Register the application as a handler for our [deep link scheme]{@link common.DEEP_LINK_SCHEME}.
@@ -13,7 +18,7 @@ type Electron = typeof import('electron')
  * It is also no-op on macOS, as the OS handles the URL opening by passing the `open-url` event to
  * the application, thanks to the information baked in our application by `electron-builder`.
  */
-export function registerAssociations(electron: Electron) {
+export function registerAssociations() {
   if (!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
     if (process.platform === 'darwin') {
       // Registration is handled automatically there thanks to electron-builder.
@@ -75,7 +80,7 @@ export function handleOpenUrl(openedUrl: URL) {
  * new instance of the application is started and the URL is passed as a command line argument.
  * @param callback - The callback to call when the application is requested to open a URL.
  */
-export function registerUrlCallback(electron: Electron, callback: (url: URL) => void) {
+export function registerUrlCallback(callback: (url: URL) => void) {
   if (initialUrl != null) {
     callback(initialUrl)
   }

@@ -12,7 +12,7 @@ import { ProjectService } from 'project-manager-shim/projectService'
 // =======================
 
 let projectService: ProjectService | null = null
-let extraArgs: readonly string[] = []
+let extraArgs: string[] = []
 
 /** Get the project service. */
 function getProjectService(): ProjectService {
@@ -23,7 +23,7 @@ function getProjectService(): ProjectService {
 }
 
 /** Setup the project service.*/
-export function setupProjectService(args: readonly string[]) {
+export function setupProjectService(args: string[]) {
   extraArgs = args
   if (!projectService) {
     projectService = ProjectService.default(paths.RESOURCES_PATH, args)
