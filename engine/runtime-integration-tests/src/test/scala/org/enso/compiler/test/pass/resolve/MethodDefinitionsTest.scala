@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function.Lambda
-import org.enso.compiler.core.ir.{DefinitionArgument, Module, Name}
+import org.enso.compiler.core.ir.{DefinitionArgument, Module}
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.definition.Method
@@ -186,69 +186,25 @@ class MethodDefinitionsTest extends CompilerTest {
   "Method definitions pass" should {
     implicit val ctx: ModuleContext = mkModuleContext
 
-    "Attach ascribedType to DefinitionArgument of static method" in {
+    "Attach ascribedType to DefinitionArgument of an instance method" in {
       val ir =
         """
           |type My_Type
           |    Value x
           |    f self = self
           |""".stripMargin.preprocessModule.analyse
-      val staticMethod = ir.bindings.find { binding =>
-        binding match {
-          case m: Method.Explicit if m.isStatic => true
-          case _                                => false
-        }
+      val method = ir.bindings.find {
+        case _: Method.Explicit => true
+        case _                  => false
       }
-      staticMethod.isDefined shouldBe true
-      val method = staticMethod.get.asInstanceOf[Method.Explicit]
-      method.isStatic shouldBe true
-      val lambdaArg = method.body
-        .asInstanceOf[Lambda]
-        .body
+      method.isDefined shouldBe true
+      val explicitMethod = method.get.asInstanceOf[Method.Explicit]
+      val lambdaArg = explicitMethod.body
         .asInstanceOf[Lambda]
         .arguments
         .head
         .asInstanceOf[DefinitionArgument.Specified]
       lambdaArg.ascribedType().isDefined shouldBe true
-    }
-
-    "Method.Explicit is duplicated with synthetic self arg for non-singleton types" in {
-      val ir =
-        """
-          |type My_Type
-          |    Value x
-          |    f self = 42
-          |""".stripMargin.preprocessModule.analyse
-      val methods = ir.bindings.collect {
-        case m: Method.Explicit if m.methodReference.methodName.name == "f" => m
-      }
-      methods.size shouldBe 2
-      val method_1 = methods(0)
-      val method_2 = methods(1)
-      method_1.isStatic shouldBe false
-      method_2.isStatic shouldBe true
-
-      // Check args
-      val method1_args = methodArgs(method_1)
-      val method2_args = methodArgs(method_2)
-      method1_args.size shouldBe 1
-      method2_args.size shouldBe 1
-      val method1_selfArg = method1_args.head.name().asInstanceOf[Name.Self]
-      val method2_selfArg = method2_args.head.name().asInstanceOf[Name.Self]
-      method1_selfArg.synthetic shouldBe false
-      method2_selfArg.synthetic shouldBe true
-
-      val method2_nestedLambda =
-        method_2.body.asInstanceOf[Lambda].body().asInstanceOf[Lambda]
-      val method2_nestedLambdaArgs = method2_nestedLambda.arguments()
-      method2_nestedLambdaArgs.size shouldBe 1
-      val method2_nestedLambdaArg = method2_nestedLambdaArgs.head
-      method2_nestedLambdaArg.name().isInstanceOf[Name.Self] shouldBe true
-      method2_nestedLambdaArg.ascribedType().isDefined shouldBe true
-      method2_nestedLambdaArg
-        .ascribedType()
-        .get
-        .isInstanceOf[Name.SelfType] shouldBe true
     }
 
     "No Method.Explicit duplication for singleton type" in {
@@ -262,11 +218,18 @@ class MethodDefinitionsTest extends CompilerTest {
       }
       methods.size shouldBe 1
     }
-  }
 
-  private def methodArgs(
-    method: Method.Explicit
-  ): List[DefinitionArgument] = {
-    method.body.asInstanceOf[Lambda].arguments
+    "No Method.Explicit duplication for non-singleton type" in {
+      val ir =
+        """
+          |type My_Type
+          |    Value x
+          |    f self = 42
+          |""".stripMargin.preprocessModule.analyse
+      val methods = ir.bindings.collect {
+        case m: Method.Explicit if m.methodReference.methodName.name == "f" => m
+      }
+      methods.size shouldBe 1
+    }
   }
 }
