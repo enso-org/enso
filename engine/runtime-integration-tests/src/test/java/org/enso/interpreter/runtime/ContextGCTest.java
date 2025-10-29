@@ -22,6 +22,7 @@ public class ContextGCTest {
   @After
   public void closeCtxAndGC() throws Exception {
     var ref = new WeakReference<>(ctx);
+    ctx.close();
     ctx = null;
     assertGC("Context has to GC", true, ref);
   }
@@ -36,6 +37,28 @@ public class ContextGCTest {
             main = 6 * 7
             """);
     assertEquals(42, fourtyTwo.asInt());
+  }
+
+  @Test
+  public void multiValue() throws Exception {
+    var arr =
+        ctx.evalModule(
+            """
+            from Standard.Base import all
+
+            type T
+
+            Integer.from (_:T) = 42
+            Text.from (_:T) = "Meaning"
+
+            main =
+                conv t -> Integer&Text = t
+                v = conv T
+                [v, v:Text, v:Integer]
+
+            """);
+    assertEquals(42, arr.getArrayElement(2).asInt());
+    assertEquals("Meaning", arr.getArrayElement(1).asString());
   }
 
   private static void assertGC(String msg, boolean expectGC, Reference<?> ref) {
