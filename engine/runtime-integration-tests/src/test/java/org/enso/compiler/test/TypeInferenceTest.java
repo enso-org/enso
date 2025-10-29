@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic;
@@ -1239,8 +1240,36 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   @Test
-  @Ignore(
-      "Type inference does not work on static method invocation (because of named self argument)")
+  public void staticCallHasInferenceMeta() throws Exception {
+    final URI uri = new URI("memory://staticCallHasInferenceMeta.enso");
+    final Source src =
+        Source.newBuilder(
+                LanguageInfo.ID,
+                """
+                type My_Type
+                    Value v
+
+                    member_method self -> My_Type = self
+
+                foo =
+                    obj = My_Type.Value 100
+                    x1 = My_Type.member_method self=obj
+                    x1
+                """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+
+    var myType = "staticCallHasInferenceMeta.My_Type";
+
+    var x1 = ModuleUtils.findAssignment(foo, "x1");
+    assertAtomType(myType, x1);
+  }
+
+  @Test
   public void staticCallWithWrongType() throws Exception {
     final URI uri = new URI("memory://staticCallWithWrongType.enso");
     final Source src =
