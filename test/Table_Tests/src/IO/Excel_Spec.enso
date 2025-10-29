@@ -724,6 +724,8 @@ spec_write suite_builder suffix test_sheet_name =
             Test.with_clue "("+r1.catch.to_display_text+") " <|
                 r1.should_fail_with File_Error
                 r1.catch.should_be_a File_Error.Not_Found
+                ## We want the Not found error to point to the nonexistent directory, not some file that is just being written.
+                r1.catch.file.path . should_equal parent.path
 
         group_builder.specify "should allow to write and read-back Unicode characters" <|
             encodings = enso_project.data / "transient" / ("encodings."+suffix)

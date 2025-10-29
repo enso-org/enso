@@ -1,4 +1,3 @@
-import { Path } from 'enso-common/src/utilities/file'
 import extractZip from 'extract-zip'
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
@@ -8,6 +7,7 @@ import * as path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import * as portfinder from 'portfinder'
 import { extract } from 'tar'
+import { Path } from './types.js'
 
 export interface Runner {
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
@@ -54,6 +54,7 @@ interface RunningProject {
 }
 
 const DEFAULT_JSONRPC_PORT = 30616
+const LANGUAGE_SERVER_STARTUP_TIMEOUT = 30000
 
 /** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
@@ -238,13 +239,17 @@ export class EnsoRunner implements Runner {
           }
         })
 
-        // Timeout after 30 seconds if server doesn't start
-        setTimeout(() => {
-          if (!resolved) {
-            serverProcess.kill('SIGKILL')
-            reject(new Error('Language server startup timeout'))
-          }
-        }, 30000)
+        // Timeout if server doesn't start (skip timeout in debug mode)
+        const javaToolOptions = process.env.JAVA_TOOL_OPTIONS
+        const isDebugMode = javaToolOptions?.includes('jdwp')
+        if (!isDebugMode) {
+          setTimeout(() => {
+            if (!resolved) {
+              serverProcess.kill('SIGKILL')
+              reject(new Error('Language server startup timeout'))
+            }
+          }, LANGUAGE_SERVER_STARTUP_TIMEOUT)
+        }
       })
     })
     this.loadingProjects.set(projectId, promise)
@@ -653,7 +658,12 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
   console.log(`Downloading ${assetName}...`)
 
   // Download the asset
-  const downloadResponse = await fetch(asset.browser_download_url, { headers })
+  const downloadResponse = await fetch(asset.url, {
+    headers: {
+      ...headers,
+      Accept: 'application/octet-stream',
+    },
+  })
 
   if (!downloadResponse.ok) {
     throw new Error(`Failed to download asset: ${downloadResponse.statusText}`)

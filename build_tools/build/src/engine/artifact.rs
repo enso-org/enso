@@ -3,8 +3,6 @@ use crate::prelude::*;
 use ide_ci::github::release;
 use octocrab::models::repos::Asset;
 
-
-
 #[derive(Clone, Copy, Debug)]
 pub enum ArtifactKind {
     EnginePackage,

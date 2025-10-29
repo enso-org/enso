@@ -1,6 +1,6 @@
 /** @file Parsing and representation of the search query. */
 import { unsafeKeyValuePair } from '#/utilities/object'
-import * as array from './array'
+import { shallowEqual } from '$/utils/data/array'
 
 // Control characters must be handled, in order to follow the JSON spec.
 // eslint-disable-next-line no-control-regex
@@ -173,7 +173,7 @@ export default class AssetQuery {
         const termsAfterAdditions = [
           ...terms,
           ...toAdd.filter((otherTerm) =>
-            terms.every((term) => !array.shallowEqual([...term].sort(), [...otherTerm].sort())),
+            terms.every((term) => !shallowEqual([...term].sort(), [...otherTerm].sort())),
           ),
         ]
         if (termsAfterAdditions.length !== terms.length) {
@@ -183,9 +183,7 @@ export default class AssetQuery {
       }
       if (toRemove != null) {
         const termsAfterRemovals = terms.filter((term) =>
-          toRemove.every(
-            (otherTerm) => !array.shallowEqual([...term].sort(), [...otherTerm].sort()),
-          ),
+          toRemove.every((otherTerm) => !shallowEqual([...term].sort(), [...otherTerm].sort())),
         )
         if (termsAfterRemovals.length !== terms.length) {
           terms = termsAfterRemovals

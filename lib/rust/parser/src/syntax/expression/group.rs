@@ -16,8 +16,6 @@ use crate::syntax::TokenConsumer;
 use crate::syntax::Tree;
 use crate::syntax::TreeConsumer;
 
-
-
 // =====================
 // === FlattenGroups ===
 // =====================
@@ -31,7 +29,8 @@ pub struct FlattenGroups<'s, Inner> {
 }
 
 impl<'s, Inner> ItemConsumer<'s> for FlattenGroups<'s, Inner>
-where Inner: TokenConsumer<'s> + TreeConsumer<'s> + GroupHierarchyConsumer<'s> + Finish
+where
+    Inner: TokenConsumer<'s> + TreeConsumer<'s> + GroupHierarchyConsumer<'s> + Finish,
 {
     fn push_item(&mut self, item: Item<'s>) {
         match item {
@@ -74,7 +73,8 @@ where Inner: TokenConsumer<'s> + TreeConsumer<'s> + GroupHierarchyConsumer<'s> +
 }
 
 impl<Inner> Finish for FlattenGroups<'_, Inner>
-where Inner: Finish
+where
+    Inner: Finish,
 {
     type Result = Inner::Result;
 
@@ -82,8 +82,6 @@ where Inner: Finish
         self.inner.finish()
     }
 }
-
-
 
 // =====================
 // === Group Builder ===
@@ -95,7 +93,7 @@ where Inner: Finish
 #[operator_consumer(Forward)]
 #[scope_hierarchy_consumer(Forward)]
 pub struct BuildGroups<'s, Inner> {
-    open:  Vec<OpenSymbol<'s>>,
+    open: Vec<OpenSymbol<'s>>,
     inner: Inner,
 }
 

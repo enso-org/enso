@@ -3,13 +3,11 @@ use crate::prelude::*;
 use crate::engine::artifact::IsArtifact;
 use crate::paths::generated::RepoRoot;
 
-
-
 /// Version of the bundled GraalVM.
 #[derive(Clone, Debug)]
 pub struct GraalVmVersion {
     /// Version of the GraalVM runtime. Corresponds to the `graalVersion` in build.sbt.
-    pub graal:    Version,
+    pub graal: Version,
     /// Version of the Maven packages. Corresponds to the `graalMavenPackagesVersion` in build.sbt.
     pub packages: Version,
 }

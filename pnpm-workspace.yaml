@@ -12,6 +12,7 @@ packages:
   - app/ydoc-server-polyglot
   - app/ydoc-shared
   - lib/js/runner
+  - tools/simple-library-server
 catalog:
   typescript: ^5.7.2
   "@types/node": ^24.2.1
@@ -23,3 +24,4 @@ catalog:
   "@codemirror/state": ^6.5.2
   "@codemirror/view": ^6.38.2
   "@fast-check/vitest": ^0.2.1
+  zod: ^3.25.49

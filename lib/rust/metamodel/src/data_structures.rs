@@ -5,8 +5,6 @@ use vecmap::*;
 use derive_where::derive_where;
 use enso_zst::ZST;
 
-
-
 // ===========
 // === IDs ===
 // ===========
@@ -14,7 +12,7 @@ use enso_zst::ZST;
 /// A globally unique identifier, with a type-tag.
 #[derive_where(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Id<T> {
-    value:  u32,
+    value: u32,
     marker: ZST<T>,
 }
 
@@ -40,8 +38,6 @@ impl<T> std::fmt::Display for Id<T> {
         write!(f, "{}", self.value)
     }
 }
-
-
 
 // ==========================
 // === Densely-stored map ===
@@ -170,9 +166,9 @@ pub mod vecmap {
     pub struct Key<T, State = MaybeBound> {
         pub(super) index: usize,
         #[derive_where(skip)]
-        marker:           ZST<T>,
+        marker: ZST<T>,
         #[derive_where(skip)]
-        state:            ZST<State>,
+        state: ZST<State>,
     }
 
     impl<T, State> Key<T, State> {

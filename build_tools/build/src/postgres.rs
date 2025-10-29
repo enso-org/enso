@@ -14,8 +14,6 @@ use tokio::io::AsyncRead;
 use tokio::io::BufReader;
 use tokio::process::Child;
 
-
-
 /// Port used by Postgres in its container.
 const POSTGRES_CONTAINER_DEFAULT_PORT: u16 = 5432;
 
@@ -72,11 +70,11 @@ impl EndpointConfiguration {
 #[derive(Clone, Debug)]
 pub struct Configuration {
     pub postgres_container: ContainerId,
-    pub database_name:      String,
-    pub user:               String,
-    pub password:           String,
-    pub endpoint:           EndpointConfiguration,
-    pub version:            String,
+    pub database_name: String,
+    pub user: String,
+    pub password: String,
+    pub endpoint: EndpointConfiguration,
+    pub version: String,
 }
 
 impl Configuration {
@@ -88,8 +86,9 @@ impl Configuration {
         env::tests::ENSO_POSTGRES_DATABASE.set(&self.database_name)?;
         env::tests::ENSO_POSTGRES_HOST.set(&match &self.endpoint {
             EndpointConfiguration::Host { port } => format!("localhost:{port}"),
-            EndpointConfiguration::Container { .. } =>
-                format!("localhost:{POSTGRES_CONTAINER_DEFAULT_PORT}"),
+            EndpointConfiguration::Container { .. } => {
+                format!("localhost:{POSTGRES_CONTAINER_DEFAULT_PORT}")
+            }
         })?;
         env::tests::ENSO_POSTGRES_USER.set(&self.user)?;
         env::tests::ENSO_POSTGRES_PASSWORD.set(&self.password)?;
@@ -139,7 +138,7 @@ pub async fn process_lines_until<R: AsyncRead + Unpin>(
 #[derive(Debug)]
 pub struct PostgresContainer {
     _docker_run: Child,
-    config:      Configuration,
+    config: Configuration,
 }
 
 impl Drop for PostgresContainer {
@@ -215,11 +214,11 @@ mod tests {
     async fn start_postgres() -> Result {
         let config = Configuration {
             postgres_container: ContainerId("something".into()),
-            endpoint:           EndpointConfiguration::deduce()?,
-            version:            "latest".into(),
-            user:               "test".into(),
-            password:           "test".into(),
-            database_name:      "test".into(),
+            endpoint: EndpointConfiguration::deduce()?,
+            version: "latest".into(),
+            user: "test".into(),
+            password: "test".into(),
+            database_name: "test".into(),
         };
         let child = Postgresql::start(config).await?;
         // drop(child);

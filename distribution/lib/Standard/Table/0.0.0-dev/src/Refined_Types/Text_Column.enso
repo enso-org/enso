@@ -21,6 +21,8 @@ type Text_Column
 
              example_to_case = Examples.text_column_1.to_case ..Upper
        ```
+    @case_option Case.default_widget
+    @locale Locale.default_widget
     to_case self case_option:Case=..Lower locale:Locale=Locale.default -> Column & Text_Column =
         self.operations_implementation.to_case self.column case_option locale
 
@@ -103,3 +105,21 @@ type Text_Column
         ```  
     lower self -> Column & Text_Column =    
         self.operations_implementation.lower self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each element of the column to proper(title) case.
+       i.e. capitalizing the first letter of each word. 
+
+        ## Examples
+        ### Convert the values in a column to proper case.
+        
+        ```
+            import Standard.Examples
+
+            example_proper = Examples.text_column_1.proper
+        ```  
+    proper self -> Column & Text_Column =    
+        self.operations_implementation.proper self.column

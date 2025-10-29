@@ -1,7 +1,7 @@
 /** @file Various types of drag event payloads. */
 import type { Category } from '#/layouts/Drive/Categories/Category'
 import type { AnyAsset, AssetId } from '#/services/Backend'
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
+import { uniqueString } from '$/utils/uniqueString'
 import type { DragEvent } from 'react'
 
 /** Set the drag image to blank, so a custom div can be used instead. */

@@ -106,8 +106,6 @@ bench-report*.xml
 /enso
 /ensoup
 /project-manager
-/enso.exp
-/enso.lib
 
 *.dll
 *.dylib
