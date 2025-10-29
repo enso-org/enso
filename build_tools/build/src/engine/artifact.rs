@@ -10,6 +10,7 @@ pub enum ArtifactKind {
     LauncherPackage,
     ProjectManagerBundle,
     LauncherBundle,
+    EngineBundle,
 }
 
 /// A standalone SBT-generated artifact.
@@ -80,6 +81,15 @@ impl IsArtifact for crate::paths::generated::LauncherPackage {
 impl IsArtifact for crate::paths::generated::LauncherBundle {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::LauncherBundle
+    }
+    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
+        self
+    }
+}
+
+impl IsArtifact for crate::paths::generated::EngineBundle {
+    fn kind(&self) -> ArtifactKind {
+        ArtifactKind::EngineBundle
     }
     fn as_dyn_artifact(&self) -> &dyn IsArtifact {
         self

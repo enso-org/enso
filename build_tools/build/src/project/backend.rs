@@ -149,7 +149,7 @@ impl IsTarget for Backend {
                 "Enso Project Manager cannot be built on '{target_os}' for target '{TARGET_OS}'.",
             );
             let config = BuildConfigurationFlags {
-                build_project_manager_bundle: true,
+                build_engine_bundle: true,
                 build_small_jdk: true,
                 small_jdk_dir: Some(small_jdk_dir),
                 ..default()
@@ -162,14 +162,5 @@ impl IsTarget for Backend {
             this.adapt_artifact(destination).await
         }
         .boxed()
-    }
-
-    fn matches_asset(&self, asset: &Asset) -> bool {
-        // The size condition is used to discern actual artifact from its checksum.
-        let name = &asset.name;
-        self.matches_platform(name)
-            && is_archive_name(name)
-            && name.contains("project-manager")
-            && (name.contains("bundle") || asset.size > 200_000_000)
     }
 }
