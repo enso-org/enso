@@ -1,13 +1,16 @@
 private
 
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
+import Standard.Base.System.File.File_System_SPI
 import Standard.Database.Connection.Database.Database_Connection_Details_SPI
 
+import project.Onedrive.Onedrive_File.Onedrive_File
 import project.SQLServer_Data_Link.SQLServer_Data_Link
 import project.Connection.SQLServer_Details.SQLServer_Details
 
 type Impl
 
+File_System_SPI.from (_:Impl) = File_System_SPI.new "onedrive" Onedrive_File
 Data_Link_SPI.from (_:Impl) = Data_Link_SPI.new SQLServer_Data_Link "SQLServer_Connection"
 Database_Connection_Details_SPI.from (_:Impl) =
     Database_Connection_Details_SPI.new SQLServer_Details "Microsoft SQL Server" "..SQLServer"

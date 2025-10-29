@@ -1,0 +1,6 @@
+from Standard.Base import all
+
+type Onedrive_File
+    new (uri : Text) =
+        q = uri
+        q
