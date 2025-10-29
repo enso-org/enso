@@ -1,9 +1,5 @@
 /** @file A function that generates a unique string. */
 
-// ====================
-// === uniqueString ===
-// ====================
-
 // This is initialized to an unusual number, to minimize the chances of collision.
 let counter = Number(new Date()) >>> 2
 

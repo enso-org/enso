@@ -8,8 +8,6 @@ use crate::paths::TargetTriple;
 use crate::project;
 use crate::version::Versions;
 
-
-
 /// Name of the assets manifest file.
 ///
 /// The website uses this name to find the assets manifest, so it should be kept in sync.
@@ -18,9 +16,9 @@ pub const ASSETS_MANIFEST_FILENAME: &str = "assets.json";
 /// A platform-specific asset being part of the release, see [Assets] for the purpose.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Asset {
-    pub os:            OS,
-    pub arch:          Arch,
-    pub url:           Url,
+    pub os: OS,
+    pub arch: Arch,
+    pub url: Url,
     /// User-friendly description of the target platform.
     pub target_pretty: String,
 }
@@ -56,7 +54,6 @@ impl Asset {
     }
 }
 
-
 /// Describes the assets that are part of the release.
 ///
 /// The information is used to:
@@ -66,9 +63,9 @@ impl Asset {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Assets {
     /// IDE packages. The exact format (e.g. installer vs AppImage) depends on the platform.
-    pub ide:     Vec<Asset>,
+    pub ide: Vec<Asset>,
     /// Engine bundles.
-    pub engine:  Vec<Asset>,
+    pub engine: Vec<Asset>,
     /// Version of the release.
     pub version: Version,
 }

@@ -6,8 +6,6 @@
 
 use afl::fuzz;
 
-
-
 fn main() {
     fuzz!(|code: &[u8]| {
         if let Ok(code) = std::str::from_utf8(code) {

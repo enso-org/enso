@@ -1,5 +1,4 @@
 import { ZonedDateTime, parseAbsolute } from '@internationalized/date'
-import { EMPTY_ARRAY } from '../../utilities/data/array.js'
 import { DAYS_PER_WEEK, MONTHS_PER_YEAR, getDay } from '../../utilities/data/dateTime.js'
 import type { ProjectExecutionInfo } from '../Backend.js'
 
@@ -151,7 +150,7 @@ export function getProjectExecutionRepetitionsForDateRange(
   }
   const firstDate = firstProjectExecutionOnOrAfter(projectExecution, startDate)
   if (firstDate.compare(endDate) > 0) {
-    return EMPTY_ARRAY
+    return []
   }
   const repetitions: ZonedDateTime[] = [firstDate]
   let currentDate = nextProjectExecutionDate(projectExecution, firstDate)

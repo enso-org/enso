@@ -1,15 +1,7 @@
 /** @file Helper functions for environment detection. */
 
-// ===================
-// === IS_DEV_MODE ===
-// ===================
-
 /** Return whether the current build is in development mode */
 export const IS_DEV_MODE = process.env.NODE_ENV === 'development'
-
-// ================
-// === Platform ===
-// ================
 
 /** Possible platforms that the app may run on. */
 export enum Platform {
@@ -81,10 +73,6 @@ export function isOnAndroid() {
 export function isOnUnknownOS() {
   return platform() === Platform.unknown
 }
-
-// ===============
-// === Browser ===
-// ===============
 
 /** Possible browsers that the app may run on. */
 export enum Browser {
@@ -159,10 +147,6 @@ export function isOnSafari() {
 export function isOnUnknownBrowser() {
   return browser() === Browser.unknown
 }
-
-// ====================
-// === Architecture ===
-// ====================
 
 let detectedArchitecture: string | null = null
 // Only implemented by Chromium.

@@ -10,8 +10,6 @@ use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Target;
 use ide_ci::cache::goodie::graalvm;
 
-
-
 pub fn test_reporter(
     step_name: impl Into<String>,
     report_name: impl Into<serde_yaml::Value>,
@@ -139,11 +137,14 @@ pub fn cleanup_engine_distribution(engine_launcher: engine::EngineLauncher) -> S
 }
 
 fn built_distribution_directories(engine_launcher: engine::EngineLauncher) -> String {
-    format!("built-distribution{}", match engine_launcher {
-        engine::EngineLauncher::TestNative => " test",
-        engine::EngineLauncher::TestDebugNative => " test",
-        _ => "",
-    })
+    format!(
+        "built-distribution{}",
+        match engine_launcher {
+            engine::EngineLauncher::TestNative => " test",
+            engine::EngineLauncher::TestDebugNative => " test",
+            _ => "",
+        }
+    )
 }
 
 pub fn upload_artifact(step_name: impl Into<String>) -> Step {

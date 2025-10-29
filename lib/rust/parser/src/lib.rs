@@ -75,8 +75,7 @@
 //! processed by the operator precedence resolver as well. In the end, a single [`syntax::Tree`] is
 //! produced, containing the parsed expression.
 
-// === Features ===
-#![feature(test)]
+#![cfg_attr(feature = "nightly", feature(test))]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -109,8 +108,6 @@ pub mod serialization;
 pub mod source;
 pub mod syntax;
 
-
-
 /// Popular utilities, imported by most modules of this crate.
 pub mod prelude {
     pub use enso_parser_macros::*;
@@ -124,7 +121,7 @@ pub mod prelude {
     pub struct ParseResult<T> {
         /// The result of the operation. If `internal_error` is set, this is a best-effort value
         /// that cannot be assumed to be accurate; otherwise, it should be correct.
-        pub value:          T,
+        pub value: T,
         /// Internal error encountered while computing this result.
         pub internal_error: Option<String>,
     }
@@ -133,7 +130,9 @@ pub mod prelude {
         /// Return a new [`ParseResult`] whose value is the result of applying the given function to
         /// the input's value, and whose `internal_error` field is the same as the input.
         pub fn map<U, F>(self, f: F) -> ParseResult<U>
-        where F: FnOnce(T) -> U {
+        where
+            F: FnOnce(T) -> U,
+        {
             let ParseResult { value, internal_error } = self;
             let value = f(value);
             ParseResult { value, internal_error }
@@ -146,7 +145,6 @@ pub mod prelude {
         }
     }
 }
-
 
 // ==============
 // === Parser ===
@@ -191,7 +189,6 @@ impl Default for Parser {
     }
 }
 
-
 // == Parsing helpers ==
 
 fn is_qualified_name(tree: &syntax::Tree) -> bool {
@@ -201,7 +198,9 @@ fn is_qualified_name(tree: &syntax::Tree) -> bool {
         Variant::OprApp(app) => match &**app {
             OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }
                 if matches!(rhs.variant, Variant::Ident(_)) && opr.code.repr.0 == "." =>
-                is_qualified_name(lhs),
+            {
+                is_qualified_name(lhs)
+            }
             _ => false,
         },
         _ => false,
@@ -229,27 +228,31 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
     let mut error = None;
     match input.variant {
         // === Recursions ===
-        Variant::Group(ref mut group) =>
+        Variant::Group(ref mut group) => {
             if let Group { body: Some(ref mut body), .. } = &mut **group {
                 transform_tree(body, expression_to_pattern)
-            },
+            }
+        }
         Variant::App(ref mut app) => match &mut **app {
             // === Special-case error ===
             App { func: Tree { variant: Variant::Ident(ref ident), .. }, .. }
                 if !ident.token.is_type =>
-                error = Some(SyntaxError::PatternUnexpectedExpression),
+            {
+                error = Some(SyntaxError::PatternUnexpectedExpression)
+            }
             App { ref mut func, ref mut arg } => {
                 transform_tree(func, expression_to_pattern);
                 transform_tree(arg, expression_to_pattern);
             }
         },
-        Variant::TypeAnnotated(ref mut inner) =>
-            transform_tree(&mut inner.expression, expression_to_pattern),
-        Variant::OprApp(ref opr_app)
-            if opr_app.opr.as_ref().ok().map_or(false, |o| o.code == ".") =>
+        Variant::TypeAnnotated(ref mut inner) => {
+            transform_tree(&mut inner.expression, expression_to_pattern)
+        }
+        Variant::OprApp(ref opr_app) if opr_app.opr.as_ref().is_ok_and(|o| o.code == ".") => {
             if !is_qualified_name(&input) {
                 error = Some(SyntaxError::PatternUnexpectedDot);
-            },
+            }
+        }
 
         // === Transformations ===
         Variant::TemplateFunction(func) => {
@@ -286,12 +289,11 @@ fn transform_tree(tree: &mut syntax::Tree, f: impl FnOnce(syntax::Tree) -> synta
     DEFAULT_TREE.with(|default| *default.borrow_mut() = Some(default_returned));
 }
 
-
 // ==================
 // === Benchmarks ===
 // ==================
 
-#[cfg(test)]
+#[cfg(all(test, feature = "nightly"))]
 mod benches {
     use super::*;
 

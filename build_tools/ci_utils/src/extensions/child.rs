@@ -2,12 +2,10 @@ use crate::prelude::*;
 
 use sysinfo::Pid;
 
-
-
 /// Extension methods for [`tokio::process::Child`].
 pub trait ChildExt {
     /// Wait for the process completion and represent non-zero exit code as an error.
-    fn wait_ok(&mut self) -> BoxFuture<Result>;
+    fn wait_ok(&mut self) -> BoxFuture<'_, Result>;
 
     /// Kill the process and all its descendants.
     ///
@@ -16,7 +14,7 @@ pub trait ChildExt {
 }
 
 impl ChildExt for tokio::process::Child {
-    fn wait_ok(&mut self) -> BoxFuture<Result> {
+    fn wait_ok(&mut self) -> BoxFuture<'_, Result> {
         async move { default_status_checker(self.wait().await?) }.boxed()
     }
 

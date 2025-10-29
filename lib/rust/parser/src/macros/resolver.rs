@@ -42,8 +42,6 @@ use crate::SyntaxError;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
-
-
 // ================
 // === MacroMap ===
 // ================
@@ -54,7 +52,7 @@ pub struct MacroMap {
     /// Macros that can occur anywhere in an expression.
     pub expression: SegmentMap<'static>,
     /// Macros that can only occur in statement context.
-    pub statement:  SegmentMap<'static>,
+    pub statement: SegmentMap<'static>,
 }
 
 impl MacroMap {
@@ -66,7 +64,6 @@ impl MacroMap {
     }
 }
 
-
 // === Context ===
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -74,7 +71,6 @@ enum Context {
     Expression,
     Statement,
 }
-
 
 // ==================
 // === SegmentMap ===
@@ -101,9 +97,8 @@ pub struct SegmentEntry<'s> {
     /// Definition of the macro that should be used when all the required segments will be matched.
     /// It contains [`Pattern`] definition for every segment that will be used after all the
     /// segment tokens are discovered.
-    pub definition:        Rc<macros::Definition<'s>>,
+    pub definition: Rc<macros::Definition<'s>>,
 }
-
 
 impl<'a> SegmentMap<'a> {
     /// Register a new macro definition in this macro tree.
@@ -111,7 +106,7 @@ impl<'a> SegmentMap<'a> {
         let header = definition.segments.head.header;
         let entry = SegmentEntry {
             required_segments: definition.segments.tail.clone(),
-            definition:        Rc::new(definition),
+            definition: Rc::new(definition),
         };
         if let Some(node) = self.get_mut(header) {
             node.push(entry);
@@ -121,7 +116,6 @@ impl<'a> SegmentMap<'a> {
     }
 }
 
-
 // ================
 // === Resolver ===
 // ================
@@ -130,21 +124,20 @@ impl<'a> SegmentMap<'a> {
 /// to learn more about the macro resolution steps.
 #[derive(Debug)]
 struct ResolverState<'s> {
-    blocks:            Vec<Block>,
+    blocks: Vec<Block>,
     /// The lines of all currently-open blocks. This is partitioned by `blocks`.
-    lines:             Vec<syntax::item::Line<'s>>,
-    groups:            Vec<OpenGroup<'s>>,
+    lines: Vec<syntax::item::Line<'s>>,
+    groups: Vec<OpenGroup<'s>>,
     /// All currently-open macros. These are partitioned into scopes by `blocks`.
-    macros:            Vec<PartiallyMatchedMacro<'s>>,
+    macros: Vec<PartiallyMatchedMacro<'s>>,
     /// Segments of all currently-open macros. These are partitioned by `macros`.
-    segments:          Vec<MatchedSegment<'s>>,
+    segments: Vec<MatchedSegment<'s>>,
     /// Items of all segments of all currently-open macros. These are partitioned by `segments`.
-    items:             Vec<Item<'s>>,
-    context:           Context,
-    root_context:      RootContext,
+    items: Vec<Item<'s>>,
+    context: Context,
+    root_context: RootContext,
     expression_parser: syntax::expression::ExpressionParser<'s>,
 }
-
 
 // === Public API ===
 
@@ -168,7 +161,7 @@ impl<'s> ResolverState<'s> {
 fn initial_line<'s>() -> syntax::item::Line<'s> {
     syntax::item::Line {
         newline: token::newline(Code::empty(default()), Code::empty(default())),
-        items:   default(),
+        items: default(),
     }
 }
 
@@ -178,10 +171,12 @@ impl<'s> Finish for ResolverState<'s> {
     fn finish(&mut self) -> Self::Result {
         self.finish_current_line();
         let tree = match self.root_context {
-            RootContext::Module =>
-                syntax::tree::block::parse_module(&mut self.lines, &mut self.expression_parser),
-            RootContext::Block =>
-                syntax::tree::block::parse_block(&mut self.lines, &mut self.expression_parser),
+            RootContext::Module => {
+                syntax::tree::block::parse_module(&mut self.lines, &mut self.expression_parser)
+            }
+            RootContext::Block => {
+                syntax::tree::block::parse_block(&mut self.lines, &mut self.expression_parser)
+            }
         };
         debug_assert!(self.blocks.is_empty());
         debug_assert!(self.lines.is_empty());
@@ -207,7 +202,7 @@ pub enum RootContext {
 /// Resolves macros.
 #[derive(Debug)]
 pub struct Resolver<'s, 'macros> {
-    resolver:       ResolverState<'s>,
+    resolver: ResolverState<'s>,
     root_macro_map: &'macros MacroMap,
 }
 
@@ -258,7 +253,6 @@ impl<'s, 'macros> Finish for Resolver<'s, 'macros> {
     }
 }
 
-
 // === Implementation ===
 
 /// Result of the macro resolution step.
@@ -276,20 +270,20 @@ enum Step<'s> {
 #[derive(Debug)]
 struct Block {
     /// Index in `macro_stack` after the last element in the enclosing scope.
-    macros_start:  usize,
+    macros_start: usize,
     /// Index in `open_blocks` after the last element in the enclosing scope.
     outputs_start: usize,
     /// Index in `items` after the last element in the enclosing scope.
-    items:         usize,
+    items: usize,
 }
 
 #[derive(Debug)]
 struct OpenGroup<'s> {
-    open:         token::OpenSymbol<'s>,
+    open: token::OpenSymbol<'s>,
     /// Index in `macro_stack` after the last element in the enclosing scope.
     macros_start: usize,
     /// Index in `items` after the last element in the enclosing scope.
-    items:        usize,
+    items: usize,
 }
 
 impl<'s> ResolverState<'s> {
@@ -566,7 +560,6 @@ impl<'s> ResolverState<'s> {
     }
 }
 
-
 // =============================
 // === PartiallyMatchedMacro ===
 // =============================
@@ -579,11 +572,10 @@ impl<'s> ResolverState<'s> {
 #[derive(Debug)]
 struct PartiallyMatchedMacro<'s> {
     possible_next_segments: SegmentMap<'s>,
-    matched_macro_def:      Option<Rc<macros::Definition<'s>>>,
+    matched_macro_def: Option<Rc<macros::Definition<'s>>>,
     /// Height in `segments` where this macro's resolved segments begin.
-    segments_start:         usize,
+    segments_start: usize,
 }
-
 
 // ======================
 // === MatchedSegment ===
@@ -591,6 +583,6 @@ struct PartiallyMatchedMacro<'s> {
 
 #[derive(Debug)]
 struct MatchedSegment<'s> {
-    header:      Token<'s>,
+    header: Token<'s>,
     items_start: usize,
 }

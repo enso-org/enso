@@ -24,3 +24,6 @@ insta = "1.43.2"
 
 [lints]
 workspace = true
+
+[features]
+nightly = []

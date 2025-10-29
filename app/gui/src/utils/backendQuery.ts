@@ -1,8 +1,10 @@
 /** @file Framework-independent helpers for constructing backend Tanstack queries. */
-import type * as queryCore from '@tanstack/query-core'
-import type Backend from './services/Backend.js'
-import * as backendModule from './services/Backend.js'
-import { omit, type ExtractKeys, type MethodOf } from './utilities/data/object.js'
+import type Backend from 'enso-common/src/services/Backend'
+import * as backendModule from 'enso-common/src/services/Backend'
+import { omit, type ExtractKeys, type MethodOf } from 'enso-common/src/utilities/data/object'
+
+/** Should match `NetworkMode` in TanStack query core. */
+type NetworkMode = 'online' | 'always' | 'offlineFirst'
 
 /** The properties of the Backend type that are methods. */
 export type BackendMethods = ExtractKeys<Backend, MethodOf<Backend>>
@@ -140,7 +142,7 @@ export const INVALIDATION_MAP: Partial<
 type BackendQueryNormalizers = {
   [Method in BackendMethods]?: (
     ...args: Readonly<Parameters<Backend[Method]>>
-  ) => queryCore.QueryKey
+  ) => readonly unknown[]
 }
 
 const NORMALIZE_METHOD_QUERY: BackendQueryNormalizers = {
@@ -161,10 +163,10 @@ export function backendQueryOptions<Method extends BackendMethods>(
   backend: Backend | null,
   method: Method,
   args: Readonly<Parameters<Backend[Method]>>,
-  keyExtra?: queryCore.QueryKey | undefined,
+  keyExtra?: readonly unknown[] | undefined,
 ): {
-  queryKey: queryCore.QueryKey
-  networkMode: queryCore.NetworkMode
+  queryKey: readonly unknown[]
+  networkMode: NetworkMode
 } {
   return {
     ...backendBaseOptions(backend),
@@ -175,7 +177,7 @@ export function backendQueryOptions<Method extends BackendMethods>(
 /** Returns the QueryKey to use for the given backend method invocation. */
 export function backendQueryKey<
   Method extends BackendMethods,
-  TQueryKey extends queryCore.QueryKey = queryCore.QueryKey,
+  TQueryKey extends readonly unknown[] = readonly unknown[],
 >(
   backend: Backend | null,
   method: Method,
@@ -187,7 +189,7 @@ export function backendQueryKey<
 
 /** Returns options applicable to any method of the given backend. */
 export function backendBaseOptions(backend: Backend | null): {
-  networkMode: queryCore.NetworkMode
+  networkMode: NetworkMode
 } {
   return {
     networkMode: backend?.type === backendModule.BackendType.local ? 'always' : 'online',

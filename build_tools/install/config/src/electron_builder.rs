@@ -5,8 +5,6 @@ use crate::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
 
-
-
 /// Additional configuration needed by the installer that is not part of the standard
 /// `electron-builder` configuration.
 ///

@@ -10,8 +10,6 @@ use crate::syntax::Flush;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
-
-
 // ================================
 // === Compound token assembler ===
 // ================================
@@ -20,13 +18,14 @@ use crate::syntax::Tree;
 #[derive(Default, Debug, Finish, OperatorConsumer, GroupHierarchyConsumer)]
 #[operator_consumer(FlushAndForward)]
 pub struct CompoundTokens<'s, Inner> {
-    compounding:        Option<CompoundToken<'s>>,
-    inner:              Inner,
+    compounding: Option<CompoundToken<'s>>,
+    inner: Inner,
     has_preceding_item: bool,
 }
 
 impl<'s, Inner> CompoundTokens<'s, Inner>
-where Inner: TreeConsumer<'s> + TokenConsumer<'s>
+where
+    Inner: TreeConsumer<'s> + TokenConsumer<'s>,
 {
     fn try_start(&mut self, token: Token<'s>) {
         match CompoundToken::start(token, self.has_preceding_item) {
@@ -42,7 +41,8 @@ where Inner: TreeConsumer<'s> + TokenConsumer<'s>
 }
 
 impl<'s, Inner> TokenConsumer<'s> for CompoundTokens<'s, Inner>
-where Inner: TreeConsumer<'s> + TokenConsumer<'s>
+where
+    Inner: TreeConsumer<'s> + TokenConsumer<'s>,
 {
     fn push_token(&mut self, token: Token<'s>) {
         if let Some(compounding) = self.compounding.take() {
@@ -62,23 +62,23 @@ where Inner: TreeConsumer<'s> + TokenConsumer<'s>
 }
 
 impl<'s, Inner> TreeConsumer<'s> for CompoundTokens<'s, Inner>
-where Inner: TreeConsumer<'s>
+where
+    Inner: TreeConsumer<'s>,
 {
     fn push_tree(&mut self, mut tree: Tree<'s>) {
         match (&mut self.compounding, &mut tree.variant) {
             (
                 Some(CompoundToken::TextLiteral(TextLiteralBuilder { elements, .. })),
                 syntax::tree::Variant::TextLiteral(literal),
-            ) if matches!(**literal, syntax::tree::TextLiteral {
-                open: None,
-                newline: None,
-                close: None,
-                ..
-            }) =>
+            ) if matches!(
+                **literal,
+                syntax::tree::TextLiteral { open: None, newline: None, close: None, .. }
+            ) =>
             {
                 match literal.elements.first_mut() {
-                    Some(syntax::tree::TextElement::Splice { open, .. }) =>
-                        open.left_offset += tree.span.left_offset,
+                    Some(syntax::tree::TextElement::Splice { open, .. }) => {
+                        open.left_offset += tree.span.left_offset
+                    }
                     _ => unreachable!(),
                 }
                 elements.append(&mut literal.elements);
@@ -92,7 +92,8 @@ where Inner: TreeConsumer<'s>
 }
 
 impl<'s, Inner> Flush for CompoundTokens<'s, Inner>
-where Inner: TreeConsumer<'s>
+where
+    Inner: TreeConsumer<'s>,
 {
     fn flush(&mut self) {
         if let Some(tree) = self.compounding.take().and_then(|builder| builder.flush()) {
@@ -101,7 +102,6 @@ where Inner: TreeConsumer<'s>
         self.has_preceding_item = default();
     }
 }
-
 
 // ==============================
 // === Compound token builder ===
@@ -197,16 +197,15 @@ impl<'s> CompoundTokenBuilder<'s> for CompoundToken<'s> {
     }
 }
 
-
 // =====================
 // === Text literals ===
 // =====================
 
 #[derive(Debug)]
 struct TextLiteralBuilder<'s> {
-    open:               token::TextStart<'s>,
-    newline:            Option<token::Newline<'s>>,
-    elements:           Vec<syntax::tree::TextElement<'s>>,
+    open: token::TextStart<'s>,
+    newline: Option<token::Newline<'s>>,
+    elements: Vec<syntax::tree::TextElement<'s>>,
     has_preceding_item: bool,
 }
 
@@ -281,7 +280,6 @@ impl<'s> TextLiteralBuilder<'s> {
     }
 }
 
-
 // ============================
 // === Operator-identifiers ===
 // ============================
@@ -303,7 +301,9 @@ impl<'s> CompoundTokenBuilder<'s> for OperatorIdentifierBuilder {
             | token::Variant::NegationOperator(_)
             | token::Variant::UnaryOperator(_)
                 if token.left_offset.visible.width_in_spaces == 0 =>
-                Step::Return(token.with_variant(token::Variant::operator_ident().into())),
+            {
+                Step::Return(token.with_variant(token::Variant::operator_ident().into()))
+            }
             _ => Step::Return(token),
         }
     }
@@ -312,7 +312,6 @@ impl<'s> CompoundTokenBuilder<'s> for OperatorIdentifierBuilder {
         None
     }
 }
-
 
 // =================
 // === Autoscope ===
@@ -359,7 +358,6 @@ impl<'s> AutoscopeBuilder<'s> {
         token_to_error(operator, SyntaxError::AutoscopeExpectedIdent)
     }
 }
-
 
 // ===============
 // === Helpers ===

@@ -13,8 +13,6 @@ use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::Layer;
 use tracing_subscriber::Registry;
 
-
-
 pub fn is_our_module_path(path: impl AsRef<str>) -> bool {
     ["ide_ci::", "enso"].into_iter().any(|prefix| path.as_ref().starts_with(prefix))
 }
@@ -37,7 +35,9 @@ impl<S: Subscriber + Debug + for<'a> LookupSpan<'a>> Layer<S> for GlobalFilterin
 ///
 /// It uses the `ENSO_BUILD_LOG` environment variable to determine the [log filtering](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives).
 pub fn stderr_log_layer<S>() -> impl Layer<S> + Debug
-where S: Subscriber + for<'a> LookupSpan<'a> + Debug + Send + Sync + 'static {
+where
+    S: Subscriber + for<'a> LookupSpan<'a> + Debug + Send + Sync + 'static,
+{
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_env_var("ENSO_BUILD_LOG")
         .with_default_directive(LevelFilter::TRACE.into())
@@ -53,7 +53,9 @@ where S: Subscriber + for<'a> LookupSpan<'a> + Debug + Send + Sync + 'static {
 }
 
 pub fn file_log_layer<S>(file: std::fs::File) -> impl Layer<S> + Debug
-where S: Subscriber + for<'a> LookupSpan<'a> + Debug + Send + Sync + 'static {
+where
+    S: Subscriber + for<'a> LookupSpan<'a> + Debug + Send + Sync + 'static,
+{
     tracing_subscriber::fmt::layer()
         .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
         .with_thread_names(true)
@@ -72,8 +74,6 @@ pub fn setup_logging() -> Result {
         .context("Failed to set global default subscriber.")
 }
 
-
-
 // =======================
 // === IndicatifWriter ===
 // =======================
@@ -88,7 +88,6 @@ pub fn setup_logging() -> Result {
 #[derive(Clone, Debug)]
 struct IndicatifWriter;
 
-
 // === Main `impl` ===
 
 impl IndicatifWriter {
@@ -96,7 +95,6 @@ impl IndicatifWriter {
         Self
     }
 }
-
 
 // === Trait `impl`s ===
 

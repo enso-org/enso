@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct GraalPy;
 

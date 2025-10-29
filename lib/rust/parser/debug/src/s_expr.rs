@@ -5,11 +5,11 @@ use enso_reflect::Reflect;
 use lexpr::Value;
 use std::collections::HashSet;
 
-
-
 /// Produce an S-expression representation of the input AST type.
 pub fn to_s_expr<T>(value: &T, code: &str) -> Value
-where T: serde::Serialize + Reflect {
+where
+    T: serde::Serialize + Reflect,
+{
     use enso_parser::syntax::token::variant::*;
     use enso_parser::syntax::tree;
     let (graph, rust_to_meta) = enso_metamodel::rust::to_meta(value.reflect_type());

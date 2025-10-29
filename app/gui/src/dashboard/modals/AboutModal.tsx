@@ -1,5 +1,5 @@
 /** @file Modal for confirming delete of any type of asset. */
-import { Button, CopyButton } from '#/components/Button'
+import { CopyButton } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
 import { Text } from '#/components/Text'
@@ -46,20 +46,21 @@ export const AboutModal = Object.assign(
     return (
       <Dialog
         title={getText('aboutThisAppShortcut')}
+        size="large"
         modalProps={{ isOpen }}
         onOpenChange={setIsOpen}
       >
-        <div className="relative flex items-center gap-4">
-          <Icon icon="enso_logo" className="size-16 shrink-0 self-start" />
+        <div className="relative flex flex-col items-center gap-4">
+          <Icon icon="enso_logo" className="size-16 shrink-0" />
 
-          <div className="flex flex-col">
-            <Text variant="subtitle">
+          <div className="flex flex-col items-center gap-2">
+            <Text.Heading>
               {localBackend != null ?
                 getText('appNameDesktopEdition')
               : getText('appNameCloudEdition')}
-            </Text>
+            </Text.Heading>
 
-            <table>
+            <table className="self-stretch">
               <tbody>
                 {versionsEntries.map((entry) => {
                   const [textId, version] = entry
@@ -70,7 +71,7 @@ export const AboutModal = Object.assign(
                         <Text nowrap>{getText(textId)}</Text>
                       </td>
                       <td>
-                        <Text>{version}</Text>
+                        <Text className="break-words [word-break:break-word]">{version}</Text>
                       </td>
                     </tr>
                   )
@@ -78,11 +79,9 @@ export const AboutModal = Object.assign(
               </tbody>
             </table>
 
-            <Button.Group className="mt-4">
-              <CopyButton copyText={copyText} size="medium" variant="submit">
-                {getText('copy')}
-              </CopyButton>
-            </Button.Group>
+            <CopyButton copyText={copyText} size="medium" variant="submit">
+              {getText('copy')}
+            </CopyButton>
           </div>
         </div>
       </Dialog>

@@ -777,7 +777,7 @@ public class Text_Utils {
     return switch (caseOption) {
       case LOWER -> s -> UCharacter.toLowerCase(locale, s);
       case UPPER -> s -> UCharacter.toUpperCase(locale, s);
-      case TITLE -> s -> UCharacter.toTitleCase(locale, s, null);
+      case PROPER -> s -> UCharacter.toTitleCase(locale, s, null);
     };
   }
 
@@ -789,7 +789,7 @@ public class Text_Utils {
     return switch (caseOption) {
       case LOWER -> UCharacter.toLowerCase(locale, s);
       case UPPER -> UCharacter.toUpperCase(locale, s);
-      case TITLE -> UCharacter.toTitleCase(locale, s, null);
+      case PROPER -> UCharacter.toTitleCase(locale, s, null);
     };
   }
 }

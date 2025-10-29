@@ -22,8 +22,6 @@ use tokio::io::BufReader;
 use tokio_stream::wrappers::LinesStream;
 use tokio_stream::StreamExt;
 
-
-
 // =====================
 // === CLI Arguments ===
 // =====================
@@ -52,8 +50,6 @@ struct Args {
     median: bool,
 }
 
-
-
 // =========================
 // === Log Specification ===
 // =========================
@@ -64,8 +60,6 @@ struct Spec {
     matches: Vec<String>,
 }
 
-
-
 // =================
 // === Operation ===
 // =================
@@ -73,9 +67,9 @@ struct Spec {
 /// Timed operation.
 #[derive(Debug)]
 struct Operation {
-    duration:  Duration,
+    duration: Duration,
     timestamp: OffsetDateTime,
-    line:      String,
+    line: String,
 }
 
 impl Display for Operation {
@@ -87,8 +81,6 @@ impl Display for Operation {
         write!(f, "{duration_millis}ms [{timestamp}] {truncated_line}...")
     }
 }
-
-
 
 // =================
 // === Iteration ===
@@ -110,8 +102,6 @@ impl Iteration {
     }
 }
 
-
-
 // ==================
 // === Statistics ===
 // ==================
@@ -119,9 +109,9 @@ impl Iteration {
 /// Final statistics about benchmarked operation.
 #[derive(Debug)]
 struct Stats {
-    min:  Duration,
-    max:  Duration,
-    avg:  Duration,
+    min: Duration,
+    max: Duration,
+    avg: Duration,
     line: String,
 }
 
@@ -135,8 +125,6 @@ impl Display for Stats {
         write!(f, "{avg_millis}ms [{min_millis}..{max_millis}] {truncated_line}")
     }
 }
-
-
 
 // =================
 // === Constants ===
@@ -163,8 +151,6 @@ lazy_static! {
         ],
     };
 }
-
-
 
 // =================
 // === Utilities ===
@@ -196,7 +182,7 @@ async fn read_logfile(path: &PathBuf, spec: &Spec) -> Result<Vec<Iteration>> {
                 cap.get(RE_LOGLINE_MESSAGE_CAPTURE_GROUP),
             );
             match groups {
-                (Some(timestamp), Some(message)) =>
+                (Some(timestamp), Some(message)) => {
                     if message.as_str().contains(current_match) {
                         let duration = Duration::ZERO;
                         let timestamp =
@@ -213,7 +199,8 @@ async fn read_logfile(path: &PathBuf, spec: &Spec) -> Result<Vec<Iteration>> {
                             iterations.push(Iteration { operations: current_operations });
                             current_operations = vec![];
                         }
-                    },
+                    }
+                }
                 _ => {
                     eprintln!("[ERR] Invalid log line [{line}]");
                 }
@@ -226,7 +213,9 @@ async fn read_logfile(path: &PathBuf, spec: &Spec) -> Result<Vec<Iteration>> {
 
 /// Calcualte median of values.
 fn median<I>(durations_iter: I) -> Duration
-where I: Iterator<Item = Duration> {
+where
+    I: Iterator<Item = Duration>,
+{
     let mut durations = durations_iter.collect::<Vec<_>>();
     durations.sort();
 
@@ -305,8 +294,6 @@ fn iterations_average(ops: &[Iteration], stats: &[Stats]) -> Stats {
 
     Stats { min, max, avg, line }
 }
-
-
 
 // ============
 // === Main ===

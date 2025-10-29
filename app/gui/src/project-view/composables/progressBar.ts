@@ -1,5 +1,5 @@
+import { clamp } from '$/utils/data/math'
 import { useTransitionalFrame, useTransitioning } from '@/composables/animation'
-import { clamp } from 'enso-common/src/utilities/data/math'
 import { computed, toValue, type WatchSource } from 'vue'
 
 // === Constants ===

@@ -4,8 +4,6 @@ use crate::prelude::*;
 
 use winreg::enums::RegDisposition;
 
-
-
 /// Wrapper around [`RegKey::delete_subkey_all`] that provides better error messages.
 pub fn delete_subkey_all(key: &RegKey, subkey: &str) -> Result {
     key.delete_subkey_all(subkey)

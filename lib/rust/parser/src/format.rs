@@ -29,8 +29,6 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
-
-
 // =================
 // === Constants ===
 // =================
@@ -42,8 +40,6 @@ const RECURSION_LIMIT: usize = 1024;
 
 /// If enabled, logs debugging info to stderr.
 const DEBUG: bool = false;
-
-
 
 // =================
 // === Serialize ===
@@ -60,8 +56,6 @@ pub fn serialize<T: Serialize>(value: T) -> Result<Vec<u8>> {
     Ok(serializer.heap)
 }
 
-
-
 // ==================
 // === Serializer ===
 // ==================
@@ -70,12 +64,12 @@ pub fn serialize<T: Serialize>(value: T) -> Result<Vec<u8>> {
 #[derive(Debug, Default)]
 pub struct Serializer {
     /// Complete objects, located at their final addresses.
-    heap:            Vec<u8>,
+    heap: Vec<u8>,
     /// All the fields of currently-incomplete objects.
-    stack:           Vec<u8>,
+    stack: Vec<u8>,
     recursion_depth: usize,
-    object_depth:    usize,
-    parent_structs:  Vec<ParentStruct>,
+    object_depth: usize,
+    parent_structs: Vec<ParentStruct>,
 }
 
 impl Serializer {
@@ -84,7 +78,7 @@ impl Serializer {
         Self::default()
     }
 
-    fn object_serializer(&mut self) -> Result<ObjectSerializer> {
+    fn object_serializer(&'_ mut self) -> Result<ObjectSerializer<'_>> {
         if self.recursion_depth < RECURSION_LIMIT {
             self.recursion_depth += 1;
             self.object_depth += 1;
@@ -108,14 +102,13 @@ impl Serializer {
     }
 }
 
-
 // ==== Object Serializer ===
 
 /// Serializes compound types.
 #[derive(Debug)]
 pub struct ObjectSerializer<'a> {
     serializer: &'a mut Serializer,
-    begin:      usize,
+    begin: usize,
 }
 
 impl<'a> ObjectSerializer<'a> {
@@ -124,19 +117,16 @@ impl<'a> ObjectSerializer<'a> {
     }
 }
 
-
 // ==== Parent Struct ===
 
 /// Information for transforming a struct into a combined parent/child representation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct ParentStruct {
     object_depth_inside: usize,
-    begin:               usize,
+    begin: usize,
     // Useful for debugging.
-    _name:               &'static str,
+    _name: &'static str,
 }
-
-
 
 // ==========================================
 // === Serialization Trait Implementation ===
@@ -227,7 +217,9 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_some<T>(self, value: &T) -> Result<()>
-    where T: ?Sized + Serialize {
+    where
+        T: ?Sized + Serialize,
+    {
         self.serialize_u8(1)?;
         let object = self.object_serializer()?;
         value.serialize(&mut *object.serializer)?;
@@ -254,7 +246,9 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 
     fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<()>
-    where T: ?Sized + Serialize {
+    where
+        T: ?Sized + Serialize,
+    {
         value.serialize(self)
     }
 
@@ -356,7 +350,6 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     }
 }
 
-
 // === Inline Compound Type Trait Implementations ===
 
 impl ser::SerializeStruct for &'_ mut Serializer {
@@ -364,7 +357,9 @@ impl ser::SerializeStruct for &'_ mut Serializer {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
-    where T: ?Sized + Serialize {
+    where
+        T: ?Sized + Serialize,
+    {
         value.serialize(&mut **self)
     }
 
@@ -384,7 +379,9 @@ impl ser::SerializeTuple for &'_ mut Serializer {
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-    where T: ?Sized + Serialize {
+    where
+        T: ?Sized + Serialize,
+    {
         value.serialize(&mut **self)
     }
 
@@ -399,7 +396,9 @@ impl ser::SerializeTupleStruct for &'_ mut Serializer {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-    where T: ?Sized + Serialize {
+    where
+        T: ?Sized + Serialize,
+    {
         value.serialize(&mut **self)
     }
 
@@ -409,7 +408,6 @@ impl ser::SerializeTupleStruct for &'_ mut Serializer {
     }
 }
 
-
 // === Boxed Compound Type Trait Implementations ===
 
 impl ser::SerializeStructVariant for ObjectSerializer<'_> {
@@ -417,7 +415,9 @@ impl ser::SerializeStructVariant for ObjectSerializer<'_> {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
-    where T: ?Sized + Serialize {
+    where
+        T: ?Sized + Serialize,
+    {
         value.serialize(&mut *self.serializer)
     }
 
@@ -431,7 +431,9 @@ impl SerializeSeq for ObjectSerializer<'_> {
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
-    where T: ?Sized + Serialize {
+    where
+        T: ?Sized + Serialize,
+    {
         value.serialize(&mut *self.serializer)
     }
 
@@ -445,7 +447,9 @@ impl ser::SerializeTupleVariant for ObjectSerializer<'_> {
     type Error = Error;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-    where T: ?Sized + Serialize {
+    where
+        T: ?Sized + Serialize,
+    {
         value.serialize(&mut *self.serializer)
     }
 
@@ -459,12 +463,16 @@ impl ser::SerializeMap for ObjectSerializer<'_> {
     type Error = Error;
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<()>
-    where T: ?Sized + Serialize {
+    where
+        T: ?Sized + Serialize,
+    {
         key.serialize(&mut *self.serializer)
     }
 
     fn serialize_value<T>(&mut self, value: &T) -> Result<()>
-    where T: ?Sized + Serialize {
+    where
+        T: ?Sized + Serialize,
+    {
         value.serialize(&mut *self.serializer)
     }
 
@@ -472,8 +480,6 @@ impl ser::SerializeMap for ObjectSerializer<'_> {
         self.finish()
     }
 }
-
-
 
 // ====================
 // === Result Types ===
@@ -502,14 +508,15 @@ impl Display for Error {
 
 impl ser::Error for Error {
     fn custom<T>(msg: T) -> Self
-    where T: Display {
+    where
+        T: Display,
+    {
         Self::Custom(msg.to_string())
     }
 }
 
 /// The result of a serialization attempt.
 pub type Result<T> = std::result::Result<T, Error>;
-
 
 // =============
 // === Tests ===
