@@ -238,20 +238,15 @@ public class BinaryDispatchTest {
   }
 
   @Test
-  public void staticWithZFirstAndRSecondNoConversionHappens() {
+  public void staticWithZFirstAndRSecondIsConverted() {
     var zOperator = ctxRule.getMethodFromLoadedModule(MOD_NAME, "Z", "---");
 
     var two = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "Z.Number 2");
     var half = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "R.Fraction 1 2");
 
-    try {
-      var diff1 = zOperator.execute(two, half);
-      fail("Shouldn't return a value: " + diff1);
-    } catch (PolyglotException ex) {
-      assertThat(
-          ex.getMessage(),
-          AllOf.allOf(containsString("Type error"), containsString("`that` to be Z")));
-    }
+    var diff1 = zOperator.execute(two, half);
+    assertEquals(
+        "Binary dispatch works for static method invocation", diff1.asDouble(), 3.0 / 2, 0.01);
   }
 
   @Test
