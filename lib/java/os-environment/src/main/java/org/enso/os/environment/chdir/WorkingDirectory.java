@@ -62,7 +62,13 @@ public abstract sealed class WorkingDirectory
     if (isPathAbsolute(path)) {
       curPath = path;
     } else {
-      curPath = nativeApi.currentWorkingDir() + Platform.separatorChar() + path;
+      curPath =
+          nativeApi.currentWorkingDir()
+              + Platform.separatorChar()
+              + path.replace('/', Platform.separatorChar());
+    }
+    if (curPath.endsWith("" + Platform.separatorChar())) {
+      curPath = curPath.substring(0, curPath.length() - 1);
     }
     while (curPath != null) {
       if (nativeApi.exists(curPath, "package.yaml") && nativeApi.exists(curPath, "src")) {
@@ -86,9 +92,8 @@ public abstract sealed class WorkingDirectory
   private static boolean isPathAbsolute(String path) {
     return switch (Platform.getOperatingSystem()) {
       case LINUX, MACOS -> path.charAt(0) == Platform.separatorChar();
-      case WINDOWS -> path.length() > 2
-          && path.charAt(1) == ':'
-          && path.charAt(2) == Platform.separatorChar();
+      case WINDOWS ->
+          path.length() > 2 && path.charAt(1) == ':' && path.charAt(2) == Platform.separatorChar();
     };
   }
 }

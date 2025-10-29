@@ -32,7 +32,6 @@ npm_package(
     name = "pkg",
     srcs = [
         "package.json",
-        "src/config.json",
         ":tsc",
     ],
     visibility = ["//visibility:public"],

@@ -3,6 +3,10 @@
 - type Date
     - + self amount:(Standard.Base.Data.Time.Period.Period|Standard.Base.Data.Time.Date_Period.Date_Period) -> Standard.Base.Any.Any
     - - self amount:(Standard.Base.Data.Time.Period.Period|Standard.Base.Data.Time.Date_Period.Date_Period) -> Standard.Base.Any.Any
+    - < self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - <= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - add_work_days self days:Standard.Base.Any.Any= holidays:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - century self -> Standard.Base.Any.Any
     - date_add self amount:Standard.Base.Data.Numbers.Integer period:Standard.Base.Data.Time.Date_Period.Date_Period -> Standard.Base.Any.Any

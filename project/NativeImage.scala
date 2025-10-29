@@ -98,7 +98,8 @@ object NativeImage {
     mainModule: Option[String]               = None,
     modulePath: Seq[String]                  = Seq.empty,
     addModules: Seq[String]                  = Seq.empty,
-    verbose: Boolean                         = false
+    verbose: Boolean                         = false,
+    symlink: Boolean                         = true
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log       = state.value.log
@@ -287,7 +288,7 @@ object NativeImage {
         throw new RuntimeException("Native Image build failed")
       }
       var msg = s"$targetLoc native image build successful."
-      if (targetDir != null) {
+      if (targetDir != null && symlink) {
         val symlinkTargetFile = artifactFile(null, name)
         if (symlinkTargetFile.exists()) {
           symlinkTargetFile.delete()

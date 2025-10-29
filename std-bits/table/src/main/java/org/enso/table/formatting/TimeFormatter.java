@@ -1,15 +1,14 @@
 package org.enso.table.formatting;
 
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import org.enso.base.time.EnsoDateTimeFormatter;
 import org.graalvm.polyglot.Value;
 
 public class TimeFormatter implements DataFormatter {
-  private final DateTimeFormatter formatter;
+  private final EnsoDateTimeFormatter formatter;
 
   public TimeFormatter(EnsoDateTimeFormatter ensoFormatter) {
-    formatter = ensoFormatter.getRawJavaFormatter();
+    formatter = ensoFormatter;
   }
 
   @Override
@@ -23,7 +22,7 @@ public class TimeFormatter implements DataFormatter {
     }
 
     if (value instanceof LocalTime date) {
-      return date.format(formatter);
+      return formatter.formatLocalTime(date);
     }
 
     throw new IllegalArgumentException("Unsupported type for TimeFormatter.");

@@ -1,4 +1,4 @@
-import Backend, { AssetType, Plan, User } from '#/services/Backend'
+import Backend, { AssetType, Plan, type User } from '#/services/Backend'
 import LocalBackend from '#/services/LocalBackend'
 import RemoteBackend from '#/services/RemoteBackend'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -6,7 +6,7 @@ import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { injectGuiConfig } from '@/providers/guiConfig'
 import { onlineManager } from '@tanstack/vue-query'
-import { NavigationGuardReturn, RouteLocation } from 'vue-router'
+import type { NavigationGuardReturn, RouteLocation } from 'vue-router'
 
 export const SAMPLES_DIRECTORY = 'Samples'
 export const LOCAL_INITIAL_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting_Started`
@@ -79,20 +79,29 @@ async function shouldOpenInitialProject(
   const anyProjectLaunched = LocalStorage.getInstance().get('launchedProjects')
   if (navigatedInDrive || anyProjectLaunched) return false
 
-  const homeDirQuery = { parentId: null, filterBy: null, labels: null, recentProjects: false }
+  const homeDirQuery = {
+    parentId: null,
+    filterBy: null,
+    labels: null,
+    sortExpression: null,
+    sortDirection: null,
+    from: null,
+    pageSize: null,
+    recentProjects: false,
+  }
   const onError = (err: unknown) => {
     console.error('Cannot read user home directory; will skip launching Welcome Project', err)
     return null
   }
   const homeContent = await Promise.all([
-    localBackend?.listDirectory(homeDirQuery) ?? [],
+    localBackend?.listDirectory(homeDirQuery),
     onlineManager.isOnline() && remoteBackend != null ?
       remoteBackend.listDirectory(homeDirQuery, 'User Home')
-    : [],
+    : null,
   ]).catch(onError)
   if (homeContent == null) return false
   const [localHome, cloudHome] = homeContent
-  return ![...localHome, ...cloudHome].some((asset) => {
+  return ![...(localHome?.assets ?? []), ...(cloudHome?.assets ?? [])].some((asset) => {
     return asset.type != AssetType.directory || asset.title != SAMPLES_DIRECTORY
   })
 }

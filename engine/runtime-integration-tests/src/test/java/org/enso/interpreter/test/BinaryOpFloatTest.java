@@ -102,9 +102,11 @@ public class BinaryOpFloatTest {
 
   @Test
   public void verifyOperationOnForeignObject() {
-    var code = """
-  fn a b = a{op} b
-  """.replace("{op}", operation);
+    var code =
+        """
+        fn a b = a{op} b
+        """
+            .replace("{op}", operation);
     var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
     var r1 = execute(fn, n1, n2);
@@ -117,9 +119,11 @@ public class BinaryOpFloatTest {
 
   @Test
   public void verifyOperationWithConvertibleObject() {
-    var code = """
-  fn a b = a{op} b
-  """.replace("{op}", operation);
+    var code =
+        """
+        fn a b = a{op} b
+        """
+            .replace("{op}", operation);
     var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
     var r1 = fn.execute(n1, n2);
@@ -137,9 +141,11 @@ public class BinaryOpFloatTest {
 
   @Test
   public void verifyOperationOnConvertibleObject() {
-    var code = """
-  fn a b = a{op} b
-  """.replace("{op}", operation);
+    var code =
+        """
+        fn a b = a{op} b
+        """
+            .replace("{op}", operation);
     var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
     var r1 = fn.execute(n1, n2);

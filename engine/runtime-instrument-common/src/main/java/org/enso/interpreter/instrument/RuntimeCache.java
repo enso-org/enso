@@ -1,9 +1,9 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -12,11 +12,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.polyglot.RuntimeID;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.service.GuestExecutionService;
+import org.enso.polyglot.RuntimeID;
 
 /** A storage for computed values. */
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
@@ -27,7 +26,8 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private Consumer<UUID> observer;
   private final GuestExecutionService executionService;
-  private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> enterables = new HashMap<>();
+  private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> enterables =
+      new HashMap<>();
   private RuntimeID localCallUUID;
 
   public RuntimeCache(GuestExecutionService executionService) {
@@ -53,8 +53,8 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   }
 
   /**
-   * Add value to the cache if it is possible. If any observer registered for `key` updates, it will be notified.
-   * DataflowErrors are never cached.
+   * Add value to the cache if it is possible. If any observer registered for `key` updates, it will
+   * be notified. DataflowErrors are never cached.
    *
    * @param key the key of an entry.
    * @param value the added value.
@@ -103,7 +103,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    */
   public List<Observable> downstreamOf(RuntimeID id) {
     var downstream = new LinkedList<Observable>();
-    for (Observable o: cache.values()) {
+    for (Observable o : cache.values()) {
       if (o.hasDependency(id)) {
         downstream.add(o);
       }
@@ -111,7 +111,8 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     return downstream;
   }
 
-  public CompletionStage<Boolean> registerAction(RuntimeID expressionId, ObservableVisualization action) {
+  public CompletionStage<Boolean> registerAction(
+      RuntimeID expressionId, ObservableVisualization action) {
     return cache
         .computeIfAbsent(expressionId.uuid(), k -> new ExternalObservable(expressionId, true))
         .registerAction(action, executionService);
@@ -158,7 +159,9 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   }
 
   public Set<Observable> allCached() {
-    return cache.values().stream().filter(v -> v instanceof ExternalObservable).collect(Collectors.toSet());
+    return cache.values().stream()
+        .filter(v -> v instanceof ExternalObservable)
+        .collect(Collectors.toSet());
   }
 
   public void setEntryNode(RuntimeID id) {

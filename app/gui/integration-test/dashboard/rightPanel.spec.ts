@@ -1,11 +1,11 @@
 /** @file Tests for the asset panel. */
-import { expect, test, type Locator, type Page } from 'playwright/test'
+import { expect, test, type Locator, type Page } from 'integration-test/base'
 
 import { EmailAddress, UserId } from '#/services/Backend'
 
 import { PermissionAction } from '#/utilities/permissions'
 
-import { mockAllAndLogin, TEXT } from './actions'
+import { TEXT } from '../actions'
 
 /** Find an asset panel. */
 function locateRightPanel(page: Page) {
@@ -39,28 +39,26 @@ const USERNAME = 'baz quux'
 /** An example owner email for the asset selected in the asset panel. */
 const EMAIL = 'baz.quux@email.com'
 
-test('asset panel contents', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      const { defaultOrganizationId, defaultUserId } = api
-      api.addProject({
-        description: DESCRIPTION,
-        permissions: [
-          {
-            permission: PermissionAction.own,
-            user: {
-              organizationId: defaultOrganizationId,
-              // Using the default ID causes the asset to have a dynamic username.
-              userId: UserId(defaultUserId + '2'),
-              name: USERNAME,
-              email: EmailAddress(EMAIL),
-            },
-          },
-        ],
-      })
-    },
+test('asset panel contents', async ({ drivePage, page, cloudApi }) => {
+  const { defaultOrganizationId, defaultUserId } = cloudApi
+  cloudApi.addProject({
+    description: DESCRIPTION,
+    permissions: [
+      {
+        permission: PermissionAction.own,
+        user: {
+          organizationId: defaultOrganizationId,
+          // Using the default ID causes the asset to have a dynamic username.
+          userId: UserId(defaultUserId + '2'),
+          name: USERNAME,
+          email: EmailAddress(EMAIL),
+        },
+      },
+    ],
   })
+
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.clickRow(0)
     .togglePropertiesAssetPanel()
     .do(async () => {
@@ -68,19 +66,18 @@ test('asset panel contents', ({ page }) =>
     })
     .togglePropertiesAssetPanel()
     .do(async () => {
-      await expect(locateRightPanelDescription(page)).not.toBeVisible()
-    }))
+      await expect(locateRightPanelDescription(page)).toBeHidden()
+    })
+})
 
-test('Asset Panel Decription', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addFile({
-        title: 'File',
-        description: DESCRIPTION,
-      })
-    },
+test('Asset Panel Decription', async ({ drivePage, cloudApi, page }) => {
+  cloudApi.addFile({
+    title: 'File',
+    description: DESCRIPTION,
   })
+
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.clickRow(0)
     .toggleDescriptionAssetPanel()
     .do(async () => {
@@ -91,37 +88,32 @@ test('Asset Panel Decription', ({ page }) =>
       await page.keyboard.insertText(NEW_DESCRIPTION)
     })
     .driveTable.clickAway()
-    .do(() => expect(locateRightPanelDescription(page)).not.toBeVisible())
+    .do(() => expect(locateRightPanelDescription(page)).toBeHidden())
     .driveTable.clickRow(0)
     .do(async () => {
       await expect(locateRightPanelDescription(page)).toContainText(
         `${DESCRIPTION}${NEW_DESCRIPTION}`,
       )
-    }))
+    })
+})
 
-test('Asset Panel documentation view', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addProject({})
-    },
-  })
+test('Asset Panel documentation view', async ({ drivePage, cloudApi }) => {
+  cloudApi.addProject({})
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.clickRow(0)
     .toggleDocsAssetPanel()
     .withRightPanel(async (rightPanel) => {
       await expect(locateMarkdownContent(rightPanel)).toBeVisible()
       await expect(locateMarkdownContent(rightPanel)).toHaveText(/Project Goal/)
-      await expect(rightPanel.getByText(TEXT.arbitraryFetchImageError)).not.toBeVisible()
-    }))
+      await expect(rightPanel.getByText(TEXT.arbitraryFetchImageError)).toBeHidden()
+    })
+})
 
-test('Assets Panel docs images', ({ page }) => {
-  return mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addProject({})
-    },
-  })
-    .do(() => {})
+test('Assets Panel docs images', async ({ drivePage, cloudApi }) => {
+  cloudApi.addProject({})
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.clickRow(0)
     .toggleDocsAssetPanel()
     .withRightPanel(async (assetPanel) => {

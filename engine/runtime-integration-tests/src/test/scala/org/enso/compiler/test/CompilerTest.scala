@@ -183,8 +183,9 @@ trait CompilerRunner {
       * @return a method containing `ir` as its body
       */
     def asMethod: definition.Method = {
-      new definition.Method.Explicit(
-        definition.Method.Binding(
+      val methBinding = definition.Method.Binding
+        .builder()
+        .methodReference(
           Name.MethodReference(
             Some(
               Name.Qualified(
@@ -204,14 +205,13 @@ trait CompilerRunner {
               identifiedLocation = null
             ),
             identifiedLocation = null
-          ),
-          Nil,
-          false,
-          ir,
-          identifiedLocation = null
-        ),
-        ir
-      )
+          )
+        )
+        .arguments(Nil)
+        .isPrivate(false)
+        .body(ir)
+        .build()
+      definition.Method.Explicit.fromMethodBinding(methBinding, ir)
     }
 
     /** Hoists the provided expression as the default value of an atom argument.

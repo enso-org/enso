@@ -38,8 +38,9 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.EQ;
       case TextType tt -> StringComparators.EQ;
       case BooleanType bt -> BooleanComparators.EQ;
-      case NumericType nt -> NumericComparators.create(
-          leftStorage.getType(), right, NumericComparators.EQUAL_OPERATION, false);
+      case NumericType nt ->
+          NumericComparators.create(
+              leftStorage.getType(), right, NumericComparators.EQUAL_OPERATION, false);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
@@ -53,8 +54,9 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.NEQ;
       case TextType tt -> StringComparators.NEQ;
       case BooleanType bt -> BooleanComparators.NEQ;
-      case NumericType nt -> NumericComparators.create(
-          leftStorage.getType(), right, NumericComparators.NOT_EQUAL_OPERATION, true);
+      case NumericType nt ->
+          NumericComparators.create(
+              leftStorage.getType(), right, NumericComparators.NOT_EQUAL_OPERATION, true);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
@@ -68,8 +70,9 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.LT;
       case TextType tt -> StringComparators.LT;
       case BooleanType bt -> BooleanComparators.LT;
-      case NumericType nt -> NumericComparators.create(
-          leftStorage.getType(), right, NumericComparators.LESS_OPERATION);
+      case NumericType nt ->
+          NumericComparators.create(
+              leftStorage.getType(), right, NumericComparators.LESS_OPERATION);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
@@ -83,8 +86,9 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.LTE;
       case TextType tt -> StringComparators.LTE;
       case BooleanType bt -> BooleanComparators.LTE;
-      case NumericType nt -> NumericComparators.create(
-          leftStorage.getType(), right, NumericComparators.LESS_OR_EQUAL_OPERATION);
+      case NumericType nt ->
+          NumericComparators.create(
+              leftStorage.getType(), right, NumericComparators.LESS_OR_EQUAL_OPERATION);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
@@ -98,8 +102,9 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.GT;
       case TextType tt -> StringComparators.GT;
       case BooleanType bt -> BooleanComparators.GT;
-      case NumericType nt -> NumericComparators.create(
-          leftStorage.getType(), right, NumericComparators.GREATER_OPERATION);
+      case NumericType nt ->
+          NumericComparators.create(
+              leftStorage.getType(), right, NumericComparators.GREATER_OPERATION);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
@@ -113,8 +118,9 @@ public final class Comparators {
       case TimeOfDayType tm -> TimeOfDayComparators.GTE;
       case TextType tt -> StringComparators.GTE;
       case BooleanType bt -> BooleanComparators.GTE;
-      case NumericType nt -> NumericComparators.create(
-          leftStorage.getType(), right, NumericComparators.GREATER_OR_EQUAL_OPERATION);
+      case NumericType nt ->
+          NumericComparators.create(
+              leftStorage.getType(), right, NumericComparators.GREATER_OR_EQUAL_OPERATION);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }

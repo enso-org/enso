@@ -55,6 +55,7 @@ import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
 import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
@@ -98,7 +99,6 @@ public class Main {
   private static final String TREAT_WARNINGS_AS_ERRORS_OPTION = "Werror";
   private static final String COMPILE_OPTION = "compile";
   private static final String NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies";
-  private static final String NO_GLOBAL_CACHE_OPTION = "no-global-cache";
   private static final String LOG_LEVEL = "log-level";
   private static final String LOGGER_CONNECT = "logger-connect";
   private static final String NO_LOG_MASKING = "no-log-masking";
@@ -431,11 +431,6 @@ public class Main {
                 "Tells the compiler to not compile dependencies when performing static"
                     + " compilation.")
             .build();
-    var noGlobalCacheOption =
-        cliOptionBuilder()
-            .longOpt(NO_GLOBAL_CACHE_OPTION)
-            .desc("Tells the compiler not to write compiled data to the global cache locations.")
-            .build();
 
     var irCachesOption =
         cliOptionBuilder()
@@ -560,7 +555,6 @@ public class Main {
         .addOption(noReadIrCachesOption)
         .addOption(compileOption)
         .addOption(noCompileDependenciesOption)
-        .addOption(noGlobalCacheOption)
         .addOptionGroup(cacheOptionsGroup)
         .addOption(autoParallelism)
         .addOption(skipGraalVMUpdater)
@@ -673,8 +667,6 @@ public class Main {
    * @param path the path to the package or file being compiled
    * @param shouldCompileDependencies whether the dependencies of that package should also be
    *     compiled
-   * @param shouldUseGlobalCache whether or not the compilation result should be written to the
-   *     global cache
    * @param shouldUseIrCaches whether or not IR caches should be used.
    * @param disablePrivateCheck whether or not the private check should be disabled
    * @param enableStaticAnalysis whether or not static type checking, and other static analysis,
@@ -687,7 +679,6 @@ public class Main {
       String cwd,
       String path,
       boolean shouldCompileDependencies,
-      boolean shouldUseGlobalCache,
       boolean shouldUseIrCaches,
       boolean disablePrivateCheck,
       boolean enableStaticAnalysis,
@@ -713,7 +704,6 @@ public class Main {
                 .enableStaticAnalysis(enableStaticAnalysis)
                 .treatWarningsAsErrors(treatWarningsAsErrors)
                 .strictErrors(true)
-                .useGlobalIrCacheLocation(shouldUseGlobalCache)
                 .build());
 
     try {
@@ -1029,11 +1019,11 @@ public class Main {
     var mainMethodName = "internal_repl_entry_point___";
     var dummySourceToTriggerRepl =
         """
-         from Standard.Base import all
-         import Standard.Base.Runtime.Debug
+        from Standard.Base import all
+        import Standard.Base.Runtime.Debug
 
-         $mainMethodName = Debug.breakpoint
-         """
+        $mainMethodName = Debug.breakpoint
+        """
             .replace("$mainMethodName", mainMethodName);
     var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
@@ -1204,13 +1194,11 @@ public class Main {
     if (line.hasOption(COMPILE_OPTION)) {
       var packagePath = line.getOptionValue(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
-      var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
 
       compile(
           cwd,
           packagePath,
           shouldCompileDependencies,
-          shouldUseGlobalCache,
           shouldEnableIrCaches(line),
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
@@ -1280,7 +1268,7 @@ public class Main {
     if (line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION)) {
       if (line.hasOption(IR_CACHES_OPTION)) {
         throw exitFail(
-          ""
+            ""
                 + ENABLE_STATIC_ANALYSIS_OPTION
                 + " requires IR caches to be disabled, so --"
                 + IR_CACHES_OPTION
@@ -1494,7 +1482,8 @@ public class Main {
       File component,
       File javaExecutable)
       throws IOException, InterruptedException {
-    var useJNI = true;
+    /* Cannot use JNI when not in Native Image code. Fallback to launching a process. */
+    var useJNI = ImageInfo.inImageCode();
     var commandAndArgs = new ArrayList<String>();
     if (originalCwdOrNull != null) {
       commandAndArgs.add("-Denso.user.dir=" + originalCwdOrNull);
@@ -1614,6 +1603,10 @@ public class Main {
         if (javaExecutable != null) {
           launchJvm(originalCwdOrNull, line, props, component, javaExecutable);
           return;
+        } else {
+          throw exitFail(
+              "Cannot find java executable to run in JVM mode. JVM mode "
+                  + "was enforced either by `--jvm` option or by project configuration.");
         }
       }
     }

@@ -1,5 +1,5 @@
-import type { NodeId } from '@/stores/graph'
-import type { GraphDb } from '@/stores/graph/graphDatabase'
+import type { NodeId } from '$/providers/openedProjects/graph'
+import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
 import type { Opt } from '@/util/data/opt'
 import type { ToValue } from '@/util/reactivity'
 import { computed, toValue } from 'vue'

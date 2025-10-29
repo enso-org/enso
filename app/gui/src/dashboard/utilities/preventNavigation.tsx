@@ -5,7 +5,7 @@ import { Text } from '#/components/Text'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useText } from '$/providers/react'
-import { isOnElectron } from 'enso-common/src/detect'
+import { isOnElectron } from '$/utils/detect'
 import { useEffect } from 'react'
 
 let shouldClose = false
@@ -34,6 +34,7 @@ export function usePreventNavigation(options: PreventNavigationOptions) {
           // Allow the window to close. Set `shouldClose` to false just in case something goes wrong.
           shouldClose = false
         }
+        event.stopImmediatePropagation()
       }
       window.addEventListener('beforeunload', onBeforeUnload)
       return () => {

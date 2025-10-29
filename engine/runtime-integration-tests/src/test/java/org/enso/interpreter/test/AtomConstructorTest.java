@@ -27,7 +27,8 @@ public class AtomConstructorTest {
 
   @Test
   public void testGetUncached() {
-    var code = """
+    var code =
+        """
         type NoPrime
             A a b c
         """;
@@ -46,7 +47,8 @@ public class AtomConstructorTest {
 
   @Test
   public void testAtomNewInstanceNode() {
-    var code = """
+    var code =
+        """
         type X
             A a b c
         """;

@@ -2,7 +2,6 @@
 import { Button } from '#/components/Button'
 import { Form } from '#/components/Form'
 import { useText } from '$/providers/react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import SettingsInput from './Input'
 import type { SettingsContext, SettingsFormEntryData } from './data'
@@ -64,24 +63,12 @@ export function SettingsFormEntry<T extends Record<keyof T, string>>(
       {inputs.map((input) => (
         <SettingsInput key={input.name} context={context} data={input} />
       ))}
-
-      <AnimatePresence>
-        {shouldShowSaveButton && (
-          <motion.div
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            exit={{ opacity: 0, y: -10 }}
-          >
-            <Button.Group>
-              <Form.Submit>{getText('save')}</Form.Submit>
-              <Form.Reset>{getText('cancel')}</Form.Reset>
-            </Button.Group>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      {shouldShowSaveButton && (
+        <Button.Group>
+          <Form.Submit>{getText('save')}</Form.Submit>
+          <Form.Reset>{getText('cancel')}</Form.Reset>
+        </Button.Group>
+      )}
       <Form.FormError />
     </Form>
   )

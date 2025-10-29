@@ -56,11 +56,12 @@ final class EnsoModuleAST {
     this.nodeIds = nodeIds;
     assert ctx != null;
     this.ctx = ctx;
-    this.root = switch (ctx.ir()) {
-        case Module m -> buildTree(m);
-        case Expression e -> buildTree(e);
-        case null, default -> throw new IllegalArgumentException("ir: " + ctx.ir());
-    };
+    this.root =
+        switch (ctx.ir()) {
+          case Module m -> buildTree(m);
+          case Expression e -> buildTree(e);
+          case null, default -> throw new IllegalArgumentException("ir: " + ctx.ir());
+        };
   }
 
   /**
@@ -68,8 +69,7 @@ final class EnsoModuleAST {
    * @param moduleName FQN of the module.
    * @param nodeIds Mapping of IR node UUIDs to sequential IDs expected by the IGV.
    */
-  static EnsoModuleAST create(
-      IRSource<? extends IR> ctx, Map<UUID, Integer> nodeIds) {
+  static EnsoModuleAST create(IRSource<? extends IR> ctx, Map<UUID, Integer> nodeIds) {
     return new EnsoModuleAST(ctx, nodeIds);
   }
 

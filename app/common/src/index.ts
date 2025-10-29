@@ -7,10 +7,6 @@
  * circular dependency in our packages.
  */
 
-// ========================
-// === Product metadata ===
-// ========================
-
 /**
  * URL protocol scheme for deep links to authentication flow pages, without the `:` suffix.
  *

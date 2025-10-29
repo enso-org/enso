@@ -8,8 +8,6 @@ use crate::prelude::*;
 use crate::actions::env;
 use crate::env::accessor::PathBufVariable;
 
-
-
 // ============================
 // === GitHub-defined files ===
 // ============================
@@ -27,7 +25,6 @@ pub static GITHUB_STEP_SUMMARY: EnvironmentFile = EnvironmentFile::new(env::GITH
 /// File with environment variables that will be set for subsequent steps of the current job.
 pub static GITHUB_PATH: EnvironmentFile = EnvironmentFile::new(env::GITHUB_PATH);
 
-
 // =======================
 // === EnvironmentFile ===
 // =======================
@@ -40,7 +37,7 @@ pub struct EnvironmentFile {
     /// Environment variable that contains path to the file.
     pub env_var: PathBufVariable,
     /// Mutex for synchronization.
-    mutex:       tokio::sync::Mutex<()>,
+    mutex: tokio::sync::Mutex<()>,
 }
 
 impl EnvironmentFile {

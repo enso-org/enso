@@ -10,9 +10,9 @@ import { extractIdFromDirectoryId, organizationIdToDirectoryId } from '#/service
 import { delay } from '#/utilities/async'
 import * as download from '#/utilities/download'
 import * as objects from '#/utilities/object'
-import * as detect from 'enso-common/src/detect'
+import { getFileName, getFolderPath } from '#/utilities/path'
+import * as detect from '$/utils/detect'
 import * as remoteBackendPaths from 'enso-common/src/services/Backend/remoteBackendPaths'
-import { getFileName, getFolderPath } from 'enso-common/src/utilities/file'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
@@ -341,20 +341,26 @@ export default class RemoteBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
     title: string,
-  ): Promise<readonly backend.AnyAsset[]> {
-    const path = remoteBackendPaths.LIST_DIRECTORY_PATH
+  ): Promise<backend.ListDirectoryResponseBody> {
+    if (query.recentProjects && query.from) {
+      return { assets: [], paginationToken: null }
+    }
+    const paramsString = new URLSearchParams(
+      query.recentProjects ?
+        [['recent_projects', String(true)]]
+      : [
+          ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+          ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
+          ...(query.from != null ? [['from', query.from]] : []),
+          ...(query.pageSize != null ? [['page_size', String(query.pageSize)]] : []),
+          ...(query.labels?.map((label) => ['label', label]) ?? []),
+          ...(query.sortExpression != null ? [['sort_expression', query.sortExpression]] : []),
+          ...(query.sortDirection != null ? [['sort_direction', query.sortDirection]] : []),
+          ...(query.labels != null ? query.labels.map((label) => ['label', label]) : []),
+        ],
+    ).toString()
     const response = await this.get<backend.ListDirectoryResponseBody>(
-      path +
-        '?' +
-        new URLSearchParams(
-          query.recentProjects ?
-            [['recent_projects', String(true)]]
-          : [
-              ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
-              ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
-              ...(query.labels != null ? query.labels.map((label) => ['label', label]) : []),
-            ],
-        ).toString(),
+      `${remoteBackendPaths.LIST_DIRECTORY_PATH}?${paramsString}`,
     )
     if (!response.ok) {
       if (query.parentId != null) {
@@ -363,23 +369,44 @@ export default class RemoteBackend extends Backend {
         return await this.throw(response, 'listRootFolderBackendError')
       }
     } else {
-      const ret = (await response.json()).assets
-        .map((asset) =>
-          objects.merge(asset, {
-            type: backend.getAssetTypeFromId(asset.id),
-            // `Users` and `Teams` folders are virtual, so their children incorrectly have
-            // the organization root id as their parent id.
-            parentId: query.parentId ?? asset.parentId,
-          }),
-        )
-        .map((asset) =>
-          objects.merge(asset, {
-            permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
-          }),
-        )
-        .map((asset) => this.dynamicAssetUser(asset))
-        .sort(backend.compareAssets)
-      return ret
+      const responseBody = await response.json()
+      return {
+        ...responseBody,
+        assets: this.listDirectoryResponseToAssetList(responseBody.assets, query.parentId),
+      }
+    }
+  }
+
+  /**
+   * Search for assets in a directory.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async searchDirectory(
+    query: backend.SearchDirectoryRequestParams,
+  ): Promise<backend.ListDirectoryResponseBody> {
+    const paramsString = new URLSearchParams([
+      ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
+      ...(query.query != null ? [['query', query.query]] : []),
+      ...(query.title != null ? [['title', query.title]] : []),
+      ...(query.description != null ? [['description', query.description]] : []),
+      ...(query.type != null ? [['type', query.type]] : []),
+      ...(query.extension != null ? [['extension', query.extension]] : []),
+      ...(query.labels?.map((label) => ['label', label]) ?? []),
+      ...(query.sortExpression != null ? [['sort_expression', query.sortExpression]] : []),
+      ...(query.sortDirection != null ? [['sort_direction', query.sortDirection]] : []),
+      ...(query.from != null ? [['from', query.from]] : []),
+      ...(query.pageSize != null ? [['pageSize', String(query.pageSize)]] : []),
+    ]).toString()
+    const path = `${remoteBackendPaths.SEARCH_DIRECTORY_PATH}?${paramsString}`
+    const response = await this.get<backend.ListDirectoryResponseBody>(path)
+    if (!response.ok) {
+      return await this.throw(response, 'searchFolderBackendError')
+    } else {
+      const responseBody = await response.json()
+      return {
+        ...responseBody,
+        assets: this.listDirectoryResponseToAssetList(responseBody.assets, query.parentId),
+      }
     }
   }
 
@@ -742,7 +769,7 @@ export default class RemoteBackend extends Backend {
    * @throws An {@link DirectoryDoesNotExistError} if the asset is a directory and does not exist.
    * @returns The asset details. Returns `null` if the asset is a root directory.
    */
-  override async getAssetDetails<Id extends backend.RealAssetId>(assetId: Id) {
+  override async getAssetDetails<Id extends backend.AssetId>(assetId: Id) {
     const path = remoteBackendPaths.getAssetDetailsPath(assetId)
     const response = await this.get<backend.AssetDetailsResponse<Id>>(path)
 
@@ -758,8 +785,7 @@ export default class RemoteBackend extends Backend {
       return await this.throw(response, 'getAssetDetailsBackendError')
     }
 
-    // eslint-disable-next-line no-restricted-syntax
-    return (await response.json()) as never
+    return await response.json()
   }
   /**
    * Return Language Server logs for a project session.
@@ -842,13 +868,14 @@ export default class RemoteBackend extends Backend {
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
     file: File,
+    abort?: AbortSignal,
   ): Promise<backend.UploadLargeFileMetadata> {
     const path = remoteBackendPaths.UPLOAD_FILE_START_PATH
     const requestBody: backend.UploadFileStartRequestBody = {
       fileName: body.fileName,
       size: file.size,
     }
-    const response = await this.post<backend.UploadLargeFileMetadata>(path, requestBody)
+    const response = await this.post<backend.UploadLargeFileMetadata>(path, requestBody, { abort })
     if (!response.ok) {
       return await this.throw(response, 'uploadFileStartBackendError')
     } else {
@@ -864,16 +891,17 @@ export default class RemoteBackend extends Backend {
     url: backend.HttpsUrl,
     file: Blob,
     index: number,
-  ): Promise<backend.S3MultipartPart> {
+    abort?: AbortSignal,
+  ): Promise<{ part: backend.S3MultipartPart; size: number }> {
     const start = index * backend.S3_CHUNK_SIZE_BYTES
     const end = Math.min(start + backend.S3_CHUNK_SIZE_BYTES, file.size)
     const body = file.slice(start, end)
-    const response = await fetch(url, { method: 'PUT', body })
+    const response = await fetch(url, { method: 'PUT', body, ...(abort ? { signal: abort } : {}) })
     const eTag = response.headers.get('ETag')
     if (!response.ok || eTag == null) {
       return await this.throw(response, 'uploadFileChunkBackendError')
     } else {
-      return { eTag, partNumber: index + 1 }
+      return { part: { eTag, partNumber: index + 1 }, size: body.size }
     }
   }
 
@@ -883,9 +911,10 @@ export default class RemoteBackend extends Backend {
    */
   override async uploadFileEnd(
     body: backend.UploadFileEndRequestBody,
+    abort?: AbortSignal,
   ): Promise<backend.UploadedAsset> {
     const path = remoteBackendPaths.UPLOAD_FILE_END_PATH
-    const response = await this.post<backend.UploadedAsset>(path, body)
+    const response = await this.post<backend.UploadedAsset>(path, body, { abort })
     if (!response.ok) {
       return await this.throw(response, 'uploadFileEndBackendError')
     } else {
@@ -1291,7 +1320,6 @@ export default class RemoteBackend extends Backend {
       }
       case backend.AssetType.secret:
       case backend.AssetType.directory:
-      case backend.AssetType.specialUp:
       default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
@@ -1464,29 +1492,19 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /**
-   * Replaces the `user` of all permissions for the current user on an asset, so that they always
-   * return the up-to-date user.
-   */
-  private dynamicAssetUser<Asset extends backend.AnyAsset>(asset: Asset) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this
-    let foundSelfPermission = (() => false)()
-    const permissions = asset.permissions?.map((permission) => {
-      if (!('user' in permission) || permission.user.userId !== this.user?.userId) {
-        return permission
-      } else {
-        foundSelfPermission = true
-        return {
-          ...permission,
-          /** Return a dynamic reference to the current user. */
-          get user() {
-            return self.user
-          },
-        }
-      }
-    })
-    return !foundSelfPermission ? asset : { ...asset, permissions }
+  /** Convert a {@link ListDirectoryResponseBody} to an array of {@link backend.AnyAsset}. */
+  private listDirectoryResponseToAssetList(
+    assets: readonly backend.AnyAsset[],
+    parentId: backend.DirectoryId | null,
+  ): readonly backend.AnyAsset[] {
+    return assets.map((asset) =>
+      objects.merge(asset, {
+        type: backend.getAssetTypeFromId(asset.id),
+        // `Users` and `Teams` folders are virtual, so their children incorrectly have
+        // the organization root id as their parent id.
+        parentId: parentId ?? asset.parentId,
+      }),
+    )
   }
 }
 

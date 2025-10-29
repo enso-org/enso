@@ -40,6 +40,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           .environment("NO_COLOR", "true")
           .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
           .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(RuntimeOptions.CHECK_CWD, "false")
           .option(
             RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
             sequentialExecution.toString
@@ -543,7 +544,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
-      context.receiveNIgnoreExpressionUpdates(3) should contain allOf (
+      context.receiveNIgnoreExpressionUpdates(2) should contain allOf (
         Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
         context.executionComplete(contextId)
       )
@@ -2483,7 +2484,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
       val attachVisualizationResponses =
-        context.receiveN(4, timeoutSeconds = 60)
+        context.receiveN(3, timeoutSeconds = 10)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
         context.executionComplete(contextId)

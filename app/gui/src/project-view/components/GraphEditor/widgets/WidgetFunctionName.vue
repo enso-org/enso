@@ -4,22 +4,22 @@ import {
   useProjectNames,
   useProjectStore,
 } from '$/components/WithCurrentProject.vue'
-import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import {
   defineWidget,
   Score,
-  UpdateResult,
   WidgetInput,
   widgetProps,
-} from '@/providers/widgetRegistry'
+  type UpdateResult,
+} from '$/providers/openedProjects/widgetRegistry'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import { usePersisted } from '@/stores/persisted'
 import { Ast } from '@/util/ast'
 import { Err, Ok } from '@/util/data/result'
-import { type MethodPointer } from '@/util/methodPointer'
-import { type IdentifierOrOperatorIdentifier } from '@/util/qualifiedName'
+import type { MethodPointer } from '@/util/methodPointer'
+import type { IdentifierOrOperatorIdentifier } from '@/util/qualifiedName'
 import { computed } from 'vue'
 import { PropertyAccess } from 'ydoc-shared/ast'
-import { type ExpressionId } from 'ydoc-shared/languageServerTypes'
+import type { ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
@@ -63,7 +63,7 @@ async function renameFunction(newName: string): Promise<UpdateResult> {
 
 <script lang="ts">
 export const FunctionName: unique symbol = Symbol.for('WidgetInput:FunctionName')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [FunctionName]?: {
       /**

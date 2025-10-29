@@ -3,7 +3,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
-import { computed, reactive, Ref } from 'vue'
+import { computed, reactive, watchEffect, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as z from 'zod'
 
@@ -97,6 +97,8 @@ export const [provideContainerData, useContainerData] = createContextStore(
     const launchedProjects = computed(() => localStorage.get('launchedProjects') ?? [])
 
     const openingProjects = reactive(new Map<ProjectId, EnsoPath>())
+    // Projects still in the process of shutting down. They cannot be opened right away.
+    const closingProjects = reactive(new Set<ProjectId>())
 
     const openedProjects = computed<OpenedProject[]>(() => {
       const launched = launchedProjects.value.map(
@@ -131,6 +133,14 @@ export const [provideContainerData, useContainerData] = createContextStore(
       },
     })
 
+    // When the current tab is no longer valid (e.g. the project was closed), switch to the fallback tab.
+    watchEffect(() => {
+      const name = normalizeRouteParamToString(route.params.path)
+      if (!isValidTab(name)) {
+        tab.value = fallbackTab
+      }
+    })
+
     const addLaunchedProject = (project: LaunchedProject) => {
       updateLaunchedProjects((current) => [...current, project])
     }
@@ -150,6 +160,7 @@ export const [provideContainerData, useContainerData] = createContextStore(
     return proxyRefs({
       openedProjects,
       openingProjects,
+      closingProjects,
       tab,
       addLaunchedProject,
       removeLaunchedProject,

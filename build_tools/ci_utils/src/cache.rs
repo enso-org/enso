@@ -5,7 +5,6 @@ use enso_build_base::extensions::future::TryFutureExt;
 use sha2::Digest;
 use std::hash::Hasher;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -17,8 +16,6 @@ pub mod download;
 pub mod goodie;
 
 pub use goodie::Goodie;
-
-
 
 /// Format of the hashing scheme.
 ///
@@ -69,20 +66,20 @@ pub struct EntryIndexExtended<S: Storable> {
     #[serde(flatten)]
     #[deref]
     #[deref_mut]
-    pub inner:          EntryIndexRequired<S>,
-    pub key:            Option<S::Key>,
-    pub r#type:         Option<String>,
-    pub key_type:       Option<String>,
+    pub inner: EntryIndexRequired<S>,
+    pub key: Option<S::Key>,
+    pub r#type: Option<String>,
+    pub key_type: Option<String>,
     pub schema_version: Option<u8>,
 }
 
 impl<S: Storable> EntryIndexExtended<S> {
     pub fn new(metadata: S::Metadata, key: S::Key) -> Self {
         Self {
-            inner:          EntryIndexRequired { metadata },
-            key:            Some(key),
-            r#type:         Some(std::any::type_name::<S>().into()),
-            key_type:       Some(std::any::type_name::<S::Key>().into()),
+            inner: EntryIndexRequired { metadata },
+            key: Some(key),
+            r#type: Some(std::any::type_name::<S>().into()),
+            key_type: Some(std::any::type_name::<S::Key>().into()),
             schema_version: Some(VERSION),
         }
     }
@@ -136,7 +133,9 @@ impl Cache {
     }
 
     pub fn get<S>(&self, storable: S) -> BoxFuture<'static, Result<S::Output>>
-    where S: Storable {
+    where
+        S: Storable,
+    {
         let this = self.clone();
         async move {
             let digest = digest(&storable)?;
@@ -179,7 +178,6 @@ impl Cache {
         .boxed()
     }
 }
-
 
 #[cfg(test)]
 mod tests {

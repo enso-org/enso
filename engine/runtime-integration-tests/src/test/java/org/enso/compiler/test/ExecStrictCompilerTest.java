@@ -36,10 +36,13 @@ public class ExecStrictCompilerTest {
   @Test
   public void redefinedArgument() {
     try {
-      var module = ctxRule.eval("enso", """
-      type My_Type
-          Value a b c a
-      """);
+      var module =
+          ctxRule.eval(
+              "enso",
+              """
+              type My_Type
+                  Value a b c a
+              """);
       fail("Expecting no returned value: " + module);
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
@@ -92,11 +95,12 @@ public class ExecStrictCompilerTest {
 
   @Test
   public void testUnknownTypeExtensionMethod() throws Exception {
-    var code = """
-    Unknown_Type.foo = 42
+    var code =
+        """
+        Unknown_Type.foo = 42
 
-    main = 42
-    """;
+        main = 42
+        """;
     var src = Source.newBuilder("enso", code, "extension.enso").build();
     try {
       var module = ctxRule.eval(src);

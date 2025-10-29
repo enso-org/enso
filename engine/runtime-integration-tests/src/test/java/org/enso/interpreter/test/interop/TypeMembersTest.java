@@ -33,27 +33,27 @@ public class TypeMembersTest {
         Source.newBuilder(
                 "enso",
                 """
-    from Standard.Base.Data.Boolean import True, False
+                from Standard.Base.Data.Boolean import True, False
 
-    type IntList
-        End
-        Head h t
+                type IntList
+                    End
+                    Head h t
 
-        is_empty self = case self of
-            IntList.End -> True
-            _ -> False
+                    is_empty self = case self of
+                        IntList.End -> True
+                        _ -> False
 
-        tail self = case self of
-            IntList.Head _ t -> t
-            _ -> IntList.End
+                    tail self = case self of
+                        IntList.Head _ t -> t
+                        _ -> IntList.End
 
-        head self = case self of
-            IntList.Head h _ -> h
-            _ -> -1
+                    head self = case self of
+                        IntList.Head h _ -> h
+                        _ -> -1
 
-    list1 = IntList.Head 7 <| IntList.Head 3 <| IntList.End
+                list1 = IntList.Head 7 <| IntList.Head 3 <| IntList.End
 
-    """,
+                """,
                 "compare.enso")
             .uri(uri)
             .buildLiteral();
@@ -85,14 +85,14 @@ public class TypeMembersTest {
         Source.newBuilder(
                 "enso",
                 """
-    @Builtin_Type
-    type Compile_Error
-        Error message
+                @Builtin_Type
+                type Compile_Error
+                    Error message
 
-        to_display_text self = "Compile error: "+self.message
+                    to_display_text self = "Compile error: "+self.message
 
-    v = Compile_Error.Error "foo"
-    """,
+                v = Compile_Error.Error "foo"
+                """,
                 "to_display_text.enso")
             .uri(uri)
             .buildLiteral();
@@ -110,9 +110,9 @@ public class TypeMembersTest {
     var refType =
         ctxRule.evalModule(
             """
-        import Standard.Base.Runtime.Ref.Ref
-        main = Ref
-        """);
+            import Standard.Base.Runtime.Ref.Ref
+            main = Ref
+            """);
     assertThat(refType.hasMember("new"), is(true));
   }
 
@@ -122,13 +122,13 @@ public class TypeMembersTest {
     var type =
         ctxRule.evalModule(
             """
-        from Standard.Base.Any import all
+            from Standard.Base.Any import all
 
-        type My_Type
-            method self = 42
+            type My_Type
+                method self = 42
 
-        main = My_Type
-        """);
+            main = My_Type
+            """);
     var typeUnwrapped = ctxRule.unwrapValue(type);
     var memberNames = getAllMemberNames(typeUnwrapped);
     var anyMethods = ctxRule.allMethodsFromAny();
@@ -143,13 +143,13 @@ public class TypeMembersTest {
     var type =
         ctxRule.evalModule(
             """
-        from Standard.Base.Any import all
+            from Standard.Base.Any import all
 
-        type My_Type
-            method self = 42
+            type My_Type
+                method self = 42
 
-        main = My_Type
-        """);
+            main = My_Type
+            """);
     var typeUnwrapped = ctxRule.unwrapValue(type);
     var memberNames = getAllMemberNames(typeUnwrapped);
     assertThat("Member names are not qualified", memberNames, not(hasItem(containsString("."))));
@@ -160,13 +160,13 @@ public class TypeMembersTest {
     var myType =
         ctxRule.evalModule(
             """
-        from Standard.Base.Any import all
+            from Standard.Base.Any import all
 
-        type My_Type
-            method self = 42
+            type My_Type
+                method self = 42
 
-        main = My_Type
-        """);
+            main = My_Type
+            """);
     var displayTextRes = myType.invokeMember("to_display_text");
     assertThat("Has correct result type", displayTextRes.isString(), is(true));
     assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));

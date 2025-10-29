@@ -1,5 +1,5 @@
 import { LRUCache } from '#/utilities/LruCache'
-import { Err, Ok, Result } from '@/util/data/result'
+import { Err, Ok, type Result } from '@/util/data/result'
 import {
   EffectScope,
   effectScope,
@@ -7,9 +7,9 @@ import {
   nextTick,
   onScopeDispose,
   ref,
-  Ref,
   watchEffect,
-  WatchHandle,
+  type Ref,
+  type WatchHandle,
 } from 'vue'
 
 export type ResourceKey = string

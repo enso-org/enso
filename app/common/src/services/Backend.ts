@@ -1,23 +1,21 @@
 /** @file Type definitions common between all backends. */
-
 import { z } from 'zod'
-import { getText, Replacements, resolveDictionary, type TextId } from '../text.js'
-import * as array from '../utilities/data/array.js'
+import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
 import * as permissions from '../utilities/permissions.js'
-import * as uniqueString from '../utilities/uniqueString.js'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
   DatalinkId,
   DirectoryId,
   EnsoPath,
   FileId,
+  MetadataId,
+  PaginationToken,
   ParentsPath,
   Path,
   ProjectId,
   SecretId,
-  UpAssetId,
   VirtualParentsPath,
   type Address,
   type AssetId,
@@ -37,7 +35,7 @@ import {
   type UserId,
   type UserPermissionIdentifier,
 } from './Backend/types.js'
-import { HttpClient, HttpClientPostOptions, ResponseWithTypedJson } from './HttpClient.js'
+import { HttpClient, type HttpClientPostOptions, type ResponseWithTypedJson } from './HttpClient.js'
 export { prettifyError } from 'zod/v4'
 
 export * from './Backend/types.js'
@@ -192,11 +190,6 @@ export enum ProjectState {
    * `openInProgress`, but has not yet been added to the backend.
    */
   placeholder = 'Placeholder',
-  /**
-   * A frontend-specific state, representing a project that should be displayed as `closed`,
-   * but is still in the process of shutting down.
-   */
-  closing = 'Closing',
 }
 
 /** Wrapper around a project state value. */
@@ -224,7 +217,6 @@ export const IS_OPENING: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.hybridOpened]: false,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
 }
 
 export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
@@ -238,7 +230,6 @@ export const IS_OPENING_OR_OPENED: Readonly<Record<ProjectState, boolean>> = {
   [ProjectState.hybridOpened]: true,
   [ProjectState.closed]: false,
   [ProjectState.placeholder]: true,
-  [ProjectState.closing]: false,
 }
 
 /** Common `Project` fields returned by all `Project`-related endpoints. */
@@ -521,9 +512,13 @@ export enum Plan {
   enterprise = 'enterprise',
 }
 
-export const PLANS = Object.values(Plan)
+export const PLANS: readonly Plan[] = Object.values(Plan)
 
-export const isPlan = array.includesPredicate(PLANS)
+/** Whether a given value is a {@link Plan}. */
+export function isPlan(value: unknown): value is Plan {
+  const plans: readonly unknown[] = PLANS
+  return plans.includes(value)
+}
 
 /** Metadata for a payment checkout session. */
 export interface CheckoutSession {
@@ -600,9 +595,11 @@ export interface ListUsersResponseBody {
   readonly users: readonly User[]
 }
 
-/** HTTP response body for the "list projects" endpoint. */
+/** HTTP response body for the "list directory" endpoint. */
 export interface ListDirectoryResponseBody {
   readonly assets: readonly AnyAsset[]
+  /** `null` if and only if this is the last page. */
+  readonly paginationToken: PaginationToken | null
 }
 
 /** HTTP response body for the "list files" endpoint. */
@@ -632,10 +629,9 @@ export interface CreateCustomerPortalSessionResponse {
 export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
 
 /** Response from "assets/${assetId}" endpoint. */
-export type AssetDetailsResponse<Id extends RealAssetId> = Omit<
-  AnyAsset<RealAssetTypeId<Id>>,
-  'ensoPath'
-> | null
+export type AssetDetailsResponse<Id extends AssetId> =
+  | (Omit<Asset<AssetTypeFromId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId })
+  | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
 export function isUserOnPlanWithMultipleSeats(user: User) {
@@ -861,8 +857,6 @@ export enum AssetType {
   secret = 'secret',
   datalink = 'datalink',
   directory = 'directory',
-  /** A special {@link AssetType} representing a button that navigates to the parent directory. */
-  specialUp = 'specialUp',
 }
 
 export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
@@ -870,7 +864,6 @@ export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
   [AssetType.project]: 'projectAssetType',
   [AssetType.file]: 'fileAssetType',
   [AssetType.secret]: 'secretAssetType',
-  [AssetType.specialUp]: 'specialUpAssetType',
   [AssetType.datalink]: 'datalinkAssetType',
 } satisfies { [Type in AssetType]: `${Type}AssetType` }
 
@@ -890,9 +883,7 @@ export type RealAssetType =
   | AssetType.directory
 
 /** The corresponding ID newtype for each {@link AssetType}. */
-export interface IdType extends RealAssetIdType, SpecialAssetIdType {}
-export type RealAssetId = ProjectId | FileId | DatalinkId | SecretId | DirectoryId
-export interface RealAssetIdType {
+export interface IdType {
   readonly [AssetType.project]: ProjectId
   readonly [AssetType.file]: FileId
   readonly [AssetType.datalink]: DatalinkId
@@ -900,16 +891,13 @@ export interface RealAssetIdType {
   readonly [AssetType.directory]: DirectoryId
 }
 
-export type RealAssetTypeId<Id extends RealAssetId> =
+type AssetTypeFromId<Id extends AssetId> =
   Id extends ProjectId ? AssetType.project
   : Id extends FileId ? AssetType.file
   : Id extends DatalinkId ? AssetType.datalink
   : Id extends SecretId ? AssetType.secret
-  : AssetType.directory
-
-export interface SpecialAssetIdType {
-  readonly [AssetType.specialUp]: UpAssetId
-}
+  : Id extends DirectoryId ? AssetType.directory
+  : never
 
 /**
  * Integers (starting from 0) corresponding to the order in which each asset type should appear
@@ -917,11 +905,10 @@ export interface SpecialAssetIdType {
  */
 export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.directory]: 0,
-  [AssetType.project]: 1,
-  [AssetType.file]: 2,
-  [AssetType.datalink]: 3,
-  [AssetType.secret]: 4,
-  [AssetType.specialUp]: -1,
+  [AssetType.project]: -1,
+  [AssetType.file]: -2,
+  [AssetType.datalink]: -3,
+  [AssetType.secret]: -4,
 }
 
 /** A state associated with a credential. */
@@ -980,30 +967,6 @@ export type DatalinkAsset = Asset<AssetType.datalink>
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export type SecretAsset = Asset<AssetType.secret>
 
-/** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
-export type SpecialUpAsset = Asset<AssetType.specialUp>
-
-const PLACEHOLDER_SIGNATURE = Symbol('placeholder')
-
-/** Creates a new placeholder id. */
-function createPlaceholderId(from?: string): string {
-  const id = new String(from ?? uniqueString.uniqueString())
-
-  Object.defineProperty(id, PLACEHOLDER_SIGNATURE, {
-    value: true,
-    enumerable: false,
-    configurable: false,
-    writable: false,
-  })
-
-  return id as string
-}
-
-/** Whether a given {@link AssetId} is a placeholder id. */
-export function isPlaceholderId(id: AssetId) {
-  return typeof id !== 'string' && PLACEHOLDER_SIGNATURE in id
-}
-
 /** Whether a given asset represents a credential. */
 export function isAssetCredential(
   asset: Asset,
@@ -1011,48 +974,9 @@ export function isAssetCredential(
   return asset.type === 'secret' && asset.credentialMetadata !== undefined
 }
 
-/** Extract the file extension from a file name. */
-function fileExtension(fileNameOrPath: string) {
-  return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
-}
-
 /** Whether an asset can be downloaded. */
 export function isDownloadableAsset(type: AssetType | undefined) {
   return type !== AssetType.secret
-}
-
-/** Creates a {@link FileAsset} using the given values. */
-export function createPlaceholderFileAsset(title: string, parentId: DirectoryId): FileAsset {
-  return {
-    type: AssetType.file,
-    id: FileId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: fileExtension(title),
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Creates a {@link ProjectAsset} using the given values. */
-export function createPlaceholderProjectAsset(title: string, parentId: DirectoryId): ProjectAsset {
-  return {
-    type: AssetType.project,
-    id: ProjectId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: { type: ProjectState.new },
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
 }
 
 /** Any object with a `type` field matching the given `AssetType`. */
@@ -1062,7 +986,7 @@ interface HasType<Type extends AssetType> {
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset<Type extends AssetType = AssetType> = Extract<
-  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset | SpecialUpAsset,
+  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset,
   HasType<Type>
 >
 
@@ -1084,44 +1008,6 @@ export function extractTypeFromId(id: AssetId): AnyAsset extends infer T ?
     type: id.match(/^(.+?)-/)?.[1],
     id,
   } as never
-}
-
-/** Creates a new placeholder asset id for the given asset type. */
-export function createPlaceholderAssetId<Type extends AssetType>(
-  type: Type,
-  id?: string,
-): IdType[Type] {
-  // This is required so that TypeScript can check the `switch` for exhaustiveness.
-  const assetType: AssetType = type
-  id = createPlaceholderId(id)
-  let result: AssetId
-  switch (assetType) {
-    case AssetType.directory: {
-      result = DirectoryId(`directory-${id}`)
-      break
-    }
-    case AssetType.project: {
-      result = ProjectId(id)
-      break
-    }
-    case AssetType.file: {
-      result = FileId(id)
-      break
-    }
-    case AssetType.datalink: {
-      result = DatalinkId(id)
-      break
-    }
-    case AssetType.secret: {
-      result = SecretId(id)
-      break
-    }
-    case AssetType.specialUp: {
-      result = UpAssetId(id)
-      break
-    }
-  }
-  return result as IdType[Type]
 }
 
 /** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
@@ -1258,6 +1144,7 @@ export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
   readonly title: string | null
+  readonly metadataId: MetadataId | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
@@ -1380,11 +1267,17 @@ export interface GetLogEventsRequestParams {
   readonly pageSize?: number | null | undefined
 }
 
+export type AssetSortExpression = 'asset_id_discriminator_and_modified_at' | 'modified_at' | 'title'
+
+export type AssetSortDirection = 'ascending' | 'descending'
+
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
   readonly filterBy: FilterBy | null
-  readonly labels: LabelName[] | null
+  readonly labels: readonly LabelName[] | null
+  readonly sortExpression: AssetSortExpression | null
+  readonly sortDirection: AssetSortDirection | null
   readonly recentProjects: boolean
   /**
    * The root path of the directory to list.
@@ -1392,6 +1285,23 @@ export interface ListDirectoryRequestParams {
    * because a root could be any local folder on the machine.
    */
   readonly rootPath?: Path | undefined
+  readonly from: PaginationToken | null
+  readonly pageSize: number | null
+}
+
+/** URL query string parameters for the "search directory" endpoint. */
+export interface SearchDirectoryRequestParams {
+  readonly parentId: DirectoryId | null
+  readonly query: string | null
+  readonly title: string | null
+  readonly description: string | null
+  readonly type: string | null
+  readonly extension: string | null
+  readonly labels: readonly LabelName[] | null
+  readonly sortExpression: AssetSortExpression | null
+  readonly sortDirection: AssetSortDirection | null
+  readonly from: PaginationToken | null
+  readonly pageSize: number | null
 }
 
 /** URL query string parameters for the "get project session logs" endpoint. */
@@ -1496,31 +1406,71 @@ export function getAssetTypeFromId(id: AssetId) {
 }
 
 /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
-export function compareAssets(a: AnyAsset, b: AnyAsset) {
-  const relativeTypeOrder = ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type]
+export function compareAssets(
+  a: AnyAsset,
+  b: AnyAsset,
+  sortExpression?: AssetSortExpression | null,
+  sortDirection?: AssetSortDirection | null,
+) {
+  sortExpression ??= 'asset_id_discriminator_and_modified_at'
+  sortDirection ??=
+    sortExpression == 'asset_id_discriminator_and_modified_at' ? 'descending' : 'ascending'
 
-  if (relativeTypeOrder !== 0) {
-    return relativeTypeOrder
-  } else {
-    // We sort by modified date, because the running/recent projects should be at the top,
-    // but below the folders.
-    const aModified = Number(new Date(a.modifiedAt))
-    const bModified = Number(new Date(b.modifiedAt))
-    const modifiedDelta = aModified - bModified
+  const multiplier = sortDirection === 'ascending' ? 1 : -1
 
-    const aTitle = a.title.toLowerCase()
-    const bTitle = b.title.toLowerCase()
+  const relativeTypeOrder = multiplier * (ASSET_TYPE_ORDER[a.type] - ASSET_TYPE_ORDER[b.type])
+  const modifiedAtDelta =
+    multiplier * (Number(new Date(a.modifiedAt)) - Number(new Date(b.modifiedAt)))
+  const titleDelta = multiplier * a.title.localeCompare(b.title, 'en-US', { numeric: true })
 
-    if (modifiedDelta !== 0) {
-      // Sort by date descending, rather than ascending.
-      return -modifiedDelta
-    } else {
-      return (
-        aTitle > bTitle ? 1
-        : aTitle < bTitle ? -1
-        : 0
-      )
+  switch (sortExpression) {
+    case 'asset_id_discriminator_and_modified_at': {
+      if (relativeTypeOrder !== 0) {
+        return relativeTypeOrder
+      }
+      // On the Remote backend, ids are KSUIDs so they are implicitly sorted by creation date.
+      return modifiedAtDelta
     }
+    case 'modified_at': {
+      return modifiedAtDelta
+    }
+    case 'title': {
+      return titleDelta
+    }
+  }
+}
+
+/** Whether an asset matches the given backend search query. */
+export function doesAssetMatchQuery(query: SearchDirectoryRequestParams) {
+  const typeLower = query.type?.toLowerCase()
+  const titleLower = query.title?.toLowerCase()
+  const extensionLower = query.extension?.toLowerCase()
+  const queryLower = query.query?.toLowerCase().split(/\s+/)
+
+  return (asset: AnyAsset) => {
+    if (typeLower != null && String(asset.type) !== typeLower) {
+      return false
+    }
+    if (titleLower != null && !asset.title.toLowerCase().includes(titleLower)) {
+      return false
+    }
+    if (
+      extensionLower != null &&
+      asset.extension?.toLowerCase().includes(extensionLower) !== true
+    ) {
+      return false
+    }
+    if (
+      queryLower?.some(
+        (term) =>
+          String(asset.type) !== term &&
+          !asset.title.toLowerCase().includes(term) &&
+          asset.extension?.toLowerCase().includes(term) !== true,
+      ) === true
+    ) {
+      return false
+    }
+    return true
   }
 }
 
@@ -1691,7 +1641,6 @@ export default abstract class Backend {
 
   /** Create a {@link LocalBackend}. */
   constructor(
-    private readonly logger: Logger,
     protected getText: GetText,
     private readonly client: HttpClient,
   ) {}
@@ -1714,7 +1663,7 @@ export default abstract class Backend {
     ...replacements: Replacements[K]
   ): Promise<never> {
     if (textId instanceof NetworkError) {
-      this.logger.error(textId.message)
+      console.error(textId.message)
 
       throw textId
     }
@@ -1725,7 +1674,7 @@ export default abstract class Backend {
       : await ((): Promise<Error> => response.json())()
 
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-    this.logger.error(message)
+    console.error(message)
 
     const status = response?.status
 
@@ -1785,7 +1734,9 @@ export default abstract class Backend {
   abstract listDirectory(
     query: ListDirectoryRequestParams,
     title: string,
-  ): Promise<readonly AnyAsset[]>
+  ): Promise<ListDirectoryResponseBody>
+  /** Return a list of assets recursively in a directory matching a query. */
+  abstract searchDirectory(query: SearchDirectoryRequestParams): Promise<ListDirectoryResponseBody>
   /** Create a directory. */
   abstract createDirectory(
     body: CreateDirectoryRequestBody,
@@ -1857,7 +1808,7 @@ export default abstract class Backend {
    */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
   /** Return asset details. */
-  abstract getAssetDetails<Id extends RealAssetId>(
+  abstract getAssetDetails<Id extends AssetId>(
     assetId: Id,
     rootPath: Path | undefined,
   ): Promise<AssetDetailsResponse<Id>>
@@ -1899,11 +1850,20 @@ export default abstract class Backend {
   abstract uploadFileStart(
     params: UploadFileRequestParams,
     file: File,
+    abort?: AbortSignal,
   ): Promise<UploadLargeFileMetadata>
   /** Upload a chunk of a large file. */
-  abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>
+  abstract uploadFileChunk(
+    url: HttpsUrl,
+    file: Blob,
+    index: number,
+    abort?: AbortSignal,
+  ): Promise<{ part: S3MultipartPart; size: number }>
   /** Finish uploading a large file. */
-  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedAsset>
+  abstract uploadFileEnd(
+    body: UploadFileEndRequestBody,
+    abort?: AbortSignal,
+  ): Promise<UploadedAsset>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
 
@@ -2037,9 +1997,9 @@ export default abstract class Backend {
   }
 
   /** Send a binary HTTP POST request to the given path. */
-  protected postBinary<T = void>(path: string, payload: Blob) {
+  protected postBinary<T = void>(path: string, payload: Blob, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
-      this.client.postBinary<T>(this.resolvePath(path), payload),
+      this.client.postBinary<T>(this.resolvePath(path), payload, options),
     )
   }
 

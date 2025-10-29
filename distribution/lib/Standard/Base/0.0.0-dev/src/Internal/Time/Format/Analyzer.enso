@@ -4,8 +4,8 @@ import project.Data.Vector.Vector
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Time.Format.Parser import all
 

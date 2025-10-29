@@ -1,14 +1,11 @@
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod arg;
-
-
 
 pub mod prelude {
     pub use crate::arg::ArgExt as _;
@@ -60,6 +57,7 @@ use enso_build::source::Source;
 use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
+use futures_util::future::try_join_all;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
 use ide_ci::fs::remove_if_exists;
@@ -70,9 +68,7 @@ use ide_ci::ok_ready_boxed;
 use ide_ci::programs::cargo;
 use ide_ci::programs::git;
 use ide_ci::programs::git::clean;
-use ide_ci::programs::rustc;
 use ide_ci::programs::Cargo;
-use ide_ci::programs::Pnpm;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
 use tokio::process::Child;
@@ -139,8 +135,9 @@ impl Processor {
             arg::SourceKind::Build => T::resolve(self, source.build_args.input)
                 .map_ok(move |input| Source::BuildLocally(BuildSource { input }))
                 .boxed(),
-            arg::SourceKind::Local =>
-                ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path))),
+            arg::SourceKind::Local => {
+                ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path)))
+            }
             arg::SourceKind::CiRun => {
                 let run_id = source.run_id.context(format!(
                     "Missing run ID, please provide {} argument.",
@@ -155,10 +152,11 @@ impl Processor {
                 });
                 ready(source).boxed()
             }
-            arg::SourceKind::CurrentCiRun =>
+            arg::SourceKind::CurrentCiRun => {
                 ok_ready_boxed(Source::External(ExternalSource::OngoingCiRun(OngoingCiRunSource {
                     artifact_name: resolve_artifact_name(source.artifact_name, &target),
-                }))),
+                })))
+            }
             arg::SourceKind::Release => {
                 let designator = source
                     .release
@@ -271,28 +269,26 @@ impl Processor {
 
     pub fn handle_wasm(&self, wasm: arg::wasm::Target) -> BoxFuture<'static, Result> {
         match wasm.command {
-            arg::wasm::Command::Test { no_wasm, no_native, browser } => {
-                let wasm_browsers =
-                    if no_wasm { default() } else { browser.into_iter().map_into().collect_vec() };
-                let root = self.repo_root.to_path_buf();
-                async move { project::wasm::test(root, &wasm_browsers, !no_native).await }.boxed()
-            }
-            arg::wasm::Command::Lint => {
+            arg::wasm::Command::Test => {
                 let repo_root = self.repo_root.clone();
                 async move {
                     Cargo
                         .cmd()?
                         .current_dir(&repo_root)
-                        .arg(cargo::clippy::COMMAND)
+                        .apply(&cargo::Command::Test)
                         .apply(&cargo::Options::Workspace)
-                        .apply(&cargo::Options::Package("enso-integration-test".into()))
-                        .apply(&cargo::Options::AllTargets)
-                        .apply(&cargo::Color::Always)
+                        // Color needs to be passed to tests themselves separately.
+                        // See: https://github.com/rust-lang/cargo/issues/1983
                         .arg("--")
-                        .apply(&rustc::Option::Deny(rustc::Lint::Warnings))
+                        .apply(&cargo::Color::Always)
                         .run_ok()
-                        .await?;
-
+                        .await
+                }
+                .boxed()
+            }
+            arg::wasm::Command::Lint => {
+                let repo_root = self.repo_root.clone();
+                async move {
                     Cargo
                         .cmd()?
                         .current_dir(&repo_root)
@@ -385,6 +381,7 @@ impl Processor {
             }
             arg::backend::Command::Test { which } => {
                 let mut config = enso_build::engine::BuildConfigurationFlags::default();
+                self.add_heapdump_opts(&mut config);
                 for arg in which {
                     match arg {
                         Tests::Jvm => {
@@ -419,7 +416,6 @@ impl Processor {
                             config.small_jdk_dir = Some(small_jdk_dir.clone());
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::blacklist(vec![
-                                    "Examples_Tests".to_string(),
                                     "Microsoft_Tests".to_string(),
                                 ]));
                             config.add_engine_runner_arg("--jvm");
@@ -431,7 +427,6 @@ impl Processor {
                         Tests::StandardLibraryInNative => {
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::blacklist(vec![
-                                    "Examples_Tests".to_string(),
                                     "Microsoft_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
@@ -474,6 +469,18 @@ impl Processor {
                                     "Microsoft_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
+                        }
+                        Tests::StdMockDualMicrosoft => {
+                            config.test_standard_library =
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Microsoft_Tests".to_string(),
+                                ]));
+                            config.use_native_runner = false;
+                            config.extra_engine_runner_args = Some(vec![
+                                "--jvm".to_string(),
+                                "--vm.D=polyglot.enso.classLoading=Standard.Microsoft:guest,hosted"
+                                    .to_string(),
+                            ])
                         }
                     }
                 }
@@ -545,6 +552,19 @@ impl Processor {
             Ok(enso_build::engine::RunContext { inner, config, paths, external_runtime: None })
         }
         .boxed()
+    }
+
+    /// Add options to produce heap dumps on OOM errors.
+    /// It is essential to pass the `-XX:+HeapDumpOnOutOfMemoryError` option both via
+    /// `JAVA_TOOL_OPTIONS` env var and as a command line argument to the runner.
+    /// For explanation, see https://github.com/enso-org/enso/pull/13984
+    fn add_heapdump_opts(&self, config: &mut enso_build::engine::BuildConfigurationFlags) {
+        let dump_arg = "-XX:+HeapDumpOnOutOfMemoryError";
+        config.add_java_tool_opt(dump_arg);
+        if TARGET_OS != OS::Windows {
+            // This flag is not supported on Windows NI.
+            config.add_engine_runner_arg(dump_arg);
+        }
     }
 
     /// Get a handle to the release by its identifier.
@@ -763,7 +783,12 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             let arg::git_clean::Options { dry_run, cache, build_script } = options;
             let mut exclusions: Vec<&str> = vec![".idea"];
             if !build_script {
-                exclusions.push("target/rust/buildscript");
+                // Do not attempt to delete the very executable that runs the command.
+                // It will fail on windows due to file being locked.
+                exclusions.push("target/rust/debug/enso-build-cli.exe");
+                exclusions.push("target/rust/debug/enso_build_cli.pdb");
+                exclusions.push("target/rust/debug/deps/enso_build_cli.exe");
+                exclusions.push("target/rust/debug/deps/enso_build_cli.pdb");
             }
 
             if !dry_run {
@@ -773,17 +798,36 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             }
 
             if !dry_run {
-                // On Windows, `npm` uses junctions as symbolic links for in-workspace dependencies.
+                // On Windows, `pnpm` uses junctions as symbolic links for in-workspace dependencies.
                 // Unfortunately, Git for Windows treats those as hard links. That then leads to
                 // `git clean` recursing into those linked directories, happily deleting sources of
-                // whole linked packages. Manually deleting `node_modules` before running clean
-                // prevents this from happening.
-                //
-                // Related npm issue: https://github.com/npm/npm/issues/19091
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("node_modules")).await?;
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-enso")).await?;
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-out")).await?;
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-bin")).await?;
+                // whole linked packages or failing on files that were already deleted. Manually
+                // deleting junction directories before running clean prevents this from happening.
+                let junctions = [
+                    "bazel-enso",
+                    "bazel-out",
+                    "bazel-bin",
+                    "node_modules",
+                    "app/common/node_modules",
+                    "app/gui/node_modules",
+                    "app/electron-client/node_modules",
+                    "app/lang-markdown/node_modules",
+                    "app/lezer-markdown/node_modules",
+                    "app/project-manager-shim/node_modules",
+                    "app/rust-ffi/node_modules",
+                    "app/table-expression/node_modules",
+                    "app/ydoc-server/node_modules",
+                    "app/ydoc-server-nodejs/node_modules",
+                    "app/ydoc-server-polyglot/node_modules",
+                    "app/ydoc-shared/node_modules",
+                    "lib/js/runner/node_modules",
+                    "tools/simple-library-server/node_modules",
+                ];
+
+                try_join_all(junctions.map(|rel_path| {
+                    ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join(rel_path))
+                }))
+                .await?;
             }
 
             let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
@@ -821,16 +865,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 backend_context.build().await?;
 
                 enso_build::release::deploy_ydoc_polyglot_to_ecr(&ctx, args.ecr_repository).await?;
-            }
-            Action::DeployYdocNodejs(args) => {
-                enso_build::web::install(&ctx.repo_root).await?;
-                Pnpm.cmd()?
-                    .with_current_dir(&ctx.repo_root)
-                    .run("-r")
-                    .arg("compile")
-                    .run_ok()
-                    .await?;
-                enso_build::release::deploy_ydoc_nodejs_to_ecr(&ctx, args.ecr_repository).await?;
             }
             Action::DispatchBuildImage => {
                 if !(&ctx.triple.versions.version.pre.to_string().starts_with("nightly")) {

@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import { computed } from 'vue'
 import { Token as RawToken } from 'ydoc-shared/ast/generated/ast'
 

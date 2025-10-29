@@ -1,5 +1,4 @@
 use enso_build::prelude::*;
-use enso_build::project::gui::BuildMode;
 
 use crate::arg::BuildJob;
 use crate::arg::Source;
@@ -7,9 +6,8 @@ use crate::source_args_hlp;
 
 use clap::Args;
 use clap::Subcommand;
+use enso_build::project::gui::BuildMode;
 use enso_build::project::gui::Gui;
-
-
 
 source_args_hlp!(Gui, "gui", BuildInput);
 

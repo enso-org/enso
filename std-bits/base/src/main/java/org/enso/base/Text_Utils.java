@@ -10,8 +10,10 @@ import com.ibm.icu.text.StringSearch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.enso.base.text.Case;
 import org.enso.base.text.CaseFoldedString;
 import org.enso.base.text.CaseFoldedString.Grapheme;
 import org.enso.base.text.GraphemeSpan;
@@ -33,6 +35,25 @@ public class Text_Utils {
    */
   public static String substring(String string, int from, int to) {
     return string.substring(from, to);
+  }
+
+  /**
+   * Creates a substring of the given string, indexing using the Java standard (UTF-16) indexing
+   * mechanism but using a BreakIterator to ensure that the indices correspond to grapheme
+   * boundaries.
+   *
+   * @param string the string to substring
+   * @param from starting index
+   * @param to index one past the end of the desired substring
+   * @return a suitable substring
+   */
+  public static String substring_clustered(String string, int from, int to) {
+    BreakIterator iter = BreakIterator.getCharacterInstance();
+    iter.setText(string);
+    int start = from == 0 ? 0 : (iter.isBoundary(from) ? from : iter.preceding(from));
+    int end =
+        to >= string.length() ? string.length() : (iter.isBoundary(to) ? to : iter.following(to));
+    return string.substring(start, end);
   }
 
   /**
@@ -747,5 +768,28 @@ public class Text_Utils {
   /** Pretty prints the string, escaping special characters. */
   public static String pretty_print(String str) {
     return Core_Text_Utils.prettyPrint(str);
+  }
+
+  public static Function<String, String> caseOptionToConverter(
+      Case caseOption, final Locale locale) {
+    final Locale localeOrDefault = locale == null ? Locale.getDefault() : locale;
+
+    return switch (caseOption) {
+      case LOWER -> s -> UCharacter.toLowerCase(locale, s);
+      case UPPER -> s -> UCharacter.toUpperCase(locale, s);
+      case PROPER -> s -> UCharacter.toTitleCase(locale, s, null);
+    };
+  }
+
+  public static String toCase(String s, Case caseOption, Locale locale) {
+    if (locale == null) {
+      locale = Locale.getDefault();
+    }
+
+    return switch (caseOption) {
+      case LOWER -> UCharacter.toLowerCase(locale, s);
+      case UPPER -> UCharacter.toUpperCase(locale, s);
+      case PROPER -> UCharacter.toTitleCase(locale, s, null);
+    };
   }
 }

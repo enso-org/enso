@@ -1,5 +1,5 @@
 import { EditorSelection } from '@codemirror/state'
-import { type EditorView } from '@codemirror/view'
+import type { EditorView } from '@codemirror/view'
 
 /** Returns an API for the editor content, used by the integration tests. */
 export function testSupport(editorView: EditorView) {

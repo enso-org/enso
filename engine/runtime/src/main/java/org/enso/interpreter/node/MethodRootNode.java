@@ -5,10 +5,11 @@ import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.source.SourceSection;
+import com.oracle.truffle.api.source.Source;
 import java.util.function.Supplier;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.CompilerError;
+import org.enso.compiler.core.ir.Location;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -30,7 +31,8 @@ public class MethodRootNode extends ClosureRootNode {
       LocalScope localScope,
       ModuleScope moduleScope,
       ExpressionNode body,
-      SourceSection section,
+      Supplier<Source> source,
+      Location section,
       Type type,
       String methodName,
       RuntimeID id) {
@@ -39,6 +41,7 @@ public class MethodRootNode extends ClosureRootNode {
         localScope,
         moduleScope,
         body,
+        source,
         section,
         shortName(type.getName(), methodName),
         null,
@@ -70,12 +73,21 @@ public class MethodRootNode extends ClosureRootNode {
       LocalScope localScope,
       ModuleScope moduleScope,
       Supplier<ExpressionNode> body,
-      SourceSection section,
+      Supplier<Source> source,
+      Location section,
       Type type,
       String methodName,
       RuntimeID id) {
     return build(
-        language, localScope, moduleScope, new LazyBodyNode(body), section, type, methodName, id);
+        language,
+        localScope,
+        moduleScope,
+        new LazyBodyNode(body),
+        source,
+        section,
+        type,
+        methodName,
+        id);
   }
 
   public static MethodRootNode build(
@@ -83,12 +95,13 @@ public class MethodRootNode extends ClosureRootNode {
       LocalScope localScope,
       ModuleScope moduleScope,
       ExpressionNode body,
-      SourceSection section,
+      Supplier<Source> source,
+      Location section,
       Type type,
       String methodName,
       RuntimeID id) {
     return new MethodRootNode(
-        language, localScope, moduleScope, body, section, type, methodName, id);
+        language, localScope, moduleScope, body, source, section, type, methodName, id);
   }
 
   /**
@@ -109,10 +122,12 @@ public class MethodRootNode extends ClosureRootNode {
       LocalScope localScope,
       ModuleScope moduleScope,
       ExpressionNode body,
-      SourceSection section,
+      Supplier<Source> source,
+      Location section,
       AtomConstructor constructor,
       RuntimeID id) {
-    return new Constructor(language, localScope, moduleScope, body, section, constructor, id);
+    return new Constructor(
+        language, localScope, moduleScope, body, source, section, constructor, id);
   }
 
   /**
@@ -137,7 +152,8 @@ public class MethodRootNode extends ClosureRootNode {
       Supplier<ExpressionNode> readLeft,
       Supplier<ExpressionNode> readRight,
       Supplier<ExpressionNode> body,
-      SourceSection section,
+      Supplier<Source> source,
+      Location section,
       Type type,
       String methodName,
       RuntimeID id) {
@@ -149,7 +165,8 @@ public class MethodRootNode extends ClosureRootNode {
           var operatorNode = new BinaryOperatorNode(readLeftNode, readRightNode, exprNode);
           return operatorNode;
         };
-    return build(language, localScope, moduleScope, supplyWholeBody, section, type, methodName, id);
+    return build(
+        language, localScope, moduleScope, supplyWholeBody, source, section, type, methodName, id);
   }
 
   /**
@@ -254,7 +271,8 @@ public class MethodRootNode extends ClosureRootNode {
         LocalScope localScope,
         ModuleScope moduleScope,
         ExpressionNode body,
-        SourceSection section,
+        Supplier<Source> source,
+        Location section,
         AtomConstructor constructor,
         RuntimeID id) {
       super(
@@ -262,6 +280,7 @@ public class MethodRootNode extends ClosureRootNode {
           localScope,
           moduleScope,
           body,
+          source,
           section,
           constructor.getType(),
           constructor.getName(),

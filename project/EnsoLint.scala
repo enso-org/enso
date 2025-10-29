@@ -53,7 +53,8 @@ class EnsoLint(
         "--enable-static-analysis",
         "-Werror"
       ),
-      log
+      log,
+      Some(path.getAbsoluteFile.getParentFile)
     )
   }
 

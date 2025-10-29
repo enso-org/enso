@@ -9,32 +9,17 @@ import { usePortalContext } from '#/components/Portal'
 import { Suspense } from '#/components/Suspense'
 import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useMeasure } from '#/hooks/measureHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
-import { LayoutGroup, motion, type Spring } from '#/utilities/motion'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { unsafeWriteValue } from '#/utilities/write'
 import * as React from 'react'
-import { useAppRoot } from '../UIProviders'
 import { Close } from './Close'
 import { DialogProvider } from './DialogProvider'
 import { DialogStackRegistrar, type DialogStackItem } from './DialogStackProvider'
 import { DialogTrigger } from './DialogTrigger'
 import type * as types from './types'
-import { animateScale, useInteractOutside } from './utilities'
+import { useInteractOutside } from './utilities'
 import { DIALOG_MODAL_STYLES, DIALOG_OVERLAY_STYLES, DIALOG_STYLES } from './variants'
-
-// eslint-disable-next-line no-restricted-syntax
-const MotionDialog = motion(aria.Dialog)
-
-const TRANSITION: Spring = {
-  type: 'spring',
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  stiffness: 1_200,
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  damping: 90,
-  mass: 3,
-}
 
 /** Props for the {@link Dialog} component. */
 export interface DialogProps
@@ -45,56 +30,66 @@ export interface DialogProps
  * A dialog is an overlay shown above other content in an application.
  * Can be used to display alerts, confirmations, or other content.
  */
-export function Dialog(props: DialogProps) {
-  const {
-    type = 'modal',
-    isDismissable = true,
-    isKeyboardDismissDisabled = false,
-    onOpenChange = () => {},
-    modalProps = {},
-  } = props
+export const Dialog = Object.assign(
+  React.forwardRef(function Dialog(props: DialogProps, ref: React.ForwardedRef<HTMLDivElement>) {
+    const {
+      type = 'modal',
+      isDismissable = true,
+      isKeyboardDismissDisabled = false,
+      onOpenChange = () => {},
+      modalProps = {},
+    } = props
 
-  const root = usePortalContext()
+    const root = usePortalContext()
 
-  return (
-    <aria.ModalOverlay
-      className={({ isEntering, isExiting }) =>
-        DIALOG_OVERLAY_STYLES({ isEntering, isExiting, blockInteractions: !isDismissable })
-      }
-      ref={(element) => {
-        if (element) {
-          element.addEventListener('keydown', (event) => {
-            if (event.key !== 'Escape') {
-              event.stopPropagation()
-            }
-          })
+    return (
+      <aria.ModalOverlay
+        className={({ isEntering, isExiting }) =>
+          DIALOG_OVERLAY_STYLES({ isEntering, isExiting, blockInteractions: !isDismissable })
         }
-      }}
-      isDismissable={isDismissable}
-      isKeyboardDismissDisabled={isKeyboardDismissDisabled}
-      UNSTABLE_portalContainer={root}
-      onOpenChange={onOpenChange}
-      shouldCloseOnInteractOutside={() => false}
-      {...modalProps}
-    >
-      {(values) => (
-        <aria.Modal
-          className={({ isEntering, isExiting }) =>
-            DIALOG_MODAL_STYLES({ type, isEntering, isExiting })
-          }
-          isDismissable={isDismissable}
-          isKeyboardDismissDisabled={isKeyboardDismissDisabled}
-          UNSTABLE_portalContainer={root}
-          onOpenChange={onOpenChange}
-          shouldCloseOnInteractOutside={() => false}
-          {...modalProps}
-        >
-          <DialogContent {...props} modalState={values.state} />
-        </aria.Modal>
-      )}
-    </aria.ModalOverlay>
-  )
-}
+        ref={(element) =>
+          mergeRefs(ref, (el) => {
+            if (el) {
+              el.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape') {
+                  event.stopPropagation()
+                }
+              })
+            }
+          })(element)
+        }
+        isDismissable={isDismissable}
+        isKeyboardDismissDisabled={isKeyboardDismissDisabled}
+        UNSTABLE_portalContainer={root}
+        onOpenChange={onOpenChange}
+        shouldCloseOnInteractOutside={() => false}
+        {...modalProps}
+      >
+        {(values) => (
+          <aria.Modal
+            className={({ isEntering, isExiting }) =>
+              DIALOG_MODAL_STYLES({ type, isEntering, isExiting })
+            }
+            isDismissable={isDismissable}
+            isKeyboardDismissDisabled={isKeyboardDismissDisabled}
+            UNSTABLE_portalContainer={root}
+            onOpenChange={onOpenChange}
+            shouldCloseOnInteractOutside={() => false}
+            {...modalProps}
+          >
+            <DialogContent {...props} modalState={values.state} />
+          </aria.Modal>
+        )}
+      </aria.ModalOverlay>
+    )
+  }),
+  {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    Close: Close,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    Trigger: DialogTrigger,
+  },
+)
 
 const TYPE_TO_DIALOG_TYPE: Record<NonNullable<DialogProps['type']>, DialogStackItem['type']> = {
   modal: 'dialog',
@@ -132,27 +127,11 @@ function DialogContent(props: DialogContentProps) {
     onDismiss,
     ...ariaDialogProps
   } = props
-
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const scrollerRef = React.useRef<HTMLDivElement | null>(null)
   const dialogId = aria.useId()
-  const appRoot = useAppRoot()
-
   const titleId = `${dialogId}-title`
   const padding = paddingRaw ?? (type === 'modal' ? 'medium' : 'xlarge')
-  const isFullscreen = type === 'fullscreen'
-
-  const [isLayoutDisabled, setIsLayoutDisabled] = React.useState(true)
-
-  const [contentDimensionsRef, dimensions] = useMeasure({
-    isDisabled: isLayoutDisabled,
-    useRAF: false,
-  })
-
-  const [headerDimensionsRef, headerDimensions] = useMeasure({
-    isDisabled: isLayoutDisabled,
-    useRAF: false,
-  })
 
   // Mutating the method of the modalState object to ensure that the close `close`
   // function will call the `onDismiss` function and then close the modal.
@@ -175,40 +154,9 @@ function DialogContent(props: DialogContentProps) {
     onInteractOutside: () => {
       if (isDismissable) {
         close()
-      } else {
-        if (dialogRef.current) {
-          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-          animateScale(dialogRef.current, 1.02)
-        }
       }
     },
   })
-
-  React.useEffect(() => {
-    if (isFullscreen) {
-      return
-    }
-
-    setIsLayoutDisabled(false)
-
-    return () => {
-      setIsLayoutDisabled(true)
-    }
-  }, [isFullscreen])
-
-  React.useEffect(() => {
-    if (isFullscreen && modalState.isOpen) {
-      unsafeWriteValue(appRoot.style, 'scale', '0.99')
-      unsafeWriteValue(appRoot.style, 'filter', 'blur(8px)')
-      unsafeWriteValue(appRoot.style, 'willChange', 'scale, filter')
-
-      return () => {
-        unsafeWriteValue(appRoot.style, 'scale', '')
-        unsafeWriteValue(appRoot.style, 'filter', '')
-        unsafeWriteValue(appRoot.style, 'willChange', '')
-      }
-    }
-  }, [isFullscreen, modalState, appRoot])
 
   const styles = variants({
     className,
@@ -222,107 +170,66 @@ function DialogContent(props: DialogContentProps) {
     layout,
   })
 
-  const getDialogHeight = () => {
-    if (isFullscreen) {
-      return ''
-    }
-
-    if (dimensions == null || headerDimensions == null) {
-      return ''
-    }
-
-    return dimensions.height + headerDimensions.height
-  }
-
   return (
     <ResetButtonGroupContext>
-      <LayoutGroup>
-        <MotionDialog
-          layout
-          transition={TRANSITION}
-          style={{ height: getDialogHeight() }}
-          id={dialogId}
-          onLayoutAnimationStart={() => {
-            if (scrollerRef.current) {
-              scrollerRef.current.style.overflowY = 'clip'
-            }
-          }}
-          onLayoutAnimationComplete={() => {
-            if (scrollerRef.current) {
-              scrollerRef.current.style.overflowY = ''
-            }
-          }}
-          ref={(ref: HTMLDivElement | null) => {
-            mergeRefs(dialogRef, (element) => {
-              if (element) {
-                // This is a workaround for the `data-testid` attribute not being
-                // supported by the 'react-aria-components' library.
-                // We need to set the `data-testid` attribute on the dialog element
-                // so that we can use it in our tests.
-                // This is a temporary solution until we refactor the Dialog component
-                // to use `useDialog` hook from the 'react-aria-components' library.
-                // this will allow us to set the `data-testid` attribute on the dialog
-                element.dataset.testid = testId
-              }
-            })(ref)
-          }}
-          className={styles.base()}
-          aria-labelledby={titleId}
-          {...ariaDialogProps}
-        >
-          <motion.div layout className="w-full" transition={{ duration: 0 }}>
-            <DialogHeader
-              closeButton={closeButton}
-              title={title}
-              titleId={titleId}
-              scrollerRef={scrollerRef}
-              fitContent={fitContent}
-              hideCloseButton={hideCloseButton}
-              padding={padding}
-              rounded={rounded}
-              size={size}
-              type={type}
-              headerDimensionsRef={headerDimensionsRef}
-              close={close}
-              variants={variants}
-            />
-          </motion.div>
+      <aria.Dialog
+        id={dialogId}
+        ref={(ref: HTMLDivElement | null) => {
+          mergeRefs(dialogRef, (element) => {
+            if (!element) return
+            // This is a workaround for the `data-testid` attribute not being
+            // supported by the 'react-aria-components' library.
+            // We need to set the `data-testid` attribute on the dialog element
+            // so that we can use it in our tests.
+            // This is a temporary solution until we refactor the Dialog component
+            // to use `useDialog` hook from the 'react-aria-components' library.
+            // this will allow us to set the `data-testid` attribute on the dialog
+            element.dataset.testid = testId
+          })(ref)
+        }}
+        className={styles.base()}
+        aria-labelledby={titleId}
+        {...ariaDialogProps}
+      >
+        <div className="w-full">
+          <DialogHeader
+            closeButton={closeButton}
+            title={title}
+            titleId={titleId}
+            scrollerRef={scrollerRef}
+            fitContent={fitContent}
+            hideCloseButton={hideCloseButton}
+            padding={padding}
+            rounded={rounded}
+            size={size}
+            type={type}
+            close={close}
+            variants={variants}
+          />
+        </div>
 
-          <motion.div
-            layout
-            layoutScroll
-            className={styles.scroller()}
-            ref={scrollerRef}
-            transition={{ duration: 0 }}
+        <div className={styles.scroller()} ref={scrollerRef}>
+          <DialogBody
+            close={close}
+            dialogId={dialogId}
+            scrollerRef={scrollerRef}
+            measurerWrapperClassName={styles.measurerWrapper()}
+            contentClassName={styles.content()}
+            type={type}
           >
-            <DialogBody
-              close={close}
-              contentDimensionsRef={contentDimensionsRef}
-              dialogId={dialogId}
-              headerDimensionsRef={headerDimensionsRef}
-              scrollerRef={scrollerRef}
-              measurerWrapperClassName={styles.measurerWrapper()}
-              contentClassName={styles.content()}
-              type={type}
-            >
-              {children}
-            </DialogBody>
-          </motion.div>
-        </MotionDialog>
+            {children}
+          </DialogBody>
+        </div>
+      </aria.Dialog>
 
-        <DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
-      </LayoutGroup>
+      <DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
     </ResetButtonGroupContext>
   )
 }
 
-/**
- * Props for the {@link DialogBody} component.
- */
+/** Props for a {@link DialogBody}. */
 interface DialogBodyProps {
   readonly dialogId: string
-  readonly contentDimensionsRef: (node: HTMLElement | null) => void
-  readonly headerDimensionsRef: (node: HTMLElement | null) => void
   readonly scrollerRef: React.RefObject<HTMLDivElement>
   readonly close: () => void
   readonly measurerWrapperClassName: string
@@ -331,24 +238,13 @@ interface DialogBodyProps {
   readonly type: DialogProps['type']
 }
 
-/**
- * The internals of a dialog. Exists only as a performance optimization.
- */
-
+/** The internals of a dialog. Exists only as a performance optimization. */
 const DialogBody = React.memo(function DialogBody(props: DialogBodyProps) {
-  const {
-    close,
-    contentDimensionsRef,
-    dialogId,
-    children,
-    measurerWrapperClassName,
-    contentClassName,
-    type,
-  } = props
+  const { close, dialogId, children, measurerWrapperClassName, contentClassName, type } = props
 
   return (
     <div className={measurerWrapperClassName}>
-      <div ref={contentDimensionsRef} className={contentClassName}>
+      <div className={contentClassName}>
         <ErrorBoundary>
           <Suspense loaderProps={{ minHeight: type === 'fullscreen' ? 'full' : 'h32' }}>
             <DialogProvider close={close} dialogId={dialogId}>
@@ -368,7 +264,6 @@ interface DialogHeaderProps extends Omit<VariantProps<typeof DIALOG_STYLES>, 'sc
   readonly closeButton: DialogProps['closeButton']
   readonly title: DialogProps['title']
   readonly titleId: string
-  readonly headerDimensionsRef: (node: HTMLElement | null) => void
   readonly scrollerRef: React.RefObject<HTMLDivElement>
   readonly close: () => void
 }
@@ -382,7 +277,6 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
     closeButton,
     title,
     titleId,
-    headerDimensionsRef,
     scrollerRef,
     fitContent,
     hideCloseButton,
@@ -440,10 +334,7 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
   }, [handleScrollEvent, scrollerRef])
 
   return (
-    <aria.Header
-      ref={headerDimensionsRef}
-      className={styles.header({ scrolledToTop: isScrolledToTop })}
-    >
+    <aria.Header className={styles.header({ scrolledToTop: isScrolledToTop })}>
       {closeButton !== 'none' && <CloseButton className={styles.closeButton()} onPress={close} />}
 
       {title != null && (
@@ -454,6 +345,3 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
     </aria.Header>
   )
 })
-
-Dialog.Close = Close
-Dialog.Trigger = DialogTrigger

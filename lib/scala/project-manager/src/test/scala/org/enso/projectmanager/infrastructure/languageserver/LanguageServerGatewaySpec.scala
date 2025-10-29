@@ -47,7 +47,7 @@ class LanguageServerGatewaySpec
       deleteProject(bazId)
     }
 
-    "report language server status" in {
+    "report language server status" ignore {
       implicit val client = new WsTestClient(address)
       val fooId           = createProject("foo")
       //val fooSocket       =

@@ -19,11 +19,12 @@ public final class CompilerErrorTest {
   @Test
   public void variablesIsRedefinedInIfBranch() {
     var modName = QualifiedName.fromString("local.Proj.Check");
-    var code = """
-    check x =
-        x = 'No'
-        x == 'False'
-    """;
+    var code =
+        """
+        check x =
+            x = 'No'
+            x == 'False'
+        """;
     var m = compilerCtx.createModule(modName, code);
     try {
       var res = compilerCtx.getCompiler().run(m);

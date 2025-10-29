@@ -1,5 +1,6 @@
 import { selectionMouseBindings } from '@/bindings'
 import { useSelection } from '@/composables/selection'
+import { provideGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
@@ -7,6 +8,7 @@ import { isPointer, pointerButtonToEventInfo, type BindingInfo } from '@/util/sh
 import { appWithSetup } from '@/util/testing'
 import { beforeAll, expect, test, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
+import { modKeyProp } from '../events'
 import { useGlobalKeyboard } from '../keyboard'
 import { useNavigator } from '../navigator'
 
@@ -22,7 +24,8 @@ function selectionWithMockData() {
   mockDom.style.height = '300px'
   vi.spyOn(mockDom, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 500, 300))
 
-  const navigator = useNavigator(ref(mockDom), useGlobalKeyboard())
+  const globalEventRegistry = provideGlobalEventRegistry()
+  const navigator = useNavigator(ref(mockDom), useGlobalKeyboard(globalEventRegistry))
 
   const selection = useSelection(navigator, rects)
   selection.setSelection(new Set([1, 2]))
@@ -156,9 +159,8 @@ function mockPointerEvent(
   const { button, buttons } = pointerButtonToEventInfo(binding.key)
   const event = new MockPointerEvent(type, {
     altKey: modifiersSet.has('Alt'),
-    ctrlKey: modifiersSet.has('Mod'),
     shiftKey: modifiersSet.has('Shift'),
-    metaKey: modifiersSet.has('Meta'),
+    [modKeyProp]: modifiersSet.has('Mod'),
     clientX: pos.x,
     clientY: pos.y,
     button,

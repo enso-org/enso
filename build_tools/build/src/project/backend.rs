@@ -11,12 +11,10 @@ use crate::version::Versions;
 use ide_ci::archive::is_archive_name;
 use octocrab::models::repos::Asset;
 
-
-
 #[derive(Clone)]
 #[derive_where(Debug)]
 pub struct BuildInput {
-    pub versions:         Versions,
+    pub versions: Versions,
     #[derive_where(skip)]
     pub external_runtime: Option<Arc<crate::engine::context::EnginePackageProvider>>,
 }
@@ -40,7 +38,7 @@ impl BuildInput {
 #[derive(Clone, Debug)]
 pub struct Artifact {
     /// Location of the Project Manager distribution.
-    pub path:            crate::paths::generated::ProjectManagerBundle,
+    pub path: crate::paths::generated::ProjectManagerBundle,
     /// Versions of Engine that are bundled in this Project Manager distribution.
     ///
     /// Technically a Project Manager bundle can be shipped with arbitrary number of Enso Engine
