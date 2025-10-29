@@ -141,11 +141,7 @@ impl IsBundle for crate::paths::generated::EngineBundle {
     }
 
     fn base_component(&self, repo_root: &RepoRoot) -> PathBuf {
-        repo_root
-            .built_distribution
-            .engine_bundle_triple
-            .engine_bundle
-            .to_path_buf()
+        repo_root.built_distribution.engine_bundle_triple.engine_bundle.to_path_buf()
     }
 
     fn distribution_marker(&self) -> PathBuf {
