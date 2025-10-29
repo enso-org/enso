@@ -208,21 +208,6 @@ export const DEFAULT_PERMISSIONS: Permissions = Object.freeze({
   execute: false,
 })
 
-/** CSS classes for each permission. */
-export const PERMISSION_CLASS_NAME: Readonly<Record<Permission, string>> = {
-  [Permission.owner]: 'text-tag-text bg-permission-owner',
-  [Permission.admin]: 'text-tag-text bg-permission-admin',
-  [Permission.edit]: 'text-tag-text bg-permission-edit',
-  [Permission.read]: 'text-tag-text bg-permission-read',
-  [Permission.view]: 'text-tag-text-2 bg-permission-view',
-  [Permission.delete]: 'text-tag-text bg-delete',
-}
-
-/** CSS classes for the docs permission. */
-export const DOCS_CLASS_NAME = 'text-tag-text bg-permission-docs'
-/** CSS classes for the execute permission. */
-export const EXEC_CLASS_NAME = 'text-tag-text bg-permission-exec'
-
 /** Try to find a permission belonging to the user. */
 export function tryFindSelfPermission(
   self: User,
