@@ -140,7 +140,7 @@ onUnmounted(() => {
           <SelectableTab
             v-for="project in projectTabs"
             :key="project.state.info.id"
-            data-testid="editor-tab-button"
+            data-testid="project-view-tab-button"
             :selected="project.shown.value"
             :icon="projectIcon(project)"
             :label="

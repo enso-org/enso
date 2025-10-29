@@ -386,7 +386,7 @@ export function createOpenedProjectsStore() {
       // Do not prevent default in browsers.
       // In "real" browsers users will be unable to run hybrid projects anyway, but in dev
       // servers the "data loss" messages are annoying.
-      // if (!isOnElectron()) return
+      if (!isOnElectron()) return
       event.preventDefault()
       closingOnAppExit.value = true
       const errors = (
