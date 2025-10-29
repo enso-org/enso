@@ -72,7 +72,6 @@ const innerInput = computed(() => {
   const callInfo = methodCallInfo.value
   if (callInfo) {
     input[CallInfo] = callInfo
-    console.log(input)
     if (
       !(ArgumentApplicationKey in input) &&
       (input.value instanceof Ast.PropertyAccess || input.value instanceof Ast.Ident)
@@ -275,9 +274,10 @@ export const widgetDefinition = defineWidget(
       if (prevFunctionState?.prefixCalls.has(ast.id)) return Score.Mismatch
 
       if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
-
-      const info = getMethodCallInfoRecursively(ast, db)
-      return info != null ? Score.Perfect : Score.Mismatch
+      if (getMethodCallInfoRecursively(ast, db)) return Score.Perfect
+      // const potentialMethodPointer = getPotentialCurrentModuleFunctionPointer(ast, db)
+      // if (potentialMethodPointer) &&
+      return Score.Mismatch
     },
   },
   import.meta.hot,

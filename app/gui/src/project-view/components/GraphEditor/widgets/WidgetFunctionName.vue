@@ -8,6 +8,7 @@ import {
   type UpdateResult,
 } from '$/providers/openedProjects/widgetRegistry'
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
+import { createContextStore } from '@/providers'
 import { registerWidgetActionHandlers } from '@/providers/widgetActions'
 import { usePersisted } from '@/stores/persisted'
 import { Ast } from '@/util/ast'
@@ -18,14 +19,25 @@ import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { MutableModule, PropertyAccess } from 'ydoc-shared/ast'
 import type { ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
+import { isModuleExpression } from './WidgetFunction/widgetFunctionCallInfo'
 import { generateUniqueName, replaceVariableUsages } from './WidgetFunctionDef/argumentAst'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const { projectNames: projectNames, module, graph, store: project } = useCurrentProject()
 const persisted = usePersisted(true)
 
-const userRequestedEdit = ref(false)
 const requireUserAction = computed(() => !!props.input[FunctionName].requireUserAction)
+
+const userRequestedEdit = ref(false)
+const renameSchedule = useRenameSchedule(true)
+if (
+  renameSchedule &&
+  requireUserAction.value &&
+  renameSchedule.matchScheduled(props.input[FunctionName].methodPointer)
+) {
+  userRequestedEdit.value = true
+}
+
 const editFieldEnabled = computed(() => !requireUserAction.value || userRequestedEdit.value)
 
 registerWidgetActionHandlers({
@@ -58,25 +70,9 @@ const name = computed(() =>
   props.input.value instanceof PropertyAccess ? props.input.value.rhs : props.input.value,
 )
 
-function isCurrentModuleExpression(expr: Ast.Expression) {
-  const projectPath = project.value.moduleProjectPath
-  if (!projectPath?.ok) return false
-
-  if (expr instanceof Ast.Ident) return expr.token.code() === projectPath.value.path
-  if (
-    expr instanceof Ast.PropertyAccess &&
-    expr.lhs instanceof Ast.PropertyAccess &&
-    expr.lhs.lhs instanceof Ast.Ident
-  ) {
-    return expr.code() === projectNames.value.serializeProjectPathForBackend(projectPath.value)
-  }
-  // projectNames.value
-  return expr instanceof Ast.Ident && expr.token.code() === 'Main'
-}
-
 const hideThisArg = computed(() => {
   const ast = thisArg.value
-  return ast && isCurrentModuleExpression(ast)
+  return ast && isModuleExpression(ast, project.value, projectNames)
 })
 
 const nameCode = computed(() => name.value.code())
@@ -109,10 +105,12 @@ async function renameFunction(userProvidedName: string): Promise<UpdateResult> {
 
     // replace all occurences
     const newNameAst = Ast.Ident.new(MutableModule.Transient(), newName)
-    replaceVariableUsages(edit, moduleRoot, originalName, newNameAst, isCurrentModuleExpression)
-    // Instantly update execution context and suggestion database, so we avoid blinking due to
-    // temporarily unsynchronized state and keeps this widget instance rendered. Real updates
-    // will arrive soon afterwards and they should have no additional effect.
+    replaceVariableUsages(edit, moduleRoot, originalName, newNameAst, (ast) =>
+      isModuleExpression(ast, project.value, projectNames),
+    )
+    // Instantly update execution context, so we avoid blinking due to temporarily unsynchronized
+    // state and keeps this widget instance rendered. Real updates will arrive soon afterwards and
+    // they should have no additional effect.
     rewriteMethodPointer(oldMethodPointer, newMethodPointer)
     return props.updateCallback({ edit, directInteraction: true })
   })
@@ -140,6 +138,28 @@ declare module '$/providers/openedProjects/widgetRegistry' {
     }
   }
 }
+
+export const [provideRenameSchedule, useRenameSchedule] = createContextStore(
+  'functionRenameSchedule',
+  () => {
+    let scheduledRename: MethodPointer | null = null
+    /** Inform the function name widget to start in "renaming" state the next time it is instantiated with a function of given name. */
+    function scheduleFunctionRename(pointer: MethodPointer) {
+      scheduledRename = pointer
+    }
+
+    /** Check if a function has a scheduled rename. If it does, remove it from schedule. */
+    function matchScheduled(pointer: MethodPointer) {
+      if (scheduledRename && methodPointerEquals(scheduledRename, pointer)) {
+        scheduledRename = null
+        return true
+      }
+      return false
+    }
+
+    return { scheduleFunctionRename, matchScheduled }
+  },
+)
 
 function isFunctionName(input: WidgetInput): input is WidgetInput & {
   value: Ast.Ast

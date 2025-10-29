@@ -17,9 +17,11 @@ import {
   getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
+import type { MethodPointer } from '@/util/methodPointer'
 import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
 import { computed, toValue } from 'vue'
+import type { Identifier } from 'ydoc-shared/ast'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 import { GET_WIDGETS_METHOD, WIDGETS_ENSO_MODULE, WIDGETS_ENSO_PATH } from './consts'
@@ -227,5 +229,61 @@ export function useWidgetFunctionCallInfo(
     application,
     subject,
     subjectInfo,
+  }
+}
+
+/**
+ * Check if given AST potentially represents an expression that would always evaluate to local module.
+ *
+ * e.g. `Main`, `local.ThisProjectName.Main`
+ */
+export function isModuleExpression(
+  expr: Ast.Expression,
+  projectPath: ProjectPath,
+  projectNames: ToValue<ProjectNameStore>,
+) {
+  if (expr instanceof Ast.Ident) return expr.token.code() === projectPath.path
+  if (
+    expr instanceof Ast.PropertyAccess &&
+    expr.lhs instanceof Ast.PropertyAccess &&
+    expr.lhs.lhs instanceof Ast.Ident
+  ) {
+    return expr.code() === toValue(projectNames).serializeProjectPathForBackend(projectPath)
+  }
+  return false
+}
+
+/**
+ * Check if given AST potentially represents a locally defined method call.
+ * Returns a method pointer that might potentially not represent a real method.
+ */
+export function getPotentialCurrentModuleFunctionPointer(
+  expr: Ast.Expression,
+  project: Pick<ProjectStore, 'moduleProjectPath'>,
+  projectNames: ToValue<ProjectNameStore>,
+  graphDb: ToValue<GraphDb>,
+): MethodPointer | undefined {
+  let candidateFunctionName: Identifier | null = null
+  if (expr instanceof Ast.Ident) {
+    const db = toValue(graphDb)
+    const definition = db.getIdentDefiningNode(expr.id)
+    // Reject idents that have local definitions, as they might shadow the module method.
+    if (!definition) candidateFunctionName = expr.token.code()
+  } else if (
+    expr instanceof Ast.PropertyAccess &&
+    expr.lhs &&
+    project.moduleProjectPath?.ok &&
+    isModuleExpression(expr.lhs, project.moduleProjectPath.value, projectNames)
+  ) {
+    candidateFunctionName = expr.rhs.token.code()
+  }
+
+  if (candidateFunctionName && project.moduleProjectPath?.ok) {
+    const modulePath = project.moduleProjectPath.value
+    return {
+      module: modulePath,
+      definedOnType: modulePath,
+      name: candidateFunctionName,
+    }
   }
 }
