@@ -7,6 +7,7 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
+import { isOnElectron } from '$/utils/detect'
 import { assert } from '@/util/assert'
 import { createGlobalState } from '@vueuse/core'
 import { computed, ref, shallowReactive, watchEffect } from 'vue'
