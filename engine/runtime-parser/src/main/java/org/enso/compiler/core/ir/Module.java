@@ -57,15 +57,7 @@ public final class Module extends ModuleGen {
    * @return new instances of this module if imports or exports differ
    */
   public Module copyWithImportsAndExports(List<Import> imports, List<Export> exports) {
-    return this.copy(
-        this.diagnostics,
-        this.passData,
-        this.location,
-        this.id,
-        imports,
-        exports,
-        this.bindings(),
-        this.isPrivate());
+    return builder(this).imports(imports).exports(exports).build();
   }
 
   /**
@@ -75,15 +67,7 @@ public final class Module extends ModuleGen {
    * @return new instances of this module if bindings are different
    */
   public Module copyWithBindings(List<Definition> bindings) {
-    return this.copy(
-        this.diagnostics,
-        this.passData,
-        this.location,
-        this.id,
-        this.imports(),
-        this.exports(),
-        bindings,
-        this.isPrivate());
+    return builder(this).bindings(bindings).build();
   }
 
   @Override

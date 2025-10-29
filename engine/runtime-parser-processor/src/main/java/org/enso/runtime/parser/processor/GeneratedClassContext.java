@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.PrimitiveType;
@@ -134,6 +135,12 @@ public final class GeneratedClassContext {
 
   public ProcessedClass getProcessedClass() {
     return processedClass;
+  }
+
+  public TypeElement getSuperClass() {
+    var clazz = getProcessedClass().getClazz().getSuperclass();
+    var superClassType = getProcessingEnvironment().getTypeUtils().asElement(clazz);
+    return (TypeElement) superClassType;
   }
 
   public List<ClassField> getMetaFields() {
