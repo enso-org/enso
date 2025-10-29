@@ -23,10 +23,6 @@ export function registerAssociations(electron: Electron) {
   }
 }
 
-// ====================
-// === URL handling ===
-// ====================
-
 /**
  * Check if the given list of application startup arguments denotes an attempt to open a URL.
  *
@@ -37,7 +33,7 @@ export function registerAssociations(electron: Electron) {
  * executable name and any electron dev mode arguments.
  * @returns The URL to open, or `null` if no file was specified.
  */
-export function argsDenoteUrlOpenAttempt(clientArgs: readonly string[]): URL | null {
+export function getUrlToOpen(clientArgs: readonly string[]): URL | null {
   const arg = clientArgs[0]
   let result: URL | null = null
   // Check if the first argument parses as a URL using our deep link scheme.

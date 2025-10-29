@@ -27,9 +27,9 @@ import { VERSION } from './contentConfig.js'
 import { printInfo, VERSION_INFO } from './debug.js'
 import { initIpc, registerShortcuts, setChromeOptions } from './electron.js'
 import {
-  argsDenoteFileOpenAttempt,
-  CLIENT_ARGUMENTS,
+  getFileToOpen,
   handleOpenFile,
+  parseClientArguments,
   setOpenFileEventHandler,
 } from './fileAssociations.js'
 import { Channel } from './ipc.js'
@@ -40,7 +40,7 @@ import { APP_PATH, ASSETS_PATH } from './paths.js'
 import { handleProjectProtocol, setupProjectService, version } from './projectService.js'
 import { enableAll } from './security.js'
 import { Config, Server } from './server.js'
-import { argsDenoteUrlOpenAttempt, handleOpenUrl, registerAssociations } from './urlAssociations.js'
+import { getUrlToOpen, handleOpenUrl, registerAssociations } from './urlAssociations.js'
 
 type Electron = typeof import('electron')
 
@@ -98,20 +98,16 @@ const createApp = (): App => ({
   isQuitting: false,
 })
 
-/** Initialize and run the Electron application. */
-async function runApp(app: App, electron: Electron | undefined) {
-  process.on('uncaughtException', (err, origin) => {
-    console.error(`Uncaught exception: ${err.toString()}\nException origin: ${origin}`)
-    showErrorBox(PRODUCT_NAME, err.stack ?? err.toString(), electron)
-    exit(1, electron)
-  })
-  setupLogger()
-  if (electron) {
-    registerAssociations(electron)
-  }
+function runElectronApp(
+  electron: Electron,
+  app: App,
+  args: Options,
+  fileToOpen: string | null,
+  urlToOpen: URL | null,
+) {
+  registerAssociations(electron)
   // Register file associations for macOS.
   setOpenFileEventHandler((path) => {
-    if (!electron) return
     if (electron.app.isReady()) {
       const project = handleOpenFile(path)
       app.window?.webContents.send(Channel.openProject, project)
@@ -119,17 +115,6 @@ async function runApp(app: App, electron: Electron | undefined) {
       setProjectToOpenOnStartup(app, pathToURL(path), electron)
     }
   })
-  const { args, fileToOpen, urlToOpen } = processArguments()
-  if (args.version) {
-    await printVersion()
-    return quit(electron)
-  } else if (args.debug.info) {
-    await electron?.app.whenReady()
-    await printInfo()
-    return quit(electron)
-  } else if (!electron) {
-    return
-  }
   const isOriginalInstance = electron.app.requestSingleInstanceLock({
     fileToOpen,
     urlToOpen,
@@ -217,15 +202,21 @@ async function onStart(electron: Electron | undefined) {
   return Promise.allSettled([writeVersionInfoPromise, downloadSamplesPromise])
 }
 
+interface ParsedArguments {
+  readonly args: Options
+  readonly fileToOpen: string | null
+  readonly urlToOpen: URL | null
+}
+
 /** Process the command line arguments. */
-function processArguments(args = CLIENT_ARGUMENTS) {
+function processArguments(args: readonly string[]): ParsedArguments {
   // We parse only "client arguments", so we don't have to worry about the Electron-Dev vs
   // Electron-Proper distinction.
-  const fileToOpen = argsDenoteFileOpenAttempt(args)
-  const urlToOpen = argsDenoteUrlOpenAttempt(args)
+  const fileToOpen = getFileToOpen(args)
+  const urlToOpen = getUrlToOpen(args)
   // If we are opening a file (i.e. we were spawned with just a path of the file to open as
   // the argument) or URL, it means that effectively we don't have any non-standard arguments.
-  // We just need to let caller know that we are opening a file.
+  // We just need to let the caller know that we are opening a file.
   const argsToParse = fileToOpen != null || urlToOpen != null ? [] : args
   return { args: parseArgs(argsToParse), fileToOpen, urlToOpen }
 }
@@ -236,7 +227,7 @@ function processArguments(args = CLIENT_ARGUMENTS) {
  * This method should be called before the application is ready, as it only
  * modifies the startup options. If the application is already initialized,
  * an error will be logged, and the method will have no effect.
- * @param projectUrl - The `file://` url of project to be opened on startup.
+ * @param projectUrl - The `file://` url of the project to be opened on startup.
  */
 function setProjectToOpenOnStartup(app: App, projectUrl: URL, electron: Electron | undefined) {
   if (electron) {
@@ -497,5 +488,42 @@ async function printVersion(): Promise<void> {
   }
 }
 
-// FIXME: Conditionally load `electron`
-void runApp(createApp(), await import('electron'))
+/** Initialize and run the Electron application. */
+async function runApp(app: App, parsedArguments: ParsedArguments, electron: Electron | undefined) {
+  const { args, fileToOpen, urlToOpen } = parsedArguments
+  process.on('uncaughtException', (err, origin) => {
+    console.error(`Uncaught exception: ${err.toString()}\nException origin: ${origin}`)
+    showErrorBox(PRODUCT_NAME, err.stack ?? err.toString(), electron)
+    exit(1, electron)
+  })
+  setupLogger()
+  if (args.version) {
+    await printVersion()
+    return quit(electron)
+  } else if (args.debug.info) {
+    await electron?.app.whenReady()
+    await printInfo()
+    return quit(electron)
+  } else if (electron) {
+    runElectronApp(electron, app, args, fileToOpen, urlToOpen)
+  } else {
+    if (parsedArguments.urlToOpen != null) {
+      // TODO: run hybrid project
+    } else if (parsedArguments.fileToOpen != null) {
+      // TODO: run local project
+    } else {
+      console.error('Running in headless mode, no action specified.')
+      return exit(1, electron)
+    }
+  }
+}
+
+const app = createApp()
+const clientArguments = parseClientArguments(process.argv)
+const parsedArguments = processArguments(clientArguments)
+if (parsedArguments.args.headless) {
+  void runApp(app, parsedArguments, undefined)
+} else {
+  const electron = await import('electron')
+  void runApp(app, parsedArguments, electron)
+}

@@ -8,6 +8,7 @@ const DEFAULT_PORT = 8080
 /** Schema for app-wide configuration options. */
 export const OptionsSchema = z.object({
   version: z.boolean().default(false),
+  headless: z.boolean().default(false),
   displayWindow: z.boolean().default(true),
   useServer: z.boolean().default(true),
   engineEnabled: z.boolean().default(true),
