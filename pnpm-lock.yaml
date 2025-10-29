@@ -36,6 +36,9 @@ catalogs:
     vitest:
       specifier: ^3.2.4
       version: 3.2.4
+    zod:
+      specifier: ^3.25.49
+      version: 3.25.76
 
 overrides:
   tslib: ^2.8.1
@@ -125,10 +128,10 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       vue:
-        specifier: '*'
+        specifier: ^3.5.13
         version: 3.5.13(typescript@5.7.2)
       zod:
-        specifier: ^3.25.49
+        specifier: 'catalog:'
         version: 3.25.76
     devDependencies:
       '@fast-check/vitest':
@@ -532,7 +535,7 @@ importers:
         specifier: ^13.6.21
         version: 13.6.21
       zod:
-        specifier: ^3.25.49
+        specifier: 'catalog:'
         version: 3.25.76
       zustand:
         specifier: ^4.5.5
@@ -863,7 +866,7 @@ importers:
         specifier: ^13.6.21
         version: 13.6.21
       zod:
-        specifier: ^3.25.49
+        specifier: 'catalog:'
         version: 3.25.76
     devDependencies:
       '@fast-check/vitest':
@@ -961,7 +964,7 @@ importers:
         specifier: ^13.6.21
         version: 13.6.21
       zod:
-        specifier: ^3.25.49
+        specifier: 'catalog:'
         version: 3.25.76
     devDependencies:
       '@fast-check/vitest':

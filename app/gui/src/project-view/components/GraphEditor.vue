@@ -695,8 +695,8 @@ const contextMenuActions: DisplayableActionName[] = [
         <GraphMouse />
       </ContextMenuTrigger>
     </PopoverRootProvider>
-    <PopoverRootProvider class="bottomPanel">
-      <BottomPanel v-model:show="showCodeEditor">
+    <PopoverRootProvider>
+      <BottomPanel v-model:show="showCodeEditor" class="bottomPanel">
         <CodeEditor />
       </BottomPanel>
     </PopoverRootProvider>
