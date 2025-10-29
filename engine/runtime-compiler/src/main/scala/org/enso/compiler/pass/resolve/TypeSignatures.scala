@@ -252,7 +252,7 @@ case object TypeSignatures extends IRPass {
     }
   }
 
-  val anyIr = Name.Qualified(
+  def anyIr = Name.Qualified(
     List(
       Name.Literal("Standard", isMethod = false, identifiedLocation = null),
       Name.Literal("Base", isMethod     = false, identifiedLocation = null),

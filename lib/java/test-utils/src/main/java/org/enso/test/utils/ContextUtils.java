@@ -1,11 +1,15 @@
 package org.enso.test.utils;
 
+import static org.junit.Assert.fail;
+
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.ByteArrayOutputStream;
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -127,8 +131,10 @@ public final class ContextUtils implements TestRule, AutoCloseable {
   @Override
   public void close() {
     if (context != null) {
+      var ref = new WeakReference<>(ensoContext());
       context.close();
       context = null;
+      assertGC("EnsoContext can be GCed when context is closed", true, ref);
     }
     resetOut();
   }
@@ -458,7 +464,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     /** Evaluates jUnit {@link org.junit.Test}. */
     @Override
     public void evaluate() throws Throwable {
-      try (var ctx = currentCtx()) {
+      try {
         if (alwaysExecuteInContext) {
           executeInContext(
               () -> {
@@ -507,6 +513,25 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     @ExportMessage
     boolean isExecutable() {
       return true;
+    }
+  }
+
+  private static void assertGC(String msg, boolean expectGC, Reference<?> ref) {
+    for (var i = 1; i < Integer.MAX_VALUE / 2; i *= 2) {
+      if (ref.get() == null) {
+        break;
+      }
+      System.gc();
+    }
+    var obj = ref.get();
+    if (expectGC) {
+      if (obj != null) {
+        fail(msg + " ref still alive: " + obj);
+      }
+    } else {
+      if (obj == null) {
+        fail(msg + " ref has been cleaned: " + obj);
+      }
     }
   }
 }
