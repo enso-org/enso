@@ -27,7 +27,7 @@ export const [provideGlobalEventRegistry, useGlobalEventRegistry] = createContex
   },
 )
 
-export type EventRegistryPhase = 'pre' | 'post'
+export type EventRegistryPhase = 'pre' | 'main'
 export type EventRegistryOptions = {
   capture: boolean
   phase: EventRegistryPhase
@@ -36,7 +36,7 @@ export type EventRegistryOptions = {
 function normalizeOptions(options?: Partial<EventRegistryOptions>): EventRegistryOptions {
   return {
     capture: options?.capture ?? false,
-    phase: options?.phase ?? 'post',
+    phase: options?.phase ?? 'main',
   }
 }
 
@@ -55,8 +55,8 @@ function eventRegistry(source?: EventTarget) {
   ) {
     const opt = normalizeOptions(options)
     const registry = opt.capture ? registryCapture : registryBubble
-    const dispatcher = registry.get(event) ?? { pre: new Set(), post: new Set() }
-    if (source && dispatcher.pre.size === 0 && dispatcher.post.size === 0) {
+    const dispatcher = registry.get(event) ?? { pre: new Set(), main: new Set() }
+    if (source && dispatcher.pre.size === 0 && dispatcher.main.size === 0) {
       source.addEventListener(event, dispatchEvent, { capture: opt.capture })
     }
     dispatcher[opt.phase].add(callback as (e: Event) => void)
@@ -72,7 +72,7 @@ function eventRegistry(source?: EventTarget) {
     const registry = opt.capture ? registryCapture : registryBubble
     const dispatcher = registry.get(event)
     dispatcher?.[opt.phase].delete(callback as any)
-    if (source && dispatcher && dispatcher.pre.size === 0 && dispatcher.post.size === 0) {
+    if (source && dispatcher && dispatcher.pre.size === 0 && dispatcher.main.size === 0) {
       source.removeEventListener(event, dispatchEvent, { capture: opt.capture })
     }
   }
@@ -81,7 +81,7 @@ function eventRegistry(source?: EventTarget) {
     const registry = event.eventPhase === Event.CAPTURING_PHASE ? registryCapture : registryBubble
     const handlers = registry.get(event.type as any)
     for (const handler of handlers?.pre ?? []) handler(event)
-    for (const handler of handlers?.post ?? []) handler(event)
+    for (const handler of handlers?.main ?? []) handler(event)
     return !event.cancelable || !event.defaultPrevented
   }
 
