@@ -59,6 +59,7 @@ public final class ValuesGenerator implements AutoCloseable {
   private record ValueInfo(Value type, Value check) {}
 
   public static ValuesGenerator create(ContextUtils ctx, Language... langs) {
+    ctx.context().enter();
     var set =
         langs == null || langs.length == 0
             ? EnumSet.allOf(Language.class)

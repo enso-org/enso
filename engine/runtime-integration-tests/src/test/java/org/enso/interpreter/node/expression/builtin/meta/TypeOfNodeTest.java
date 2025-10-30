@@ -20,7 +20,8 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class TypeOfNodeTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule = ContextUtils.newBuilder().assertGC(false).build();
 
   @Parameterized.Parameter(0)
   public Object value;
