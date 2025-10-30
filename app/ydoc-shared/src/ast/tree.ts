@@ -1239,7 +1239,7 @@ applyMixins(MutableOprApp, [MutableAst])
 interface PropertyAccessFields {
   lhs: NodeChild<AstId> | undefined
   operator: NodeChild<SyncTokenId>
-  rhs: NodeChild<AstId>
+  rhs: NodeChild<SyncTokenId>
 }
 /** TODO: Add docs */
 export class PropertyAccess extends BaseExpression {
@@ -1271,7 +1271,7 @@ export class PropertyAccess extends BaseExpression {
       module,
       unspaced(lhs),
       { whitespace, node: dot },
-      { whitespace, node: Ident.newAllowingOperators(module, toIdent(rhs)) },
+      { whitespace, node: toIdent(rhs) },
     )
   }
 
@@ -1310,14 +1310,14 @@ export class PropertyAccess extends BaseExpression {
     module: MutableModule,
     lhs: NodeChild<Owned<MutableExpression>> | undefined,
     operator: NodeChild<Token>,
-    rhs: NodeChild<Owned<MutableIdent>>,
+    rhs: NodeChild<Token>,
   ) {
     const base = module.baseObject('PropertyAccess')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
       lhs: concreteChild(module, lhs, id_),
       operator,
-      rhs: concreteChild(module, rhs, id_),
+      rhs,
     })
     return asOwned(new MutablePropertyAccess(module, fields))
   }
@@ -1332,9 +1332,7 @@ export class PropertyAccess extends BaseExpression {
   }
   /** TODO: Add docs */
   get rhs(): IdentifierOrOperatorIdentifierToken {
-    const ast = this.module.get(this.fields.get('rhs').node)
-    assert(ast instanceof Ident)
-    return ast.token as IdentifierOrOperatorIdentifierToken
+    return this.module.getToken(this.fields.get('rhs').node) as IdentifierOrOperatorIdentifierToken
   }
 
   /** TODO: Add docs */
@@ -1355,7 +1353,7 @@ export class MutablePropertyAccess extends PropertyAccess implements MutableExpr
     setNode(this.fields, 'lhs', this.claimChild(value))
   }
   setRhs(ident: IdentLike) {
-    const node = this.claimChild(Ident.newAllowingOperators(this.module, ident))
+    const node = toIdent(ident)
     const old = this.fields.get('rhs')
     this.fields.set('rhs', old ? { ...old, node } : unspaced(node))
   }

@@ -166,7 +166,7 @@ fn qn_equivalent(a: &Tree, b: &Tree) -> bool {
     match (&a.variant, &b.variant) {
         (Ident(a), Ident(b)) => a.token.code.repr == b.token.code.repr,
         (PropertyAccess(a), PropertyAccess(b)) => {
-            opt_qn_equivalent(&a.lhs, &b.lhs) && qn_equivalent(&a.rhs, &b.rhs)
+            a.rhs.code.repr == b.rhs.code.repr && opt_qn_equivalent(&a.lhs, &b.lhs)
         }
         _ => false,
     }

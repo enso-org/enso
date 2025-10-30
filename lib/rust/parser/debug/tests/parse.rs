@@ -81,7 +81,7 @@ fn parentheses() {
     test_block!("((a b) c)",
         @"(BodyBlock #((ExpressionStatement () (Group (App (Group (App (Ident a) (Ident b))) (Ident c))))))");
     test_block!("(a).b",
-        @"(BodyBlock #((ExpressionStatement () (PropertyAccess (Group (Ident a)) (Ident b)))))");
+        @"(BodyBlock #((ExpressionStatement () (PropertyAccess (Group (Ident a)) b))))");
 }
 
 #[test]
@@ -191,7 +191,7 @@ fn type_constructors() {
         ].join("\n"),
         @"(BodyBlock #((TypeDef Geo #() #((ConstructorDefinition () #() () Circle #() #(((() (Ident radius) () ())) ((() (Ident x) () ())))) (ConstructorDefinition () #() () Rectangle #((() (Ident width) () ()) (() (Ident height) () ())) #()) (ConstructorDefinition () #() () Point #() #())))))");
     test_module!("type Foo\n Bar (a : B = C.D)",
-        @r#"(BodyBlock #((TypeDef Foo #() #((ConstructorDefinition () #() () Bar #((() (Ident a) (":" (Ident B)) ((PropertyAccess (Ident C) (Ident D))))) #())))))"#);
+        @r#"(BodyBlock #((TypeDef Foo #() #((ConstructorDefinition () #() () Bar #((() (Ident a) (":" (Ident B)) ((PropertyAccess (Ident C) D)))) #())))))"#);
     test_module!(["type A", "    Foo (a : Integer, b : Integer)"].join("\n"),
         @r#"Invalid use of syntactic operator in expression: (BodyBlock #((TypeDef A #() #((ConstructorDefinition () #() () Foo #((() (Ident a) (":" (Invalid)) ())) #())))))"#);
 }
@@ -233,7 +233,7 @@ fn type_methods() {
         ].join("\n"),
         @r#"(BodyBlock #((TypeDef Problem_Builder #() #((Function ((#((Section " Returns a vector containing all reported problems, aggregated."))) #(())) #() ((Ident build_problemset) ":" (Ident Vector)) () (Ident build_problemset) #((() (Ident self) () ())) () (BodyBlock #((ExpressionStatement () (Ident self)))))))))"#);
     test_module!("[foo., bar.]",
-        @r#"(BodyBlock #((ExpressionStatement () (Array (OprApp (Ident foo) (Ok ".") ()) #(("," (OprApp (Ident bar) (Ok ".") ())))))))"#);
+        @r#"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Array (Invalid) #(("," (Invalid)))))))"#);
 }
 
 #[test]
@@ -244,9 +244,9 @@ fn type_operator_methods() {
             "    Foo.+ : Foo",
             "    Foo.+ self b = b",
         ].join("\n"),
-        @r#"(BodyBlock #((TypeDef Foo #() #((Function () #() ((Ident +) ":" (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo)))) () (Ident +) #((() (Ident self) () ()) (() (Ident b) () ())) () (Ident b)) (Function () #() ((PropertyAccess (Ident Foo) (Ident +)) ":" (Ident Foo)) () (PropertyAccess (Ident Foo) (Ident +)) #((() (Ident self) () ()) (() (Ident b) () ())) () (Ident b))))))"#);
+        @r#"(BodyBlock #((TypeDef Foo #() #((Function () #() ((Ident +) ":" (OprApp (Ident Foo) (Ok "->") (OprApp (Ident Foo) (Ok "->") (Ident Foo)))) () (Ident +) #((() (Ident self) () ()) (() (Ident b) () ())) () (Ident b)) (Function () #() ((PropertyAccess (Ident Foo) +) ":" (Ident Foo)) () (PropertyAccess (Ident Foo) +) #((() (Ident self) () ()) (() (Ident b) () ())) () (Ident b))))))"#);
     test_block!("Any.==",
-        @"(BodyBlock #((ExpressionStatement () (PropertyAccess (Ident Any) (Ident ==)))))");
+        @"(BodyBlock #((ExpressionStatement () (PropertyAccess (Ident Any) ==))))");
     test_block!("x.-y",
         @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
     test_block!("x.-1",
@@ -259,7 +259,7 @@ fn type_operator_methods() {
         @"Space required between terms: (BodyBlock #((ExpressionStatement () (Invalid))))");
     // Compile-time operators are never operator-identifiers.
     test_block!("x.~y",
-        @r#"(BodyBlock #((ExpressionStatement () (OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Ident y))))))"#);
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
     test_block!("x.~1",
         @r#"(BodyBlock #((ExpressionStatement () (OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Number () "1" ()))))))"#);
 }
@@ -370,7 +370,7 @@ fn function_block_body() {
 #[test]
 fn function_qualified() {
     test_module!("Id.id x = x",
-        @"(BodyBlock #((Function () #() () () (PropertyAccess (Ident Id) (Ident id)) #((() (Ident x) () ())) () (Ident x))))");
+        @"(BodyBlock #((Function () #() () () (PropertyAccess (Ident Id) id) #((() (Ident x) () ())) () (Ident x))))");
 }
 
 #[test]
@@ -434,7 +434,7 @@ fn named_arguments() {
     test_block!("(x a=b)",
         @"(BodyBlock #((ExpressionStatement () (Group (NamedApp (Ident x) a (Ident b))))))");
     test_block!("(x a=b.c)",
-        @"(BodyBlock #((ExpressionStatement () (Group (NamedApp (Ident x) a (PropertyAccess (Ident b) (Ident c)))))))");
+        @"(BodyBlock #((ExpressionStatement () (Group (NamedApp (Ident x) a (PropertyAccess (Ident b) c))))))");
     test_block!("catch handler=exc->\n    throw",
         @r#"(BodyBlock #((ExpressionStatement () (NamedApp (Ident catch) handler (OprApp (Ident exc) (Ok "->") (BodyBlock #((ExpressionStatement () (Ident throw)))))))))"#);
     test_block!("sort by=x-> y-> compare x y",
@@ -454,7 +454,7 @@ fn named_arguments() {
     test_block!("filter (foo to=(1))",
         @r#"(BodyBlock #((ExpressionStatement () (App (Ident filter) (Group (NamedApp (Ident foo) to (Group (Number () "1" ()))))))))"#);
     test_block!("foo . bar baz=quux",
-        @"(BodyBlock #((ExpressionStatement () (NamedApp (PropertyAccess (Ident foo) (Ident bar)) baz (Ident quux)))))");
+        @"(BodyBlock #((ExpressionStatement () (NamedApp (PropertyAccess (Ident foo) bar) baz (Ident quux)))))");
 }
 
 // === Default arguments ===
@@ -648,15 +648,15 @@ fn precedence() {
 #[test]
 fn dot_operator_precedence() {
     test_block!("x y . f v",
-        @"(BodyBlock #((ExpressionStatement () (App (PropertyAccess (App (Ident x) (Ident y)) (Ident f)) (Ident v)))))");
+        @"(BodyBlock #((ExpressionStatement () (App (PropertyAccess (App (Ident x) (Ident y)) f) (Ident v)))))");
 }
 
 #[test]
 fn dot_operator_template_function() {
     test_block!("foo._",
-        @r#"(BodyBlock #((ExpressionStatement () (TemplateFunction 1 (OprApp (Ident foo) (Ok ".") (Wildcard 0))))))"#);
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (TemplateFunction 1 (Invalid)))))");
     test_block!("_.foo",
-        @"(BodyBlock #((ExpressionStatement () (TemplateFunction 1 (PropertyAccess (Wildcard 0) (Ident foo))))))");
+        @"(BodyBlock #((ExpressionStatement () (TemplateFunction 1 (PropertyAccess (Wildcard 0) foo)))))");
 }
 
 #[test]
@@ -685,19 +685,19 @@ fn pipeline_operators() {
 fn accessor_operator() {
     // Test that the accessor operator `.` is treated like any other operator.
     test_block!("Console.",
-        @r#"(BodyBlock #((ExpressionStatement () (OprApp (Ident Console) (Ok ".") ()))))"#);
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
     test_block!(".",
         @r#"(BodyBlock #((ExpressionStatement () (OprApp () (Ok ".") ()))))"#);
     test_block!(".log",
-        @"(BodyBlock #((ExpressionStatement () (PropertyAccess () (Ident log)))))");
+        @"(BodyBlock #((ExpressionStatement () (PropertyAccess () log))))");
 }
 
 #[test]
 fn operator_sections() {
     test_block!(".map (+2 * 3) *7",
-        @r#"(BodyBlock #((ExpressionStatement () (App (App (PropertyAccess () (Ident map)) (Group (OprApp (OprApp () (Ok "+") (Number () "2" ())) (Ok "*") (Number () "3" ())))) (OprApp () (Ok "*") (Number () "7" ()))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (App (App (PropertyAccess () map) (Group (OprApp (OprApp () (Ok "+") (Number () "2" ())) (Ok "*") (Number () "3" ())))) (OprApp () (Ok "*") (Number () "7" ()))))))"#);
     test_block!(".sum 1",
-        @r#"(BodyBlock #((ExpressionStatement () (App (PropertyAccess () (Ident sum)) (Number () "1" ())))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (App (PropertyAccess () sum) (Number () "1" ())))))"#);
     test_block!("+1 + x",
         @r#"(BodyBlock #((ExpressionStatement () (OprApp (OprApp () (Ok "+") (Number () "1" ())) (Ok "+") (Ident x)))))"#);
     test_block!("increment = 1 +",
@@ -715,9 +715,9 @@ fn operator_sections() {
 #[test]
 fn template_functions() {
     test_block!("_.map (_ + 2*3) _*7",
-        @r#"(BodyBlock #((ExpressionStatement () (TemplateFunction 1 (App (App (PropertyAccess (Wildcard 0) (Ident map)) (Group (TemplateFunction 1 (OprApp (Wildcard 0) (Ok "+") (OprApp (Number () "2" ()) (Ok "*") (Number () "3" ())))))) (TemplateFunction 1 (OprApp (Wildcard 0) (Ok "*") (Number () "7" ()))))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (TemplateFunction 1 (App (App (PropertyAccess (Wildcard 0) map) (Group (TemplateFunction 1 (OprApp (Wildcard 0) (Ok "+") (OprApp (Number () "2" ()) (Ok "*") (Number () "3" ())))))) (TemplateFunction 1 (OprApp (Wildcard 0) (Ok "*") (Number () "7" ()))))))))"#);
     test_block!("_.sum 1",
-        @r#"(BodyBlock #((ExpressionStatement () (TemplateFunction 1 (App (PropertyAccess (Wildcard 0) (Ident sum)) (Number () "1" ()))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (TemplateFunction 1 (App (PropertyAccess (Wildcard 0) sum) (Number () "1" ()))))))"#);
     test_block!("_+1 + x",
         @r#"(BodyBlock #((ExpressionStatement () (TemplateFunction 1 (OprApp (OprApp (Wildcard 0) (Ok "+") (Number () "1" ())) (Ok "+") (Ident x))))))"#);
 }
@@ -810,15 +810,15 @@ fn minus_unary_decimal() {
 #[test]
 fn minus_unary_in_method_app() {
     test_block!("-1.x",
-        @r#"(BodyBlock #((ExpressionStatement () (PropertyAccess (UnaryOprApp "-" (Number () "1" ())) (Ident x)))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (PropertyAccess (UnaryOprApp "-" (Number () "1" ())) x))))"#);
     test_block!("-1.up_to 100",
-        @r#"(BodyBlock #((ExpressionStatement () (App (PropertyAccess (UnaryOprApp "-" (Number () "1" ())) (Ident up_to)) (Number () "100" ())))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (App (PropertyAccess (UnaryOprApp "-" (Number () "1" ())) up_to) (Number () "100" ())))))"#);
 }
 
 #[test]
 fn method_app_in_minus_unary() {
     test_block!("-Number.positive_infinity",
-        @r#"(BodyBlock #((ExpressionStatement () (UnaryOprApp "-" (PropertyAccess (Ident Number) (Ident positive_infinity))))))"#);
+        @r#"(BodyBlock #((ExpressionStatement () (UnaryOprApp "-" (PropertyAccess (Ident Number) positive_infinity)))))"#);
 }
 
 #[test]
@@ -836,7 +836,7 @@ fn autoscope_operator() {
     test_block!("x = ..4",
         @"Space required between terms: (BodyBlock #((Assignment () (Ident x) (Invalid))))");
     test_block!("x = ..Foo.Bar",
-        @"Space required between term and operator: (BodyBlock #((Assignment () (Ident x) (Invalid))))");
+        @r#"(BodyBlock #((Assignment () (Ident x) (PropertyAccess (AutoscopedIdentifier ".." Foo) Bar))))"#);
     test_block!("x = f .. True",
         @"The autoscope operator must be applied to an identifier: (BodyBlock #((Assignment () (Ident x) (App (App (Ident f) (Invalid)) (Ident True)))))");
     test_block!("x = f (.. ..)",
@@ -862,29 +862,29 @@ fn autoscope_operator() {
 #[test]
 fn import() {
     test_module!("import project.IO",
-        @"(BodyBlock #((Import () () ((Ident import) (PropertyAccess (Ident project) (Ident IO))) () () ())))");
+        @"(BodyBlock #((Import () () ((Ident import) (PropertyAccess (Ident project) IO)) () () ())))");
     test_module!("import Standard.Base as Enso_List",
-        @"(BodyBlock #((Import () () ((Ident import) (PropertyAccess (Ident Standard) (Ident Base))) () ((Ident as) (Ident Enso_List)) ())))");
+        @"(BodyBlock #((Import () () ((Ident import) (PropertyAccess (Ident Standard) Base)) () ((Ident as) (Ident Enso_List)) ())))");
     test_module!("from Standard.Base import Foo",
-        @"(BodyBlock #((Import () ((Ident from) (PropertyAccess (Ident Standard) (Ident Base))) ((Ident import) (Ident Foo)) () () ())))");
+        @"(BodyBlock #((Import () ((Ident from) (PropertyAccess (Ident Standard) Base)) ((Ident import) (Ident Foo)) () () ())))");
     test_module!("from Standard.Base import all",
-        @"(BodyBlock #((Import () ((Ident from) (PropertyAccess (Ident Standard) (Ident Base))) ((Ident import) ()) all () ())))");
+        @"(BodyBlock #((Import () ((Ident from) (PropertyAccess (Ident Standard) Base)) ((Ident import) ()) all () ())))");
     test_module!("from Standard.Base import all hiding Number, Boolean",
-        @r#"(BodyBlock #((Import () ((Ident from) (PropertyAccess (Ident Standard) (Ident Base))) ((Ident import) ()) all () ((Ident hiding) (OprApp (Ident Number) (Ok ",") (Ident Boolean))))))"#);
+        @r#"(BodyBlock #((Import () ((Ident from) (PropertyAccess (Ident Standard) Base)) ((Ident import) ()) all () ((Ident hiding) (OprApp (Ident Number) (Ok ",") (Ident Boolean))))))"#);
     test_module!("polyglot java import java.lang.Float",
-        @"(BodyBlock #((Import ((Ident polyglot) (Ident java)) () ((Ident import) (PropertyAccess (PropertyAccess (Ident java) (Ident lang)) (Ident Float))) () () ())))");
+        @"(BodyBlock #((Import ((Ident polyglot) (Ident java)) () ((Ident import) (PropertyAccess (PropertyAccess (Ident java) lang) Float)) () () ())))");
     test_module!("polyglot java import java.net.URI as Java_URI",
-        @"(BodyBlock #((Import ((Ident polyglot) (Ident java)) () ((Ident import) (PropertyAccess (PropertyAccess (Ident java) (Ident net)) (Ident URI))) () ((Ident as) (Ident Java_URI)) ())))");
+        @"(BodyBlock #((Import ((Ident polyglot) (Ident java)) () ((Ident import) (PropertyAccess (PropertyAccess (Ident java) net) URI)) () ((Ident as) (Ident Java_URI)) ())))");
     test_module!("from Standard.Base import Foo, Bar, Baz",
-        @r#"(BodyBlock #((Import () ((Ident from) (PropertyAccess (Ident Standard) (Ident Base))) ((Ident import) (OprApp (OprApp (Ident Foo) (Ok ",") (Ident Bar)) (Ok ",") (Ident Baz))) () () ())))"#);
+        @r#"(BodyBlock #((Import () ((Ident from) (PropertyAccess (Ident Standard) Base)) ((Ident import) (OprApp (OprApp (Ident Foo) (Ok ",") (Ident Bar)) (Ok ",") (Ident Baz))) () () ())))"#);
     test_module!("from Standard.Base.Data.Array import new as array_new",
-        @"Expected identifier: (BodyBlock #((Import () ((Ident from) (PropertyAccess (PropertyAccess (PropertyAccess (Ident Standard) (Ident Base)) (Ident Data)) (Ident Array))) ((Ident import) (Invalid)) () () ())))");
+        @"Expected identifier: (BodyBlock #((Import () ((Ident from) (PropertyAccess (PropertyAccess (PropertyAccess (Ident Standard) Base) Data) Array)) ((Ident import) (Invalid)) () () ())))");
 }
 
 #[test]
 fn export() {
     test_module!("export prj.Data.Foo",
-        @"(BodyBlock #((Export () ((Ident export) (PropertyAccess (PropertyAccess (Ident prj) (Ident Data)) (Ident Foo))) ())))");
+        @"(BodyBlock #((Export () ((Ident export) (PropertyAccess (PropertyAccess (Ident prj) Data) Foo)) ())))");
     test_module!("export Foo as Bar",
         @"(BodyBlock #((Export () ((Ident export) (Ident Foo)) ((Ident as) (Ident Bar)))))");
     test_module!("from Foo export Bar, Baz",
@@ -1136,7 +1136,7 @@ fn pattern_irrefutable() {
     test_block!("Vector _ = x",
         @"(BodyBlock #((Assignment () (App (Ident Vector) (Wildcard -1)) (Ident x))))");
     test_block!("X.y = z",
-        @"(BodyBlock #((Function () #() () () (PropertyAccess (Ident X) (Ident y)) #() () (Ident z))))");
+        @"(BodyBlock #((Function () #() () () (PropertyAccess (Ident X) y) #() () (Ident z))))");
 }
 
 #[test]
@@ -1207,9 +1207,9 @@ fn suspended_default_arguments_in_pattern() {
 #[test]
 fn suspended_default_arguments_in_expression() {
     test_block!("c = self.value ...",
-        @"(BodyBlock #((Assignment () (Ident c) (App (PropertyAccess (Ident self) (Ident value)) (SuspendedDefaultArguments)))))");
+        @"(BodyBlock #((Assignment () (Ident c) (App (PropertyAccess (Ident self) value) (SuspendedDefaultArguments)))))");
     test_block!("c = self.value...",
-        @"(BodyBlock #((Assignment () (Ident c) (App (PropertyAccess (Ident self) (Ident value)) (SuspendedDefaultArguments)))))");
+        @"(BodyBlock #((Assignment () (Ident c) (App (PropertyAccess (Ident self) value) (SuspendedDefaultArguments)))))");
 }
 
 // === Private (project-private) keyword ===
@@ -1287,7 +1287,7 @@ mod numbers {
     #[test]
     fn digits_spaced_dot() {
         test_block!("1 . 0",
-            @r#"(BodyBlock #((ExpressionStatement () (OprApp (Number () "1" ()) (Ok ".") (Number () "0" ())))))"#);
+            @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
         test_block!("1 .0",
             @r#"(BodyBlock #((ExpressionStatement () (App (Number () "1" ()) (OprApp () (Ok ".") (Number () "0" ()))))))"#);
         test_block!("1. 0",
@@ -1297,19 +1297,19 @@ mod numbers {
     #[test]
     fn non_digits_dot_digits() {
         test_block!("x.0",
-            @r#"(BodyBlock #((ExpressionStatement () (OprApp (Ident x) (Ok ".") (Number () "0" ())))))"#);
+            @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
     }
 
     #[test]
     fn digits_dot_non_digits() {
         test_block!("0.0.x",
-            @r#"(BodyBlock #((ExpressionStatement () (PropertyAccess (Number () "0" ("0")) (Ident x)))))"#);
+            @r#"(BodyBlock #((ExpressionStatement () (PropertyAccess (Number () "0" ("0")) x))))"#);
         test_block!("1.0.0",
-            @r#"(BodyBlock #((ExpressionStatement () (OprApp (Number () "1" ("0")) (Ok ".") (Number () "0" ())))))"#);
+            @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
         test_block!("1.0x",
             @r#"(BodyBlock #((ExpressionStatement () (OprApp (Number () "1" ()) (Ok ".") (Number "0x" () ())))))"#);
         test_block!("876543.is_even.should_be_false",
-            @r#"(BodyBlock #((ExpressionStatement () (PropertyAccess (PropertyAccess (Number () "876543" ()) (Ident is_even)) (Ident should_be_false)))))"#);
+            @r#"(BodyBlock #((ExpressionStatement () (PropertyAccess (PropertyAccess (Number () "876543" ()) is_even) should_be_false))))"#);
     }
 
     #[test]
@@ -1371,7 +1371,7 @@ fn at_operator() {
 #[test]
 fn annotations() {
     test_module!("@on_problems P.g\nselect_columns : Text -> Table\nselect_columns text = to_table text",
-        @r#"(BodyBlock #((Function () #(((on_problems (PropertyAccess (Ident P) (Ident g))) #(()))) ((Ident select_columns) ":" (OprApp (Ident Text) (Ok "->") (Ident Table))) () (Ident select_columns) #((() (Ident text) () ())) () (App (Ident to_table) (Ident text)))))"#);
+        @r#"(BodyBlock #((Function () #(((on_problems (PropertyAccess (Ident P) g)) #(()))) ((Ident select_columns) ":" (OprApp (Ident Text) (Ok "->") (Ident Table))) () (Ident select_columns) #((() (Ident text) () ())) () (App (Ident to_table) (Ident text)))))"#);
     test_module!("@a\n@b 1 + 1\nf x = x",
         @r#"(BodyBlock #((Function () #(((a ()) #(())) ((b (OprApp (Number () "1" ()) (Ok "+") (Number () "1" ()))) #(()))) () () (Ident f) #((() (Ident x) () ())) () (Ident x))))"#);
     test_module!("@x `\nid x = x",
@@ -1419,9 +1419,9 @@ fn freeze() {
     test_block!("FREEZE x + y",
         @r#"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident FREEZE) (OprApp (Ident x) (Ok "+") (Ident y))))))))"#);
     test_block!("FREEZE x.f",
-        @"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident FREEZE) (PropertyAccess (Ident x) (Ident f))))))))");
+        @"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident FREEZE) (PropertyAccess (Ident x) f)))))))");
     test_block!("FREEZE x.f y",
-        @"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident FREEZE) (App (PropertyAccess (Ident x) (Ident f)) (Ident y))))))))");
+        @"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident FREEZE) (App (PropertyAccess (Ident x) f) (Ident y))))))))");
 }
 
 #[test]
@@ -1431,9 +1431,9 @@ fn skip() {
     test_block!("SKIP x + y",
         @r#"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident SKIP) (OprApp (Ident x) (Ok "+") (Ident y))))))))"#);
     test_block!("SKIP x.f",
-        @"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident SKIP) (PropertyAccess (Ident x) (Ident f))))))))");
+        @"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident SKIP) (PropertyAccess (Ident x) f)))))))");
     test_block!("SKIP x.f y",
-        @"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident SKIP) (App (PropertyAccess (Ident x) (Ident f)) (Ident y))))))))");
+        @"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident SKIP) (App (PropertyAccess (Ident x) f) (Ident y))))))))");
 }
 
 // === Context errors ===
@@ -1480,7 +1480,7 @@ fn big_array() {
 #[test]
 fn space_required() {
     test_block!("foo = if cond.x else.y",
-        @"Invalid macro invocation: (BodyBlock #((Assignment () (Ident foo) (App (App (Invalid) (PropertyAccess (Ident cond) (Ident x))) (PropertyAccess (Ident else) (Ident y))))))");
+        @"Invalid macro invocation: (BodyBlock #((Assignment () (Ident foo) (App (App (Invalid) (PropertyAccess (Ident cond) x)) (PropertyAccess (Ident else) y)))))");
 }
 
 #[test]
@@ -1693,7 +1693,7 @@ fn proposed_invalid_cases() {
 #[test]
 fn nonsense_inputs() {
     test_module!("`a (b = 1).`",
-        @r#"Space required between terms: (BodyBlock #((ExpressionStatement () (OprApp (NamedApp (Invalid) b (Number () "1" ())) (Ok ".") (Invalid)))))"#);
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
     test_module!("type M = B<d f<'a> F(M<'a>) -> S>;",
         @"Expected identifier or wildcard in argument binding: (BodyBlock #((TypeDef M #((() (Invalid) () ((Invalid))) (() (Invalid) () ()) (() (Invalid) () ()) (() (Invalid) () ()) (() (Invalid) () ())) #())))");
     test_module!("'`'\nx `y`\nz",

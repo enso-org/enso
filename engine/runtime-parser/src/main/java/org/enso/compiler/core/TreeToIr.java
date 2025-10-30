@@ -789,7 +789,8 @@ final class TreeToIr {
         default -> {
           Expression func;
           if (tree instanceof Tree.PropertyAccess oprApp) {
-            func = translateExpression(oprApp.getRhs(), true);
+            var rhs = oprApp.getRhs();
+            func = sanitizeName(buildName(getIdentifiedLocation(rhs), rhs, true));
             if (oprApp.getLhs() == null && args.isEmpty()) {
               return func;
             }
@@ -1873,7 +1874,7 @@ final class TreeToIr {
     }
     List<Name> names = nil();
     while (t instanceof Tree.PropertyAccess app) {
-      names = join(sanitizeName(buildName((Tree.Ident)app.getRhs(), generateId)), names);
+      names = join(sanitizeName(buildName(app.getRhs(), generateId)), names);
       t = app.getLhs();
     }
     if (t instanceof Tree.Ident id) {

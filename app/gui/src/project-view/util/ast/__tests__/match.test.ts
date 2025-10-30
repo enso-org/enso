@@ -5,7 +5,7 @@ import { MutableModule } from '../abstract'
 
 test.each([
   { target: 'a.b', pattern: '__', extracted: ['a.b'] },
-  { target: 'a.b', pattern: 'a.__', extracted: ['b'] },
+  { target: 'a.b', pattern: 'a.__', extracted: [] },
   { target: 'a.b', pattern: '__.b', extracted: ['a'] },
   { target: '1 + 1', pattern: '1  +  1', extracted: [] },
   { target: '1 + 2', pattern: '1 + __', extracted: ['2'] },
@@ -72,12 +72,6 @@ test.each([
     pattern:
       'Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output __ <| __',
     extracted: ["'current_context_name'", 'a + b'],
-  },
-  {
-    target:
-      "Standard.Base.Runtime.with_enabled_context Standard.Base.Runtime.Context.Output 'current_context_name' <| a + b",
-    pattern: 'Standard.Base.Runtime.__ Standard.Base.Runtime.Context.Output __ <| __',
-    extracted: ['with_enabled_context', "'current_context_name'", 'a + b'],
   },
 ])('`isMatch` and `extractMatches`', ({ target, pattern, extracted }) => {
   const targetAst = Ast.parseExpression(target)

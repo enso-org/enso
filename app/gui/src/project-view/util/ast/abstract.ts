@@ -179,8 +179,7 @@ export function astToQualifiedName(ast: Ast): QualifiedName | null {
 }
 
 /**
- * Substitute `pattern` inside `expression` with `to`.
- * Will only replace the first item in the property acccess chain.
+ * Substitute `pattern` in any `Ident` nodes inside `expression` with `to`.
  */
 export function substituteIdentifier(
   expr: MutableAst,
@@ -189,9 +188,6 @@ export function substituteIdentifier(
 ) {
   if (expr instanceof MutableIdent && expr.code() === pattern) {
     expr.setToken(to)
-  } else if (expr instanceof MutablePropertyAccess) {
-    // Substitute only the first item in the property access chain.
-    if (expr.lhs != null) substituteIdentifier(expr.lhs, pattern, to)
   } else {
     for (const child of expr.children()) {
       if (child instanceof Token) {
