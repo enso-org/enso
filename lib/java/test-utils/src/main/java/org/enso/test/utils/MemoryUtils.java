@@ -12,6 +12,7 @@ final class MemoryUtils {
 
   static void assertGC(String msg, boolean expectGC, Reference<?> ref) {
     var memory = expectGC ? new ArrayList<>() : null;
+    var retry = 3;
     for (var i = 1L; ; i *= 2) {
       try {
         var size = (int) Math.min(i, Integer.MAX_VALUE / 2);
@@ -25,7 +26,10 @@ final class MemoryUtils {
         // launch the JVM with
         //   -XX:+HeapDumpOnOutOfMemoryError
         //   -XX:HeapDumpPath=/tmp
-        err.printStackTrace();
+        // to get some info
+        if (retry-- <= 0) {
+            break;
+        }
       }
     }
     assertReference(ref, expectGC, msg, memory);
