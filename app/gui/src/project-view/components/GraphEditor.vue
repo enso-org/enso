@@ -522,7 +522,7 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
   }
 }
 
-function handleNodeOutputPortDoubleClick(id: Ast.AstId) {
+function createNodeFromPort(id: Ast.AstId) {
   const srcNode = graphStore.db.getPatternExpressionNodeId(id)
   if (srcNode == null) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
@@ -660,7 +660,6 @@ const contextMenuActions: DisplayableActionName[] = [
         <GraphMissingView v-if="graphMissing" />
         <template v-else>
           <GraphNodes
-            @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
             @enterNode="(id) => stackNavigator.enterNode(id)"
             @createNodes="createNodesFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
@@ -669,8 +668,8 @@ const contextMenuActions: DisplayableActionName[] = [
           <GraphEdges
             :navigator="graphNavigator"
             @createNodeFromEdge="handleEdgeDrop"
-            @createNodeFromPort="createNodesFromSource"
-            @outputPortDoubleClick="handleNodeOutputPortDoubleClick"
+            @createNodeFromPort="createNodeFromPort"
+            @outputPortDoubleClick="createNodeFromPort"
           />
           <ComponentBrowser
             v-if="componentBrowserOpened"
