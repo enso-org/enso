@@ -3,7 +3,7 @@
  *
  * Set of hooks to work with native event listeners.
  */
-import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { IS_DEV_MODE } from '$/utils/detect'
 import type { RefObject } from 'react'
 import { useEffect, useRef } from 'react'
 

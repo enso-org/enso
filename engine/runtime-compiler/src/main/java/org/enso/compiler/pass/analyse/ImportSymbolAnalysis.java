@@ -76,15 +76,8 @@ public final class ImportSymbolAnalysis implements MiniPassFactory {
         }
         newImports.add(imp);
       }
-      return moduleIr.copy(
-          CollectionConverters.asScala(newImports).toList(),
-          moduleIr.exports(),
-          moduleIr.bindings(),
-          moduleIr.isPrivate(),
-          moduleIr.location(),
-          moduleIr.passData(),
-          moduleIr.diagnostics(),
-          moduleIr.id());
+      return moduleIr.copyWithImportsAndExports(
+          CollectionConverters.asScala(newImports).toList(), moduleIr.exports());
     }
 
     @Override

@@ -1,4 +1,3 @@
-import { Path } from 'enso-common/src/utilities/file'
 import extractZip from 'extract-zip'
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
@@ -8,6 +7,7 @@ import * as path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import * as portfinder from 'portfinder'
 import { extract } from 'tar'
+import { Path } from './types.js'
 
 export interface Runner {
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>

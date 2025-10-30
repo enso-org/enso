@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { clamp } from '$/utils/data/math'
 import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import { usePointer } from '@/composables/events'
-import { clamp } from 'enso-common/src/utilities/data/math'
 import { computed, ref, watch, type CSSProperties, type ComponentInstance } from 'vue'
 import { isNumericLiteral } from 'ydoc-shared/ast/tree'
 

@@ -1,37 +1,37 @@
-import * as newtype from '../../utilities/data/newtype.js'
+import { newtypeConstructor, type Newtype } from '../../utilities/data/newtype.js'
 import type { IdType } from '../Backend.js'
 
-/** A KSUID.*/
-export type KSUID = newtype.Newtype<string, 'KSUID'>
-export const KSUID = newtype.newtypeConstructor<KSUID>()
+/** A KSUID. */
+export type KSUID = Newtype<string, 'KSUID'>
+export const KSUID = newtypeConstructor<KSUID>()
 
 /** Unique identifier for an organization. */
-export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>
-export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
+export type OrganizationId = Newtype<`organization-${string}`, 'OrganizationId'>
+export const OrganizationId = newtypeConstructor<OrganizationId>()
 /** Whether a given {@link string} is an {@link OrganizationId}. */
 export function isOrganizationId(id: unknown): id is OrganizationId {
   return typeof id === 'string' && id.startsWith('organization-')
 }
 
 /** Unique identifier for a user in an organization. */
-export type UserId = newtype.Newtype<string, 'UserId'>
-export const UserId = newtype.newtypeConstructor<UserId>()
+export type UserId = Newtype<string, 'UserId'>
+export const UserId = newtypeConstructor<UserId>()
 /** Whether a given {@link string} is an {@link UserId}. */
 export function isUserId(id: unknown): id is UserId {
   return typeof id === 'string' && id.startsWith('user-')
 }
 
 /** Unique identifier for a user group. */
-export type UserGroupId = newtype.Newtype<`usergroup-${string}`, 'UserGroupId'>
-export const UserGroupId = newtype.newtypeConstructor<UserGroupId>()
+export type UserGroupId = Newtype<`usergroup-${string}`, 'UserGroupId'>
+export const UserGroupId = newtypeConstructor<UserGroupId>()
 /** Whether a given {@link string} is an {@link UserGroupId}. */
 export function isUserGroupId(id: unknown): id is UserGroupId {
   return typeof id === 'string' && id.startsWith('usergroup-')
 }
 
 /** Unique identifier for a directory. */
-export type DirectoryId = newtype.Newtype<`directory-${string}`, 'DirectoryId'>
-export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
+export type DirectoryId = Newtype<`directory-${string}`, 'DirectoryId'>
+export const DirectoryId = newtypeConstructor<DirectoryId>()
 /** Whether a given {@link unknown} is an {@link DirectoryId}. */
 export function isDirectoryId(id: unknown): id is DirectoryId {
   return typeof id === 'string' && id.startsWith('directory-')
@@ -41,133 +41,133 @@ export function isDirectoryId(id: unknown): id is DirectoryId {
  * Unique identifier for an asset representing the items inside a directory for which the
  * request to retrive the items has not yet completed.
  */
-export type LoadingAssetId = newtype.Newtype<string, 'LoadingAssetId'>
-export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
+export type LoadingAssetId = Newtype<string, 'LoadingAssetId'>
+export const LoadingAssetId = newtypeConstructor<LoadingAssetId>()
 
 /** Unique identifier for an asset representing the nonexistent children of an empty directory. */
-export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
-export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
+export type EmptyAssetId = Newtype<string, 'EmptyAssetId'>
+export const EmptyAssetId = newtypeConstructor<EmptyAssetId>()
 
 /** Unique identifier for an asset representing the parent directory. */
-export type UpAssetId = newtype.Newtype<string, 'UpAssetId'>
-export const UpAssetId = newtype.newtypeConstructor<UpAssetId>()
+export type UpAssetId = Newtype<string, 'UpAssetId'>
+export const UpAssetId = newtypeConstructor<UpAssetId>()
 /**
  * Unique identifier for an asset representing the nonexistent children of a directory
  * that failed to fetch.
  */
-export type ErrorAssetId = newtype.Newtype<string, 'ErrorAssetId'>
-export const ErrorAssetId = newtype.newtypeConstructor<ErrorAssetId>()
+export type ErrorAssetId = Newtype<string, 'ErrorAssetId'>
+export const ErrorAssetId = newtypeConstructor<ErrorAssetId>()
 
 /** Unique identifier for a user's project. */
-export type ProjectId = newtype.Newtype<string, 'ProjectId'>
-export const ProjectId = newtype.newtypeConstructor<ProjectId>()
+export type ProjectId = Newtype<string, 'ProjectId'>
+export const ProjectId = newtypeConstructor<ProjectId>()
 /** Whether a given {@link unknown} is an {@link ProjectId}. */
 export function isProjectId(id: unknown): id is ProjectId {
   return typeof id === 'string' && id.startsWith('project-')
 }
 
 /** Unique identifier for an uploaded file. */
-export type FileId = newtype.Newtype<string, 'FileId'>
-export const FileId = newtype.newtypeConstructor<FileId>()
+export type FileId = Newtype<string, 'FileId'>
+export const FileId = newtypeConstructor<FileId>()
 
 /** Unique identifier for a secret environment variable. */
-export type SecretId = newtype.Newtype<string, 'SecretId'>
-export const SecretId = newtype.newtypeConstructor<SecretId>()
+export type SecretId = Newtype<string, 'SecretId'>
+export const SecretId = newtypeConstructor<SecretId>()
 
 /** Unique identifier for a project session. */
-export type ProjectSessionId = newtype.Newtype<string, 'ProjectSessionId'>
-export const ProjectSessionId = newtype.newtypeConstructor<ProjectSessionId>()
+export type ProjectSessionId = Newtype<string, 'ProjectSessionId'>
+export const ProjectSessionId = newtypeConstructor<ProjectSessionId>()
 
 /** Unique identifier for a project execution. */
-export type ProjectExecutionId = newtype.Newtype<string, 'ProjectExecutionId'>
-export const ProjectExecutionId = newtype.newtypeConstructor<ProjectExecutionId>()
+export type ProjectExecutionId = Newtype<string, 'ProjectExecutionId'>
+export const ProjectExecutionId = newtypeConstructor<ProjectExecutionId>()
 
 /** Unique identifier for a Datalink. */
-export type DatalinkId = newtype.Newtype<string, 'DatalinkId'>
-export const DatalinkId = newtype.newtypeConstructor<DatalinkId>()
+export type DatalinkId = Newtype<string, 'DatalinkId'>
+export const DatalinkId = newtypeConstructor<DatalinkId>()
 
 /** Unique identifier for a version of an S3 object. */
-export type S3ObjectVersionId = newtype.Newtype<string, 'S3ObjectVersionId'>
-export const S3ObjectVersionId = newtype.newtypeConstructor<S3ObjectVersionId>()
+export type S3ObjectVersionId = Newtype<string, 'S3ObjectVersionId'>
+export const S3ObjectVersionId = newtypeConstructor<S3ObjectVersionId>()
 
 /** Unique identifier for an arbitrary asset. */
 export type AssetId = IdType[keyof IdType]
-export const AssetId = newtype.newtypeConstructor<AssetId>()
+export const AssetId = newtypeConstructor<AssetId>()
 
 /** Unique identifier for metadata. */
-export type MetadataId = newtype.Newtype<`metadata-${KSUID}`, 'MetadataId'>
-export const MetadataId = newtype.newtypeConstructor<MetadataId>()
+export type MetadataId = Newtype<`metadata-${KSUID}`, 'MetadataId'>
+export const MetadataId = newtypeConstructor<MetadataId>()
 
 /** Unique identifier for a subscription. */
-export type SubscriptionId = newtype.Newtype<string, 'SubscriptionId'>
-export const SubscriptionId = newtype.newtypeConstructor<SubscriptionId>()
+export type SubscriptionId = Newtype<string, 'SubscriptionId'>
+export const SubscriptionId = newtypeConstructor<SubscriptionId>()
 
 /** Unique identifier for a task to archive some assets to a `.zip`. */
-export type ZipAssetsJobId = newtype.Newtype<string, 'ZipAssetsJobId'>
-export const ZipAssetsJobId = newtype.newtypeConstructor<ZipAssetsJobId>()
+export type ZipAssetsJobId = Newtype<string, 'ZipAssetsJobId'>
+export const ZipAssetsJobId = newtypeConstructor<ZipAssetsJobId>()
 
 /** Unique identifier for a task to archive some assets to a `.zip`. */
-export type UnzipAssetsJobId = newtype.Newtype<string, 'UnzipAssetsJobId'>
-export const UnzipAssetsJobId = newtype.newtypeConstructor<UnzipAssetsJobId>()
+export type UnzipAssetsJobId = Newtype<string, 'UnzipAssetsJobId'>
+export const UnzipAssetsJobId = newtypeConstructor<UnzipAssetsJobId>()
 
 /** The name of an asset label. */
-export type LabelName = newtype.Newtype<string, 'LabelName'>
-export const LabelName = newtype.newtypeConstructor<LabelName>()
+export type LabelName = Newtype<string, 'LabelName'>
+export const LabelName = newtypeConstructor<LabelName>()
 
 /** Unique identifier for a label. */
-export type TagId = newtype.Newtype<string, 'TagId'>
-export const TagId = newtype.newtypeConstructor<TagId>()
+export type TagId = Newtype<string, 'TagId'>
+export const TagId = newtypeConstructor<TagId>()
 
 /** A URL. */
-export type Address = newtype.Newtype<string, 'Address'>
-export const Address = newtype.newtypeConstructor<Address>()
+export type Address = Newtype<string, 'Address'>
+export const Address = newtypeConstructor<Address>()
 
 /** A HTTPS URL. */
-export type HttpsUrl = newtype.Newtype<string, 'HttpsUrl'>
-export const HttpsUrl = newtype.newtypeConstructor<HttpsUrl>()
+export type HttpsUrl = Newtype<string, 'HttpsUrl'>
+export const HttpsUrl = newtypeConstructor<HttpsUrl>()
 
 /** An email address. */
-export type EmailAddress = newtype.Newtype<string, 'EmailAddress'>
-export const EmailAddress = newtype.newtypeConstructor<EmailAddress>()
+export type EmailAddress = Newtype<string, 'EmailAddress'>
+export const EmailAddress = newtypeConstructor<EmailAddress>()
 
 /** An AWS S3 file path. */
-export type S3FilePath = newtype.Newtype<string, 'S3FilePath'>
-export const S3FilePath = newtype.newtypeConstructor<S3FilePath>()
+export type S3FilePath = Newtype<string, 'S3FilePath'>
+export const S3FilePath = newtypeConstructor<S3FilePath>()
 
 /** An AWS machine configuration. */
-export type Ami = newtype.Newtype<string, 'Ami'>
-export const Ami = newtype.newtypeConstructor<Ami>()
+export type Ami = Newtype<string, 'Ami'>
+export const Ami = newtypeConstructor<Ami>()
 
 /** An identifier for an entity with an {@link AssetPermission} for an {@link Asset}. */
 export type UserPermissionIdentifier = UserGroupId | UserId
 
 /** An filesystem path. Only present on the local backend. */
-export type Path = newtype.Newtype<string, 'Path'>
-export const Path = newtype.newtypeConstructor<Path>()
+export type Path = Newtype<string, 'Path'>
+export const Path = newtypeConstructor<Path>()
 
 /** A project UUID. Only present on the local backend. */
-export type UUID = newtype.Newtype<string, 'UUID'>
-export const UUID = newtype.newtypeConstructor<UUID>()
+export type UUID = Newtype<string, 'UUID'>
+export const UUID = newtypeConstructor<UUID>()
 
 /** The path of ids to this asset. */
-export type ParentsPath = newtype.Newtype<string, 'ParentsPath'>
-export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
+export type ParentsPath = Newtype<string, 'ParentsPath'>
+export const ParentsPath = newtypeConstructor<ParentsPath>()
 
 /** The path of directory names to this asset, excluding the root directory. */
-export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
-export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
+export type VirtualParentsPath = Newtype<string, 'VirtualParentsPath'>
+export const VirtualParentsPath = newtypeConstructor<VirtualParentsPath>()
 
 /** The path of this asset, including the root directory. */
-export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
-export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
+export type EnsoPath = Newtype<string, 'EnsoPath'>
+export const EnsoPath = newtypeConstructor<EnsoPath>()
 
 /** The path string of this asset, including the root directory. */
-export type EnsoPathValue = newtype.Newtype<string, 'EnsoPathValue'>
-export const EnsoPathValue = newtype.newtypeConstructor<EnsoPathValue>()
+export type EnsoPathValue = Newtype<string, 'EnsoPathValue'>
+export const EnsoPathValue = newtypeConstructor<EnsoPathValue>()
 
 /** A pagination token for an arbitrary endpoint. */
-export type PaginationToken = newtype.Newtype<string, 'PaginationToken'>
-export const PaginationToken = newtype.newtypeConstructor<PaginationToken>()
+export type PaginationToken = Newtype<string, 'PaginationToken'>
+export const PaginationToken = newtypeConstructor<PaginationToken>()
 
 /** User settings for a Snowflake credential. */
 export interface SnowflakeCredentialInput {

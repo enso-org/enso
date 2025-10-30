@@ -97,7 +97,7 @@ case object AliasAnalysis extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings = ir.bindings.map(analyseModuleDefinition))
+    ir.copyWithBindings(bindings = ir.bindings.map(analyseModuleDefinition))
   }
 
   /** Performs alias analysis on an inline expression, starting from the

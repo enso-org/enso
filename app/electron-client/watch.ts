@@ -25,40 +25,37 @@ await rm(IDE_DIR_PATH, { recursive: true, force: true })
 await mkdir(IDE_DIR_PATH, { recursive: true })
 const NODE_MODULES_PATH = path.resolve('./node_modules')
 
-const BUNDLE_READY = new Promise<BuildResult>((resolve, reject) => {
-  void (async () => {
-    console.log(chalk.cyan('Bundling client.'))
-    const devMode = true
-    const clientBundlerOpts = bundlerOptionsFromEnv(devMode)
-    clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
-    ;(clientBundlerOpts.plugins ??= []).push({
-      name: 'enso-on-rebuild',
-      setup: (build) => {
-        build.onEnd((result) => {
-          if (result.errors.length) {
-            // We cannot carry on if the client failed to build, because electron
-            // would immediately exit with an error.
-            console.error(chalk.red('Client bundle update failed:'), result.errors[0])
-            reject(result.errors[0])
-          } else {
-            console.log(chalk.green('Client bundle updated.'))
-            for (const error of result.errors) {
-              console.error(error)
-            }
-            for (const warning of result.warnings) {
-              console.warn(warning)
-            }
+const BUNDLE_READY = (async (): Promise<BuildResult> => {
+  console.log(chalk.cyan('Bundling client.'))
+  const devMode = true
+  const clientBundlerOpts = bundlerOptionsFromEnv(devMode)
+  clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
+  ;(clientBundlerOpts.plugins ??= []).push({
+    name: 'enso-on-rebuild',
+    setup: (build) => {
+      build.onEnd((result) => {
+        if (result.errors.length) {
+          // We cannot carry on if the client failed to build, because electron
+          // would immediately exit with an error.
+          console.error(chalk.red('Client bundle update failed:'), result.errors[0])
+          throw result.errors[0]
+        } else {
+          console.log(chalk.green('Client bundle updated.'))
+          for (const error of result.errors) {
+            console.error(error)
           }
-        })
-      },
-    })
-    const clientBuilder = await context(clientBundlerOpts)
-    const client = await clientBuilder.rebuild()
-    void clientBuilder.watch()
-
-    resolve(client)
-  })()
-})
+          for (const warning of result.warnings) {
+            console.warn(warning)
+          }
+        }
+      })
+    },
+  })
+  const clientBuilder = await context(clientBundlerOpts)
+  const client = await clientBuilder.rebuild()
+  void clientBuilder.watch()
+  return client
+})()
 
 await BUNDLE_READY
 console.log(
@@ -93,30 +90,25 @@ process.on('SIGINT', () => {
   exit()
 })
 
-/** Starts the electron process with the IDE. */
-function startElectronProcess() {
-  console.log(chalk.cyan('Spawning Electron process.'))
+// Start the electron process with the IDE.
 
-  const electronProcess = spawn('electron', ELECTRON_ARGS, {
-    stdio: 'inherit',
-    shell: true,
-    env: Object.assign({ NODE_MODULES_PATH }, process.env),
-  })
+console.log(chalk.cyan('Spawning Electron process.'))
 
-  electronProcess.on('close', (code) => {
+const electronProcess = spawn('electron', ELECTRON_ARGS, {
+  stdio: 'inherit',
+  shell: true,
+  env: Object.assign({ NODE_MODULES_PATH }, process.env),
+})
+  .on('close', (code) => {
     if (code === 0) {
       electronProcess.removeAllListeners()
       exit()
     }
   })
-
-  electronProcess.on('error', (error) => {
+  .on('error', (error) => {
     console.error(chalk.red('Electron process failed:'), error)
     console.error(chalk.red('Killing electron process.'))
     electronProcess.removeAllListeners()
     electronProcess.kill()
     exit(1)
   })
-}
-
-startElectronProcess()
