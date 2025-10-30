@@ -4,6 +4,7 @@ import static org.junit.Assert.fail;
 
 import java.lang.ref.Reference;
 import java.util.ArrayList;
+import org.graalvm.polyglot.Context;
 
 /** Package private now. Use ContextUtils to turn this check on. */
 final class MemoryUtils {
@@ -11,18 +12,21 @@ final class MemoryUtils {
 
   static void assertGC(String msg, boolean expectGC, Reference<?> ref) {
     var memory = expectGC ? new ArrayList<>() : null;
-    try {
-      for (var i = 1L; ; i *= 2) {
+    for (var i = 1L; ; i *= 2) {
+      try {
         var size = (int) Math.min(i, Integer.MAX_VALUE / 2);
+        if (i != size) {
+          tryHarderToGc();
+        }
         if (checkAndAlloc(ref, memory, size)) {
           break;
         }
+      } catch (OutOfMemoryError err) {
+        // launch the JVM with
+        //   -XX:+HeapDumpOnOutOfMemoryError
+        //   -XX:HeapDumpPath=/tmp
+        err.printStackTrace();
       }
-    } catch (OutOfMemoryError err) {
-      // launch the JVM with
-      //   -XX:+HeapDumpOnOutOfMemoryError
-      //   -XX:HeapDumpPath=/tmp
-      err.printStackTrace();
     }
     assertReference(ref, expectGC, msg, memory);
   }
@@ -60,5 +64,11 @@ final class MemoryUtils {
       memory.add(new byte[toAllocate]);
     }
     return false;
+  }
+
+  private static void tryHarderToGc() {
+    try (var ctx = Context.create()) {
+      System.getLogger("assertGC").log(System.Logger.Level.TRACE, "Creating and closing {0}", ctx);
+    }
   }
 }
