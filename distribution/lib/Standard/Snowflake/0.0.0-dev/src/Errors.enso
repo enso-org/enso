@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Database.Errors.SQL_Error
+
 ## An unexpected result was returned from a Snowflake query.
 type Snowflake_Error
     private Unexpected_Result message:Text internal_payload:Any=Nothing
@@ -15,3 +17,28 @@ type Snowflake_Error
        ---
     to_display_text self -> Text =
         "Snowflake_Error: " + self.message
+
+## An error when a stage was not found in the database or not accessible.
+type Stage_Not_Found
+    ## ---
+       private: true
+       ---
+       Indicates that a stage was not found in the database.
+
+       ## Arguments
+        - `name`: The name of the stage that was not found.
+    Error (name:Text)
+
+    ## ---
+       private: true
+       ---
+       Pretty print the stage not found error.
+    to_display_text : Text
+    to_display_text self = "Stage " + self.name + " was not found in the database."
+
+    private rethrow identifier ~action =
+        result = action
+        result.catch SQL_Error error->
+            java_message = error.java_exception.getMessage
+            if (java_message.match ".*Stage .* does not exist or not authorized.") == False then Error.throw result else
+                Error.throw (Stage_Not_Found.Error identifier)
