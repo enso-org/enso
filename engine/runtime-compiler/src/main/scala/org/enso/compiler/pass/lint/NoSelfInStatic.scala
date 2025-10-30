@@ -33,7 +33,7 @@ object NoSelfInStatic extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(
+    ir.copyWithBindings(
       bindings = ir.bindings.map {
         case method: definition.Method.Explicit if isStaticMethod(method) =>
           method

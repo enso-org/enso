@@ -126,7 +126,7 @@ jobs:
 
       - uses: graalvm/setup-graalvm@v1
         with:
-          java-version: "24.0.1"
+          java-version: "25.0.0"
           distribution: "graalvm-community"
 
       - name: Publish Enso Libraries to Local Maven Repository

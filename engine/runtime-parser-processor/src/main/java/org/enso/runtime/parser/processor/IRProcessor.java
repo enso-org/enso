@@ -134,6 +134,9 @@ public class IRProcessor extends AbstractProcessor {
                   param -> {
                     var paramType = param.asType();
                     var paramTypeElem = processingEnv.getTypeUtils().asElement(paramType);
+                    if (paramTypeElem == null) {
+                      throw new IllegalStateException("Cannot find element for type " + paramType);
+                    }
                     return paramTypeElem.getSimpleName().toString();
                   })
               .toList();

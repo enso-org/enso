@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
   Function,
+  MetadataStorage,
   Module,
   Name
 }
@@ -89,7 +90,7 @@ class GatherDiagnosticsTest extends CompilerTest {
           identifiedLocation = null
         )
 
-      val module = Module(
+      val module = new Module(
         List(),
         List(),
         List(
@@ -131,7 +132,9 @@ class GatherDiagnosticsTest extends CompilerTest {
           )
         ),
         false,
-        identifiedLocation = null
+        null,
+        new MetadataStorage(),
+        null
       )
 
       val result = GatherDiagnostics.runModule(module, buildModuleContext())

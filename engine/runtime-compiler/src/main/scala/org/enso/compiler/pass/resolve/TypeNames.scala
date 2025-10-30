@@ -45,7 +45,7 @@ case object TypeNames extends IRPass {
   ): Module = {
     val bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
-    ir.copy(bindings = ir.bindings.map { d =>
+    ir.copyWithBindings(bindings = ir.bindings.map { d =>
       val selfTypeInfo: SelfTypeInfo = d match {
         case t: Definition.Type => SelfTypeInfo.fromTypeDefinition(t)
         case m: Method.Explicit =>
