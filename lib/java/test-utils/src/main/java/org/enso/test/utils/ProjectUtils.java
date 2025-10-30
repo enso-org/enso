@@ -181,6 +181,7 @@ prefer-local-libraries: true
       }
       polyCtx.getTopScope().compile(false, Option.apply(docsFormat));
       whenDone.accept(ctx);
+      polyCtx = null;
     }
   }
 
