@@ -38,7 +38,7 @@ add_specs suite_builder = case get_configured_connection_details of
                 stage_details_2.filter "property" (..Equal "URL") . get_value "property_value" . should_equal '["s3://sfquickstarts/frostbyte_tastybytes/"]'
 
             group_builder.specify "can list files in stage" <|
-                connection = default_connection.get.set_database "FROSTBYTE_TASTY_BYTES".set_schema "PUBLIC"
+                connection = default_connection.get.set_database "FROSTBYTE_TASTY_BYTES" . set_schema "PUBLIC"
                 files_table = connection.list_stage_objects "S3LOAD"
                 file_names = files_table.at "name" . to_vector
                 file_names.should_contain "s3://sfquickstarts/frostbyte_tastybytes/analytics/menu_item_cogs_and_price_v.csv"

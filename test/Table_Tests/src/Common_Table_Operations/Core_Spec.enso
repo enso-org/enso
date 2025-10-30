@@ -365,12 +365,12 @@ add_core_specs suite_builder setup =
             Problems.assume_no_problems t3
 
         group_builder.specify "should allow to take the first rows in design mode" <|
-            t1 = data.t_big.read (..First 1000 ..If_Design_Mode)
+            t1 = data.t_big.read (..First 1000 ..In_Design_Mode)
             t1.row_count . should_equal 1500
             Problems.assume_no_problems t1
 
             Context.Output.with_disabled <|
-                t2 = data.t_big.read (..First 1000 ..If_Design_Mode)
+                t2 = data.t_big.read (..First 1000 ..In_Design_Mode)
                 t2.row_count . should_equal 1000
                 Problems.assume_no_problems t2
 

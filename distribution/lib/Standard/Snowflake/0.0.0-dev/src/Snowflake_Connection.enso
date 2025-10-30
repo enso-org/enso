@@ -488,9 +488,9 @@ type Snowflake_Connection
        A table containing the list of stages.
     stages : Text -> Text -> Table
     stages self schema:Text=self.schema pattern:Text='' =
-        parsed_schema = if schema == "*" then "" else
-            if schema == "" then " IN SCHEMA" +self.schema else ' IN SCHEMA "' + (schema.replace '"' '""') + '"'
-        query = "SHOW STAGES" + (if pattern.trim != "" then " LIKE '" + (pattern.replace "'" "''") + "'" else "") + " IN DATABASE" + parsed_schema
+        parsed_schema = if schema == "*" then " IN DATABASE" else
+            if schema == "" then " IN SCHEMA" else ' IN SCHEMA "' + (schema.replace '"' '""') + '"'
+        query = "SHOW STAGES" + (if pattern.trim != "" then " LIKE '" + (pattern.replace "'" "''") + "'" else "") + parsed_schema
         self.execute_query query write_operation=False . select_columns ["name", "database_name", "schema_name", "type", "cloud", "url", "created_on", "comment"] reorder=True error_on_missing_columns=False on_problems=..Ignore
 
     ## ---
