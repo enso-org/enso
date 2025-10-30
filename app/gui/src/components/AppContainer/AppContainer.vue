@@ -23,6 +23,7 @@ import { onMounted, onUnmounted, shallowRef, toRefs } from 'vue'
 import { Drive, Settings } from './reactTabs'
 import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
+import { normalizeSlashes } from '$/utils/file'
 
 const UserBar = reactComponent(UserBarReact)
 </script>
@@ -106,14 +107,14 @@ const onSignOut = () => {
 onMounted(() => {
   window.api?.menu?.setMenuItemHandler('closeTab', closeTab)
   window.api?.projectManagement.setOpenProjectHandler((project) => {
-    const projectId = newProjectId(project.projectRoot)
+    const projectId = newProjectId(normalizeSlashes(project.projectRoot))
 
     openedProjects.openProjectLocally(
       {
         id: projectId,
         title: project.name,
-        parentId: newDirectoryId(Path(project.parentDirectory)),
-        ensoPath: EnsoPath(String(project.projectRoot)),
+        parentId: newDirectoryId(normalizeSlashes(project.parentDirectory)),
+        ensoPath: EnsoPath(String(normalizeSlashes(project.projectRoot))),
       },
       BackendType.local,
     )

@@ -13,7 +13,7 @@ import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
-import { fileExtension, getFileName, getFolderPath, normalizePath } from '$/utils/file'
+import { fileExtension, getFileName, getFolderPath, normalizePath, normalizeSlashes } from '$/utils/file'
 import { uniqueString } from '$/utils/uniqueString'
 import { PRODUCT_NAME } from 'enso-common'
 import {
@@ -689,7 +689,7 @@ export default class LocalBackend extends Backend {
       return this.throw(response, 'uploadFileBackendError')
     }
     if (backend.fileNameIsProject(body.fileName)) {
-      const projectPath = backend.Path(await response.text())
+      const projectPath = normalizeSlashes(await response.text())
       const projectId = newProjectId(projectPath)
       const project = await this.getProjectDetails(projectId)
       this.uploadedFiles.set(uploadId, { id: projectId, project, jobId: null })
