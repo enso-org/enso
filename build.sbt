@@ -3025,7 +3025,7 @@ lazy val `runtime-integration-tests` =
         "-Dtck.inlineVerifierInstrument=false",
         "-Dpolyglot.engine.AllowExperimentalOptions=true",
         "-XX:+HeapDumpOnOutOfMemoryError",
-        "-XX:HeapDumpPath=" + (Compile / packageBin / artifactPath).value
+        "-XX:HeapDumpPath=" + (Compile / packageBin).value.getParentFile
       ),
       Test / javaOptions ++= testLogProviderOptions,
       Test / moduleDependencies := {
