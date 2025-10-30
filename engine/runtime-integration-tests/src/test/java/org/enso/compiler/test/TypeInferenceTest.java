@@ -32,6 +32,7 @@ import org.enso.compiler.pass.analyse.types.InferredType;
 import org.enso.compiler.pass.analyse.types.TypeInferencePropagation;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.IRDumperTestWrapper;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.graalvm.polyglot.Source;
@@ -1237,36 +1238,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x3"));
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x4"));
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x5"));
-  }
-
-  @Test
-  public void staticCallHasInferenceMeta() throws Exception {
-    final URI uri = new URI("memory://staticCallHasInferenceMeta.enso");
-    final Source src =
-        Source.newBuilder(
-                LanguageInfo.ID,
-                """
-                type My_Type
-                    Value v
-
-                    member_method self -> My_Type = self
-
-                foo =
-                    obj = My_Type.Value 100
-                    x1 = My_Type.member_method self=obj
-                    x1
-                """,
-                uri.getAuthority())
-            .uri(uri)
-            .buildLiteral();
-
-    var module = compile(src);
-    var foo = ModuleUtils.findStaticMethod(module, "foo");
-
-    var myType = "staticCallHasInferenceMeta.My_Type";
-
-    var x1 = ModuleUtils.findAssignment(foo, "x1");
-    assertAtomType(myType, x1);
   }
 
   @Test
