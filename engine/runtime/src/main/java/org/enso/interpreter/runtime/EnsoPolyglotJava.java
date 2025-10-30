@@ -153,10 +153,19 @@ final class EnsoPolyglotJava {
 
   @CompilerDirectives.TruffleBoundary
   private synchronized Object findPolyglotJava() throws InteropException {
+    if (polyglotJava instanceof Throwable t) {
+      throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
+    }
     if (polyglotJava != this) {
       return polyglotJava;
     }
-    polyglotJava = createPolyglotJava(ctx);
+    try {
+      polyglotJava = createPolyglotJava(ctx);
+    } catch (Throwable t) {
+      logger.log(Level.ERROR, "Cannot create polyglotJava", t);
+      polyglotJava = t;
+      throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
+    }
     while (!pendingPath.isEmpty()) {
       addToClassPath(pendingPath.remove(0));
     }
