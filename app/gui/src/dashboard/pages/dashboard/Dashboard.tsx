@@ -23,8 +23,8 @@ import AppContainerInnerVue from '$/components/AppContainer/AppContainerInner.vu
 import { useBackends, useConfig, useFullUserSession, useRouter } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import { useLaunchedProjects } from '$/providers/react/container'
+import * as detect from '$/utils/detect'
 import { usePrefetchQuery, useQuery } from '@tanstack/react-query'
-import * as detect from 'enso-common/src/detect'
 import * as React from 'react'
 import type { Router } from 'vue-router'
 

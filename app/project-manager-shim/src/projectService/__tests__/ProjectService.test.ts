@@ -1,5 +1,5 @@
 import { UUID } from 'enso-common/src/services/Backend'
-import { Path } from 'enso-common/src/utilities/file'
+import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
@@ -7,6 +7,10 @@ import * as path from 'node:path'
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { EnsoRunner, findEnsoExecutable } from '../ensoRunner.js'
 import { ProjectService } from '../index.js'
+
+/** A filesystem path. */
+type Path = Newtype<string, 'Path'>
+const Path = newtypeConstructor<Path>()
 
 // Test timeout for operations involving language server startup
 const LANGUAGE_SERVER_TEST_TIMEOUT = 35000

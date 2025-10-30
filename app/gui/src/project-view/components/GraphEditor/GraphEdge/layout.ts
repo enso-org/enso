@@ -1,6 +1,6 @@
+import { clamp } from '$/utils/data/math'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme'
-import { clamp } from 'enso-common/src/utilities/data/math'
 
 /** The inputs to the edge state computation. */
 export interface Inputs {

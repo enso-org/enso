@@ -19,8 +19,8 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { unsafeWriteValue } from '#/utilities/write'
 import { createStore, useStore } from '#/utilities/zustand'
 import { useText } from '$/providers/react'
+import * as detect from '$/utils/detect'
 import { useQuery } from '@tanstack/react-query'
-import * as detect from 'enso-common/src/detect'
 import * as React from 'react'
 
 /** The reason behind a new query. */

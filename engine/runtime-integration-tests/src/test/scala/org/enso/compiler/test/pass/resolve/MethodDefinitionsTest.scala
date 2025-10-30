@@ -82,7 +82,7 @@ class MethodDefinitionsTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse
 
     "attach resolved atoms to the method definitions" in {
-      ir.bindings(2)
+      ir.bindings()(2)
         .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
@@ -98,12 +98,12 @@ class MethodDefinitionsTest extends CompilerTest {
           )
         )
       )
-      ir.bindings(3)
+      ir.bindings()(3)
         .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer shouldBe None
 
-      ir.bindings(4)
+      ir.bindings()(4)
         .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
@@ -117,14 +117,14 @@ class MethodDefinitionsTest extends CompilerTest {
         )
       )
 
-      ir.bindings(5)
+      ir.bindings()(5)
         .asInstanceOf[definition.Method.Explicit]
         .methodReference
         .typePointer
         .get shouldBe a[errors.Resolution]
 
       val conv1 = ir
-        .bindings(6)
+        .bindings()(6)
         .asInstanceOf[definition.Method.Conversion]
       conv1.methodReference.typePointer.get.getMetadata(
         MethodDefinitions.INSTANCE,
@@ -150,7 +150,7 @@ class MethodDefinitionsTest extends CompilerTest {
       )
 
       val conv2 = ir
-        .bindings(7)
+        .bindings()(7)
         .asInstanceOf[definition.Method.Conversion]
       conv2.methodReference.typePointer.get.getMetadata(
         MethodDefinitions.INSTANCE,
@@ -166,7 +166,7 @@ class MethodDefinitionsTest extends CompilerTest {
       conv2.sourceTypeName shouldBe an[errors.Resolution]
 
       val conv3 = ir
-        .bindings(8)
+        .bindings()(8)
         .asInstanceOf[definition.Method.Conversion]
       conv3.methodReference.typePointer.get shouldBe an[errors.Resolution]
       conv3.sourceTypeName.getMetadata(

@@ -7,7 +7,7 @@ import { usePortalContext } from '#/components/Portal'
 import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { isOnMacOS } from 'enso-common/src/detect'
+import { isOnMacOS } from '$/utils/detect'
 import {
   forwardRef,
   useEffect,

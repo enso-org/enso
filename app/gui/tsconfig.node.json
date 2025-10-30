@@ -39,6 +39,7 @@
     "src/project-view/util/shortcuts.ts",
     "src/providers/featureFlags.ts",
     "src/providers/session/constants.ts",
+    "src/utils/uniqueString.ts",
     "src/utils/zustand.ts",
     "tailwind.config.ts",
     "vite.config.*",
