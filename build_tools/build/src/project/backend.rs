@@ -168,7 +168,7 @@ impl IsTarget for Backend {
         let name = &asset.name;
         self.matches_platform(name)
             && is_archive_name(name)
-            && name.contains("enso")
+            && name.contains("engine-bundle")
             && (name.contains("bundle") || asset.size > 200_000_000)
     }
 }
