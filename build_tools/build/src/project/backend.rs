@@ -8,6 +8,9 @@ use crate::project::IsTarget;
 use crate::source::WithDestination;
 use crate::version::Versions;
 
+use ide_ci::archive::is_archive_name;
+use octocrab::models::repos::Asset;
+
 #[derive(Clone)]
 #[derive_where(Debug)]
 pub struct BuildInput {
@@ -158,5 +161,14 @@ impl IsTarget for Backend {
             this.adapt_artifact(destination).await
         }
         .boxed()
+    }
+
+    fn matches_asset(&self, asset: &Asset) -> bool {
+        // The size condition is used to discern actual artifact from its checksum.
+        let name = &asset.name;
+        self.matches_platform(name)
+            && is_archive_name(name)
+            && name.contains("enso")
+            && (name.contains("bundle") || asset.size > 200_000_000)
     }
 }
