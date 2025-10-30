@@ -8,7 +8,7 @@ case class ApplicationConfig(ydoc: YdocConfig)
 
 object ApplicationConfig {
 
-  private val ConfigFilename  = "application.conf"
+  private val ConfigFilename  = "application-ls.conf"
   private val ConfigNamespace = "language-server"
 
   /** Load the configuration from the config file. */
