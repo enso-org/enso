@@ -21,6 +21,7 @@ import org.enso.common.MethodNames.Module;
 import org.enso.common.MethodNames.TopScope;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.polyglot.PolyglotContext;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Source;
@@ -150,6 +151,10 @@ public final class ContextUtils implements TestRule, AutoCloseable {
 
   public Context context() {
     return currentCtx();
+  }
+
+  public org.enso.polyglot.TopScope topScope() {
+    return new PolyglotContext(currentCtx()).getTopScope();
   }
 
   /** Leaks the underlying {@link EnsoContext} from this context. */

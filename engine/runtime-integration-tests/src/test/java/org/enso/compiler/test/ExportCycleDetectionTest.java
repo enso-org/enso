@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.PolyglotContext;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ModuleUtils;
 import org.enso.test.utils.ProjectUtils;
@@ -113,15 +112,15 @@ public class ExportCycleDetectionTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
       try {
-        polyCtx.getTopScope().compile(true);
+        ctx.topScope().compile(true);
       } catch (PolyglotException e) {
         fail("Compilation error not expected. But got: " + e);
       }
       var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(exportedSyms.size(), is(1));
       assertThat(exportedSyms, hasKey("Main_Type"));
+      exportedSyms = null;
     }
   }
 
@@ -137,23 +136,22 @@ public class ExportCycleDetectionTest {
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
       try {
-        polyCtx.getTopScope().compile(true);
+        ctx.topScope().compile(true);
       } catch (PolyglotException e) {
         fail("Compilation error not expected. But got: " + e);
       }
       var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(exportedSyms.size(), is(1));
       assertThat(exportedSyms, hasKey("Main_Type"));
+      exportedSyms = null;
     }
   }
 
   private void expectProjectCompilationError(Path projDir, Matcher<String> errMsgMatcher) {
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
       try {
-        polyCtx.getTopScope().compile(true);
+        ctx.topScope().compile(true);
         fail("Expected compilation error");
       } catch (PolyglotException e) {
         assertThat(e.getMessage(), containsString("Compilation aborted"));
