@@ -33,6 +33,7 @@ import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
 import project.Errors.File_Format_Not_Found
 import project.Errors.Snowflake_Error
 import project.Errors.Stage_Not_Found
+import project.File_Format.Snowflake_File_Format
 import project.Identifier.Identifier
 import project.Internal.Snowflake_Dialect
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
@@ -638,7 +639,7 @@ type Snowflake_Connection
     ## ---
        icon: trash2
        ---
-       Remove a file from a stage
+       Remove one or more file(s) from a stage
 
        ## Arguments
        - `stage`: The name (and optionally schema) of the stage to read the
@@ -647,7 +648,7 @@ type Snowflake_Connection
        - `pattern`: Optional regex pattern to match names against.
     @stage make_stage_selector
     remove_from_stage : Identifier -> Text -> Text -> Boolean -> Table ! Stage_Not_Found
-    remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text="" pattern:Text=""  =
+    remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text=(Missing_Argument.throw "path") pattern:Text=""  =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
             identifier = stage.to_identifier
             Stage_Not_Found.rethrow identifier <|
@@ -656,7 +657,7 @@ type Snowflake_Connection
                 self.execute_query query write_operation=True
 
     ## ---
-       icon: folder
+       icon: parse
        ---
        Returns the list of file formats for the current database.
 
@@ -711,6 +712,53 @@ type Snowflake_Connection
             query = 'DESC FILE FORMAT ' + identifier
             self.execute_query query write_operation=False
 
+    ## ---
+       icon: copy
+       ---
+       Copies data from a staged file into a table. The table must already
+       exist.
+
+       ## Arguments
+       - `table_name`: The name of the table to copy data into.
+       - `stage`: The name (and optionally schema) of the stage where the file
+          is located.
+       - `file_name`: The full name of the file to copy.
+       - `format`: The file format to use when loading the data.
+       - `match_names_insensitively`: If set to `True`, column names from
+          the file will be matched to the table columns in a case-insensitive
+          manner. Defaults to `True`.
+       - `truncate_first`: If set to `True`, the target table will be truncated
+          before loading data into it. Defaults to `False`.
+    @table_name make_table_name_selector add_custom=False
+    @stage make_stage_selector
+    @format Snowflake_File_Format.make_format_chooser
+    copy_into_table : Text -> Identifier -> Text -> Snowflake_File_Format -> Boolean -> Boolean -> DB_Table
+    copy_into_table self table_name:Text=(Missing_Argument.throw "table_name") stage:Identifier=(Missing_Argument.throw "stage") file_name:Text=(Missing_Argument.throw "file_name") format:Snowflake_File_Format=(Missing_Argument.throw "format") match_names_insensitively:Boolean=True truncate_first:Boolean=False =
+        ## Verity the table exists
+        db_table = self.query (..Table_Name table_name)
+
+        ## Verify the file exists
+        list = self.list_stage_objects stage file_name limit=(..First 2)
+        db_table.if_not_error <| list.if_not_error <|
+            if list.row_count == 0 then Error.throw (Snowflake_Error.Unexpected_Result "The specified file '"+file_name+"' was not found in stage '"+stage.to_identifier+"'." list)
+            if list.row_count > 1 then Error.throw (Snowflake_Error.Unexpected_Result "Multiple files '"+file_name+"' matched multiple files in stage '"+stage.to_identifier+"'. Please provide a more specific file name." list)
+
+            ## Query
+            identifier = stage.to_identifier
+            stage_and_path = identifier + if file_name == "" then "" else '/' + file_name
+            file_format_sql = format.to_sql
+
+            query = 'COPY '
+                + ' INTO "' + (table_name.replace '"' '""') + '"'
+                + " FROM '@" + (stage_and_path.replace "'" "''") + "'"
+                + (if file_format_sql == '' then "" else " FILE_FORMAT = (" + file_format_sql + ")")
+                + " MATCH_BY_COLUMN_NAME = " + (if match_names_insensitively then "CASE_INSENSITIVE" else "CASE_SENSITIVE")
+
+            ## Table, Single File and the Stage exists.
+            Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy data. Press the Write button ▶ to perform the operation." panic=False <|
+                if truncate_first then self.truncate_table table_name
+                self.execute_query query Rows_To_Read.All_Rows write_operation=True
+
 private make_stage_selector connection include_home:Boolean=True =
     stages = (if include_home then [Option "~" "..Name '~'"] else [])
         + connection.stage_names.map .to_option
@@ -718,9 +766,9 @@ private make_stage_selector connection include_home:Boolean=True =
     Single_Choice display=..Always values=stages
 
 private make_file_format_selector connection =
-    stages = connection.file_format_names.map .to_option
+    formats = connection.file_format_names.map .to_option
         + [Option "<Name>" "..Name", Option "<Name and Schema>" "..Name_And_Schema"]
-    Single_Choice display=..Always values=stages
+    Single_Choice display=..Always values=formats
 
 private auth_jdbc_properties credentials = case credentials of
     Credentials.Username_And_Password username password ->
