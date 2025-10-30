@@ -30,6 +30,7 @@ from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_co
 from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
 
 import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
+import project.Errors.File_Format_Not_Found
 import project.Errors.Snowflake_Error
 import project.Errors.Stage_Not_Found
 import project.Identifier.Identifier
@@ -690,9 +691,34 @@ type Snowflake_Connection
                 self.connection.read_text_column "SHOW FILE FORMATS IN SCHEMA" "name"
                     . map n-> Identifier.Name n
 
+    ## ---
+       icon: metadata
+       ---
+       Reads the values specified for the properties in a file_format, as well
+       as the default values for each property.
+
+       ## Arguments
+       - `file_format`: The name (and optionally schema) of the file format to
+          read the properties from.
+
+       ## Returns
+       A table containing the properties of the file format.
+    @file_format make_file_format_selector
+    file_format_properties : Identifier -> Table ! File_Format_Not_Found
+    file_format_properties self file_format:Identifier=(Missing_Argument.throw "file_format") =
+        identifier = file_format.to_identifier
+        File_Format_Not_Found.rethrow identifier <|
+            query = 'DESC FILE FORMAT ' + identifier
+            self.execute_query query write_operation=False
+
 private make_stage_selector connection include_home:Boolean=True =
     stages = (if include_home then [Option "~" "..Name '~'"] else [])
         + connection.stage_names.map .to_option
+        + [Option "<Name>" "..Name", Option "<Name and Schema>" "..Name_And_Schema"]
+    Single_Choice display=..Always values=stages
+
+private make_file_format_selector connection =
+    stages = connection.file_format_names.map .to_option
         + [Option "<Name>" "..Name", Option "<Name and Schema>" "..Name_And_Schema"]
     Single_Choice display=..Always values=stages
 

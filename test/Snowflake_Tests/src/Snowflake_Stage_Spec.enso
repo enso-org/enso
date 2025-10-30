@@ -6,6 +6,7 @@ from Standard.Database import all
 from Standard.Database.Errors import all
 
 from Standard.Snowflake import all
+import Standard.Snowflake.Errors.File_Format_Not_Found
 import Standard.Snowflake.Errors.Snowflake_Error
 import Standard.Snowflake.Errors.Stage_Not_Found
 
@@ -82,9 +83,17 @@ add_specs suite_builder = case get_configured_connection_details of
 
             group_builder.specify "can list file formats" <|
                 connection = default_connection.get.set_database "FROSTBYTE_TASTY_BYTES"
-                stages_table = connection.file_formats
-                stages_table.at "name" . to_vector . should_equal ["CSV_FF"]
-                stages_table.at "schema_name" . to_vector . should_equal ["PUBLIC"]
+                formats_table = connection.file_formats
+                formats_table.at "name" . to_vector . should_equal ["CSV_FF"]
+                formats_table.at "schema_name" . to_vector . should_equal ["PUBLIC"]
+
+            group_builder.specify "can get file formats details" <|
+                connection = default_connection.get.set_database "FROSTBYTE_TASTY_BYTES"
+                format_details = connection.file_format_properties (..Name_And_Schema "CSV_FF" "PUBLIC")
+                format_details.filter "property" (..Equal "TYPE") . get_value "property_value" . should_equal 'csv'
+
+                no_format = connection.file_format_properties (..Name_And_Schema "NO_SUCH_FORMAT" "PUBLIC")
+                no_format.should_fail_with File_Format_Not_Found
 
 main filter=Nothing =
     suite = Test.build suite_builder->
