@@ -54,6 +54,7 @@ public class ExportedSymbolsTest {
       assertThat(mainExportedSymbols.containsKey("A_Type"), is(true));
       assertThat(
           mainExportedSymbols.get("A_Type").get(0), instanceOf(BindingsMap.ResolvedType.class));
+      mainExportedSymbols = null;
     }
   }
 
@@ -78,6 +79,7 @@ public class ExportedSymbolsTest {
       var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainExportedSymbols.size(), is(2));
       assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
+      mainExportedSymbols = null;
     }
   }
 
@@ -102,6 +104,7 @@ public class ExportedSymbolsTest {
       var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainExportedSymbols.size(), is(2));
       assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("A_Type", "B_Type"));
+      mainExportedSymbols = null;
     }
   }
 
@@ -125,6 +128,7 @@ public class ExportedSymbolsTest {
       var mainExportedSymbols = getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(mainExportedSymbols.size(), is(1));
       assertThat(mainExportedSymbols.keySet(), containsInAnyOrder("Foo"));
+      mainExportedSymbols = null;
     }
   }
 
@@ -152,6 +156,7 @@ public class ExportedSymbolsTest {
           "Just a A_Module submodule should be exported",
           syntheticModExpSymbols,
           hasKey("A_Module"));
+      syntheticModExpSymbols = null;
     }
   }
 
@@ -179,6 +184,7 @@ public class ExportedSymbolsTest {
       assertThat(
           mainExportedSymbols.get("A_Module").get(0),
           is(instanceOf(BindingsMap.ResolvedType.class)));
+      mainExportedSymbols = null;
     }
   }
 
@@ -206,6 +212,7 @@ public class ExportedSymbolsTest {
       assertThat(
           mainExportedSymbols.get("A_Module").get(0),
           is(instanceOf(BindingsMap.ResolvedModule.class)));
+      mainExportedSymbols = null;
     }
   }
 
@@ -233,6 +240,7 @@ public class ExportedSymbolsTest {
       assertThat(
           mainExportedSymbols.get("Synthetic_Module").get(0),
           is(instanceOf(BindingsMap.ResolvedModule.class)));
+      mainExportedSymbols = null;
     }
   }
 
