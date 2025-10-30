@@ -28,7 +28,7 @@ final class MemoryUtils {
         //   -XX:HeapDumpPath=/tmp
         // to get some info
         if (retry-- <= 0) {
-            break;
+          break;
         }
       }
     }

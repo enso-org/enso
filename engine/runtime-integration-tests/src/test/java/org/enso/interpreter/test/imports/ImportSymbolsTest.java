@@ -50,6 +50,7 @@ public class ImportSymbolsTest {
       } catch (PolyglotException e) {
         assertThat(e.getMessage(), containsString("The name `A_Module` could not be found"));
       }
+      polyCtx = null;
     }
   }
 
@@ -80,6 +81,7 @@ public class ImportSymbolsTest {
       } catch (PolyglotException e) {
         assertThat(e.getMessage(), containsString("The name `A_Type` could not be found"));
       }
+      polyCtx = null;
     }
   }
 
@@ -120,6 +122,7 @@ public class ImportSymbolsTest {
           "Resolved import target of Main should point to A_Type",
           mainModResolvedImps.get(0).targets().apply(0),
           is(instanceOf(ResolvedType.class)));
+      polyCtx = null;
     }
   }
 }

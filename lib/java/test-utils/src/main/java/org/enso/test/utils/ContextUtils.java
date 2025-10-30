@@ -63,17 +63,20 @@ public final class ContextUtils implements TestRule, AutoCloseable {
   private final ByteArrayOutputStream stdErr;
   private final Context.Builder ctxBldr;
   private final boolean alwaysExecuteInContext;
+  private final Boolean assertGC;
   private Context context;
 
   private ContextUtils(
       Context.Builder ctxBldr,
       ByteArrayOutputStream stdOut,
       ByteArrayOutputStream stdErr,
-      boolean alwaysExecuteInContext) {
+      boolean alwaysExecuteInContext,
+      Boolean assertGC) {
     this.stdOut = Objects.requireNonNull(stdOut);
     this.stdErr = Objects.requireNonNull(stdErr);
     this.ctxBldr = Objects.requireNonNull(ctxBldr);
     this.alwaysExecuteInContext = alwaysExecuteInContext;
+    this.assertGC = assertGC;
   }
 
   /**
@@ -82,6 +85,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
    *
    * @param permittedLanguages List of languages that are allowed to be used in the context. If
    *     empty, all installed languages are enabled.
+   * @return new instance of builder
    * @see Context#newBuilder(String...)
    */
   public static Builder newBuilder(String... permittedLanguages) {
@@ -94,7 +98,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     var stderr = new ByteArrayOutputStream();
     var ctxBldr = Builder.defaultContextBuilder();
     ctxBldr.out(stdout).err(stderr).logHandler(stdout);
-    return new ContextUtils(ctxBldr, stdout, stderr, true);
+    return new ContextUtils(ctxBldr, stdout, stderr, true, null);
   }
 
   /**
@@ -131,7 +135,10 @@ public final class ContextUtils implements TestRule, AutoCloseable {
       var ref = new WeakReference<>(ensoContext());
       context.close();
       context = null;
-      MemoryUtils.assertGC("EnsoContext can be GCed when context is closed", true, ref);
+      var avoidAssertGC = Boolean.FALSE.equals(assertGC);
+      if (!avoidAssertGC) {
+        MemoryUtils.assertGC("EnsoContext can be GCed when context is closed", true, ref);
+      }
     }
     resetOut();
   }
@@ -387,6 +394,7 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     private final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
     private final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
     private boolean alwaysExecuteInContext = true;
+    private Boolean assertGC;
 
     private Builder(String... permittedLanguages) {
       this.polyglotCtxBldr = defaultContextBuilder(permittedLanguages);
@@ -444,8 +452,19 @@ public final class ContextUtils implements TestRule, AutoCloseable {
       return this;
     }
 
+    /**
+     * Should an "assert GC" check be performed at the end of {@link ContextUtils} usage?
+     *
+     * @param check explicitly enables/disables GC check
+     * @return this builder
+     */
+    public Builder assertGC(boolean check) {
+      this.assertGC = check;
+      return this;
+    }
+
     public ContextUtils build() {
-      return new ContextUtils(polyglotCtxBldr, stdout, stderr, alwaysExecuteInContext);
+      return new ContextUtils(polyglotCtxBldr, stdout, stderr, alwaysExecuteInContext, assertGC);
     }
   }
 
