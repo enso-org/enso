@@ -64,7 +64,7 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
 
   @Override
   public void setId(UUID id) {
-    throw new UnsupportedOperationException("unimplemented");
+    invokeFunctionNode.setId(id);
   }
 
   @Specialization
