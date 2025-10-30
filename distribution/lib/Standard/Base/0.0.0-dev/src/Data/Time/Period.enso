@@ -215,7 +215,7 @@ type Period
        icon: operators
        ---
        Checks if `self` is less than `that`.
-    < self that = Comparable.< self that
+    < self that = Comparable.< self=self that
 
     ## ---
        aliases: [less than or equal]
