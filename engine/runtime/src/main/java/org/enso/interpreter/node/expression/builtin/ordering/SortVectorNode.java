@@ -736,9 +736,14 @@ public abstract class SortVectorNode extends Node {
 
     @Override
     Object getPreappliedSelfArgument() {
-      // Note that the first argument should always be `self`.
-      assert function.getPreAppliedArguments().length > 0;
-      return function.getPreAppliedArguments()[0];
+      var preappliedArgs = function.getPreAppliedArguments();
+      if (preappliedArgs != null) {
+        assert preappliedArgs.length > 0;
+        // Note that the first argument should always be `self`.
+        return preappliedArgs[0];
+      } else {
+        return null;
+      }
     }
 
     @Override
