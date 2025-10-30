@@ -35,18 +35,24 @@ object Cargo {
 
     log.debug(cmd.toString())
 
+    val process = Process(cmd, None, extraEnv: _*)
+    val sb      = new StringBuilder
+    val processLogger = ProcessLogger(str => {
+      log.debug(str)
+      sb.append(str)
+        .append(System.lineSeparator())
+    })
     val exitCode =
-      try Process(cmd, None, extraEnv: _*).!(
-        ProcessLogger(log.debug(_), log.debug(_))
-      )
+      try process.!(processLogger)
       catch {
-        case _: RuntimeException =>
-          throw new RuntimeException(s"`$cargoCmd` command failed to run.")
+        case e: RuntimeException =>
+          log.error(s"`$cargoCmd` command failed to run.")
+          log.error(sb.toString())
+          throw e
       }
     if (exitCode != 0) {
-      throw new RuntimeException(
-        s"`$cargoCmd` command returned a non-zero exit code: $exitCode."
-      )
+      log.error(s"`$cargoCmd` command failed with exit code $exitCode.")
+      log.error(sb.toString())
     }
   }
 

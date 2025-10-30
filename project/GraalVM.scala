@@ -181,6 +181,7 @@ object GraalVM {
       "org.bouncycastle"     % "bcprov-jdk18on"     % "1.78.1",
       "org.graalvm.llvm"     % "llvm-api"           % version,
       "org.graalvm.truffle"  % "truffle-nfi"        % version,
+      "org.graalvm.truffle"  % "truffle-nfi-panama" % version,
       "org.graalvm.truffle"  % "truffle-nfi-libffi" % version,
       "org.graalvm.regex"    % "regex"              % version,
       "org.graalvm.tools"    % "profiler-tool"      % version,
@@ -234,6 +235,9 @@ object GraalVM {
     "Oracle Corporation"
   )
 
+  private val downloadLink =
+    s"https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-$version"
+
   /** Augments a state transition to do GraalVM version check.
     *
     * @param graalVersion  the GraalVM version that should be used for
@@ -262,7 +266,8 @@ object GraalVM {
     if (!allowedJavaVendors.contains(javaVendor)) {
       log.warn(
         s"Running on non-GraalVM JVM (The actual java.vendor is $javaVendor). " +
-        s"Expected Java vendors: ${allowedJavaVendors.mkString(", ")}."
+        s"Expected Java vendors: ${allowedJavaVendors.mkString(", ")}. " +
+        s"Download link: $downloadLink"
       )
     }
 
@@ -270,7 +275,8 @@ object GraalVM {
     if (javaSpecVersion != javaVersion) {
       log.error(
         s"Running on Java version $javaSpecVersion. " +
-        s"Expected Java version $javaVersion."
+        s"Expected Java version $javaVersion. " +
+        s"Download link: $downloadLink"
       )
       return oldState.fail
     }
@@ -278,10 +284,11 @@ object GraalVM {
     val vmVersion = System.getProperty("java.vm.version")
     tryParseJavaVMVersion(vmVersion) match {
       case Some(version) =>
-        if (version != graalVersion) {
+        if (!isSameVersion(version, graalVersion)) {
           log.error(
             s"Running on GraalVM version $version. " +
-            s"Expected GraalVM version $graalVersion."
+            s"Expected GraalVM version $graalVersion. " +
+            s"Download link: $downloadLink"
           )
           oldState.fail
         } else {
@@ -304,4 +311,40 @@ object GraalVM {
       None
     }
   }
+
+  private def isSameVersion(s1: String, s2: String): Boolean = {
+    if (s1 == s2) {
+      true
+    } else {
+      val semVer1 = toSemVer(s1)
+      val semVer2 = toSemVer(s2)
+      semVer1 == semVer2
+    }
+  }
+
+  private def toSemVer(ver: String): SemVer = {
+    try {
+      if (ver.contains(".")) {
+        val items = ver.split('.')
+        if (items.length == 2) {
+          SemVer(Integer.parseInt(items(0)), Integer.parseInt(items(1)), 0)
+        } else if (items.length == 3) {
+          SemVer(
+            Integer.parseInt(items(0)),
+            Integer.parseInt(items(1)),
+            Integer.parseInt(items(2))
+          )
+        } else {
+          throw new IllegalArgumentException(s"Cannot parse version: $ver")
+        }
+      } else {
+        SemVer(Integer.parseInt(ver), 0, 0)
+      }
+    } catch {
+      case e: NumberFormatException =>
+        throw new IllegalArgumentException(s"Cannot parse version: $ver", e)
+    }
+  }
+
+  private case class SemVer(major: Int, minor: Int, patch: Int)
 }

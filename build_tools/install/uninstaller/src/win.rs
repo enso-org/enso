@@ -4,8 +4,6 @@ use enso_install::is_already_running;
 use enso_install::locked_installation_lock;
 use enso_install::sanitized_electron_builder_config;
 
-
-
 /// The parent directory of this (uninstaller) executable.
 ///
 /// This is a good candidate for the install directory of Enso.
@@ -62,10 +60,10 @@ pub async fn main() -> Result {
         format!("Do you want to uninstall {}?", sanitized_electron_builder_config().product_name);
 
     let params = native_windows_gui::MessageParams {
-        title:   &dialog_title,
+        title: &dialog_title,
         content: &message,
         buttons: native_windows_gui::MessageButtons::YesNo,
-        icons:   native_windows_gui::MessageIcons::Question,
+        icons: native_windows_gui::MessageIcons::Question,
     };
     match native_windows_gui::message(&params) {
         native_windows_gui::MessageChoice::Yes => (),
@@ -75,7 +73,6 @@ pub async fn main() -> Result {
         }
         _ => bail!("Unexpected message box result."),
     }
-
 
     let mut errors = vec![];
     let _guard = match locked_installation_lock() {

@@ -17,7 +17,7 @@ import { BackendType, Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { organizationIdToDirectoryId } from '#/services/RemoteBackend/ids'
 import { useBackends, useText, useUser } from '$/providers/react'
-import { getFileName } from 'enso-common/src/utilities/file'
+import { getFileName } from '$/utils/file'
 import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import type {

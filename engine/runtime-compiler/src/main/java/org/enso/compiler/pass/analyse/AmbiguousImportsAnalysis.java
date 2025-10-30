@@ -112,15 +112,8 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
                 }
                 return null;
               });
-      return moduleIr.copy(
-          CollectionConverters.asScala(newImports).toList(),
-          moduleIr.exports(),
-          moduleIr.bindings(),
-          moduleIr.isPrivate(),
-          moduleIr.location(),
-          moduleIr.passData(),
-          moduleIr.diagnostics(),
-          moduleIr.id());
+      return moduleIr.copyWithImportsAndExports(
+          CollectionConverters.asScala(newImports).toList(), moduleIr.exports());
     }
 
     /**

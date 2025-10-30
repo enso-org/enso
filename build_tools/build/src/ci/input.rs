@@ -4,8 +4,6 @@ use crate::version::promote::Designation;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use strum::IntoEnumIterator;
 
-
-
 pub mod name {
 
     pub const DESIGNATOR: &str = "designator";

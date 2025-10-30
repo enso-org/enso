@@ -1,5 +1,10 @@
 ## Enso Signatures 1.0
 ## module Standard.Snowflake.Snowflake_Connection
+- type Identifier
+    - Name name:Standard.Base.Data.Text.Text=
+    - Name_And_Schema name:Standard.Base.Data.Text.Text= schema:Standard.Base.Data.Text.Text=
+    - to_identifier self -> Standard.Base.Any.Any
+    - to_option self -> Standard.Base.Any.Any
 - type Snowflake_Connection
     - base_connection self -> Standard.Base.Any.Any
     - close self -> Standard.Base.Any.Any
@@ -13,15 +18,22 @@
     - execute_query self query:Standard.Base.Any.Any limit:Standard.Table.Rows_To_Read.Rows_To_Read= write_operation:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - execute_update self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - fetch_primary_key self table_name:Standard.Base.Data.Text.Text schema_name:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - get_from_stage self stage:Standard.Snowflake.Snowflake_Connection.Identifier= path:Standard.Base.Data.Text.Text= directory:Standard.Base.Any.Any= pattern:Standard.Base.Data.Text.Text= ~if_not_found:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - jdbc_connection self -> Standard.Base.Any.Any
+    - list_stage_objects self stage:Standard.Snowflake.Snowflake_Connection.Identifier= path:Standard.Base.Data.Text.Text= limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
+    - put_to_stage self file:Standard.Base.Any.Any stage:Standard.Snowflake.Snowflake_Connection.Identifier= path:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - query self query:Standard.Database.SQL_Query.SQL_Query alias:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - read self query:Standard.Database.SQL_Query.SQL_Query limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
+    - remove_from_stage self stage:Standard.Snowflake.Snowflake_Connection.Identifier= path:Standard.Base.Data.Text.Text= pattern:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - save_as_data_link self path:Standard.Base.Enso_Cloud.Enso_File.Enso_File on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
     - schema self -> Standard.Base.Any.Any
     - schemas self -> Standard.Base.Any.Any
     - set_database self database:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - set_schema self schema:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - set_warehouse self warehouse:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - stage_names self -> Standard.Base.Any.Any
+    - stage_properties self stage:Standard.Snowflake.Snowflake_Connection.Identifier= -> Standard.Base.Any.Any
+    - stages self schema:Standard.Base.Data.Text.Text= pattern:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - statement_setter self -> Standard.Base.Any.Any
     - table_types self -> Standard.Base.Any.Any
     - tables self name_like:Standard.Base.Data.Text.Text= database:Standard.Base.Data.Text.Text= schema:Standard.Base.Data.Text.Text= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
@@ -30,4 +42,9 @@
     - type_mapping self -> Standard.Base.Any.Any
     - warehouse self -> Standard.Base.Any.Any
     - warehouses self -> Standard.Base.Any.Any
+- Standard.Snowflake.Snowflake_Connection.Stage_Not_Found.to_display_text self -> Standard.Base.Any.Any
+- Standard.Snowflake.Snowflake_Connection.Identifier.from that:Standard.Base.Data.Text.Text -> Standard.Snowflake.Snowflake_Connection.Identifier
+- type Stage_Not_Found
+    - Error name:Standard.Base.Data.Text.Text
+    - to_display_text self -> Standard.Base.Any.Any
 - Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.Snowflake.Snowflake_Connection.Snowflake_Connection -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data

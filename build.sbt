@@ -1,10 +1,10 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks._
+import org.enso.build.BenchTasks.*
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers._
+import sbt.complete.DefaultParsers.*
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
@@ -13,8 +13,8 @@ import src.main.scala.licenses.{
   SBTDistributionComponent
 }
 
-import scala.sys.process._
-import Dependencies._
+import scala.sys.process.*
+import Dependencies.*
 import JarExtractor.{
   CopyToOutputJar,
   LinuxAMD64,
@@ -24,7 +24,7 @@ import JarExtractor.{
   WindowsAMD64
 }
 
-import java.nio.file.Files
+import java.nio.file.{Files, StandardCopyOption}
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
@@ -591,6 +591,36 @@ lazy val modularFatJarWrapperSettings = frgaalJavaCompilerSetting ++ Seq(
   Compile / exportedModule := (Compile / exportedModuleBin).value
 )
 
+/** Mockito agent needs to be explicitly set as `-javaagent` to the JVM.
+  * Note that starting agent programatically was deprecated in JDK 21 and is scheduled to be removed.
+  * See https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+  */
+lazy val mockitoAgentSettings: SettingsDefinition = Seq(
+  libraryDependencies ++= Seq(
+    "org.mockito" % "mockito-core" % mockitoJavaVersion % Test
+  ),
+  Test / javaOptions += {
+    val logger = streams.value.log
+    val mockitoJar = JPMSUtils.filterModulesFromUpdate(
+      update.value,
+      Seq(
+        "org.mockito" % "mockito-core" % mockitoJavaVersion
+      ),
+      logger,
+      moduleName.value,
+      scalaBinaryVersion.value,
+      shouldContainAll = true
+    )
+    if (mockitoJar.length != 1) {
+      logger.error(
+        s"Expected exactly one mockito-core jar on the classpath, found: ${mockitoJar.map(_.name).mkString(", ")}"
+      )
+    }
+    val mockitoJarPath = mockitoJar.head.getAbsolutePath
+    s"-javaagent:$mockitoJarPath"
+  }
+)
+
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
@@ -632,9 +662,16 @@ val generateRustParserLib =
       libDest
     )
   } else {
-    val log = state.value.log
+    val log        = state.value.log
+    val profile    = if (BuildInfo.isReleaseMode) "release" else "dev"
+    val profileDir = if (BuildInfo.isReleaseMode) "release" else "debug"
+    val libName    = System.mapLibraryName("enso_parser")
+    // The library will be copied into this location. It is required in various
+    // other places.
+    val copyLibDest =
+      (`syntax-rust-definition` / rustParserTargetDirectory).value / libName
     val libGlob =
-      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
+      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / libName
 
     val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
     if (
@@ -649,27 +686,46 @@ val generateRustParserLib =
         case _ =>
           None
       }
+      // Destination of the native library as built by Cargo
+      val libDest = target match {
+        case Some(someTarget) =>
+          (`syntax-rust-definition` / rustParserTargetDirectory).value / someTarget / profileDir / libName
+        case None =>
+          (`syntax-rust-definition` / rustParserTargetDirectory).value / profileDir / libName
+      }
       target.foreach { t =>
         Cargo.rustUp(t, log)
       }
-      val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
       val arguments = Seq(
         "build",
         "-p",
         "enso-parser-jni",
         "--profile",
-        profile,
-        "-Z",
-        "unstable-options"
+        profile
       ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
         Seq(
-          "--artifact-dir",
+          "--target-dir",
           (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
         )
       val envVars = target
         .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
         .getOrElse(Seq())
       Cargo.run(arguments, log, envVars)
+      if (!libDest.exists()) {
+        log.error(
+          s"Expected Rust parser library at ${libDest.toPath} but it does not exist after build."
+        )
+      }
+      Files.copy(
+        libDest.toPath,
+        copyLibDest.toPath,
+        StandardCopyOption.REPLACE_EXISTING
+      )
+      if (!Files.exists(copyLibDest.toPath)) {
+        log.error(
+          s"Failed to copy Rust parser library to ${copyLibDest.toPath}."
+        )
+      }
     }
     FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
   }
@@ -2220,6 +2276,9 @@ lazy val `engine-common` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    publishLocalSetting,
+    autoScalaLibrary := false,
+    crossPaths := false,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
@@ -3408,6 +3467,7 @@ lazy val `runtime-compiler` =
       scalaModuleDependencySetting,
       mixedJavaScalaProjectSetting,
       annotationProcSetting,
+      mockitoAgentSettings,
       inConfig(Test)(truffleRunOptionsSettings),
       commands += WithDebugCommand.withDebug,
       javaModuleName := "org.enso.runtime.compiler",
@@ -3875,6 +3935,7 @@ lazy val `engine-runner` = project
       val fullCp     = (runnerCp ++ runtimeCp).distinct
       val modulePath = componentModulesPaths.value
       Seq(
+        "--enable-native-access=org.graalvm.truffle",
         "--module-path",
         modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
         "-m",
@@ -4017,6 +4078,10 @@ lazy val `engine-runner` = project
           "org.enso.microsoft.nativeimage.AzureNativeImageFeature"
         val databaseFeature =
           "org.enso.database.nativeimage.SqliteJdbcPatchedFeature"
+        // Features from gax-grpc-2.31.0
+        val grpcFeatures =
+          "com.google.api.gax.grpc.nativeimage.ProtobufMessageFeature," +
+          "com.google.api.gax.grpc.nativeimage.GrpcNettyFeature"
         var features = Seq(
           "org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature"
         )
@@ -4033,6 +4098,18 @@ lazy val `engine-runner` = project
               "--enable-monitoring=heapdump"
             )
           else Seq()
+        val linkOpts = if (Platform.isWindows) {
+          val ensoTarget = file("target")
+          val ensoExp    = file("distribution/bin/enso.exp")
+          Seq(
+            "-H:NativeLinkerOption=" + ensoExp.getAbsolutePath,
+            "-H:TempDirectory=" + ensoTarget.getAbsolutePath,
+            "-H:+TraceNativeToolUsage"
+          )
+        } else {
+          Seq()
+        }
+
         val debugOpts =
           if (GraalVM.EnsoLauncher.debug)
             Seq(
@@ -4059,14 +4136,14 @@ lazy val `engine-runner` = project
             // native library from the jar.
             excludeConfigs = Seq(
               s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties",
-              s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*"
+              s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*",
+              ".*gax-grpc-.*\\.jar,META-INF/native-image/com.google.api/gax-grpc/native-image.properties"
             ),
             modulePath = mp,
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
-              "-H:+RunReachabilityHandlersConcurrently",
               "-R:-InstallSegfaultHandler",
               // Workaround a problem with build-/runtime-initialization conflict
               // by disabling this service provider
@@ -4076,8 +4153,10 @@ lazy val `engine-runner` = project
               // Needed for the NativeLibraryFeature
               "--add-opens=org.graalvm.nativeimage.builder/com.oracle.svm.core.jdk=ALL-UNNAMED",
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
-              "--add-opens=java.base/java.nio=ALL-UNNAMED"
-            ) ++ enableHeapDumpOpts ++ debugOpts,
+              "--add-opens=java.base/java.nio=ALL-UNNAMED",
+              // Needed for grpc-gax
+              "--add-opens=java.base/java.time=ALL-UNNAMED"
+            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
@@ -4358,7 +4437,9 @@ lazy val `jvm-channel` =
     .enablePlugins(JPMSPlugin)
     .settings(
       customFrgaalJavaCompilerSettings(targetJdk = "24"),
+      publishLocalSetting,
       autoScalaLibrary := false,
+      crossPaths := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
@@ -4393,7 +4474,9 @@ lazy val `jvm-interop` =
       inConfig(Compile)(
         Seq(fork := true, javaOptions ++= Seq("-ea:org.enso.jvm..."))
       ),
+      publishLocalSetting,
       autoScalaLibrary := false,
+      crossPaths := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
@@ -4488,7 +4571,11 @@ lazy val `os-environment` =
             (Test / target).value / ("test-os-env" + exeSuffix)
           val binPath = exeFile.getAbsolutePath
           val res =
-            Process(Seq(binPath), None, "JAVA_TOOL_OPTIONS" -> "") ! logger
+            Process(
+              Seq(binPath),
+              None,
+              "JAVA_TOOL_OPTIONS" -> "--enable-native-access=org.enso.jvm.channel"
+            ) ! logger
           if (res != 0) {
             logger.error("Some test in os-environment failed")
             throw new TestsFailedException()
@@ -5248,6 +5335,7 @@ lazy val `std-table` = project
   .enablePlugins(Antlr4Plugin)
   .settings(
     frgaalJavaCompilerSetting,
+    mockitoAgentSettings,
     autoScalaLibrary := false,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(SPIHelpers.ensureSPIConsistency)

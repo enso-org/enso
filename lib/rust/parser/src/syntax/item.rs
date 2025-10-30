@@ -5,8 +5,6 @@ use crate::prelude::*;
 use crate::source::*;
 use crate::syntax::*;
 
-
-
 // ============
 // === Item ===
 // ============
@@ -27,9 +25,9 @@ pub enum Item<'s> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Group<'s> {
     /// The opening parenthesis.
-    pub open:  token::OpenSymbol<'s>,
+    pub open: token::OpenSymbol<'s>,
     /// The parenthesized subtree.
-    pub body:  Box<[Item<'s>]>,
+    pub body: Box<[Item<'s>]>,
     /// The closing parenthesis.
     pub close: Option<token::CloseSymbol<'s>>,
 }
@@ -40,7 +38,7 @@ pub struct Line<'s> {
     /// The line-beginning token.
     pub newline: token::Newline<'s>,
     /// The line's contents.
-    pub items:   Vec<Item<'s>>,
+    pub items: Vec<Item<'s>>,
 }
 
 impl<'s> Item<'s> {
@@ -57,7 +55,9 @@ impl<'s> Item<'s> {
     /// If this item is an [`Item::Tree`], apply the given function to the contained [`Tree`] and
     /// return the result.
     pub fn map_tree<'t: 's, F>(self, f: F) -> Self
-    where F: FnOnce(Tree<'s>) -> Tree<'t> {
+    where
+        F: FnOnce(Tree<'s>) -> Tree<'t>,
+    {
         match self {
             Item::Tree(tree) => Item::Tree(f(tree)),
             _ => self,
@@ -78,7 +78,6 @@ impl<'s> AsRef<Item<'s>> for Item<'s> {
         self
     }
 }
-
 
 // ===========
 // === Ref ===

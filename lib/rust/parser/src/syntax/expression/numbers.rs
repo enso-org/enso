@@ -9,8 +9,6 @@ use crate::syntax::TokenConsumer;
 use crate::syntax::Tree;
 use crate::syntax::TreeConsumer;
 
-
-
 /// Parses numbers. Assembles number tokens into numbers, and implements precedence of negation
 /// operator.
 #[derive(Debug, Default, GroupHierarchyConsumer, OperatorConsumer)]
@@ -23,8 +21,8 @@ pub struct ParseNumbers<'s, Inner> {
 #[derive(Debug, Default)]
 struct State<'s> {
     prev_item_in_expression: bool,
-    negation:                Option<Token<'s>>,
-    number:                  Option<Number<'s>>,
+    negation: Option<Token<'s>>,
+    number: Option<Number<'s>>,
 }
 
 #[derive(Debug)]
@@ -34,7 +32,8 @@ enum Number<'s> {
 }
 
 impl<'s, Inner> TokenConsumer<'s> for ParseNumbers<'s, Inner>
-where Inner: TokenConsumer<'s> + TreeConsumer<'s>
+where
+    Inner: TokenConsumer<'s> + TreeConsumer<'s>,
 {
     fn push_token(&mut self, token: Token<'s>) {
         match (token.variant, &mut self.state) {
@@ -103,8 +102,9 @@ where Inner: TokenConsumer<'s> + TreeConsumer<'s>
             (
                 token::Variant::DotOperator(_),
                 State { number: Some(Number::Fractional { digits: _, dot: dot @ None }), .. },
-            ) if token.left_offset.visible.width_in_spaces == 0 =>
-                *dot = Some(token.with_variant(token::variant::DotOperator())),
+            ) if token.left_offset.visible.width_in_spaces == 0 => {
+                *dot = Some(token.with_variant(token::variant::DotOperator()))
+            }
             _ => {
                 self.flush();
                 self.inner.push_token(token)
@@ -115,7 +115,8 @@ where Inner: TokenConsumer<'s> + TreeConsumer<'s>
 }
 
 impl<'s, Inner> TreeConsumer<'s> for ParseNumbers<'s, Inner>
-where Inner: TokenConsumer<'s> + TreeConsumer<'s>
+where
+    Inner: TokenConsumer<'s> + TreeConsumer<'s>,
 {
     fn push_tree(&mut self, tree: Tree<'s>) {
         self.flush();
@@ -125,7 +126,8 @@ where Inner: TokenConsumer<'s> + TreeConsumer<'s>
 }
 
 impl<'s, Inner> Flush for ParseNumbers<'s, Inner>
-where Inner: TokenConsumer<'s> + TreeConsumer<'s>
+where
+    Inner: TokenConsumer<'s> + TreeConsumer<'s>,
 {
     fn flush(&mut self) {
         let State { negation, number, prev_item_in_expression: _ } = &mut self.state;
@@ -154,8 +156,9 @@ fn flush<'s, Inner: TokenConsumer<'s> + TreeConsumer<'s>>(
 
 fn maybe_negated<'s>(minus: Option<Token<'s>>, tree: Tree<'s>) -> Tree<'s> {
     match minus {
-        Some(minus) =>
-            Tree::unary_opr_app(minus.with_variant(token::variant::UnaryOperator()), tree),
+        Some(minus) => {
+            Tree::unary_opr_app(minus.with_variant(token::variant::UnaryOperator()), tree)
+        }
         None => tree,
     }
 }

@@ -6,8 +6,6 @@
 //! * the installer's and uninstaller's runtime code - for accessing the configuration. Note that
 //!   resource access in not part of this crate, as it is Windows-specific.
 
-
-
 pub mod prelude {
     pub use ide_ci::prelude::*;
 }
@@ -111,7 +109,6 @@ pub const INSTALLER_PAYLOAD_ID: &str = "INSTALLER_PAYLOAD";
 /// Identifier for the Enso icon resource.
 pub const ENSO_ICON_ID: &str = "ENSO_ICON_ID";
 
-
 /// Resources that can be embedded into the binary.
 #[derive(Debug, Clone, Copy)]
 pub enum ResourceType {
@@ -132,7 +129,6 @@ impl Display for ResourceType {
     }
 }
 
-
 /// Embeds a file as a resource into the binary.
 ///
 /// This function is intended to be used by the installer/uninstaller's `build.rs`.
@@ -152,7 +148,6 @@ pub fn embed_resource_from_file(
     embed_resource::compile(&rc_file, embed_resource::NONE);
     Ok(())
 }
-
 
 /// Embeds a resource using a path from an environment variable.
 ///
