@@ -1,7 +1,7 @@
 /** @file Utilities for manipulating and displaying dates and times. */
 import { ZonedDateTime, getDayOfWeek } from '@internationalized/date'
 import type { TextId } from '../../text.js'
-import { type Newtype, newtypeConstructor } from './newtype.js'
+import { newtypeConstructor, type Newtype } from './newtype.js'
 
 // 0 = Monday. Use `en-US` for 0 = Sunday.
 const DAY_OF_WEEK_LOCALE = 'en-GB'

@@ -16,7 +16,7 @@ class PortableDistributionManager(env: Environment)
   /** Name of the file that should be placed in the distribution root to mark it
     * as running in portable mode.
     */
-  private val PORTABLE_MARK_FILENAME = ".enso.portable"
+  private val PORTABLE_MARK_FILENAME = ".enso.bundle"
 
   /** Describes the path of a possible distribution root.
     *
@@ -74,7 +74,7 @@ class PortableDistributionManager(env: Environment)
         dataRoot                  = root,
         runtimes                  = root / RUNTIMES_DIRECTORY,
         engines                   = root / ENGINES_DIRECTORY,
-        bundle                    = None,
+        bundle                    = detectBundle(),
         config                    = root / CONFIG_DIRECTORY,
         runRoot                   = root,
         locks                     = root / LOCK_DIRECTORY,

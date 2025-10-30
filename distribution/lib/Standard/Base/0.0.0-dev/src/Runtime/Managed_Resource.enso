@@ -10,9 +10,9 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-from project.Error import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Error import all
 
 ## A managed resource is a special type of resource that is subject to automated
    cleanup when it is no longer in use.

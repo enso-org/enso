@@ -10,14 +10,11 @@ use enso_build_base::extensions::path::SplitFilename;
 use mime::Mime;
 use walkdir::WalkDir;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod gui;
-
-
 
 /// Construct client from the environment.
 pub async fn client_from_env() -> aws_sdk_s3::Client {
@@ -29,8 +26,8 @@ pub async fn client_from_env() -> aws_sdk_s3::Client {
 #[derive_where(Debug)]
 pub struct BucketContext {
     #[derive_where(skip)]
-    pub client:     aws_sdk_s3::Client,
-    pub bucket:     String,
+    pub client: aws_sdk_s3::Client,
+    pub bucket: String,
     pub upload_acl: ObjectCannedAcl,
     /// Prefix that will be prepended to the object key.
     pub key_prefix: Option<String>,
@@ -156,7 +153,7 @@ pub struct ContentHeaders {
     /// Encoding of the content. Typically compression, if any.
     pub content_encoding: Option<ContentEncoding>,
     /// MIME type of the content.
-    pub content_type:     Mime,
+    pub content_type: Mime,
 }
 
 impl Default for ContentHeaders {

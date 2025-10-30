@@ -57,7 +57,7 @@ defineExpose({ highlightClasses })
 
 .literal,
 .string {
-  color: #a11;
+  color: #650000;
 }
 .escape {
   color: #e40;

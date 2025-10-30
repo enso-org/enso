@@ -13,7 +13,6 @@ import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.No_Such_Key.No_Such_Key
 import project.Errors.Problem_Behavior.Problem_Behavior
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
@@ -22,6 +21,7 @@ import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Write_Extensions
 import project.System.Input_Stream.Input_Stream
 import project.Warning.Warning
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all

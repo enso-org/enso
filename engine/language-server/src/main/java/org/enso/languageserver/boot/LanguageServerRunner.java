@@ -80,6 +80,7 @@ public final class LanguageServerRunner extends LanguageServerApi {
       throw new WrongOption("Port must be integer");
     }
     var graalVMUpdater = line.hasOption(LanguageServerApi.SKIP_GRAALVM_UPDATER);
+    boolean logMasking = !line.hasOption(LanguageServerApi.NO_LOG_MASKING_OPTION);
 
     var config =
         new LanguageServerConfig(
@@ -93,6 +94,7 @@ public final class LanguageServerRunner extends LanguageServerApi {
             projectId,
             profilingConfig,
             new StartupConfig(graalVMUpdater),
+            logMasking,
             "language-server",
             ExecutionContext.global());
     return config;

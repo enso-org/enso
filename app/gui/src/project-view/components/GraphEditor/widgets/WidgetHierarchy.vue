@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { WidgetInput, defineWidget, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 import { isToken } from 'ydoc-shared/ast'

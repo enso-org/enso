@@ -3,7 +3,7 @@
     nixpkgs.url = github:nixos/nixpkgs/nixpkgs-unstable;
     fenix.url = github:nix-community/fenix;
     fenix.inputs.nixpkgs.follows = "nixpkgs";
-    nixpkgs2.url = "github:nixos/nixpkgs?rev=0feb4cf3d7931133c4e8e7a558e8153f13fe6b6a";
+    nixpkgs2.url = "github:nixos/nixpkgs?rev=ebf9d4445d9e916239caa8d12a510e94a6d58a2f";
   };
   outputs = { self, nixpkgs, nixpkgs2, fenix }:
     let
@@ -27,8 +27,9 @@
                 minimal.rustc
                 targets.x86_64-unknown-linux-musl.latest.rust-std
               ] else fenix.packages.${system}.minimal.toolchain;
+
             # https://github.com/NixOS/nixpkgs/blob/618c81f7b15d3e2dd73d9d413d9e7b13fbc9520f/pkgs/development/tools/build-managers/bazel/bazel_7/default.nix#L58
-            defaultShellUtils = with pkgs; [
+            defaultShellUtils = with pkgs2; [
               bash
               coreutils
               diffutils
@@ -46,16 +47,69 @@
               zip
               makeWrapper
             ];
+            # First: override stdenv like upstream did.
+            # NOTE [NP]: This workaround should not be necessary from Bazel 8.4.0 onwards.
+            version = "8.2.1";
+            bazelBase = pkgs2.bazel_8.override {
+              inherit version;
+              stdenv =
+                if pkgs2.stdenv.cc.isClang
+                then pkgs2.llvmPackages_17.stdenv
+                else pkgs2.stdenv;
+            };
             # https://github.com/NixOS/nixpkgs/blob/618c81f7b15d3e2dd73d9d413d9e7b13fbc9520f/pkgs/development/tools/build-managers/bazel/bazel_7/default.nix#L257
-            defaultShellPath = pkgs.lib.makeBinPath defaultShellUtils;
-            bazel = (pkgs2.bazel_8.overrideAttrs (self: super: {
-              patches = super.patches ++ [
-                (pkgs.substituteAll {
-                  src = ./nix/patches/bazel_actions_path.patch;
-                  actionsPathPatch = defaultShellPath;
-                })
-              ];
-            }));
+            defaultShellPath = pkgs2.lib.makeBinPath defaultShellUtils;
+            bazel =
+              (bazelBase.overrideAttrs (final: prev: {
+                # Downgrade the version from 8.4.0 to 8.2.1 (needs to match our `.bazelversion`).
+                inherit version;
+                src = pkgs2.fetchzip {
+                  url = "https://github.com/bazelbuild/bazel/releases/download/${version}/bazel-${version}-dist.zip";
+                  hash = "sha256-aMvIadR0pXgdkz/8dzLfS79ubmYdwOLu4yECI06wvgI=";
+                  stripRoot = false;
+                };
+
+                patches =
+                  let
+                    isDarwin = pkgs2.stdenv.isDarwin;
+                    # Wrap the `codesign` binary required by Bazel on macOS so that `cctools` is
+                    # present in the `PATH` and therefore the binary can find `codesign_allocate`.
+                    sigtoolWrapped = pkgs2.runCommand "sigtool-wrapped" { buildInputs = [ pkgs2.makeWrapper ]; } ''
+                      mkdir -p $out/bin
+                      makeWrapper ${pkgs2.darwin.sigtool}/bin/codesign $out/bin/codesign \
+                        --prefix PATH : ${pkgs2.darwin.cctools}/bin
+                    '';
+                  in
+                  # Filter out upstream patches that are not compatible with our version.
+                    # Drop the Darwin-only pathches only on Darwin; drop `deps_patches` everywhere.
+                  (builtins.filter (p:
+                    let matches = a: b: pkgs2.lib.hasSuffix a (baseNameOf (toString b));
+                    in !(matches "deps_patches.patch" p)
+                    && (!isDarwin || !(matches "apple_cc_toolchain.patch" p || matches "xcode.patch" p))
+                  )) prev.patches
+                  # Add our non-conditional patch replacements.
+                  ++ [
+                    ./nix/patches/deps_patches.patch
+                  ]
+                  # Add our Darwin-only replacements.
+                  ++ pkgs2.lib.optionals isDarwin [
+                    ./nix/patches/apple_cc_toolchain.patch
+                    (pkgs2.replaceVars ./nix/patches/xcode.patch {
+                      usrBinEnv = "${pkgs2.coreutils}/bin/env";
+                      clangDarwin = "${pkgs2.stdenv.cc}/bin/clang";
+                      # Replace the upstream `${darwin.sigtool}/bin/codesign` with an actual `codesign`.
+                      # Necessary to properly sign binaries on macOS.
+                      codesign = "${sigtoolWrapped}/bin/codesign";
+                    })
+                  ]
+                  # Apply extra patch to fix the `$PATH` issues with `pnpm`.
+                  ++ [
+                    (pkgs2.replaceVars ./nix/patches/bazel_actions_path.patch {
+                      actionsPathPatch = defaultShellPath;
+                    })
+                  ];
+              }));
+
             pnpm-shim = pkgs.writeShellScriptBin "pnpm" ''
               set -euo pipefail
               PACKAGE_JSON=$(git rev-parse --show-toplevel)/package.json
@@ -88,8 +142,7 @@
               pkg-config
             ] ++ (if !isOnLinux then [
               # === macOS-specific dependencies ===
-              darwin.apple_sdk.frameworks.IOKit # Required by `enso-formatter`.
-              darwin.apple_sdk.frameworks.Security # Required by `enso-formatter`.
+              libiconv # Required by `sysinfo` (via `ide_ci`).
             ] else [ ]);
 
             packages = with pkgs; [
@@ -109,10 +162,6 @@
             ];
 
             shellHook = ''
-              # `sccache` can be used to speed up compile times for Rust crates.
-              # `~/.cargo/bin/sccache` is provided by `cargo install sccache`.
-              # `~/.cargo/bin` must be in the `PATH` for the binary to be accessible.
-              export PATH=$HOME/.cargo/bin:$PATH
               export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath buildInputs}:$LD_LIBRARY_PATH"
             '';
           });

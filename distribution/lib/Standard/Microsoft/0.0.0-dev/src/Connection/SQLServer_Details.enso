@@ -1,12 +1,13 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Metadata.Widget.Text_Input
+from Standard.Base.Enso_Cloud.Data_Link_Helpers import save_password_for_data_link, secure_value_to_json
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
-import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 
 import project.SQLServer_Connection.SQLServer_Connection
+import project.Connection.SQLServer_Credentials.SQLServer_Credentials
 
 type SQLServer_Details
     ## Connect to a SQLServer database.
@@ -15,10 +16,9 @@ type SQLServer_Details
         - `host`: The name of the server to connect to.
         - `credentials`: The credentials to use for the connection.
         - `port`: The port to connect to (defaults to 1433).
-        - `database`: The name of the database to connect to.
+        - `database`: The name of the database to connect to (defaults to "master").
     @host (Text_Input display=..Always)
-    @credentials Credentials.default_widget
-    SQLServer (host:Text=(Missing_Argument.throw "host")) (credentials:Credentials=(Missing_Argument.throw "credentials")) port:Integer=1433 database:Text="master"
+    SQLServer (host:Text=(Missing_Argument.throw "host")) (credentials:SQLServer_Credentials=(Missing_Argument.throw "credentials")) port:Integer=1433 database:Text="master"
 
     ## ---
        private: true
@@ -61,7 +61,7 @@ type SQLServer_Details
     jdbc_properties self =
         account = [Pair.new 'encrypt' 'false']
         database = [Pair.new 'databaseName' self.database]
-        credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
+        credentials = self.credentials.to_jdbc_properties
         send_time_as_datetime = [Pair.new 'sendTimeAsDatetime' 'false']
         account + database + credentials + send_time_as_datetime
 
@@ -69,11 +69,22 @@ type SQLServer_Details
    private: true
    ---
 private create_data_link_structure details:SQLServer_Details data_link_location:Enso_File -> JS_Object =
-    credentials_json = Data_Link_Setup.save_credentials_for_data_link data_link_location details.credentials
+    credentials_json = case details.credentials of
+        SQLServer_Credentials.None -> JS_Object.from_pairs []
+        SQLServer_Credentials.Active_Directory_Default -> JS_Object.from_pairs [["type", "ActiveDirectoryDefault"]]
+        SQLServer_Credentials.Active_Directory_Integrated -> JS_Object.from_pairs [["type", "ActiveDirectoryIntegrated"]]
+        SQLServer_Credentials.Username_And_Password user password ->
+            secret_password = save_password_for_data_link data_link_location password
+            JS_Object.from_pairs [["type", "UsernameAndPassword"], ["username", secure_value_to_json user], ["password", secure_value_to_json secret_password]]
+        SQLServer_Credentials.Active_Directory_Password user password ->
+            secret_password = save_password_for_data_link data_link_location password
+            JS_Object.from_pairs [["type", "ActiveDirectoryPassword"], ["username", secure_value_to_json user], ["password", secure_value_to_json secret_password]]
+        SQLServer_Credentials.Active_Directory_Service_Principal id secret ->
+            secret_password = save_password_for_data_link data_link_location secret
+            JS_Object.from_pairs [["type", "ActiveDirectoryServicePrincipal"], ["id", secure_value_to_json id], ["secret", secure_value_to_json secret_password]]
+
     JS_Object.from_pairs <|
         header = [["type", "SQLServer_Connection"], ["libraryName", "Standard.Microsoft"]]
         connection_part = [["host", details.host], ["port", details.port], ["database_name", details.database]]
         credential_part = [["credentials", credentials_json]]
         header + connection_part + credential_part
-
-

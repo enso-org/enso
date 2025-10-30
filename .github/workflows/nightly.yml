@@ -11,9 +11,8 @@ on:
         description: What kind of Ydoc image to build.
         required: false
         type: choice
-        default: nodejs
+        default: polyglot
         options:
-          - nodejs
           - polyglot
 jobs:
   promote-nightly:
@@ -21,7 +20,7 @@ jobs:
     uses: ./.github/workflows/promote.yml
     with:
       designator: nightly
-      ydoc: ${{ inputs.ydoc || 'nodejs' }}
+      ydoc: ${{ inputs.ydoc || 'polyglot' }}
     secrets: inherit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

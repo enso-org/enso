@@ -2,8 +2,8 @@
 
 use crate::check;
 use crate::s_expr::to_s_expr;
-use std::borrow::Cow;
 
+use std::borrow::Cow;
 
 /// Check that the given [`Tree`] is a valid representation of the given source code:
 /// - Assert that the given [`Tree`] is composed of tokens that concatenate back to the given source
@@ -15,7 +15,6 @@ fn expect_tree_representing_code(code: &str, ast: &enso_parser::syntax::Tree) {
     let deserialized = enso_parser::serialization::deserialize_tree(&serialized);
     deserialized.unwrap();
 }
-
 
 // === Testing valid inputs ===
 
@@ -51,14 +50,14 @@ pub fn block<T: AsRef<str>>(code: T) -> String {
 }
 
 /// Parses the given code as a module, performs some extra checks, and returns the syntax tree.
-pub fn parse_module(code: &str) -> enso_parser::syntax::tree::Tree {
+pub fn parse_module(code: &'_ str) -> enso_parser::syntax::tree::Tree<'_> {
     let ast = enso_parser::Parser::new().parse_module(code);
     validate_parse(code, &ast);
     ast
 }
 
 /// Parses the given code as a body block, performs some extra checks, and returns the syntax tree.
-pub fn parse_block(code: &str) -> enso_parser::syntax::tree::Tree {
+pub fn parse_block(code: &'_ str) -> enso_parser::syntax::tree::Tree<'_> {
     let ast = enso_parser::Parser::new().parse_block(code);
     validate_parse(code, &ast);
     ast
@@ -76,12 +75,11 @@ fn validate_parse(code: &str, ast: &enso_parser::syntax::Tree) {
     expect_tree_representing_code(code, ast);
 }
 
-
 // === Testing inputs containing syntax errors ===
 
 #[derive(Debug, Eq, PartialEq, Default, Clone)]
 struct Errors {
-    invalid_node:      Option<Cow<'static, str>>,
+    invalid_node: Option<Cow<'static, str>>,
     multiple_operator: bool,
 }
 

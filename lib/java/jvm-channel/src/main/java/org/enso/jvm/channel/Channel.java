@@ -412,12 +412,20 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         // read length
         len = buffer.getLong();
         // read address
-        var overflowSegment = MemorySegment.ofAddress(buffer.getLong()).reinterpret(len);
-        buffer = overflowSegment.asByteBuffer();
+        var addr = buffer.getLong();
+        if (ImageInfo.inImageRuntimeCode()) {
+          var overflowPtr = WordFactory.pointer(addr);
+          buffer =
+              CTypeConversion.asByteBuffer(overflowPtr, Math.toIntExact(len))
+                  .order(ByteOrder.BIG_ENDIAN);
+        } else {
+          var overflowSegment = MemorySegment.ofAddress(addr).reinterpret(len);
+          buffer = overflowSegment.asByteBuffer();
+        }
       }
       assert len >= 0;
       buffer.position(0);
-      buffer.limit((int) len);
+      buffer.limit(Math.toIntExact(len));
       var result = pool.read(buffer);
       return result.get(replyType);
     } catch (IOException ex) {

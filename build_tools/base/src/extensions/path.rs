@@ -6,8 +6,6 @@ use crate::extensions::os_str::OsStrExt;
 
 use std::env::consts::EXE_EXTENSION;
 
-
-
 /// A number of extensions for `Path`-like types.
 pub trait PathExt: AsRef<Path> {
     /// Append multiple segments to this path.
@@ -19,7 +17,9 @@ pub trait PathExt: AsRef<Path> {
 
     /// Strips the leading `\\?\` prefix from Windows paths if present.
     fn without_verbatim_prefix(&self) -> &Path
-    where Self: AsRef<OsStr> {
+    where
+        Self: AsRef<OsStr>,
+    {
         self.as_str().strip_prefix(r"\\?\").map_or(self.as_ref(), Path::new)
     }
 
@@ -42,7 +42,7 @@ pub trait PathExt: AsRef<Path> {
     /// ```
     fn with_appended_extension(&self, extension: impl AsRef<OsStr>) -> PathBuf {
         if extension.as_ref().is_empty() {
-            return self.as_ref().into();
+            self.as_ref().into()
         } else {
             let mut ret = self.as_ref().to_path_buf().into_os_string();
             ret.push(".");
@@ -114,7 +114,7 @@ pub trait PathExt: AsRef<Path> {
     /// Takes filename and splits it into file stem and extension.
     ///
     /// Fails if the path's filename has no extension.
-    fn split_filename(&self) -> Result<SplitFilename> {
+    fn split_filename(&self) -> Result<SplitFilename<'_>> {
         let stem = self.try_file_stem()?;
         let extension = self.try_extension()?;
         Ok(SplitFilename { stem, extension })
@@ -154,7 +154,7 @@ impl<T: AsRef<Path>> PathExt for T {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SplitFilename<'a> {
     /// The file stem.
-    pub stem:      &'a OsStr,
+    pub stem: &'a OsStr,
     /// The file extension.
     pub extension: &'a OsStr,
 }

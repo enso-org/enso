@@ -1,8 +1,11 @@
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+} from '$/providers/openedProjects/suggestionDatabase/entry'
 import { ANY_TYPE } from '@/util/ensoTypes'
-import { type ProjectPath } from '@/util/projectPath'
+import type { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import escapeStringRegexp from '@/util/regexp'
 import { Range } from 'ydoc-shared/util/data/range'

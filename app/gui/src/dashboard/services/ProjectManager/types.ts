@@ -140,9 +140,9 @@ export interface CreateProject {
 
 /** The return value of the "open project" endpoint. */
 export interface OpenProject {
-  readonly engineVersion: string
   readonly languageServerJsonAddress: IpWithSocket
   readonly languageServerBinaryAddress: IpWithSocket
+  readonly languageServerYdocAddress?: IpWithSocket
   readonly projectName: ProjectName
   readonly projectNormalizedName: string
   readonly projectNamespace: string
@@ -234,5 +234,3 @@ export interface DeleteProjectParams {
   readonly projectId: UUID
   readonly projectsDirectory: Path
 }
-
-export const PROJECT_MANAGER_LOADING_FAILED_EVENT = 'enso-project-manager-loading-failed'

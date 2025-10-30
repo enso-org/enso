@@ -13,7 +13,6 @@ import {
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
-import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 import { persist } from 'zustand/middleware'
@@ -71,7 +70,7 @@ export interface DrivePastePayload {
 export type SelectedAssetInfo =
   AnyAsset extends infer T ?
     T extends T ?
-      Pick<T, keyof T & ('id' | 'parentId' | 'title' | 'type')>
+      Pick<T, keyof T & ('id' | 'labels' | 'parentId' | 'title' | 'type')>
     : never
   : never
 
@@ -87,11 +86,19 @@ export interface DirectoryPath {
   readonly name: string
 }
 
+/** Data for a context menu. */
+export interface ContextMenuData {
+  readonly triggerRef: React.MutableRefObject<HTMLElement | null>
+  readonly initialContextMenuPosition: Pick<MouseEvent, 'pageX' | 'pageY'> | null
+}
+
 /** The state of this zustand store. */
 interface DriveStore {
   readonly removeSelection: () => void
-  readonly newestFolderId: DirectoryId | null
-  readonly setNewestFolderId: (newestFolderId: DirectoryId | null) => void
+  readonly assetToRename: AssetId | null
+  readonly setAssetToRename: (assetToRename: AssetId | null) => void
+  readonly contextMenuData: ContextMenuData | null
+  readonly setContextMenuData: (contextMenuData: ContextMenuData | null) => void
   readonly canDownload: boolean
   readonly setCanDownload: (canDownload: boolean) => void
   readonly pasteData: PasteData<DrivePastePayload> | null
@@ -150,10 +157,16 @@ export default function DriveProvider(props: DriveProviderProps) {
       removeSelection: () => {
         set({ selectedIds: new Set(), visuallySelectedKeys: null, selectedAssets: [] })
       },
-      newestFolderId: null,
-      setNewestFolderId: (newestFolderId) => {
-        if (get().newestFolderId !== newestFolderId) {
-          set({ newestFolderId })
+      assetToRename: null,
+      setAssetToRename: (assetToRename) => {
+        if (get().assetToRename !== assetToRename) {
+          set({ assetToRename })
+        }
+      },
+      contextMenuData: null,
+      setContextMenuData: (contextMenuData) => {
+        if (get().contextMenuData !== contextMenuData) {
+          set({ contextMenuData })
         }
       },
       canDownload: false,
@@ -172,11 +185,8 @@ export default function DriveProvider(props: DriveProviderProps) {
       setSelectedIds: (selectedIds) => {
         set({ selectedIds })
       },
-      selectedAssets: EMPTY_ARRAY,
+      selectedAssets: [],
       setSelectedAssets: (selectedAssets) => {
-        if (selectedAssets.length === 0) {
-          selectedAssets = EMPTY_ARRAY
-        }
         if (get().selectedAssets !== selectedAssets) {
           set({
             selectedAssets,
@@ -238,16 +248,16 @@ export function useDriveStore() {
 
 /** The ID of the most newly created folder. */
 // eslint-disable-next-line react-refresh/only-export-components
-export function useNewestFolderId() {
+export function useAssetToRename() {
   const store = useDriveStore()
-  return useStore(store, (state) => state.newestFolderId)
+  return useStore(store, (state) => state.assetToRename)
 }
 
 /** A function to set the ID of the most newly created folder. */
 // eslint-disable-next-line react-refresh/only-export-components
-export function useSetNewestFolderId() {
+export function useSetAssetToRename() {
   const store = useDriveStore()
-  return useStore(store, (state) => state.setNewestFolderId)
+  return useStore(store, (state) => state.setAssetToRename)
 }
 
 /** Whether the current Asset Table selection is downloadble. */

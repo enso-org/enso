@@ -21,7 +21,6 @@ use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
-
 // ========================
 // === Named-App Parser ===
 // ========================
@@ -29,16 +28,16 @@ use crate::syntax::Tree;
 /// Parses named-application syntax.
 #[derive(Default, Debug, Finish)]
 pub struct ParseAppNames<'s, Inner> {
-    inner:   Inner,
+    inner: Inner,
     partial: Option<Partial<'s>>,
-    stack:   Vec<AppName<'s>>,
+    stack: Vec<AppName<'s>>,
 }
 
 #[derive(Debug)]
 pub struct NamedApp<'s> {
-    parens:     Option<(token::OpenSymbol<'s>, Option<token::CloseSymbol<'s>>)>,
-    name:       token::Ident<'s>,
-    equals:     token::AssignmentOperator<'s>,
+    parens: Option<(token::OpenSymbol<'s>, Option<token::CloseSymbol<'s>>)>,
+    name: token::Ident<'s>,
+    equals: token::AssignmentOperator<'s>,
     expression: Tree<'s>,
 }
 
@@ -64,10 +63,10 @@ impl<'s> From<NamedApp<'s>> for Operator<'s> {
         };
         let precedence = ModifiedPrecedence::new(spacing, token::Precedence::Application, false);
         Operator {
-            left_precedence:  Some(precedence),
+            left_precedence: Some(precedence),
             right_precedence: None,
-            associativity:    token::Associativity::Left,
-            arity:            Arity::NamedApp(NamedApp { parens, name, equals, expression }.into()),
+            associativity: token::Associativity::Left,
+            arity: Arity::NamedApp(NamedApp { parens, name, equals, expression }.into()),
         }
     }
 }
@@ -102,10 +101,10 @@ enum Partial<'s> {
 
 #[derive(Debug)]
 struct AppName<'s> {
-    open:         Option<token::OpenSymbol<'s>>,
-    name:         token::Ident<'s>,
-    equals:       token::AssignmentOperator<'s>,
-    spaceproof:   bool,
+    open: Option<token::OpenSymbol<'s>>,
+    name: token::Ident<'s>,
+    equals: token::AssignmentOperator<'s>,
+    spaceproof: bool,
     inner_parens: u32,
 }
 
@@ -137,10 +136,11 @@ impl<'s> AppName<'s> {
 }
 
 impl<'s, Inner> ParseAppNames<'s, Inner>
-where Inner: NamedOperandConsumer<'s>
+where
+    Inner: NamedOperandConsumer<'s>
         + ScopeHierarchyConsumer<Result = Option<Tree<'s>>>
         + GroupHierarchyConsumer<'s>
-        + SpacingLookaheadTokenConsumer<'s>
+        + SpacingLookaheadTokenConsumer<'s>,
 {
     fn maybe_end_unspaced_expression(
         &mut self,
@@ -185,8 +185,9 @@ where Inner: NamedOperandConsumer<'s>
         match self.partial.take() {
             None => {}
             Some(Partial::ExpectingName { open }) => self.flush_paren(open),
-            Some(Partial::ExpectingEquals { open, name }) =>
-                self.flush_paren_and_ident(open, name, following()),
+            Some(Partial::ExpectingEquals { open, name }) => {
+                self.flush_paren_and_ident(open, name, following())
+            }
         };
     }
 
@@ -200,10 +201,11 @@ where Inner: NamedOperandConsumer<'s>
 }
 
 impl<'s, Inner> SpacingLookaheadTokenConsumer<'s> for ParseAppNames<'s, Inner>
-where Inner: SpacingLookaheadTokenConsumer<'s>
+where
+    Inner: SpacingLookaheadTokenConsumer<'s>
         + NamedOperandConsumer<'s>
         + ScopeHierarchyConsumer<Result = Option<Tree<'s>>>
-        + GroupHierarchyConsumer<'s>
+        + GroupHierarchyConsumer<'s>,
 {
     fn push_token(&mut self, token: Token<'s>, following_spacing: Option<Spacing>) {
         self.partial = loop {
@@ -261,10 +263,11 @@ where Inner: SpacingLookaheadTokenConsumer<'s>
 }
 
 impl<'s, Inner> SpacingLookaheadTreeConsumer<'s> for ParseAppNames<'s, Inner>
-where Inner: SpacingLookaheadTokenConsumer<'s>
+where
+    Inner: SpacingLookaheadTokenConsumer<'s>
         + NamedOperandConsumer<'s>
         + ScopeHierarchyConsumer<Result = Option<Tree<'s>>>
-        + GroupHierarchyConsumer<'s>
+        + GroupHierarchyConsumer<'s>,
 {
     fn push_tree(&mut self, tree: Tree<'s>, following_spacing: Option<Spacing>) {
         self.flush_partial(|| Spacing::of_tree(&tree).into());
@@ -275,10 +278,11 @@ where Inner: SpacingLookaheadTokenConsumer<'s>
 }
 
 impl<'s, Inner> GroupHierarchyConsumer<'s> for ParseAppNames<'s, Inner>
-where Inner: GroupHierarchyConsumer<'s>
+where
+    Inner: GroupHierarchyConsumer<'s>
         + SpacingLookaheadTokenConsumer<'s>
         + NamedOperandConsumer<'s>
-        + ScopeHierarchyConsumer<Result = Option<Tree<'s>>>
+        + ScopeHierarchyConsumer<Result = Option<Tree<'s>>>,
 {
     fn start_group(&mut self, open: token::OpenSymbol<'s>) {
         self.flush_partial(|| Spacing::of_token(&open).into());
@@ -306,10 +310,11 @@ where Inner: GroupHierarchyConsumer<'s>
 }
 
 impl<'s, Inner> Flush for ParseAppNames<'s, Inner>
-where Inner: SpacingLookaheadTokenConsumer<'s>
+where
+    Inner: SpacingLookaheadTokenConsumer<'s>
         + NamedOperandConsumer<'s>
         + ScopeHierarchyConsumer<Result = Option<Tree<'s>>>
-        + GroupHierarchyConsumer<'s>
+        + GroupHierarchyConsumer<'s>,
 {
     fn flush(&mut self) {
         self.flush_partial(|| None);
@@ -320,11 +325,12 @@ where Inner: SpacingLookaheadTokenConsumer<'s>
 }
 
 impl<'s, Inner> OperatorConsumer<'s> for ParseAppNames<'s, Inner>
-where Inner: OperatorConsumer<'s>
+where
+    Inner: OperatorConsumer<'s>
         + NamedOperandConsumer<'s>
         + ScopeHierarchyConsumer<Result = Option<Tree<'s>>>
         + GroupHierarchyConsumer<'s>
-        + SpacingLookaheadTokenConsumer<'s>
+        + SpacingLookaheadTokenConsumer<'s>,
 {
     fn push_operator(&mut self, operator: Operator<'s>) {
         self.flush_partial(|| None);

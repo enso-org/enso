@@ -1,7 +1,7 @@
 /** @file Test the drive view. */
-import { expect, test, type Locator } from 'playwright/test'
+import { expect, test, type Locator } from 'integration-test/base'
 
-import { TEXT, mockAllAndLogin } from './actions'
+import { TEXT } from '../actions'
 
 /** Find a button to close the project. */
 
@@ -9,8 +9,9 @@ function locateStopProjectButton(page: Locator) {
   return page.getByLabel(TEXT.stopExecution)
 }
 
-test('drive view', ({ page }) =>
-  mockAllAndLogin({ page })
+test('drive view', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     .withDriveView(async (view) => {
       await expect(view).toBeVisible()
     })
@@ -39,4 +40,5 @@ test('drive view', ({ page }) =>
     .contextMenu.moveToTrash()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(1)
-    }))
+    })
+})

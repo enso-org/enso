@@ -13,12 +13,12 @@ import { Ok } from '@/util/data/result'
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import {
-  AssetDetailsResponse,
   AssetType,
   extractTypeFromId,
   isRemoteAssetPath,
-  ProjectAsset,
   ProjectId,
+  type AssetDetailsResponse,
+  type ProjectAsset,
 } from 'enso-common/src/services/Backend'
 
 const Dashboard = reactComponent(DashboardReact)

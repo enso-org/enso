@@ -11,7 +11,7 @@ import { registerHandlers } from '@/providers/action'
 import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
-import { type BoundsSet, Rect } from '@/util/data/rect'
+import { Rect, type BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import type { ProjectPath } from '@/util/projectPath'
 import { proxyRefs } from '@/util/reactivity'
@@ -134,10 +134,11 @@ const keydownHandler = visualizationBindings.handler({
   },
 })
 
-// TODO[ao]: we use `document` to make sure it takes precedence before GraphEditor handlers
+// TODO[ao]: we use `globalEventRegistryPre` to make sure it takes precedence before GraphEditor handlers
 //  (deselectAllNodes in particular). But this is quick workaround, the proper solution
 //  should be soon delivered as part of https://github.com/enso-org/enso/issues/13695
-useEvent(document, 'keydown', keydownHandler)
+const { globalEventRegistryPre } = useGlobalEventRegistry()
+useEvent(globalEventRegistryPre, 'keydown', keydownHandler)
 
 // =============================
 // === Sizing and Fullscreen ===
@@ -213,10 +214,11 @@ const resizableWidgets = injectResizableWidgetRegistry(true)
 </script>
 
 <script lang="ts">
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import VisualizationHost, {
   type VisualizationHostParams,
 } from '@/components/visualizations/VisualizationHost.vue'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { defineCustomElement } from 'vue'
 
 // ==========================

@@ -332,7 +332,7 @@ add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connec
         group_builder.specify "should correctly be counted" <|
             data.t4.row_count . should_equal 5
             col = data.t4.at 'a'
-            col.length . should_equal 5
+            col.row_count . should_equal 5
             col.count . should_equal 3
             col.count_nothing . should_equal 2
 

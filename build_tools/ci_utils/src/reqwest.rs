@@ -4,8 +4,6 @@ use reqwest::header::HeaderValue;
 use reqwest::header::InvalidHeaderValue;
 use std::ops::RangeInclusive;
 
-
-
 #[derive(Clone, Debug)]
 pub struct ContentRange {
     pub range: RangeInclusive<usize>,

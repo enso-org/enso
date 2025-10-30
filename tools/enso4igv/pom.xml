@@ -5,7 +5,7 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.50-SNAPSHOT</version>
+    <version>1.51-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -91,6 +91,28 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.15</version>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="module" value="org-netbeans-modules-textmate-lexer"/>
+                                <!-- could be ${netbeans.version}, but that has too old deps using latest -->
+                                <property name="modver" value="${netbeans.runtime.version}"/>
+                                <get src="https://repo1.maven.org/maven2/org/netbeans/api/${module}/${modver}/${module}-${modver}.nbm"
+                                     dest="${project.build.directory}/${module}-${modver}.nbm"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -103,7 +125,7 @@
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-modules-textmate-lexer</artifactId>
             <version>${netbeans.version}</version>
-            <scope>provided</scope>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.netbeans.api</groupId>
@@ -231,7 +253,7 @@
         <dependency>
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-api-lsp</artifactId>
-            <version>RELEASE160</version>
+            <version>${netbeans.version}</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -285,7 +307,8 @@
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <netbeans.version>RELEASE140</netbeans.version>
+        <netbeans.version>RELEASE220</netbeans.version>
+        <netbeans.runtime.version>RELEASE270</netbeans.runtime.version>
         <netbeans.compile.on.save>none</netbeans.compile.on.save>
         <enso.root>${basedir}/../../</enso.root>
         <enso.parser.lib>${enso.root}/lib/rust/parser/target/classes/</enso.parser.lib>

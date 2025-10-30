@@ -21,8 +21,6 @@ use enso_metamodel::rust;
 use enso_parser_generate_java::serialization;
 use enso_reflect::Reflect;
 
-
-
 // =======================
 // === Java Generation ===
 // =======================

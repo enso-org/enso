@@ -51,8 +51,9 @@ public class CastOperation {
       case BigIntegerType bigIntegerType -> new ToBigIntegerConverter();
       case BigDecimalType bigDecimalType -> new ToBigDecimalConverter();
       case NullType nullType -> throw new IllegalArgumentException("Cannot cast to Null type.");
-      default -> fromStorageType(
-          StorageType.fromTypeCharAndSize(storageType.typeChar(), storageType.size()));
+      default ->
+          fromStorageType(
+              StorageType.fromTypeCharAndSize(storageType.typeChar(), storageType.size()));
     };
   }
 
@@ -426,16 +427,19 @@ public class CastOperation {
 
     var accumulator = new PrecisionAccumulator();
     switch (storage.getType()) {
-      case BigDecimalType bigDecimalType -> StorageIterators.forEachOverStorage(
-          bigDecimalType.asTypedStorage(storage),
-          "maxPrecisionStored:BigDecimal",
-          (index, item) -> accumulator.accumulate(item));
-      case BigIntegerType bigIntegerType -> StorageIterators.forEachOverStorage(
-          bigIntegerType.asTypedStorage(storage),
-          "maxPrecisionStored:BigInteger",
-          (index, item) -> accumulator.accumulate(new BigDecimal(item)));
-      default -> throw new IllegalArgumentException(
-          "Cannot compute max precision for storage type: " + storage.getType());
+      case BigDecimalType bigDecimalType ->
+          StorageIterators.forEachOverStorage(
+              bigDecimalType.asTypedStorage(storage),
+              "maxPrecisionStored:BigDecimal",
+              (index, item) -> accumulator.accumulate(item));
+      case BigIntegerType bigIntegerType ->
+          StorageIterators.forEachOverStorage(
+              bigIntegerType.asTypedStorage(storage),
+              "maxPrecisionStored:BigInteger",
+              (index, item) -> accumulator.accumulate(new BigDecimal(item)));
+      default ->
+          throw new IllegalArgumentException(
+              "Cannot compute max precision for storage type: " + storage.getType());
     }
 
     return accumulator.getMaxPrecision();

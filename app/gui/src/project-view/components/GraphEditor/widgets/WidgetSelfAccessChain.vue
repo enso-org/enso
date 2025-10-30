@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import { injectFunctionInfo } from '@/providers/functionInfo'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { unwrapGroups } from '@/util/ast/abstract'

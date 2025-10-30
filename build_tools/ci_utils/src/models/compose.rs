@@ -4,20 +4,18 @@
 
 use crate::prelude::*;
 
-
-
 /// A build section of the service.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Build {
     pub context: PathBuf,
-    pub target:  String,
-    pub args:    Vec<String>,
+    pub target: String,
+    pub args: Vec<String>,
 }
 
 /// A service entry.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Service {
-    pub build:   Build,
+    pub build: Build,
     pub command: String,
     pub volumes: Vec<String>,
 }
@@ -32,5 +30,5 @@ pub struct Volume {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Compose {
     pub services: BTreeMap<String, Service>,
-    pub volumes:  BTreeMap<String, Volume>,
+    pub volumes: BTreeMap<String, Volume>,
 }

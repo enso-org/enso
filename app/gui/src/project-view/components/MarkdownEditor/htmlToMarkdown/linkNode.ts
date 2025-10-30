@@ -1,6 +1,6 @@
 import { $isImageNode, IMAGE } from '@/components/MarkdownEditor/htmlToMarkdown/imageNode'
 import { $isLinkNode, LinkNode } from '@lexical/link'
-import { type Transformer } from '@lexical/markdown'
+import type { Transformer } from '@lexical/markdown'
 import { $isTextNode } from 'lexical'
 export { LinkNode } from '@lexical/link'
 

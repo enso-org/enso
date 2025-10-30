@@ -84,9 +84,9 @@ public class HelloWorldCacheTest {
             new SourceModule(
                 QualifiedName.fromString("Priv_Mod"),
                 """
-            private
-            priv_func x = x
-            """),
+                private
+                priv_func x = x
+                """),
             new SourceModule(QualifiedName.fromString("Main"), "# Intentionally empty")),
         libDir);
 

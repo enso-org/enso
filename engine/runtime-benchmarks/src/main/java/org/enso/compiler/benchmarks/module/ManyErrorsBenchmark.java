@@ -72,12 +72,12 @@ public class ManyErrorsBenchmark {
     for (int i = 0; i < ERRORS_CNT; i++) {
       var rndInt = random.nextInt(0, 3);
       switch (rndInt) {
-          // Expression with unknown identifiers
+        // Expression with unknown identifiers
         case 0 -> {
           var expr = codeGen.createExpression(UNDEFINED_IDENTIFIERS, EXPR_SIZE);
           sb.append("    ").append(expr).append(System.lineSeparator());
         }
-          // Inline type ascription with unknown identifier
+        // Inline type ascription with unknown identifier
         case 1 -> {
           var expr = codeGen.createExpression(definedIdentifiers, EXPR_SIZE);
           sb.append("    ")
@@ -85,7 +85,7 @@ public class ManyErrorsBenchmark {
               .append(expr)
               .append(System.lineSeparator());
         }
-          // Put arrows before, after, and between expressions
+        // Put arrows before, after, and between expressions
         case 2 -> {
           var expr1 = codeGen.createExpression(definedIdentifiers, EXPR_SIZE);
           var expr2 = codeGen.createExpression(definedIdentifiers, EXPR_SIZE);
