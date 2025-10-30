@@ -66,8 +66,8 @@ type Snowflake_File_Format
             + [Option "<CSV>" "..CSV", Option "<JSON>" "..JSON", Option "<AVRO>" "..AVRO", Option "<ORC>" "..ORC", Option "<PARQUET>" "..PARQUET", Option "<XML>" "..XML"]
         Single_Choice display=..Always values=identifiers
 
-File_Format.from (that:Identifier) =
-    File_Format.Saved that
+Snowflake_File_Format.from (that:Identifier) =
+    Snowflake_File_Format.Saved that
 
 type Auto_Boolean
     AUTO
