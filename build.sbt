@@ -1,10 +1,10 @@
 import LibraryManifestGenerator.BundledLibrary
-import org.enso.build.BenchTasks._
+import org.enso.build.BenchTasks.*
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbt.complete.DefaultParsers._
+import sbt.complete.DefaultParsers.*
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
 import sbt.internal.util.ManagedLogger
@@ -13,8 +13,8 @@ import src.main.scala.licenses.{
   SBTDistributionComponent
 }
 
-import scala.sys.process._
-import Dependencies._
+import scala.sys.process.*
+import Dependencies.*
 import JarExtractor.{
   CopyToOutputJar,
   LinuxAMD64,
@@ -24,7 +24,7 @@ import JarExtractor.{
   WindowsAMD64
 }
 
-import java.nio.file.Files
+import java.nio.file.{Files, StandardCopyOption}
 
 // This import is unnecessary, but bit adds a proper code completion features
 // to IntelliJ.
@@ -146,6 +146,10 @@ GatherLicenses.distributions := Seq(
   makeStdLibDistribution(
     "Saas",
     Distribution.sbtProjects(`std-saas`)
+  ),
+  makeStdLibDistribution(
+    "DuckDB",
+    Distribution.sbtProjects(`std-duckdb`)
   )
 )
 
@@ -400,6 +404,7 @@ lazy val enso = (project in file("."))
     `std-table`,
     `std-tableau`,
     `std-saas`,
+    `std-duckdb`,
     `sqlite-wrapper`,
     `syntax-rust-definition`,
     `tableau-wrapper`,
@@ -410,6 +415,7 @@ lazy val enso = (project in file("."))
     `version-output`,
     `ydoc-polyfill`,
     `ydoc-server`,
+    `ydoc-server-registration`,
     `zio-wrapper`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
@@ -533,6 +539,8 @@ lazy val componentModulesPaths =
     (`zio-wrapper` / Compile / exportedModuleBin).value,
     (`language-server-deps-wrapper` / Compile / exportedModuleBin).value,
     (`ydoc-polyfill` / Compile / exportedModuleBin).value,
+    (`ydoc-server` / Compile / exportedModuleBin).value,
+    (`ydoc-server-registration` / Compile / exportedModuleBin).value,
     (`library-manager` / Compile / exportedModuleBin).value,
     (`logging-config` / Compile / exportedModuleBin).value,
     (`logging-utils` / Compile / exportedModuleBin).value,
@@ -583,6 +591,36 @@ lazy val modularFatJarWrapperSettings = frgaalJavaCompilerSetting ++ Seq(
   Compile / exportedModule := (Compile / exportedModuleBin).value
 )
 
+/** Mockito agent needs to be explicitly set as `-javaagent` to the JVM.
+  * Note that starting agent programatically was deprecated in JDK 21 and is scheduled to be removed.
+  * See https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+  */
+lazy val mockitoAgentSettings: SettingsDefinition = Seq(
+  libraryDependencies ++= Seq(
+    "org.mockito" % "mockito-core" % mockitoJavaVersion % Test
+  ),
+  Test / javaOptions += {
+    val logger = streams.value.log
+    val mockitoJar = JPMSUtils.filterModulesFromUpdate(
+      update.value,
+      Seq(
+        "org.mockito" % "mockito-core" % mockitoJavaVersion
+      ),
+      logger,
+      moduleName.value,
+      scalaBinaryVersion.value,
+      shouldContainAll = true
+    )
+    if (mockitoJar.length != 1) {
+      logger.error(
+        s"Expected exactly one mockito-core jar on the classpath, found: ${mockitoJar.map(_.name).mkString(", ")}"
+      )
+    }
+    val mockitoJarPath = mockitoJar.head.getAbsolutePath
+    s"-javaagent:$mockitoJarPath"
+  }
+)
+
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
@@ -624,9 +662,16 @@ val generateRustParserLib =
       libDest
     )
   } else {
-    val log = state.value.log
+    val log        = state.value.log
+    val profile    = if (BuildInfo.isReleaseMode) "release" else "dev"
+    val profileDir = if (BuildInfo.isReleaseMode) "release" else "debug"
+    val libName    = System.mapLibraryName("enso_parser")
+    // The library will be copied into this location. It is required in various
+    // other places.
+    val copyLibDest =
+      (`syntax-rust-definition` / rustParserTargetDirectory).value / libName
     val libGlob =
-      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / "libenso_parser.so"
+      (`syntax-rust-definition` / rustParserTargetDirectory).value.toGlob / libName
 
     val allLibs = FileTreeView.default.list(Seq(libGlob)).map(_._1)
     if (
@@ -641,27 +686,46 @@ val generateRustParserLib =
         case _ =>
           None
       }
+      // Destination of the native library as built by Cargo
+      val libDest = target match {
+        case Some(someTarget) =>
+          (`syntax-rust-definition` / rustParserTargetDirectory).value / someTarget / profileDir / libName
+        case None =>
+          (`syntax-rust-definition` / rustParserTargetDirectory).value / profileDir / libName
+      }
       target.foreach { t =>
         Cargo.rustUp(t, log)
       }
-      val profile = if (BuildInfo.isReleaseMode) "release" else "fuzz"
       val arguments = Seq(
         "build",
         "-p",
         "enso-parser-jni",
         "--profile",
-        profile,
-        "-Z",
-        "unstable-options"
+        profile
       ) ++ target.map(t => Seq("--target", t)).getOrElse(Seq()) ++
         Seq(
-          "--artifact-dir",
+          "--target-dir",
           (`syntax-rust-definition` / rustParserTargetDirectory).value.toString
         )
       val envVars = target
         .map(_ => Seq(("RUSTFLAGS", "-C target-feature=-crt-static")))
         .getOrElse(Seq())
       Cargo.run(arguments, log, envVars)
+      if (!libDest.exists()) {
+        log.error(
+          s"Expected Rust parser library at ${libDest.toPath} but it does not exist after build."
+        )
+      }
+      Files.copy(
+        libDest.toPath,
+        copyLibDest.toPath,
+        StandardCopyOption.REPLACE_EXISTING
+      )
+      if (!Files.exists(copyLibDest.toPath)) {
+        log.error(
+          s"Failed to copy Rust parser library to ${copyLibDest.toPath}."
+        )
+      }
     }
     FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
   }
@@ -1741,7 +1805,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       (`syntax-rust-definition` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value
     ),
-    Test / test := (Test / test).dependsOn(buildEngineDistribution).value
+    Test / test := Def.task(()).dependsOn(buildEngineDistribution).value
   )
   /** JPMS related settings for runtime
     */
@@ -2010,17 +2074,20 @@ lazy val `ydoc-server` = project
       )
       args
     },
-    Compile / resourceGenerators +=
-      Def
-        .task(
-          Ydoc.generateJsBundle(
-            (ThisBuild / baseDirectory).value,
-            baseDirectory.value,
-            (Compile / resourceManaged).value,
-            streams.value
-          )
+    Compile / resourceGenerators += Def.taskIf {
+      if ((Bazel / wasStartedFromBazel).value) {
+        Seq(
+          (Bazel / ydocServerPolyglotMainJs).value
         )
-        .taskValue
+      } else {
+        Ydoc.generateJsBundle(
+          (ThisBuild / baseDirectory).value,
+          baseDirectory.value,
+          (Compile / resourceManaged).value,
+          streams.value
+        )
+      }
+    }
   )
   .settings(
     NativeImage.smallJdk := None,
@@ -2043,6 +2110,37 @@ lazy val `ydoc-server` = project
   )
   .dependsOn(`ydoc-polyfill`)
   .dependsOn(`logging-service-logback`)
+
+lazy val `ydoc-server-registration` = project
+  .in(file("lib/java/ydoc-server-registration"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    customFrgaalJavaCompilerSettings("21"),
+    javaModuleName := "org.enso.ydoc.server.registration",
+    Compile / exportJars := true,
+    crossPaths := false,
+    autoScalaLibrary := false,
+    Test / fork := true,
+    commands += WithDebugCommand.withDebug,
+    Compile / moduleDependencies ++=
+      GraalVM.modules,
+    Compile / internalModuleDependencies := Seq(
+      (`engine-runner-common` / Compile / exportedModule).value,
+      (`jvm-interop` / Compile / exportedModule).value
+    ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk"      % "nativeimage"       % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "inspect-community" % graalMavenPackagesVersion % "runtime",
+      "junit"                % "junit"             % junitVersion              % Test,
+      "com.github.sbt"       % "junit-interface"   % junitIfVersion            % Test
+    ),
+    libraryDependencies ++= {
+      GraalVM.modules
+    }
+  )
+  .dependsOn(`engine-runner-common`)
+  .dependsOn(`jvm-interop`)
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
   .enablePlugins(JPMSPlugin)
@@ -2178,6 +2276,9 @@ lazy val `engine-common` = project
   .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
+    publishLocalSetting,
+    autoScalaLibrary := false,
+    crossPaths := false,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
@@ -2852,6 +2953,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-microsoft` / Compile / packageBin)
       .dependsOn(`std-tableau` / Compile / packageBin)
       .dependsOn(`std-saas` / Compile / packageBin)
+      .dependsOn(`std-duckdb` / Compile / packageBin)
       .value
   )
   .dependsOn(`common-polyglot-core-utils`)
@@ -3365,6 +3467,7 @@ lazy val `runtime-compiler` =
       scalaModuleDependencySetting,
       mixedJavaScalaProjectSetting,
       annotationProcSetting,
+      mockitoAgentSettings,
       inConfig(Test)(truffleRunOptionsSettings),
       commands += WithDebugCommand.withDebug,
       javaModuleName := "org.enso.runtime.compiler",
@@ -3776,6 +3879,7 @@ lazy val `engine-runner` = project
       (`semver` / Compile / exportedModule).value,
       (`cli` / Compile / exportedModule).value,
       (`jvm-channel` / Compile / exportedModule).value,
+      (`jvm-interop` / Compile / exportedModule).value,
       (`os-environment` / Compile / exportedModule).value,
       (`distribution-manager` / Compile / exportedModule).value,
       (`editions` / Compile / exportedModule).value,
@@ -3790,7 +3894,8 @@ lazy val `engine-runner` = project
       (`engine-common` / Compile / exportedModule).value,
       (`polyglot-api` / Compile / exportedModule).value,
       (`logging-config` / Compile / exportedModule).value,
-      (`logging-utils` / Compile / exportedModule).value
+      (`logging-utils` / Compile / exportedModule).value,
+      (`ydoc-server-registration` / Compile / exportedModule).value
     ),
     // Runtime / modulePath is used as module-path for the native image build.
     Runtime / moduleDependencies :=
@@ -3830,6 +3935,7 @@ lazy val `engine-runner` = project
       val fullCp     = (runnerCp ++ runtimeCp).distinct
       val modulePath = componentModulesPaths.value
       Seq(
+        "--enable-native-access=org.graalvm.truffle",
         "--module-path",
         modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
         "-m",
@@ -3878,15 +3984,18 @@ lazy val `engine-runner` = project
           .map(_.data.getAbsolutePath)
       def langServer = {
         val log = streams.value.log
-        val path = (`language-server` / Compile / fullClasspath).value
+        val langServer = (`language-server` / Compile / fullClasspath).value
           .map(_.data.getAbsolutePath)
+        val ydocServerRegistration =
+          (`ydoc-server-registration` / Compile / fullClasspath).value
+            .map(_.data.getAbsolutePath)
         if (GraalVM.EnsoLauncher.disableLanguageServer) {
           log.info(
             s"Skipping language server in native image build as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
           )
           Seq()
         } else {
-          path
+          langServer ++ ydocServerRegistration
         }
       }
       val core = (
@@ -3929,6 +4038,9 @@ lazy val `engine-runner` = project
             .map(_.getAbsolutePath()) ++
           `std-tableau-polyglot-root`
             .listFiles("*.jar")
+            .map(_.getAbsolutePath()) ++
+          `std-duckdb-polyglot-root`
+            .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++ (if (
                                             GraalVM.EnsoLauncher.disableMicrosoft
                                           ) {
@@ -3963,6 +4075,10 @@ lazy val `engine-runner` = project
           "org.enso.microsoft.nativeimage.AzureNativeImageFeature"
         val databaseFeature =
           "org.enso.database.nativeimage.SqliteJdbcPatchedFeature"
+        // Features from gax-grpc-2.31.0
+        val grpcFeatures =
+          "com.google.api.gax.grpc.nativeimage.ProtobufMessageFeature," +
+          "com.google.api.gax.grpc.nativeimage.GrpcNettyFeature"
         var features = Seq(
           "org.enso.interpreter.runtime.nativeimage.NativeLibraryFeature"
         )
@@ -3979,6 +4095,18 @@ lazy val `engine-runner` = project
               "--enable-monitoring=heapdump"
             )
           else Seq()
+        val linkOpts = if (Platform.isWindows) {
+          val ensoTarget = file("target")
+          val ensoExp    = file("distribution/bin/enso.exp")
+          Seq(
+            "-H:NativeLinkerOption=" + ensoExp.getAbsolutePath,
+            "-H:TempDirectory=" + ensoTarget.getAbsolutePath,
+            "-H:+TraceNativeToolUsage"
+          )
+        } else {
+          Seq()
+        }
+
         val debugOpts =
           if (GraalVM.EnsoLauncher.debug)
             Seq(
@@ -4005,14 +4133,14 @@ lazy val `engine-runner` = project
             // native library from the jar.
             excludeConfigs = Seq(
               s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties",
-              s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*"
+              s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*",
+              ".*gax-grpc-.*\\.jar,META-INF/native-image/com.google.api/gax-grpc/native-image.properties"
             ),
             modulePath = mp,
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
-              "-H:+RunReachabilityHandlersConcurrently",
               "-R:-InstallSegfaultHandler",
               // Workaround a problem with build-/runtime-initialization conflict
               // by disabling this service provider
@@ -4022,8 +4150,10 @@ lazy val `engine-runner` = project
               // Needed for the NativeLibraryFeature
               "--add-opens=org.graalvm.nativeimage.builder/com.oracle.svm.core.jdk=ALL-UNNAMED",
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
-              "--add-opens=java.base/java.nio=ALL-UNNAMED"
-            ) ++ enableHeapDumpOpts ++ debugOpts,
+              "--add-opens=java.base/java.nio=ALL-UNNAMED",
+              // Needed for grpc-gax
+              "--add-opens=java.base/java.time=ALL-UNNAMED"
+            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
@@ -4060,7 +4190,8 @@ lazy val `engine-runner` = project
               "com.tableau.hyperapi",
               // See https://github.com/HarrDevY/native-register-bouncy-castle
               "org.bouncycastle.jcajce.provider.drbg.DRBG$Default",
-              "org.bouncycastle.jcajce.provider.drbg.DRBG$NonceAndIV"
+              "org.bouncycastle.jcajce.provider.drbg.DRBG$NonceAndIV",
+              "org.duckdb"
             ),
             initializeAtBuildtime = NativeImage.defaultBuildTimeInitClasses ++
               Seq(
@@ -4108,6 +4239,7 @@ lazy val `engine-runner` = project
   .dependsOn(`logging-service-logback` % Runtime)
   .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`ydoc-server-registration`)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
@@ -4302,7 +4434,9 @@ lazy val `jvm-channel` =
     .enablePlugins(JPMSPlugin)
     .settings(
       customFrgaalJavaCompilerSettings(targetJdk = "24"),
+      publishLocalSetting,
       autoScalaLibrary := false,
+      crossPaths := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
@@ -4337,7 +4471,9 @@ lazy val `jvm-interop` =
       inConfig(Compile)(
         Seq(fork := true, javaOptions ++= Seq("-ea:org.enso.jvm..."))
       ),
+      publishLocalSetting,
       autoScalaLibrary := false,
+      crossPaths := false,
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
@@ -4432,7 +4568,11 @@ lazy val `os-environment` =
             (Test / target).value / ("test-os-env" + exeSuffix)
           val binPath = exeFile.getAbsolutePath
           val res =
-            Process(Seq(binPath), None, "JAVA_TOOL_OPTIONS" -> "") ! logger
+            Process(
+              Seq(binPath),
+              None,
+              "JAVA_TOOL_OPTIONS" -> "--enable-native-access=org.enso.jvm.channel"
+            ) ! logger
           if (res != 0) {
             logger.error("Some test in os-environment failed")
             throw new TestsFailedException()
@@ -5022,6 +5162,10 @@ val `std-tableau-native-libs` =
   stdLibComponentRoot("Tableau") / "polyglot" / "lib"
 val `std-saas-polyglot-root` =
   stdLibComponentRoot("Saas") / "polyglot" / "java"
+val `std-duckdb-polyglot-root` =
+  stdLibComponentRoot("DuckDB") / "polyglot" / "java"
+val `std-duckdb-native-libs` =
+  stdLibComponentRoot("DuckDB") / "polyglot" / "lib"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -5188,6 +5332,7 @@ lazy val `std-table` = project
   .enablePlugins(Antlr4Plugin)
   .settings(
     frgaalJavaCompilerSetting,
+    mockitoAgentSettings,
     autoScalaLibrary := false,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(SPIHelpers.ensureSPIConsistency)
@@ -5513,6 +5658,31 @@ lazy val `sqlite-wrapper` = project
       "org/**/*.class"                        -> CopyToOutputJar,
       "sqlite-jdbc.properties"                -> CopyToOutputJar
     )
+  )
+
+lazy val `duckdb-wrapper` = project
+  .in(file("lib/java/duckdb-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    libraryDependencies ++= Seq(
+      "org.duckdb" % "duckdb_jdbc" % duckdbVersion
+    ),
+    inputJar := "org.duckdb" % "duckdb_jdbc" % duckdbVersion,
+    version := "0.1",
+    jarExtractor := JarExtractor(
+      "libduckdb_java.so_linux_amd64"   -> PolyglotLib(LinuxAMD64),
+      "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSArm64),
+      "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSAMD64),
+      "libduckdb_java.so_windows_amd64" -> PolyglotLib(WindowsAMD64),
+      "META-INF/**"                     -> CopyToOutputJar,
+      "org/**/*.class"                  -> CopyToOutputJar
+    ),
+    inputJarResolved := assembly.value,
+    assemblyMergeStrategy := { case _ =>
+      MergeStrategy.preferProject
+    }
   )
 
 lazy val `std-image` = project
@@ -6042,6 +6212,52 @@ lazy val `std-saas` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
+lazy val `std-duckdb` = project
+  .in(file("std-bits") / "duckdb")
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    Compile / packageBin / artifactPath :=
+      `std-duckdb-polyglot-root` / "std-duckdb.jar",
+    libraryDependencies ++= Seq(
+      "org.duckdb" % "duckdb_jdbc" % duckdbVersion % "provided"
+    ),
+    Compile / packageBin := {
+      val stdDuckDBJar      = (Compile / packageBin).value
+      val cacheStoreFactory = streams.value.cacheStoreFactory
+      StdBits
+        .copyDependencies(
+          `std-duckdb-polyglot-root`,
+          Seq("std-duckdb.jar"),
+          ignoreScalaLibrary = true,
+          libraryUpdates     = (Compile / update).value,
+          unmanagedClasspath = (Compile / unmanagedClasspath).value,
+          polyglotLibDir     = Some(`std-duckdb-native-libs`),
+          ignoreDependencies = None,
+          extractedNativeLibsDirs = Seq(
+            (`duckdb-wrapper` / extractedFilesDir).value
+          ),
+          extraJars = Seq(
+            (`duckdb-wrapper` / thinJarOutput).value
+          ),
+          logger            = streams.value.log,
+          cacheStoreFactory = cacheStoreFactory
+        )
+      stdDuckDBJar
+    },
+    clean := Def.task {
+      val _ = clean.value
+      IO.delete(`std-duckdb-polyglot-root`)
+      IO.delete(`std-duckdb-native-libs`)
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+  .dependsOn(`std-database` % "provided")
+
 lazy val fetchZipToUnmanaged =
   taskKey[Seq[Attributed[File]]](
     "Download zip file from an `unmanagedExternalZip` url and unpack jars to unmanaged libs directory"
@@ -6350,7 +6566,8 @@ val stdBitsProjects =
     "Microsoft",
     "Snowflake",
     "Table",
-    "Saas"
+    "Saas",
+    "DuckDB"
   ) ++ allStdBitsSuffix
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
@@ -6431,6 +6648,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-tableau` / Compile / packageBin).value
     case "Saas" =>
       (`std-saas` / Compile / packageBin).value
+    case "DuckDB" =>
+      (`std-duckdb` / Compile / packageBin).value
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
@@ -6448,6 +6667,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-microsoft` / Compile / packageBin).value
       (`std-tableau` / Compile / packageBin).value
       (`std-saas` / Compile / packageBin).value
+      (`std-duckdb` / Compile / packageBin).value
     case _ =>
   }
   val libs =

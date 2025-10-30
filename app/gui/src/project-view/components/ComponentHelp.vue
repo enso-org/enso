@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import type { SuggestionId } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { suggestionDocumentationUrl } from '$/providers/openedProjects/suggestionDatabase/entry'
 import Breadcrumbs, {
   type Item as Breadcrumb,
 } from '@/components/ComponentHelp/DocsBreadcrumbs.vue'
@@ -11,8 +13,6 @@ import { lookupDocumentation, placeholder } from '@/components/ComponentHelp/ir'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
-import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import type { Icon as IconName } from '@/util/iconMetadata/iconName'
@@ -24,13 +24,13 @@ import { computed, watch } from 'vue'
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
 const emit = defineEmits<{ 'update:selectedEntry': [value: SuggestionId | undefined] }>()
 
-const { suggestionDb: db, names: projectNames } = useCurrentProject().storesRefs
+const { suggestionDb: db, projectNames } = useCurrentProject()
 
 const documentation = computed<Docs>(() => {
   if (props.aiMode)
     return placeholder('AI assistant mode: write query in natural language and press Enter.')
   const entry = props.selectedEntry
-  return entry && db.value ?
+  return entry ?
       lookupDocumentation(db.value.entries, entry)
     : placeholder('No suggestion selected.')
 })
@@ -74,11 +74,11 @@ const name = computed<Opt<ProjectPath>>(() => {
 // === Breadcrumbs ===
 
 const suggestion = computed(() =>
-  props.selectedEntry != null && db.value ? db.value.entries.get(props.selectedEntry) : undefined,
+  props.selectedEntry != null ? db.value.entries.get(props.selectedEntry) : undefined,
 )
 
 const color = computed(() =>
-  groupColorStyle(db.value && tryGetIndex(db.value.groups, suggestion.value?.groupIndex)),
+  groupColorStyle(tryGetIndex(db.value.groups, suggestion.value?.groupIndex)),
 )
 
 const style = computed(() => ({
@@ -112,7 +112,7 @@ watch(historyStack.current, (current) => {
 })
 
 const breadcrumbs = computed<Breadcrumb[]>(() => {
-  if (name.value && projectNames.value) {
+  if (name.value) {
     const segments = [...qnSegments(projectNames.value.printProjectPath(name.value))]
     return segments.slice(1).map((s) => ({ label: s.toLowerCase() }))
   } else {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import type { UpdateHandler, WidgetModule } from '@/providers/widgetRegistry'
-import { WidgetInput } from '@/providers/widgetRegistry'
+import type { UpdateHandler, WidgetModule } from '$/providers/openedProjects/widgetRegistry'
+import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import {
   injectWidgetUsageInfo,
   provideWidgetUsageInfo,
@@ -40,7 +40,7 @@ const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest ===
 
 const selectedWidget = shallowRef<WidgetModule<WidgetInput> | undefined>()
 const updateSelection = withCtx(() => {
-  const registry = currentProject.ref.value?.widgetRegistry
+  const registry = currentProject.widgetRegistry.value
   selectedWidget.value = registry?.select(
     {
       input: props.input,

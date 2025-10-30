@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import project.Column.Column
+import project.Refined_Types.Numeric_Column.Numeric_Column
 
 ## A column that contains text values.
 type Text_Column
@@ -20,5 +21,105 @@ type Text_Column
 
              example_to_case = Examples.text_column_1.to_case ..Upper
        ```
+    @case_option Case.default_widget
+    @locale Locale.default_widget
     to_case self case_option:Case=..Lower locale:Locale=Locale.default -> Column & Text_Column =
         self.operations_implementation.to_case self.column case_option locale
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Calculates the text length for each element of the column.
+
+       In the Database backends, the default text length method of the particular
+       database is used.
+
+       In the in-memory backend, this will give you the grapheme length of the
+       string.
+
+       ## Examples
+       ### Gets the text length of each element in a column 
+
+       ```
+             import Standard.Examples
+
+             example_length = Examples.text_column_1.length
+       ```
+    length self -> Column & Numeric_Column =
+        self.operations_implementation.length self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Calculates the text character length for each element of the column.
+
+       In the Database backends, the default text length method of the particular
+       database is used.
+
+       In the in-memory backend, this will give you the UTF-16 code unit length of the
+       string.
+
+       ## Examples
+       ### Gets the text character length of each element in a column 
+
+       ```
+             import Standard.Examples
+
+             example_char_length = Examples.text_column_1.char_length
+       ```
+    char_length self -> Column & Numeric_Column =
+        self.operations_implementation.char_length self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each element of the column to uppercase.
+
+        ## Examples
+        ### Convert the values in a column to uppercase.
+        
+        ```
+            import Standard.Examples
+
+            example_upper = Examples.text_column_1.upper
+        ```   
+    upper self -> Column & Text_Column =
+        self.operations_implementation.upper self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each element of the column to lowercase.    
+
+        ## Examples
+        ### Convert the values in a column to lowercase.
+        
+        ```
+            import Standard.Examples
+
+            example_lower = Examples.text_column_1.lower
+        ```  
+    lower self -> Column & Text_Column =    
+        self.operations_implementation.lower self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each element of the column to proper(title) case.
+       i.e. capitalizing the first letter of each word. 
+
+        ## Examples
+        ### Convert the values in a column to proper case.
+        
+        ```
+            import Standard.Examples
+
+            example_proper = Examples.text_column_1.proper
+        ```  
+    proper self -> Column & Text_Column =    
+        self.operations_implementation.proper self.column

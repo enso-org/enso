@@ -386,7 +386,7 @@
         "name": "org.enso.table.excel.ExcelUtils"
     },
     {
-        "name": "org.enso.table.excel.ExcelWorkbook",
+        "name": "org.enso.table.excel.ExcelWorkbookReader",
         "methods": [
             {
                 "name": "getRangeNames",
@@ -403,10 +403,10 @@
         ]
     },
     {
-        "name": "org.enso.table.excel.ExcelWorkbook.ExcelWorkbookFromPOIUserModel"
+        "name": "org.enso.table.excel.ExcelWorkbookReader.ExcelWorkbookReaderFromPOIUserModel"
     },
     {
-        "name": "org.enso.table.excel.ExcelWorkbook$ExcelWorkbookFromPOIUserModel",
+        "name": "org.enso.table.excel.ExcelWorkbookReader$ExcelWorkbookReaderFromPOIUserModel",
         "methods": [
             {
                 "name": "<init>",

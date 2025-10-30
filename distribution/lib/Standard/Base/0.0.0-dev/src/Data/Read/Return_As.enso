@@ -11,8 +11,8 @@ import project.Function.Function
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
-import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Nothing import all
 from project.Data.Boolean import False, True
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice

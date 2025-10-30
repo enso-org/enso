@@ -3,13 +3,14 @@ import './beforeMain' // Keep newline below to ensure that this import is always
 import '#/styles.css'
 import '#/tailwind.css'
 import App from '$/App.vue'
+import { setupLogger } from '$/log'
+import { widgetDevtools } from '$/providers/openedProjects/widgetRegistry/devtools'
 import router from '$/router'
-import { widgetDevtools } from '@/providers/widgetRegistry/devtools'
+import * as detect from '$/utils/detect'
+import { createQueryClient } from '$/utils/queryClient'
 import * as sentry from '@sentry/vue'
 import type { Vue } from '@sentry/vue/types/types'
 import { VueQueryPlugin } from '@tanstack/vue-query'
-import * as detect from 'enso-common/src/detect'
-import { createQueryClient } from 'enso-common/src/queryClient'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as idbKeyval from 'idb-keyval'
 import { createApp, markRaw } from 'vue'
@@ -23,6 +24,7 @@ const INITIAL_URL_KEY = `Enso-initial-url`
 markRaw(HttpClient.prototype)
 
 async function main() {
+  setupLogger()
   const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = createQueryClientOfPersistCache()
   const rootDirPath = await getRootDirPath()

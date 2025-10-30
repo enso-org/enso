@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import {
+  type SuggestionEntry,
+  SuggestionKind,
+} from '$/providers/openedProjects/suggestionDatabase/entry'
+import {
+  defineWidget,
+  Score,
+  WidgetInput,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { withDropdownItems } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { injectFunctionInfo } from '@/providers/functionInfo'
-import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { ProjectPath } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'
@@ -13,7 +21,7 @@ import { map } from 'enso-common/src/utilities/data/iter'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const { suggestionDb, names } = useCurrentProject().storesRefs
+const { suggestionDb, projectNames: names } = useCurrentProject()
 const { subjectInfo } = injectFunctionInfo()
 
 const sourceValueType = computed(() => {

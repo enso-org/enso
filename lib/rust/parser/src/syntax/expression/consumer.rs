@@ -1,5 +1,7 @@
 //! Traits for the expression-parsing pipeline.
+
 use crate::prelude::*;
+
 use crate::syntax::expression::whitespace::Spacing;
 use crate::syntax::expression::whitespace::SpacingLookaheadTokenConsumer;
 use crate::syntax::expression::whitespace::SpacingLookaheadTreeConsumer;
@@ -72,7 +74,6 @@ pub trait Flush {
     /// Process all retained state.
     fn flush(&mut self);
 }
-
 
 // =================
 // === Debugging ===

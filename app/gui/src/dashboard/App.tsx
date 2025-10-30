@@ -15,7 +15,7 @@ import * as reactQuery from '@tanstack/react-query'
 import * as toastify from 'react-toastify'
 import * as z from 'zod'
 
-import * as detect from 'enso-common/src/detect'
+import * as detect from '$/utils/detect'
 
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import ModalProvider from '#/providers/ModalProvider'
@@ -50,7 +50,7 @@ LocalStorage.registerKey('loginRedirect', {
   schema: z.string(),
 })
 
-window.menuApi?.setMenuItemHandler('about', () => {
+window.api?.menu.setMenuItemHandler('about', () => {
   AboutModal.open()
 })
 

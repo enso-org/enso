@@ -19,7 +19,11 @@ final class JavaPolyglotNode {
       assert null != polyglotBindings;
       var loader =
           OtherJvmClassLoader.create(
-              EpbLanguage.class, polyglotBindings, isAot, context.getEnv().getContext());
+              "org.enso.jvm.interop",
+              EpbLanguage.class,
+              polyglotBindings,
+              isAot,
+              context.getEnv().getContext());
       var target = RootNode.createConstantNode(loader).getCallTarget();
       return new GenericForeignNode(target);
     } catch (URISyntaxException | IOException ex) {

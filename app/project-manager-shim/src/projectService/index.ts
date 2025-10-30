@@ -3,29 +3,23 @@
  * This module provides project management functionality including creating, deleting,
  * renaming, opening, closing, and duplicating projects.
  */
-
-import { UUID } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
-import { Path } from 'enso-common/src/utilities/file'
 import * as crypto from 'node:crypto'
 import {
+  EnsoRunner,
+  findEnsoExecutable,
   type LanguageServerSockets,
   type Runner,
   type Socket,
-  EnsoRunner,
-  findEnsoExecutable,
 } from './ensoRunner.js'
 import * as nameValidation from './nameValidation.js'
 import {
+  ProjectFileRepository,
   type Project,
   type ProjectMetadata,
   type ProjectRepository,
-  ProjectFileRepository,
 } from './projectRepository.js'
-
-// ==================
-// === Data Types ===
-// ==================
+import { UUID, type Path } from './types.js'
 
 export interface RunningLanguageServerInfo {
   readonly sockets: LanguageServerSockets
@@ -73,10 +67,6 @@ export interface DuplicatedProject {
   readonly projectNormalizedName: string
 }
 
-// =======================
-// === ProjectService ====
-// =======================
-
 /** Service for managing Enso projects. */
 export class ProjectService {
   private static readonly DEFAULT_NAMESPACE = 'local'
@@ -84,17 +74,18 @@ export class ProjectService {
   /** Creates a new ProjectService with the specified runner. */
   constructor(
     private readonly runner: Runner,
+    private readonly extraArgs: Array<string>,
     private readonly logger: Console = console,
   ) {}
 
   /** Creates a default ProjectService using the Enso executable found in the environment. */
-  static default(): ProjectService {
-    const ensoPath = findEnsoExecutable()
+  static default(workDir: string = '.', extraArgs: Array<string> = []): ProjectService {
+    const ensoPath = findEnsoExecutable(workDir)
     if (!ensoPath) {
       throw new Error('Enso executable not found')
     }
     const runner = new EnsoRunner(ensoPath)
-    return new ProjectService(runner)
+    return new ProjectService(runner, extraArgs)
   }
 
   /**
@@ -180,6 +171,7 @@ export class ProjectService {
     const sockets = await this.runner.openProject(
       project.path,
       projectId,
+      this.extraArgs.length > 0 ? this.extraArgs : undefined,
       extraEnv.length > 0 ? extraEnv : undefined,
     )
 
@@ -296,10 +288,6 @@ export class ProjectService {
     }
   }
 
-  // ========================
-  // === Helper Functions ===
-  // ========================
-
   private generateUUID(): UUID {
     return UUID(crypto.randomUUID())
   }
@@ -345,5 +333,10 @@ export class ProjectService {
 
   private getNameForDuplicatedProject(projectName: string): string {
     return `${projectName} (copy)`
+  }
+
+  /** Gets the version of the Enso executable. */
+  async version(): Promise<string> {
+    return this.runner.version()
   }
 }

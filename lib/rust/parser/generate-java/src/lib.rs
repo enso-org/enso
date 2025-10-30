@@ -13,14 +13,11 @@
 use enso_metamodel::meta;
 use enso_reflect::Reflect;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod serialization;
-
-
 
 // =====================
 // === Configuration ===
@@ -32,8 +29,6 @@ pub const PACKAGE: &str = "org.enso.syntax2";
 pub const SERIALIZATION_SUPPORT: &str = "org.enso.syntax2";
 /// The fully-qualified name of an `Either` type.
 pub const EITHER_TYPE: &str = "org.enso.syntax2.Either";
-
-
 
 // ==================
 // === Test Cases ===
@@ -49,8 +44,6 @@ pub fn generate_testcases() -> meta::serialization::TestCases {
     let root = rust_to_meta[&root_id];
     meta::serialization::testcases(&graph, root)
 }
-
-
 
 // ===========================
 // === Rust Format Testing ===

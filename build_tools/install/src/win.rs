@@ -14,7 +14,6 @@ use std::os::windows::ffi::OsStringExt;
 use windows::core::PCWSTR;
 use windows::Win32::UI::Shell;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -27,8 +26,6 @@ pub mod shortcut;
 pub mod ui;
 pub mod uninstall;
 
-
-
 /// Open the `HKEY_CURRENT_USER\Software\Classes` key for reading and writing.
 ///
 /// This is where the programmatic identifiers (ProgIDs) of file types and URL protocols are
@@ -38,7 +35,6 @@ pub fn classes_key() -> Result<RegKey> {
         .open_subkey_with_flags(r"Software\Classes", KEY_READ | KEY_WRITE)
         .context(r"Failed to open `HKEY_CURRENT_USER\Software\Classes` key.")
 }
-
 
 /// Get the local user's Desktop directory path.
 ///
@@ -112,14 +108,13 @@ pub fn refresh_file_associations() {
 /// See https://learn.microsoft.com/en-us/windows/win32/menurc/resource-types
 pub const RT_RCDATA: PCWSTR = PCWSTR(10 as _);
 
-
 /// Path to icon, as used in various places in registry (e.g. `DefaultIcon`).
 #[derive(Debug, Clone)]
 pub struct Icon {
     /// Path to the executable (or DLL) containing the icon.
     pub executable_path: PathBuf,
     /// Index of the icon in the executable.
-    pub icon_index:      u32,
+    pub icon_index: u32,
 }
 
 impl Display for Icon {
@@ -146,7 +141,6 @@ impl Icon {
         registry::set_value(&icon_key, "", self)
     }
 }
-
 
 /// A simple command that can be used by the shell to open a file/url with our application.
 ///

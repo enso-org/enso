@@ -1,9 +1,9 @@
+import type { Node } from '$/providers/openedProjects/graph'
 import {
   parseTsvData,
   tableToEnsoExpression,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableParsing'
 import type { NodeCreationOptions } from '@/composables/nodeCreation'
-import type { Node } from '@/stores/graph'
 import { nodeDocumentationText } from '@/util/ast/node'
 import { Vec2 } from '@/util/data/vec2'
 import * as iter from 'enso-common/src/utilities/data/iter'

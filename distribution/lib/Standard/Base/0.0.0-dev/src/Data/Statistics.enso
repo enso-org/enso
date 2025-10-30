@@ -10,8 +10,8 @@ import project.Errors.Common.Incomparable_Values
 import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Errors.Common import Unsupported_Argument_Types

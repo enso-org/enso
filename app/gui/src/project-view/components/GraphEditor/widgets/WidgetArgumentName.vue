@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import { isRequiredArgument } from '$/providers/openedProjects/suggestionDatabase/entry'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { isRequiredArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'

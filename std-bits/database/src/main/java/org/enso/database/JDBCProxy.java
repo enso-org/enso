@@ -46,6 +46,24 @@ public final class JDBCProxy {
    */
   public static Connection getConnection(String url, List<Pair<String, HideableValue>> properties)
       throws SQLException {
+    return getConnectionWithCatalogSchema(url, properties, null, null);
+  }
+
+  /**
+   * Tries to create a new connection using the JDBC DriverManager.
+   *
+   * <p>It delegates directly to {@code DriverManager.getConnection}. That is needed because if that
+   * method is called directly from Enso, the JDBC drivers are not detected correctly.
+   *
+   * @param url database url to connect to, starting with `jdbc:`
+   * @param properties configuration for the connection
+   * @param catalog the catalog to set on the connection, or null to not set it
+   * @param schema the schema to set on the connection, or null to not set it
+   * @return a connection
+   */
+  public static Connection getConnectionWithCatalogSchema(
+      String url, List<Pair<String, HideableValue>> properties, String catalog, String schema)
+      throws SQLException {
     // We need to manually register all the drivers because the DriverManager is not able
     // to correctly use our class loader, it only delegates to the platform class loader when
     // loading the java.sql.Driver service.
@@ -57,6 +75,14 @@ public final class JDBCProxy {
     PartitionedProperties partitionedProperties = PartitionedProperties.parse(properties);
     var rawConnection =
         EnsoSecretHelper.getJDBCConnection(url, partitionedProperties.jdbcProperties);
+
+    if (catalog != null && !catalog.isEmpty()) {
+      rawConnection.setCatalog(catalog);
+    }
+    if (schema != null && !schema.isEmpty()) {
+      rawConnection.setSchema(schema);
+    }
+
     return switch (partitionedProperties.audited()) {
       case "local" -> new LocalAuditedConnection(rawConnection);
       case "cloud" ->

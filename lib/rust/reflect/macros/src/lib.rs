@@ -118,14 +118,10 @@ use quote::ToTokens;
 use syn::punctuated::Punctuated;
 use syn::Token;
 
-
-
 mod analyze;
 mod runtime;
 
 use runtime::Quote;
-
-
 
 // ========================
 // === Type Definitions ===
@@ -134,12 +130,12 @@ use runtime::Quote;
 /// Represents a type definition.
 #[derive(Debug)]
 pub(crate) struct Type {
-    ident:          syn::Ident,
-    generics:       Punctuated<TokenStream, Token![,]>,
-    lifetimes:      Punctuated<TokenStream, Token![,]>,
+    ident: syn::Ident,
+    generics: Punctuated<TokenStream, Token![,]>,
+    lifetimes: Punctuated<TokenStream, Token![,]>,
     generic_params: Punctuated<TokenStream, Token![,]>,
-    data:           Data,
-    attrs:          ContainerAttrs,
+    data: Data,
+    attrs: ContainerAttrs,
 }
 
 #[derive(Debug)]
@@ -150,13 +146,13 @@ enum Data {
 
 #[derive(Debug)]
 struct NamedField {
-    name:    syn::Ident,
-    type_:   syn::Type,
+    name: syn::Ident,
+    type_: syn::Type,
     subtype: bool,
-    refer:   Option<Box<syn::Type>>,
+    refer: Option<Box<syn::Type>>,
     flatten: bool,
-    hide:    bool,
-    rename:  Option<syn::LitStr>,
+    hide: bool,
+    rename: Option<syn::LitStr>,
 }
 
 impl NamedField {
@@ -184,8 +180,8 @@ enum Fields {
 
 #[derive(Debug)]
 struct Variant {
-    ident:       syn::Ident,
-    fields:      Fields,
+    ident: syn::Ident,
+    fields: Fields,
     transparent: bool,
 }
 
@@ -195,8 +191,6 @@ struct ContainerAttrs {
     /// reflection data; all references to it are treated as references to the contained type.
     transparent: bool,
 }
-
-
 
 // ======================
 // === Derive Reflect ===

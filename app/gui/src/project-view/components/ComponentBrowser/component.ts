@@ -1,12 +1,12 @@
-import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
 import {
   entryDisplayPath,
   entryIsStatic,
   SuggestionKind,
   type SuggestionEntry,
   type SuggestionId,
-} from '@/stores/suggestionDatabase/entry'
+} from '$/providers/openedProjects/suggestionDatabase/entry'
+import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/data/opt'
 import { displayedIconOf } from '@/util/getIconName'

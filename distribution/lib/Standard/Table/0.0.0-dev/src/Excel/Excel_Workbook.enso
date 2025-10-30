@@ -18,6 +18,7 @@ from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz
 
 import project.Column.Column
 import project.Columns_To_Keep.Columns_To_Keep
+import project.Excel.Excel_File_Format.Excel_File_Format
 import project.Excel.Excel_Range.Excel_Range
 import project.Headers.Headers
 import project.Internal.Excel_Reader
@@ -36,8 +37,7 @@ from project.Internal.Excel_Reader import handle_invalid_location
 from project.Internal.Table_Helpers import duplicate_rows
 
 polyglot java import java.io.File as Java_File
-polyglot java import org.enso.table.excel.ExcelFileFormat
-polyglot java import org.enso.table.excel.ExcelWorkbook
+polyglot java import org.enso.table.excel.ExcelWorkbookReader
 polyglot java import org.enso.table.read.ExcelReader
 
 type Excel_Workbook
@@ -49,17 +49,17 @@ type Excel_Workbook
 
        ## Arguments
         - `file`: The file to load.
-        - `xls_format`: Whether to use the old XLS format (default is XLSX).
-    new : File | Temporary_File -> Boolean  -> Excel_Workbook
-    new file:(File | Temporary_File) xls_format:Boolean=False =
+        - `xl_format`: Whether to use the old XLS format (default is XLSX).
+    new : File | Temporary_File -> Excel_File_Format -> Excel_Workbook
+    new file:(File | Temporary_File) xl_format:Excel_File_Format=Excel_File_Format.XLSX =
         file_for_errors = if file.is_a Temporary_File then Nothing else file
 
         continuation raw_file =
             File_Error.handle_java_exceptions raw_file <| Excel_Reader.handle_bad_format file_for_errors <| Illegal_State.handle_java_exception <|
                 # The `java_file` depends on the liveness of the possible `Temporary_File` but that is ensured by storing the `file` in the resulting workbook instance.
                 java_file = Java_File.new raw_file.absolute.normalize.path
-                ExcelReader.openFile java_file (_java_format xls_format)
-                Excel_Workbook.Value java_file file xls_format
+                ExcelReader.openFile java_file xl_format.to_java
+                Excel_Workbook.Value java_file file xl_format
         case file of
             tmp : Temporary_File -> tmp.with_file continuation
             f : File -> continuation f
@@ -74,23 +74,23 @@ type Excel_Workbook
         - `stream`: The stream to load.
         - `xls_format`: Whether to use the old XLS format (default is XLSX).
         - `file`: Optional file reference.
-    from_stream : Input_Stream -> Boolean -> File | Nothing -> Excel_Workbook
-    from_stream stream xls_format:Boolean=False file=Nothing = Excel_Reader.handle_bad_format file <|
+    from_stream : Input_Stream -> Excel_File_Format -> File | Nothing -> Excel_Workbook
+    from_stream stream xl_format:Excel_File_Format=Excel_File_Format.XLSX file=Nothing = Excel_Reader.handle_bad_format file <|
         temp_file = Temporary_File.from_stream_light stream
-        Excel_Workbook.new temp_file xls_format
+        Excel_Workbook.new temp_file xl_format
 
     ## ---
        private: true
        ---
        Creates an Excel_Workbook.
-    private Value java_file:Java_File file:(File|Temporary_File|Nothing) internal_xls_format:Boolean
+    private Value java_file:Java_File file:(File|Temporary_File|Nothing) internal_xl_format:Excel_File_Format
 
     ## ---
        icon: metadata
        ---
        Is the Workbook in the old XLS format?
     xls_format : Boolean
-    xls_format self = self.internal_xls_format
+    xls_format self = self.internal_xl_format == Excel_File_Format.XLS
 
     ## ---
        private: true
@@ -124,7 +124,7 @@ type Excel_Workbook
     set_database self database:(Text | File) =
         if database == self.database then self else
             file = File.new database
-            if file.exists && file.is_directory.not then Excel_Workbook.new file self.xls_format else
+            if file.exists && file.is_directory.not then Excel_Workbook.new file self.internal_xl_format else
                 Error.throw (Illegal_Argument.Error "The specified file ('"+file.path+"') does not exist.")
 
     ## ---
@@ -175,7 +175,7 @@ type Excel_Workbook
        Gets the names of all the sheets.
     sheet_names : Vector Text
     sheet_names self = Excel_Reader.handle_bad_format self.file <| Illegal_State.handle_java_exception <|
-        Vector.from_polyglot_array (ExcelReader.readSheetNames self.java_file (_java_format self.xls_format))
+        Vector.from_polyglot_array (ExcelReader.readSheetNames self.java_file self.internal_xl_format.to_java)
 
     ## ---
        group: Standard.Base.Metadata
@@ -194,7 +194,7 @@ type Excel_Workbook
        Gets the names of all the named ranges.
     named_ranges : Vector Text
     named_ranges self = Excel_Reader.handle_bad_format self.file <| Illegal_State.handle_java_exception <|
-        Vector.from_polyglot_array (ExcelReader.readRangeNames self.java_file (_java_format self.xls_format))
+        Vector.from_polyglot_array (ExcelReader.readRangeNames self.java_file self.internal_xl_format.to_java)
 
     ## ---
        private: true
@@ -279,12 +279,12 @@ type Excel_Workbook
         java_limit = limit.rows_to_read
         java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             case query of
-                _ : Excel_Range -> ExcelReader.readRange self.java_file query.java_range java_headers skip_rows java_limit (_java_format self.xls_format) java_problem_aggregator
-                _ : Text -> ExcelReader.readRangeByName self.java_file query java_headers skip_rows java_limit (_java_format self.xls_format) java_problem_aggregator
-                _ : Integer -> ExcelReader.readSheetByIndex self.java_file query java_headers skip_rows java_limit (_java_format self.xls_format) java_problem_aggregator
+                _ : Excel_Range -> ExcelReader.readRange self.java_file query.java_range java_headers skip_rows java_limit self.internal_xl_format.to_java java_problem_aggregator
+                _ : Text -> ExcelReader.readRangeByName self.java_file query java_headers skip_rows java_limit self.internal_xl_format.to_java java_problem_aggregator
+                _ : Integer -> ExcelReader.readSheetByIndex self.java_file query java_headers skip_rows java_limit self.internal_xl_format.to_java java_problem_aggregator
         result = limit.attach_warning (from_java_table java_table)
         result.if_not_error <|
-            Telemetry.log "Excel_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}, xls_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, self.xls_format]
+            Telemetry.log "Excel_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}, xls_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, self.internal_xl_format.to_text]
             result
 
     ## ---
@@ -310,15 +310,15 @@ type Excel_Workbook
                             names.at (sheet - 1)
                     _ -> Error.throw (Illegal_Argument.Error "Worksheet must be either Text or an Integer.")
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-                    ExcelReader.readRangeByName self.java_file sheet_name java_headers skip_rows java_limit (_java_format self.xls_format) java_problem_aggregator
+                    ExcelReader.readRangeByName self.java_file sheet_name java_headers skip_rows java_limit self.internal_xl_format.to_java java_problem_aggregator
                 row_limit.attach_warning (from_java_table java_table)
             Excel_Section.Cell_Range address headers skip_rows row_limit ->
                 java_headers = Excel_Reader.make_java_headers headers
                 java_limit = row_limit.rows_to_read
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     case address of
-                        _ : Excel_Range -> ExcelReader.readRange self.java_file address.java_range java_headers skip_rows java_limit (_java_format self.xls_format) java_problem_aggregator
-                        _ : Text -> ExcelReader.readRangeByName self.java_file address java_headers skip_rows java_limit (_java_format self.xls_format) java_problem_aggregator
+                        _ : Excel_Range -> ExcelReader.readRange self.java_file address.java_range java_headers skip_rows java_limit self.internal_xl_format.to_java java_problem_aggregator
+                        _ : Text -> ExcelReader.readRangeByName self.java_file address java_headers skip_rows java_limit self.internal_xl_format.to_java java_problem_aggregator
                 row_limit.attach_warning (from_java_table java_table)
 
     ## ---
@@ -347,7 +347,7 @@ type Excel_Workbook
        be able to delete it.
     close : Nothing
     close self =
-        ExcelReader.closeFile self.java_file (_java_format self.xls_format)
+        ExcelReader.closeFile self.java_file self.internal_xl_format.to_java
 
     ## ---
        private: true
@@ -486,8 +486,6 @@ private _sheet_names_table (sheet_names : Vector Text) (loaded_tables : Vector T
     table = Column.from_vector "Sheet Name" sheet_names . to_table
     counts = loaded_tables.map t-> t.row_count
     duplicate_rows table counts
-
-private _java_format xls_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
 
 ## ---
    private: true

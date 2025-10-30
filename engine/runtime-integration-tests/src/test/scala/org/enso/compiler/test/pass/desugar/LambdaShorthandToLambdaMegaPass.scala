@@ -93,7 +93,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         )
       )
     }
-    ir.copy(bindings = new_bindings)
+    ir.copyWithBindings(bindings = new_bindings)
   }
 
   /** Desugars underscore arguments to lambdas for an arbitrary expression.

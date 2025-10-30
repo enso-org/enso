@@ -4,6 +4,7 @@ from Standard.Base import all
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Excel.Excel_File_Format.Excel_File_Format
 import project.Excel.Excel_Range.Excel_Range
 import project.Headers.Headers
 import project.Internal.Excel_Section.Excel_Section
@@ -15,7 +16,6 @@ from project.In_Memory_Table import from_java_table
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.IOException
 polyglot java import org.enso.table.error.InvalidLocationException
-polyglot java import org.enso.table.excel.ExcelFileFormat
 polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
 
@@ -56,11 +56,10 @@ handle_reader file file_format reader =
       operation. By default, a warning is issued, but the operation proceeds. If
       set to `Report_Error`, the operation fails with a dataflow error. If set to
       `Ignore`, the operation proceeds without errors or warnings.
-    - `xls_format`: If `True` then the file is read in using Excel 95-2003 format
-      otherwise reads in Excel 2007+ format.
-read_file : File -> Excel_Section -> Problem_Behavior -> Boolean -> (Table | Vector)
-read_file file section on_problems:Problem_Behavior xls_format=False = handle_bad_format file <|
-    file_format = if xls_format then ExcelFileFormat.XLS else ExcelFileFormat.XLSX
+    - `xls_format`: The Excel file format. XLSX for Excel 2007 and later, XLS for
+      Excel 97-2003. By default, XLSX is used.
+read_file : File -> Excel_Section -> Problem_Behavior -> Excel_File_Format -> (Table | Vector)
+read_file file section on_problems:Problem_Behavior xls_format:Excel_File_Format=Excel_File_Format.XLSX = handle_bad_format file <|
     reader java_file java_format = case section of
         Excel_Section.Worksheet sheet headers skip_rows row_limit ->
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
@@ -77,7 +76,7 @@ read_file file section on_problems:Problem_Behavior xls_format=False = handle_ba
                     _ : Text -> ExcelReader.readRangeByName java_file address (make_java_headers headers) skip_rows java_limit java_format java_problem_aggregator
                 row_limit.attach_warning (from_java_table java_table)
                 
-    handle_reader file file_format reader
+    handle_reader file xls_format.to_java reader
 
 ## ---
    private: true

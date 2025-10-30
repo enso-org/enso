@@ -1,5 +1,5 @@
-import assert from 'assert'
-import { expect, type Locator, type Page } from 'playwright/test'
+import { expect, type Locator, type Page } from 'integration-test/base'
+import assert from 'node:assert'
 
 // ================
 // === Locators ===
@@ -42,13 +42,20 @@ declare const nodeLocatorBrand: unique symbol
 /** A locator which resolves to graph nodes only */
 export type Node = Locator & { [nodeLocatorBrand]: never }
 
+/** Filter selector that only matches input nodes. */
+export const INPUT_NODE_FILTER = '.inputNode'
+/** Filter selector that only matches output nodes. */
+export const OUTPUT_NODE_FILTER = '.outputNode'
+
 /** All nodes in graph */
 export function graphNode(page: Page | Locator): Node {
   return page.locator('.GraphNode') as Node
 }
 /** Node with given binding (name) */
 export function graphNodeByBinding(page: Locator | Page, binding: string): Node {
-  return graphNode(page).filter({ has: page.locator('.binding', { hasText: binding }) }) as Node
+  return graphNode(page).filter({
+    has: page.locator('.binding').getByText(binding, { exact: true }),
+  }) as Node
 }
 /** Icon inside the node */
 export function graphNodeIcon(node: Node) {
@@ -192,7 +199,7 @@ export async function outputPortCoordinates(page: Page, node: Locator) {
   const outputPortArea = await page
     .locator(`.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .outputPortHoverArea`)
     .boundingBox()
-  expect(outputPortArea).not.toBeNull()
+  await expect(outputPortArea).toBeTruthy()
   assert(outputPortArea)
   const centerX = outputPortArea.x + outputPortArea.width / 2
   const bottom = outputPortArea.y + outputPortArea.height

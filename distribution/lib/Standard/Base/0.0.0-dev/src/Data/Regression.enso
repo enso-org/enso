@@ -5,8 +5,8 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Nothing import all
 
 polyglot java import org.enso.base.statistics.FitError
 polyglot java import org.enso.base.statistics.LinearModel
