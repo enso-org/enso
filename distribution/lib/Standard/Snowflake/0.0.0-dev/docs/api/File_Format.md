@@ -25,4 +25,4 @@
     - PARQUET
     - Saved name:Standard.Snowflake.Identifier.Identifier=
     - XML
-- Standard.Snowflake.File_Format.from that:Standard.Snowflake.Identifier.Identifier -> Standard.Snowflake.File_Format
+- Standard.Snowflake.File_Format.Snowflake_File_Format.from that:Standard.Snowflake.Identifier.Identifier -> Standard.Snowflake.File_Format.Snowflake_File_Format
