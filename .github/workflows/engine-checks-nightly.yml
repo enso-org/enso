@@ -135,7 +135,8 @@ jobs:
   enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64:
     name: Build Engine Distribution (GraalVM CE) (native,test) (macos, amd64)
     runs-on:
-      - macos-13
+      - self-hosted
+      - macOS
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
@@ -527,7 +528,8 @@ jobs:
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
-      - macos-13
+      - self-hosted
+      - macOS
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
@@ -984,7 +986,8 @@ jobs:
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
-      - macos-13
+      - self-hosted
+      - macOS
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
@@ -1332,7 +1335,8 @@ jobs:
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-macos-amd64
     runs-on:
-      - macos-13
+      - self-hosted
+      - macOS
     steps:
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
