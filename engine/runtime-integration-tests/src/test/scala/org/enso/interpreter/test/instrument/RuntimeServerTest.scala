@@ -2724,14 +2724,14 @@ class RuntimeServerTest
 
     val metadata = new Metadata
     val id_x     = metadata.addItem(52, 25, "aa")
-    val id_y     = metadata.addItem(86, 16, "ab")
+    val id_y     = metadata.addItem(86, 21, "ab")
 
     val code =
       """import Standard.Base.Data.Time.Date
         |
         |main =
         |    x = Date.new_builtin 1970 1 1
-        |    y = Date.Date.year x
+        |    y = Date.Date.year self=x
         |    y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
