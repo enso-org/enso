@@ -69,10 +69,10 @@ const RELEASE_CLEANING_POLICY: CleaningCondition = CleaningCondition::Always;
 pub const RELEASE_TARGETS: [(OS, Arch); 3] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::AArch64)];
 
-/// Targets for which we run nightly checks.
+/// Targets for which we run PR checks.
 ///
 /// The macOS AArch64 is intentionally omitted, as the runner availability is limited.
-pub const NIGHTLY_CHECKED_TARGETS: [(OS, Arch); 3] =
+pub const PR_CHECKED_TARGETS: [(OS, Arch); 3] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::X86_64)];
 
 pub const PR_REQUIRED_TARGETS: [(OS, Arch); 2] =
@@ -840,7 +840,7 @@ pub fn engine_checks_nightly() -> Result<Workflow> {
     );
 
     // Run macOS AArch64 tests only once a day, as we have only one self-hosted runner for this.
-    for target in NIGHTLY_CHECKED_TARGETS {
+    for target in PR_CHECKED_TARGETS {
         add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     add_backend_checks(
