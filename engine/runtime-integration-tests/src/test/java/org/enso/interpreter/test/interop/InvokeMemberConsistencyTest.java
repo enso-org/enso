@@ -25,6 +25,7 @@ public class InvokeMemberConsistencyTest {
 
   @Parameterized.Parameters
   public static Object[][] allPossibleEnsoInterpreterValues() throws Exception {
+    CTX.context().enter();
     var g = ValuesGenerator.create(CTX);
     var data = new ArrayList<Object[]>();
     for (var value : g.allValues()) {
@@ -33,6 +34,7 @@ public class InvokeMemberConsistencyTest {
         data.add(new Object[] {raw});
       }
     }
+    CTX.context().leave();
     return data.toArray(new Object[0][]);
   }
 

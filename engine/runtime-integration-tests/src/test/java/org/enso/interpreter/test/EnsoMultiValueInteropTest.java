@@ -30,6 +30,7 @@ public class EnsoMultiValueInteropTest {
 
   @Parameterized.Parameters
   public static Object[][] allEnsoMultiValuePairs() throws Exception {
+    ctxRule.context().enter();
     var typeOf =
         ctxRule.evalModule(
             """
@@ -46,6 +47,7 @@ public class EnsoMultiValueInteropTest {
         }
       }
     }
+    ctxRule.context().leave();
     return data.stream().map(v -> new Object[] {v}).toArray(Object[][]::new);
   }
 
