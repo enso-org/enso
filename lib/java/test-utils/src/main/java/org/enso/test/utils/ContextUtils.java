@@ -138,10 +138,10 @@ public final class ContextUtils implements TestRule, AutoCloseable {
 
   private void close(boolean checkGC) {
     if (context != null) {
-      var ref = new WeakReference<>(ensoContext());
       context.close();
       context = null;
       if (checkGC) {
+        var ref = new WeakReference<>(ensoContext());
         MemoryUtils.assertGC("EnsoContext can be GCed when context is closed", true, ref);
       }
     }

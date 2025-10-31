@@ -56,6 +56,7 @@ public class HelloWorldCacheTest {
   public void irCacheCannotBeEnabled_WhenPrivateCheckIsDisabled() {
     try (var ctx =
         ContextUtils.newBuilder()
+            .assertGC(false)
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true")
