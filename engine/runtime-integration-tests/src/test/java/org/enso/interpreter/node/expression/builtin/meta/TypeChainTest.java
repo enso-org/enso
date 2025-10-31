@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -44,6 +45,13 @@ public class TypeChainTest {
 
             main = Singleton_Type
             """);
+  }
+
+  @AfterClass
+  public static void releaseReferences() {
+    typeOf = null;
+    normalType = null;
+    singletonType = null;
   }
 
   /** {@code allTypes(Text) == [Text, Any]} */
