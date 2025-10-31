@@ -1,5 +1,5 @@
-import { newtypeConstructor, type Newtype } from '../../utilities/data/newtype.js'
-import type { IdType } from '../Backend.js'
+import { newtypeConstructor, type Newtype } from '../../utilities/data/newtype'
+import type { IdType } from '../Backend'
 
 /** A KSUID. */
 export type KSUID = Newtype<string, 'KSUID'>

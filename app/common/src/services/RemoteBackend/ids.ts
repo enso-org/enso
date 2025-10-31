@@ -1,6 +1,6 @@
 /** @file ID encoding and decoding that is specific to cloud backend. */
-import { DirectoryId, UserGroupId, UserId, type AssetId, type OrganizationId } from '../Backend.js'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '../Backend/remoteBackendPaths.js'
+import { DirectoryId, UserGroupId, UserId, type AssetId, type OrganizationId } from '../Backend'
+import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '../Backend/remoteBackendPaths'
 
 /** Whether the given directory is a special directory that cannot be written to. */
 export function isSpecialReadonlyDirectoryId(id: AssetId) {

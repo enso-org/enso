@@ -1,6 +1,6 @@
 /** @file Backend agnostic utility functions. */
-import type { DirectoryId } from '../Backend.js'
-import type { AnyCategory } from './Category.js'
+import type { DirectoryId } from '../Backend'
+import type { AnyCategory } from './Category'
 
 /** Options for {@link parseDirectoriesPath}. */
 export interface ParsedDirectoriesPathOptions {

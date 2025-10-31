@@ -3,16 +3,16 @@
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md
  */
-import * as dateTime from '../../utilities/data/dateTime.js'
-import { omit } from '../../utilities/data/object.js'
+import * as dateTime from '../../utilities/data/dateTime'
+import { omit } from '../../utilities/data/object'
 import {
   getDirectoryAndName,
   getFileName,
   getFolderPath,
   normalizeSlashes,
-} from '../../utilities/file.js'
-import { normalizeName } from '../../utilities/nameValidation.js'
-import * as backend from '../Backend.js'
+} from '../../utilities/file'
+import { normalizeName } from '../../utilities/nameValidation'
+import * as backend from '../Backend'
 import {
   MissingComponentAction,
   Path,

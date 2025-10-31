@@ -3,9 +3,9 @@
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md
  */
-import type * as dateTime from '../../utilities/data/dateTime.js'
-import * as newtype from '../../utilities/data/newtype.js'
-import type * as backend from '../Backend.js'
+import type * as dateTime from '../../utilities/data/dateTime'
+import * as newtype from '../../utilities/data/newtype'
+import type * as backend from '../Backend'
 
 /** Possible actions to take when a component is missing. */
 export enum MissingComponentAction {
