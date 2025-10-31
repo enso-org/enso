@@ -132,12 +132,16 @@ public final class ContextUtils implements TestRule, AutoCloseable {
 
   @Override
   public void close() {
+    var checkGC = Boolean.TRUE.equals(assertGC);
+    close(checkGC);
+  }
+
+  private void close(boolean checkGC) {
     if (context != null) {
       var ref = new WeakReference<>(ensoContext());
       context.close();
       context = null;
-      var avoidAssertGC = Boolean.FALSE.equals(assertGC);
-      if (!avoidAssertGC) {
+      if (checkGC) {
         MemoryUtils.assertGC("EnsoContext can be GCed when context is closed", true, ref);
       }
     }
@@ -458,7 +462,23 @@ public final class ContextUtils implements TestRule, AutoCloseable {
     }
 
     /**
-     * Should an "assert GC" check be performed at the end of {@link ContextUtils} usage?
+     * Enables or disables an "assert GC" check to be performed at the end of {@link ContextUtils}
+     * usage. Explicitly setting this flag overrides any defaults. Not calling this method leaves
+     * the <em>default behavior</em> on:
+     *
+     * <ul>
+     *   <li>when the context utils are used as a {@code @Rule} or {@code @ClassRule} then the
+     *       "assert GC mode" is <strong>on by default</strong> and checked at the end of {@link
+     *       ContextUtils#apply} invocation
+     *   <li>when the context utils are used manually - for example in a <em>try with resources</em>
+     *       block, then the "assert GC mode" is <strong>off by default</strong>
+     * </ul>
+     *
+     * The motivation for the above described default behavior is based on presence of local
+     * variables on stack - with manual usage, there are likely to be local variables and hold some
+     * references when the {@link ContextUtils#close()} is called. Hence one has to opt-in to enable
+     * the "assert GC mode". When used as JUnit rule, there are no local variables anymore and thus
+     * the major source of "test only leaks" is avoided.
      *
      * @param check explicitly enables/disables GC check
      * @return this builder
@@ -502,7 +522,8 @@ public final class ContextUtils implements TestRule, AutoCloseable {
       } catch (Throwable t) {
         throw new FailureWithOutput("Compiler output: " + stdOut, t);
       } finally {
-        close();
+        var avoidAssertGC = Boolean.FALSE.equals(assertGC);
+        close(!avoidAssertGC);
       }
     }
 
