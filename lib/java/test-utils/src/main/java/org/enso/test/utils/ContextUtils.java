@@ -6,6 +6,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.ByteArrayOutputStream;
+import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -138,10 +139,13 @@ public final class ContextUtils implements TestRule, AutoCloseable {
 
   private void close(boolean checkGC) {
     if (context != null) {
+      Reference<Object> ref = null;
+      if (checkGC) {
+        ref = new WeakReference<>(ensoContext());
+      }
       context.close();
       context = null;
-      if (checkGC) {
-        var ref = new WeakReference<>(ensoContext());
+      if (ref != null) {
         MemoryUtils.assertGC("EnsoContext can be GCed when context is closed", true, ref);
       }
     }

@@ -25,7 +25,9 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class TypeOfNodeMultiValueTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule = ContextUtils.newBuilder().assertGC(false).build();
+
   private static RootCallTarget testTypesCall;
 
   @Parameterized.Parameter(0)

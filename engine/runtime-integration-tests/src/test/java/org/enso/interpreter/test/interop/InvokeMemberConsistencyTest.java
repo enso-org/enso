@@ -18,7 +18,8 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class InvokeMemberConsistencyTest {
-  @ClassRule public static final ContextUtils CTX = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils CTX = ContextUtils.newBuilder().assertGC(false).build();
 
   @Parameterized.Parameter(0)
   public Object raw;
