@@ -149,22 +149,33 @@ export class HttpClient {
       })) as ResponseWithTypedJson<T> & {
         readonly body: Method extends 'GET' | 'HEAD' ? null : NonNullable<Response['body']>
       }
-      document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
+      getDocument()?.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
       return response
     } catch (error) {
       // Even though the condition might seem always falsy,
       // offline mode might happen during the request
       // and this case need to be handled
       if (!navigator.onLine) {
-        document.dispatchEvent(new Event(OFFLINE_EVENT_NAME))
+        getDocument()?.dispatchEvent(new Event(OFFLINE_EVENT_NAME))
         throw new OfflineError('User is offline', { cause: error })
       }
 
       if (isNetworkError(error)) {
-        document.dispatchEvent(new Event(FETCH_ERROR_EVENT_NAME))
+        getDocument()?.dispatchEvent(new Event(FETCH_ERROR_EVENT_NAME))
         throw new NetworkError(error.message, { cause: error })
       }
       throw error
     }
   }
+}
+
+/**
+ * Return the global document object, or `undefined` if not available.
+ * `undefined` is returned in non-browser environments (e.g., Node.js).
+ */
+function getDocument(): Document | undefined {
+  if (typeof document !== 'undefined') {
+    return document
+  }
+  return undefined
 }
