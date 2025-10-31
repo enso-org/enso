@@ -120,7 +120,6 @@ public class ExportCycleDetectionTest {
       var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(exportedSyms.size(), is(1));
       assertThat(exportedSyms, hasKey("Main_Type"));
-      exportedSyms = null;
     }
   }
 
@@ -144,7 +143,6 @@ public class ExportCycleDetectionTest {
       var exportedSyms = ModuleUtils.getExportedSymbolsFromModule(ctx, "local.Proj.Main");
       assertThat(exportedSyms.size(), is(1));
       assertThat(exportedSyms, hasKey("Main_Type"));
-      exportedSyms = null;
     }
   }
 
