@@ -80,12 +80,7 @@ jobs:
             target/build/release/enso_parser.pdb
 
   build_java:
-    needs:
-      [
-        build_linux_parser,
-        build_mac_arm_parser,
-        build_windows_parser,
-      ]
+    needs: [build_linux_parser, build_mac_arm_parser, build_windows_parser]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
