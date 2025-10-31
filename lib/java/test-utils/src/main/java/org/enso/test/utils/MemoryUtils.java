@@ -16,7 +16,7 @@ final class MemoryUtils {
     for (var i = 1L; ; i *= 2) {
       try {
         var size = (int) Math.min(i, Integer.MAX_VALUE / 2);
-        if (i != size) {
+        if (i >= 64) {
           tryHarderToGc();
         }
         if (checkAndAlloc(ref, memory, size)) {
