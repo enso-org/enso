@@ -66,11 +66,8 @@ pub const PRIMARY_TARGET: Target = (OS::Linux, Arch::X86_64);
 
 const RELEASE_CLEANING_POLICY: CleaningCondition = CleaningCondition::Always;
 
-pub const RELEASE_TARGETS: [(OS, Arch); 3] = [
-    (OS::Windows, Arch::X86_64),
-    (OS::Linux, Arch::X86_64),
-    (OS::MacOS, Arch::AArch64),
-];
+pub const RELEASE_TARGETS: [(OS, Arch); 3] =
+    [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::AArch64)];
 
 /// Targets for which we run nightly checks.
 ///
