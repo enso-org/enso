@@ -132,7 +132,8 @@ export class HttpClient {
       headers.set('Content-Type', contentType)
     }
 
-    if (!navigator.onLine) {
+    // On node.js, `navigator` seems to be defined, but `navigator.onLine` is always `undefined`.
+    if (navigator.onLine === false) {
       return Promise.reject(new OfflineError('User is offline'))
     }
 
