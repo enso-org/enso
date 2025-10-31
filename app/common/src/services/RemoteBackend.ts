@@ -7,10 +7,10 @@
  */
 import { markRaw } from 'vue'
 import { z } from 'zod'
+import type { DownloadOptions } from '../download.js'
 import { delay } from '../utilities/async.js'
 import * as objects from '../utilities/data/object.js'
 import * as detect from '../utilities/detect.js'
-import type { DownloadOptions } from '../utilities/download'
 import { getFileName, getFolderPath } from '../utilities/file.js'
 import * as backend from './Backend.js'
 import * as remoteBackendPaths from './Backend/remoteBackendPaths.js'
