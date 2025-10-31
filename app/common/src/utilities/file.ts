@@ -14,9 +14,7 @@ export interface InputFilesOptions {
   readonly multiple?: boolean
 }
 
-/**
- * Open a file-selection dialog and read the file selected by the user.
- */
+/** Open a file-selection dialog and read the file selected by the user. */
 export function readUserSelectedFile(options: InputFilesOptions = {}) {
   return new Promise<FileList>((resolve, reject) => {
     const input = document.createElement('input')
