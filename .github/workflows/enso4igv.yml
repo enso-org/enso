@@ -13,6 +13,10 @@ on:
       - "lib/scala/**/*"
       - "build.sbt"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-enso4igv
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+
 jobs:
   build_linux_parser:
     runs-on: ubuntu-22.04
