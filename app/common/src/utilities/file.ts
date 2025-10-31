@@ -1,5 +1,5 @@
-import { newtypeConstructor, type Newtype } from './data/newtype.js'
-import { isOnWindows } from './detect.js'
+import { newtypeConstructor, type Newtype } from './data/newtype'
+import { isOnWindows } from './detect'
 
 /** A filesystem path. */
 export type Path = Newtype<string, 'Path'>

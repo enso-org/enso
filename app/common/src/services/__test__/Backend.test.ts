@@ -1,11 +1,11 @@
 import { describe, expect, it, test } from 'vitest'
-import { Rfc3339DateTime } from '../../utilities/data/dateTime.js'
+import { Rfc3339DateTime } from '../../utilities/data/dateTime'
 import {
   AssetType,
   compareAssets,
   doesTitleContainInvalidCharacters,
   type AnyAsset,
-} from '../Backend.js'
+} from '../Backend'
 
 describe('Backend', () => {
   it('sorts assets by modified date descending', () => {

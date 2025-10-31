@@ -2,7 +2,7 @@
  * @file A generic type that can either hold a value representing a successful result,
  * or an error.
  */
-import { isSome, type Opt } from './opt.js'
+import { isSome, type Opt } from './opt'
 
 /**
  * A type representing result of a function where errors are expected and recoverable.

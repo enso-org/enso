@@ -5,8 +5,8 @@ import {
   type AssetPermission,
   type User,
   type UserGroup,
-} from '../services/Backend.js'
-import type * as text from '../text.js'
+} from '../services/Backend'
+import type * as text from '../text'
 
 /** Backend representation of user permission types. */
 export enum PermissionAction {

@@ -7,15 +7,15 @@
  */
 import { markRaw } from 'vue'
 import { z } from 'zod'
-import type { DownloadOptions } from '../download.js'
-import { delay } from '../utilities/async.js'
-import * as objects from '../utilities/data/object.js'
-import * as detect from '../utilities/detect.js'
-import { getFileName, getFolderPath } from '../utilities/file.js'
-import * as backend from './Backend.js'
-import * as remoteBackendPaths from './Backend/remoteBackendPaths.js'
+import type { DownloadOptions } from '../download'
+import { delay } from '../utilities/async'
+import * as objects from '../utilities/data/object'
+import * as detect from '../utilities/detect'
+import { getFileName, getFolderPath } from '../utilities/file'
+import * as backend from './Backend'
+import * as remoteBackendPaths from './Backend/remoteBackendPaths'
 import type { HttpClient } from './HttpClient'
-import { extractIdFromDirectoryId, organizationIdToDirectoryId } from './RemoteBackend/ids.js'
+import { extractIdFromDirectoryId, organizationIdToDirectoryId } from './RemoteBackend/ids'
 
 /** HTTP status indicating that the resource does not exist. */
 const STATUS_NOT_FOUND = 404
