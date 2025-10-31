@@ -3,6 +3,7 @@
  * This module provides project management functionality including creating, deleting,
  * renaming, opening, closing, and duplicating projects.
  */
+import { PRODUCT_NAME } from 'enso-common'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import * as crypto from 'node:crypto'
 import {
@@ -82,7 +83,7 @@ export class ProjectService {
   static default(workDir: string = '.', extraArgs: readonly string[] = []): ProjectService {
     const ensoPath = findEnsoExecutable(workDir)
     if (!ensoPath) {
-      throw new Error('Enso executable not found')
+      throw new Error(`${PRODUCT_NAME} executable not found`)
     }
     const runner = new EnsoRunner(ensoPath)
     return new ProjectService(runner, extraArgs)

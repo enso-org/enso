@@ -112,3 +112,7 @@ const electronProcess = spawn('electron', ELECTRON_ARGS, {
     electronProcess.kill()
     exit(1)
   })
+  .on('exit', (code) => {
+    console.log((code ? chalk.red : chalk.cyan)(`Electron process exited with code ${code}.`))
+    exit(code ?? 0)
+  })

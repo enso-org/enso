@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from 'enso-common'
 import {
   AssetType,
   extractTypeAndPath,
@@ -5,10 +6,10 @@ import {
   type PathResolveResponse,
 } from 'enso-common/src/services/Backend'
 import type { EnsoPath } from 'enso-common/src/services/Backend/types'
-import type { ProjectManager } from 'enso-common/src/services/ProjectManager/ProjectManager'
 import { Path, type ProjectEntry, type UUID } from 'enso-common/src/services/ProjectManager/types'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import { dirname } from 'path'
+import { getFileSystemEntry } from './handler'
 import { EnsoRunner, findEnsoExecutable } from './projectService/ensoRunner.js'
 import { ProjectService } from './projectService/index.js'
 
@@ -18,21 +19,28 @@ declare module './projectService/ensoRunner.js' {
   }
 }
 
+function createRunnerAndService(): {
+  readonly runner: EnsoRunner
+  readonly projectService: ProjectService
+} {
+  const ensoPath = findEnsoExecutable('.')
+  if (!ensoPath) {
+    throw new Error(`${PRODUCT_NAME} executable not found`)
+  }
+  const runner = new EnsoRunner(ensoPath)
+  const projectService = new ProjectService(runner, [])
+  return { runner, projectService }
+}
+
 /** Run a hybrid project by URL. */
 export async function runHybridProjectByUrl(
   path: EnsoPath,
-  projectManager: ProjectManager,
   remoteBackend: RemoteBackend,
 ): Promise<void> {
   let project: ProjectEntry | undefined
   let asset: PathResolveResponse | undefined
   let projectId: UUID | undefined
-  const ensoPath = findEnsoExecutable('.')
-  if (!ensoPath) {
-    throw new Error('Enso executable not found')
-  }
-  const runner = new EnsoRunner(ensoPath)
-  const projectService = new ProjectService(runner, [])
+  const { projectService } = createRunnerAndService()
   try {
     asset = await remoteBackend.resolveEnsoPath(path)
     const typeAndId = extractTypeFromId(asset.id)
@@ -40,18 +48,20 @@ export async function runHybridProjectByUrl(
       throw new Error(`The path '${path}' does not point to a project.`)
     }
     const localProject = await remoteBackend.downloadProject(typeAndId.id)
-    let parentPath: Path | undefined
+    let projectPath: Path | undefined
     for (const parentId of [localProject.parentId, localProject.projectRootId]) {
-      parentPath = extractTypeAndPath(parentId).path
-      const entries = await projectManager.listDirectory(parentPath)
-      project = entries.filter((entry) => entry.type === 'ProjectEntry')[0]
-      if (project) break
+      projectPath = extractTypeAndPath(parentId).path
+      const entry = await getFileSystemEntry(projectPath)
+      if (entry.type === 'ProjectEntry') {
+        project = entry as ProjectEntry
+        break
+      }
     }
 
-    if (!project || !parentPath) {
+    if (!project || !projectPath) {
       throw new Error('Downloaded cloud project does not exist in Local Backend.')
     }
-    await runLocalProjectByUuid(project.metadata.id, parentPath)
+    await runLocalProjectByUuid(project.metadata.id, projectPath)
   } catch (error) {
     console.error(`Error starting hybrid project '${asset?.title ?? '(unknown)'}':`, error)
     if (projectId) {
@@ -65,12 +75,7 @@ export async function runLocalProjectByUuid(
   projectId: UUID,
   projectsDirectory: Path,
 ): Promise<void> {
-  const ensoPath = findEnsoExecutable('.')
-  if (!ensoPath) {
-    throw new Error('Enso executable not found')
-  }
-  const runner = new EnsoRunner(ensoPath)
-  const projectService = new ProjectService(runner, [])
+  const { runner, projectService } = createRunnerAndService()
   try {
     await projectService.openProject(projectId, projectsDirectory)
     return new Promise<void>((resolve) => {
@@ -84,17 +89,11 @@ export async function runLocalProjectByUuid(
 }
 
 /** Run a local project by path. */
-export async function runLocalProjectByPath(
-  projectPath: Path,
-  projectManager: ProjectManager,
-): Promise<void> {
+export async function runLocalProjectByPath(projectPath: Path): Promise<void> {
   const directoryId = Path(dirname(projectPath))
-  const entries = await projectManager.listDirectory(directoryId)
-  const project = entries.find(
-    (entry) => entry.type === 'ProjectEntry' && entry.path === projectPath,
-  ) as ProjectEntry | undefined
-  if (!project) {
-    throw new Error(`Project at path '${projectPath}' not found in Local Backend.`)
+  const project = await getFileSystemEntry(projectPath)
+  if (project.type !== 'ProjectEntry') {
+    throw new Error(`The path '${projectPath}' does not point to a project.`)
   }
-  await runLocalProjectByUuid(project.metadata.id, directoryId)
+  await runLocalProjectByUuid(project.metadata.id as UUID, directoryId)
 }

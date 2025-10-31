@@ -18,7 +18,6 @@ import {
 } from 'enso-common/src/options'
 import { EnsoPath } from 'enso-common/src/services/Backend'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
-import { ProjectManager } from 'enso-common/src/services/ProjectManager/ProjectManager'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import {
   getText as originalGetText,
@@ -31,12 +30,7 @@ import { access, constants, readFile, writeFile } from 'node:fs/promises'
 import { platform } from 'node:os'
 import { join as joinPath } from 'node:path'
 import process from 'node:process'
-import {
-  downloadSamples,
-  getProjectsDirectory,
-  runHybridProjectByUrl,
-  runLocalProjectByPath,
-} from 'project-manager-shim'
+import { downloadSamples, runHybridProjectByUrl, runLocalProjectByPath } from 'project-manager-shim'
 import { initAuthentication } from './authentication.js'
 import { parseArgs } from './configParser.js'
 import { VERSION } from './contentConfig.js'
@@ -245,24 +239,19 @@ function processArguments(args: readonly string[]): ParsedArguments {
  * an error will be logged, and the method will have no effect.
  * @param projectUrl - The `file://` url of the project to be opened on startup.
  */
-function setProjectToOpenOnStartup(app: App, projectUrl: URL, electron: Electron | undefined) {
-  if (electron) {
-    // Make sure that we are not initialized yet, as this method should be called before the
-    // application is ready.
-    if (!electron.app.isReady()) {
-      console.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
-      app.webOptions.startup.project = projectUrl.toString()
-    } else {
-      console.error(
-        "Cannot set the project to open on startup to '" +
-          projectUrl.toString() +
-          "', as the application is already initialized.",
-      )
-    }
+function setProjectToOpenOnStartup(app: App, projectUrl: URL, electron: Electron) {
+  // Make sure that we are not initialized yet, as this method should be called before the
+  // application is ready.
+  if (!electron.app.isReady()) {
+    console.log(`Setting the project to open on startup to '${projectUrl}'.`)
+    app.webOptions.startup.project = projectUrl.toString()
   } else {
-    // FIXME:
+    console.error(
+      `Cannot set the project to open on startup to '${projectUrl}', as the application is already initialized.`,
+    )
   }
 }
+
 /**
  * This method is invoked when the application was spawned due to being a default application
  * for a URL protocol or file extension.
@@ -271,7 +260,7 @@ function handleItemOpening(
   app: App,
   fileToOpen: string | null,
   urlToOpen: URL | null,
-  electron: Electron | undefined,
+  electron: Electron,
 ) {
   console.log('Opening file or URL.', { fileToOpen, urlToOpen })
   try {
@@ -504,11 +493,6 @@ async function printVersion(): Promise<void> {
   }
 }
 
-function createProjectManager() {
-  const rootPath = Path(getProjectsDirectory())
-  return new ProjectManager(rootPath)
-}
-
 /**
  * A function that gets localized text for a given key, with optional replacements.
  * @param key - The key of the text to get.
@@ -550,17 +534,24 @@ async function runApp(app: App, parsedArguments: ParsedArguments, electron: Elec
     return quit(electron)
   } else if (electron) {
     runElectronApp(electron, app, args, fileToOpen, urlToOpen)
-  } else {
-    if (parsedArguments.urlToOpen != null) {
-      await runHybridProjectByUrl(
-        EnsoPath(String(parsedArguments.urlToOpen)),
-        createProjectManager(),
-        createRemoteBackend(),
-      )
-    } else if (parsedArguments.fileToOpen != null) {
-      await runLocalProjectByPath(Path(parsedArguments.fileToOpen), createProjectManager())
+  } else if (args.headless) {
+    const projectToOpen = args.startup.project
+    if (projectToOpen.startsWith(`${DEEP_LINK_SCHEME}:`)) {
+      try {
+        await runHybridProjectByUrl(EnsoPath(projectToOpen.toString()), createRemoteBackend())
+      } catch (error) {
+        console.error(`Error starting hybrid project '${projectToOpen}':`, error)
+        return exit(1, electron)
+      }
+    } else if (projectToOpen) {
+      try {
+        await runLocalProjectByPath(Path(projectToOpen))
+      } catch (error) {
+        console.error(`Error starting local project '${projectToOpen}':`, error)
+        return exit(1, electron)
+      }
     } else {
-      console.error('Running in headless mode, no action specified.')
+      console.error('Usage: `--headless --startup.project <project path or url>`')
       return exit(1, electron)
     }
   }
