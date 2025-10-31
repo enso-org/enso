@@ -40,7 +40,6 @@ public class PrivateConstructorAccessTest {
       var res = ctx.evalModule(src);
       assertThat(res.isNumber(), is(true));
       assertThat(res.asInt(), is(42));
-      res = null;
     }
   }
 
