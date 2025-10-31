@@ -73,7 +73,7 @@ case object GenerateMethodBodies extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(
+    ir.copyWithBindings(
       bindings = ir.bindings.map {
         case m: definition.Method => processMethodDef(m)
         case x                    => x
