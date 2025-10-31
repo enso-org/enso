@@ -224,10 +224,7 @@ type Generic_JDBC_Connection
             SQL_Query.Raw_SQL raw_sql -> raw_sql
             SQL_Query.Table_Name table_name -> "select * from "+(self.quote_identifier table_name)
 
-        rows_read = case limit of
-            Rows_To_Read.First n -> n
-            Rows_To_Read.First_With_Warning n -> n+1
-            Rows_To_Read.All_Rows -> -1
+        rows_read = limit.rows_to_read.if_nothing -1
 
         handle_sql_errors <|
             self.jdbc_connection.with_prepared_statement resolved_sql Statement_Setter.default stmt->

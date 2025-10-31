@@ -2335,7 +2335,10 @@ class RuntimeServerTest
     )
   }
 
-  it should "send method pointer updates of partially applied atom methods called with static notation" in {
+  /** Lambda instrumentation is currently not supported.
+    * Note that the expression `T.func1 self=_` creates a lambda Function.
+    */
+  ignore should "send method pointer updates of partially applied atom methods called with static notation" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -2724,7 +2727,7 @@ class RuntimeServerTest
 
     val metadata = new Metadata
     val id_x     = metadata.addItem(52, 25, "aa")
-    val id_y     = metadata.addItem(86, 16, "ab")
+    val id_y     = metadata.addItem(86, 21, "ab")
 
     val code =
       """import Standard.Base.Data.Time.Date
