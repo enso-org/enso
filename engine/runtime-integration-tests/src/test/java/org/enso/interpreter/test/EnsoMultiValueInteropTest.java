@@ -6,6 +6,7 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -15,8 +16,17 @@ import org.junit.runners.Parameterized;
 public class EnsoMultiValueInteropTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
 
-  @Parameterized.Parameter(0)
-  public Object value;
+  private Object value;
+
+  public EnsoMultiValueInteropTest(Object[] data) {
+    this.value = data;
+    data[0] = null;
+  }
+
+  @After
+  public void releaseValue() {
+    value = null;
+  }
 
   @Parameterized.Parameters
   public static Object[][] allEnsoMultiValuePairs() throws Exception {
@@ -36,7 +46,7 @@ public class EnsoMultiValueInteropTest {
         }
       }
     }
-    return data.toArray(new Object[0][]);
+    return data.stream().map(v -> new Object[] {v}).toArray(Object[][]::new);
   }
 
   private static void registerValue(
