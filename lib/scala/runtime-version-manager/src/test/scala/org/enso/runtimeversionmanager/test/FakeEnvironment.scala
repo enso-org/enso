@@ -22,7 +22,7 @@ trait FakeEnvironment { self: HasTestDirectory =>
     Files.createDirectories(fakeBin)
     if (portable) {
       FileSystem.writeTextFile(
-        getTestDirectory.resolve(".enso.portable"),
+        getTestDirectory.resolve(".enso.bundle"),
         "mark"
       )
     }

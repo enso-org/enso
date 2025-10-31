@@ -24,6 +24,7 @@ public class SharedEngineTest {
         Engine.newBuilder()
             .allowExperimentalOptions(true)
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .option(RuntimeOptions.CHECK_CWD, "false")
             .logHandler(System.err)
             .option(RuntimeOptions.STRICT_ERRORS, "true")
             .option(
@@ -48,14 +49,14 @@ public class SharedEngineTest {
       Source.newBuilder(
               "enso",
               """
-    from Standard.Base import Vector, Text, Number
+              from Standard.Base import Vector, Text, Number
 
-    check x = case x of
-        _ : Vector -> 1
-        _ : Text -> 2
-        _ : Number -> 3
-        _ -> 4
-    """,
+              check x = case x of
+                  _ : Vector -> 1
+                  _ : Text -> 2
+                  _ : Number -> 3
+                  _ -> 4
+              """,
               "type_case.enso")
           .buildLiteral();
 

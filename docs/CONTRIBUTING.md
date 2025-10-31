@@ -266,7 +266,7 @@ using the fairly common [prettier](https://prettier.io) automatic formatter. You
 can install prettier for our project by running the following command:
 
 ```bash
-npm install
+enso$ corepack pnpm install
 ```
 
 This does, however, mean that you have to have node installed on your system.
@@ -280,7 +280,7 @@ bumps all at once.
 You can format all of our documentation and configuration as follows:
 
 ```bash
-npx prettier --write <dir>
+enso$ corepack pnpm run format
 ```
 
 ### Building Enso Engine
@@ -559,118 +559,28 @@ Running development version of the IDE is possible via the npm script in the
 root of the repository:
 
 ```bash
-enso$ corepack pnpm i
-enso$ corepack pnpm dev:gui
+enso$ corepack pnpm install
+enso$ corepack pnpm run compile
+enso$ corepack pnpm run dev:gui
 ```
 
-This requires project-manager being run manually. To assemble and run the
-`project-manager` one needs to launch `sbt` - one way to do it is to execute
-`./run backend sbt`. When in the _sbt prompt_ one can request execution of the
-`project-manager`:
+By default the `dev:run` script looks for the dev `enso` executable in the
+`built-distribution` directory assuming that it was built with sbt:
 
-<!--
-
-```bash
-sbt:enso> buildProjectManagerDistribution
-```
-
-When the command is completed, a development version of the project manager will
-have appeared in the `built-distribution` directory.
-
-Project manager is there to wait for the IDE to connect to it and then launch
-the engine with its embedded language server. To build the engine issue
-following command in the _sbt prompt_:
-
-```bash
+```sbt
 sbt:enso> buildEngineDistribution
 ```
 
-Once all the components are assembled, it is time to execute them in
-orchestration. One can pass following environment variables to
-`project-manager`:
+and will fallback to downloading the latest nightly if not found. You can
+override the location of `enso` executable by providing the absolute path to it
+in the `ENSO_RUNNER_PATH` environment variable.
 
-- `ENSO_JVM_OPTS` to for example turn
-  [debugging of the Engine runtime](debugger/README.md) on
-- `ENSO_JVM_PATH` to force a fixed GraalVM to execute the engine/language server
-  process on
-- `ENSO_ENGINE_PATH` the path to engine/language server as created by
-  `buildEngineDistribution`, usually
-  `<repository-root>/built-distribution/enso-engine-0.0.0-dev-<os>-<arch>/enso-0.0.0-dev/`
-
-One doesn't need to deal with these options directly, there is an _sbt command_
-to orchestrate them all:
--->
-
-```bash
-sbt:enso> runProjectManagerDistribution
-```
-
-<!--
-The above command invokes `buildProjectManagerDistribution`,
-`buildEngineDistribution` and then defines `ENSO_ENGINE_PATH` to connect them
-together and also specifies the `ENSO_JVM_PATH` to the JVM `sbt` process runs
-on.
--->
-
-There also is a simple way to [debug](debugger/README.md). When adding `--debug`
-option to the _sbt command_:
-
-```bash
-sbt:enso> runProjectManagerDistribution --debug
-```
-
-the system sets `ENSO_JVM_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005`.
-Just [configure your Java IDE](debugger/README.md) to listen on port 5005 before
-invoking the command and you'll be able to debug the engine launched by the
-project manager.
-
-By default the `runProjectManagerDistribution` command is useful for
-development, but it differs from the binary used during production. To work with
-a system closer to production one specify `ENSO_LAUNCHER=native` environment
-variable before starting `sbt` and use the same commands as described above.
-
-If you want to test your Project Manager build with a released IDE package, set
-`--no-engine` CLI argument to the IDE executable, and run your Project Manager
-manually.
-
-#### Language Server Mode
-
-The Language Server can be run using the `--server` option. It requires also a
-content root to be provided (`--root-id` and `--path` options). Command-line
-interface of the runner prints all server options when you execute it with
-`--help` option.
-
-Below are options used by the Language Server:
-
-- `--server`: Runs the Language Server
-- `--root-id <uuid>`: Content root id. The Language Server chooses one randomly,
-  so any valid UUID can be passed.
-- `--path <path>`: Path to the content root.
-- `--interface <interface>`: Interface for processing all incoming connections.
-  Default value is 127.0.0.1
-- `--rpc-port <port>`: RPC port for processing all incoming connections. Default
-  value is 8080.
-- `--data-port <port>`: Data port for visualization protocol. Default value
-  is 8081.
-- `--secure-rpc-port <port>`: (optional) Secure RPC port for processing all
-  incoming connections.
-- `--secure-data-port <port>`: (optional) Secure data port for visualization
-  protocol.
-
-To run the Language Server on 127.0.0.1:8080 type:
-
-```bash
-distribution/bin/enso \
-  --server \
-  --root-id 3256d10d-45be-45b1-9ea4-7912ef4226b1 \
-  --path /tmp/content-root
-```
-
-If you want to provide a socket that the server should listen to, you must
-specify the following options:
-
-- `--interface`: The interface on which the socket will exist (e.g. `0.0.0.0`).
-- `--port`: The port on `interface` where the socket will be opened (e.g. `80`).
+To [debug](debugger/README.md) the language server process of a running project,
+you can set the
+`JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,address=5005` environment
+variable when starting the `pnpm run dev:gui` dev server. Just
+[configure your Java IDE](debugger/README.md) to listen on port 5005 before
+starting the project.
 
 ## Pull Requests
 

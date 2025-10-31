@@ -6,15 +6,15 @@
  * the API.
  */
 import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
-import type { Logger } from '#/providers/LoggerProvider'
 import Backend, * as backend from '#/services/Backend'
 import * as projectManager from '#/services/ProjectManager'
 import type { ProjectManager } from '#/services/ProjectManager/ProjectManager'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { unsafeEntries } from '#/utilities/object'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
+import { fileExtension, getFileName, getFolderPath, normalizePath } from '$/utils/file'
+import { uniqueString } from '$/utils/uniqueString'
 import { PRODUCT_NAME } from 'enso-common'
 import {
   downloadProjectPath,
@@ -22,16 +22,8 @@ import {
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import {
-  fileExtension,
-  getFileName,
-  getFolderPath,
-  normalizePath,
-} from 'enso-common/src/utilities/file'
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
-import { isUuid } from 'ydoc-shared/yjsModel'
 
 const LOCAL_API_URL = '/api/'
 
@@ -54,14 +46,17 @@ export function newProjectId(path: projectManager.Path) {
   return backend.ProjectId(`${PROJECT_ID_PREFIX}${encodeURIComponent(path)}`)
 }
 
+/** Check if given string resembles KSUID. */
+function isKsuid(candidate: string) {
+  return /^[a-zA-Z0-9]{27}$/.test(candidate)
+}
+
 /** Check if given {@link backend.ProjectId} represents a local project. */
 export function isLocalProjectId(projectId: backend.ProjectId): boolean {
-  // Local projects use UUIDs after the prefix, cloud projects have a different ID format.
-  const uuidLength = 36
+  // Local projects use path after the prefix, cloud projects have a KSUID right after prefix.
   return (
     projectId.startsWith(PROJECT_ID_PREFIX) &&
-    projectId[PROJECT_ID_PREFIX.length + uuidLength] === '-' &&
-    isUuid(projectId.substring(PROJECT_ID_PREFIX.length, PROJECT_ID_PREFIX.length + uuidLength))
+    !isKsuid(projectId.substring(PROJECT_ID_PREFIX.length))
   )
 }
 
@@ -83,13 +78,8 @@ export default class LocalBackend extends Backend {
   private readonly projectManager: ProjectManager
 
   /** Create a {@link LocalBackend}. */
-  constructor(
-    logger: Logger,
-    getText: GetText,
-    projectManagerInstance: ProjectManager,
-    client = new HttpClient(),
-  ) {
-    super(logger, getText, client)
+  constructor(getText: GetText, projectManagerInstance: ProjectManager, client = new HttpClient()) {
+    super(getText, client)
 
     this.projectManager = projectManagerInstance
   }
@@ -99,11 +89,6 @@ export default class LocalBackend extends Backend {
     return (
       localRootDirectoryStore.getState().localRootDirectory ?? this.projectManager.rootDirectory
     )
-  }
-
-  /** Tell the {@link projectManager.ProjectManager} to reconnect. */
-  async reconnectProjectManager() {
-    await this.projectManager.reconnect()
   }
 
   /** Return the ID of the root directory. */
@@ -307,7 +292,7 @@ export default class LocalBackend extends Backend {
    * Return asset details.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async getAssetDetails<Id extends backend.RealAssetId>(
+  override async getAssetDetails<Id extends backend.AssetId>(
     assetId: Id,
     rootPath: backend.Path | undefined,
   ) {
@@ -332,7 +317,7 @@ export default class LocalBackend extends Backend {
       throw new backend.AssetDoesNotExistError()
     }
     // eslint-disable-next-line no-restricted-syntax
-    return entry as never
+    return entry as unknown as backend.AssetDetailsResponse<Id>
   }
 
   /** Get the UUID of a project. */
@@ -380,7 +365,10 @@ export default class LocalBackend extends Backend {
         name: cachedProject.projectName,
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
-        ydocAddress: null,
+        ydocAddress:
+          cachedProject.languageServerYdocAddress ?
+            ipWithSocketToAddress(cachedProject.languageServerYdocAddress)
+          : backend.Address('ws://localhost:5976'),
         organizationId: backend.OrganizationId('organization-'),
         packageName: cachedProject.projectNormalizedName,
         projectId,
@@ -686,7 +674,7 @@ export default class LocalBackend extends Backend {
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
-    const sourcePath = body.filePath ?? window.systemApi?.getFilePath(file)
+    const sourcePath = body.filePath ?? window.api?.system?.getFilePath(file)
     const searchParams = new URLSearchParams([
       ['directory', newDirectoryId(parentPath)],
       ['file_name', body.fileName],
@@ -718,13 +706,13 @@ export default class LocalBackend extends Backend {
   }
 
   /** Upload a chunk of a large file. */
-  override uploadFileChunk(): Promise<backend.S3MultipartPart> {
+  override uploadFileChunk(): Promise<{ part: backend.S3MultipartPart; size: number }> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
-    return Promise.resolve({ eTag: '', partNumber: 0 })
+    return Promise.resolve({ part: { eTag: '', partNumber: 0 }, size: 0 })
   }
 
   /** Finish uploading a large file. */
-  override uploadFileEnd(body: backend.UploadFileEndRequestBody): Promise<backend.UploadedAsset> {
+  override uploadFileEnd(body: { uploadId: string }): Promise<backend.UploadedAsset> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
     const file = this.uploadedFiles.get(body.uploadId)
     invariant(file, 'Uploaded file not found')
@@ -822,8 +810,7 @@ export default class LocalBackend extends Backend {
       }
       case backend.AssetType.datalink:
       case backend.AssetType.secret:
-      case backend.AssetType.directory:
-      case backend.AssetType.specialUp: {
+      case backend.AssetType.directory: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
       }
@@ -834,16 +821,12 @@ export default class LocalBackend extends Backend {
   override async exportArchive(
     params: backend.ExportArchiveParams,
   ): Promise<backend.ExportedArchive> {
-    const entries = unsafeEntries(params).flatMap<[string, string]>(([paramName, v]) =>
-      paramName === 'assetIds' ? v.map<[string, string]>((id) => ['asset', id])
-      : v != null ? [[paramName, v]]
-      : [],
-    )
-    const searchParams = new URLSearchParams(entries).toString()
+    const { filePath, ...body } = params
+    const searchParams = new URLSearchParams(filePath != null ? { filePath } : {}).toString()
     const path = `${EXPORT_ARCHIVE_PATH}?${searchParams}`
     if (params.filePath != null) {
       // Assume it is Electron, copy files through Electron server directly
-      const response = await this.post<backend.ExportedArchive>(path, {})
+      const response = await this.post<backend.ExportedArchive>(path, body)
       if (!response.ok) {
         return this.throw(response, 'exportArchiveBackendError')
       }

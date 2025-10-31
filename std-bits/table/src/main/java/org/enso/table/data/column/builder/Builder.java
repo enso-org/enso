@@ -7,7 +7,6 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
 import java.util.Objects;
-
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -55,8 +54,8 @@ public interface Builder {
     // Create a single storage item based on the type of the item.
     return switch (item) {
       case null -> new NullBuilder().appendNulls(checkSize(size)).seal();
-      case Boolean booleanValue -> new BoolStorage(
-          new BitSet(), new BitSet(), checkSize(size), booleanValue);
+      case Boolean booleanValue ->
+          new BoolStorage(new BitSet(), new BitSet(), checkSize(size), booleanValue);
       default -> {
         var storageType = StorageType.forBoxedItem(item, PreciseTypeOptions.DEFAULT);
         var builder = Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);
@@ -106,7 +105,12 @@ public interface Builder {
           case BigDecimalType t -> getForBigDecimal(size);
           case BigIntegerType t -> getForBigInteger(size, problemAggregator);
           case NullType t -> new NullBuilder();
-          case null, default -> getInferredBuilder(size, problemAggregator);
+          case null -> getInferredBuilder(size, problemAggregator);
+          default ->
+              getForType(
+                  StorageType.fromTypeCharAndSize(type.typeChar(), type.size()),
+                  size,
+                  problemAggregator);
         };
 
     assert Objects.equals(builder.getType(), type);

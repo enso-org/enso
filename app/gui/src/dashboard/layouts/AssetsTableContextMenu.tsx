@@ -8,34 +8,28 @@ import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useUploadFileToCloudMutation, useUploadFileToLocal } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFileToCloud, useUploadFileToLocal } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
-import {
-  canTransferBetweenCategories,
-  type Category,
-  isCloudCategory,
-} from '#/layouts/CategorySwitcher/Category'
+import { canTransferBetweenCategories, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import { useGlobalContextMenuEntries } from '#/layouts/useGlobalContextMenuEntries'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useExportArchive } from '#/pages/useExportArchive'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
-import { useBackends, useText, useUser } from '$/providers/react'
+import { useBackends, useRouter, useText, useUser } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
-  readonly backend: Backend
-  readonly category: Category
   readonly currentDirectoryId: backendModule.DirectoryId
   readonly doCopy: () => void
   readonly doCut: () => void
@@ -53,10 +47,11 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   props: AssetsTableContextMenuProps,
   ref: React.ForwardedRef<ContextMenuApi>,
 ) {
-  const { backend, category, currentDirectoryId, doCopy, doCut, doPaste } = props
+  const { currentDirectoryId, doCopy, doCut, doPaste } = props
 
+  const { category, associatedBackend: backend } = useCategoriesAPI()
   const { getText } = useText()
-
+  const { router } = useRouter()
   const { localBackend } = useBackends()
   const user = useUser()
   const isCloud = isCloudCategory(category)
@@ -68,7 +63,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
   const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
   const showDeveloperIds = useFeatureFlag('showDeveloperIds')
   const copyMutation = useCopy()
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
+  const uploadFileToCloudMutation = useUploadFileToCloud()
   const uploadFileToLocal = useUploadFileToLocal(category)
   const exportArchive = useExportArchive({ backend })
 
@@ -157,11 +152,17 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
     )
   })
 
+  const goToDrive = async () => {
+    if (router.currentRoute.value.path === '/drive') return
+    await router.push({ ...router.currentRoute.value, path: '/drive' })
+  }
+
   const copyIdsMenuEntry = defineMenuEntry(
     showDeveloperIds && {
       action: 'copyId',
       color: 'accent',
       doAction: () => {
+        void goToDrive()
         copyMutation.mutate(selectedAssets.map((asset) => asset.id).join('\n'))
       },
     },
@@ -171,6 +172,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
     hasPasteData && {
       action: 'paste',
       doAction: () => {
+        void goToDrive()
         const selected = selectedAssets[0]
         if (selected?.type === backendModule.AssetType.directory) {
           doPaste(selected.id, selected.id)
@@ -187,11 +189,12 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
       selectedAssets.length === 0 ?
         []
       : [
-          copyIdsMenuEntry,
+          pasteAllMenuEntry,
           {
             action: 'undelete',
             label: getText('restoreFromTrashShortcut'),
             doAction: () => {
+              void goToDrive()
               void restoreAssets({
                 ids: selectedAssets.map((asset) => asset.id),
                 parentId: null,
@@ -202,6 +205,7 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
             action: 'delete',
             label: getText('deleteForeverShortcut'),
             doAction: () => {
+              void goToDrive()
               const asset = selectedAssets[0]
               const soleAssetName = asset?.title ?? '(unknown)'
               setModal(
@@ -220,21 +224,16 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
               )
             },
           },
-          pasteAllMenuEntry,
+          copyIdsMenuEntry,
         ]
     : [
-        copyIdsMenuEntry,
-        selectedAssets.length !== 0 && {
-          action: 'delete',
-          label: isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut'),
-          doAction: doDeleteAll,
-        },
         selectedAssets.length !== 0 &&
           canUploadAllProjectsToCloud && {
             isUnderPaywall: !canUploadToCloud,
             action: 'uploadToCloud',
             feature: 'uploadToCloud',
             doAction: () => {
+              void goToDrive()
               void uploadFilesToCloudCallback()
             },
           },
@@ -242,19 +241,36 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
           canDownloadAllProjectsToLocal && {
             action: 'downloadToLocal',
             doAction: () => {
+              void goToDrive()
               void downloadFilesToLocalCallback()
             },
           },
         selectedAssets.length !== 0 && {
           action: 'exportArchive',
           doAction: () => {
+            void goToDrive()
             void exportArchive()
           },
         },
         selectedAssets.length !== 0 && isCloud && { action: 'copy', doAction: doCopy },
-        selectedAssets.length !== 0 && { action: 'cut', doAction: doCut },
+        selectedAssets.length !== 0 && {
+          action: 'cut',
+          doAction: () => {
+            void goToDrive()
+            doCut()
+          },
+        },
         pasteAllMenuEntry,
         ...globalContextMenuEntries,
+        selectedAssets.length !== 0 && {
+          action: 'delete',
+          label: isCloud ? getText('moveToTrashShortcut') : getText('deleteShortcut'),
+          doAction: () => {
+            void goToDrive()
+            doDeleteAll()
+          },
+        },
+        copyIdsMenuEntry,
       ],
   )
 

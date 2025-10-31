@@ -2,13 +2,13 @@
 import Backend, { ProjectId } from '#/services/Backend'
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { injectOpenedProjects } from '$/providers/openedProjects'
+import { type LsUrls } from '$/providers/openedProjects/project'
 import GraphEditor from '@/components/GraphEditor.vue'
 import { provideEventLogger } from '@/providers/eventLogging'
 import { provideProjectBackend } from '@/providers/projectBackend'
 import { provideVisibility } from '@/providers/visibility'
-import { type LsUrls } from '@/stores/project'
 import { provideSettings } from '@/stores/settings'
-import { type Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 import { useEventListener } from '@vueuse/core'
 import {
   markRaw,
@@ -55,7 +55,11 @@ const logger = provideEventLogger(
 watch(
   toRef(props, 'projectId'),
   (_id, _oldId, onCleanup) => {
-    logger.send('ide_project_opened')
+    try {
+      logger.send('ide_project_opened')
+    } catch {
+      // Do nothing
+    }
     onCleanup(() => logger.send('ide_project_closed'))
   },
   { immediate: true },
@@ -77,7 +81,7 @@ onDeactivated(() => (visible.value = false))
 </script>
 
 <template>
-  <div class="ProjectView">
+  <div id="ProjectView" class="ProjectView">
     <WithCurrentProject :id="projectId">
       <!-- Key property is needed because of still many usages of deprecated useXStore 
        (see WithCurrentProject.vue). Once all those usages disappear, fully remouting GraphEditor

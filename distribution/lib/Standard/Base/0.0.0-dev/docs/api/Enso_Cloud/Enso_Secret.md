@@ -3,6 +3,7 @@
 - type Derived_Secret_Value
     - Base_64_Encode value:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
     - Concat left:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value right:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+    - Interpret_As_Private_Key secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
     - Plain_Text text:Standard.Base.Data.Text.Text
     - Secret_Value secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
     - + self other:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value -> Standard.Base.Any.Any
@@ -27,7 +28,7 @@
     - to_text self -> Standard.Base.Any.Any
     - update_value self new_value:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
 - as_credential_reference secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret -> Standard.Base.Enso_Cloud.Enso_Secret.CredentialReference
-- as_hideable_value value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) -> Standard.Base.Any.Any
+- as_hideable_value value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) factory:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - secret_asset_uri secret:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - secret_resource_uri secret:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value.from that:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret -> Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value

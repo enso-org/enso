@@ -12,6 +12,7 @@ import { vueComponent } from '#/utilities/vue'
 import type { LaunchedProject } from '$/providers/container'
 import { useBackends, useConfig, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
+import { useIsProjectClosing } from '$/providers/react/container'
 import * as analytics from '$/utils/analytics'
 import ProjectViewTabVue from '@/ProjectViewTab.vue'
 import * as reactQuery from '@tanstack/react-query'
@@ -67,9 +68,8 @@ function EditorContents(props: EditorProps) {
       const isProjectOpening = projectHooks.OPENING_PROJECT_STATES.has(data.state.type)
       const isProjectClosed = projectHooks.CLOSED_PROJECT_STATES.has(data.state.type)
       const isProjectOpened = projectHooks.OPENED_PROJECT_STATES.has(data.state.type)
-      const isProjectClosing = projectHooks.CLOSING_PROJECT_STATES.has(data.state.type)
 
-      return { ...data, isProjectOpening, isProjectClosed, isProjectOpened, isProjectClosing }
+      return { ...data, isProjectOpening, isProjectClosed, isProjectOpened }
     },
   })
 
@@ -91,7 +91,10 @@ function EditorContents(props: EditorProps) {
     },
   })
 
-  const { isProjectClosed, isProjectOpening, isProjectOpened, isProjectClosing } = projectQuery.data
+  const { isProjectClosed, isProjectOpening, isProjectOpened } = projectQuery.data
+  const isProjectClosing = useIsProjectClosing(
+    isHybrid ? project.hybrid.cloudProjectId : project.id,
+  )
 
   const stableOnReadyUpdate = useEventCallback((value: boolean) => onReadyUpdate?.(value))
   const stableOnNameUpdate = useEventCallback((value: string) => onNameUpdate?.(value))

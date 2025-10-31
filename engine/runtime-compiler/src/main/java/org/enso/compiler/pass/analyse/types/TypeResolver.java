@@ -38,21 +38,21 @@ public class TypeResolver {
         yield new TypeRepresentation.IntersectionType(List.of(lhs, rhs));
       }
 
-        // We could extract more info form function, but we deliberately do not.
-        // This is because our ascriptions (x : A -> B) only check (x.is_a Function), so all we get
-        // is that it is a
-        // function with at least one argument (and we can't even tell its full arity).
-        // Later, we could extract this as some kind of secondary metadata, but currently we do not
-        // because it could be
-        // misleading - this property is _not_ guaranteed at runtime as other ascriptions are.
-        // Functions not matching
-        // this type will still be allowed. That's why we return the more generic type that covers
-        // everything that the
-        // check actually lets through.
-      case Type.Function function -> new TypeRepresentation.ArrowType(
-          TypeRepresentation.UNKNOWN, TypeRepresentation.ANY);
+      // We could extract more info form function, but we deliberately do not.
+      // This is because our ascriptions (x : A -> B) only check (x.is_a Function), so all we get
+      // is that it is a
+      // function with at least one argument (and we can't even tell its full arity).
+      // Later, we could extract this as some kind of secondary metadata, but currently we do not
+      // because it could be
+      // misleading - this property is _not_ guaranteed at runtime as other ascriptions are.
+      // Functions not matching
+      // this type will still be allowed. That's why we return the more generic type that covers
+      // everything that the
+      // check actually lets through.
+      case Type.Function function ->
+          new TypeRepresentation.ArrowType(TypeRepresentation.UNKNOWN, TypeRepresentation.ANY);
 
-        // We just ignore the error part for now as it's not really checked anywhere.
+      // We just ignore the error part for now as it's not really checked anywhere.
       case Type.Error error -> resolveTypeExpression(error.typed());
 
       case Name.Qualified qualified -> {

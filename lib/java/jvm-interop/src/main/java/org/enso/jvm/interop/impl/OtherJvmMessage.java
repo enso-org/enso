@@ -10,6 +10,8 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import java.lang.foreign.MemorySegment;
+import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
+import org.graalvm.polyglot.Value;
 
 /** Sends a message to the other side with ReflectionLibrary-like arguments. */
 @Persistable(id = 81901)
@@ -24,26 +27,38 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     implements Function<
         Channel<OtherJvmPool>, OtherJvmResult<? extends Object, ? extends Exception>> {
   private static final Message IS_IDENTICAL = Message.resolve(InteropLibrary.class, "isIdentical");
+  private static final Message IS_POINTER = Message.resolve(InteropLibrary.class, "isPointer");
+  private static final Message AS_POINTER = Message.resolve(InteropLibrary.class, "asPointer");
 
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
-    var node = ReflectionLibrary.getUncached();
-    var prev = t.getConfig().enter(t.isMaster(), node);
+    var lib = ReflectionLibrary.getUncached();
+    var prev = t.getConfig().enter(t.isMaster(), lib);
     try {
       var receiver = t.getConfig().findObject(id());
       if (receiver == null) {
         throw new NullPointerException(
             "No object for " + id() + " message: " + message() + " args: " + args());
       }
+      var iop = InteropLibrary.getUncached();
       if (message == IS_IDENTICAL) {
-        args.set(1, InteropLibrary.getUncached());
+        args.set(1, iop);
       }
-      var res = node.send(receiver, message, args.toArray());
+      if (message == IS_POINTER && iop.hasBufferElements(receiver)) {
+        var buf = Value.asValue(receiver).as(ByteBuffer.class);
+        return new ReturnValue<>(buf.isDirect());
+      }
+      if (message == AS_POINTER && iop.hasBufferElements(receiver)) {
+        var buf = Value.asValue(receiver).as(ByteBuffer.class);
+        var seg = MemorySegment.ofBuffer(buf);
+        return new ReturnValue<>(seg.address());
+      }
+      var res = lib.send(receiver, message, args.toArray());
       return new ReturnValue<>(res);
     } catch (Exception ex) {
       return ThrowException.create(ex);
     } finally {
-      t.getConfig().leave(t.isMaster(), node, prev);
+      t.getConfig().leave(t.isMaster(), lib, prev);
     }
   }
 

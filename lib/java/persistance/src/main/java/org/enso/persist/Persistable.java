@@ -8,6 +8,7 @@ import java.lang.annotation.Target;
  * Annotation for an automatic persistance of a class. Use to generate implementation and
  * registration of {@link Persistance} subclass to read and write simple records and case classes:
  * <br>
+ *
  * {@snippet file="org/enso/persist/PersistanceTest.java" region="annotation"}
  */
 @Target(ElementType.TYPE)
@@ -18,8 +19,12 @@ public @interface Persistable {
    * The class to generate {@link Persistance} for. If the value is omitted then the code is
    * generated for the class that is annotated by this annotation. Example of multiple
    * {@code @Persistable} annotations on a single element. <br>
-   * {@snippet file="org/enso/persist/PersistanceTest.java" region="annotation"} <br>
+   *
+   * {@snippet file="org/enso/persist/PersistanceTest.java" region="annotation"}
+   *
+   * <br>
    * Example of self annotated class: <br>
+   *
    * {@snippet file="org/enso/persist/PersistanceTest.java" region="self-annotation"}
    *
    * @return the class to generate read/write persistance code for

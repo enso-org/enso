@@ -15,7 +15,8 @@ import org.enso.interpreter.runtime.EnsoContext;
 @BuiltinMethod(
     type = "Dictionary",
     name = "to_text",
-    description = """
+    description =
+        """
         Returns text representation of this hash map
         """,
     autoRegister = false)

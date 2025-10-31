@@ -42,12 +42,12 @@ public class ToStringMethodGenerator {
 
   private String toSingleLineMethod() {
     return """
-          private static String toSingleLine(String str) {
-            return str.trim().lines()
-              .map(s -> s.trim())
-              .collect(Collectors.joining(" "));
-          }
-        """;
+      private static String toSingleLine(String str) {
+        return str.trim().lines()
+          .map(s -> s.trim())
+          .collect(Collectors.joining(" "));
+      }
+    """;
   }
 
   private String className() {

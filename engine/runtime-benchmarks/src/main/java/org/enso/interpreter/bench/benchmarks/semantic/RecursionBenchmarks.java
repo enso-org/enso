@@ -24,7 +24,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @State(Scope.Benchmark)
 public class RecursionBenchmarks {
   private static final String SUM_TCO_CODE =
-      """
+"""
 main = sumTo ->
     summator = acc -> current ->
         if current == 0 then acc else @Tail_Call summator acc+current current-1
@@ -34,7 +34,7 @@ main = sumTo ->
 """;
 
   private static final String SUM_TCO_FOLD_LIKE_CODE =
-      """
+"""
 main = sumTo ->
     summator = acc -> i -> f ->
         if i == 0 then acc else @Tail_Call summator (f acc i) (i - 1) f
@@ -43,7 +43,7 @@ main = sumTo ->
 """;
 
   private static final String SUM_RECURSIVE_CODE =
-      """
+"""
 main = sumTo ->
     summator = i -> if i == 0 then 0 else i + summator (i - 1)
     res = summator sumTo
@@ -51,7 +51,7 @@ main = sumTo ->
 """;
 
   private static final String OVERSATURATED_RECURSIVE_CALL_TCO_CODE =
-      """
+"""
 main = sumTo ->
     summator = acc -> i -> f ->
         if i == 0 then acc else @Tail_Call summator (f acc i) (i - 1) f
@@ -60,7 +60,7 @@ main = sumTo ->
 """;
 
   private static final String SUM_STATE_TCO_CODE =
-      """
+"""
 from Standard.Base.Data.Numbers import Number
 import Standard.Base.Runtime.State
 
@@ -75,7 +75,7 @@ main = sumTo ->
 """;
 
   private static final String SUM_TCO_WITH_EVAL_CODE =
-      """
+"""
 import Standard.Base.Runtime.Debug
 
 main = sumTo ->
@@ -87,7 +87,7 @@ main = sumTo ->
 """;
 
   private static final String NESTED_THUNK_SUM_CODE =
-      """
+"""
 from Standard.Base.Data.Numbers import Number
 import Standard.Base.Runtime.State
 import Standard.Base.Nothing.Nothing

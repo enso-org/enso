@@ -1,9 +1,8 @@
 /** Documentation metadata included in the front-matter section of the Markdown doc comment. */
-
 import { assert } from '@/util/assert'
-import { Opt } from '@/util/data/opt'
-import { Err, Ok, Result } from '@/util/data/result'
-import { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
+import type { Opt } from '@/util/data/opt'
+import { Err, Ok, type Result } from '@/util/data/result'
+import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
 import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
 import * as z from 'zod'
 

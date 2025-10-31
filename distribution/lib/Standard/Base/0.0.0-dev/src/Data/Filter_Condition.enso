@@ -9,7 +9,7 @@ import project.Data.Vector.Vector
 import project.Errors.Common.Missing_Argument
 import project.Internal.Predicate_Helpers
 import project.Meta
-import project.Nothing.Nothing
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Filter_Condition.Filter_Condition import all
 from project.Data.Text.Extensions import all

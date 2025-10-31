@@ -32,6 +32,7 @@ import org.enso.compiler.pass.analyse.alias.graph.GraphBuilder
 import org.enso.compiler.pass.analyse.alias.graph.Graph.Scope
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.persist.Persistance
 
 import scala.collection.mutable
 
@@ -96,7 +97,7 @@ case object AliasAnalysis extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings = ir.bindings.map(analyseModuleDefinition))
+    ir.copyWithBindings(bindings = ir.bindings.map(analyseModuleDefinition))
   }
 
   /** Performs alias analysis on an inline expression, starting from the
@@ -236,13 +237,16 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Conversion =>
         m.body match {
           case _: Function =>
-            val c = m.copy(
-              body = analyseExpression(
-                m.body,
-                builder,
-                lambdaReuseScope = true
+            val c = m
+              .copyBuilder()
+              .body(
+                analyseExpression(
+                  m.body,
+                  builder,
+                  lambdaReuseScope = true
+                )
               )
-            )
+              .build()
             alias.AliasMetadata.updateMetadata(
               c,
               new alias.AliasMetadata.RootScope(builder.toGraph())
@@ -255,13 +259,18 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Explicit =>
         m.body match {
           case _: Function =>
-            val c = m.copy(
-              body = analyseExpression(
-                m.body,
-                builder,
-                lambdaReuseScope = true
+            val c = m
+              .copyBuilder()
+              .bodyReference(
+                Persistance.Reference.of(
+                  analyseExpression(
+                    m.body,
+                    builder,
+                    lambdaReuseScope = true
+                  )
+                )
               )
-            )
+              .build()
             alias.AliasMetadata.updateMetadata(
               c,
               new alias.AliasMetadata.RootScope(builder.toGraph())

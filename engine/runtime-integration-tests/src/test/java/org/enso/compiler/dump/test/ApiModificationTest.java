@@ -17,11 +17,13 @@ public final class ApiModificationTest {
 
   @Test
   public void reorderingMethods_DoesNotModifyApi() throws IOException {
-    var prevSrc = """
+    var prevSrc =
+        """
         method_1 = 1
         method_2 = 2
         """;
-    var newSrc = """
+    var newSrc =
+        """
         method_2 = 2
         method_1 = 1
         """;
@@ -36,11 +38,13 @@ public final class ApiModificationTest {
 
   @Test
   public void reorderingTypes_DoesNotModifyApi() throws IOException {
-    var prevSrc = """
+    var prevSrc =
+        """
         type Type_1
         type Type_2
         """;
-    var newSrc = """
+    var newSrc =
+        """
         type Type_2
         type Type_1
         """;
@@ -55,11 +59,13 @@ public final class ApiModificationTest {
 
   @Test
   public void reorderingTypeAndMethod_DoesNotModifyApi() throws IOException {
-    var prevSrc = """
+    var prevSrc =
+        """
         type Type
         method = 1
         """;
-    var newSrc = """
+    var newSrc =
+        """
         method = 1
         type Type
         """;
@@ -98,12 +104,14 @@ public final class ApiModificationTest {
 
   @Test
   public void reorderingConstructorsInType_DoesNotModifyApi() throws IOException {
-    var prevSrc = """
+    var prevSrc =
+        """
         type Type
             Cons_2
             Cons_1
         """;
-    var newSrc = """
+    var newSrc =
+        """
         type Type
             Cons_1
             Cons_2
@@ -121,10 +129,12 @@ public final class ApiModificationTest {
 
   @Test
   public void addingMethod_ModifiesApi() throws IOException {
-    var prevSrc = """
+    var prevSrc =
+        """
         method_1 = 1
         """;
-    var newSrc = """
+    var newSrc =
+        """
         method_1 = 1
         method_2 = 2
         """;
@@ -141,10 +151,12 @@ public final class ApiModificationTest {
 
   @Test
   public void renamingMethod_ModifiesApi() throws IOException {
-    var prevSrc = """
+    var prevSrc =
+        """
         method = 1
         """;
-    var newSrc = """
+    var newSrc =
+        """
         renamed_method = 2
         """;
     compareSignatures(
@@ -157,11 +169,13 @@ public final class ApiModificationTest {
 
   @Test
   public void removingMethod_ModifiesApi() throws IOException {
-    var prevSrc = """
+    var prevSrc =
+        """
         method_1 = 1
         method_2 = 2
         """;
-    var newSrc = """
+    var newSrc =
+        """
         method_2 = 2
         """;
     compareSignatures(

@@ -8,9 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AzureBlobStorage {
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(AzureBlobStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AzureBlobStorage.class);
 
   private static BlobServiceClient makeClient(
       AzureCredential credential, String storageAccountName) {
@@ -82,7 +83,7 @@ public final class AzureBlobStorage {
       throw new IllegalArgumentException("Blob does not exist: " + blobName);
     }
 
-    var tempFile = Files.createTempFile("enso-blob-", blobName);
+    var tempFile = Files.createTempFile("enso-blob-", blobName.replaceAll("[^A-Za-z0-9_.]", "_"));
     blob.downloadToFile(tempFile.toString(), true);
     LOGGER.trace("Downloaded blob to: {}", tempFile);
     return tempFile.toString();

@@ -1,15 +1,15 @@
+import {
+  type FileType,
+  isExtensions,
+  isFileTypes,
+  isGlobAll,
+} from '$/providers/openedProjects/widgetRegistry/configuration'
 import type SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import type { SubmenuComponent } from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import type { SubmenuEntry } from '@/components/GraphEditor/widgets/WidgetSelection/submenuEntry'
 import type AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import type { Filter } from '@/components/widgets/FileBrowserWidget/fileExtensionFilter'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
-import {
-  type FileType,
-  isExtensions,
-  isFileTypes,
-  isGlobAll,
-} from '@/providers/widgetRegistry/configuration'
 import { endOnClick, targetIsOutside } from '@/util/autoBlur'
 import type { ToValue } from '@/util/reactivity'
 import type { HTMLElementEventHandler } from '@/util/vueDom'

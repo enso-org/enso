@@ -183,8 +183,13 @@ public final class BindingSorterTest {
               Option.empty(), name(methodName, true), null, new MetadataStorage());
     }
     Reference<Expression> bodyRef = Reference.of(empty());
-    return new Method.Explicit(
-        methodRef, bodyRef, isStatic, isPrivate, false, null, new MetadataStorage());
+    return Method.Explicit.builder()
+        .methodReference(methodRef)
+        .bodyReference(bodyRef)
+        .isStatic(isStatic)
+        .isPrivate(isPrivate)
+        .isStaticWrapperForInstanceMethod(false)
+        .build();
   }
 
   private static Method.Conversion conversionMethod(String targetTypeName, String sourceTypeName) {
@@ -194,8 +199,11 @@ public final class BindingSorterTest {
             name("from", true),
             null,
             new MetadataStorage());
-    return new Method.Conversion(
-        methodRef, name(sourceTypeName, false), empty(), null, new MetadataStorage());
+    return Method.Conversion.builder()
+        .methodReference(methodRef)
+        .sourceTypeName(name(sourceTypeName, false))
+        .body(empty())
+        .build();
   }
 
   private static Name name(String nm, boolean isMethod) {

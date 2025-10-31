@@ -102,8 +102,9 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
           case TimeOfDayType t -> TIME_MIN;
           case TextType t -> TEXT_MIN;
           case BooleanType b -> BinaryCoalescingOperationBool.MIN_INSTANCE;
-          case NumericType n -> BinaryCoalescingOperationNumeric.create(
-              leftStorage.getType(), right, BinaryCoalescingOperationNumeric.MIN_OPERATION);
+          case NumericType n ->
+              BinaryCoalescingOperationNumeric.create(
+                  leftStorage.getType(), right, BinaryCoalescingOperationNumeric.MIN_OPERATION);
           default -> null;
         };
     return applyOperation(
@@ -144,8 +145,9 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
           case TimeOfDayType t -> TIME_MAX;
           case TextType t -> TEXT_MAX;
           case BooleanType b -> BinaryCoalescingOperationBool.MAX_INSTANCE;
-          case NumericType n -> BinaryCoalescingOperationNumeric.create(
-              leftStorage.getType(), right, BinaryCoalescingOperationNumeric.MAX_OPERATION);
+          case NumericType n ->
+              BinaryCoalescingOperationNumeric.create(
+                  leftStorage.getType(), right, BinaryCoalescingOperationNumeric.MAX_OPERATION);
           default -> null;
         };
     return applyOperation(

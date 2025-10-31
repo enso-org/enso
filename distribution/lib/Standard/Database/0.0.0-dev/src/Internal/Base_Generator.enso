@@ -131,8 +131,11 @@ type SQL_Generator
         - `from_spec`: A description of the FROM clause.
     generate_from_part : Dialect -> SQL_IR_From_Part -> SQL_Builder
     generate_from_part self dialect from_spec = case from_spec of
-        SQL_IR_From_Part.Table name as_name _ ->
-            dialect.wrap_identifier name ++ alias dialect as_name
+        SQL_IR_From_Part.Table name schema as_name _ ->
+            wrapped_ident = if schema == "" then dialect.wrap_identifier name else
+                ## Assume's identifier is <schema>.<name>
+                dialect.wrap_identifier schema ++ "." ++ dialect.wrap_identifier name
+            wrapped_ident ++ alias dialect as_name
         SQL_IR_From_Part.Query raw_sql as_name ->
             subquery = case raw_sql of
                 prepared_statement : SQL_Statement ->
@@ -720,7 +723,7 @@ collect_table_names (query : SQL_IR_Statement) -> Vector Text =
         SQL_IR_Statement.Delete_Unmatched_Rows target_table_name source_table_name _ -> [target_table_name, source_table_name]
         SQL_IR_Statement.Delete_Matching_Rows  target_table_name source_table_name _ -> [target_table_name, source_table_name]
         SQL_IR_Expression.Column origin _ -> [origin]
-        SQL_IR_From_Part.Table table_name alias _ -> [table_name, alias]
+        SQL_IR_From_Part.Table table_name _ alias _ -> [table_name, alias]
         SQL_IR_From_Part.Query _ alias -> [alias]
         SQL_IR_From_Part.Literal_Values _ _ alias -> [alias]
         SQL_IR_From_Part.Union _ alias -> [alias]

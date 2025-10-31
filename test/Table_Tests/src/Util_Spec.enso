@@ -67,7 +67,7 @@ add_specs suite_builder =
             expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos"]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_start_with "Expected column length 4, but got 3 (at "
+            res.catch.message.should_start_with "Expected column row_count 4, but got 3 (at "
         group_builder.specify "Two Columns with different content Are Not Equal" <|
             expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "Col" ["Who", "guards", "the", "guards?"]

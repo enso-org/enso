@@ -33,9 +33,9 @@ public class InterpreterSymbolResolutionTest {
         Source.newBuilder(
                 "enso",
                 """
-                    my_symbol = 42
-                    entry_point = my_symbol
-                    """,
+                my_symbol = 42
+                entry_point = my_symbol
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -53,9 +53,9 @@ public class InterpreterSymbolResolutionTest {
         Source.newBuilder(
                 "enso",
                 """
-                    my_symbol = 42
-                    entry_point = currentModuleName.my_symbol
-                    """,
+                my_symbol = 42
+                entry_point = currentModuleName.my_symbol
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -73,10 +73,10 @@ public class InterpreterSymbolResolutionTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type My_Type
-                        my_value = 43
-                    entry_point = Current_Module_Name.My_Type.my_value
-                    """,
+                type My_Type
+                    my_value = 43
+                entry_point = Current_Module_Name.My_Type.my_value
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -98,9 +98,9 @@ public class InterpreterSymbolResolutionTest {
         Source.newBuilder(
                 "enso",
                 """
-                    aliasedModuleName = 43
-                    entry_point = aliasedModuleName
-                    """,
+                aliasedModuleName = 43
+                entry_point = aliasedModuleName
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
@@ -118,10 +118,10 @@ public class InterpreterSymbolResolutionTest {
         Source.newBuilder(
                 "enso",
                 """
-                    type Aliased_Module_Name
-                        my_value = 44
-                    entry_point = Aliased_Module_Name.my_value
-                    """,
+                type Aliased_Module_Name
+                    my_value = 44
+                entry_point = Aliased_Module_Name.my_value
+                """,
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();

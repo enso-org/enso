@@ -2,7 +2,7 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
-import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
+import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import {
@@ -20,6 +20,15 @@ import { flagsStore } from '$/providers/featureFlags'
 import { useBackends, useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import {
+  backendQueryOptions as backendQueryOptionsBase,
+  INVALIDATE_ALL_QUERIES,
+  INVALIDATION_MAP,
+  PERSISTENCE_MAP,
+  STALE_TIME_MAP,
+  type BackendMutationMethod,
+  type BackendQueryMethod,
+} from '$/utils/backendQuery'
+import {
   queryOptions,
   useMutationState,
   useQueryClient,
@@ -32,13 +41,6 @@ import {
   type UseMutationOptions,
   type UseQueryOptions,
 } from '@tanstack/react-query'
-import {
-  backendQueryOptions as backendQueryOptionsBase,
-  INVALIDATE_ALL_QUERIES,
-  INVALIDATION_MAP,
-  type BackendMutationMethod,
-  type BackendQueryMethod,
-} from 'enso-common/src/backendQuery'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
@@ -78,6 +80,8 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
   return queryOptions<Awaited<ReturnType<Backend[Method]>>>({
     ...options,
     ...backendQueryOptionsBase(backend, method, args, options?.queryKey),
+    staleTime: options?.staleTime ?? STALE_TIME_MAP[method] ?? 0,
+    meta: { ...options?.meta, persist: PERSISTENCE_MAP[method] ?? options?.meta?.persist ?? true },
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
       let result = await (backend?.[method] as any)?.(...args)
@@ -192,6 +196,9 @@ export function backendMutationOptions<Method extends BackendMutationMethod>(
       ...options?.meta,
       invalidates,
       awaitInvalidates: options?.meta?.awaitInvalidates ?? true,
+      refetchType:
+        options?.meta?.refetchType ??
+        (invalidates.some((key) => key[1] === 'listDirectory') ? 'all' : 'active'),
     },
   }
 }
@@ -357,7 +364,19 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
         .getQueryCache()
         .getAll()
         .map((query) => {
-          const data = query.state.data
+          let data = query.state.data
+          // Some queries store assets in infinite queries
+          if (
+            typeof data === 'object' &&
+            data != null &&
+            'pages' in data &&
+            Array.isArray(data.pages)
+          ) {
+            data = data.pages.flatMap((page: unknown) =>
+              typeof page === 'object' && page != null && 'assets' in page ? page.assets : [],
+            )
+          }
+          // Some queries store assets arrays
           if (Array.isArray(data)) {
             // eslint-disable-next-line no-restricted-syntax
             const asset = data.find((maybeAsset) => assetSchema.safeParse(maybeAsset).success) as
@@ -365,6 +384,7 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
               | undefined
             if (asset != null) return asset
           }
+          // And sometimes we store them directly
           const result = assetSchema.safeParse(data)
           if (result.success) return result.data
           return null
@@ -398,9 +418,6 @@ export function useCanRunProjects() {
     },
   }
 }
-
-/** The type of directory listings in the React Query cache. */
-type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
 
 /** Return matching in-flight mutations matching the given filters. */
 export function useBackendMutationState<Method extends BackendMutationMethod, Result>(
@@ -450,49 +467,13 @@ export function useEnsureListDirectory(backend: Backend, category: Category) {
   })
 }
 
-/**
- * Remove an asset from the React Query cache. Should only be called on
- * optimistically inserted assets.
- */
-function useDeleteAsset(backend: Backend, category: Category) {
-  const queryClient = useQueryClient()
-  const ensureListDirectory = useEnsureListDirectory(backend, category)
-
-  return useEventCallback(async (assetId: AssetId, parentId: DirectoryId) => {
-    const siblings = await ensureListDirectory(parentId)
-    const asset = siblings.find((sibling) => sibling.id === assetId)
-    if (!asset) return
-
-    const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
-      queryKey: [
-        backend.type,
-        'listDirectory',
-        parentId,
-        {
-          labels: null,
-          filterBy: CATEGORY_TO_FILTER_BY[category.type],
-          recentProjects: category.type === 'recent',
-        },
-      ],
-    })
-
-    if (listDirectoryQuery?.state.data) {
-      listDirectoryQuery.setData(
-        listDirectoryQuery.state.data.filter((child) => child.id !== assetId),
-      )
-    }
-  })
-}
-
 /** A function to create a new folder. */
 export function useNewFolder(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const setNewestFolderId = useSetNewestFolderId()
+  const setNewestFolderId = useSetAssetToRename()
   const setSelectedAssets = useSetSelectedAssets()
 
-  const createDirectoryMutation = useMutationCallback(
-    backendMutationOptions(backend, 'createDirectory'),
-  )
+  const createDirectory = useMutationCallback(backendMutationOptions(backend, 'createDirectory'))
 
   return useEventCallback(async (parentId: DirectoryId) => {
     const siblings = await ensureListDirectory(parentId)
@@ -505,7 +486,7 @@ export function useNewFolder(backend: Backend, category: Category) {
 
     const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
 
-    return await createDirectoryMutation([{ parentId, title }]).then((result) => {
+    return await createDirectory([{ parentId, title }]).then((result) => {
       setNewestFolderId(result.id)
       setSelectedAssets([{ type: AssetType.directory, ...result }])
       return result
@@ -519,11 +500,8 @@ export function useNewProject(backend: Backend, category: Category) {
   const openProjectLocally = useOpenProjectLocally()
   const openProjectNatively = useOpenProjectNatively()
   const canRunProjects = useCanRunProjects()
-  const deleteAsset = useDeleteAsset(backend, category)
 
-  const createProjectMutation = useMutationCallback(
-    backendMutationOptions(backend, 'createProject'),
-  )
+  const createProject = useMutationCallback(backendMutationOptions(backend, 'createProject'))
 
   return useEventCallback(
     async (
@@ -548,39 +526,33 @@ export function useNewProject(backend: Backend, category: Category) {
         return `${prefix}${Math.max(0, ...projectIndices) + 1}`
       })()
 
-      const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
-
-      return await createProjectMutation([
+      return await createProject([
         {
-          parentDirectoryId: placeholderItem.parentId,
-          projectName: placeholderItem.title,
+          parentDirectoryId: parentId,
+          projectName,
           ...(ensoPath == null ? {} : { ensoPath }),
         },
-      ])
-        .catch((error) => {
-          void deleteAsset(placeholderItem.id, parentId)
-          throw error
-        })
-        .then((createdProject) => {
-          const openProjectParams = {
-            id: createdProject.projectId,
-            parentId: placeholderItem.parentId,
-            title: createdProject.name,
-            ensoPath: createdProject.ensoPath,
-          } satisfies Partial<backendModule.ProjectAsset>
-          if (runLocally) {
-            if (canRunProjects.locally[backend.type]) {
-              // Open in background.
-              void openProjectLocally(openProjectParams, backend.type)
-            }
-          } else {
-            if (canRunProjects.natively[backend.type]) {
-              void openProjectNatively(openProjectParams, backend.type)
-            }
-          }
+      ]).then((createdProject) => {
+        const openProjectParams = {
+          id: createdProject.projectId,
+          parentId,
 
-          return createdProject
-        })
+          title: createdProject.name,
+          ensoPath: createdProject.ensoPath,
+        } satisfies Partial<backendModule.ProjectAsset>
+        if (runLocally) {
+          if (canRunProjects.locally[backend.type]) {
+            // Open in background.
+            void openProjectLocally(openProjectParams, backend.type)
+          }
+        } else {
+          if (canRunProjects.natively[backend.type]) {
+            void openProjectNatively(openProjectParams, backend.type)
+          }
+        }
+
+        return createdProject
+      })
     },
   )
 }
@@ -589,7 +561,7 @@ export function useNewProject(backend: Backend, category: Category) {
 export function useRemoveSelfPermissionMutation(backend: Backend) {
   const { user } = useFullUserSession()
 
-  const createPermissionMutation = useMutationCallback(
+  const createPermission = useMutationCallback(
     backendMutationOptions(backend, 'createPermission', {
       meta: {
         invalidates: [
@@ -602,7 +574,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   )
 
   const mutate = useEventCallback((id: AssetId) => {
-    void createPermissionMutation([
+    void createPermission([
       {
         action: null,
         resourceId: id,
@@ -612,7 +584,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
   })
 
   const mutateAsync = useEventCallback(async (id: AssetId) => {
-    await createPermissionMutation([
+    await createPermission([
       {
         action: null,
         resourceId: id,
@@ -621,7 +593,7 @@ export function useRemoveSelfPermissionMutation(backend: Backend) {
     ])
   })
 
-  return { ...createPermissionMutation, mutate, mutateAsync }
+  return { ...createPermission, mutate, mutateAsync }
 }
 
 /** Build a query options object to list executions for a project. */
@@ -647,4 +619,24 @@ export function getProjectExecutionDetailsQueryOptions(
     ...backendQueryOptions(backend, 'getProjectExecutionDetails', [id, title]),
     staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })
+}
+
+/** Return a function to rename an asset. */
+export function useRenameAsset(backend: Backend) {
+  const updateAsset = useMutationCallback(backendMutationOptions(backend, 'updateAsset'))
+
+  return useEventCallback(
+    (assetId: AssetId, newTitle: string, metadataId?: backendModule.MetadataId) => {
+      return updateAsset([
+        assetId,
+        {
+          title: newTitle,
+          parentDirectoryId: null,
+          description: null,
+          metadataId: metadataId ?? null,
+        },
+        assetId,
+      ])
+    },
+  )
 }

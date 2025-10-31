@@ -55,9 +55,9 @@ public final class SnowflakeCloudCredentials {
     SnowflakeCredentialConfig credentials = unsafeReadCredential(credentialReference);
     AccessToken accessToken = credentials.refresh();
     var secureProperties = new ArrayList<>(properties);
-    secureProperties.add(Pair.create("authenticator", new HideableValue.PlainValue("oauth")));
-    secureProperties.add(Pair.create("user", new HideableValue.PlainValue(accessToken.username())));
-    secureProperties.add(Pair.create("token", new HideableValue.PlainValue(accessToken.token())));
+    secureProperties.add(Pair.create("authenticator", HideableValue.plain("oauth")));
+    secureProperties.add(Pair.create("user", HideableValue.plain(accessToken.username())));
+    secureProperties.add(Pair.create("token", HideableValue.plain(accessToken.token())));
     return JDBCProxy.getConnection(url, secureProperties);
   }
 

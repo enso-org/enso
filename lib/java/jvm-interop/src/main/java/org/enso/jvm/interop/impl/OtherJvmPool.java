@@ -1,6 +1,8 @@
 package org.enso.jvm.interop.impl;
 
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
@@ -28,11 +30,29 @@ public final class OtherJvmPool extends Channel.Config {
 
   private Function<Node, Object> onEnter;
   private BiConsumer<Node, Object> onLeave;
+  private Class<? extends TruffleLanguage> language;
 
   /** Master Channel can be associated with actions on enter and on leave. */
-  public final void onEnterLeave(Function<Node, Object> onEnter, BiConsumer<Node, Object> onLeave) {
+  public final void onEnterLeave(
+      Class<? extends TruffleLanguage> lang,
+      Function<Node, Object> onEnter,
+      BiConsumer<Node, Object> onLeave) {
+    this.language = lang;
     this.onEnter = onEnter;
     this.onLeave = onLeave;
+  }
+
+  final boolean hasLanguage() {
+    return language != null;
+  }
+
+  final Class<? extends TruffleLanguage> getLanguage() throws UnsupportedMessageException {
+    var l = language;
+    if (l == null) {
+      throw UnsupportedMessageException.create();
+    } else {
+      return l;
+    }
   }
 
   /**

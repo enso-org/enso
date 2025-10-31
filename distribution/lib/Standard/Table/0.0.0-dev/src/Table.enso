@@ -1950,21 +1950,25 @@ type Table
        - Returns a Table with the newly split columns and the original removed.
 
        ## Arguments
-        - `column`: The name or index of the column to split the text of.
+        - `columns`: The name or index of the column(s) to split the text of.
         - `delimiter`: The term or terms used to split the text.
         - `column_count`: The number of columns to split to. If `All_Columns`
           then columns will be added to fit all data.
         - `on_problems`: Specifies the behavior when a problem occurs, reporting
           them as warnings by default.
+        - `error_on_missing`: If `True`, an error is raised if a specified column
+          is not found. If `False`, the missing column is ignored.
 
        ## Errors
         - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
           be reported according to the `on_problems` behavior.
-    @column Widget_Helpers.make_column_name_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=False add_by_type=False)
     @delimiter make_delimiter_selector
     @column_count Columns_To_Add.default_widget
-    split_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.split_to_columns self.underlying column delimiter column_count on_problems
+    split_to_columns self (columns:(Vector (Text | Integer) | Text | Integer) = Missing_Argument.throw "columns") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning error_on_missing:Boolean=True -> Table & Any =
+        Vector.unify_vector_or_element columns . fold self current->column->
+            if error_on_missing==False && Nothing==(current.get column) then current else
+                current.implementation.split_to_columns current.underlying column delimiter column_count on_problems
 
     ## ---
        aliases: [parse, tokenize]
@@ -2002,20 +2006,24 @@ type Table
        - Returns a Table with the newly split columns.
 
        ## Arguments
-        - `column`: The name or index of the column to tokenize the text of.
+        - `columns`: The name or index of the column(s) to tokenize the text of.
         - `pattern`: The pattern used to find within the text.
         - `case_sensitivity`: Specifies if the text values should be compared
           case sensitively.
         - `column_count`: The number of columns to split to. If `Nothing` then
           columns will be added to fit all data.
         - `on_problems`: Specifies the behavior when a problem occurs.
+        - `error_on_missing`: If `True`, an error is raised if a specified column
+          is not found. If `False`, the missing column is ignored.
 
        ## Errors
         - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
           be reported according to the `on_problems` behavior.
-    @column Widget_Helpers.make_column_name_selector
-    tokenize_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.tokenize_to_columns self.underlying column pattern case_sensitivity column_count on_problems
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=False add_by_type=False)
+    tokenize_to_columns self (columns:(Vector (Text | Integer) | Text | Integer) = Missing_Argument.throw "columns") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning error_on_missing:Boolean=True -> Table & Any =
+        Vector.unify_vector_or_element columns . fold self current->column->
+            if error_on_missing==False && Nothing==(current.get column) then current else
+                current.implementation.tokenize_to_columns current.underlying column pattern case_sensitivity column_count on_problems
 
     ## ---
        aliases: [parse, regex, split]
@@ -2087,15 +2095,19 @@ type Table
        Expand a column of objects to a new set of columns.
 
        ## Arguments
-        - `column`: The column to expand.
+        - `columns`: The column(s) to expand.
         - `fields`: The set fields to expand. If `Nothing` then all fields are
           added.
         - `prefix`: Prefix to add to the column names. By default the column name
           is used.
-    @column Widget_Helpers.make_column_name_selector
+        - `error_on_missing`: If `True`, an error is raised if a specified column
+          is not found. If `False`, the missing column is ignored.
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=False add_by_type=False)
     @fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
-    expand_column self (column : Text | Integer = Missing_Argument.throw "column") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name -> Table & Any ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
-        self.implementation.expand_column self.underlying column fields prefix
+    expand_column self (columns:(Vector (Text | Integer) | Text | Integer) = Missing_Argument.throw "columns") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name error_on_missing:Boolean=True -> Table & Any ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
+        Vector.unify_vector_or_element columns . fold self current->column->
+            if error_on_missing==False && Nothing==(current.get column) then current else
+                current.implementation.expand_column current.underlying column fields prefix
 
     ## ---
        group: Standard.Base.Calculations

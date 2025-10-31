@@ -25,9 +25,8 @@ final class Utils {
       case Method.Explicit m -> "Method.Explicit ('" + m.methodName().name() + "')";
       case Method.Conversion c -> "Method.Conversion ('" + c.methodName().name() + "')";
       case Method.Binding b -> "Method.Binding ('" + b.methodName().name() + "')";
-      case DefinitionArgument.Specified arg -> "DefinitionArgument.Specified ('"
-          + arg.name().name()
-          + "')";
+      case DefinitionArgument.Specified arg ->
+          "DefinitionArgument.Specified ('" + arg.name().name() + "')";
       case Expression.Binding b -> "Expression.Binding ('" + b.name().name() + "')";
       case Pattern.Name n -> "Pattern.Name ('" + n.name().name() + "')";
       case Pattern.Constructor c -> "Pattern.Constructor ('" + c.constructor().name() + "')";

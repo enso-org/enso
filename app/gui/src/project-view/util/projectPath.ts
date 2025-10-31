@@ -1,4 +1,4 @@
-import { Err, Ok, Result, unwrap } from '@/util/data/result'
+import { Err, Ok, unwrap, type Result } from '@/util/data/result'
 import {
   qnJoin,
   qnSplit,

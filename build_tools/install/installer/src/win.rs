@@ -7,7 +7,6 @@ use crate::Payload;
 
 use enso_install::win::local_app_data;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -16,12 +15,10 @@ pub mod app;
 pub mod config;
 pub mod logic;
 
-
-
 /// Retrieve the compiled-in installer payload with metadata.
 pub fn access_payload() -> Result<Payload> {
     Ok(Payload {
-        data:     enso_install::win::get_installer_payload()?,
+        data: enso_install::win::get_installer_payload()?,
         metadata: access_payload_metadata(),
     })
 }
@@ -48,7 +45,6 @@ pub fn spawn_installer_thread(
         .context("Failed to spawn the installer logic thread.")?;
     Ok((handle, receiver))
 }
-
 
 /// Get the default installation directory.
 pub fn get_install_dir(pretty_name: &str) -> Result<PathBuf> {

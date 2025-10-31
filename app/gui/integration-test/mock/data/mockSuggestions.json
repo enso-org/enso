@@ -1,0 +1,1413 @@
+[
+  {
+    "type": "module",
+    "reexport": "Standard.Base.Data.Time",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "documentation": null,
+    "reexports": ["Standard.Base.Data.Time"]
+  },
+  {
+    "type": "method",
+    "reexport": "Standard.Base.Data.Time.Date_Time",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "unix_epoch_start",
+    "arguments": [],
+    "selfType": "Standard.Base.Data.Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "isStatic": true,
+    "documentation": " ---\nprivate: true\n---",
+    "annotations": [],
+    "reexports": ["Standard.Base.Data.Time.Date_Time"]
+  },
+  {
+    "type": "method",
+    "reexport": "Standard.Base.Data.Time.Date_Time",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "ensure_in_epoch",
+    "arguments": [
+      {
+        "name": "date",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time | Standard.Base.Data.Time.Date.Date",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "action",
+        "reprType": "Standard.Base.Any.Any -> Standard.Base.Any.Any",
+        "isSuspended": true,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ---\nprivate: true\n---",
+    "annotations": [],
+    "reexports": ["Standard.Base.Data.Time.Date_Time"]
+  },
+  {
+    "type": "method",
+    "reexport": "Standard.Base.Data.Time.Date_Time",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "new_builtin",
+    "arguments": [
+      {
+        "name": "year",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "month",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "day",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "hour",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "minute",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "second",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "nanosecond",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "zone",
+        "reprType": "Standard.Base.Data.Time.Time_Zone.Time_Zone",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "isStatic": true,
+    "documentation": " ---\nprivate: true\n---\nObtains an instance of `Date_Time` from a year, month, day, hour, minute,\nsecond, nanosecond and timezone.\n\nRecommended to use `Date_Time.new` instead which handles potential exceptions.\n\n## Arguments\n- `year`: The year to represent, any Integer is valid.\n- `month`: the month-of-year to represent, from 1 (January) to 12 (December)\n- `day`: the day-of-month to represent, from 1 to 31 and must be valid for\n  the year and month\n- `hour`: the hour-of-day to represent, from 0 to 23\n- `minute`: the minute-of-hour to represent, from 0 to 59\n- `second`: the second-of-minute to represent, from 0 to 59\n- `nanosecond`: the nano-of-second to represent, from 0 to 999,999,999\n- `zone`: the timezone",
+    "annotations": [],
+    "reexports": ["Standard.Base.Data.Time.Date_Time"]
+  },
+  {
+    "type": "type",
+    "reexport": "Standard.Base.Main",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "Date_Time",
+    "params": [],
+    "parentType": "Standard.Base.Any.Any",
+    "documentation": " ---\nprivate: true\n---\nA date-time with a timezone in the ISO-8601 calendar system, such as\n\"2007-12-03T10:15:30+01:00 Europe/Paris\".\nTime is a representation of a date-time with a timezone. This class stores all\ndate and time fields, to a precision of nanoseconds, and a timezone, with a\nzone offset used to handle ambiguous local date-times.\nFor example, the value \"2nd October 2007 at 13:45.30.123456789 +02:00 in the\nEurope/Paris timezone\" can be stored as `Time`.",
+    "reexports": ["Standard.Base.Main", "Standard.Base.Data.Time.Date_Time"]
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "enso_epoch_start",
+    "arguments": [],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "isStatic": true,
+    "documentation": " ---\nicon: time\n---\nObtains the start of the epoch for Enso.\n\n## Remarks\n\n### Start of the epoch\nFor Enso, start of the epoch is equal to the start of the Gregorian\ncalendar, which is on 15th October 1582.\nInvoking some Gregorian calendar related functionalities, like\n`is_leap_year`, is computed for all the date times, including those before\nan epoch start, with today's rules. Trying to get some Gregorian calendar\nrelated properties for a historical date times that is defined before the\nepoch is likely an error, as the Gregorian calendar had not yet been\nintroduced. Therefore, for such historical date times, a warning is\nattached to the result.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "now",
+    "arguments": [],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "isStatic": true,
+    "documentation": " ---\naliases: [current time]\ngroup: DateTime\nicon: time\nsuggested: 11\n---\nObtains the current date-time from the system clock in the system\ntimezone.\n\n## Examples\n### Get the current time\n\n```\n     from Standard.Base import Date_Time\n\n     example_now = Date_Time.now\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "new",
+    "arguments": [
+      {
+        "name": "year",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Missing_Argument.\"year\".throw",
+        "tagValues": null
+      },
+      {
+        "name": "month",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "1",
+        "tagValues": null
+      },
+      {
+        "name": "day",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "1",
+        "tagValues": null
+      },
+      {
+        "name": "hour",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "minute",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "second",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "millisecond",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "microsecond",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "nanosecond",
+        "reprType": "Standard.Base.Data.Numbers.Integer",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "zone",
+        "reprType": "Standard.Base.Data.Time.Time_Zone.Time_Zone",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Time_Zone.system",
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "isStatic": true,
+    "documentation": " ---\ngroup: Constants\nicon: time\n---\nObtains an instance of `Date_Time` from a year, month, day, hour, minute,\nsecond, nanosecond and timezone.\n\nReturns a `Time_Error` if the provided time cannot be represented.\n\n## Arguments\n- `year`: The year to represent, any Integer is valid.\n- `month`: the month-of-year to represent, from 1 (January) to 12\n  (December)\n- `day`: the day-of-month to represent, from 1 to 31 and must be valid\n  for the year and month\n- `hour`: the hour-of-day to represent, from 0 to 23\n- `minute`: the minute-of-hour to represent, from 0 to 59\n- `second`: the second-of-minute to represent, from 0 to 59\n- `millisecond`: the millisecond-of-second to represent, from 0 to 999.\n- `microsecond`: the microsecond-of-second to represent, from 0 to\n  999,999.\n- `nanosecond`: The nano-of-second to represent, from 0 to 999,999,999.\n- `zone`: the timezone\n\n## Examples\n### Create a new zoned date time at Unix epoch.\n\n```\n     from Standard.Base import Date_Time, Time_Zone\n\n     example_new = Date_Time.new 1970 (zone = Time_Zone.utc)\n```\n\n### Get the 5 August 1986 at midnight.\n\n```\n     from Standard.Base import Date_Time, Time_Zone\n\n     example_new = Date_Time.new 1986 8 5\n```",
+    "annotations": [
+      "year",
+      "month",
+      "day",
+      "hour",
+      "minute",
+      "second",
+      "millisecond",
+      "microsecond",
+      "nanosecond",
+      "zone"
+    ],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "parse",
+    "arguments": [
+      {
+        "name": "text",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "format",
+        "reprType": "Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Date_Time_Formatter.default_enso_zoned_date_time",
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "isStatic": true,
+    "documentation": " ---\naliases: [time from text]\ngroup: Conversions\nicon: convert\n---\nObtains an instance of `Time` from a text such as\n\"2007-12-03T10:15:30+01:00 Europe/Paris\".\nThis method will return a `Time_Error` if the provided time cannot be\nparsed.\n\n## Arguments\n- `text`: The text representing the time to be parsed.\n- `format`: A pattern describing how to parse the text, or a\n  `Date_Time_Formatter`.\n\n## Examples\n### Parse UTC time.\n\n```\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12Z\"\n```\n\n### Parse UTC-04:00 time.\n\n```\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12-04:00\"\n```\n\n### Parse UTC-04:00 time specifying New York timezone.\n\n```\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12-04:00[America/New_York]\"\n```\n\n### Parse UTC-04:00 time with nanoseconds.\n\n```\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01T04:11:12.177528-04:00\"\n```\n\n### Recover from the parse error.\n\n```\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-10-01\" . catch Time_Error (_->Date_Time.now)\n```\n\n### Parse \"2020-05-06 04:30:20\" as Date_Time\n\n```\n     from Standard.Base import Date_Time\n\n     example_parse = Date_Time.parse \"2020-05-06 04:30:20\" \"yyyy-MM-dd HH:mm:ss\"\n```\n\n### Parse \"06 of May 2020 at 04:30AM\" as Date_Tme\n\n```\n     from Standard.Base import Date_Time\n\n     example_parse =\n        Date_Time.parse \"06 of May 2020 at 04:30AM\" \"dd 'of' MMMM yyyy 'at' hh:mma\"\n```\n\n## Remarks\n\n### Pattern Syntax\nIf the pattern is provided as `Text`, it is parsed using the format\ndescribed below. See `Date_Time_Formatter` for more options.\n- y: Year. The number of pattern letters determines the minimum number of\ndigits.\n- y: The year using any number of digits.\n- yy: The year, using at most two digits. The default range is 1950-2049,\nbut this can be changed by including the end year in braces e.g.\n`yy{2099}`.\n- yyyy: The year, using exactly four digits.\n- M: Month of year. The number of pattern letters determines the format:\n- M: Any number (1-12).\n- MM: Month number with zero padding required (01-12).\n- MMM: Short name of the month (Jan-Dec).\n- MMMM: Full name of the month (January-December).\nThe month names depend on the selected locale.\n- d: Day. The number of pattern letters determines the format:\n- d: Any number (1-31).\n- dd: Day number with zero padding required (01-31).\n- ddd: Short name of the day of week (Mon-Sun).\n- dddd: Full name of the day of week (Monday-Sunday).\nThe weekday names depend on the selected locale.\nBoth day of week and day of month may be included in a single pattern - in\nsuch case the day of week is used as a sanity check.\n- Q: Quarter of year.\nIf only year and quarter are provided in the pattern, when parsing a date,\nthe result will be the first day of that quarter.\n- H: 24h hour of day (0-23).\n- h: 12h hour of day (0-12). The `a` pattern is needed to disambiguate\nbetween AM and PM.\n- m: Minute of hour.\n- s: Second of minute.\n- f: Fractional part of the second. The number of pattern letters\ndetermines the number of digits. If one letter is used, any number of\ndigits will be accepted.\n- a: AM/PM marker.\n- T: If repeated 3 or less times - Time zone ID (e.g. Europe/Warsaw, Z,\n-08:30), otherwise - Time zone name (e.g. Central European Time, CET).\n- Z: Zone offset.\n- Z, ZZ, ZZZ: A short offset form (+HHmm).\nNo offset is indicated by \"+0000\". This can be customized by setting an\nalternative no offset string in curly braces, e.g. `zz{Z}`.\n- ZZZZ: Localized offset (e.g. GMT-08:00).\n- ZZZZZ: A full offset form (+HH:mm:ss).\nNo offset is indicated by \"Z\". This can be customized as above, e.g.\n`ZZZZZ{0}`.\n\n### Default Date_Time Format\nUnless you provide a custom format, the text must represent a valid\ndate-time as defined by the ISO-8601 format (see\nhttps://en.wikipedia.org/wiki/ISO_8601).\nIf a time zone is present, it must be in the ISO-8601 Extended Date/Time\nFormat (EDTF) (see https://en.wikipedia.org/wiki/ISO_8601#EDTF).\nThe time zone format consists of:\n- The ISO offset date time.\n- If the zone ID is not available or is a zone offset then the format is\ncomplete.\n- An open square bracket '['.\n- The zone ID. This is not part of the ISO-8601 standard. Parsing is case\nsensitive.\n- A close square bracket ']'.",
+    "annotations": ["format"],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "year",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: Metadata\nicon: metadata\n---\nGet the year portion of the time.\n\n## Examples\n### Get the current year.\n\n```\n     from Standard.Base import Date_Time\n\n     example_year = Date_Time.now.year\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "month",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: Metadata\nicon: metadata\n---\nGet the month portion of the time as a number from 1 to 12.\n\n## Examples\n### Get the current month.\n\n```\n     from Standard.Base import Date_Time\n\n     example_month = Date_Time.now.month\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "day",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: Metadata\nicon: metadata\n---\nGet the day portion of the time.\n\n## Examples\n### Get the current day.\n\n```\n     from Standard.Base import Date_Time\n\n     example_day = Date_Time.now.day\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "hour",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: Metadata\nicon: metadata\n---\nGet the hour portion of the time.\n\n## Examples\n### Get the current hour.\n\n```\n     from Standard.Base import Date_Time\n\n     example_hour = Date_Time.now.hour\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "minute",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: Metadata\nicon: metadata\n---\nGet the minute portion of the time.\n\n## Examples\n### Get the current minute.\n\n```\n     from Standard.Base import Date_Time\n\n     example_minute = Date_Time.now.minute\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "second",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: Metadata\nicon: metadata\n---\nGet the second portion of the time.\n\n## Examples\n### Get the current second.\n\n```\n     from Standard.Base import Date_Time\n\n     example_second = Date_Time.now.second\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "millisecond",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: Metadata\nicon: metadata\n---\nGet the millisecond portion of the time.\n\n## Examples\n### Get the current millisecond.\n\n```\n     from Standard.Base import Date_Time\n\n     example_millisecond = Date_Time.now.millisecond\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "microsecond",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: Metadata\nicon: metadata\n---\nGet the microsecond portion of the time.\n\n## Examples\n### Get the current microsecond.\n\n```\n     from Standard.Base import Date_Time\n\n     example_microsecond = Date_Time.now.microsecond\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "nanosecond",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "include_milliseconds",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "False",
+        "tagValues": [
+          "Standard.Base.Data.Boolean.Boolean.True",
+          "Standard.Base.Data.Boolean.Boolean.False"
+        ]
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: Metadata\nicon: metadata\n---\nGet the nanosecond portion of the time.\n\n## Arguments\n- `include_milliseconds`: Specifies if the whole fractional part of the\n  second should be returned as nanoseconds. Defaults to `False`, meaning\n  it will only return the nanosecond part in the range 0-999.\n\n## Examples\n### Get the current nanosecond.\n\n```\n     from Standard.Base import Date_Time\n\n     example_nanosecond = Date_Time.now.nanosecond\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "zone",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Time_Zone.Time_Zone",
+    "isStatic": false,
+    "documentation": " ---\ngroup: DateTime\nicon: metadata\n---\nGet the timezone for the time.\n\n## Examples\n### Get the current timezone.\n\n```\n     from Standard.Base import Date_Time\n\n     example_zone = Date_Time.now.zone\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "to_unix_epoch_seconds",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\nicon: convert\n---\nReturn the number of seconds from the Unix epoch start (1.1.1970) If this\nDate_Time is before the epoch start, returns a negative number.\n\n## Examples\n### Get the current number of seconds from the Unix epoch.\n\n```\n     from Standard.Base import Date_Time\n\n     example_epoch = Date_Time.now.to_unix_epoch_seconds\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "to_unix_epoch_milliseconds",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\nicon: convert\n---\nReturn the number of milliseconds from the Unix epoch start.\nIf this Date_Time is before an epoch start, returns a negative number.\n\n## Examples\n### Get the current number of milliseconds from the Enso epoch.\n\n```\n     from Standard.Base import Date_Time\n\n     example_epoch = Date_Time.now.to_unix_epoch_milliseconds\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "to_enso_epoch_seconds",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\nicon: convert\n---\nReturn the number of seconds from the Enso epoch start.\nSee `Date_Time.enso_epoch_start`.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "to_enso_epoch_milliseconds",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\nicon: convert\n---\nReturn the number of milliseconds from the Enso epoch start.\nSee `Date_Time.enso_epoch_start`.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "time_of_day",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day",
+    "isStatic": false,
+    "documentation": " ---\ngroup: DateTime\nicon: metadata\n---\nConvert this point in time to time of day, discarding the time zone\ninformation.\n\n## Examples\n### Convert the current time to a time of day.\n\n```\n     from Standard.Base import Date_Time\n\n     example_time_of_day = Date_Time.now.time_of_day\n```",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "week_of_year",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "locale",
+        "reprType": "Standard.Base.Data.Locale.Locale | Standard.Base.Nothing.Nothing",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Nothing",
+        "tagValues": ["Standard.Base.Nothing.Nothing"]
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\nicon: metadata\n---\nReturns the number of week of year this date falls into.\nProduces a warning for a Date that is before epoch start.\n\n## Arguments\n- `locale`: the locale used to define the notion of weeks of year. If no\n  locale is provided, then the ISO 8601 week of year is used.\n\n## Remarks\n\n### Locale Dependency\nNote that this operation is locale-specific. It varies both by the local\ndefinition of the first day of week and the definition of the first week\nof year. For example, in the US, the first day of the week is Sunday and\nweek 1 is the week containing January 1. In the UK on the other hand, the\nfirst day of the week is Monday, and week 1 is the week containing the\nfirst Thursday of the year. Therefore it is important to properly specify\nthe `locale` argument.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "is_leap_year",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Boolean.Boolean",
+    "isStatic": false,
+    "documentation": " ---\ngroup: DateTime\nicon: metadata\n---\nReturns if the date is in a leap year.\nProduces a warning for a Date that is before epoch start.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "length_of_year",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: DateTime\nicon: metadata\n---\nReturns the number of days in the year represented by this date.\nProduces a warning for a Date that is before epoch start.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "century",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\nicon: metadata\n---\nReturns the century of the date.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "quarter",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: Metadata\nicon: metadata\n---\nReturns the quarter of the year the date falls into.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Base.Data.Time.Date_Time",
+    "name": "length_of_month",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Base.Data.Time.Date_Time.Date_Time",
+    "returnType": "Standard.Base.Data.Numbers.Integer",
+    "isStatic": false,
+    "documentation": " ---\ngroup: DateTime\nicon: metadata\n---\nReturns the number of days in the month represented by this date.\nProduces a warning for a Date that is before epoch start.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "module",
+    "reexport": "Standard.Base.Errors",
+    "module": "Standard.Base.Errors.Problem_Behavior",
+    "documentation": null,
+    "reexports": ["Standard.Base.Errors"]
+  },
+  {
+    "type": "type",
+    "reexport": "Standard.Base.Main",
+    "module": "Standard.Base.Errors.Problem_Behavior",
+    "name": "Problem_Behavior",
+    "params": [],
+    "parentType": "Standard.Base.Any.Any",
+    "documentation": " Specifies how to handle problems.",
+    "reexports": ["Standard.Base.Main", "Standard.Base.Errors.Problem_Behavior"]
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Base.Errors.Problem_Behavior",
+    "name": "Ignore",
+    "arguments": [],
+    "returnType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+    "documentation": " Ignore the problem and attempt to complete the operation",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Base.Errors.Problem_Behavior",
+    "name": "Report_Warning",
+    "arguments": [],
+    "returnType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+    "documentation": " Report the problem as a warning and attempt to complete the operation",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Base.Errors.Problem_Behavior",
+    "name": "Report_Error",
+    "arguments": [],
+    "returnType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+    "documentation": " Report the problem as a dataflow error and abort the operation",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "module",
+    "reexport": "Standard.Base.Main",
+    "module": "Standard.Base.Data",
+    "documentation": null,
+    "reexports": ["Standard.Base.Main"]
+  },
+  {
+    "type": "method",
+    "reexport": "Standard.Base.Data",
+    "module": "Standard.Base.Data",
+    "name": "read",
+    "arguments": [
+      {
+        "name": "path",
+        "reprType": "Standard.Base.Data.Text.Text | Standard.Base.Network.URI.URI | Standard.Base.System.File.File",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Missing_Argument.\"path\".throw",
+        "tagValues": null
+      },
+      {
+        "name": "format",
+        "reprType": "Standard.Base.System.File_Format.File_Format",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Auto_Detect",
+        "tagValues": ["Standard.Base.System.File_Format.File_Format"]
+      },
+      {
+        "name": "on_problems",
+        "reprType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Report_Warning",
+        "tagValues": ["..Ignore", "..Report_Warning", "..Report_Error"]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ---\naliases: [csv, delimited, excel, hyper, load, open, tableau]\ngroup: File\nicon: data_input\nsuggested: 1\n---\nReads a file into Enso.\nUses the specified file format to parse the file into an Enso type. If not\nspecified will use the file's extension to determine the file format.\n\n## Arguments\n- `path`: The path to the file to read. If the path is a URI, the data will\n  be fetched from a supported protocol.\n- `format`: A `File_Format` object used to read file into memory. If\n  `Auto_Detect` is specified, the provided file determines the specific type\n  and configures it appropriately. A `File_Error.Unsupported_Type` error is\n  returned if it cannot match the type.\n- `on_problems`: Specifies the behavior when a problem occurs during the\n  function. By default, a warning is issued, but the operation proceeds. If\n  set to `Report_Error`, the operation fails with a dataflow error. The\n  operation proceeds without errors or warnings if set to `Ignore`.\n\n## Examples\n### Read the first sheet of an XLSX from disk and convert it into a table.\n\n```\n     from Standard.Table import all\n     import Standard.Examples\n\n     example_xlsx_to_table = Data.read Examples.xlsx\n```\n\n### Read the sheet named `Dates` from an XLS and convert it to a table.\n\n```\n     from Standard.Table import all\n     import Standard.Examples\n\n     example_xls_to_table = Data.read Examples.xls (..Sheet 'Dates')\n```\n\n## Remarks\n\n### Request Caching\nResponses to HTTP data requests are cached, and additional requests for the\nsame resources will use the cache, saving a round-trip call to the remote\nserver. Two resources are considered the same if the URIs and request headers\nare the same. Header order does not affect sameness.\nThe cache respects the \"max-age\" and \"Age\" response headers; see `Data.fetch`\nfor more details.\nThe cached values are retained as long as the project remains open. Closing a\nproject will clear the cache.",
+    "annotations": ["path", "format"],
+    "reexports": ["Standard.Base.Data"]
+  },
+  {
+    "type": "method",
+    "reexport": "Standard.Base.Data",
+    "module": "Standard.Base.Data",
+    "name": "read_many",
+    "arguments": [
+      {
+        "name": "paths",
+        "reprType": "Standard.Base.Data.Read.Many_Files_List.Many_Files_List",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Missing_Argument.\"paths\".throw",
+        "tagValues": null
+      },
+      {
+        "name": "format",
+        "reprType": "Standard.Base.System.File_Format.File_Format",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Auto_Detect",
+        "tagValues": ["Standard.Base.System.File_Format.File_Format"]
+      },
+      {
+        "name": "return",
+        "reprType": "Standard.Base.Data.Read.Return_As.Return_As",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "As_Merged_Table",
+        "tagValues": null
+      },
+      {
+        "name": "on_problems",
+        "reprType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Report_Warning",
+        "tagValues": ["..Ignore", "..Report_Warning", "..Report_Error"]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ---\naliases: [load, open]\ngroup: File\nicon: data_input\nsuggested: 2\n---\nReads a list of files into Enso.\n\n## Arguments\n- `paths`: A list of files to load. It can be a Vector, Column or Table of\n  files, paths or URIs to fetch. If a Table is provided, it must either\n  contain a single column or a column called `path` (case insensitive).\n- `format`: A `File_Format` object used to read file into memory. If\n  `Auto_Detect` is specified, the provided file determines the specific type\n  and configures it appropriately. A `File_Error.Unsupported_Type` error is\n  returned if it cannot match the type.\n- `return`: Specifies the shape of the data to return.\n- `on_problems`: Specifies the behavior when a problem occurs during the\n  function. By default, if one of the files fails to load, a warning is\n  issued and the entry for that file becomes `Nothing`, but the operation\n  proceeds. If set to `Report_Error`, the operation fails with a dataflow\n  error on the first failing file. If set to `Ignore`, the operation proceeds\n  without errors or warnings, replacing files that fail to load with\n  `Nothing`.\n\n## Examples\n### Read all CSV files from a directory into a single merged table.\n\n```\n     from Standard.Table import all\n     import Standard.Examples\n\n     files = Data.list name_filter=\"*.csv\"\n     example_csv_dir_to_table = Data.read_many files\n```\n\n## Remarks\n\n### Request Caching\nResponses to HTTP data requests are cached, and additional requests for the\nsame resources will use the cache, saving a round-trip call to the remote\nserver. Two resources are considered the same if the URIs and request headers\nare the same. Header order does not affect sameness.\nThe cache respects the \"max-age\" and \"Age\" response headers; see `Data.fetch`\nfor more details.\nThe cached values are retained as long as the project remains open. Closing a\nproject will clear the cache.",
+    "annotations": ["paths", "format", "return"],
+    "reexports": ["Standard.Base.Data"]
+  },
+  {
+    "type": "method",
+    "reexport": "Standard.Base.Data",
+    "module": "Standard.Base.Data",
+    "name": "read_text",
+    "arguments": [
+      {
+        "name": "path",
+        "reprType": "Standard.Base.Data.Text.Text | Standard.Base.System.File.File",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Missing_Argument.\"path\".throw",
+        "tagValues": null
+      },
+      {
+        "name": "encoding",
+        "reprType": "Standard.Base.Data.Text.Encoding.Encoding",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Encoding.default",
+        "tagValues": ["..Default", "..Value"]
+      },
+      {
+        "name": "on_problems",
+        "reprType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Report_Warning",
+        "tagValues": ["..Ignore", "..Report_Warning", "..Report_Error"]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Data.Text.Text",
+    "isStatic": true,
+    "documentation": " ---\naliases: [load text, open text]\nicon: data_input\n---\nOpen and read the file at the provided `path`.\n\n## Arguments\n- `path`: The path of the file to open and read the contents of. It will\n  accept a textual path or a file.\n- `encoding`: The text encoding to decode the file with. Defaults to UTF-8.\n- `on_problems`: Specifies the behavior when a problem occurs during the\n  function. By default, a warning is issued, but the operation proceeds. If\n  set to `Report_Error`, the operation fails with a dataflow error. If set to\n  `Ignore`, the operation proceeds without errors or warnings.\n\n## Examples\n### Read the `data.csv` file in the project directory's `data` directory. You\n will need to create the file `data.csv` manually in that directory.\n\n```\n     import Standard.Base.Data\n     import Standard.Examples\n\n     example_read = Data.read_text Examples.csv_path\n```",
+    "annotations": ["path", "encoding"],
+    "reexports": ["Standard.Base.Data"]
+  },
+  {
+    "type": "method",
+    "reexport": "Standard.Base.Data",
+    "module": "Standard.Base.Data",
+    "name": "fetch",
+    "arguments": [
+      {
+        "name": "uri",
+        "reprType": "Standard.Base.Network.URI.URI | Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Missing_Argument.\"uri\".throw",
+        "tagValues": null
+      },
+      {
+        "name": "method",
+        "reprType": "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Get",
+        "tagValues": [
+          "..Options",
+          "..Get",
+          "..Head",
+          "..Post",
+          "..Put",
+          "..Patch",
+          "..Delete",
+          "..Trace",
+          "..Connect",
+          "..Custom"
+        ]
+      },
+      {
+        "name": "headers",
+        "reprType": "Standard.Base.Data.Vector.Vector Standard.Base.Network.HTTP.Header.Header | (Standard.Base.Data.Pair.Pair Standard.Base.Data.Text.Text Standard.Base.Data.Text.Text)",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "[]",
+        "tagValues": null
+      },
+      {
+        "name": "format",
+        "reprType": "Standard.Base.System.File_Format.File_Format",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Auto_Detect",
+        "tagValues": ["Standard.Base.System.File_Format.File_Format"]
+      },
+      {
+        "name": "cache_policy",
+        "reprType": "Standard.Base.Network.HTTP.Cache_Policy.Cache_Policy",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Default",
+        "tagValues": ["..Default", "..Use_Cache", "..No_Cache"]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ---\naliases: [download, http get]\ngroup: Web\nicon: data_download\nsuggested: 4\n---\nFetches from the provided URI and returns the response, parsing the body if\nthe content-type is recognised. Returns an  error if the status code does not\nrepresent a successful response.\n\n## Arguments\n- `uri`: The URI to fetch.\n- `method`: The HTTP method to use. Must be one of `HTTP_Method.Get`,\n  `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`. Defaults\n  to `HTTP_Method.Get`.\n- `headers`: The headers to send with the request. Defaults to an empty\n  vector.\n- `format`: The format to use for interpreting the response. Defaults to\n  `Auto_Detect`. If `Raw_Response` is selected or if the format cannot be\n  determined automatically, a raw HTTP `Response` will be returned.\n\n## Examples\n### Read from an HTTP endpoint.\n\n```\n     import Standard.Base.Data\n     response = Data.fetch URL\n\n```\n\n### Read from an HTTP endpoint and write the results to a file.\n\n```\n     import Standard.Base.Data\n     file = enso_project.data / \"spreadsheet.xls\"\n     Data.fetch URL . body . write file\n```\n\n## Remarks\n\n### Request Caching\nResponses to HTTP data requests are cached, and additional requests for the\nsame resources will use the cache, saving a round-trip call to the remote\nserver. Two resources are considered the same if the URIs and request headers\nare the same. Header order does not affect sameness.\nThe cached values are retained as long as the project remains open. Closing a\nproject will clear the cache.\nThe cache respects the \"max-age\" and \"Age\" response headers received from\nremote servers. These headers are used to determine if the cached value is\nfresh or stale. If it is stale, the cached value is removed and a request is\nmade again to the remote servers.\nThe following limits are imposed on values stored in the cache:\n- Single file limit: a single file can be no more than 10M.\n- Total cache size limit: the entire cache can be no more than 10G.\nFor data responses over the single file limit, you can use `Data.download` to\ndownload the file locally. Download sizes are not constrained by either limit.\nIf the entire cache goes over the total cache size limit, the\nleast-recently-used entries are removed.",
+    "annotations": ["uri", "method", "format", "headers"],
+    "reexports": ["Standard.Base.Data"]
+  },
+  {
+    "type": "method",
+    "reexport": "Standard.Base.Data",
+    "module": "Standard.Base.Data",
+    "name": "post",
+    "arguments": [
+      {
+        "name": "uri",
+        "reprType": "Standard.Base.Network.URI.URI | Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Missing_Argument.\"uri\".throw",
+        "tagValues": null
+      },
+      {
+        "name": "body",
+        "reprType": "Standard.Base.Network.HTTP.Request_Body.Request_Body",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Empty",
+        "tagValues": ["..Text", "..Json", "..Binary", "..Byte_Array", "..Form_Data", "..Empty"]
+      },
+      {
+        "name": "method",
+        "reprType": "Standard.Base.Network.HTTP.HTTP_Method.HTTP_Method",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Post",
+        "tagValues": [
+          "..Options",
+          "..Get",
+          "..Head",
+          "..Post",
+          "..Put",
+          "..Patch",
+          "..Delete",
+          "..Trace",
+          "..Connect",
+          "..Custom"
+        ]
+      },
+      {
+        "name": "headers",
+        "reprType": "Standard.Base.Data.Vector.Vector Standard.Base.Network.HTTP.Header.Header | (Standard.Base.Data.Pair.Pair Standard.Base.Data.Text.Text Standard.Base.Data.Text.Text)",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "[]",
+        "tagValues": null
+      },
+      {
+        "name": "response_format",
+        "reprType": "Standard.Base.System.File_Format.File_Format",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Auto_Detect",
+        "tagValues": ["Standard.Base.System.File_Format.File_Format"]
+      }
+    ],
+    "selfType": "Standard.Base.Data",
+    "returnType": "Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ---\naliases: [http post, upload]\ngroup: Web\nicon: data_upload\nsuggested: 8\n---\nWrites the provided data to the provided URI. Returns the response, parsing\nthe body if the content-type is recognised. Returns an  error if the status\ncode does not represent a successful response.\n\n## Arguments\n- `uri`: The URI to fetch.\n- `body`: The data to write. See `Supported Body Types` below.\n- `method`: The HTTP method to use. Must be one of `HTTP_Method.Post`,\n  `HTTP_Method.Put`, `HTTP_Method.Patch`. Defaults to `HTTP_Method.Post`.\n- `headers`: The headers to send with the request. Defaults to an empty\n  vector.\n- `response_format`: The format to use for interpreting the response.\n  Defaults to `Auto_Detect`. If `Raw_Response` is selected or if the format\n  cannot be determined automatically, a raw HTTP `Response` will be returned.\n\n## Examples\n### Write a text string to an HTTP endpoint.\n\n```\n     import Standard.Base.Data\n     response = Data.post url_post (Request_Body.Text \"hello world\")\n```\n\n### Write JSON to an HTTP endpoint.\n\n```\n     import Standard.Base.Data\n     json = Json.parse '{\"a\": \"asdf\", \"b\": 123}'\n     response = Data.post url_post json\n```\n\n### Write an Enso object to an HTTP endpoint.\n\n```\n     import Standard.Base.Data\n     response = Data.post url_post (My_Type.Value 12)\n```\n\n### Write a text string to an HTTP endpoint, with a specific text encoding.\n\n```\n     import Standard.Base.Data\n     body = Request_Body.Text 'Hello World!' encoding=Encoding.utf_16_le\n     response = Data.post url_post body\n```\n\n### Write a text string to an HTTP endpoint, with a specific content type.\n\n```\n     import Standard.Base.Data\n     body = Request_Body.Text 'a,b,c\\n' content_type=\"text/csv\"\n     response = Data.post url_post body\n```\n\n### Write the contents of a file to an HTTP endpoint.\n\n```\n     import Standard.Base.Data\n     test_file = enso_project.data / \"sample.png\"\n     response = Data.post url_post (Request_Body.Binary test_file)\n```\n\n### Write a multipart form to an HTTP endpoint.\n\n```\n     import Standard.Base.Data\n     test_file = enso_project.data / \"sample.png\"\n     form_data = Dictionary.from_vector [[\"key\", \"val\"], [\"a_file\", test_file]]\n     response = Data.post url_post (Request_Body.Form_Data form_data)\n```\n\n### Write a URL-encoded form to an HTTP endpoint.\n\n```\n     import Standard.Base.Data\n     test_file = enso_project.data / \"sample.txt\"\n     form_data = Dictionary.from_vector [[\"key\", \"val\"], [\"a_file\", test_file]]\n     response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)\n```\n\n## Remarks\n\n### Supported Body Types\n- Request_Body.Text: Sends a text string, with optional encoding and content\ntype.\n- Request_Body.Json: Sends an Enso object, after converting it to JSON.\n- Request_Body.Binary: Sends a file.\n- Request_Body.Form_Data: Sends a form encoded as key/value pairs. The keys\nmust be `Text`, and the values must be `Text` or `File`.\n- Request_Body.Empty: Sends an empty body.\n\nAdditionally, the following types are allowed as the `body` parameter:\n- Text: shorthand for `Request_Body.Text that_text`.\n- File: shorthand for `Request_Body.Binary that_file`.\n- Any other Enso object: shorthand for `Request_Body.Json that_object`.\n\n### Specifying Content Types\nIf the `body` parameter specifies an explicit content type, then it is an\nerror to also specify additional `Content-Type` headers in the `headers`\nparameter. (It is not an error to specify multiple `Content-Type` values in\n`headers`, however.)\n\n### Default Content Types\nThe following specifies the default content type for each `Request_Body` type.\n - Request_Body.Text: `text/plain`\n - Request_Body.Json: `application/json`\n - Request_Body.Binary: `application/octet-stream`\n - Request_Body.Form_Data:\n       If `url_encoded` is True: `application/x-www-form-urlencoded`\n       If `url_encoded` is False: `multipart/form-data`\n - Request_Body.Empty: No content type is sent\n - Text: `text/plain`\n - File: `application/octet-stream`\n - Any other Enso object: `application/json`\n### Specifying Text Encodings\nText encoding can be specified in the `encoding` parameter to the\n`Request_Body.Text` constructor. This value will be added to the\n`Content-Type` header.\nIf a value for `encoding` is specified, but no value for `content_type` is\nspecified, then `\"text/plain\"` is used as the content type.",
+    "annotations": ["uri", "method", "headers", "response_format"],
+    "reexports": ["Standard.Base.Data"]
+  },
+  {
+    "type": "type",
+    "reexport": "Standard.Table.Main",
+    "module": "Standard.Table.Table",
+    "name": "Table",
+    "params": [],
+    "parentType": "Standard.Base.Any.Any",
+    "documentation": " Represents a column-oriented table data structure.",
+    "reexports": ["Standard.Table.Main", "Standard.Table.Table"]
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Table",
+    "name": "new",
+    "arguments": [
+      {
+        "name": "columns",
+        "reprType": "Standard.Base.Data.Vector.Vector Standard.Base.Data.Vector.Vector | Standard.Table.Column.Column",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Table.Table.Table",
+    "returnType": "Standard.Table.Table.Table",
+    "isStatic": true,
+    "documentation": " ---\nicon: table_edit\n---\nCreates a new table from a set of columns. This can either be provided as\na set of pairs of names and data, or existing Column objects.\n\n## Arguments\n- `columns`: A set of either Column objects or pairs of name and data to\n  construct a column from. If passing name and data, the items can be\n  passed as a Vector, Range or a Date_Range.\n\n## Returns\n- A Table of all of the input data.\n\n## Examples\n### Create a new table with the specified columns.\n\n```\n     first_column = [\"count\", [1, 2, 3]]\n     second_column = [\"is_valid\", [True, False, True]]\n     Table.new [first_column, second_column]\n\n```\nReturns a table like:\n\n        | count | is_valid |\n        |-------|----------|\n        | 1     | True     |\n        | 2     | False    |\n        | 3     | True     |\n\n? Unique Names\nColumn names must be unique. If a column name is repeated, an error is\nthrown.\n\n? Consistent Row Count\nAll columns must have the same number of rows. If a column has a\ndifferent number of entries, an error is thrown.\n\n## Errors\n- If the vector is improperly defined, an error is returned.\n- If there are no columns, an error is returned.\n- If column names are not distinct, an error is returned.\n- If any columns have an inconsistent number of records, an error is\n  returned.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Table",
+    "name": "input",
+    "arguments": [
+      {
+        "name": "columns",
+        "reprType": "Standard.Base.Data.Vector.Vector Standard.Base.Data.Vector.Vector | Standard.Table.Column.Column",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Table.Table.Table",
+    "returnType": "Standard.Base.Any.Any | Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": " ---\ngroup: Standard.Base.Constants\nicon: table_edit\nsuggested: 7\n---\nCreates a new table from a set of columns parsing the resulting table.\n\n## Arguments\n- `columns`: A set of either Column objects or set of name, data and\n  optionally type to construct a column from. If the data is passed as\n  Vector Text then it will be parsed into the specified type (defaults to\n  auto detect).\n\n## Returns\n- A Table of all of the input data.\n\n## Errors\n- If the vector is improperly defined, an error is returned.\n- If there are no columns, an error is returned.\n- If column names are not distinct, an error is returned.\n- If any columns have an inconsistent number of records, an error is\n  returned.  ? Unique Names Column names must be unique. If a column name\n  is repeated, an error is thrown.  ? Consistent Row Count All columns\n  must have the same number of rows. If a column has a different number\n  of entries, an error is thrown.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Table",
+    "name": "select_columns",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Table.Table.Table",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "columns",
+        "reprType": "Standard.Base.Data.Vector.Vector | Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer | Standard.Base.Data.Text.Regex.Regex | Standard.Table.Value_Type.By_Type",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "[((name) ((first) ((columns) self)))]",
+        "tagValues": null
+      },
+      {
+        "name": "reorder",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "False",
+        "tagValues": ["True", "False"]
+      },
+      {
+        "name": "case_sensitivity",
+        "reprType": "Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Default",
+        "tagValues": ["..Default", "..Sensitive", "..Insensitive"]
+      },
+      {
+        "name": "error_on_missing_columns",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "True",
+        "tagValues": ["True", "False"]
+      },
+      {
+        "name": "on_problems",
+        "reprType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Report_Warning",
+        "tagValues": ["..Ignore", "..Report_Warning", "..Report_Error"]
+      }
+    ],
+    "selfType": "Standard.Table.Table.Table",
+    "returnType": "Standard.Table.Table.Table | Standard.Base.Any.Any",
+    "isStatic": false,
+    "documentation": " ---\naliases: [select fields]\ngroup: Standard.Base.Selections\nicon: select_column\nsuggested: 1\n---\nCreates a new table with a chosen subset of columns, as specified by the\n`columns`, from the input table. Any unmatched input columns will be\ndropped from the output.\n\n## Arguments\n- `columns`: Specifies columns by a single instance or Vector of names;\n  indexes or regular expressions to match names; or a `By_Type` selector\n  to choose columns by type.\n- `case_sensitivity`: Controls whether to be case sensitive when matching\n  column names.\n- `reorder`: By default, or if set to `False`, columns in the output will\n  be in the same order as in the input table. If `True`, the order in the\n  output table will match the order in the columns list. If a column is\n  matched by multiple selectors in reorder mode, it will be placed at the\n  position of the first one matched.\n- `error_on_missing_columns`: Specifies if a missing input column should\n  result in an error regardless of the `on_problems` settings. Defaults\n  to `True`.\n- `on_problems`: Specifies how to handle problems if they occur,\n  reporting them as warnings by default.\n\n## Returns\n- A new table with the chosen subset of columns.\n\n## Examples\n### Select columns by name.\n\n```\n     table = Table.from_rows [\"bar\",\"foo\",\"buzz\",\"bizz\"] [[\"John\", \"25\",\"abc\",\"123\"]]\n     output = table.select_columns [\"bar\", \"foo\"]\n\n```\nReturns a Table\n\n        | bar  | foo |\n        |------|-----|\n        | John | 25  |\n\n### Select columns by name, reordering the result.\n\n```\n     table = Table.from_rows [\"bar\",\"foo\",\"buzz\",\"bizz\"] [[\"John\", \"25\",\"abc\",\"123\"]]\n     output = table.select_columns [\"foo\", \"bar\"] reorder=True\n\n```\nReturns a Table\n\n        | foo  | bar  |\n        |------|------|\n        | 25   | John |\n\n### Select columns matching a regular expression.\n\n```\n     table = Table.from_rows [\"bar\",\"foo\",\"buzz\",\"bizz\"] [[\"John\", \"25\",\"abc\",\"123\"]]\n     output = table.select_columns [regex \"b.+\"]\n\n```\nReturns a Table\n\n        | bar  | buzz | bizz |\n        |------|------|------|\n        | John | abc  | 123  |\n\n### Select the first two columns and the last column, moving the last one to front.\n\n```\n     table = Table.from_rows [\"bar\",\"foo\",\"buzz\",\"bizz\"] [[\"John\", 25,\"abc\",123]]\n     output = table.select_columns [-1, 0, 1] reorder=True\n\n```\nReturns a Table\n\n        | bizz | bar  | foo  |\n        |------|------|------|\n        | 123  | John | 25   |\n\n### Select integer columns.\n\n```\n     table = Table.from_rows [\"bar\",\"foo\",\"buzz\",\"bizz\"] [[\"John\", 25,\"abc\",123]]\n     output = table.select_columns [..By_Type ..Integer]\n\n```\nReturns a Table\n\n        | foo  | bizz |\n        |------|------|\n        | 25   | 123  |\n\n## Errors\n- If there are no columns in the output table, a `No_Output_Columns` is\n  raised as an error regardless of the problem behavior, because it is\n  not possible to create a table without any columns.\n- If a column in `columns` is not in the input table, a\n  `Missing_Input_Columns` is raised as an error, unless\n  `error_on_missing_columns` is set to `False`, in which case the problem\n  is reported according to the `on_problems` setting.\n\n## Remarks\n\n### Selecting By Type\nIf selecting by type, then the length, scale and precision are ignored.\nIn other words, `..Text` will match any text column, regardless of its\nlength or being fixed or variable length. Similarly, `..Integer` will\nmatch any integer column, regardless of its size.",
+    "annotations": ["columns"],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Table",
+    "name": "aggregate",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Table.Table.Table",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "group_by",
+        "reprType": "(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer | Standard.Base.Data.Text.Text | Standard.Base.Data.Text.Regex.Regex | Standard.Table.Aggregate_Column.Aggregate_Column) | Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer | Standard.Base.Data.Text.Regex.Regex",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "[]",
+        "tagValues": null
+      },
+      {
+        "name": "columns",
+        "reprType": "Standard.Base.Data.Vector.Vector Standard.Table.Aggregate_Column.Aggregate_Column",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "[]",
+        "tagValues": null
+      },
+      {
+        "name": "error_on_missing_columns",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "False",
+        "tagValues": ["True", "False"]
+      },
+      {
+        "name": "on_problems",
+        "reprType": "Standard.Base.Errors.Problem_Behavior.Problem_Behavior",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Report_Warning",
+        "tagValues": ["..Ignore", "..Report_Warning", "..Report_Error"]
+      }
+    ],
+    "selfType": "Standard.Table.Table.Table",
+    "returnType": "Standard.Table.Table.Table | Standard.Base.Any.Any",
+    "isStatic": false,
+    "documentation": " ---\naliases:\n- average\n- first\n- group by\n- last\n- longest\n- maximum\n- mean\n- median\n- minimum\n- mode\n- percentile\n- shortest\n- standard deviation\n- summarize\n- variance\nmacros:\n- sum: columns=[..Sum]\n- count: columns=[..Count]\n- count_distinct: columns=[..Count_Distinct]\ngroup: Standard.Base.Calculations\nicon: transform4\nsuggested: 7\n---\nAggregates the rows in a table using `group_by` columns.\nThe columns argument specifies which additional aggregations to perform\nand to return.\n\n## Arguments\n- `group_by`: A list of columns to group by. These will be included at\n  the start of the resulting table. If no columns are specified a single\n  row will be returned with the aggregate columns.\n- `columns`: The aggregate operations being performed specifying the\n  aggregated table. Expressions can be used within the aggregate column\n  to perform more complicated calculations.\n- `error_on_missing_columns`: Specifies if a missing columns in\n  aggregates should result in an error regardless of the `on_problems`\n  settings. Defaults to `False`, meaning that problematic aggregations\n  will not be included in the result and a problem reported.\n- `on_problems`: Specifies how to handle problems if they occur,\n  reporting them as warnings by default.\n\n## Examples\n### Count all the rows\n\n```\n     table = Table.from_rows [\"Name\",\"Location\"] [[\"John\", \"Massachusetts\"],[\"Paul\",\"London\"]]\n     grouped = table.aggregate columns=[Aggregate_Column.Count]\n```\nReturns a Table\n\n        | Count |\n        |-------|\n        | 2     |\n\n### Group by the Key column, count the rows\n\n```\n     table = Table.from_rows [\"Name\",\"Location\"] [[\"John\", \"Massachusetts\"],[\"Paul\",\"London\"]]\n     grouped = table.aggregate [\"Name\"] [Aggregate_Column.Count]\n```\nReturns a Table\n\n        | Name | Count |\n        |------|-------|\n        | John | 1     |\n        | Paul | 1     |\n\n## Errors\n- If there are no columns in the output table, a `No_Output_Columns` is\n  raised as an error regardless of the problem behavior, because it is\n  not possible to create a table without any columns.\n- If a column index is out of range, a `Missing_Input_Columns` is\n  reported according to the `on_problems` setting, unless\n  `error_on_missing_columns` is set to `True`, in which case it is raised\n  as an error. Problems resolving `group_by` columns are reported as\n  dataflow errors regardless of these settings, as a missing grouping\n  will completely change semantics of the query.\n- If a column selector is given as a `Text` and it does not match any\n  columns in the input table nor is it a valid expression, an\n  `Invalid_Aggregate_Column` problem is raised according to the\n  `on_problems` settings (unless `error_on_missing_columns` is set to\n  `True` in which case it will always be an error). Problems resolving\n  `group_by` columns are reported as dataflow errors regardless of these\n  settings, as a missing grouping will completely change semantics of the\n  query.\n- If an aggregation fails, an `Invalid_Aggregation` dataflow error is\n  raised.\n- Additionally, the following problems may be reported according to the\n  `on_problems` setting:\n- If there are invalid column names in the output table, a\n  `Invalid_Column_Names`.\n- If there are duplicate column names in the output table, a\n  `Duplicate_Output_Column_Names`.\n- If grouping on or computing the `Mode` on a floating point number, a\n  `Floating_Point_Equality`.\n- If when concatenating values there is an quoted delimited, an\n  `Unquoted_Delimiter`\n- If there are more than 10 issues with a single column, an\n  `Additional_Warnings`.  Returns\n- A new table with the group_by columns as well as any aggregate columns.",
+    "annotations": ["group_by", "columns"],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Table",
+    "name": "set",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Table.Table.Table",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "expression",
+        "reprType": "Standard.Table.Expression",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Table.Table.Table",
+    "returnType": "Standard.Table.Table.Table | Standard.Base.Any.Any",
+    "isStatic": false,
+    "documentation": null,
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Expression",
+    "name": "expr",
+    "arguments": [
+      {
+        "name": "expression",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Table.Expression",
+    "returnType": "Standard.Table.Expression | Standard.Base.Any.Any",
+    "isStatic": true,
+    "documentation": null,
+    "annotations": ["expression"],
+    "reexports": []
+  },
+  {
+    "type": "method",
+    "module": "Standard.Table.Column",
+    "name": "is_nan",
+    "arguments": [
+      {
+        "name": "self",
+        "reprType": "Standard.Table.Column.Column",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      },
+      {
+        "name": "column",
+        "reprType": "Standard.Table.Column.Column",
+        "isSuspended": false,
+        "hasDefault": false,
+        "defaultValue": null,
+        "tagValues": null
+      }
+    ],
+    "selfType": "Standard.Table.Column.Column",
+    "returnType": "Standard.Table.Column.Column | Standard.Base.Any.Any",
+    "isStatic": false,
+    "documentation": null,
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "module",
+    "reexport": null,
+    "module": "Standard.Table.Aggregate_Column",
+    "documentation": null,
+    "reexports": []
+  },
+  {
+    "type": "type",
+    "reexport": "Standard.Table.Main",
+    "module": "Standard.Table.Aggregate_Column",
+    "name": "Aggregate_Column",
+    "params": [],
+    "parentType": "Standard.Base.Any.Any",
+    "documentation": " Defines an Aggregate Column",
+    "reexports": ["Standard.Table.Main", "Standard.Table.Aggregate_Column"]
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Table.Aggregate_Column",
+    "name": "Group_By",
+    "arguments": [
+      {
+        "name": "column",
+        "reprType": "Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer | Standard.Base.Any.Any",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "Missing_Argument.\"column\".throw",
+        "tagValues": null
+      },
+      {
+        "name": "as",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "\"\"",
+        "tagValues": null
+      }
+    ],
+    "returnType": "Standard.Table.Aggregate_Column.Aggregate_Column",
+    "documentation": " ---\nprivate: true\n---\nSpecifies a column to group the rows by. Deprecated but used internally.\n\n## Arguments\n- `column`: the column (either name, expression or index) to group by.\n- `as`: name of new column.",
+    "annotations": ["column"],
+    "reexports": []
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Table.Aggregate_Column",
+    "name": "Count",
+    "arguments": [
+      {
+        "name": "as",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "\"\"",
+        "tagValues": null
+      }
+    ],
+    "returnType": "Standard.Table.Aggregate_Column.Aggregate_Column",
+    "documentation": " Creates a new column with the row count of each group. If no rows,\nevaluates to 0.\n\n## Arguments\n- `as`: name of new column.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "constructor",
+    "module": "Standard.Table.Aggregate_Column",
+    "name": "Count_Distinct",
+    "arguments": [
+      {
+        "name": "columns",
+        "reprType": "Standard.Base.Data.Text.Text | Standard.Base.Data.Numbers.Integer | Standard.Base.Data.Text.Regex.Regex | (Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer | Standard.Base.Data.Text.Text | Standard.Base.Data.Text.Regex.Regex | Standard.Base.Any.Any)",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "0",
+        "tagValues": null
+      },
+      {
+        "name": "as",
+        "reprType": "Standard.Base.Data.Text.Text",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "\"\"",
+        "tagValues": null
+      },
+      {
+        "name": "ignore_nothing",
+        "reprType": "Standard.Base.Data.Boolean.Boolean",
+        "isSuspended": false,
+        "hasDefault": true,
+        "defaultValue": "False",
+        "tagValues": ["True", "False"]
+      }
+    ],
+    "returnType": "Standard.Table.Aggregate_Column.Aggregate_Column",
+    "documentation": " Creates a new column with the count of unique items in the selected\ncolumn(s) within each group. If no rows, evaluates to 0.\n\n## Arguments\n- `columns`: either a single or set of columns (specified by name or\n  index) to count across. The aggregation may also be computed over an\n  expression evaluated on the Table, if provided instead of a single\n  column name. Currently expressions are not supported with multiple\n  selection.\n- `as`: name of new column.\n- `ignore_nothing`: if all values are Nothing won't be included.",
+    "annotations": [],
+    "reexports": []
+  },
+  {
+    "type": "module",
+    "reexport": "Standard.Table.Excel",
+    "module": "Standard.Table.Excel.Excel_Range",
+    "documentation": null,
+    "reexports": ["Standard.Table.Excel"]
+  }
+]

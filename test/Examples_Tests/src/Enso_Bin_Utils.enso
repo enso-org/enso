@@ -3,6 +3,8 @@ private
 from Standard.Base import all
 from Standard.Test import all
 
+from enso_dev.Base_Tests.Enso_Bin_Utils import enso_bin
+
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
 
@@ -12,13 +14,11 @@ type Api_Setup
 
     create namespace:Text name:Text (args : Vector Text) -> Api_Setup =
         Api_Setup.Execute <|
-            bin = enso_bin
             lib = lib_dir namespace name
             all_args = [ "--in-project", lib.to_text ]+args
             IO.println "==== Generating "+namespace.to_text+"."+name.to_text+" documentation ===="
-            res = Process.run bin.path all_args
+            res = Process.run enso_bin all_args
             [lib, res]
-
 
     dir self -> File =
         if self.result.exit_code != Exit_Code.Success then
@@ -39,9 +39,6 @@ bin_dir =
     j = paths . join Java_File.separator
     File.new j
 
-
-enso_bin =
-    bin_dir / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
 
 lib_dir namespace:Text name:Text -> File =
     lib = bin_dir . parent / "lib" / namespace / name

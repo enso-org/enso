@@ -1,4 +1,4 @@
-import { type SyntaxNode, type TreeCursor } from '@lezer/common'
+import type { SyntaxNode, TreeCursor } from '@lezer/common'
 
 /**
  * Compares the value of `cursor.name` to the provided value. This can be used instead of reading the field directly to

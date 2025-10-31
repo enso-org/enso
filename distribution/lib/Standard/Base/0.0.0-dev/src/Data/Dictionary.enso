@@ -4,7 +4,6 @@ import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Errors.Common.Missing_Argument
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.No_Such_Key.No_Such_Key
@@ -15,6 +14,7 @@ import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Error import all
 from project.Errors.Common import Floating_Point_Equality
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice, Vector_Editor

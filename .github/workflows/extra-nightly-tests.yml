@@ -107,7 +107,7 @@ jobs:
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+      - if: "${{ (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean before
         run: ./run git-clean
         env:
@@ -147,7 +147,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
+      - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean
         env:
@@ -242,7 +242,7 @@ jobs:
       REPORT_ALL_TESTS: "1"
     permissions:
       checks: write
-  enso-build-ci-gen-job-standard-library-tests-graal-vm-ce-std-cloud-related-linux-amd64:
+  stdlib-graal-vm-ce-std-cloud-related-linux-amd64:
     name: Standard Library Cloud Tests (GraalVM CE) (LinuxLatest)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-linux-amd64
@@ -314,6 +314,16 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (Standard Library Cloud Tests, linux, amd64)
+          path: |-
+            test/**/*.hprof
+            engine/**/*.hprof
+          retention-days: 3
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: ./run git-clean

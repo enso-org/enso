@@ -11,27 +11,25 @@ use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
 use ide_ci::programs::cargo;
 use ide_ci::programs::Cargo;
 
-
-
 /// Input necessary to generate a Windows installer from unpacked Electron application bundle.
 #[derive(Debug)]
 pub struct Config {
     /// File to the JSON file containing the Electron Builder configuration.
-    pub electron_builder_config:  PathBuf,
+    pub electron_builder_config: PathBuf,
     /// Path to the directory containing the unpacked Electron application bundle.
     ///
     /// It is obtained by running the `electron-builder` with the `--dir` option.
     pub unpacked_electron_bundle: PathBuf,
     /// Path to the root of the repository.
-    pub repo_root:                PathBuf,
+    pub repo_root: PathBuf,
     /// Path where the generated installer should be saved.
-    pub output_file:              PathBuf,
+    pub output_file: PathBuf,
     /// Path to the directory where intermediate files should be stored.
-    pub intermediate_dir:         PathBuf,
+    pub intermediate_dir: PathBuf,
     /// Certificate used to sign the installer and uninstaller.
     ///
     /// If `None`, the installer and uninstaller will not be signed.
-    pub certificate:              Option<WindowsSigningCredentials>,
+    pub certificate: Option<WindowsSigningCredentials>,
 }
 
 /// Builds a package using Cargo and optionally signs it with a certificate.
@@ -48,14 +46,12 @@ pub async fn build_package(
         .arg("--release")
         .arg("--package")
         .arg(crate_name)
-        .arg("-Z")
-        .arg("unstable-options")
-        .arg("--out-dir")
+        .arg("--target-dir")
         .arg(temp_dir.path())
         .run_ok()
         .await?;
 
-    let built_exe = temp_dir.path().join(crate_name).with_executable_extension();
+    let built_exe = temp_dir.path().join("release").join(crate_name).with_executable_extension();
     if let Some(certificate) = certificate {
         certificate.sign(&built_exe).await?;
     }

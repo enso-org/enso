@@ -5,8 +5,6 @@ use crate::*;
 use std::ops::Bound;
 use std::vec::Drain;
 
-
-
 // ===================
 // === NonEmptyVec ===
 // ===================
@@ -277,8 +275,10 @@ impl<T> NonEmptyVec<T> {
     /// let drained: Vec<i32> = vec.drain(1..=5).collect();
     /// assert_eq!(drained, [1, 2, 3, 4, 5])
     /// ```
-    pub fn drain<R>(&mut self, range: R) -> Drain<T>
-    where R: RangeBounds<usize> {
+    pub fn drain<R>(&'_ mut self, range: R) -> Drain<'_, T>
+    where
+        R: RangeBounds<usize>,
+    {
         if range.contains(&0) {
             match range.end_bound() {
                 Bound::Included(n) => self.elems.drain(1..=*n),
@@ -290,7 +290,6 @@ impl<T> NonEmptyVec<T> {
         }
     }
 }
-
 
 // === Trait Impls ===
 
@@ -316,7 +315,6 @@ impl<T> From<NonEmptyVec<T>> for Vec<T> {
         v.elems
     }
 }
-
 
 impl<T> IntoIterator for NonEmptyVec<T> {
     type Item = T;

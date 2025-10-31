@@ -1,6 +1,6 @@
 import { assert } from '@/util/assert'
 import * as react from 'react'
-import { Ref, toValue, watch, WatchSource } from 'vue'
+import { toValue, watch, type Ref, type WatchSource } from 'vue'
 
 /**
  * A helper for getting contexts where they are asserted to be provided with non-nullish

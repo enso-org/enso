@@ -3,6 +3,10 @@
 - type Duration
     - + self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - - self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - < self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - <= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - between start_inclusive:Standard.Base.Any.Any end_exclusive:Standard.Base.Any.Any timezone_aware:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - hours self -> Standard.Base.Any.Any
     - milliseconds self -> Standard.Base.Any.Any

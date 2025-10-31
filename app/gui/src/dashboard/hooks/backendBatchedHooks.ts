@@ -65,6 +65,7 @@ export function deleteAssetsMutationOptions(backend: Backend) {
         [backend.type, 'listAssetVersions'],
       ],
       awaitInvalidates: true,
+      refetchType: 'all',
     },
   })
 }
@@ -137,6 +138,7 @@ export function restoreAssetsMutationOptions(backend: Backend) {
         [backend.type, 'getAssetDetails'],
       ],
       awaitInvalidates: true,
+      refetchType: 'all',
     },
   })
 }
@@ -212,6 +214,7 @@ export function copyAssetsMutationOptions(backend: Backend) {
         [backend.type, 'getAssetDetails'],
       ],
       awaitInvalidates: true,
+      refetchType: 'all',
     },
   })
 }
@@ -262,7 +265,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
           backend
             .updateAsset(
               id,
-              { description: null, parentDirectoryId: parentId, title: null },
+              { description: null, parentDirectoryId: parentId, title: null, metadataId: null },
               '(unknown)',
             )
             .catch((error) => {
@@ -301,6 +304,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
                 parentDirectoryId: parentId,
                 description: null,
                 title: resolution.newName,
+                metadataId: null,
               },
               resolution.newName,
             ),
