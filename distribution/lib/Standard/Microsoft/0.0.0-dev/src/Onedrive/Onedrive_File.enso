@@ -1,6 +1,25 @@
 from Standard.Base import all
 
+import project.Microsoft365.Microsoft365
+import project.Microsoft365._ms365_get
+
 type Onedrive_File
-    new (uri : Text) =
-        q = uri
-        q
+    Value (service : Microsoft365) (path : Onedrive_Path)
+
+    root (service : Microsoft365) =
+        Onedrive_File.Value service (Onedrive_Path.Value [])
+
+    list self -> Vector Onedrive_File =
+        frag = self.path.to_human_readable_fragment
+        children = _ms365_get self.service frag+":/children"
+        names = children.at "value" . map (x-> x.at "name")
+        names.map name-> self.extend name
+
+type Onedrive_Path
+    Value (path : Vector Text)
+
+    extend self subpath:Text =
+        Onedrive_Path.Value (self.path + [subpath])
+
+    to_human_readable_fragment self =
+        "/me/drive/root:/" + (self.path.join "/")
