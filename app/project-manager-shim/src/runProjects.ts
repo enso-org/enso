@@ -8,7 +8,7 @@ import {
 import type { EnsoPath } from 'enso-common/src/services/Backend/types'
 import { Path, type ProjectEntry, type UUID } from 'enso-common/src/services/ProjectManager/types'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
-import { dirname } from 'path'
+import { dirname } from 'node:path'
 import { getFileSystemEntry } from './handler'
 import { EnsoRunner, findEnsoExecutable } from './projectService/ensoRunner.js'
 import { ProjectService } from './projectService/index.js'
@@ -19,11 +19,19 @@ declare module './projectService/ensoRunner.js' {
   }
 }
 
+function getWorkDir() {
+  if (process.env.NODE_ENV === 'development') {
+    return '../..'
+  } else {
+    return '.'
+  }
+}
+
 function createRunnerAndService(): {
   readonly runner: EnsoRunner
   readonly projectService: ProjectService
 } {
-  const ensoPath = findEnsoExecutable('.')
+  const ensoPath = findEnsoExecutable(getWorkDir())
   if (!ensoPath) {
     throw new Error(`${PRODUCT_NAME} executable not found`)
   }
