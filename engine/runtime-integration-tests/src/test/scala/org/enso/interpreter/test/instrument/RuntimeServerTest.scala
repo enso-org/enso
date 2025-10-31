@@ -2342,8 +2342,8 @@ class RuntimeServerTest
 
     val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
     val id_x1_1  = metadata.addItem(30, 14, "aa")
-    val id_x1_2  = metadata.addItem(49, 10, "ab")
-    val id_x1    = metadata.addItem(69, 6, "ac")
+    val id_x1_2  = metadata.addItem(56, 10, "ab")
+    val id_x1    = metadata.addItem(76, 6, "ac")
 
     val code =
       """main =
