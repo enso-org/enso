@@ -339,8 +339,7 @@ abstract class TypePropagation {
       return null;
     }
 
-    var isStaticMethodCall = arguments.length() == 2 && isStaticMethodInvocation(relatedIR);
-    if (arguments.length() == 1 || isStaticMethodCall) {
+    if (arguments.length() == 1) {
       return firstResult;
     } else {
       return processApplication(
@@ -357,8 +356,13 @@ abstract class TypePropagation {
       Application.Prefix relatedIR,
       LocalBindingsTyping localBindingsTyping) {
     if (argument.name().isDefined()) {
-      // TODO named arguments are not yet supported
-      return null;
+      var isSelf = ConstantsNames.SELF_ARGUMENT.equals(argument.name().get().name());
+      if (!isSelf) {
+        // TODO named arguments are not yet supported
+        return null;
+      } else {
+        // static invocation syntax is supported
+      }
     }
 
     switch (functionType) {
@@ -439,7 +443,12 @@ abstract class TypePropagation {
             encounteredNoSuchMethod(
                 relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.STATIC);
           }
-          return resolvedStaticMethod;
+          if (isStaticMethodInvocation) {
+            var withSelf = TypeRepresentation.buildStaticMethod(typeObject, resolvedStaticMethod);
+            return withSelf;
+          } else {
+            return resolvedStaticMethod;
+          }
         }
       }
 
