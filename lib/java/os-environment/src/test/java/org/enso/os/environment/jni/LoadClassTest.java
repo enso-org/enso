@@ -159,6 +159,19 @@ public class LoadClassTest {
     assertEquals("Proper message has been written into " + tmp, hello, content);
   }
 
+  @Test
+  public void loadChannelFromDynamicLibrary() throws Exception {
+    var libPath = System.getenv("OS_ENVITEST");
+    var libFile = new File(libPath);
+    assert libFile.isFile() : "Library file must exists at " + libPath;
+    var nativeJvm = JVM.create(libFile);
+    System.err.println("got jvm: " + nativeJvm);
+    var ch = Channel.create(nativeJvm, JVMPeer.class);
+    System.err.println("got channel: " + ch);
+    var fac = ch.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
+    assertEquals(120, fac.longValue());
+  }
+
   private void assertException(String msg, TestMain.CountDownAndThrow action) {
     try {
       channel.execute(Void.class, action);
