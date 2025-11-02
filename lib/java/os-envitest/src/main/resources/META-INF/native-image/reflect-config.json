@@ -1,0 +1,11 @@
+[
+  {
+    "name": "org.enso.os.envitest.EnviMain",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  }
+]

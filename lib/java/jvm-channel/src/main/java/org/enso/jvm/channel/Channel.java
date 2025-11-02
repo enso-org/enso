@@ -20,6 +20,7 @@ import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.c.function.CEntryPoint;
 import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;
+import org.graalvm.nativeimage.c.function.InvokeCFunctionPointer;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
@@ -69,7 +70,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   private final long id;
   private final JNI.JNIEnv env;
   private final long isolate;
-  private final MethodHandle callbackFn;
+  private final Object callbackFn;
   private final JNI.JClass channelClass;
   private final JNI.JMethodID channelHandle;
   private final Channel<Data> otherMockChannel;
@@ -88,28 +89,32 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     this.pool = data.createPool(this);
   }
 
-  /** The HotSpot JVM side of a channel. */
+  /** The slave JVM side of a channel. */
   private Channel(long id, Data data, long isolate, long callbackFn) {
-    if (ImageInfo.inImageCode()) {
-      throw new IllegalStateException("Only usable in HotSpot");
-    }
     this.id = id;
     this.data = data;
     this.isolate = isolate;
-    this.env = null;
-    this.channelClass = null;
-    this.channelHandle = null;
     this.otherMockChannel = null;
 
-    var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
-    var fnDescriptor =
-        FunctionDescriptor.of(
-            ValueLayout.JAVA_LONG,
-            ValueLayout.ADDRESS,
-            ValueLayout.JAVA_LONG,
-            ValueLayout.ADDRESS,
-            ValueLayout.JAVA_LONG);
-    this.callbackFn = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
+    if (ImageInfo.inImageRuntimeCode()) {
+      this.env = WordFactory.nullPointer();
+      this.channelClass = WordFactory.nullPointer();
+      this.channelHandle = WordFactory.nullPointer();
+      this.callbackFn = callbackFn;
+    } else {
+      this.env = null;
+      this.channelClass = null;
+      this.channelHandle = null;
+      var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
+      var fnDescriptor =
+          FunctionDescriptor.of(
+              ValueLayout.JAVA_LONG,
+              ValueLayout.ADDRESS,
+              ValueLayout.JAVA_LONG,
+              ValueLayout.ADDRESS,
+              ValueLayout.JAVA_LONG);
+      this.callbackFn = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
+    }
     this.pool = data.createPool(this);
   }
 
@@ -330,11 +335,22 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     return replySize;
   }
 
+  interface CallbackFn extends CFunctionPointer {
+    @InvokeCFunctionPointer
+    long invoke(long isoRef, long id, long seg, long size);
+  }
+
   private long toSubstrateMessage(MemorySegment seg) {
     try {
       var isoRef = MemorySegment.ofAddress(isolate);
-      var res = callbackFn.invoke(isoRef, id, seg, seg.byteSize());
-      return (long) res;
+      if (callbackFn instanceof MethodHandle handle) {
+        var res = handle.invoke(isoRef, id, seg, seg.byteSize());
+        return (long) res;
+      } else {
+        CallbackFn fn = WordFactory.pointer((Long) callbackFn);
+        var res = fn.invoke(isolate, id, seg.address(), seg.byteSize());
+        return res;
+      }
     } catch (Throwable ex) {
       printStackTrace(ex, false);
       return -1L;
@@ -351,7 +367,8 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
 
   private void checkForException(JNI.JNIEnv e) {
     var fn = e.getFunctions();
-    if (fn.getExceptionCheck().call(e)) {
+    var hasException = fn.getExceptionCheck().call(e);
+    if (hasException) {
       var throwable = fn.getExceptionOccurred().call(e);
       assert throwable.isNonNull() : "There must be a throwable";
       if (printStackTrace(null, true)) {

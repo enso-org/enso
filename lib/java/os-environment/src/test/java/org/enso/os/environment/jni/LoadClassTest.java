@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.util.Random;
 import org.enso.jvm.channel.Channel;
 import org.enso.jvm.channel.JVM;
+import org.enso.os.envitest.EnviMain;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -166,10 +167,10 @@ public class LoadClassTest {
     assert libFile.isFile() : "Library file must exists at " + libPath;
     var nativeJvm = JVM.create(libFile);
     System.err.println("got jvm: " + nativeJvm);
-    var ch = Channel.create(nativeJvm, JVMPeer.class);
+    var ch = Channel.create(nativeJvm, EnviMain.class);
     System.err.println("got channel: " + ch);
-    var fac = ch.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
-    assertEquals(120, fac.longValue());
+    var fac = ch.execute(EnviMain.Hello.class, new EnviMain.Hello("native"));
+    assertEquals("Hello native!", fac.msg());
   }
 
   private void assertException(String msg, TestMain.CountDownAndThrow action) {
