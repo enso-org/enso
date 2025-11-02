@@ -4540,10 +4540,10 @@ lazy val `os-envitest` =
           targetDir     = targetDir,
           symlink       = false,
           mainClass     = Some("org.enso.os.envitest.EnviMain"),
+          shared        = true,
           additionalOptions = Seq(
             "-ea",
-            "-R:-InstallSegfaultHandler",
-            "--shared"
+            "-R:-InstallSegfaultHandler"
           ) ++ (if (GraalVM.EnsoLauncher.debug) {
                   // useful perf & debug switches:
                   Seq(
@@ -4557,12 +4557,7 @@ lazy val `os-envitest` =
                   Seq()
                 })
         )
-      }.value,
-      Test / test := Def
-        .task {}
-        .dependsOn(Test / buildNativeImage)
-        .value,
-      Test / fork := true
+      }.value
     )
     .dependsOn(`jvm-channel`)
     .dependsOn(`persistance`)
