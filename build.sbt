@@ -354,6 +354,7 @@ lazy val enso = (project in file("."))
     `netty-tc-native-wrapper`,
     `opencv-wrapper`,
     `os-environment`,
+    `os-envitest`,
     `persistance`,
     `persistance-dsl`,
     pkg,
@@ -4534,14 +4535,15 @@ lazy val `os-envitest` =
       Test / buildNativeImage := Def.taskDyn {
         val targetDir = (Test / target).value
         NativeImage.buildNativeImage(
-          "test-envimain",
+          "os-envitest",
           staticOnLinux = false,
           targetDir     = targetDir,
           symlink       = false,
           mainClass     = Some("org.enso.os.envitest.EnviMain"),
           additionalOptions = Seq(
             "-ea",
-            "-R:-InstallSegfaultHandler"
+            "-R:-InstallSegfaultHandler",
+            "--shared"
           ) ++ (if (GraalVM.EnsoLauncher.debug) {
                   // useful perf & debug switches:
                   Seq(
@@ -4549,10 +4551,6 @@ lazy val `os-envitest` =
                     "-O0",
                     "-H:+SourceLevelDebug",
                     "-H:-DeleteLocalSymbols",
-                    // you may need to set smallJdk := None to use following flags:
-                    // "--trace-class-initialization=org.enso.syntax2.Parser",
-                    // "--diagnostics-mode",
-                    // "--verbose",
                     "-Dnic=nic"
                   )
                 } else {
@@ -4561,23 +4559,7 @@ lazy val `os-envitest` =
         )
       }.value,
       Test / test := Def
-        .task {
-          val logger    = streams.value.log
-          val exeSuffix = if (Platform.isWindows) ".exe" else ""
-          val exeFile =
-            (Test / target).value / ("test-envimain" + exeSuffix)
-          val binPath = exeFile.getAbsolutePath
-          val res =
-            Process(
-              Seq(binPath),
-              None,
-              "JAVA_TOOL_OPTIONS" -> "--enable-native-access=org.enso.jvm.channel"
-            ) ! logger
-          if (res != 0) {
-            logger.error("Some test in os-environment failed")
-            throw new TestsFailedException()
-          }
-        }
+        .task {}
         .dependsOn(Test / buildNativeImage)
         .value,
       Test / fork := true
