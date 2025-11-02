@@ -1,0 +1,11 @@
+[
+  {
+    "name":"org.enso.os.envitest.EnviMain",
+    "methods":[
+      {
+        "name":"main",
+        "parameterTypes":["java.lang.String[]"]
+      }
+    ]
+  }
+]

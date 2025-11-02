@@ -14,6 +14,10 @@ import org.graalvm.word.PointerBase;
 final class PosixJVM {
   static JNIBoot.JNICreateJavaVMPointer createImpl(File javaHome) {
     var libJvmPath = findDynamicLibrary(javaHome).getPath();
+    return loadImpl(libJvmPath);
+  }
+
+  static JNIBoot.JNICreateJavaVMPointer loadImpl(String libJvmPath) {
     try (var libPath = CTypeConversion.toCString(libJvmPath);
         var createJvm = CTypeConversion.toCString("JNI_CreateJavaVM")) {
       var jvmSo = dlopen(libPath.get(), RTLD_NOW());

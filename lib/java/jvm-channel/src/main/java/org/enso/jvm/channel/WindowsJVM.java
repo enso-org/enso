@@ -17,7 +17,10 @@ import org.graalvm.word.PointerBase;
 final class WindowsJVM {
   static JNICreateJavaVMPointer createImpl(File javaHome) {
     var dllPath = findDynamicLibrary(javaHome).getPath();
+    return loadImpl(dllPath);
+  }
 
+  static JNICreateJavaVMPointer loadImpl(String dllPath) {
     try (var libPath = CTypeConversion.toCString(dllPath);
         var createJvm = CTypeConversion.toCString("JNI_CreateJavaVM")) {
       var dll = LoadLibraryA(libPath.get());

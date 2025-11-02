@@ -144,6 +144,21 @@ public class LoadClassTest {
     assertException("120", new TestMain.CountDownAndThrow(5, 1));
   }
 
+  @Test
+  public void loadFromDynamicLibrary() throws Exception {
+    var libPath = System.getenv("OS_ENVITEST");
+    var libFile = new File(libPath);
+    assert libFile.isFile() : "Library file must exists at " + libPath;
+    var nativeJvm = JVM.create(libFile);
+    System.err.println("Native " + nativeJvm);
+    var tmp = File.createTempFile("nativelib", ".msg");
+    var hello = "Hello from native lib!";
+    nativeJvm.executeMain("org/enso/os/envitest/EnviMain", tmp.getAbsolutePath(), hello);
+    var content = Files.readString(tmp.toPath());
+    tmp.delete();
+    assertEquals("Proper message has been written into " + tmp, hello, content);
+  }
+
   private void assertException(String msg, TestMain.CountDownAndThrow action) {
     try {
       channel.execute(Void.class, action);

@@ -4634,6 +4634,10 @@ lazy val `os-environment` =
         .task {
           val logger    = streams.value.log
           val exeSuffix = if (Platform.isWindows) ".exe" else ""
+          val libSuffix =
+            if (Platform.isWindows) ".dll"
+            else if (Platform.isLinux) ".so"
+            else ".dylib"
           val exeFile =
             (Test / target).value / ("test-os-env" + exeSuffix)
           val binPath = exeFile.getAbsolutePath
@@ -4641,13 +4645,15 @@ lazy val `os-environment` =
             Process(
               Seq(binPath),
               None,
-              "JAVA_TOOL_OPTIONS" -> "--enable-native-access=org.enso.jvm.channel"
+              "JAVA_TOOL_OPTIONS" -> "--enable-native-access=org.enso.jvm.channel",
+              "OS_ENVITEST"       -> ((`os-envitest` / Test / target).value / ("os-envitest" + libSuffix)).toString
             ) ! logger
           if (res != 0) {
             logger.error("Some test in os-environment failed")
             throw new TestsFailedException()
           }
         }
+        .dependsOn(`os-envitest` / Test / buildNativeImage)
         .dependsOn(Test / buildNativeImage)
         .value,
       Test / fork := true

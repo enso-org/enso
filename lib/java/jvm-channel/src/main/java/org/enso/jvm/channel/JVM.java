@@ -30,10 +30,19 @@ public final class JVM {
    * @return new instance of the JVM
    */
   public static JVM create(File javaHome, String... options) {
-    var createJvmFn =
-        Platform.includedIn(Platform.WINDOWS.class)
-            ? WindowsJVM.createImpl(javaHome)
-            : PosixJVM.createImpl(javaHome);
+    JNIBoot.JNICreateJavaVMPointer createJvmFn;
+    if (javaHome.isDirectory()) {
+      createJvmFn =
+          Platform.includedIn(Platform.WINDOWS.class)
+              ? WindowsJVM.createImpl(javaHome)
+              : PosixJVM.createImpl(javaHome);
+    } else {
+      assert javaHome.isFile();
+      createJvmFn =
+          Platform.includedIn(Platform.WINDOWS.class)
+              ? WindowsJVM.loadImpl(javaHome.getAbsolutePath())
+              : PosixJVM.loadImpl(javaHome.getAbsolutePath());
+    }
 
     var jvmArgs = new ArrayList<String>();
 
