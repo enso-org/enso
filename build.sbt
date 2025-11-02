@@ -4502,6 +4502,91 @@ lazy val `jvm-interop` =
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`test-utils` % Test)
 
+lazy val `os-envitest` =
+  project
+    .in(file("lib/java/os-envitest"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      libraryDependencies ++= slf4jApi ++ Seq(
+        "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
+        "junit"           % "junit"           % junitVersion              % Test,
+        "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
+      ),
+      Compile / moduleDependencies ++= slf4jApi ++ Seq(
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
+      ),
+      Compile / internalModuleDependencies ++= Seq(
+        (`engine-common` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value,
+        (`jvm-channel` / Compile / exportedModule).value,
+        (`logging-utils` / Compile / exportedModule).value,
+        (`logging-config` / Compile / exportedModule).value
+      ),
+      NativeImage.smallJdk := None,
+      NativeImage.additionalCp := {
+        val ourDeps = (Test / fullClasspath).value.map(_.data.getAbsolutePath)
+        ourDeps
+      },
+      Test / buildNativeImage := Def.taskDyn {
+        val targetDir = (Test / target).value
+        NativeImage.buildNativeImage(
+          "test-envimain",
+          staticOnLinux = false,
+          targetDir     = targetDir,
+          symlink       = false,
+          mainClass     = Some("org.enso.os.envitest.EnviMain"),
+          additionalOptions = Seq(
+            "-ea",
+            "-R:-InstallSegfaultHandler"
+          ) ++ (if (GraalVM.EnsoLauncher.debug) {
+                  // useful perf & debug switches:
+                  Seq(
+                    "-g",
+                    "-O0",
+                    "-H:+SourceLevelDebug",
+                    "-H:-DeleteLocalSymbols",
+                    // you may need to set smallJdk := None to use following flags:
+                    // "--trace-class-initialization=org.enso.syntax2.Parser",
+                    // "--diagnostics-mode",
+                    // "--verbose",
+                    "-Dnic=nic"
+                  )
+                } else {
+                  Seq()
+                })
+        )
+      }.value,
+      Test / test := Def
+        .task {
+          val logger    = streams.value.log
+          val exeSuffix = if (Platform.isWindows) ".exe" else ""
+          val exeFile =
+            (Test / target).value / ("test-envimain" + exeSuffix)
+          val binPath = exeFile.getAbsolutePath
+          val res =
+            Process(
+              Seq(binPath),
+              None,
+              "JAVA_TOOL_OPTIONS" -> "--enable-native-access=org.enso.jvm.channel"
+            ) ! logger
+          if (res != 0) {
+            logger.error("Some test in os-environment failed")
+            throw new TestsFailedException()
+          }
+        }
+        .dependsOn(Test / buildNativeImage)
+        .value,
+      Test / fork := true
+    )
+    .dependsOn(`jvm-channel`)
+    .dependsOn(`persistance`)
+    .dependsOn(`persistance-dsl` % "provided")
+    .dependsOn(`engine-common`)
+
 lazy val `os-environment` =
   project
     .in(file("lib/java/os-environment"))
