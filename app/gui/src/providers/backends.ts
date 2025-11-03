@@ -1,6 +1,5 @@
 import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
 import { download } from '#/utilities/download'
-import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
 import { BackendType, Path } from 'enso-common/src/services/Backend'
@@ -16,7 +15,6 @@ import { useText, type GetText } from './text'
 export type BackendsStore = ReturnType<typeof useBackends>
 function initializeBackends(
   httpClient: HttpClient,
-  config: ToValue<GuiConfig>,
   rootDirPath: ToValue<string | undefined>,
   getText: GetText,
 ) {
@@ -79,5 +77,5 @@ function initializeBackends(
 }
 
 export const useBackends = createGlobalState(() =>
-  initializeBackends(useHttpClient(), injectGuiConfig(), inject('rootDirPath'), useText().getText),
+  initializeBackends(useHttpClient(), inject('rootDirPath'), useText().getText),
 )
