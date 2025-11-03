@@ -12,7 +12,6 @@ import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TypeChainTest {
@@ -133,7 +132,6 @@ public class TypeChainTest {
   }
 
   /** {@code allTypes(Any.type) == [Any.type, Any]} */
-  @Ignore("Will be addressed in #13939")
   @Test
   public void anyEigentypeChain() {
     var any = ctx.ensoContext().getBuiltins().any();
@@ -150,6 +148,7 @@ public class TypeChainTest {
         "allTypes(Any.type) == [Any.type, Any]", new Object[] {anyEigenType, anyTypeExpected}, all);
   }
 
+  /** {@code allTypes(Error) == [Error, Any]} */
   @Test
   public void errorChain() {
     var errType = ctx.ensoContext().getBuiltins().dataflowError();
