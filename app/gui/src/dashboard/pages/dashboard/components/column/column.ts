@@ -26,7 +26,6 @@ export interface AssetColumnProps {
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
   readonly labels: readonly Label[]
-  // readonly openProject: (projectId: ProjectId) => void
 }
 
 /** Props for the name column of an arbitrary variant of {@link Asset}. */
