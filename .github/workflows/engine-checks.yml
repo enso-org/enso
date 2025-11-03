@@ -511,6 +511,9 @@ jobs:
         run: |
           echo "Current vm.max_map_count value:"
           cat /proc/sys/vm/max_map_count
+          sudo sysctl -w vm.max_map_count=131060
+          echo "New vm.max_map_count value:"
+          cat /proc/sys/vm/max_map_count
       - run: ./run backend test standard-library-in-native
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
