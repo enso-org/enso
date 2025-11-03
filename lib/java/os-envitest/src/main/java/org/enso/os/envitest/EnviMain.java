@@ -19,11 +19,26 @@ public final class EnviMain extends Channel.Config {
     return Persistables.POOL;
   }
 
+  /** This is a message that os-environment/test sends from "master SVM" to "slave SVM". */
   @Persistable(id = 4332)
-  public static record Hello(String msg) implements Function<Object, Hello> {
+  public static record Hello(String name) implements Function<Channel<EnviMain>, Text> {
     @Override
-    public Hello apply(Object obj) {
-      return new Hello("Hello " + msg + "!");
+    public Text apply(Channel<EnviMain> ch) {
+      // now we are running in "slave SVM" and sending a message back to "master SVM"
+      var withTitle = ch.execute(Text.class, new Title(name));
+      return new Text("Hello " + withTitle.msg() + "!");
     }
   }
+
+  /** This is a message sent from "slave SVM" back to "master SVM". */
+  @Persistable(id = 4333)
+  public static record Title(String name) implements Function<Object, Text> {
+    @Override
+    public Text apply(Object obj) {
+      return new Text("Mr. " + name);
+    }
+  }
+
+  @Persistable(id = 4334)
+  public static record Text(String msg) {}
 }

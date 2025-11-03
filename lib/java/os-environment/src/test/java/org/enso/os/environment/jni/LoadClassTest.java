@@ -169,8 +169,8 @@ public class LoadClassTest {
     System.err.println("got jvm: " + nativeJvm);
     var ch = Channel.create(nativeJvm, EnviMain.class);
     System.err.println("got channel: " + ch);
-    var fac = ch.execute(EnviMain.Hello.class, new EnviMain.Hello("native"));
-    assertEquals("Hello native!", fac.msg());
+    var fac = ch.execute(EnviMain.Text.class, new EnviMain.Hello("Native"));
+    assertEquals("Hello Mr. Native!", fac.msg());
   }
 
   private void assertException(String msg, TestMain.CountDownAndThrow action) {
