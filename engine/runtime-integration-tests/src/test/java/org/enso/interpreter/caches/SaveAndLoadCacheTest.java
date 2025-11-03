@@ -206,7 +206,7 @@ public class SaveAndLoadCacheTest {
     return res;
   }
 
-  /** Creates executable big source file. */
+  /** Creates big source file with main method. */
   private static String createBigSource(int methodCount) {
     var sb = new StringBuilder();
     sb.append(

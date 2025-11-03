@@ -43,7 +43,6 @@ public final class CacheTests {
     assertThat("local cache file was created", localCacheFile.exists(), is(true));
   }
 
-
   @Test
   public void firstCacheRootIsPreferred() throws IOException {
     var cacheRoots = createCacheRoots();
@@ -169,7 +168,8 @@ public final class CacheTests {
   }
 
   /** Saves data as well as empty metadata on the disk. */
-  private static void saveToLocalRoot(byte[] data, Iterable<TruffleFile> cacheRoots) throws IOException {
+  private static void saveToLocalRoot(byte[] data, Iterable<TruffleFile> cacheRoots)
+      throws IOException {
     var localCacheFile =
         firstElement(cacheRoots).resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
     var localMetadataFile =
@@ -187,7 +187,6 @@ public final class CacheTests {
     random.nextBytes(bytes);
     return bytes;
   }
-
 
   private static TruffleFile firstElement(Iterable<TruffleFile> roots) {
     return roots.iterator().next();
