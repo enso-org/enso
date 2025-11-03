@@ -6,16 +6,17 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.fail;
 
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import org.enso.interpreter.caches.Cache.Roots;
 import org.enso.interpreter.caches.Cache.Spi;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextUtils;
@@ -35,24 +36,25 @@ public final class CacheTests {
     var ensoCtx = ctx.ensoContext();
     var spi = new CacheSpi(cacheRoots);
     var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
-    var ret = cache.save(new CachedData(), ensoCtx, false);
-    assertThat("was saved to local cache root", ret, is(cacheRoots.localCacheRoot()));
+    var ret = cache.save(new CachedData(), ensoCtx);
+    assertThat("was saved to local cache root", ret, is(firstElement(cacheRoots)));
     var localCacheFile =
-        cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
+        firstElement(cacheRoots).resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
     assertThat("local cache file was created", localCacheFile.exists(), is(true));
   }
 
+
   @Test
-  public void globalCacheIsPreferred() throws IOException {
+  public void firstCacheRootIsPreferred() throws IOException {
     var cacheRoots = createCacheRoots();
     var ensoCtx = ctx.ensoContext();
     var spi = new CacheSpi(cacheRoots);
     var cache = Cache.create(spi, Level.FINE, "testCache", false, false);
-    var ret = cache.save(new CachedData(), ensoCtx, true);
-    assertThat("was saved to global cache root", ret, is(cacheRoots.globalCacheRoot()));
-    var globalCacheFile =
-        cacheRoots.globalCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
-    assertThat("global cache file was created", globalCacheFile.exists(), is(true));
+    var ret = cache.save(new CachedData(), ensoCtx);
+    assertThat("was saved to first cache root", ret, is(firstElement(cacheRoots)));
+    var cacheFileInFirstCacheRoot =
+        firstElement(cacheRoots).resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
+    assertThat("first cache file was created", cacheFileInFirstCacheRoot.exists(), is(true));
   }
 
   @Test
@@ -74,7 +76,7 @@ public final class CacheTests {
     assertThat("was loaded", loaded.isPresent(), is(true));
     assertThat("New arena was created", memoryArena.get(), is(notNullValue()));
 
-    var ret = cache.save(new CachedData(), ensoCtx, false);
+    var ret = cache.save(new CachedData(), ensoCtx);
     assertThat("was saved", ret, is(notNullValue()));
     assertThat(
         "Memory arena is closed after cache save", memoryArena.get().scope().isAlive(), is(false));
@@ -85,7 +87,7 @@ public final class CacheTests {
     var ensoCtx = ctx.ensoContext();
     var cacheRoots = createCacheRoots();
     var localCacheFile =
-        cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
+        firstElement(cacheRoots).resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
     // Saving only data and no metadata
     try (var os = localCacheFile.newOutputStream()) {
       os.write(new byte[] {42});
@@ -154,24 +156,24 @@ public final class CacheTests {
     }
   }
 
-  private Roots createCacheRoots() throws IOException {
+  private Iterable<TruffleFile> createCacheRoots() throws IOException {
     var cacheRootDirPath = tempFolder.newFolder("cacheRoot").toPath();
     var localCacheDir = cacheRootDirPath.resolve("local");
     var globalCacheDir = cacheRootDirPath.resolve("global");
     localCacheDir.toFile().mkdir();
     globalCacheDir.toFile().mkdir();
     var ensoCtx = ctx.ensoContext();
-    return new Roots(
+    return List.of(
         ensoCtx.getTruffleFile(localCacheDir.toFile()),
         ensoCtx.getTruffleFile(globalCacheDir.toFile()));
   }
 
   /** Saves data as well as empty metadata on the disk. */
-  private static void saveToLocalRoot(byte[] data, Roots cacheRoots) throws IOException {
+  private static void saveToLocalRoot(byte[] data, Iterable<TruffleFile> cacheRoots) throws IOException {
     var localCacheFile =
-        cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
+        firstElement(cacheRoots).resolve(CacheSpi.ENTRY_NAME + CacheSpi.DATA_SUFFIX);
     var localMetadataFile =
-        cacheRoots.localCacheRoot().resolve(CacheSpi.ENTRY_NAME + CacheSpi.METADATA_SUFFIX);
+        firstElement(cacheRoots).resolve(CacheSpi.ENTRY_NAME + CacheSpi.METADATA_SUFFIX);
     try (var os = localCacheFile.newOutputStream()) {
       os.write(data);
     }
@@ -186,6 +188,11 @@ public final class CacheTests {
     return bytes;
   }
 
+
+  private static TruffleFile firstElement(Iterable<TruffleFile> roots) {
+    return roots.iterator().next();
+  }
+
   private static final class CachedData {}
 
   private static final class Metadata {}
@@ -195,10 +202,10 @@ public final class CacheTests {
     public static final String METADATA_SUFFIX = ".test.metadata";
     public static final String ENTRY_NAME = "test-entry";
 
-    private final Roots cacheRoots;
+    private final Iterable<TruffleFile> cacheRoots;
     private ByteBuffer deserializeBuffer;
 
-    private CacheSpi(Roots cacheRoots) {
+    private CacheSpi(Iterable<TruffleFile> cacheRoots) {
       this.cacheRoots = cacheRoots;
     }
 
@@ -235,8 +242,8 @@ public final class CacheTests {
     }
 
     @Override
-    public Optional<Roots> getCacheRoots(EnsoContext context) {
-      return Optional.of(cacheRoots);
+    public Iterable<TruffleFile> getCacheRoots(EnsoContext context) {
+      return cacheRoots;
     }
 
     @Override
