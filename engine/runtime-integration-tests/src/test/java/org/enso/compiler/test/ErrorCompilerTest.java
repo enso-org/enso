@@ -576,7 +576,11 @@ public class ErrorCompilerTest extends CompilerTests {
                 IO.println z
             """);
     assertSingleSyntaxError(
-        ir, new Syntax.UnsupportedSyntax("Invalid use of syntactic operator in expression"), null, 60, 62);
+        ir,
+        new Syntax.UnsupportedSyntax("Invalid use of syntactic operator in expression"),
+        null,
+        60,
+        62);
   }
 
   @Test

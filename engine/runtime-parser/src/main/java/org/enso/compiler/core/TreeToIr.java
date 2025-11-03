@@ -1870,7 +1870,8 @@ final class TreeToIr {
 
   private List<Name> qualifiedNameSegments(Tree t, boolean generateId) throws SyntaxException {
     if (t instanceof Tree.Wildcard wild) {
-      return join(new Name.Blank(getIdentifiedLocation(wild.getToken(), generateId), meta()), nil());
+      return join(
+          new Name.Blank(getIdentifiedLocation(wild.getToken(), generateId), meta()), nil());
     }
     List<Name> names = nil();
     while (t instanceof Tree.PropertyAccess app) {
