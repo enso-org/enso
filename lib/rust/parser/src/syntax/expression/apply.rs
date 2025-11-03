@@ -54,18 +54,6 @@ impl<'s> ApplyOperator<'s> {
 
     pub fn finish(self) -> MaybeSection<Tree<'s>> {
         let Self { tokens, lhs, rhs: rhs_, reify_rhs_section, warnings } = self;
-        /*
-        if tokens.len() == 1 && tokens.first().unwrap().code.repr.0 == "." {
-            if let (Some(lhs), Some(rhs)) = (lhs, rhs_) {
-                //matches!(rhs.value.variant, syntax::tree::Variant::Ident(_))
-                let mut operand = syntax::tree::apply_operator(Some(lhs.value), tokens, Some(rhs.value));
-                if let Some(warnings) = warnings {
-                    warnings.apply(&mut operand.value);
-                }
-                return operand
-            }
-        }
-         */
         let mut operand = if let Some(lhs_termination) = tokens
             .first()
             .and_then(|token| token.operator_properties().unwrap().lhs_section_termination())
