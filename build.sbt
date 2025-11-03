@@ -2096,21 +2096,24 @@ lazy val `ydoc-server` = project
     rebuildNativeImage := Def.taskDyn {
       NativeImage
         .buildNativeImage(
-          "ydoc",
+          "org.enso.ydoc.server",
           staticOnLinux = false,
           targetDir     = target.value / "native-image",
-          mainClass     = Some("org.enso.ydoc.server.Main")
+          mainClass     = Some("org.enso.ydoc.server.Main"),
+          symlink       = false,
+          shared        = true
         )
     }.value,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
         rebuildNativeImage,
-        "ydoc"
+        "org.enso.ydoc.server"
       )
       .value
   )
   .dependsOn(`ydoc-polyfill`)
   .dependsOn(`logging-service-logback`)
+  .dependsOn(`jvm-interop`)
 
 lazy val `ydoc-server-registration` = project
   .in(file("lib/java/ydoc-server-registration"))
@@ -2128,6 +2131,7 @@ lazy val `ydoc-server-registration` = project
       GraalVM.modules,
     Compile / internalModuleDependencies := Seq(
       (`engine-runner-common` / Compile / exportedModule).value,
+      (`jvm-channel` / Compile / exportedModule).value,
       (`jvm-interop` / Compile / exportedModule).value
     ),
     libraryDependencies ++= Seq(
@@ -2141,6 +2145,7 @@ lazy val `ydoc-server-registration` = project
     }
   )
   .dependsOn(`engine-runner-common`)
+  .dependsOn(`jvm-channel`)
   .dependsOn(`jvm-interop`)
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
