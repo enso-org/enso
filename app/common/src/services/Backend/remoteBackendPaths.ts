@@ -94,12 +94,12 @@ export const RESOLVE_ENSO_PATH = 'path/resolve'
 /** Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API. */
 export const CUSTOMER_PORTAL_SESSION_CREATE_PATH = 'payments/customer-portal-sessions/create'
 /** Relative HTTP path to the "API keys" endpoint of the Cloud backend API. */
-export const LIST_API_KEYS_PATH = 'api-keys'
+export const LIST_API_KEYS_PATH = 'credentials'
 /** Relative HTTP path to the "create API key" endpoint of the Cloud backend API. */
-export const CREATE_API_KEY_PATH = 'api-keys'
+export const CREATE_API_KEY_PATH = 'credentials'
 /** Relative HTTP path to the "delete API key" endpoint of the Cloud backend API. */
-export function deleteApiKeyPath(tokenId: ApiKeyId) {
-  return `api-keys/${tokenId}`
+export function deleteApiKeyPath(apiKeyId: ApiKeyId) {
+  return `credentials/${apiKeyId}`
 }
 
 /** Relative HTTP path to the "cancel subscription" endpoint of the Cloud backend API. */

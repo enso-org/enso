@@ -13,8 +13,6 @@ import * as objects from '#/utilities/object'
 import { getFileName, getFolderPath } from '#/utilities/path'
 import * as detect from 'enso-common/src/detect'
 import * as remoteBackendPaths from 'enso-common/src/services/Backend/remoteBackendPaths'
-import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
@@ -1199,15 +1197,13 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
   override async listApiKeys(): Promise<readonly backend.ApiKey[]> {
-    // Temporary mock implementation
-    return structuredClone(this.tokens)
-    const response = await this.get<readonly backend.ApiKey[]>(
+    const response = await this.get<backend.ListApiKeysResponse>(
       remoteBackendPaths.LIST_API_KEYS_PATH,
     )
     if (!response.ok) {
       return await this.throw(response, 'listApiKeysBackendError')
     } else {
-      return await response.json()
+      return (await response.json()).credentials
     }
   }
 
@@ -1216,17 +1212,6 @@ export default class RemoteBackend extends Backend {
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
   override async createApiKey(body: backend.CreateApiKeyRequestBody): Promise<backend.ApiKey> {
-    // Temporary mock implementation
-    const now = toRfc3339(new Date())
-    const token = {
-      id: backend.ApiKeyId(`pat-${uniqueString()}`),
-      name: body.name,
-      description: body.description,
-      createdAt: now,
-      lastUsedAt: now,
-    }
-    this.tokens.push(token)
-    return structuredClone(token)
     const response = await this.post<backend.ApiKey>(remoteBackendPaths.LIST_API_KEYS_PATH, body)
     if (!response.ok) {
       return await this.throw(response, 'createApiKeyBackendError')
@@ -1239,14 +1224,8 @@ export default class RemoteBackend extends Backend {
    * Delete a personal access token for the current user.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async deleteApiKey(tokenId: backend.ApiKeyId) {
-    // Temporary mock implementation
-    const index = this.tokens.findIndex((token) => token.id === tokenId)
-    if (index !== -1) {
-      this.tokens.splice(index, 1)
-    }
-    return
-    const path = remoteBackendPaths.deleteApiKeyPath(tokenId)
+  override async deleteApiKey(apiKeyId: backend.ApiKeyId) {
+    const path = remoteBackendPaths.deleteApiKeyPath(apiKeyId)
     const response = await this.delete(path)
     if (!response.ok) {
       return await this.throw(response, 'deleteApiKeyBackendError')

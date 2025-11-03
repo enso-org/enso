@@ -590,6 +590,11 @@ export interface RemoteBackendError {
   readonly param: string
 }
 
+/** HTTP response body for the "list api keys" endpoint. */
+export interface ListApiKeysResponse {
+  readonly credentials: readonly ApiKey[]
+}
+
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
   readonly users: readonly User[]
@@ -794,16 +799,28 @@ export interface LChColor {
 }
 
 export interface ApiKey {
-  readonly id: ApiKeyId
+  readonly keyId: ApiKeyId
+  // Field populated only once after creation.
+  readonly secretId: string | null
   readonly name: string
   readonly description: string
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly lastUsedAt: dateTime.Rfc3339DateTime | null
+  readonly expiresAt: dateTime.Rfc3339DateTime | null
+}
+
+/** Possible types of lifetime span for api key credentials. */
+export enum ApiKeyExpiresIn {
+  Week = 'Week',
+  Month = 'Month',
+  Year = 'Year',
+  Indefinetly = 'Indefinetly',
 }
 
 export interface CreateApiKeyRequestBody {
   readonly name: string
   readonly description: string
+  readonly expiresIn: ApiKeyExpiresIn
 }
 
 /** A pre-selected list of colors to be used in color pickers. */
@@ -2073,7 +2090,7 @@ export default abstract class Backend {
   /** Create a new API key for the current user. */
   abstract createApiKey(body: CreateApiKeyRequestBody): Promise<ApiKey>
   /** Delete a API key for the current user. */
-  abstract deleteApiKey(tokenId: ApiKeyId): Promise<void>
+  abstract deleteApiKey(apiKeyId: ApiKeyId): Promise<void>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(

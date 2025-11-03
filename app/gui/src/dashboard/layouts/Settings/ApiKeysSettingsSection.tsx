@@ -1,14 +1,17 @@
 /** @file Settings section for viewing and managing API keys. */
+import { Alert } from '#/components/Alert'
 import { Cell, Column, Row, Table, TableBody, TableHeader } from '#/components/aria'
-import { Button } from '#/components/Button'
-import { Dialog, Popover } from '#/components/Dialog'
+import { Button, CopyButton } from '#/components/Button'
+import { Dialog, Popover, type DialogProps } from '#/components/Dialog'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
+import { Selector } from '#/components/Inputs/Selector'
 import { Scroller } from '#/components/Scroller'
 import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import type { ApiKey } from '#/services/Backend'
+import { setModal } from '#/providers/ModalProvider'
+import { ApiKeyExpiresIn, type ApiKey } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
@@ -89,7 +92,7 @@ export function ApiKeySettingsSection() {
                   {getText('youHaveNoApiKeys')}
                 </Cell>
               </Row>
-            : (apiKey) => <ApiKeyRow apiKey={apiKey} />}
+            : (apiKey) => <ApiKeyRow id={apiKey.keyId} apiKey={apiKey} />}
           </TableBody>
         </Table>
       </Scroller>
@@ -135,12 +138,57 @@ function ApiKeyRow(props: ApiKeyRowProps) {
             </Button>
             <ConfirmDeleteModal
               actionText={getText('deleteApiKeyConfirmation', apiKey.name)}
-              onConfirm={() => deleteApiKey([apiKey.id])}
+              onConfirm={() => deleteApiKey([apiKey.keyId])}
             />
           </Popover.Trigger>
         </Button.GroupJoin>
       </Cell>
     </Row>
+  )
+}
+
+/** Props for a {@link ApiKeyDialog}. */
+interface ApiKeyDialogProps extends DialogProps {
+  readonly apiKey: ApiKey
+}
+
+/** Dialog propmpted after successful api key submit. Shows the api key secret to the user. */
+function ApiKeyDialog(props: ApiKeyDialogProps) {
+  const { apiKey, type = 'modal', ...dialogProps } = props
+  const { keyId, secretId } = apiKey
+  const { getText } = useText()
+
+  return (
+    <Dialog type={type} title={getText('keyId')} {...dialogProps}>
+      <div className="relative flex items-center gap-4">
+        <div className="flex flex-col">
+          <Alert variant="outline" icon="warning">
+            {getText('accessKeyAlert')}
+          </Alert>
+
+          <table>
+            <tbody>
+              <tr>
+                <td>{getText('keyId')}</td>
+                <td>{getText('secretId')}</td>
+              </tr>
+              <tr>
+                <td>
+                  <CopyButton copyText={keyId} size="small">
+                    {keyId}
+                  </CopyButton>
+                </td>
+                <td>
+                  <CopyButton copyText={secretId ?? ''} size="small">
+                    {secretId}
+                  </CopyButton>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </Dialog>
   )
 }
 
@@ -151,6 +199,12 @@ function NewApiKeyForm() {
   const { data: apiKeys } = useSuspenseQuery(backendQueryOptions(backend, 'listApiKeys', []))
   const apiKeyNames = new Set(apiKeys.map((apiKey) => apiKey.name))
   const createApiKey = useMutationCallback(backendMutationOptions(backend, 'createApiKey'))
+  const options = [
+    ApiKeyExpiresIn.Week,
+    ApiKeyExpiresIn.Month,
+    ApiKeyExpiresIn.Year,
+    ApiKeyExpiresIn.Indefinetly,
+  ]
 
   return (
     <Form
@@ -161,14 +215,24 @@ function NewApiKeyForm() {
             .min(1)
             .refine((name) => !apiKeyNames.has(name), getText('duplicateApiKeyError')),
           description: z.string(),
+          expiresIn: z.enum([
+            ApiKeyExpiresIn.Week,
+            ApiKeyExpiresIn.Month,
+            ApiKeyExpiresIn.Year,
+            ApiKeyExpiresIn.Indefinetly,
+          ]),
         })
       }
       method="dialog"
       onSubmit={(values) => createApiKey([values])}
+      onSubmitSuccess={(apiKey) =>
+        setModal(<ApiKeyDialog modalProps={{ defaultOpen: true }} apiKey={apiKey} />)
+      }
     >
       <Text.Heading variant="subtitle">{getText('newApiKey')}</Text.Heading>
       <Input name="name" label={getText('name')} />
       <Input name="description" label={getText('description')} />
+      <Selector items={options} name="expiresIn" label={getText('expiresIn')} />
       <Button.Group className="relative">
         <Form.Submit />
         <Dialog.Close variant="outline">{getText('cancel')}</Dialog.Close>
