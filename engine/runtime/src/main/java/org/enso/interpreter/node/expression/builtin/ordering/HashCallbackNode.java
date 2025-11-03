@@ -52,9 +52,13 @@ public abstract class HashCallbackNode extends Node {
       @CachedLibrary(limit = "5") InteropLibrary interop) {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
+    var defCompType = ctx.getBuiltins().defaultComparator().getType();
     Object res =
         hashCallbackInvokeNode.execute(
-            hashCallbackFunc, null, State.create(ctx), new Object[] {comparableType, atom});
+            hashCallbackFunc,
+            null,
+            State.create(ctx),
+            new Object[] {defCompType, comparableType, atom});
     try {
       return interop.asLong(res);
     } catch (UnsupportedMessageException e) {
@@ -76,10 +80,9 @@ public abstract class HashCallbackNode extends Node {
   @NeverDefault
   @TruffleBoundary
   Function getHashCallbackFunction() {
-    var comparableType = EnsoContext.get(this).getBuiltins().defaultComparator().getType();
-    Function hashCallback =
-        comparableType.getDefinitionScope().getMethodForType(comparableType, "hash_callback");
-    assert hashCallback != null : "Default_Comparator.hash_callback function must exist";
-    return hashCallback;
+    var defCompType = EnsoContext.get(this).getBuiltins().defaultComparator().getType();
+    var fn = defCompType.getDefinitionScope().getMethodForType(defCompType, "hash_callback");
+    assert fn != null : "Default_Comparator.hash_callback function must exist";
+    return fn;
   }
 }

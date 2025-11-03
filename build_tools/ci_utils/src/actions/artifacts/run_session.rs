@@ -10,14 +10,12 @@ use crate::actions::artifacts::raw;
 use reqwest::Client;
 use tokio::io::AsyncRead;
 
-
-
 #[derive(Clone, Debug)]
 pub struct SessionClient {
-    pub json_client:     Client,
-    pub upload_client:   Client,
+    pub json_client: Client,
+    pub upload_client: Client,
     pub download_client: Client,
-    pub artifact_url:    Url,
+    pub artifact_url: Url,
 }
 
 impl SessionClient {
@@ -39,9 +37,9 @@ impl SessionClient {
 
     pub fn new(context: &Context) -> Result<Self> {
         Ok(Self {
-            json_client:     context.json_client()?,
-            upload_client:   context.upload_client()?,
-            artifact_url:    context.artifact_url()?,
+            json_client: context.json_client()?,
+            upload_client: context.upload_client()?,
+            artifact_url: context.artifact_url()?,
             download_client: context.download_client()?,
         })
     }

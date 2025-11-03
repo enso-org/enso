@@ -2,11 +2,7 @@
 
 use std::fmt;
 
-
-
 const TARGET_VERSION: usize = 14;
-
-
 
 // ===================
 // === Syntax Data ===
@@ -16,34 +12,34 @@ const TARGET_VERSION: usize = 14;
 #[derive(Debug)]
 pub struct Class {
     #[allow(missing_docs)]
-    pub package:   Option<String>,
+    pub package: Option<String>,
     #[allow(missing_docs)]
-    pub name:      String,
+    pub name: String,
     #[allow(missing_docs)]
     pub abstract_: bool,
     #[allow(missing_docs)]
-    pub final_:    bool,
+    pub final_: bool,
     #[allow(missing_docs)]
-    pub static_:   bool,
+    pub static_: bool,
     #[allow(missing_docs)]
-    pub parent:    Option<Type>,
+    pub parent: Option<Type>,
     #[allow(missing_docs)]
-    pub fields:    Vec<Field>,
+    pub fields: Vec<Field>,
     #[allow(missing_docs)]
-    pub methods:   Vec<Method>,
+    pub methods: Vec<Method>,
     #[allow(missing_docs)]
-    pub sealed:    Option<Vec<Type>>,
+    pub sealed: Option<Vec<Type>>,
     /// Classes defined in the scope of this class.
-    pub nested:    Vec<Class>,
+    pub nested: Vec<Class>,
 }
 
 /// A class field definition.
 #[derive(Debug)]
 pub struct Field {
     #[allow(missing_docs)]
-    pub type_:  Type,
+    pub type_: Type,
     #[allow(missing_docs)]
-    pub name:   String,
+    pub name: String,
     #[allow(missing_docs)]
     pub final_: bool,
 }
@@ -56,7 +52,7 @@ pub struct Field {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Type {
     /// Class name.
-    pub class:  String,
+    pub class: String,
     /// Parameter list.
     pub params: Vec<String>,
 }
@@ -80,23 +76,23 @@ impl Type {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Method {
     #[allow(missing_docs)]
-    pub name:       String,
+    pub name: String,
     #[allow(missing_docs)]
-    pub arguments:  Vec<(Type, String)>,
+    pub arguments: Vec<(Type, String)>,
     /// Visibility modifier; if None, the Java default is package-visible.
     pub visibility: Option<Visibility>,
     /// Return value, unless this is a constructor.
-    pub return_:    Option<Type>,
+    pub return_: Option<Type>,
     #[allow(missing_docs)]
-    pub static_:    bool,
+    pub static_: bool,
     #[allow(missing_docs)]
-    pub final_:     bool,
+    pub final_: bool,
     /// Literal body, not including brackets.
-    pub body:       String,
+    pub body: String,
     #[allow(missing_docs)]
-    pub override_:  bool,
+    pub override_: bool,
     #[allow(missing_docs)]
-    pub throws:     Vec<Type>,
+    pub throws: Vec<Type>,
 }
 
 /// Java visibility modifier keyword for a variable or method.
@@ -109,7 +105,6 @@ pub enum Visibility {
     #[allow(missing_docs)]
     Public,
 }
-
 
 // === Constructors ===
 
@@ -142,8 +137,6 @@ impl Method {
         Method { name, arguments, return_, static_, final_, body, override_, throws, visibility }
     }
 }
-
-
 
 // =========================
 // === Rendering to Text ===

@@ -55,17 +55,17 @@ export class LanguageServerSession {
   projectRootId: Uuid | null
   authoritativeModules: Map<string, ModulePersistence>
   clientScope: AbortScope
-  cleanup: () => void
+  unregister: () => void
 
   static DEBUG = false
 
   /** Create a {@link LanguageServerSession}. */
-  constructor(ls: LanguageServer, cleanup: () => void) {
+  constructor(ls: LanguageServer, unregister: () => void) {
     this.clientScope = new AbortScope()
     this.docs = new Map()
     this.retainCount = 0
     this.ls = ls
-    this.cleanup = cleanup
+    this.unregister = unregister
     this.indexDoc = new WSSharedDoc()
     this.docs.set('index', this.indexDoc)
     this.model = new DistributedProject(this.indexDoc.doc)
@@ -103,6 +103,12 @@ export class LanguageServerSession {
   }
 
   private setupClient() {
+    this.ls.on('transport/closed', () => {
+      // Once we lose connection to Language Server, we cannot identify ourself by its URL anymore,
+      // because new Language Server of different project could start with same ports in the
+      // meantime.
+      this.unregister()
+    })
     this.ls.on('file/event', async (event) => {
       debugLog('file/event %O', event)
       const result = await this.handleFileEvent(event)
@@ -245,11 +251,13 @@ export class LanguageServerSession {
   async release(): Promise<void> {
     this.retainCount -= 1
     if (this.retainCount !== 0) return
+    this.unregister()
     const modules = this.authoritativeModules.values()
     const moduleDisposePromises = Array.from(modules, (mod) => mod.dispose())
     this.authoritativeModules.clear()
     this.model.doc.destroy()
     this.clientScope.dispose('LangueServerSession disposed.')
+
     await Promise.all(moduleDisposePromises)
   }
 

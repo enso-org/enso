@@ -8,8 +8,6 @@ use ide_ci::programs::docker::BuildOptions;
 use ide_ci::programs::docker::ImageId;
 use ide_ci::programs::Docker;
 
-
-
 /// Name of the ECR repository with Runtime images.
 pub const NAME: &str = "runtime";
 

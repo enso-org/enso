@@ -14,7 +14,7 @@ import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
 import { useRouter } from '$/providers/react'
-import { readUserSelectedFile } from 'enso-common/src/utilities/file'
+import { readUserSelectedFile } from '$/utils/file'
 
 /** Props for a {@link GlobalContextMenuEntries}. */
 export interface GlobalContextMenuEntriesOptions {

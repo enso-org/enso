@@ -36,13 +36,27 @@
 - [Change Column.length to Column.row_count.][14085]
 - [Add Text_Column.length and Text_Column.char_length.][14091]
 - [Add EDI_Format and support for reading ANSI X12 EDI files.][14158]
+- [Add support for reading xlsb Excel file format][14157]
+- [Add Text_Column.upper and Text_Column.lower.][14179]
+- [Microsoft 365 OAuth support.][14135]
+- [Add Text_Column.proper and Rename Case.Title->Case.Proper.][14184]
+- [Snowflake stage support for reading and writing files.][14210]
+- [Snowflake file format and copy into support.][14221]
+- [Snowflake bulk load API.][14230]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
 [14039]: https://github.com/enso-org/enso/pull/14039
 [14085]: https://github.com/enso-org/enso/pull/14085
 [14091]: https://github.com/enso-org/enso/pull/14091
+[14135]: https://github.com/enso-org/enso/pull/14135
 [14158]: https://github.com/enso-org/enso/pull/14158
+[14157]: https://github.com/enso-org/enso/pull/14157
+[14179]: https://github.com/enso-org/enso/pull/14179
+[14184]: https://github.com/enso-org/enso/pull/14184
+[14210]: https://github.com/enso-org/enso/pull/14210
+[14221]: https://github.com/enso-org/enso/pull/14221
+[14230]: https://github.com/enso-org/enso/pull/14230
 
 #### Enso Language & Runtime
 
@@ -54,9 +68,11 @@
 - [Register and `lookup_services` in package.yaml][11868]
 - [Open type check `Type&Any` lets all visible types thru][13225]
 - [Removal of --no-global-cache option][13909]
+- [Launching ydoc-server together with language-server][13178]
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
+- [Update to GraalVM 25][14019]
 
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
@@ -66,8 +82,10 @@
 [11868]: https://github.com/enso-org/enso/pull/11868
 [13225]: https://github.com/enso-org/enso/pull/13225
 [13909]: https://github.com/enso-org/enso/pull/13909
+[13178]: https://github.com/enso-org/enso/pull/13178
 [13914]: https://github.com/enso-org/enso/pull/13914
 [13917]: https://github.com/enso-org/enso/pull/13917
+[14019]: https://github.com/enso-org/enso/pull/14019
 
 # Enso 2025.2
 

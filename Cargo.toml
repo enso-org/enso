@@ -1,35 +1,143 @@
 [workspace]
 resolver = "2"
 members = [
-    "app/rust-ffi",
-    "build_tools/cli",
-    "build_tools/macros/lib",
-    "build_tools/ci-gen",
-    "build_tools/cli",
-    "build_tools/install",
-    "build_tools/install/config",
-    "build_tools/install/installer",
-    "build_tools/install/uninstaller",
-    "lib/rust/launcher-shims",
-    "lib/rust/macro-utils",
-    "lib/rust/metamodel",
-    "lib/rust/parser/src/syntax/tree/visitor",
-    "lib/rust/parser/jni",
-    "lib/rust/parser/generate-java",
-    "lib/rust/parser/schema",
-    "lib/rust/parser/debug",
-    "lib/rust/parser/macros",
-    "lib/rust/prelude",
-    "lib/rust/prelude/macros",
-    "lib/rust/reflect",
-    "lib/rust/zst",
-    "lib/rust/parser/debug/fuzz",
-    "tools/language-server/logstat",
-    "tools/language-server/wstest",
+	"app/rust-ffi",
+	"build_tools/ci-gen",
+	"build_tools/cli",
+	"build_tools/install",
+	"build_tools/install/config",
+	"build_tools/install/installer",
+	"build_tools/install/uninstaller",
+	"build_tools/macros/lib",
+	"lib/rust/launcher-shims",
+	"lib/rust/macro-utils",
+	"lib/rust/metamodel",
+	"lib/rust/parser/debug",
+	"lib/rust/parser/debug/fuzz",
+	"lib/rust/parser/generate-java",
+	"lib/rust/parser/jni",
+	"lib/rust/parser/macros",
+	"lib/rust/parser/schema",
+	"lib/rust/parser/src/syntax/tree/visitor",
+	"lib/rust/prelude",
+	"lib/rust/prelude/macros",
+	"lib/rust/reflect",
+	"lib/rust/zst",
+	"tools/language-server/logstat",
+	"tools/language-server/wstest",
 ]
 
+[workspace.dependencies]
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!!!!!!!!! WARNING !!!!!!!!!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# We are tryingto maintain minimum set of dependencies. Before adding a new dependency, consult it
+# with the core development team. Thank you!
+chrono = { version = "0.4.31", features = ["serde"] }
+clap = { version = "4.5.15", features = [
+	"derive",
+	"env",
+	"wrap_help",
+	"string",
+] }
+derive-where = "1.2.7"
+directories = { version = "5.0.1" }
+dirs = { version = "5.0.1" }
+flate2 = { version = "1.0.28" }
+indicatif = { version = "0.17.7", features = ["tokio"] }
+mime = "0.3.16"
+new_mime_guess = "4.0.1"
+multimap = { version = "0.9.1" }
+native-windows-gui = { version = "1.0.13" }
+nix = { version = "0.27.1" }
+octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
+	"rustls",
+] }
+path-absolutize = "3.1.1"
+portpicker = { version = "0.1.1" }
+regex = { version = "1.6.0" }
+serde = { version = "1", features = ["derive", "rc"] }
+serde_yaml = { version = "0.9.16" }
+sha2 = { version = "0.10.8" }
+sysinfo = { version = "0.30.7" }
+tar = { version = "0.4.40" }
+tokio = { version = "1.37.0", features = ["full", "tracing"] }
+tokio-stream = { version = "0.1.15", features = ["fs"] }
+tokio-util = { version = "0.7.10", features = ["full"] }
+tracing = { version = "0.1.40" }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+walkdir = { version = "2.5.0" }
+wasm-bindgen = { version = "0.2.100", default-features = false }
+windows = { version = "0.52.0", features = [
+	"Win32_UI",
+	"Win32_UI_Shell",
+	"Win32_System_LibraryLoader",
+	"Win32_System_Com",
+] }
+winreg = { version = "0.52.0" }
+anyhow = { version = "1.0.66" }
+derive_more = { version = "1.0", features = [
+	"index",
+	"index_mut",
+	"deref",
+	"deref_mut",
+	"display",
+	"from",
+	"into",
+	"as_ref",
+	"add",
+	"add_assign",
+] }
+boolinator = { version = "2.4.0" }
+futures = { version = "0.3", default-features = false, features = [
+	"std",
+	"executor",
+] }
+futures-util = { version = "0.3", default-features = false }
+itertools = { version = "0.12.1" }
+lazy_static = { version = "1.4" }
+serde_json = { version = "1.0", features = ["raw_value"] }
+owned_ttf_parser = { version = "0.15.1" }
+convert_case = { version = "0.6.0" }
+bincode = { version = "2.0.0-rc.1" }
+bytes = { version = "1.1.0" }
+console_error_panic_hook = { version = "0.1.6" }
+reqwest = { version = "0.11.27", default-features = false, features = [
+	"rustls-tls",
+	"stream",
+] }
+proc-macro2 = { version = "1.0.79" }
+syn = { version = "2.0", features = [
+	"full",
+	"extra-traits",
+	"printing",
+	"parsing",
+	"visit",
+	"visit-mut",
+] }
+quote = { version = "1.0.23" }
+semver = { version = "1.0.0", features = ["serde"] }
+strum = { version = "0.26.2", features = ["derive"] }
+
+[workspace.lints]
+[workspace.lints.rust]
+missing_copy_implementations = "warn"
+missing_debug_implementations = "warn"
+non_ascii_idents = "deny"
+unsafe_code = "warn"
+trivial_numeric_casts = "warn"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
+# This is fine, since we plan to use our traits only in our own code and
+# potential ABI breaking changes are not a concern.
+async_fn_in_trait = "allow"
+
+[workspace.lints.clippy]
+bool_to_int_with_if = "allow"
+let_and_return = "allow"
+
 [profile.dev]
-opt-level = 0
+opt-level = 1
 lto = false
 debug = true
 debug-assertions = true
@@ -58,99 +166,3 @@ opt-level = 0
 lto = false
 debug = 2
 debug-assertions = true
-
-[profile.integration-test]
-inherits = "test"
-opt-level = 2
-
-[profile.buildscript]
-inherits = "dev"
-opt-level = 1
-lto = false
-debug-assertions = true
-
-[workspace.lints.rust]
-missing_copy_implementations = "warn"
-missing_debug_implementations = "warn"
-non_ascii_idents = "deny"
-unsafe_code = "warn"
-trivial_numeric_casts = "warn"
-unused_import_braces = "warn"
-unused_qualifications = "warn"
-# This is fine, since we plan to use our traits only in our own code and
-# potential ABI breaking changes are not a concern.
-async_fn_in_trait = "allow"
-
-[workspace.lints.clippy]
-bool_to_int_with_if = "allow"
-let_and_return = "allow"
-blocks_in_conditions = "allow" # Until the issue is fixed: https://github.com/rust-lang/rust-clippy/issues/12281
-
-[workspace.dependencies]
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# !!!!!!!!!! WARNING !!!!!!!!!!
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# We are tryingto maintain minimum set of dependencies. Before adding a new dependency, consult it
-# with the core development team. Thank you!
-chrono = { version = "0.4.31", features = ["serde"] }
-clap = { version = "4.5.15", features = ["derive", "env", "wrap_help", "string"] }
-derive-where = "1.2.7"
-directories = { version = "5.0.1" }
-dirs = { version = "5.0.1" }
-flate2 = { version = "1.0.28" }
-indicatif = { version = "0.17.7", features = ["tokio"] }
-mime = "0.3.16"
-new_mime_guess = "4.0.1"
-multimap = { version = "0.9.1" }
-native-windows-gui = { version = "1.0.13" }
-nix = { version = "0.27.1" }
-octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
-    "rustls",
-] }
-path-absolutize = "3.1.1"
-portpicker = { version = "0.1.1" }
-regex = { version = "1.6.0" }
-serde = { version = "1", features = ["derive", "rc"] }
-serde_yaml = { version = "0.9.16" }
-sha2 = { version = "0.10.8" }
-sysinfo = { version = "0.30.7" }
-tar = { version = "0.4.40" }
-tokio = { version = "1.37.0", features = ["full", "tracing"] }
-tokio-stream = { version = "0.1.15", features = ["fs"] }
-tokio-util = { version = "0.7.10", features = ["full"] }
-tracing = { version = "0.1.40" }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-walkdir = { version = "2.5.0" }
-wasm-bindgen = { version = "0.2.100", default-features = false }
-wasm-bindgen-test = { version = "0.3.49" }
-windows = { version = "0.52.0", features = ["Win32_UI", "Win32_UI_Shell", "Win32_System_LibraryLoader", "Win32_System_Com"] }
-winreg = { version = "0.52.0" }
-anyhow = { version = "1.0.66" }
-derive_more = { version = "1.0", features = ["index", "index_mut", "deref", "deref_mut", "display", "from", "into", "as_ref", "add", "add_assign"] }
-boolinator = { version = "2.4.0" }
-futures = { version = "0.3", default-features = false, features = ["std", "executor"]}
-futures-util = { version = "0.3", default-features = false }
-itertools = { version = "0.12.1" }
-lazy_static = { version = "1.4" }
-serde_json = { version = "1.0", features = ["raw_value"] }
-owned_ttf_parser = { version = "0.15.1" }
-convert_case = { version = "0.6.0" }
-bincode = { version = "2.0.0-rc.1" }
-bytes = { version = "1.1.0" }
-console_error_panic_hook = { version = "0.1.6" }
-reqwest = { version = "0.11.27", default-features = false, features = [
-    "rustls-tls",
-    "stream",
-] }
-proc-macro2 = { version = "1.0.79" }
-syn = { version = "2.0", features = [
-    "full",
-    "extra-traits",
-    "printing",
-    "parsing",
-    "visit",
-    "visit-mut",
-] }
-quote = { version = "1.0.23" }
-semver = { version = "1.0.0", features = ["serde"] }
-strum = { version = "0.26.2", features = ["derive"] }

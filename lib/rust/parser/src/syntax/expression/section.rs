@@ -3,8 +3,6 @@ use enso_prelude::*;
 use crate::syntax::tree;
 use crate::syntax::Tree;
 
-
-
 // ====================
 // === MaybeSection ===
 // ====================
@@ -12,7 +10,7 @@ use crate::syntax::Tree;
 /// Wraps a value, tracking the number of wildcards operands within it.
 #[derive(Default, Debug, PartialEq, Eq)]
 pub struct MaybeSection<T> {
-    pub value:     T,
+    pub value: T,
     /// Number of wildcards in the subtree, potentially forming a *template function*.
     pub wildcards: u32,
 }

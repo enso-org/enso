@@ -27,6 +27,7 @@ const $config = {
   AG_GRID_LICENSE_KEY: import.meta.env.ENSO_IDE_AG_GRID_LICENSE_KEY,
   GOOGLE_OAUTH_CLIENT_ID: import.meta.env.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
   STRAVA_OAUTH_CLIENT_ID: import.meta.env.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
+  MS365_OAUTH_CLIENT_ID: import.meta.env.ENSO_IDE_MS365_OAUTH_CLIENT_ID,
   MAPBOX_API_TOKEN: window.api?.mapBoxApiToken() || import.meta.env.ENSO_IDE_MAPBOX_API_TOKEN,
 } as const
 

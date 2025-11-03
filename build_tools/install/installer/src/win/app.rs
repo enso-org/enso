@@ -3,15 +3,12 @@ use crate::prelude::*;
 use native_windows_gui::NativeUi;
 use std::sync::mpsc::Receiver;
 
-
-
 extern crate native_windows_gui as nwg;
 use crate::win::access_payload;
 use crate::win::config;
 use crate::win::get_install_dir;
 use crate::win::spawn_installer_thread;
 use crate::InstallerUpdate;
-
 
 pub mod ui;
 
@@ -29,42 +26,42 @@ pub const PROGRESS_BAR_TICKS: u32 = 1000;
 #[allow(missing_debug_implementations)]
 pub struct InstallerApp {
     /// Path to the log file. We use it to point the user to the log file in case of an error.
-    pub logfile:          PathBuf,
+    pub logfile: PathBuf,
     /// Title used by the main window and some of the dialogs.
-    pub window_title:     String,
+    pub window_title: String,
     /// The main window of the installer.
-    pub window:           nwg::Window,
+    pub window: nwg::Window,
     /// The main window's layout. Column with the top layout and the progress bar.
-    pub layout:           nwg::FlexboxLayout,
+    pub layout: nwg::FlexboxLayout,
     /// Row with the Enso icon and the label.
-    pub top_layout:       nwg::FlexboxLayout,
+    pub top_layout: nwg::FlexboxLayout,
     /// The Enso icon (displayed left to the label).
-    pub image:            nwg::ImageFrame,
+    pub image: nwg::ImageFrame,
     /// The label that shows the current stage of the installation.
-    pub label:            nwg::Label,
+    pub label: nwg::Label,
     /// The progress bar that shows the overall installation progress.
-    pub progress_bar:     nwg::ProgressBar,
+    pub progress_bar: nwg::ProgressBar,
     /// Handle to the embedded resources, such as the [`InstallerApp::enso_icon`].
-    pub embed:            nwg::EmbedResource,
+    pub embed: nwg::EmbedResource,
     /// The icon handle that is displayed by the [`InstallerApp::image`].
-    pub enso_icon:        nwg::Icon,
+    pub enso_icon: nwg::Icon,
     /// The timer we use to drive the [`InstallerApp::tick`] method.
     ///
     /// Note that despite the name, the `AnimationTimer` is recommended to be used as a total
     /// replacement for the `Timer`.
-    pub timer:            nwg::AnimationTimer,
+    pub timer: nwg::AnimationTimer,
     /// Facilitates communication from the "installer backend" thread to the UI thread.
     pub backend_receiver: std::cell::RefCell<Option<Receiver<InstallerUpdate>>>,
     /// Handle to the thread that runs the installation logic.
-    pub backend_thread:   std::cell::RefCell<Option<std::thread::JoinHandle<Result>>>,
+    pub backend_thread: std::cell::RefCell<Option<std::thread::JoinHandle<Result>>>,
     /// Result of the installation process.
     ///
     /// This should be filled by the UI thread before breaking the event loop.
-    pub result:           std::cell::RefCell<Option<Result>>,
+    pub result: std::cell::RefCell<Option<Result>>,
     /// Path to the installed application executable.
     ///
     /// After a successful installation, this is used to launch the application.
-    pub installed_app:    std::cell::RefCell<PathBuf>,
+    pub installed_app: std::cell::RefCell<PathBuf>,
 }
 
 impl InstallerApp {
@@ -128,10 +125,11 @@ impl InstallerApp {
         handle: nwg::ControlHandle,
     ) {
         match event {
-            nwg::Event::OnTimerTick =>
+            nwg::Event::OnTimerTick => {
                 if handle == self.timer {
                     self.tick();
-                },
+                }
+            }
             nwg::Event::OnWindowClose => {
                 // Prevent manual closing of the window. Installation should not be interrupted.
                 if let nwg::EventData::OnWindowClose(close_data) = evt_data {
@@ -141,7 +139,6 @@ impl InstallerApp {
             _ => {}
         }
     }
-
 
     /// Stop the event loop due to an installation error.
     ///

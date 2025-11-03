@@ -3,17 +3,15 @@ use crate::prelude::*;
 use crate::cache::Cache;
 use crate::cache::Storable;
 
-
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Key<S> {
     pub archive_source_key: S,
-    pub path_to_extract:    Option<PathBuf>,
+    pub path_to_extract: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExtractedArchive<S> {
-    pub archive_source:  S,
+    pub archive_source: S,
     pub path_to_extract: Option<PathBuf>,
 }
 
@@ -43,7 +41,7 @@ impl<S: Storable<Output = PathBuf> + Clone> Storable for ExtractedArchive<S> {
     fn key(&self) -> Self::Key {
         Key {
             archive_source_key: self.archive_source.key(),
-            path_to_extract:    self.path_to_extract.clone(),
+            path_to_extract: self.path_to_extract.clone(),
         }
     }
 }

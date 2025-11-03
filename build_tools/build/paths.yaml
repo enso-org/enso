@@ -8,10 +8,8 @@
       changelog.yml:
       engine-benchmark.yml:
       engine-checks-nightly.yml:
-      engine-checks-optional.yml:
       engine-checks.yml:
       extra-nightly-tests.yml:
-      ide-packaging-optional.yml:
       ide-packaging.yml:
       nightly.yml:
       promote.yml:
@@ -37,7 +35,6 @@
       client/:
       common/:
       icons/:
-    ydoc-server-nodejs/:
   build/:
     prettier/:
   built-distribution/:
@@ -166,4 +163,4 @@
   edition/:
     <edition>.yaml:
   runtime/:
-  .enso.portable:
+  .enso.bundle:

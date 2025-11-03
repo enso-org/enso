@@ -7,8 +7,6 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::process::Command;
 
-
-
 // ====================
 // === WrapLauncher ===
 // ====================
@@ -54,13 +52,14 @@ pub fn wrap_launcher(version: impl AsRef<str>) {
 
     let exit_status = Command::new(launcher_location).args(modified_args).status();
     let exit_code = match exit_status {
-        Ok(status) =>
+        Ok(status) => {
             if let Some(code) = status.code() {
                 code
             } else {
                 eprintln!("Process terminated by signal.");
                 exit(1)
-            },
+            }
+        }
         Err(error) => {
             eprintln!("{error}");
             exit(1)
@@ -68,7 +67,6 @@ pub fn wrap_launcher(version: impl AsRef<str>) {
     };
     exit(exit_code)
 }
-
 
 // === Log ===
 

@@ -3,28 +3,27 @@ use crate::syntax::token::*;
 use crate::lexer::analyze_non_syntactic_operator;
 use crate::syntax::expression::SectionTermination;
 
-
-
 /// Properties of an operator that are identified when lexing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct OperatorProperties {
     // Precedence / associativity
     binary_infix_precedence: Option<Precedence>,
     unary_prefix_precedence: Option<Precedence>,
-    is_value_operation:      bool,
-    is_right_associative:    bool,
+    is_value_operation: bool,
+    is_right_associative: bool,
     // Special properties
     lhs_section_termination: Option<SectionTermination>,
-    is_modifier:             bool,
-    is_compile_time:         bool,
-    rhs_is_non_expression:   bool,
+    is_modifier: bool,
+    is_compile_time: bool,
+    rhs_is_non_expression: bool,
 }
 
 pub fn is_syntactic_binary_operator(variant: &Variant) -> bool {
     use Variant::*;
     match variant {
-        AssignmentOperator(_) | TypeAnnotationOperator(_) | ArrowOperator(_) | CommaOperator(_) =>
-            true,
+        AssignmentOperator(_) | TypeAnnotationOperator(_) | ArrowOperator(_) | CommaOperator(_) => {
+            true
+        }
         Operator(_)
         | DotOperator(_)
         | UnaryOperator(_)

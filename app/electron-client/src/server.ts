@@ -55,13 +55,6 @@ import {
   EXPORT_ARCHIVE_PATH,
   GET_FILE_DETAILS_REGEX,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
-import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
-import {
-  basenameAndExtension,
-  getFileName,
-  getFolderPath,
-  isFolderPath,
-} from 'enso-common/src/utilities/file'
 import { createReadStream, createWriteStream, statSync } from 'node:fs'
 import { access, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -84,7 +77,6 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
-const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 // ==================
 // === fileExists ===
@@ -233,50 +225,26 @@ export class Server {
           },
           handler: this.process.bind(this),
         },
-        (err, { https: httpsServer, http: httpServer }) => {
-          void (async () => {
-            if (err) {
-              console.error(`Error creating server:`, err.http)
-              reject(err)
-            }
-            const server = httpsServer ?? httpServer
-            if (!IS_ELECTRON_DEV_MODE) {
-              if (server) {
-                await ydocServer.createGatewayServer(server)
-              } else {
-                console.warn('YDocs server is not run, new GUI may not work properly!')
-              }
-            }
-            console.log(`Server started on port ${this.config.port}.`)
-            console.log(`Serving files from '${path.resolve(process.cwd(), this.config.dir)}'.`)
-            if (IS_ELECTRON_DEV_MODE) {
-              const vite = (await import(
-                pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
-              )) as typeof import('vite')
-              this.devServer = await vite.createServer({
-                server: {
-                  middlewareMode: true,
-                  hmr: server ? { server } : {},
-                },
-                configFile: process.env.GUI_CONFIG_PATH ?? false,
-                mode: process.env.MODE ?? 'staging',
-              })
-
-              const docServer = http.createServer()
-              docServer.on('request', (request, response) => {
-                if (request.method === 'GET' && request.url === '/_health') {
-                  response.writeHead(200, { 'Content-Type': 'text/plain; charset=UTF-8' }).end('OK')
-                }
-              })
-
-              await ydocServer.createGatewayServer(docServer)
-
-              docServer.listen(5976, 'localhost', () => {
-                console.log(`Ydoc server listening on localhost:5976`)
-              })
-            }
-            resolve()
-          })()
+        async (err, { https: httpsServer, http: httpServer }) => {
+          const server = httpsServer ?? httpServer
+          if (process.env.ELECTRON_DEV_MODE === 'true') {
+            const vite = (await import(
+              pathToFileURL(process.env.NODE_MODULES_PATH + '/vite/dist/node/index.js').href
+            )) as typeof import('vite')
+            this.devServer = await vite.createServer({
+              server: {
+                middlewareMode: true,
+                hmr: server ? { server } : {},
+              },
+              configFile: process.env.GUI_CONFIG_PATH ?? false,
+              mode: process.env.MODE ?? 'staging',
+            })
+          }
+          if (err) {
+            console.error('Error creating server:', err.http)
+            reject(err)
+          }
+          resolve()
         },
       )
     })
@@ -393,7 +361,7 @@ export class Server {
           response.end(data)
         })
         .catch(() => {
-          console.error(`Resource '${resource}' not found.`)
+          console.error(`Resource '${resource}' not found at '${resourceFile}'.`)
           response.writeHead(HTTP_STATUS_NOT_FOUND)
           response.end()
         })
@@ -553,18 +521,18 @@ export class Server {
   /** Response handler for "get file details" endpoint. */
   async apiGetFileDetails(fileId: FileId) {
     const typeAndPath = extractTypeAndPath(fileId)
-    const { path } = typeAndPath
+    const { path: filePath } = typeAndPath
     const file = this.apiGetAssetDetailsByPath(typeAndPath)
     if (file == null) {
       return
     }
-    const stat = statSync(path)
+    const stat = statSync(filePath)
     const result: FileDetails = {
       file: {
         fileId,
-        fileName: getFileName(path),
+        fileName: path.basename(filePath),
         // Incorrect, but not sure what to do.
-        path: S3FilePath(String(path)),
+        path: S3FilePath(String(filePath)),
       },
       metadata: { size: stat.size },
       url: downloadFilePath(fileId),
@@ -648,17 +616,16 @@ export class Server {
     const pathMapping: Record<string, string> = {}
 
     const getDirectoryPath = async (entryPathInArchive: string) => {
-      const isDirectory = isFolderPath(entryPathInArchive)
-      const parentPathInArchiveRaw = getFolderPath(entryPathInArchive)
+      const isDirectory = /[/\\]$/.test(entryPathInArchive)
+      const parentPathInArchiveRaw = path.dirname(entryPathInArchive)
       let parentPathInArchive =
         parentPathInArchiveRaw === entryPathInArchive ? '' : pathMapping[parentPathInArchiveRaw]
       if (parentPathInArchive == null) {
         await getDirectoryPath(parentPathInArchiveRaw)
         parentPathInArchive = pathMapping[parentPathInArchiveRaw] ?? ''
       }
-      const { basename: basenameRaw, extension: extensionRaw } = basenameAndExtension(
-        getFileName(entryPathInArchive),
-      )
+      const extensionRaw = path.extname(entryPathInArchive)
+      const basenameRaw = path.basename(entryPathInArchive, extensionRaw)
       const basename = basenameRaw.match(/^.*(?= \((?:copy)? ?\d*\)$)/)?.[0] ?? basenameRaw
       const extension = (() => {
         switch (extensionRaw) {
@@ -691,12 +658,12 @@ export class Server {
     for await (const entry of await unzipEntries(filePath)) {
       const entryPathInArchive = entry.metadata.name
       const destinationPath = await getDirectoryPath(entryPathInArchive)
-      const isDirectory = isFolderPath(entryPathInArchive)
+      const isDirectory = /[/\\]$/.test(entryPathInArchive)
       const isProject = entryPathInArchive.endsWith(BUNDLED_PROJECT_SUFFIX)
       const shared = {
-        title: getFileName(destinationPath),
-        modifiedAt: toRfc3339(new Date()),
-        parentId: DirectoryId(`directory-${getFolderPath(destinationPath)}` as const),
+        title: path.basename(destinationPath),
+        modifiedAt: new Date().toISOString() as DirectoryAsset['modifiedAt'],
+        parentId: DirectoryId(`directory-${path.dirname(destinationPath)}` as const),
         extension: null,
         permissions: [],
         projectState: null,
@@ -721,8 +688,8 @@ export class Server {
         await entry.extract({
           rootDirectory: directory,
           transform: async (stream) => {
-            const parentDirectory = getFolderPath(destinationPath)
-            const fileName = getFileName(destinationPath)
+            const parentDirectory = path.dirname(destinationPath)
+            const fileName = path.basename(destinationPath)
             await projectManagement.uploadBundle(
               stream,
               parentDirectory,
@@ -737,7 +704,7 @@ export class Server {
           ...shared,
           type: AssetType.file,
           id: FileId(`file-${destinationPath}`),
-          extension: basenameAndExtension(destinationPath).extension,
+          extension: path.extname(destinationPath),
         })
         await entry.extract({ rootDirectory: directory, destinationPath })
       }
@@ -754,7 +721,7 @@ export class Server {
 
     const addProject = async (id: ProjectId, rootPath?: string) => {
       const assetPath = extractTypeAndPath(id).path
-      rootPath ??= getFolderPath(assetPath)
+      rootPath ??= path.dirname(assetPath)
       const pathInArchive = `${path.relative(rootPath, assetPath)}${BUNDLED_PROJECT_SUFFIX}`
       if (!(await fileExists(assetPath))) {
         return { type: 'error', error: 'notFound', id } as const
@@ -764,7 +731,7 @@ export class Server {
 
     const addFile = async (id: FileId, rootPath?: string) => {
       const assetPath = extractTypeAndPath(id).path
-      rootPath ??= getFolderPath(assetPath)
+      rootPath ??= path.dirname(assetPath)
       const pathInArchive = path.relative(rootPath, assetPath)
       if (!(await fileExists(assetPath))) {
         return { type: 'error', error: 'notFound', id } as const
@@ -774,7 +741,7 @@ export class Server {
 
     const addFolder = async (id: DirectoryId, rootPath?: string) => {
       const assetPath = extractTypeAndPath(id).path
-      rootPath ??= getFolderPath(assetPath)
+      rootPath ??= path.dirname(assetPath)
       const pathInArchive = path.relative(rootPath, assetPath)
       if (!(await fileExists(assetPath))) {
         return { type: 'error', error: 'notFound', id } as const
@@ -810,11 +777,11 @@ export class Server {
           }
           break
         }
-        // These asset types are not valid, however include them to force any newly added
-        // asset types to be handled (by causing a non-exhaustiveness error).
+        // These asset types are not present on the Local Backend,
+        // however include them to force any newly added asset types to be handled
+        // (by causing a non-exhaustiveness error).
         case AssetType.secret:
-        case AssetType.datalink:
-        case AssetType.specialUp: {
+        case AssetType.datalink: {
           return
         }
       }
@@ -897,7 +864,7 @@ export class Server {
   /** Get details for an asset by its path. */
   apiGetAssetDetailsByPath<Type extends AssetType>({
     type,
-    path,
+    path: assetPath,
   }: {
     type?: Type
     path: Path
@@ -907,9 +874,9 @@ export class Server {
       // If it is inferred, this means `type` is present and the constraint correctly falls back to
       // `AssetType`
       type ??= (() => {
-        const assetStat = statSync(path)
+        const assetStat = statSync(assetPath)
         if (assetStat.isDirectory()) {
-          const metadata = projectManagement.getMetadata(path)
+          const metadata = projectManagement.getMetadata(assetPath)
           if (metadata) {
             return AssetType.project
           } else {
@@ -920,22 +887,22 @@ export class Server {
         }
       })()
       const shared = {
-        title: getFileName(path),
-        modifiedAt: toRfc3339(new Date()),
-        parentId: DirectoryId(`directory-${getFolderPath(path)}` as const),
+        title: path.basename(assetPath),
+        modifiedAt: new Date().toISOString() as DirectoryAsset['modifiedAt'],
+        parentId: DirectoryId(`directory-${path.dirname(assetPath)}` as const),
         extension: null,
         permissions: [],
         projectState: null,
         parentsPath: ParentsPath(''),
         virtualParentsPath: VirtualParentsPath(''),
-        ensoPath: EnsoPath(String(path)),
+        ensoPath: EnsoPath(String(assetPath)),
       } satisfies Partial<DirectoryAsset>
       switch (type) {
         case AssetType.project: {
           const result: ProjectAsset = {
             ...shared,
             type: AssetType.project,
-            id: ProjectId(`project-${path}`),
+            id: ProjectId(`project-${assetPath}`),
             // FIXME: Get correct state.
             projectState: { type: ProjectState.closed },
           }
@@ -946,8 +913,8 @@ export class Server {
           const result: FileAsset = {
             ...shared,
             type: AssetType.file,
-            id: FileId(`file-${path}`),
-            extension: basenameAndExtension(path).extension,
+            id: FileId(`file-${assetPath}`),
+            extension: path.extname(assetPath),
           }
           // This is SAFE because `type` has been narrowed in the `switch` above.
           return result as AnyAsset<Type>
@@ -956,7 +923,7 @@ export class Server {
           const result: DirectoryAsset = {
             ...shared,
             type: AssetType.directory,
-            id: DirectoryId(`directory-${path}` as const),
+            id: DirectoryId(`directory-${assetPath}` as const),
           }
           // This is SAFE because `type` has been narrowed in the `switch` above.
           return result as AnyAsset<Type>

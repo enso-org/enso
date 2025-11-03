@@ -1,5 +1,5 @@
+import { isOnMacOS } from '$/utils/detect'
 import { assert } from '@/util/assert'
-import { isOnMacOS } from 'enso-common/src/detect'
 import { unsafeKeys } from 'enso-common/src/utilities/data/object'
 
 /** All possible modifier keys. */

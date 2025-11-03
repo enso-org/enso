@@ -43,6 +43,7 @@ export async function handleProjectServiceRequest(
           response.writeHead(HTTP_STATUS_OK, headers).end(toJSONRPCResult(result))
         })
         .catch((err) => {
+          console.error(err)
           response
             .writeHead(HTTP_STATUS_OK, headers)
             .end(toJSONRPCError('project/create failed', err))
@@ -64,6 +65,7 @@ export async function handleProjectServiceRequest(
           response.writeHead(HTTP_STATUS_OK, headers).end(toJSONRPCResult(result))
         })
         .catch((err) => {
+          console.error(err)
           response
             .writeHead(HTTP_STATUS_OK, headers)
             .end(toJSONRPCError('project/open failed', err))
@@ -83,6 +85,7 @@ export async function handleProjectServiceRequest(
           response.writeHead(HTTP_STATUS_OK, headers).end(toJSONRPCResult(null))
         })
         .catch((err) => {
+          console.error(err)
           response
             .writeHead(HTTP_STATUS_OK, headers)
             .end(toJSONRPCError('project/close failed', err))
@@ -103,6 +106,7 @@ export async function handleProjectServiceRequest(
           response.writeHead(HTTP_STATUS_OK, headers).end(toJSONRPCResult(null))
         })
         .catch((err) => {
+          console.error(err)
           response
             .writeHead(HTTP_STATUS_OK, headers)
             .end(toJSONRPCError('project/delete failed', err))
@@ -123,6 +127,7 @@ export async function handleProjectServiceRequest(
           response.writeHead(HTTP_STATUS_OK, headers).end(toJSONRPCResult(result))
         })
         .catch((err) => {
+          console.error(err)
           response
             .writeHead(HTTP_STATUS_OK, headers)
             .end(toJSONRPCError('project/duplicate failed', err))
@@ -144,6 +149,7 @@ export async function handleProjectServiceRequest(
           response.writeHead(HTTP_STATUS_OK, headers).end(toJSONRPCResult(null))
         })
         .catch((err) => {
+          console.error(err)
           response
             .writeHead(HTTP_STATUS_OK, headers)
             .end(toJSONRPCError('project/rename failed', err))

@@ -119,7 +119,7 @@ type Excel_Format
        private: true
        ---
     get_name_patterns -> Vector File_Name_Pattern =
-        [File_Name_Pattern.Value "Excel" ["*.xls", "*.xlsx", "*.xlsm", "*.xlt"]]
+        [File_Name_Pattern.Value "Excel" ["*.xls", "*.xlsx", "*.xlsm", "*.xlt", "*.xlsb"]]
 
     ## ---
        private: true
@@ -199,6 +199,7 @@ type Excel_Format
    This function returns:
    - `Excel_File_Format.XLS` if the file is an XLS format,
    - `Excel_File_Format.XLSX` if the file is an XLSX format,
+   - `Excel_File_Format.XLSB` if the file is an XLSB format,
    - `Nothing` if the file is not an Excel format.
 xl_format_from_metadata : File_Format_Metadata -> Excel_File_Format | Nothing
 xl_format_from_metadata (metadata : File_Format_Metadata) =
@@ -210,6 +211,7 @@ xl_format_from_metadata (metadata : File_Format_Metadata) =
             _ -> Nothing
     from_content_type.if_nothing <|
         case metadata.guess_extension of
+            ".xlsb" -> Excel_File_Format.XLSB
             ".xlsx" -> Excel_File_Format.XLSX
             ".xlsm" -> Excel_File_Format.XLSX
             ".xls" -> Excel_File_Format.XLS

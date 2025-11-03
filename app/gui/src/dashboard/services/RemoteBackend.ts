@@ -11,7 +11,7 @@ import { delay } from '#/utilities/async'
 import * as download from '#/utilities/download'
 import * as objects from '#/utilities/object'
 import { getFileName, getFolderPath } from '#/utilities/path'
-import * as detect from 'enso-common/src/detect'
+import * as detect from '$/utils/detect'
 import * as remoteBackendPaths from 'enso-common/src/services/Backend/remoteBackendPaths'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
@@ -770,7 +770,7 @@ export default class RemoteBackend extends Backend {
    * @throws An {@link DirectoryDoesNotExistError} if the asset is a directory and does not exist.
    * @returns The asset details. Returns `null` if the asset is a root directory.
    */
-  override async getAssetDetails<Id extends backend.RealAssetId>(assetId: Id) {
+  override async getAssetDetails<Id extends backend.AssetId>(assetId: Id) {
     const path = remoteBackendPaths.getAssetDetailsPath(assetId)
     const response = await this.get<backend.AssetDetailsResponse<Id>>(path)
 
@@ -869,13 +869,14 @@ export default class RemoteBackend extends Backend {
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
     file: File,
+    abort?: AbortSignal,
   ): Promise<backend.UploadLargeFileMetadata> {
     const path = remoteBackendPaths.UPLOAD_FILE_START_PATH
     const requestBody: backend.UploadFileStartRequestBody = {
       fileName: body.fileName,
       size: file.size,
     }
-    const response = await this.post<backend.UploadLargeFileMetadata>(path, requestBody)
+    const response = await this.post<backend.UploadLargeFileMetadata>(path, requestBody, { abort })
     if (!response.ok) {
       return await this.throw(response, 'uploadFileStartBackendError')
     } else {
@@ -891,16 +892,17 @@ export default class RemoteBackend extends Backend {
     url: backend.HttpsUrl,
     file: Blob,
     index: number,
-  ): Promise<backend.S3MultipartPart> {
+    abort?: AbortSignal,
+  ): Promise<{ part: backend.S3MultipartPart; size: number }> {
     const start = index * backend.S3_CHUNK_SIZE_BYTES
     const end = Math.min(start + backend.S3_CHUNK_SIZE_BYTES, file.size)
     const body = file.slice(start, end)
-    const response = await fetch(url, { method: 'PUT', body })
+    const response = await fetch(url, { method: 'PUT', body, ...(abort ? { signal: abort } : {}) })
     const eTag = response.headers.get('ETag')
     if (!response.ok || eTag == null) {
       return await this.throw(response, 'uploadFileChunkBackendError')
     } else {
-      return { eTag, partNumber: index + 1 }
+      return { part: { eTag, partNumber: index + 1 }, size: body.size }
     }
   }
 
@@ -910,9 +912,10 @@ export default class RemoteBackend extends Backend {
    */
   override async uploadFileEnd(
     body: backend.UploadFileEndRequestBody,
+    abort?: AbortSignal,
   ): Promise<backend.UploadedAsset> {
     const path = remoteBackendPaths.UPLOAD_FILE_END_PATH
-    const response = await this.post<backend.UploadedAsset>(path, body)
+    const response = await this.post<backend.UploadedAsset>(path, body, { abort })
     if (!response.ok) {
       return await this.throw(response, 'uploadFileEndBackendError')
     } else {
@@ -1359,7 +1362,6 @@ export default class RemoteBackend extends Backend {
       }
       case backend.AssetType.secret:
       case backend.AssetType.directory:
-      case backend.AssetType.specialUp:
       default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break

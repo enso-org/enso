@@ -221,7 +221,6 @@ function useRightPanel(
     queryFn: async (query) => {
       const [backendType, , currentItem] = query.queryKey
       if (!backendType || !currentItem) return null
-      if (currentItem.type === AssetType.specialUp) return null
       return await backendForType(backendType).getAssetDetails(currentItem.id, undefined)
     },
     enabled: () => backendType.value != null && focusedAsset.value != null,
