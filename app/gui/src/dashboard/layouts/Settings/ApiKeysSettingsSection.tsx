@@ -92,7 +92,7 @@ export function ApiKeySettingsSection() {
                   {getText('youHaveNoApiKeys')}
                 </Cell>
               </Row>
-            : (apiKey) => <ApiKeyRow id={apiKey.keyId} apiKey={apiKey} />}
+            : (apiKey) => <ApiKeyRow apiKey={apiKey} />}
           </TableBody>
         </Table>
       </Scroller>
@@ -138,7 +138,7 @@ function ApiKeyRow(props: ApiKeyRowProps) {
             </Button>
             <ConfirmDeleteModal
               actionText={getText('deleteApiKeyConfirmation', apiKey.name)}
-              onConfirm={() => deleteApiKey([apiKey.keyId])}
+              onConfirm={() => deleteApiKey([apiKey.id])}
             />
           </Popover.Trigger>
         </Button.GroupJoin>
@@ -155,7 +155,6 @@ interface ApiKeyDialogProps extends DialogProps {
 /** Dialog propmpted after successful api key submit. Shows the api key secret to the user. */
 function ApiKeyDialog(props: ApiKeyDialogProps) {
   const { apiKey, type = 'modal', ...dialogProps } = props
-  const { keyId, secretId } = apiKey
   const { getText } = useText()
 
   return (
@@ -174,13 +173,13 @@ function ApiKeyDialog(props: ApiKeyDialogProps) {
               </tr>
               <tr>
                 <td>
-                  <CopyButton copyText={keyId} size="small">
-                    {keyId}
+                  <CopyButton copyText={apiKey.id} size="small">
+                    {apiKey.id}
                   </CopyButton>
                 </td>
                 <td>
-                  <CopyButton copyText={secretId ?? ''} size="small">
-                    {secretId}
+                  <CopyButton copyText={apiKey.secretId ?? ''} size="small">
+                    {apiKey.secretId}
                   </CopyButton>
                 </td>
               </tr>

@@ -808,7 +808,7 @@ export interface CreateApiKeyRequestBody {
 
 /** Api key credential. */
 export interface ApiKey {
-  readonly keyId: ApiKeyId
+  readonly id: ApiKeyId
   // Field populated only once after creation.
   readonly secretId: string | null
   readonly name: string
