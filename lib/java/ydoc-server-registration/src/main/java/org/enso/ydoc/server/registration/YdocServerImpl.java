@@ -3,7 +3,6 @@ package org.enso.ydoc.server.registration;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import org.enso.jvm.channel.JVM;
 import org.enso.jvm.interop.api.OtherJvmClassLoader;
 import org.enso.runner.common.WrongOption;
 import org.enso.runner.common.YdocServerApi;
@@ -20,23 +19,11 @@ public final class YdocServerImpl extends YdocServerApi {
     //   return launch(hostname, port);
     // but in the other JVM
     var isAot = ImageInfo.inImageRuntimeCode();
-    OtherJvmClassLoader loader = null;
+    var loader = OtherJvmClassLoader.create("org.enso.ydoc.server", null, isAot, null);
     if (isAot) {
-      var ydocLib = System.getenv("ENSO_YDOC_LIB");
-      if (ydocLib != null) {
-        var ydocFile = new File(ydocLib);
-        if (ydocFile.exists()) {
-          var jvm = JVM.create(ydocFile);
-          loader = OtherJvmClassLoader.create(jvm);
-        }
-      }
       // in AOT mode the org.enso.ydoc.server is the main module loaded
       // to the JVM's boot layer - e.g. its classes are available
-      if (loader == null) {
-        loader = OtherJvmClassLoader.create("org.enso.ydoc.server", null, true, null);
-      }
     } else {
-      loader = OtherJvmClassLoader.create("org.enso.ydoc.server", null, false, null);
       // in "single JVM mock mode" we have to make sure JAR is added to
       // the classloader - right now by calling addPath
       var myJar =

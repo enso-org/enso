@@ -203,6 +203,11 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     if (!component.getName().equals("component")) {
       component = new File(component, "component");
     }
+    var libFile = findDynamicLibrary(component, mainModule);
+    if (libFile.exists()) {
+      return JVM.create(libFile);
+    }
+
     var commandAndArgs = new ArrayList<String>();
     var assertsOn = false;
     assert assertsOn = true;
@@ -221,5 +226,16 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     commandAndArgs.add("--module-path=" + component.getPath());
     commandAndArgs.add("-Djdk.module.main=" + mainModule);
     return JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
+  }
+
+  private static File findDynamicLibrary(File dir, String name) {
+    var ext =
+        switch (org.enso.common.Platform.getOperatingSystem()) {
+          case LINUX -> ".so";
+          case MACOS -> ".dylib";
+          case WINDOWS -> ".dll";
+        };
+    var file = new File(dir, name + ext);
+    return file;
   }
 }

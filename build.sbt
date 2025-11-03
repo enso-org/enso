@@ -2098,7 +2098,7 @@ lazy val `ydoc-server` = project
         .buildNativeImage(
           "org.enso.ydoc.server",
           staticOnLinux = false,
-          targetDir     = target.value / "native-image",
+          targetDir     = engineDistributionRoot.value / "component",
           mainClass     = Some("org.enso.ydoc.server.Main"),
           symlink       = false,
           shared        = true
@@ -4500,6 +4500,7 @@ lazy val `jvm-interop` =
       ),
       Compile / internalModuleDependencies ++= Seq(
         (`jvm-channel` / Compile / exportedModule).value,
+        (`engine-common` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value
       )
     )
