@@ -4057,5 +4057,5 @@ Many_Files_List.from (that : Table) = case that of
    Resolve column selectors to column names.
 private resolve_columns this_table:Table columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type) error_on_missing_columns:Boolean =
     columns.if_not_error <|
-         matched = this_table.select_columns vector error_on_missing_columns=error_on_missing_columns on_problems=..Ignore . columns
+         matched = this_table.select_columns columns error_on_missing_columns=error_on_missing_columns on_problems=..Ignore . columns
          matched.catch No_Output_Columns _->[]
