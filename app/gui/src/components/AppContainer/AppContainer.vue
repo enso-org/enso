@@ -1,13 +1,14 @@
 <script lang="ts">
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
-import { BackendType, EnsoPath, Path } from '#/services/Backend'
+import { BackendType, EnsoPath } from '#/services/Backend'
 import { newDirectoryId, newProjectId } from '#/services/LocalBackend'
 import CommandPalette from '$/components/CommandPalette.vue'
 import { provideContainerData } from '$/providers/container'
 import { useOpenedProjects, type Project } from '$/providers/openedProjects'
 import { ContainerProviderForReact } from '$/providers/react/container'
 import { provideRightPanelData } from '$/providers/rightPanel'
+import { normalizeSlashes } from '$/utils/file'
 import { appContainerBindings } from '@/bindings'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import { useEvent } from '@/composables/events'
@@ -23,7 +24,6 @@ import { onMounted, onUnmounted, shallowRef, toRefs } from 'vue'
 import { Drive, Settings } from './reactTabs'
 import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
-import { normalizeSlashes } from '$/utils/file'
 
 const UserBar = reactComponent(UserBarReact)
 </script>

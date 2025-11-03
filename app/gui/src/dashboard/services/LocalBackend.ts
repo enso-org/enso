@@ -13,7 +13,13 @@ import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
-import { fileExtension, getFileName, getFolderPath, normalizePath, normalizeSlashes } from '$/utils/file'
+import {
+  fileExtension,
+  getFileName,
+  getFolderPath,
+  normalizePath,
+  normalizeSlashes,
+} from '$/utils/file'
 import { uniqueString } from '$/utils/uniqueString'
 import { PRODUCT_NAME } from 'enso-common'
 import {
