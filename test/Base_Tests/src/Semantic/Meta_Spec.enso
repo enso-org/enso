@@ -420,7 +420,7 @@ add_specs suite_builder =
 
         group_builder.specify "static methods of MyType" <|
             methods = Meta.meta (Meta.type_of My_Type) . methods
-            expected_methods = ['Value', 'create', 'factory', 'first_method', 'my_method', 'other_method', 'second_method']
+            expected_methods = ['Value', 'create', 'factory']
             expected_methods . should_only_contain_elements_in methods
 
         group_builder.specify "methods of Integer" <|
@@ -432,7 +432,7 @@ add_specs suite_builder =
             expected_methods . should_only_contain_elements_in (Meta.meta Integer . methods)
 
         group_builder.specify "static methods of Integer" <|
-            expected_methods = ['%', '*', '+', '-', '/', '<', '<=', '>', '>=', '^', 'abs', 'bit_and', 'bit_not', 'bit_or', 'bit_shift', 'bit_shift_l', 'bit_shift_r', 'bit_xor', 'ceil', 'div', 'fits_in_long', 'floor', 'negate', 'parse', 'round', 'to_decimal', 'to_float', 'truncate']
+            expected_methods = ['parse']
             expected_methods . should_only_contain_elements_in <| Meta.meta (Meta.type_of Integer) . methods
 
         group_builder.specify "methods of Any" <|

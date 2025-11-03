@@ -66,23 +66,11 @@ pub const PRIMARY_TARGET: Target = (OS::Linux, Arch::X86_64);
 
 const RELEASE_CLEANING_POLICY: CleaningCondition = CleaningCondition::Always;
 
-pub const RELEASE_TARGETS: [(OS, Arch); 4] = [
-    (OS::Windows, Arch::X86_64),
-    (OS::Linux, Arch::X86_64),
-    (OS::MacOS, Arch::X86_64),
-    (OS::MacOS, Arch::AArch64),
-];
-
-/// Targets for which we run PR checks.
-///
-/// The macOS AArch64 is intentionally omitted, as the runner availability is limited.
-pub const PR_CHECKED_TARGETS: [(OS, Arch); 3] =
-    [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::X86_64)];
+pub const RELEASE_TARGETS: [(OS, Arch); 3] =
+    [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64), (OS::MacOS, Arch::AArch64)];
 
 pub const PR_REQUIRED_TARGETS: [(OS, Arch); 2] =
     [(OS::Windows, Arch::X86_64), (OS::Linux, Arch::X86_64)];
-
-pub const PR_OPTIONAL_TARGETS: [(OS, Arch); 1] = [(OS::MacOS, Arch::X86_64)];
 
 pub const DEFAULT_BRANCH_NAME: &str = "develop";
 
@@ -791,37 +779,6 @@ pub fn ide_packaging() -> Result<Workflow> {
     Ok(workflow)
 }
 
-pub fn ide_packaging_optional() -> Result<Workflow> {
-    let on = Event {
-        workflow_dispatch: Some(manual_workflow_dispatch()),
-        workflow_call: Some(default()),
-        ..default()
-    };
-    let mut workflow = Workflow {
-        name: "IDE Packaging (Optional)".into(),
-        concurrency: Some(concurrency("ide-packaging-optional")),
-        on,
-        ..default()
-    };
-
-    let engine_launcher = engine::EngineLauncher::Native;
-    for target in PR_OPTIONAL_TARGETS {
-        let continue_on_error = Some(true);
-        let project_manager_job =
-            workflow.add_customized(target, job::BuildBackend { engine_launcher }, |job| {
-                job.continue_on_error = continue_on_error;
-            });
-        workflow.add_customized(target, job::PackageIde, |job| {
-            job.needs.insert(project_manager_job.clone());
-            job.continue_on_error = continue_on_error;
-        });
-        workflow.add_customized(target, job::GuiBuild, |job| {
-            job.continue_on_error = continue_on_error;
-        });
-    }
-    Ok(workflow)
-}
-
 pub fn wasm_checks() -> Result<Workflow> {
     let on = Event {
         workflow_dispatch: Some(manual_workflow_dispatch()),
@@ -859,25 +816,6 @@ pub fn engine_checks() -> Result<Workflow> {
     Ok(workflow)
 }
 
-pub fn engine_checks_optional() -> Result<Workflow> {
-    let on = Event {
-        workflow_dispatch: Some(manual_workflow_dispatch()),
-        workflow_call: Some(default()),
-        ..default()
-    };
-    let mut workflow = Workflow {
-        name: "Engine Checks (Optional)".into(),
-        concurrency: Some(concurrency("engine-checks-optional")),
-        on,
-        ..default()
-    };
-    let engine_launcher = engine::EngineLauncher::TestNative;
-    for target in PR_OPTIONAL_TARGETS {
-        add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
-    }
-    Ok(workflow)
-}
-
 pub fn engine_checks_nightly() -> Result<Workflow> {
     let on = Event {
         schedule: vec![Schedule::new("0 3 * * *")?],
@@ -896,7 +834,7 @@ pub fn engine_checks_nightly() -> Result<Workflow> {
     );
 
     // Run macOS AArch64 tests only once a day, as we have only one self-hosted runner for this.
-    for target in PR_CHECKED_TARGETS {
+    for target in PR_REQUIRED_TARGETS {
         add_backend_checks(&mut workflow, target, graalvm::Edition::Community, engine_launcher);
     }
     add_backend_checks(
@@ -1084,11 +1022,9 @@ pub fn generate(
         (repo_root.changelog_yml.to_path_buf(), changelog()?),
         (repo_root.nightly_yml.to_path_buf(), nightly()?),
         (repo_root.engine_checks_yml.to_path_buf(), engine_checks()?),
-        (repo_root.engine_checks_optional_yml.to_path_buf(), engine_checks_optional()?),
         (repo_root.engine_checks_nightly_yml.to_path_buf(), engine_checks_nightly()?),
         (repo_root.extra_nightly_tests_yml.to_path_buf(), extra_nightly_tests()?),
         (repo_root.ide_packaging_yml.to_path_buf(), ide_packaging()?),
-        (repo_root.ide_packaging_optional_yml.to_path_buf(), ide_packaging_optional()?),
         (repo_root.wasm_checks_yml.to_path_buf(), wasm_checks()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
         (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),

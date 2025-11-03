@@ -21,9 +21,7 @@ public class ResourceManagerTest {
     var fn = new FnCallback();
 
     try (var ctx = ContextUtils.createDefault()) {
-      var ensoContext = ctx.ensoContext();
-
-      ensoContext.getResourceManager().register(obj, fn);
+      ctx.ensoContext().getResourceManager().register(obj, fn);
       assertNull("Not invoked yet", fn.args);
     }
 

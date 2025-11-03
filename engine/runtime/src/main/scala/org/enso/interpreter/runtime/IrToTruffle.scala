@@ -837,11 +837,26 @@ private[runtime] class IrToTruffle(
   ): TypeCheckValueNode = {
     arg.ascribedType
       .map { t =>
-        val reason    = AscriptionReason.forParameter(arg.name.name)
-        val checkNode = IrTruffleUtils.extractAscribedType(context, reason, t)
+        val reason = AscriptionReason.forParameter(arg.name.name)
+        // If `arg` is synthetic self, it means that the expected type should be eigen type, because
+        // the whole method is "static" (has no explicit self parameter).
+        val checkNode = if (isSyntheticSelfParameter(arg)) {
+          IrTruffleUtils.extractAscribedEigenType(context, reason, t)
+        } else {
+          IrTruffleUtils.extractAscribedType(context, reason, t)
+        }
         TypeCheckValueNode.allTypes(false, checkNode)
       }
       .getOrElse(null)
+  }
+
+  private def isSyntheticSelfParameter(
+    param: DefinitionArgument
+  ): Boolean = {
+    param.name() match {
+      case self: Name.Self => self.synthetic
+      case _               => false
+    }
   }
 
   /** Checks if the expression has a @Builtin_Method annotation
@@ -941,6 +956,9 @@ private[runtime] class IrToTruffle(
     expr
   }
 
+  /** This method iterates over every [[BindingsMap.exportedSymbols exported]] symbol, and
+    * registers it in the current [[TruffleCompilerModuleScopeBuilder module scope]].
+    */
   private def generateReExportBindings(module: Module): Unit = {
     def mkConsGetter(constructor: AtomConstructor): RuntimeFunction =
       constructor.getAccessorFunction()
@@ -1035,18 +1053,24 @@ private[runtime] class IrToTruffle(
                     tp != null,
                     s"Type should be defined in module ${modWithTp.getName}"
                   )
-                  // We have to search for the method on eigen type, because it is a static method.
-                  // Static methods are always defined on eigen types
                   val eigenTp = tp.getEigentype
-                  val fun =
+                  // The method with the given name can be present either in `tp` or in
+                  // `eigenTp`, but not in both.
+                  var fun =
                     currentScope.getMethodForType(
                       eigenTp,
                       staticMethod.methodName
                     )
+                  if (fun == null) {
+                    fun = currentScope.getMethodForType(
+                      tp,
+                      staticMethod.methodName
+                    )
+                  }
                   org.enso.common.Asserts.assertInJvm(
                     fun != null,
-                    s"exported symbol (static method) `${staticMethod.name}` on type '${eigenTp.getName}' " +
-                    s"needs to be registered first in the module '${actualModule.getName.toString}'."
+                    s"exported extension method `${staticMethod.name}` was not found either in " +
+                    s"${tp} or in ${eigenTp} inside module '${actualModule.getName.toString}'."
                   )
                   scopeBuilder.registerMethod(
                     scopeAssociatedType,
