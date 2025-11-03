@@ -20,7 +20,7 @@ type Table_Selector
     ## ---
        private: true
        ---
-       Resolves a Table_Selector into a Vector of Columns of the input Table.
+       Resolves a Table_Selector into a Vector of column names of the input Table.
     resolve self (table:Table) (error_on_missing_columns:Boolean) = case self of
         Table_Selector.Vector v ->
             flatten = v.map s-> case s of
@@ -29,7 +29,7 @@ type Table_Selector
                 Table_Selector.Index i -> i
                 Table_Selector.Regex r -> r
                 Table_Selector.By_Type bt -> bt
-            matched = table.select_columns flatten error_on_missing_columns=error_on_missing_columns on_problems=..Ignore . columns
+            matched = table.select_columns flatten error_on_missing_columns=error_on_missing_columns on_problems=..Ignore . column_names
             if error_on_missing_columns then matched else
                 matched.catch No_Output_Columns _->[]
         _ -> Table_Selector.Vector [self] . resolve table error_on_missing_columns
@@ -52,5 +52,5 @@ Table_Selector.from (that:Regex) = Table_Selector.Regex that
 Table_Selector.from (that:By_Type) = Table_Selector.By_Type that
 
 Table_Selector.from (that:Vector) =
-    selectors = that.map (_:Table_Selector)
+    selectors = that.map (v->v:Table_Selector)
     Table_Selector.Vector selectors
