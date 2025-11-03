@@ -51,10 +51,13 @@ public class SaveAndLoadCacheTest {
   @Test
   public void compilationSavesSuggestionsAndImportExportCache() throws Exception {
     var projDir = tmpFolder.newFolder("Proj").toPath();
-    ProjectUtils.createProject("Proj", """
+    ProjectUtils.createProject(
+        "Proj",
+        """
         method =
             42
-        """, projDir);
+        """,
+        projDir);
     var libName = LibraryName.apply("local", "Proj");
     try (var ctx = projCtx(projDir)) {
       compileAndAssertCreatedCaches(ctx, libName);
@@ -64,10 +67,13 @@ public class SaveAndLoadCacheTest {
   @Test
   public void cachesAreLoaded_AfterProjectIsCompiled() throws IOException {
     var projDir = tmpFolder.newFolder("Proj").toPath();
-    ProjectUtils.createProject("Proj", """
+    ProjectUtils.createProject(
+        "Proj",
+        """
         main =
             42
-        """, projDir);
+        """,
+        projDir);
     var libName = LibraryName.apply("local", "Proj");
 
     // First, compile the project
@@ -128,7 +134,6 @@ public class SaveAndLoadCacheTest {
         .withModifiedContext(
             bldr ->
                 bldr.option(RuntimeOptions.DISABLE_IR_CACHES, "false")
-                    .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
                     .option(RuntimeOptions.LOG_LEVEL, "FINEST")
                     .logHandler(logHandler))
         .withProjectRoot(projDir)
@@ -204,7 +209,8 @@ public class SaveAndLoadCacheTest {
   /** Creates executable big source file. */
   private static String createBigSource(int methodCount) {
     var sb = new StringBuilder();
-    sb.append("""
+    sb.append(
+        """
         method_0 =
             42
         """);
