@@ -114,7 +114,7 @@ reconcile_types current:Value_Type new:Value_Type -> Value_Type =
    returned.
 max_size a b =
     if a.is_nothing || b.is_nothing then Nothing else
-        if Comparable.< a b then b else a
+        if Comparable.< self=a that=b then b else a
 
 ## ---
    private: true

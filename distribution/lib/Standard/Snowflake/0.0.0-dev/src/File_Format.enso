@@ -61,7 +61,7 @@ type Snowflake_File_Format
         map_ident identifier =
             opt = identifier.to_option
             Option opt.label ("(..Saved " + opt.value + ")")
-        identifiers = [Option "<Default>" ..NONE]
+        identifiers = [Option "<Default>" "..NONE"]
             + connection.file_format_names.map map_ident
             + [Option "<CSV>" "..CSV", Option "<JSON>" "..JSON", Option "<AVRO>" "..AVRO", Option "<ORC>" "..ORC", Option "<PARQUET>" "..PARQUET", Option "<XML>" "..XML"]
         Single_Choice display=..Always values=identifiers
