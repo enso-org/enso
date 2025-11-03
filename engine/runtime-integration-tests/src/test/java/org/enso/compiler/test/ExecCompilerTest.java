@@ -232,8 +232,8 @@ public class ExecCompilerTest {
     } catch (PolyglotException e) {
       assertTrue("It is exception", e.getGuestObject().isException());
       assertEquals("Panic", e.getGuestObject().getMetaObject().getMetaSimpleName());
-      if (!e.getMessage().contains("Invalid use of _")) {
-        fail("Expecting Invalid use of _, but was: " + e.getMessage());
+      if (!e.getMessage().contains("Invalid use of")) {
+        fail("Expecting Invalid use of syntactic operator, but was: " + e.getMessage());
       }
     }
   }

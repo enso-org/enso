@@ -261,7 +261,7 @@ fn type_operator_methods() {
     test_block!("x.~y",
         @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
     test_block!("x.~1",
-        @r#"(BodyBlock #((ExpressionStatement () (OprApp (Ident x) (Ok ".") (UnaryOprApp "~" (Number () "1" ()))))))"#);
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
 }
 
 #[test]
@@ -687,7 +687,7 @@ fn accessor_operator() {
     test_block!("Console.",
         @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
     test_block!(".",
-        @r#"(BodyBlock #((ExpressionStatement () (OprApp () (Ok ".") ()))))"#);
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
     test_block!(".log",
         @"(BodyBlock #((ExpressionStatement () (PropertyAccess () log))))");
 }
@@ -1289,9 +1289,9 @@ mod numbers {
         test_block!("1 . 0",
             @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
         test_block!("1 .0",
-            @r#"(BodyBlock #((ExpressionStatement () (App (Number () "1" ()) (OprApp () (Ok ".") (Number () "0" ()))))))"#);
+            @r#"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (App (Number () "1" ()) (Invalid)))))"#);
         test_block!("1. 0",
-            @r#"(BodyBlock #((ExpressionStatement () (App (OprApp (Number () "1" ()) (Ok ".") ()) (Number () "0" ())))))"#);
+            @r#"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (App (Invalid) (Number () "0" ())))))"#);
     }
 
     #[test]
@@ -1307,7 +1307,7 @@ mod numbers {
         test_block!("1.0.0",
             @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
         test_block!("1.0x",
-            @r#"(BodyBlock #((ExpressionStatement () (OprApp (Number () "1" ()) (Ok ".") (Number "0x" () ())))))"#);
+            @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
         test_block!("876543.is_even.should_be_false",
             @r#"(BodyBlock #((ExpressionStatement () (PropertyAccess (PropertyAccess (Number () "876543" ()) is_even) should_be_false))))"#);
     }
@@ -1662,17 +1662,22 @@ fn function_expression_in_statement_context() {
 }
 
 #[test]
+fn property_access() {
+    test_block!("op._",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (TemplateFunction 1 (Invalid)))))");
+    test_block!("op ._",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (App (Ident op) (TemplateFunction 1 (Invalid))))))");
+    test_block!("op._.something",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (TemplateFunction 1 (PropertyAccess (Invalid) something)))))");
+    test_block!("x. length",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (App (Invalid) (Ident length)))))");
+    test_block!("x.('p')",
+        @"Invalid use of syntactic operator in expression: (BodyBlock #((ExpressionStatement () (Invalid))))");
+}
+
+#[test]
 #[ignore]
 fn proposed_invalid_cases() {
-    // Disallow lambda arguments in property access position?
-    test_module!("run op =\n    op ._",
-        @r#"(BodyBlock #((Function () #() () () (Ident run) #((() (Ident op) () ())) () (BodyBlock #((ExpressionStatement () (App (Ident op) (TemplateFunction 1 (1 (OprApp () (Ok ".") (Wildcard 0)))))))))))"#);
-    test_block!("z = x. length",
-        @r#"(BodyBlock #((Assignment () (Ident z) (1 (App (OprApp (Ident x) (Ok ".") ()) (Ident length))))))"#);
-    // Maybe other arbitrary expressions too?
-    test_block!("y = x.('p')",
-        @r#"(BodyBlock #((Assignment () (Ident y) (OprApp (Ident x) (Ok ".") (Group (TextLiteral #((Section "p"))))))))"#);
-
     // FIXME: Type operators must be fully-applied
     test_module!("f : Text -> | Nothing -> Nothing\nf x = Nothing",
         @r#"(BodyBlock #((Function () #() ((Ident f) ":" (OprApp (Ident Text) (Err (#("->" "|"))) (OprApp (Ident Nothing) (Ok "->") (Ident Nothing)))) () (Ident f) #((() (Ident x) () ())) () (Ident Nothing))))"#);
