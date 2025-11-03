@@ -30,6 +30,7 @@ const props = defineProps<{
   transformUserInput?: (value: string) => Ast.Owned<Ast.MutableTextLiteral> | string
   /** Editor line mode. Single-line mode will not allow entering newline characters. */
   lineMode: 'single' | 'multi' | 'auto' | 'autoMulti'
+  syncAfterAccept?: boolean
   onAccepted?: (value: string) => HandledUpdate
 }>()
 
@@ -83,6 +84,8 @@ const editing = WidgetEditHandler.New(props, {
     return false
   },
   end() {
+    if (props.syncAfterAccept && getText(editorView) !== model.value)
+      setText(editorView, model.value)
     blurEditor()
   },
 })

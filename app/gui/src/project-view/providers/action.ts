@@ -24,7 +24,7 @@ import type { ForbidExcessProps } from 'ydoc-shared/util/types'
 export interface Action {
   /** Decide whether the action is even going to be shown in the menu. */
   available?: ToValue<boolean> | undefined
-  /** Whether the action can be performed. Available but disableed actions will be listed, but grayed out. */
+  /** Whether the action can be performed. Available but disabled actions will be listed, but grayed out. */
   enabled?: ToValue<boolean> | undefined
   /** The action callback, called when action is invoked by the user. */
   action?: ((ctx: ActionContext | undefined) => void) | undefined

@@ -72,7 +72,6 @@ export function replaceVariableUsages(
   shouldRenameProps?: (access: Ast.Expression) => boolean,
 ) {
   const newNameString = newName.code()
-  console.log(newNameString, oldNameString)
   if (newNameString == oldNameString) return
 
   function matchIdent(node: Ast.Ast): node is Ast.Ident {
@@ -100,8 +99,16 @@ export function replaceVariableUsages(
  *
  * TODO: This should use proper scope analysis. For now, let's just look for all declared bindings within passed subtree.
  */
-export function generateUniqueName(baseName: Identifier, scope: Ast.Ast | undefined): Identifier {
-  if (!scope) return baseName
+export function generateUniqueName(
+  baseName: Identifier | ((index: number) => Identifier),
+  scope: Ast.Ast | undefined,
+  alwaysAllow: Iterable<string> = [],
+  startingIndex = 0,
+): Identifier {
+  const startingName = typeof baseName === 'function' ? baseName(startingIndex) : baseName
+  const generateName = typeof baseName === 'function' ? baseName : (i: number) => `${baseName}_${i}`
+
+  if (!scope) return startingName
   const existingNames = new Set()
   Ast.visitRecursive(scope, (child) => {
     if (child instanceof Ast.Ident) existingNames.add(child.token.code())
@@ -109,8 +116,10 @@ export function generateUniqueName(baseName: Identifier, scope: Ast.Ast | undefi
     else if (child instanceof Ast.App) return [child.function, child.argument]
   })
 
-  let name = baseName
-  let index = 0
-  while (existingNames.has(name)) name = `${baseName}_${++index}` as Identifier
+  for (const allow of alwaysAllow ?? []) existingNames.delete(allow)
+
+  let name = startingName
+  let index = startingIndex
+  while (existingNames.has(name)) name = generateName(++index) as Identifier
   return name
 }

@@ -9,6 +9,7 @@ import {
 } from '$/providers/openedProjects/widgetRegistry'
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import { createContextStore } from '@/providers'
+import { useLayoutAnimationReporter } from '@/providers/animationCounter'
 import { registerWidgetActionHandlers } from '@/providers/widgetActions'
 import { usePersisted } from '@/stores/persisted'
 import { Ast } from '@/util/ast'
@@ -39,6 +40,8 @@ if (
 }
 
 const editFieldEnabled = computed(() => !requireUserAction.value || userRequestedEdit.value)
+const animReporter = useLayoutAnimationReporter()
+animReporter.reportAnimationWhile(editFieldEnabled)
 
 registerWidgetActionHandlers({
   'component.widget.editMethodName': {
@@ -72,7 +75,11 @@ const name = computed(() =>
 
 const hideThisArg = computed(() => {
   const ast = thisArg.value
-  return ast && isModuleExpression(ast, project.value, projectNames)
+  return (
+    ast &&
+    project.value.moduleProjectPath?.ok &&
+    isModuleExpression(ast, project.value.moduleProjectPath.value, projectNames)
+  )
 })
 
 const nameCode = computed(() => name.value.code())
@@ -98,15 +105,16 @@ async function renameFunction(userProvidedName: string): Promise<UpdateResult> {
   // Perform client-side refactor on local module.
   return module.value.edit((edit) => {
     const moduleRoot = edit.root()
-    if (!moduleRoot) return Err('Module root missing')
+    if (!moduleRoot || !project.value.moduleProjectPath?.ok) return Err('Module root missing')
     const editedAstId = graph.value.db.idFromExternal(editedName)
     const originalName = edit.get(editedAstId)?.code()
     if (!originalName) return Err('Original name expression missing')
 
     // replace all occurences
     const newNameAst = Ast.Ident.new(MutableModule.Transient(), newName)
+    const projectPath = project.value.moduleProjectPath.value
     replaceVariableUsages(edit, moduleRoot, originalName, newNameAst, (ast) =>
-      isModuleExpression(ast, project.value, projectNames),
+      isModuleExpression(ast, projectPath, projectNames),
     )
     // Instantly update execution context, so we avoid blinking due to temporarily unsynchronized
     // state and keeps this widget instance rendered. Real updates will arrive soon afterwards and

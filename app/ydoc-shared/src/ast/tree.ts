@@ -529,6 +529,7 @@ type StructuralField<T extends TreeRefs = RawRefs> =
   | NameSpecification<T>
   | TextElement<T>
   | ArgumentDefinition<T>
+  | ReturnSpecification<T>
   | VectorElement<T>
   | TypeSignature<T>
   | SignatureLine<T>
@@ -667,6 +668,18 @@ function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: ArgumentDefinition<T>,
   f: MapRef<T, U>,
 ): ArgumentDefinition<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: FunctionAnnotation<T>,
+  f: MapRef<T, U>,
+): FunctionAnnotation<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: TypeSignature<T>,
+  f: MapRef<T, U>,
+): TypeSignature<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: ReturnSpecification<T>,
+  f: MapRef<T, U>,
+): ReturnSpecification<U>
 function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: VectorElement<T>,
   f: MapRef<T, U>,
@@ -2401,6 +2414,11 @@ export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
   close?: T['token'] | undefined
 }
 
+export interface ReturnSpecification<T extends TreeRefs = RawRefs> {
+  arrow: T['token']
+  type: T['expression']
+}
+
 /**
  * Create a new function argument definition using provided "name" string as argument's pattern expression.
  */
@@ -2446,7 +2464,7 @@ interface AnnotationLine<T extends TreeRefs = RawRefs> {
   newlines: T['token'][]
 }
 
-interface TypeSignature<T extends TreeRefs = RawRefs> {
+export interface TypeSignature<T extends TreeRefs = RawRefs> {
   name: T['ast']
   operator: T['token']
   type: T['ast']
@@ -2466,6 +2484,7 @@ export interface FunctionDefFields<T extends TreeRefs = RawRefs> {
   private_: T['token'] | undefined
   name: T['ast']
   argumentDefinitions: ArgumentDefinition<T>[]
+  returns: ReturnSpecification<T> | undefined
   equals: T['token']
   body: T['ast'] | undefined
 }
@@ -2505,6 +2524,24 @@ export class FunctionDef extends BaseStatement {
       .map((def) => mapRefs(def, rawToConcrete(this.module)))
   }
 
+  /** Get annotations attached to this function. */
+  get annotations(): FunctionAnnotation<ConcreteRefs>[] {
+    return this.fields
+      .get('annotationLines')
+      .map((line) => mapRefs(line.annotation, rawToConcrete(this.module)))
+  }
+
+  /** Get function's type signature AST, if it is present. */
+  get signature(): TypeSignature<ConcreteRefs> | undefined {
+    const line = this.fields.get('signatureLine')
+    return line && mapRefs(line.signature, rawToConcrete(this.module))
+  }
+
+  /** Get function's type signature AST, if it is present. */
+  get returnType(): Expression | undefined {
+    return this.module.get(this.fields.get('returns')?.type.node) as Expression | undefined
+  }
+
   /** TODO: Add docs */
   static concrete(
     module: MutableModule,
@@ -2529,6 +2566,7 @@ export class FunctionDef extends BaseStatement {
       argumentDefinitions: (fields.argumentDefinitions ?? []).map((def) =>
         mapRefs(def, ownedToRaw(module, id_)),
       ),
+      returns: fields.returns && mapRefs(fields.returns, ownedToRaw(module, id_)),
       equals: fields.equals,
       body: concreteChild(module, fields.body, id_),
     })

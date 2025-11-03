@@ -38,10 +38,17 @@ export function normalizeFunctionName(name: string): Identifier {
   return (toLowerSnakeCase(name) || 'user_created_component') as Identifier
 }
 
+/**
+ * Transforms the given string into a valid function name.
+ */
+export function normalizeArgumentName(name: string): Identifier {
+  return (toLowerSnakeCase(name) || 'arg') as Identifier
+}
+
 function toLowerSnakeCase(name: string): string {
   if (!name) return ''
   let result = ''
-  let lastWasUpper = false
+  let lastWasUpper = true
 
   for (let i = 0; i < name.length; i++) {
     const c = name.charAt(i)

@@ -2,6 +2,7 @@ import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
 import { type ProjectStore } from '$/providers/openedProjects/project'
 import { type NodeVisualizationConfiguration } from '$/providers/openedProjects/project/executionContext'
 import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import type { GroupInfo } from '$/providers/openedProjects/suggestionDatabase'
 import { entryIsAnnotatable } from '$/providers/openedProjects/suggestionDatabase/entry'
 import type { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import {
@@ -13,14 +14,15 @@ import {
 import { Ast } from '@/util/ast'
 import {
   ArgumentApplication,
+  deriveLocalCallInfoFromCode,
   getAccessOprSubject,
   getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
-import type { MethodPointer } from '@/util/methodPointer'
+import { type MethodPointer } from '@/util/methodPointer'
 import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
-import { computed, toValue } from 'vue'
+import { computed, toValue, type DeepReadonly } from 'vue'
 import type { Identifier } from 'ydoc-shared/ast'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
@@ -34,12 +36,21 @@ export function useWidgetFunctionCallInfo(
   input: ToValue<WidgetInput & { value: Ast.Expression }>,
   graphDb: ToValue<GraphDb>,
   // Cannot be ToValue - see TODO next to visualizationData
-  project: Pick<ProjectStore, 'useVisualizationData' | 'moduleProjectPath'>,
+  project: ToValue<Pick<ProjectStore, 'useVisualizationData' | 'moduleProjectPath'>>,
   projectNames: ToValue<ProjectNameStore>,
+  groups: ToValue<DeepReadonly<GroupInfo[]>>,
 ) {
-  const methodCallInfo = computed(() =>
-    getMethodCallInfoRecursively(toValue(input).value, toValue(graphDb)),
-  )
+  const methodCallInfo = computed(() => {
+    const _project = toValue(project)
+    if (!_project.moduleProjectPath?.ok) return
+    const expression = toValue(input).value
+    const projectPath = _project.moduleProjectPath.value
+    const ptr = getPotentialModuleFunctionPointer(expression, projectPath, projectNames, graphDb)
+    const derivedLocal = ptr && deriveLocalCallInfoFromCode(ptr, expression, toValue(groups))
+    if (derivedLocal) return derivedLocal
+    return getMethodCallInfoRecursively(toValue(input).value, toValue(graphDb))
+  })
+
   const interpreted = computed(() => interpretCall(toValue(input).value))
 
   const appFunc = computed(() =>
@@ -114,8 +125,9 @@ export function useWidgetFunctionCallInfo(
 
     let modulePath: ProjectPath = WIDGETS_ENSO_PATH
     const projectNamesValue = toValue(projectNames)
-    if (project.moduleProjectPath?.ok) {
-      modulePath = project.moduleProjectPath.value
+    const _project = toValue(project)
+    if (_project.moduleProjectPath?.ok) {
+      modulePath = _project.moduleProjectPath.value
     }
     const moduleFqn = projectNamesValue.serializeProjectPathForBackend(modulePath)
 
@@ -169,7 +181,7 @@ export function useWidgetFunctionCallInfo(
 
   // TODO[ao]: This does not work with project change. Either useVisualizationData API must
   //  change, or useCurrentRef should not return ref.
-  const visualizationData = project.useVisualizationData(visualizationConfig)
+  const visualizationData = toValue(project).useVisualizationData(visualizationConfig)
 
   const widgetConfiguration = computed(() => {
     const data = visualizationData.value
@@ -257,13 +269,14 @@ export function isModuleExpression(
  * Check if given AST potentially represents a locally defined method call.
  * Returns a method pointer that might potentially not represent a real method.
  */
-export function getPotentialCurrentModuleFunctionPointer(
+export function getPotentialModuleFunctionPointer(
   expr: Ast.Expression,
-  project: Pick<ProjectStore, 'moduleProjectPath'>,
+  modulePath: ProjectPath,
   projectNames: ToValue<ProjectNameStore>,
   graphDb: ToValue<GraphDb>,
 ): MethodPointer | undefined {
   let candidateFunctionName: Identifier | null = null
+  while (expr instanceof Ast.App) expr = expr.function
   if (expr instanceof Ast.Ident) {
     const db = toValue(graphDb)
     const definition = db.getIdentDefiningNode(expr.id)
@@ -272,14 +285,12 @@ export function getPotentialCurrentModuleFunctionPointer(
   } else if (
     expr instanceof Ast.PropertyAccess &&
     expr.lhs &&
-    project.moduleProjectPath?.ok &&
-    isModuleExpression(expr.lhs, project.moduleProjectPath.value, projectNames)
+    isModuleExpression(expr.lhs, modulePath, projectNames)
   ) {
     candidateFunctionName = expr.rhs.token.code()
   }
 
-  if (candidateFunctionName && project.moduleProjectPath?.ok) {
-    const modulePath = project.moduleProjectPath.value
+  if (candidateFunctionName) {
     return {
       module: modulePath,
       definedOnType: modulePath,

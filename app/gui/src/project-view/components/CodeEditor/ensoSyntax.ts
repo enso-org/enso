@@ -139,10 +139,7 @@ class EnsoParser extends Parser {
         if (code !== this.cachedCode || this.cachedTree == null) {
           this.cachedCode = code
           const moduleRootAst = this.moduleRoot.value
-          if (moduleRootAst == null) {
-            console.log('cachedCode', this.cachedCode)
-            return Tree.empty
-          }
+          if (moduleRootAst == null) return Tree.empty
           const root = Ast.copyIntoNewModule(moduleRootAst)
           const tempModule = root.module
           root.module.setRoot(root)

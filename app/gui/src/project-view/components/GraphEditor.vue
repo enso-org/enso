@@ -583,10 +583,7 @@ function collapseNodes(nodes: Node[]) {
 
       if (graphStore.currentMethod.pointer.ok) {
         const currentPointer = graphStore.currentMethod.pointer.value
-        const collapsedMethodPointer = { ...currentPointer, name: collapsedName }
-
-        graphStore.db.insertMethodDefinition(oldMethodPointer, newMethodPointer)
-        renameSchedule?.scheduleFunctionRename(collapsedMethodPointer)
+        renameSchedule?.scheduleFunctionRename({ ...currentPointer, name: collapsedName })
       }
 
       return Ok()

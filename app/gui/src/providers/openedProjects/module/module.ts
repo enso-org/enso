@@ -142,6 +142,11 @@ export function createModuleStore(
     synced.value.transact(f, origin)
   }
 
+  function hasMethod(name: string): boolean {
+    const root = ast.value?.root()
+    return root != null && Ast.findModuleMethod(root, name) != null
+  }
+
   function getMethodAst(ptr: MethodPointer, edit?: Ast.Module): Result<Ast.FunctionDef> {
     const topLevel = (edit ?? ast.value)?.root()
     if (!topLevel) return Err('Module unavailable')
@@ -233,6 +238,7 @@ export function createModuleStore(
     edit,
     batchEdits,
     onBeforeEdit,
+    hasMethod,
     getMethodAst,
     mutableNodeMetadata,
     setWidgetMetadata,

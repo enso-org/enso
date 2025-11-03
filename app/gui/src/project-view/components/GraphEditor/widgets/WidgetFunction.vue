@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useCurrentProject, useProjectStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import type { MethodCallInfo } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   Score,
@@ -10,7 +10,10 @@ import {
   type WidgetUpdate,
 } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
+import {
+  getPotentialModuleFunctionPointer,
+  useWidgetFunctionCallInfo,
+} from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
@@ -31,8 +34,13 @@ import { Err, Ok } from 'ydoc-shared/util/data/result'
 import { FunctionName } from './WidgetFunctionName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const { projectNames: projectNames, module, graph } = useCurrentProject()
-const project = useProjectStore()
+const {
+  store: project,
+  projectNames: projectNames,
+  module,
+  graph,
+  suggestionDb,
+} = useCurrentProject()
 
 const exprInfo = computed(() => graph.value.db.getExpressionInfo(props.input.value.externalId))
 const outputType = computed(() => exprInfo.value?.typeInfo?.primaryType)
@@ -42,6 +50,7 @@ const { methodCallInfo, application, subject, subjectInfo } = useWidgetFunctionC
   () => graph.value.db,
   project,
   projectNames,
+  () => suggestionDb.value.groups,
 )
 
 provideFunctionInfo(
@@ -275,8 +284,27 @@ export const widgetDefinition = defineWidget(
 
       if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
       if (getMethodCallInfoRecursively(ast, db)) return Score.Perfect
-      // const potentialMethodPointer = getPotentialCurrentModuleFunctionPointer(ast, db)
-      // if (potentialMethodPointer) &&
+      if (
+        ast instanceof Ast.PropertyAccess ||
+        (ast instanceof Ast.Ident && !(ast.parent() instanceof Ast.PropertyAccess))
+      ) {
+        // Apply WidgetFunction to simple non-application expressions that represent an existing module-local function,
+        // even if it wasn't evaluated yet (i.e. we don't have up-to-date expression data yet).
+        const currentProject = useCurrentProject(true)
+        const projectPath = currentProject?.store.value.moduleProjectPath
+        if (currentProject && projectPath?.ok) {
+          const names = currentProject.projectNames
+          const potentialMethod = getPotentialModuleFunctionPointer(
+            ast,
+            projectPath.value,
+            names,
+            db,
+          )
+          if (potentialMethod && currentProject.module.value.hasMethod(potentialMethod.name))
+            return Score.Perfect
+        }
+      }
+
       return Score.Mismatch
     },
   },

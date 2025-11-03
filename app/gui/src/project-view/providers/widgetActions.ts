@@ -49,7 +49,7 @@ const [, useWidgetActions] = createContextStore('widget actions', () => {
 export function provideWidgetControlledActions<
   const Actions extends [DisplayableActionName, ...DisplayableActionName[]],
 >(actions: Actions): { [N in Actions[number]]: ActionHandler } {
-  const actionsStore = useWidgetActions(() => [] as const)
+  const actionsStore = useWidgetActions(() => [] as const, true)
   return Object.assign({}, ...actions.map(actionsStore.widgetControlledAction))
 }
 

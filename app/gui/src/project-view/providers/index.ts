@@ -58,10 +58,10 @@ export type ContextStore<Factory extends (...args: any[]) => any> = [
    * has never been provided and `missingBehavior` is `true`.
    */
   injectFn: {
-    (allowMissing?: false): ReturnType<Factory>
-    (allowMissing: true): ReturnType<Factory> | undefined
-    (allowMissing?: boolean): ReturnType<Factory> | undefined
-    (orProvideWith: () => Readonly<Parameters<Factory>>): ReturnType<Factory>
+    (allowMissing?: false, immediate?: boolean): ReturnType<Factory>
+    (allowMissing: true, immediate?: boolean): ReturnType<Factory> | undefined
+    (allowMissing?: boolean, immediate?: boolean): ReturnType<Factory> | undefined
+    (orProvideWith: () => Readonly<Parameters<Factory>>, immediate?: boolean): ReturnType<Factory>
   },
 ]
 
@@ -101,14 +101,19 @@ export function createContextStore<F extends (...args: any[]) => any>(
     return constructed
   }
 
-  function injectFn(allowMissing: true): ReturnType<F> | undefined
-  function injectFn(allowMissing?: false): ReturnType<F>
-  function injectFn(allowMissing?: boolean): ReturnType<F> | undefined
-  function injectFn(orProvideWith: () => Readonly<Parameters<F>>): ReturnType<F>
+  function injectFn(allowMissing: true, immediate?: boolean): ReturnType<F> | undefined
+  function injectFn(allowMissing?: false, immediate?: boolean): ReturnType<F>
+  function injectFn(allowMissing?: boolean, immediate?: boolean): ReturnType<F> | undefined
+  function injectFn(
+    orProvideWith: () => Readonly<Parameters<F>>,
+    immediate?: boolean,
+  ): ReturnType<F>
   function injectFn(
     missingBehavior: boolean | (() => Readonly<Parameters<F>>) = false,
+    immediate = false,
   ): ReturnType<F> | undefined {
-    const injected = injectImmediate<ReturnType<F> | typeof MISSING>(provideKey, MISSING)
+    const injector = immediate ? injectImmediate : inject
+    const injected = injector<ReturnType<F> | typeof MISSING>(provideKey, MISSING)
     if (injected === MISSING) {
       if (missingBehavior === true) return
       if (typeof missingBehavior === 'function') {
