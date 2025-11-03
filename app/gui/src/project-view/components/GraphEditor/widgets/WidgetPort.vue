@@ -258,6 +258,9 @@ export const widgetDefinition = defineWidget(
 
 /* Feature-flag controlled debug display for hover areas. */
 .App.debugHoverAreas .GraphEditor.draggingEdge .WidgetPort::before {
+  background: rgba(255, 174, 0, 0.1);
+}
+.App.debugHoverAreas .GraphEditor.draggingEdge .WidgetPort.enabled::before {
   background: rgba(128, 255, 0, 0.1);
 }
 </style>

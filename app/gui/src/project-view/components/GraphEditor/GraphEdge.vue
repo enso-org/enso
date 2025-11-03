@@ -258,22 +258,6 @@ function click(event: PointerEvent) {
   else graph.disconnectSource(edge, event)
 }
 
-function svgTranslate(offset: Vec2): string {
-  return `translate(${offset.x},${offset.y})`
-}
-
-const backwardEdgeArrowTransform = computed<string | undefined>(() => {
-  if (edge.source == null || edge.target == null) return
-  const points = currentJunctionPoints.value?.points
-  if (points == null || points.length < 3) return
-  const target = targetPos.value
-  const origin = sourceOriginPoint.value
-  if (target == null || origin == null) return
-  if (target.y > origin.y - theme.edge.three_corner.backward_edge_arrow_threshold) return
-  if (points[1] == null) return
-  return svgTranslate(origin.add(points[1]))
-})
-
 const VISIBILITY_HIDDEN = {
   visibility: 'hidden',
 } as const

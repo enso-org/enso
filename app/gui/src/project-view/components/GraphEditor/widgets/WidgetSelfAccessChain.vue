@@ -9,6 +9,7 @@ import {
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import { injectFunctionInfo } from '@/providers/functionInfo'
+import { injectKeyboard } from '@/providers/keyboard'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { unwrapGroups } from '@/util/ast/abstract'
@@ -50,6 +51,19 @@ const iconInput = computed(() => {
   }
   return input
 })
+
+const keyboard = injectKeyboard(true)
+const extendedPortId = computed(() => {
+  // Do not interfere with more detailed port picking.
+  if (keyboard?.mod) return undefined
+  return iconInput.value?.portId
+})
+
+const rootProps = computed(() => {
+  const props: Record<string, string> = {}
+  if (extendedPortId.value) props['data-port'] = extendedPortId.value
+  return props
+})
 </script>
 
 <script lang="ts">
@@ -72,7 +86,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetSelfAccessChain" :data-port="iconInput?.portId">
+  <div class="WidgetSelfAccessChain" v-bind="rootProps">
     <NodeWidget v-if="iconInput" :input="iconInput" />
     <NodeWidget v-if="props.input.value.rhs" :input="WidgetInput.FromAst(props.input.value.rhs)" />
   </div>
