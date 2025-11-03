@@ -41,6 +41,8 @@
 - [Microsoft 365 OAuth support.][14135]
 - [Add Text_Column.proper and Rename Case.Title->Case.Proper.][14184]
 - [Snowflake stage support for reading and writing files.][14210]
+- [Snowflake file format and copy into support.][14221]
+- [Snowflake bulk load API.][14230]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -53,6 +55,8 @@
 [14179]: https://github.com/enso-org/enso/pull/14179
 [14184]: https://github.com/enso-org/enso/pull/14184
 [14210]: https://github.com/enso-org/enso/pull/14210
+[14221]: https://github.com/enso-org/enso/pull/14221
+[14230]: https://github.com/enso-org/enso/pull/14230
 
 #### Enso Language & Runtime
 
