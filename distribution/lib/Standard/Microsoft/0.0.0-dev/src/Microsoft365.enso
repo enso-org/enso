@@ -30,35 +30,14 @@ type Microsoft365
 
        Fetches the profile of the current user.
     user self =
-        _ms365_get self (_base_url + "/me")
+        self.fetch_json (self.base_url + "/me")
 
     ## ---
        icon: cloud
        ---
 
        Lists the root directory of the user's OneDrive.
-    root self = Onedrive_File.root self
-
-    ## ---
-       icon: cloud
-       ---
-
-       Lists a directory of the user's OneDrive.
-    list self path =
-        v = _ms365_get self (_base_url + path)
-        v.at "value" . map value->
-            is_folder = value.contains_key "folder"
-            value.at "name" + (if is_folder then "/" else "")
-
-    ## ---
-       icon: cloud
-       ---
-
-       Reads the contents of a file in the user's OneDrive.
-    read self path =
-        v = _ms365_get self (_base_url + path)
-        url = v . at "@microsoft.graph.downloadUrl"
-        HTTP.fetch url . decode_as_text
+    onedrive_root self = Onedrive_File.root self
 
     ## ---
        private: true
@@ -67,8 +46,12 @@ type Microsoft365
     to_js_object self =
         JS_Object.from_pairs [["type", "MS365"]]
 
-private _base_url = 'https://graph.microsoft.com/v1.0'
+    base_url self = 'https://graph.microsoft.com/v1.0'
 
-_ms365_get ms365 url =
-    header = Header.authorization_bearer ms365.ms365_service.getAccessToken.token
-    HTTP.fetch url headers=[header] . decode_as_json
+    fetch self url =
+        header = Header.authorization_bearer self.ms365_service.getAccessToken.token
+        HTTP.fetch url headers=[header]
+
+    fetch_json self url = self.fetch url . decode_as_json
+
+    fetch_text self url = self.fetch url . decode_as_text

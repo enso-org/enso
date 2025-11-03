@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import project.Microsoft365.Microsoft365
-import project.Microsoft365._ms365_get
 
 type Onedrive_File
     Value (service : Microsoft365) (path : Onedrive_Path)
@@ -10,10 +9,15 @@ type Onedrive_File
         Onedrive_File.Value service (Onedrive_Path.Value [])
 
     list self -> Vector Onedrive_File =
-        frag = self.path.to_human_readable_fragment
-        children = _ms365_get self.service frag+":/children"
+        frag = self.path.to_human_readable_fragment_dir
+        children = self.service.fetch_json self.service.base_url+frag
         names = children.at "value" . map (x-> x.at "name")
-        names.map name-> self.extend name
+        paths = names.map name-> self.path.extend name
+        paths.map path-> Onedrive_File.Value self.service path
+
+    read self -> Text =
+        frag = self.path.to_human_readable_fragment_file
+        self.service.fetch_text self.service.base_url+frag
 
 type Onedrive_Path
     Value (path : Vector Text)
@@ -21,5 +25,9 @@ type Onedrive_Path
     extend self subpath:Text =
         Onedrive_Path.Value (self.path + [subpath])
 
-    to_human_readable_fragment self =
-        "/me/drive/root:/" + (self.path.join "/")
+    to_human_readable_fragment_dir self =
+        if self.path.is_empty then "/me/drive/root/children" else
+            "/me/drive/root:/" + (self.path.join "/") + ":/children"
+
+    to_human_readable_fragment_file self =
+        "/me/drive/root:/" + (self.path.join "/") + ":/content"
