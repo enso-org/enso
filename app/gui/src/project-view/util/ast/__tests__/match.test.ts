@@ -93,7 +93,7 @@ test.each([
 
 test.each([
   { template: 'a __ c', source: 'b', result: 'a b c' },
-  { template: 'a . __ . c', source: 'b', result: 'a . b . c' },
+  { template: 'a + __.c', source: 'b', result: 'a + b.c' },
 ])('instantiate', ({ template, source, result }) => {
   const pattern = Pattern.parseExpression(template)
   const edit = MutableModule.Transient()
