@@ -798,6 +798,14 @@ export interface LChColor {
   readonly alpha?: number | undefined
 }
 
+/** Type used when creating api key credential. */
+export interface CreateApiKeyRequestBody {
+  readonly name: string
+  readonly description: string
+  readonly expiresIn: ApiKeyExpiresIn
+}
+
+/** Api key credential. */
 export interface ApiKey {
   readonly keyId: ApiKeyId
   // Field populated only once after creation.
@@ -815,12 +823,6 @@ export enum ApiKeyExpiresIn {
   Month = 'Month',
   Year = 'Year',
   Indefinetly = 'Indefinetly',
-}
-
-export interface CreateApiKeyRequestBody {
-  readonly name: string
-  readonly description: string
-  readonly expiresIn: ApiKeyExpiresIn
 }
 
 /** A pre-selected list of colors to be used in color pickers. */
