@@ -117,39 +117,6 @@ final class BuiltinsRegistry {
   }
 
   /**
-   * Registers builtin methods with their corresponding Atom Constructor's owners. That way
-   * "special" builtin types have builtin methods in the scope without requiring everyone to always
-   * import full stdlib.
-   *
-   * @param scope Builtins scope
-   * @param language The language the resulting function nodes should be associated with
-   */
-  private void registerBuiltinMethods(ModuleScopeBuilder scope, EnsoLanguage language) {
-    for (Builtin builtin : builtins.values()) {
-      var type = builtin.getType();
-      Map<String, Supplier<LoadedBuiltinMethod>> methods = builtinMethodNodes.get(type.getName());
-      if (methods != null) {
-        // Register a builtin method iff it is marked as auto-register.
-        // Methods can only register under a type or, if we deal with a static method, it's
-        // eigen-type.
-        // Such builtins are available on certain types without importing the whole stdlib, e.g. Any
-        // or Number.
-        methods.forEach(
-            (key, value) -> {
-              LoadedBuiltinMethod meth = value.get();
-              Type tpe =
-                  meth.isAutoRegister ? (!meth.isStatic() ? type : type.getEigentype()) : null;
-              if (tpe != null) {
-                Optional<BuiltinFunction> fun = meth.toFunction(language, false);
-                fun.ifPresent(
-                    f -> scope.registerMethod(tpe, key, CachingSupplier.forValue(f.getFunction())));
-              }
-            });
-      }
-    }
-  }
-
-  /**
    * Returns a list of supported builtins.
    *
    * <p>Builtin types are marked via @BuiltinType annotation. The metadata file represents a single
