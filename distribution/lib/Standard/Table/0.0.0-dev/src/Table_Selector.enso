@@ -52,5 +52,5 @@ Table_Selector.from (that:Regex) = Table_Selector.Regex that
 Table_Selector.from (that:By_Type) = Table_Selector.By_Type that
 
 Table_Selector.from (that:Vector) =
-    selectors = that.map (v->v:Table_Selector)
+    selectors = that.map v-> v.to Table_Selector
     Table_Selector.Vector selectors
