@@ -398,12 +398,13 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       Class<R> replyType,
       Function<Channel<? extends Data>, ? extends R> msg) {
     var address = 0L;
+    var useMalloc = isMaster() && !isDirect();
     try {
       var bytes = pool.write(msg);
       var size = Math.max(bytes.length, 4096);
       long len;
       ByteBuffer buffer;
-      if (isMaster() && !isDirect()) {
+      if (useMalloc) {
         var memory = UnmanagedMemory.malloc(size);
         buffer = asNativeByteBuffer(memory, size);
         buffer.put(0, bytes);
@@ -431,7 +432,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         len = buffer.getLong();
         // read address
         var addr = buffer.getLong();
-        if (ImageInfo.inImageRuntimeCode()) {
+        if (useMalloc) {
           var overflowPtr = WordFactory.pointer(addr);
           buffer =
               CTypeConversion.asByteBuffer(overflowPtr, Math.toIntExact(len))
@@ -449,7 +450,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     } catch (IOException ex) {
       throw new IllegalStateException(ex);
     } finally {
-      if (ImageInfo.inImageRuntimeCode()) {
+      if (useMalloc) {
         UnmanagedMemory.free(WordFactory.pointer(address));
       }
     }
