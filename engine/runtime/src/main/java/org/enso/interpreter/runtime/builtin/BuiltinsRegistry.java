@@ -234,9 +234,7 @@ final class BuiltinsRegistry {
   }
 
   /**
-   * Register builtin methods and initialize them lazily in the provided scope. This method differs
-   * from `registerBuiltinMethods` where all methods are initialized by the time they are
-   * registered..
+   * Register builtin methods and initialize them lazily in the provided scope.
    *
    * @param scope Builtins scope
    * @param language The language the resulting function nodes should be associated with
@@ -258,7 +256,7 @@ final class BuiltinsRegistry {
           if (constr != null) {
             Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                 getOrUpdate(builtinMethodNodes, constr.getName());
-            atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
+            atomNodes.put(builtinMethodName, CachingSupplier.wrap(meta::toMethod));
 
             Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
                 getOrUpdate(builtinMetaMethods, constr.getName());
@@ -266,7 +264,7 @@ final class BuiltinsRegistry {
           } else {
             Map<String, Supplier<LoadedBuiltinMethod>> atomNodes =
                 getOrUpdate(builtinMethodNodes, builtinMethodOwner);
-            atomNodes.put(builtinMethodName, CachingSupplier.wrap(() -> meta.toMethod()));
+            atomNodes.put(builtinMethodName, CachingSupplier.wrap(meta::toMethod));
 
             Map<String, LoadedBuiltinMetaMethod> atomNodesMeta =
                 getOrUpdate(builtinMetaMethods, builtinMethodOwner);
