@@ -44,7 +44,6 @@ private _find_column_with_similar_name  table:Table column_name:Text prefix:Text
     name = names.find (cond.find names.any if_missing=on_fail)
     Column_Ref.Name name
 
-
 ## ---
    private: true
    ---
@@ -54,18 +53,16 @@ private compute_distance table:Table lat1:(Column | Float) lng1:(Column | Float)
     lat2_col = if lat2.is_a Float then table.make_constant_column lat2 else lat2
     lng2_col = if lng2.is_a Float then table.make_constant_column lng2 else lng2
 
-    rLat1 = lat1_col.map _to_radians
-    rLat2 = lat2_col.map _to_radians
-    rLng1 = lng1_col.map _to_radians
-    rLng2 = lng2_col.map _to_radians
+    degRadConst = Math.pi / 180
 
-    dLat = rLat2 - rLat1
-    sinDLat = dLat.map v-> ((v/2).sin)^2
-    dLng = rLng2 - rLng1
-    sinDLng = dLng.map v-> ((v/2).sin)^2
+    dLat = lat2_col - lat1_col
+    sinDLat = dLat.map v-> ((v*degRadConst/2).sin)^2
 
-    cosLat1 = rLat1.map .cos
-    cosLat2 = rLat2.map .cos
+    dLng = lng2_col - lng1_col
+    sinDLng = dLng.map v-> ((v*degRadConst/2).sin)^2
+
+    cosLat1 = lat1_col.map v-> (v*degRadConst).cos
+    cosLat2 = lat2_col.map v-> (v*degRadConst).cos
 
     product = cosLat1 * cosLat2 * sinDLng + sinDLat
     haversine_distance = product.map v-> (units.from_meters (v.sqrt.asin*2*6371000)).round 1
