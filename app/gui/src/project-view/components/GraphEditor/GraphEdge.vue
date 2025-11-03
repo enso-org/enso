@@ -78,13 +78,18 @@ const targetNode = computed(
 )
 const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
 
-const yAdjustment = -9
+/**
+ * Offset between edge path end the and the target node rect. Needs to be big enough to leave space
+ * for displaying the end marker (down arrow). Determined expermimentally to make it look good.
+ */
+const PATH_END_Y_OFFSET = -9
+
 const targetPos = computed<Vec2 | undefined>(() => {
   const expr = targetExpr.value
   if (expr != null && targetNode.value != null && targetNodeRect.value != null) {
     const targetRectRelative = graph.getPortRelativeRect(expr)
     if (targetRectRelative == null) return
-    return targetNodeRect.value.pos.add(new Vec2(targetRectRelative.center().x, yAdjustment))
+    return targetNodeRect.value.pos.add(new Vec2(targetRectRelative.center().x, PATH_END_Y_OFFSET))
   } else if (mouseAnchorPos.value != null) {
     return mouseAnchorPos.value
   } else if ('anchor' in edge && edge.anchor.type === 'fixed') {
@@ -142,7 +147,6 @@ const sourceMask = computed<NodeMask | undefined>(() => {
   if (!maskSource && padding === 0) return
   const rect = nodeRect.expand(padding)
   const radius = 16 + padding
-  // const id = `mask_for_edge_from-${edge.source ?? 'unconnected'}`
   return { rect, radius }
 })
 

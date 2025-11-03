@@ -87,6 +87,7 @@ export const widgetDefinition = defineWidget(
   position: relative;
 }
 
+/* Port-like hover area for extended icon port above method name. */
 .GraphEditor.draggingEdge .WidgetSelfAccessChain[data-port]::before {
   pointer-events: all;
   content: '';
@@ -97,6 +98,7 @@ export const widgetDefinition = defineWidget(
   inset: var(--widget-port-drag-inset);
 }
 
+/* Feature-flag controlled debug display for hover areas. */
 .App.debugHoverAreas .GraphEditor.draggingEdge .WidgetSelfAccessChain[data-port]::before {
   background: rgba(255, 0, 0, 0.3);
 }

@@ -131,6 +131,8 @@ const queryClient = useQueryClient()
 const text = useText()
 const EnsoDevtools = reactComponent(EnsoDevToolsReact)
 const ReactQueryDevtools = reactComponent(ReactQueryDevtoolsReact)
+
+// Needed by devtools - act on feature flag changes
 const debugHoverAreas = useFeatureFlag('debugHoverAreas')
 useAppClass(() => ({ debugHoverAreas: debugHoverAreas.value }))
 

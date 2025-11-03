@@ -57,13 +57,13 @@ export class Rect {
     return this.FromBounds(left, top, right, bottom)
   }
 
-  /** Create a minimum rectangle that contains all passed-in rectangles. */
+  /** Create a minimum rectangle that contains all passed-in points. */
   static FromPoints(): undefined
-  /** Create a minimum rectangle that contains all passed-in rectangles. */
+  /** Create a minimum rectangle that contains all passed-in points. */
   static FromPoints(point: Vec2, ...points: Vec2[]): Rect
-  /** Create a minimum rectangle that contains all passed-in rectangles. */
+  /** Create a minimum rectangle that contains all passed-in points. */
   static FromPoints(...points: Vec2[]): Rect | undefined
-  /** Create a minimum rectangle that contains all passed-in rectangles. */
+  /** Create a minimum rectangle that contains all passed-in points. */
   static FromPoints(...points: Vec2[]): Rect | undefined {
     if (points.length === 0) return
     let minX = Infinity

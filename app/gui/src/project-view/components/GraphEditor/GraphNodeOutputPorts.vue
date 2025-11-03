@@ -261,6 +261,7 @@ graph.value?.suggestEdgeFromOutput(outputHovered)
   display: none;
 }
 
+/* Feature-flag controlled debug display for hover areas. */
 .App.debugHoverAreas .outputPortHoverArea {
   stroke: rgba(0, 0, 0, 0.1);
 }
