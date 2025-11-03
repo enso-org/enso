@@ -18,7 +18,7 @@ test('Disconnect an edge from a port', async ({ editorPage, page }) => {
   await initGraph(editorPage)
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
 
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
+  const targetEdge = page.locator('svg.behindNodes g:nth-child(1) path.edge.visible')
 
   // Hover over edge to the right of node with binding `ten`.
   await targetEdge.click({
@@ -34,7 +34,7 @@ test('Connect an node to a port', async ({ editorPage, page }) => {
   await initGraph(editorPage)
 
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
+  const targetEdge = page.locator('svg.behindNodes g:nth-child(1) path.edge.visible')
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.click({
     position: { x: 450, y: 5.0 },
@@ -54,7 +54,7 @@ test('Connect an node to a port via dragging the edge', async ({ editorPage, pag
   await initGraph(editorPage)
 
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
+  const targetEdge = page.locator('svg.behindNodes g:nth-child(1) path.edge.visible')
   const targetPort = page.locator('span').filter({ hasText: /^sum$/ })
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.dragTo(targetPort, {
