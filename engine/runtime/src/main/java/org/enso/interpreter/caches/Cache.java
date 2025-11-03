@@ -49,6 +49,9 @@ public final class Cache<T, M> {
    * Large cache files will be {@link FileChannel#map(MapMode, long, long, Arena) mmapped} using a
    * newly created arena via this supplier. Whenever a cache is loaded or saved, the previous arena
    * will be closed, which will invalidate all byte buffers associated with that arena.
+   *
+   * <p>Note that currently, it is not possible to use {@link Arena#ofConfined()} here. See <a
+   * href="https://github.com/enso-org/enso/pull/13872#discussion_r2313983664">GH discussion</a>.
    */
   private final Supplier<Arena> memoryArenaSupplier;
 
@@ -275,6 +278,7 @@ public final class Cache<T, M> {
         try (var chan = FileChannel.open(file.toPath())) {
           assert memoryArena.scope().isAlive();
           var memSegment = chan.map(MapMode.READ_ONLY, 0, file.length(), memoryArena);
+          assert memSegment.isReadOnly();
           blobBytes = memSegment.asByteBuffer();
         } catch (IOException e) {
           logger.log(Level.SEVERE, "Failed to mmap cache file " + file, e);
