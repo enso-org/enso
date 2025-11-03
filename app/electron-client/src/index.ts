@@ -31,7 +31,8 @@ import { platform } from 'node:os'
 import { join as joinPath } from 'node:path'
 import process from 'node:process'
 import { downloadSamples, runHybridProjectByUrl, runLocalProjectByPath } from 'project-manager-shim'
-import { initAuthentication } from './authentication.js'
+import buildInfo from '../buildInfo'
+import { initAuthentication, readAccessToken } from './authentication.js'
 import { parseArgs } from './configParser.js'
 import { VERSION } from './contentConfig.js'
 import { printInfo, VERSION_INFO } from './debug.js'
@@ -507,10 +508,25 @@ const getText: GetText = (key, ...replacements) => {
 }
 
 function createRemoteBackend() {
+  const accessToken = readAccessToken()
+  if (!accessToken) {
+    throw new Error('No access token found for remote backend.')
+  }
+  const sessionId = crypto.randomUUID()
   // TODO: pass authentication headers to `HttpClient` constructor
-  const httpClient = new HttpClient()
+  const httpClient = new HttpClient({
+    'x-enso-ide-version': buildInfo.version,
+    'x-enso-session-id': sessionId,
+    /**
+     * For compatibility with backend versioned endpoints. The new project logs endpoint
+     * checks for date strings that are at least `2025-01-16`.
+     */
+    'x-enso-version': '2025-01-16',
+  })
+  // TODO: consider refreshing the token if it is expired
+  httpClient.setSessionToken(accessToken.accessToken)
   const downloader = () => {
-    // TODO: implement downloading (low priority but might as well do it now)
+    // TODO: implement downloading (low priority)
   }
   const baseUrl = new URL('https://api.cloud.enso.org')
   return new RemoteBackend(getText, httpClient, downloader, baseUrl)

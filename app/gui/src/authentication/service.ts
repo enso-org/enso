@@ -5,7 +5,7 @@
  */
 import type { Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
-import * as cognitoModule from '$/authentication/cognito'
+import { Cognito } from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import { useText } from '$/providers/text'
@@ -98,8 +98,8 @@ export interface AuthConfig {
 
 /** API for the authentication service. */
 export interface AuthService {
-  /** @see {@link cognitoModule.Cognito}. */
-  readonly cognito: cognitoModule.Cognito
+  /** @see {@link Cognito}. */
+  readonly cognito: Cognito
   /** @see {@link listen.ListenFunction}. */
   readonly registerAuthEventListener: listen.ListenFunction
 }
@@ -121,7 +121,7 @@ export function useInitAuthService(): AuthService {
     enableDeepLinks.value,
     (url) => void router.push(url),
   )
-  const cognito = new cognitoModule.Cognito(console, enableDeepLinks.value, amplifyConfig)
+  const cognito = new Cognito(console, enableDeepLinks.value, amplifyConfig)
 
   return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }

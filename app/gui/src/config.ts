@@ -4,9 +4,7 @@
  * we can easily replace its contents in a separate build postprocessing step in `BUILD.bazel`.
  */
 
-/**
- * When running dev server, the config variables are grabbed from appropriate .env file.
- */
+/** When running dev server, the config variables are grabbed from appropriate .env file. */
 const $config = {
   ENVIRONMENT: import.meta.env.ENSO_IDE_ENVIRONMENT,
   ENSO_HOST: import.meta.env.ENSO_IDE_HOST,

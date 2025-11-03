@@ -5,11 +5,9 @@ import * as path from 'node:path'
 import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
 
+import { PRODUCT_NAME } from 'enso-common'
+import { homedir } from 'node:os'
 import * as paths from '../paths'
-
-// =============
-// === Paths ===
-// =============
 
 /**
  * The root of the application bundle.
@@ -50,3 +48,10 @@ export const PROJECT_MANAGER_PATH = path.join(
 export const PACKAGE_METADATA_RELATIVE = 'package.yaml'
 /** Relative path of Enso Project PM metadata relative to the project root. */
 export const PROJECT_METADATA_RELATIVE = path.join('.enso', 'project.json')
+
+/** Path to the credentials file stored in the user's home directory. */
+export const CREDENTIALS_PATH = path.join(
+  homedir(),
+  `.${PRODUCT_NAME.toLowerCase()}`,
+  'credentials',
+)

@@ -72,12 +72,19 @@
  * {@link URL} to redirect the user to the dashboard, to the page specified in the {@link URL}'s
  * `pathname`.
  */
+import { CREDENTIALS_PATH } from '@/paths'
+import {
+  createAWSCredentialsAndIdentityIdProvider,
+  createKeyValueStorageFromCookieStorageAdapter,
+  createUserPoolsTokenProvider,
+  runWithAmplifyServerContext,
+} from 'aws-amplify/adapter-core'
+import { getCurrentUser } from 'aws-amplify/auth/server'
 import type { BrowserWindow } from 'electron'
-import { DEEP_LINK_SCHEME, PRODUCT_NAME } from 'enso-common'
+import { DEEP_LINK_SCHEME } from 'enso-common'
 import type { AccessToken } from 'enso-common/src/accessToken'
-import { mkdir, unlinkSync, writeFile } from 'node:fs'
-import { homedir } from 'node:os'
-import { join as joinPath } from 'node:path'
+import { mkdir, readFileSync, unlinkSync, writeFile } from 'node:fs'
+import { dirname } from 'node:path'
 import opener from 'opener'
 import type { Electron } from './electron.js'
 import { Channel } from './ipc.js'
@@ -115,26 +122,19 @@ export function initAuthentication(electron: Electron, window: () => BrowserWind
   electron.ipcMain.on(Channel.saveAccessToken, (event, accessTokenPayload: AccessToken | null) => {
     event.preventDefault()
 
-    /** Home directory for the credentials file.  */
-    const credentialsDirectoryName = `.${PRODUCT_NAME.toLowerCase()}`
-    /** File name of the credentials file. */
-    const credentialsFileName = 'credentials'
-    /** System agnostic credentials directory home path. */
-    const credentialsHomePath = joinPath(homedir(), credentialsDirectoryName)
-
     if (accessTokenPayload == null) {
       try {
-        unlinkSync(joinPath(credentialsHomePath, credentialsFileName))
+        unlinkSync(CREDENTIALS_PATH)
       } catch {
         // Ignored, most likely the path does not exist.
       }
     } else {
-      mkdir(credentialsHomePath, { recursive: true }, (error) => {
+      mkdir(dirname(CREDENTIALS_PATH), { recursive: true }, (error) => {
         if (error) {
-          console.error(`Could not create '${credentialsDirectoryName}' directory.`)
+          console.error(`Could not create '${dirname(CREDENTIALS_PATH)}' directory.`)
         } else {
           writeFile(
-            joinPath(credentialsHomePath, credentialsFileName),
+            CREDENTIALS_PATH,
             JSON.stringify({
               /* eslint-disable camelcase */
               client_id: accessTokenPayload.clientId,
@@ -146,7 +146,7 @@ export function initAuthentication(electron: Electron, window: () => BrowserWind
             }),
             (innerError) => {
               if (innerError) {
-                console.error(`Could not write to '${credentialsFileName}' file.`)
+                console.error(`Could not write to the credentials file at '${CREDENTIALS_PATH}'.`)
               }
             },
           )
@@ -154,4 +154,69 @@ export function initAuthentication(electron: Electron, window: () => BrowserWind
       })
     }
   })
+}
+
+/** Read the access token stored in the credentials file. */
+export function readAccessToken(): AccessToken | undefined {
+  try {
+    return JSON.parse(readFileSync(CREDENTIALS_PATH, { encoding: 'utf-8' }))
+  } catch {
+    return
+  }
+}
+
+/**
+ *
+ */
+export async function getUpToDateAccessToken(): Promise<string> {
+  const accessToken = readAccessToken()
+  if (!accessToken) {
+    throw new Error('No access token found for refreshing.')
+  }
+  // Create the key-value storage from Remix's cookie API
+  const keyValueStorage = createKeyValueStorageFromCookieStorageAdapter({
+    get(name) {
+      const encodedName = ensureEncodedForJSCookie(name)
+      const cookieRegex = new RegExp(`(^|;)\\s*${encodedName}=([^;]+)`)
+      const match = cookies.match(cookieRegex)
+      const cookie = match ? { name, value: match[2] } : undefined
+
+      if (cookie && name.endsWith('.signInDetails')) {
+        cookie.value = decodeURIComponent(cookie.value)
+      }
+
+      return cookie
+    },
+    getAll() {
+      return cookies.split('; ').map((cookie) => {
+        const [name, value] = cookie.split('=')
+        return { name, value }
+      })
+    },
+    set(name, value) {
+      // Not needed on the server unless setting cookies
+    },
+    delete(name) {
+      // Not needed on the server unless deleting cookies
+    },
+  })
+
+  // Create the tokenProvider
+  const tokenProvider = createUserPoolsTokenProvider(authConfig, keyValueStorage)
+  // Create the credentialsProvider
+  const credentialsProvider = createAWSCredentialsAndIdentityIdProvider(authConfig, keyValueStorage)
+  const what = await runWithAmplifyServerContext(
+    { Auth: authConfig },
+    { Auth: { tokenProvider, credentialsProvider }, ssr: true },
+    async (spec) => {
+      try {
+        return await getCurrentUser(spec)
+      } catch (error) {
+        console.error('Error fetching authentication session:', error)
+        return null
+      }
+    },
+  )
+  return accessToken.accessToken
+  // TODO: Implement the logic to refresh the access token using the refresh token.
 }
