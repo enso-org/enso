@@ -103,7 +103,7 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
   public final void close() {
     try {
       try {
-        channel.close();
+        channel.getConfig().close(channel);
       } finally {
         if (ctx != null) {
           ctx.close();
