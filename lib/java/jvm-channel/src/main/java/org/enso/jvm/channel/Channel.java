@@ -190,7 +190,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       arg.addressOf(2).setLong(CALLBACK_FN.getFunctionPointer().rawValue());
       arg.addressOf(3).setJObject(poolClassInHotSpot);
       var replyOk = fn.getCallStaticBooleanMethodA().call(e, channelClass, createMethod, arg);
-      channel.checkForException(e);
+      channel.checkForException(e, false);
       assert replyOk : "Failed to create peer in HotSpot JVM";
 
       ID_TO_CHANNEL.put(id, channel);
@@ -243,7 +243,8 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   @SuppressWarnings("unchecked")
   public final <C, R extends C> R execute(
       Class<C> resultType, Function<? super Channel<Data>, R> msg) {
-    return (R) executeImpl(pool, resultType, (Function) msg);
+    var r = (R) executeImpl(pool, resultType, (Function) msg);
+    return r;
   }
 
   //
@@ -331,7 +332,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     arg.addressOf(1).setLong(address);
     arg.addressOf(2).setLong(size);
     var replySize = fn.getCallStaticLongMethodA().call(env, channelClass, channelHandle, arg);
-    checkForException(env);
+    checkForException(env, true);
     return replySize;
   }
 
@@ -365,13 +366,13 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     return len;
   }
 
-  private void checkForException(JNI.JNIEnv e) {
+  private void checkForException(JNI.JNIEnv e, boolean userCode) {
     var fn = e.getFunctions();
     var hasException = fn.getExceptionCheck().call(e);
     if (hasException) {
       var throwable = fn.getExceptionOccurred().call(e);
       assert throwable.isNonNull() : "There must be a throwable";
-      if (printStackTrace(null, true)) {
+      if (printStackTrace(null, userCode)) {
         fn.getExceptionDescribe().call(e);
       }
       fn.getExceptionClear().call(e);
@@ -462,7 +463,8 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   private static long handleJvmMessage(long id, long address, long size) throws Throwable {
     var channel = ID_TO_CHANNEL.get(id);
     var seg = MemorySegment.ofAddress(address).reinterpret(size);
-    return handleWithChannel(channel, seg.asByteBuffer());
+    var reply = handleWithChannel(channel, seg.asByteBuffer());
+    return reply;
   }
 
   @Override
