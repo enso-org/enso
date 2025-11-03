@@ -17,10 +17,7 @@ import process from 'node:process'
 
 import * as electron from 'electron'
 import * as common from 'enso-common'
-import {
-  buildWebAppURLSearchParamsFromArgs,
-  type Options,
-} from 'enso-common/src/options'
+import { buildWebAppURLSearchParamsFromArgs, type Options } from 'enso-common/src/options'
 
 import * as authentication from '@/authentication'
 import * as configParser from '@/configParser'
