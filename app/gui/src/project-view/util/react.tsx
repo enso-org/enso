@@ -1,4 +1,4 @@
-import { Dialog as DialogReact } from '#/components/Dialog'
+import { Dialog as DialogReact } from '#/components/Dialog/Dialog'
 import { Loader as LoaderReact } from '#/components/Loader'
 import { Result as ResultReact } from '#/components/Result'
 import { Suspense } from '#/components/Suspense'

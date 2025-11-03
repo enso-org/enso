@@ -11,5 +11,5 @@
     "rootDir": "src"
   },
   "include": ["src", "./src/text/english.json"],
-  "exclude": ["src/**/__tests__/*", "public/**/__tests__/*"]
+  "exclude": []
 }
