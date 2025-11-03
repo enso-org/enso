@@ -11,7 +11,8 @@ object ApplicationConfig {
   private val ConfigFilename  = "application.conf"
   private val ConfigNamespace = "language-server"
 
-  def load(): ApplicationConfig = {
+  /** Load the configuration from the config file. */
+  private def loadConfig(): ApplicationConfig = {
     val contextClassLoader = Thread.currentThread().getContextClassLoader
     try {
       Thread.currentThread().setContextClassLoader(getClass.getClassLoader)
@@ -21,6 +22,26 @@ object ApplicationConfig {
         .at(ConfigNamespace)
         .loadOrThrow[ApplicationConfig]
     } finally Thread.currentThread().setContextClassLoader(contextClassLoader)
+  }
+
+  /** Override the configuration with environment variables.
+    *
+    * This is a workaround for the issue that the standard config overloading
+    * does not work in the native image.
+    */
+  private def overrideConfig(config: ApplicationConfig): ApplicationConfig = {
+    val ydocHostname =
+      sys.env.getOrElse("LANGUAGE_SERVER_YDOC_HOSTNAME", config.ydoc.hostname)
+    val ydocPort = sys.env
+      .get("LANGUAGE_SERVER_YDOC_PORT")
+      .map(_.toInt)
+      .getOrElse(config.ydoc.port)
+
+    config.copy(ydoc = YdocConfig(hostname = ydocHostname, port = ydocPort))
+  }
+
+  def load(): ApplicationConfig = {
+    overrideConfig(loadConfig())
   }
 
 }

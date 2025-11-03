@@ -42,7 +42,7 @@ object Patterns extends IRPass {
       BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
     )
-    ir.copy(bindings = ir.bindings.map(doDefinition(_, bindings)))
+    ir.copyWithBindings(bindings = ir.bindings.map(doDefinition(_, bindings)))
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed

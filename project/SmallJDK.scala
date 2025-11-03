@@ -27,10 +27,15 @@ object SmallJDK {
     "java.naming",
     "java.net.http",
     "java.rmi",
+    "jdk.attach",
     "jdk.charsets",
     "jdk.crypto.ec",
     "jdk.httpserver",
     "jdk.localedata"
+  )
+
+  private val ADDITIONAL_NI_BUILD_MODS = Seq(
+    "java.prefs"
   )
 
   private val DEBUG_MODULES = Seq(
@@ -52,7 +57,7 @@ object SmallJDK {
       IO.delete(targetJdkDirectory)
     }
     val niModules     = (NI_BASE_MODULES ++ NI_BUILDER_MODULES).mkString(",")
-    val jdkModules    = JDK_MODULES.mkString(",")
+    val jdkModules    = (JDK_MODULES ++ ADDITIONAL_NI_BUILD_MODS).mkString(",")
     val debugModules  = DEBUG_MODULES.mkString(",")
     val pythonModules = PYTHON_MODULES.mkString(",")
 
@@ -151,10 +156,14 @@ object SmallJDK {
     val moduleJars = List(
       "lib/svm/bin/../../graalvm/svm-driver.jar",
       "lib/svm/bin/../builder/native-image-base.jar",
+      "lib/svm/bin/../builder/espresso-svm.jar",
       "lib/svm/bin/../builder/objectfile.jar",
       "lib/svm/bin/../builder/pointsto.jar",
       "lib/svm/bin/../builder/svm-enterprise.jar",
       "lib/svm/bin/../builder/svm.jar",
+      "lib/svm/bin/../builder/svm-configure.jar",
+      "lib/svm/bin/../builder/svm-capnproto-runtime.jar",
+      "lib/svm/bin/../builder/svm-foreign.jar",
       "lib/svm/bin/../library-support.jar"
     )
     moduleJars.map { jar =>

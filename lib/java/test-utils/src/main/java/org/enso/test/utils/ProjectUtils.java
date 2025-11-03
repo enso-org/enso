@@ -124,27 +124,33 @@ prefer-local-libraries: true
                         .option(RuntimeOptions.STRICT_ERRORS, "true")
                         .option(RuntimeOptions.DISABLE_IR_CACHES, "true"))
             .build()) {
-      var polyCtx = new PolyglotContext(ctx.context());
-      var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
-      if (!mainSrcPath.toFile().exists()) {
-        throw new IllegalArgumentException("Main module not found in " + projDir);
-      }
-      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
-      var assocMainModType = mainMod.getAssociatedType();
-      var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
-      var res = mainMethod.execute();
-      if (resultConsumer != null) {
-        resultConsumer.accept(res);
-      } else {
-        throw new AssertionError(
-            "Project execution was expected to fail, but succeeded with result: " + res);
-      }
+      handleTestProjectRun(ctx, projDir, resultConsumer);
     } catch (PolyglotException e) {
       if (errorConsumer != null) {
         errorConsumer.accept(e);
       } else {
         throw e;
       }
+    }
+  }
+
+  private static void handleTestProjectRun(
+      final ContextUtils ctx, Path projDir, Consumer<Value> resultConsumer)
+      throws IllegalArgumentException, AssertionError {
+    var polyCtx = new PolyglotContext(ctx.context());
+    var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
+    if (!mainSrcPath.toFile().exists()) {
+      throw new IllegalArgumentException("Main module not found in " + projDir);
+    }
+    var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
+    var assocMainModType = mainMod.getAssociatedType();
+    var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
+    var res = mainMethod.execute();
+    if (resultConsumer != null) {
+      resultConsumer.accept(res);
+    } else {
+      throw new AssertionError(
+          "Project execution was expected to fail, but succeeded with result: " + res);
     }
   }
 
@@ -181,6 +187,7 @@ prefer-local-libraries: true
       }
       polyCtx.getTopScope().compile(false, Option.apply(docsFormat));
       whenDone.accept(ctx);
+      polyCtx = null;
     }
   }
 

@@ -221,7 +221,7 @@ type Text
       icon: operators
       ---
       Checks if `self` is greater than `that`.
-    > self that = Comparable.> self that
+    > self that = Comparable.> self=self that
 
     ## ---
        aliases: [greater than or equal]
@@ -229,7 +229,7 @@ type Text
        icon: operators
        ---
        Checks if `self` is greater than or equal to `that`.
-    >= self that = Comparable.>= self that
+    >= self that = Comparable.>= self=self that
 
     ## ---
        aliases: [less than]
@@ -237,7 +237,7 @@ type Text
        icon: operators
        ---
        Checks if `self` is less than `that`.
-    < self that = Comparable.< self that
+    < self that = Comparable.< self=self that
 
     ## ---
        aliases: [less than or equal]
@@ -245,4 +245,4 @@ type Text
        icon: operators
        ---
        Checks if `self` is less than or equal to `that`.
-    <= self that = Comparable.<= self that
+    <= self that = Comparable.<= self=self that

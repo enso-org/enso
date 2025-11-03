@@ -7,9 +7,9 @@ import {
 } from '#/services/RemoteBackend/ids'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
+import { uniqueString } from '$/utils/uniqueString'
 import * as paths from 'enso-common/src/services/Backend/remoteBackendPaths'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 import { test, type Page, type Request, type Route } from 'integration-test/base'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -458,7 +458,7 @@ export async function mockCloudApi(page: Page) {
 
     return createAsset({
       type: backend.AssetType.directory,
-      id: backend.DirectoryId(`directory-${uniqueString.uniqueString()}`),
+      id: backend.DirectoryId(`directory-${uniqueString()}`),
       title,
       ...rest,
     })
@@ -481,7 +481,7 @@ export async function mockCloudApi(page: Page) {
 
     return createAsset({
       type: backend.AssetType.project,
-      id: backend.ProjectId('project-' + uniqueString.uniqueString()),
+      id: backend.ProjectId('project-' + uniqueString()),
       title,
       projectState: {
         type: backend.ProjectState.closed,
@@ -494,7 +494,7 @@ export async function mockCloudApi(page: Page) {
   const createFile = (rest: Partial<backend.FileAsset> = {}): backend.FileAsset => {
     return createAsset({
       type: backend.AssetType.file,
-      id: backend.FileId('file-' + uniqueString.uniqueString()),
+      id: backend.FileId('file-' + uniqueString()),
       extension: '',
       ...rest,
     })
@@ -503,7 +503,7 @@ export async function mockCloudApi(page: Page) {
   const createSecret = (rest: Partial<backend.SecretAsset>): backend.SecretAsset => {
     return createAsset({
       type: backend.AssetType.secret,
-      id: backend.SecretId('secret-' + uniqueString.uniqueString()),
+      id: backend.SecretId('secret-' + uniqueString()),
       ...rest,
     })
   }
@@ -511,13 +511,13 @@ export async function mockCloudApi(page: Page) {
   const createDatalink = (rest: Partial<backend.DatalinkAsset>): backend.DatalinkAsset => {
     return createAsset({
       type: backend.AssetType.datalink,
-      id: backend.DatalinkId('datalink-' + uniqueString.uniqueString()),
+      id: backend.DatalinkId('datalink-' + uniqueString()),
       ...rest,
     })
   }
 
   const createLabel = (value: string, color: backend.LChColor): backend.Label => ({
-    id: backend.TagId('tag-' + uniqueString.uniqueString()),
+    id: backend.TagId('tag-' + uniqueString()),
     value: backend.LabelName(value),
     color,
   })
@@ -574,7 +574,7 @@ export async function mockCloudApi(page: Page) {
   const addUser = (name: string, rest: Partial<backend.User> = {}) => {
     const organizationId = currentOrganization?.id ?? defaultOrganizationId
     const user: backend.User = {
-      userId: backend.UserId(`user-${uniqueString.uniqueString()}`),
+      userId: backend.UserId(`user-${uniqueString()}`),
       name,
       email: backend.EmailAddress(`${name}@example.org`),
       organizationId,
@@ -604,7 +604,7 @@ export async function mockCloudApi(page: Page) {
 
   const addUserGroup = (name: string, rest?: Partial<backend.UserGroupInfo>) => {
     const userGroup: backend.UserGroupInfo = {
-      id: backend.UserGroupId(`usergroup-${uniqueString.uniqueString()}`),
+      id: backend.UserGroupId(`usergroup-${uniqueString()}`),
       groupName: name,
       organizationId: currentOrganization?.id ?? defaultOrganizationId,
       ...rest,
@@ -813,9 +813,7 @@ export async function mockCloudApi(page: Page) {
         packageName: 'Project_root',
         address: backend.Address('ws://localhost/'),
         ensoPath: backend.EnsoPath(`enso://Users/${defaultUser.name}/${name}`),
-        ...(presigned ?
-          { url: backend.HttpsUrl(`${MOCK_S3_BUCKET_URL}${uniqueString.uniqueString()}`) }
-        : {}),
+        ...(presigned ? { url: backend.HttpsUrl(`${MOCK_S3_BUCKET_URL}${uniqueString()}`) } : {}),
       } satisfies backend.ProjectRaw
     })
 
@@ -897,7 +895,7 @@ export async function mockCloudApi(page: Page) {
         const parentId = body.parentDirectoryId
         called('copyAsset', { assetId: assetId!, parentId })
         // Can be any asset ID.
-        const id = `${assetId?.split('-')[0]}-${uniqueString.uniqueString()}` as backend.DirectoryId
+        const id = `${assetId?.split('-')[0]}-${uniqueString()}` as backend.DirectoryId
 
         const json: backend.CopyAssetResponse = {
           asset: {
@@ -1044,7 +1042,7 @@ export async function mockCloudApi(page: Page) {
         await route.fulfill({
           headers: {
             'Access-Control-Expose-Headers': 'ETag',
-            ETag: uniqueString.uniqueString(),
+            ETag: uniqueString(),
           },
         })
       } else if (request.method() === 'GET') {
@@ -1061,13 +1059,13 @@ export async function mockCloudApi(page: Page) {
       }
     })
     await post(paths.UPLOAD_FILE_START_PATH, () => {
-      const uploadId = backend.FileId('file-' + uniqueString.uniqueString())
+      const uploadId = backend.FileId('file-' + uniqueString())
       called('uploadFileStart', { uploadId })
       return {
         sourcePath: backend.S3FilePath(''),
         uploadId,
         presignedUrls: Array.from({ length: 10 }, () =>
-          backend.HttpsUrl(`${MOCK_S3_BUCKET_URL}${uniqueString.uniqueString()}`),
+          backend.HttpsUrl(`${MOCK_S3_BUCKET_URL}${uniqueString()}`),
         ),
       } satisfies backend.UploadLargeFileMetadata
     })
@@ -1238,7 +1236,7 @@ export async function mockCloudApi(page: Page) {
         email: body.userEmail,
         name: body.userName,
         organizationId,
-        userId: backend.UserId(`user-${uniqueString.uniqueString()}`),
+        userId: backend.UserId(`user-${uniqueString()}`),
         isEnabled: true,
         rootDirectoryId,
         userGroups: null,
@@ -1321,9 +1319,8 @@ export async function mockCloudApi(page: Page) {
     await post(paths.CREATE_PROJECT_PATH, (_route, request) => {
       const body: backend.CreateProjectRequestBody = request.postDataJSON()
       called('createProject', body)
-      const id = backend.ProjectId(`project-${uniqueString.uniqueString()}`)
-      const parentId =
-        body.parentDirectoryId ?? backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+      const id = backend.ProjectId(`project-${uniqueString()}`)
+      const parentId = body.parentDirectoryId ?? backend.DirectoryId(`directory-${uniqueString()}`)
 
       const state = { type: backend.ProjectState.closed, volumeId: '' }
 
@@ -1360,7 +1357,7 @@ export async function mockCloudApi(page: Page) {
 
       called('createDirectory', body)
 
-      const id = backend.DirectoryId(`directory-${uniqueString.uniqueString()}`)
+      const id = backend.DirectoryId(`directory-${uniqueString()}`)
       const parentId = body.parentId ?? defaultDirectoryId
 
       const directory = addDirectory({

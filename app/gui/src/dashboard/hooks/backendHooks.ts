@@ -20,6 +20,15 @@ import { flagsStore } from '$/providers/featureFlags'
 import { useBackends, useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import {
+  backendQueryOptions as backendQueryOptionsBase,
+  INVALIDATE_ALL_QUERIES,
+  INVALIDATION_MAP,
+  PERSISTENCE_MAP,
+  STALE_TIME_MAP,
+  type BackendMutationMethod,
+  type BackendQueryMethod,
+} from '$/utils/backendQuery'
+import {
   queryOptions,
   useMutationState,
   useQueryClient,
@@ -32,15 +41,6 @@ import {
   type UseMutationOptions,
   type UseQueryOptions,
 } from '@tanstack/react-query'
-import {
-  backendQueryOptions as backendQueryOptionsBase,
-  INVALIDATE_ALL_QUERIES,
-  INVALIDATION_MAP,
-  PERSISTENCE_MAP,
-  STALE_TIME_MAP,
-  type BackendMutationMethod,
-  type BackendQueryMethod,
-} from 'enso-common/src/backendQuery'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
@@ -419,9 +419,6 @@ export function useCanRunProjects() {
   }
 }
 
-/** The type of directory listings in the React Query cache. */
-type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
-
 /** Return matching in-flight mutations matching the given filters. */
 export function useBackendMutationState<Method extends BackendMutationMethod, Result>(
   backend: Backend,
@@ -470,40 +467,6 @@ export function useEnsureListDirectory(backend: Backend, category: Category) {
   })
 }
 
-/**
- * Remove an asset from the React Query cache. Should only be called on
- * optimistically inserted assets.
- */
-function useDeleteAsset(backend: Backend, category: Category) {
-  const queryClient = useQueryClient()
-  const ensureListDirectory = useEnsureListDirectory(backend, category)
-
-  return useEventCallback(async (assetId: AssetId, parentId: DirectoryId) => {
-    const siblings = await ensureListDirectory(parentId)
-    const asset = siblings.find((sibling) => sibling.id === assetId)
-    if (!asset) return
-
-    const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
-      queryKey: [
-        backend.type,
-        'listDirectory',
-        parentId,
-        {
-          labels: null,
-          filterBy: CATEGORY_TO_FILTER_BY[category.type],
-          recentProjects: category.type === 'recent',
-        },
-      ],
-    })
-
-    if (listDirectoryQuery?.state.data) {
-      listDirectoryQuery.setData(
-        listDirectoryQuery.state.data.filter((child) => child.id !== assetId),
-      )
-    }
-  })
-}
-
 /** A function to create a new folder. */
 export function useNewFolder(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
@@ -537,7 +500,6 @@ export function useNewProject(backend: Backend, category: Category) {
   const openProjectLocally = useOpenProjectLocally()
   const openProjectNatively = useOpenProjectNatively()
   const canRunProjects = useCanRunProjects()
-  const deleteAsset = useDeleteAsset(backend, category)
 
   const createProject = useMutationCallback(backendMutationOptions(backend, 'createProject'))
 
@@ -564,39 +526,33 @@ export function useNewProject(backend: Backend, category: Category) {
         return `${prefix}${Math.max(0, ...projectIndices) + 1}`
       })()
 
-      const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
-
       return await createProject([
         {
-          parentDirectoryId: placeholderItem.parentId,
-          projectName: placeholderItem.title,
+          parentDirectoryId: parentId,
+          projectName,
           ...(ensoPath == null ? {} : { ensoPath }),
         },
-      ])
-        .catch((error) => {
-          void deleteAsset(placeholderItem.id, parentId)
-          throw error
-        })
-        .then((createdProject) => {
-          const openProjectParams = {
-            id: createdProject.projectId,
-            parentId: placeholderItem.parentId,
-            title: createdProject.name,
-            ensoPath: createdProject.ensoPath,
-          } satisfies Partial<backendModule.ProjectAsset>
-          if (runLocally) {
-            if (canRunProjects.locally[backend.type]) {
-              // Open in background.
-              void openProjectLocally(openProjectParams, backend.type)
-            }
-          } else {
-            if (canRunProjects.natively[backend.type]) {
-              void openProjectNatively(openProjectParams, backend.type)
-            }
-          }
+      ]).then((createdProject) => {
+        const openProjectParams = {
+          id: createdProject.projectId,
+          parentId,
 
-          return createdProject
-        })
+          title: createdProject.name,
+          ensoPath: createdProject.ensoPath,
+        } satisfies Partial<backendModule.ProjectAsset>
+        if (runLocally) {
+          if (canRunProjects.locally[backend.type]) {
+            // Open in background.
+            void openProjectLocally(openProjectParams, backend.type)
+          }
+        } else {
+          if (canRunProjects.natively[backend.type]) {
+            void openProjectNatively(openProjectParams, backend.type)
+          }
+        }
+
+        return createdProject
+      })
     },
   )
 }

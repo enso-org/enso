@@ -1,4 +1,3 @@
-import { clamp } from 'enso-common/src/utilities/data/math'
 import { assert } from '../assert'
 import { SourceRange } from './text'
 
@@ -109,7 +108,7 @@ export class Range {
 
   /** @returns A range composed of the closest positions to `from` and `to` that are within `bounds`. */
   clip(bounds: Range): Range {
-    const clipPos = (pos: number) => clamp(pos, bounds.from, bounds.to)
+    const clipPos = (pos: number) => Math.min(Math.max(pos, bounds.from), bounds.to)
     return new Range(clipPos(this.from), clipPos(this.to))
   }
 

@@ -1,10 +1,6 @@
 /** @file Utilities for working with permissions. */
 import type * as text from '../text.js'
 
-// ========================
-// === PermissionAction ===
-// ========================
-
 /** Backend representation of user permission types. */
 export enum PermissionAction {
   own = 'Own',
@@ -30,10 +26,6 @@ export const PERMISSION_ACTION_CAN_EXECUTE: Readonly<Record<PermissionAction, bo
   [PermissionAction.viewAndDocs]: false,
   [PermissionAction.viewAndExec]: true,
 }
-
-// ==================
-// === Permission ===
-// ==================
 
 /** Type of permission. This determines what kind of border is displayed. */
 export enum Permission {
@@ -168,10 +160,6 @@ export function toPermissionAction(permissions: Permissions): PermissionAction {
     }
   }
 }
-
-// ===================
-// === Permissions ===
-// ===================
 
 /** Properties common to all permissions. */
 interface BasePermissions<T extends Permission> {

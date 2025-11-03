@@ -3,7 +3,7 @@ import { forwardRef, Fragment, type PropsWithChildren, type ReactElement } from 
 import flattenChildren from 'react-keyed-flatten-children'
 
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { IS_DEV_MODE } from '$/utils/detect'
 import invariant from 'tiny-invariant'
 import type { TestIdProps } from '../types'
 import {

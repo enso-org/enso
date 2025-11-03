@@ -89,7 +89,6 @@ impl RunsOn for OS {
 impl RunsOn for (OS, Arch) {
     fn runs_on(&self) -> Vec<RunnerLabel> {
         match self {
-            (OS::MacOS, Arch::X86_64) => vec![RunnerLabel::MacOS13],
             (os, Arch::X86_64) => runs_on(*os, RunnerType::SelfHosted),
             (OS::MacOS, Arch::AArch64) => {
                 let mut ret = runs_on(OS::MacOS, RunnerType::SelfHosted);
@@ -177,6 +176,10 @@ pub fn expose_gui_vars(step: Step) -> Step {
     .with_secret_exposed_as(
         secret::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
         ide::web::env::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
+    )
+    .with_secret_exposed_as(
+        secret::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
+        ide::web::env::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
     )
 }
 

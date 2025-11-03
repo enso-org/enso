@@ -17,7 +17,7 @@ import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '$/appUt
 import type { CognitoUser } from '$/authentication/cognito'
 import { useRouter, useSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
-import { isOnElectron } from 'enso-common/src/detect'
+import { isOnElectron } from '$/utils/detect'
 import { useState } from 'react'
 
 /** A form for users to log in. */
