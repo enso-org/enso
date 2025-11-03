@@ -403,7 +403,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       var size = Math.max(bytes.length, 4096);
       long len;
       ByteBuffer buffer;
-      if (ImageInfo.inImageRuntimeCode()) {
+      if (isMaster() && !isDirect()) {
         var memory = UnmanagedMemory.malloc(size);
         buffer = asNativeByteBuffer(memory, size);
         buffer.put(0, bytes);
