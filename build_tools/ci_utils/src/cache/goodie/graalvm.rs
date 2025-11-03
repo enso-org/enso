@@ -127,7 +127,7 @@ impl Goodie for GraalVM {
         let dir_name = graalvm_dir.file_name();
         let dir_name = dir_name.as_str();
         ensure!(dir_name.contains("graalvm"));
-        ensure!(dir_name.contains(self.graal_version.to_string_core().as_str()));
+        ensure!(dir_name.contains(self.graal_version.major.to_string().as_str()));
         let root = match TARGET_OS {
             OS::MacOS => graalvm_dir.path().join_iter(["Contents", "Home"]),
             _ => graalvm_dir.path(),

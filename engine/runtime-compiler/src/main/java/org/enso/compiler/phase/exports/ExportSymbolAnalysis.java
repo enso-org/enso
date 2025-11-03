@@ -141,15 +141,8 @@ public final class ExportSymbolAnalysis {
     if (exportErrors.isEmpty()) {
       return moduleIr;
     } else {
-      return moduleIr.copy(
-          moduleIr.imports(),
-          CollectionConverters.asScala(exportErrors).toList(),
-          moduleIr.bindings(),
-          moduleIr.isPrivate(),
-          moduleIr.location(),
-          moduleIr.passData(),
-          moduleIr.diagnostics(),
-          moduleIr.id());
+      return moduleIr.copyWithImportsAndExports(
+          moduleIr.imports(), CollectionConverters.asScala(exportErrors).toList());
     }
   }
 

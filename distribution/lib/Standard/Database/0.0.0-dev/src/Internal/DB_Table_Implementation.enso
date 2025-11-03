@@ -647,10 +647,8 @@ type DB_Table_Implementation
 
     read (this_table : Table & DB_Table) (max_rows : Rows_To_Read) =
         if this_table.internal_columns.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
-            preprocessed = case max_rows of
-                Rows_To_Read.All_Rows -> this_table
-                Rows_To_Read.First n -> this_table.limit n
-                Rows_To_Read.First_With_Warning n -> this_table.limit n+1
+            limit = max_rows.rows_to_read
+            preprocessed = if limit.is_nothing then this_table else this_table.limit limit
 
             sql = preprocessed.to_sql
             column_types = preprocessed.internal_columns.map .sql_type_reference

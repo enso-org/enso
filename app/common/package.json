@@ -21,14 +21,12 @@
     "compile": "tsc",
     "lint": "eslint ./src --cache --max-warnings=0"
   },
-  "peerDependencies": {
-    "zod": "^3.25.49"
-  },
   "dependencies": {
     "@internationalized/date": "3.7.0",
     "@types/node": "catalog:",
     "is-network-error": "^1.1.0",
-    "vue": "*"
+    "vue": "^3.5.13",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@fast-check/vitest": "catalog:",

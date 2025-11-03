@@ -60,15 +60,7 @@ public class PrivateSymbolsAnalysis implements IRPass {
     var newBindings =
         ir.bindings()
             .map(binding -> binding.mapExpressions(expr -> processExpression(expr, bindingsMap)));
-    return ir.copy(
-        ir.copy$default$1(),
-        ir.copy$default$2(),
-        newBindings,
-        ir.copy$default$4(),
-        ir.copy$default$5(),
-        ir.copy$default$6(),
-        ir.copy$default$7(),
-        ir.copy$default$8());
+    return ir.copyWithBindings(newBindings);
   }
 
   /** Not supported for expressions. */

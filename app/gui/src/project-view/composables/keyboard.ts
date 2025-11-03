@@ -26,7 +26,7 @@ export function useGlobalKeyboard(
   const { state, updateState, resetState } = useKeyboardState()
   const { globalEventRegistryPre } = globalEventRegistry
 
-  useEvent(globalEventRegistryPre, 'keydown', (event) => updateState(event), { capture: true })
+  useEvent(globalEventRegistryPre, 'keydown', updateState, { capture: true })
   useEvent(globalEventRegistryPre, 'keyup', updateState, { capture: true })
   useEvent(globalEventRegistryPre, 'blur', resetState, { capture: true })
 
