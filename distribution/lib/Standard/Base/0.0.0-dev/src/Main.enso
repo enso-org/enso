@@ -134,6 +134,12 @@ export project.Data.XML.XML_Element
 export project.Data.XML.XML_Error
 export project.Data.XML.XML_Format.XML_Format
 
+export project.Email
+export project.Email.Email_Address.Email_Address
+export project.Email.Email_Attachment.Email_Attachment
+export project.Email.Email_Body.Email_Body
+export project.Email.Email_Provider.Email_Provider
+
 export project.Enso_Cloud.Enso_File.Enso_File
 export project.Enso_Cloud.Enso_Secret.Enso_Secret
 export project.Enso_Cloud.Enso_User.Enso_User

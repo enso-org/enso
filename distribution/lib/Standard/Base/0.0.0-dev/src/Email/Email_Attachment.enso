@@ -1,0 +1,4 @@
+import project.System.File.File
+
+type Email_Attachment
+	Value file:File
