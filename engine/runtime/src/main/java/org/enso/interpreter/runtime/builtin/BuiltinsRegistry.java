@@ -89,7 +89,7 @@ final class BuiltinsRegistry {
    *     builtin method was ever registerd
    */
   final Optional<BuiltinFunction> getBuiltinFunction(
-      String type, String methodName, EnsoLanguage language, boolean isStaticInstance) {
+      String type, String methodName, EnsoLanguage language) {
     // TODO: move away from String mapping once Builtins is gone
     Map<String, Supplier<LoadedBuiltinMethod>> atomNodes = builtinMethodNodes.get(type);
     if (atomNodes == null) {
@@ -103,7 +103,7 @@ final class BuiltinsRegistry {
     if (builtin == null) {
       return Optional.empty();
     }
-    return builtin.toFunction(language, isStaticInstance);
+    return builtin.toFunction(language);
   }
 
   private static Map<String, LoadedBuiltinMethod> loadBuiltinMethodClassesEarly(
@@ -287,7 +287,7 @@ final class BuiltinsRegistry {
                   value.isAutoRegister() ? (!value.isStatic() ? type : type.getEigentype()) : null;
               if (tpe != null) {
                 Supplier<Function> supplier =
-                    () -> value.toMethod().toFunction(language, false).get().getFunction();
+                    () -> value.toMethod().toFunction(language).get().getFunction();
                 scope.registerMethod(tpe, key, supplier);
               }
             });
@@ -332,7 +332,7 @@ final class BuiltinsRegistry {
         try {
           @SuppressWarnings("unchecked")
           Class<BuiltinRootNode> clazz = (Class<BuiltinRootNode>) Class.forName(className);
-          Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class, boolean.class);
+          Method meth = clazz.getMethod("makeFunction", EnsoLanguage.class);
           method = new LoadedBuiltinMethod(meth, staticMethod, autoRegister);
         } catch (ClassNotFoundException | NoSuchMethodException e) {
           throw new CompilerError("Invalid builtin method " + className, e);
@@ -343,9 +343,9 @@ final class BuiltinsRegistry {
   }
 
   private record LoadedBuiltinMethod(Method meth, boolean isStatic, boolean isAutoRegister) {
-    Optional<BuiltinFunction> toFunction(EnsoLanguage language, boolean isStaticInstance) {
+    Optional<BuiltinFunction> toFunction(EnsoLanguage language) {
       try {
-        var f = (Function) meth.invoke(null, language, isStaticInstance);
+        var f = (Function) meth.invoke(null, language);
         if (f != null) {
           var bf = new BuiltinFunction(f, isAutoRegister);
           return Optional.of(bf);
