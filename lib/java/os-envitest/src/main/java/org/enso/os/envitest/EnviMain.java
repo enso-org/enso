@@ -19,18 +19,18 @@ public final class EnviMain extends Channel.Config {
     return Persistables.POOL;
   }
 
-  /** This is a message that os-environment/test sends from "master SVM" to "slave SVM". */
+  /** This is a message that os-environment/test sends from to dynamic library. */
   @Persistable(id = 4332)
   public static record Hello(String name) implements Function<Channel<EnviMain>, Text> {
     @Override
     public Text apply(Channel<EnviMain> ch) {
-      // now we are running in "slave SVM" and sending a message back to "master SVM"
+      // now we are running in library and sending a message back to executable
       var withTitle = ch.execute(Text.class, new Title(name));
       return new Text("Hello " + withTitle.msg() + "!");
     }
   }
 
-  /** This is a message sent from "slave SVM" back to "master SVM". */
+  /** This is a message sent from library to back to executable. */
   @Persistable(id = 4333)
   public static record Title(String name) implements Function<Object, Text> {
     @Override
