@@ -183,11 +183,11 @@ final class EnsoPolyglotJava {
    * real isolation between libraries is implemented.
    */
   static void addToClassPath(
-      EnsoContext ctx, Object whoIsIgnored, File path, boolean polyglotContextEntered)
+      EnsoContext ctx, Object whoIsIgnored, File path)
       throws InteropException {
     var data = KEY.get(ctx);
-    data.hosted.addToClassPath(path, polyglotContextEntered);
-    data.guest.addToClassPath(path, polyglotContextEntered);
+    data.hosted.addToClassPath(path);
+    data.guest.addToClassPath(path);
   }
 
   /**
@@ -198,17 +198,9 @@ final class EnsoPolyglotJava {
    *     Safepoints purposes
    */
   @CompilerDirectives.TruffleBoundary
-  private final void addToClassPath(File file, boolean polyglotContextEntered)
+  private final void addToClassPath(File file)
       throws InteropException {
-    if (polyglotContextEntered) {
-      TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
-    } else {
-      try {
-        lock.acquire();
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-    }
+    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
     try {
       if (polyglotJava == this) {
         pendingPath.add(file);
@@ -220,6 +212,7 @@ final class EnsoPolyglotJava {
     }
   }
 
+  @CompilerDirectives.TruffleBoundary
   private final void close() {
     TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
     try {
