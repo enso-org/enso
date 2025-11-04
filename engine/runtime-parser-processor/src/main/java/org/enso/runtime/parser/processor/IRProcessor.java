@@ -2,6 +2,7 @@ package org.enso.runtime.parser.processor;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -108,10 +109,19 @@ public class IRProcessor extends AbstractProcessor {
    *
    * <p>In this case, {@code A} <emph>depends on</emph> {@code B}, so we need to ensure that {@code
    * B} is processed first (a super class is generated for it first).
+   *
+   * @return List of classes ordered by their references. The list has the same
+   *   size as the input set.
    */
   private List<TypeElement> orderByReferences(Set<TypeElement> classesToProcess) {
-    var classesToProcessNames =
+    var classesToProcessSimpleNames =
         classesToProcess.stream().map(type -> type.getSimpleName().toString()).toList();
+    var classesToProcessMap = classesToProcess
+        .stream()
+        .collect(Collectors.toMap(
+            tp -> tp.getQualifiedName().toString(),
+            tp -> tp
+        ));
     var dependencies = new HashMap<String, Set<String>>();
     for (var clazz : classesToProcess) {
       var annotatedCtors =
@@ -141,7 +151,7 @@ public class IRProcessor extends AbstractProcessor {
                   })
               .toList();
       for (var childTypeName : childTypeNames) {
-        if (classesToProcessNames.contains(childTypeName)) {
+        if (classesToProcessSimpleNames.contains(childTypeName)) {
           var clazzName = clazz.getSimpleName().toString();
           var deps = dependencies.computeIfAbsent(clazzName, k -> new HashSet<>());
           deps.add(childTypeName);
@@ -160,7 +170,7 @@ public class IRProcessor extends AbstractProcessor {
     }
     var sortedDeps = DependencySorter.topologicalSort(dependencies);
     // Map class names to their TypeElements
-    return sortedDeps.stream()
+    var sortedDepTypes = sortedDeps.stream()
         .map(
             depName -> {
               var depClazz =
@@ -170,7 +180,29 @@ public class IRProcessor extends AbstractProcessor {
                       .orElseThrow(() -> new IRProcessingException("Class not found: " + depName, null));
               return depClazz;
             })
-        .toList();
+        .collect(Collectors.toCollection(ArrayList::new));
+
+    // Append the rest of the classesToProcess to the sortedDepTypes
+    for (var entry : classesToProcessMap.entrySet()) {
+      var fqn = entry.getKey();
+      var tp = entry.getValue();
+      // Poor man's solution. Let's hope the number of classes to process is small.
+      var isInSortedDeps = sortedDepTypes
+          .stream()
+          .anyMatch(depTp -> depTp.getQualifiedName().toString().equals(fqn));
+      if (!isInSortedDeps) {
+        sortedDepTypes.add(tp);
+      }
+    }
+    if (sortedDepTypes.size() != classesToProcess.size()) {
+      throw new IRProcessingException(
+          "orderByReferences failure: " +
+              "sortedDepTypes: " + sortedDepTypes +
+              ", classesToProcess: " + classesToProcessSimpleNames,
+          null
+      );
+    }
+    return sortedDepTypes;
   }
 
   /**
