@@ -179,7 +179,8 @@ public final class EnsoMultiValue extends EnsoObject {
 
     @Specialization(replaces = "cachedMultiType")
     final EnsoMultiType createMultiType(Type[] types, int from, int to) {
-      return EnsoMultiType.findOrCreateSlow(types, from, to);
+      var ctx = EnsoContext.get(this);
+      return EnsoMultiType.findOrCreateSlow(ctx, types, from, to);
     }
 
     @TruffleBoundary

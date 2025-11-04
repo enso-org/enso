@@ -57,8 +57,9 @@ case object CachePreferenceAnalysis extends IRPass {
     moduleContext: ModuleContext
   ): Module = {
     val weights = WeightInfo()
-    ir.copy(bindings = ir.bindings.map(analyseModuleDefinition(_, weights)))
-      .updateMetadata(new MetadataPair(this, weights))
+    ir.copyWithBindings(bindings =
+      ir.bindings.map(analyseModuleDefinition(_, weights))
+    ).updateMetadata(new MetadataPair(this, weights))
   }
 
   /** Performs the cache preference analysis on an inline expression.

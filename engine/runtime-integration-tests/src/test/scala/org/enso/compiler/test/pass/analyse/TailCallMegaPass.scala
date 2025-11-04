@@ -81,7 +81,7 @@ case object TailCallMegaPass extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings = ir.bindings.map(analyseModuleBinding))
+    ir.copyWithBindings(bindings = ir.bindings.map(analyseModuleBinding))
   }
 
   /** Analyses tail call state for an arbitrary expression.

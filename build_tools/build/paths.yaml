@@ -8,10 +8,8 @@
       changelog.yml:
       engine-benchmark.yml:
       engine-checks-nightly.yml:
-      engine-checks-optional.yml:
       engine-checks.yml:
       extra-nightly-tests.yml:
-      ide-packaging-optional.yml:
       ide-packaging.yml:
       nightly.yml:
       promote.yml:

@@ -243,21 +243,21 @@ type Data_Formatter
        ---
     make_date_parser self = self.wrap_base_parser <|
         Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateParser.new (self.date_formats.map on_problems=No_Wrap.Value .get_java_formatter_for_parsing)
+            DateParser.new (self.date_formats.map on_problems=No_Wrap.Value d-> (d:Date_Time_Formatter).get_java_formatter_for_parsing)
 
     ## ---
        private: true
        ---
     make_date_time_parser self = self.wrap_base_parser <|
         Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            DateTimeParser.new (self.datetime_formats.map on_problems=No_Wrap.Value  .get_java_formatter_for_parsing)
+            DateTimeParser.new (self.datetime_formats.map on_problems=No_Wrap.Value d-> (d:Date_Time_Formatter).get_java_formatter_for_parsing)
 
     ## ---
        private: true
        ---
     make_time_of_day_parser self = self.wrap_base_parser <|
         Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-            TimeOfDayParser.new (self.time_formats.map on_problems=No_Wrap.Value .get_java_formatter_for_parsing)
+            TimeOfDayParser.new (self.time_formats.map on_problems=No_Wrap.Value d-> (d:Date_Time_Formatter).get_java_formatter_for_parsing)
 
     ## ---
        private: true
@@ -324,7 +324,7 @@ type Data_Formatter
     make_date_formatter self =
         if self.date_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting dates requires at least one entry in the `date_formats` parameter") else
             Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-                DateFormatter.new self.date_formats.first.underlying
+                DateFormatter.new ((self.date_formats.first):Date_Time_Formatter).underlying
 
     ## ---
        private: true
@@ -332,7 +332,7 @@ type Data_Formatter
     make_time_of_day_formatter self =
         if self.time_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting times requires at least one entry in the `time_formats` parameter") else
             Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-                TimeFormatter.new self.time_formats.first.underlying
+                TimeFormatter.new ((self.time_formats.first):Date_Time_Formatter).underlying
 
     ## ---
        private: true
@@ -340,7 +340,7 @@ type Data_Formatter
     make_date_time_formatter self =
         if self.datetime_formats.is_empty then Error.throw (Illegal_Argument.Error "Formatting date-times requires at least one entry in the `datetime_formats` parameter") else
             Panic.catch JException handler=(caught_panic-> Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)) <|
-                DateTimeFormatter.new self.datetime_formats.first.underlying
+                DateTimeFormatter.new ((self.datetime_formats.first):Date_Time_Formatter).underlying
 
     ## ---
        private: true

@@ -73,7 +73,8 @@ case object FunctionBinding extends IRPass {
   override def runModule(
     ir: Module,
     moduleContext: ModuleContext
-  ): Module = ir.copy(bindings = ir.bindings.map(desugarModuleSymbol))
+  ): Module =
+    ir.copyWithBindings(bindings = ir.bindings.map(desugarModuleSymbol))
 
   /** Runs desugaring of function bindings on an arbitrary expression.
     *

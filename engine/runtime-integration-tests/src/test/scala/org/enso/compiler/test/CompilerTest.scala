@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Diagnostic,
   Expression,
+  MetadataStorage,
   Module,
   Name
 }
@@ -308,7 +309,15 @@ trait CompilerRunner {
       )
     ModuleTestUtils.unsafeSetIr(
       mod,
-      Module(List(), List(), List(), false, identifiedLocation = null)
+      new Module(
+        List(),
+        List(),
+        List(),
+        false,
+        null,
+        new MetadataStorage(),
+        null
+      )
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,
