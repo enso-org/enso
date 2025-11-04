@@ -167,7 +167,7 @@ public class IRProcessor extends AbstractProcessor {
                   classesToProcess.stream()
                       .filter(clazz -> clazz.getSimpleName().toString().equals(depName))
                       .findFirst()
-                      .orElseThrow(() -> new AssertionError("Class not found: " + depName));
+                      .orElseThrow(() -> new IRProcessingException("Class not found: " + depName, null));
               return depClazz;
             })
         .toList();
