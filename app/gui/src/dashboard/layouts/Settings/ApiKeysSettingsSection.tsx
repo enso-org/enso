@@ -11,7 +11,7 @@ import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { setModal } from '#/providers/ModalProvider'
-import { ApiKeyExpiresIn, type ApiKey } from '#/services/Backend'
+import { API_KEY_EXPIRES_IN_VALUES, ApiKeyExpiresIn, type ApiKey } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
@@ -198,12 +198,6 @@ function NewApiKeyForm() {
   const { data: apiKeys } = useSuspenseQuery(backendQueryOptions(backend, 'listApiKeys', []))
   const apiKeyNames = new Set(apiKeys.map((apiKey) => apiKey.name))
   const createApiKey = useMutationCallback(backendMutationOptions(backend, 'createApiKey'))
-  const options = [
-    ApiKeyExpiresIn.Week,
-    ApiKeyExpiresIn.Month,
-    ApiKeyExpiresIn.Year,
-    ApiKeyExpiresIn.Indefinetly,
-  ]
 
   return (
     <Form
@@ -214,12 +208,7 @@ function NewApiKeyForm() {
             .min(1)
             .refine((name) => !apiKeyNames.has(name), getText('duplicateApiKeyError')),
           description: z.string(),
-          expiresIn: z.enum([
-            ApiKeyExpiresIn.Week,
-            ApiKeyExpiresIn.Month,
-            ApiKeyExpiresIn.Year,
-            ApiKeyExpiresIn.Indefinetly,
-          ]),
+          expiresIn: z.nativeEnum(ApiKeyExpiresIn),
         })
       }
       method="dialog"
@@ -231,7 +220,7 @@ function NewApiKeyForm() {
       <Text.Heading variant="subtitle">{getText('newApiKey')}</Text.Heading>
       <Input name="name" label={getText('name')} />
       <Input name="description" label={getText('description')} />
-      <Selector items={options} name="expiresIn" label={getText('expiresIn')} />
+      <Selector items={API_KEY_EXPIRES_IN_VALUES} name="expiresIn" label={getText('expiresIn')} />
       <Button.Group className="relative">
         <Form.Submit />
         <Dialog.Close variant="outline">{getText('cancel')}</Dialog.Close>

@@ -826,6 +826,8 @@ export enum ApiKeyExpiresIn {
   Indefinetly = 'Indefinetly',
 }
 
+export const API_KEY_EXPIRES_IN_VALUES: readonly ApiKeyExpiresIn[] = Object.values(ApiKeyExpiresIn)
+
 /** A pre-selected list of colors to be used in color pickers. */
 export const COLORS = [
   // Red
