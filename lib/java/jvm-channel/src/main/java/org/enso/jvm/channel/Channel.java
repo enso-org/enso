@@ -89,7 +89,10 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     this.pool = data.createPool(this);
   }
 
-  /** The slave JVM side of a channel. */
+  /**
+   * The other JVM side of a channel. This side can be executed either in HotSpot JVM or also loaded
+   * from an SVM compiled dynamic library.
+   */
   private Channel(long id, Data data, long isolate, long callbackFn) {
     this.id = id;
     this.data = data;
