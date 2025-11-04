@@ -51,6 +51,7 @@ import project.Row.Row
 import project.Row_Limit.Row_Limit
 import project.Rows_To_Read.Rows_To_Read
 import project.Set_Mode.Set_Mode
+import project.Set_Mode.Set_Mode_Many
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
 import project.Table_Selector.Table_Selector
@@ -2617,6 +2618,46 @@ type Table
     @value Simple_Expression.default_widget
     set self (value : Text | Expression | Column | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         self.implementation.set self.underlying value as set_mode on_problems
+
+
+    ## ---
+       private: true
+       ---
+       Adds or updates multiple columns on the table.
+
+       All calculation are performed based on the original table, so that the
+       order of setting columns does not matter.
+
+       ## Arguments
+        - `columns`: The columns to set.
+        - `value`: The expression to create columns. Use `{{Column}}` as a
+          placeholder for the current column.
+        - `set_mode`: Specifies the expected behaviour in regards to existing
+          columns with the same name.
+          - `as`: If not in `Update` mode, the naming pattern for the new
+             columns. Use `{{Column}}` as a placeholder for the current column
+             name.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
+        - `on_problems`: Specifies how to handle problems with expression
+          evaluation.
+
+        ## Returns
+        - Returns the updated Table along with the newly created or updated
+          columns.
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    set_many self (columns : Table_Selector = Missing_Argument.throw "columns") (value : Text = Missing_Argument.throw "value") set_mode:Set_Mode_Many=..Update error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+        col_name = self.make_temp_column_name
+        as = set_mode.as_value
+        value_expr = Expression.Value (value.replace "{{Column}}" "["+col_name+"]")
+        columns.act_if_any self error_on_missing_columns selected->
+            new_columns = selected.map column_name->
+                as_name = as.replace "{{Column}}" column_name
+                column = self.at column_name
+                result = self.set column col_name . set value_expr as_name on_problems=on_problems
+                result.at as_name
+            new_columns.fold self current->new-> current.set new new.name set_mode
 
     ## ---
        private: true
