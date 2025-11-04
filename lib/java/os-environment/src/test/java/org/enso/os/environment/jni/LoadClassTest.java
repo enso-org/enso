@@ -10,7 +10,7 @@ import java.nio.file.Files;
 import java.util.Random;
 import org.enso.jvm.channel.Channel;
 import org.enso.jvm.channel.JVM;
-import org.enso.os.envitest.EnviMain;
+import org.enso.os.environment.lib.HelloTitle;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -147,14 +147,14 @@ public class LoadClassTest {
 
   @Test
   public void loadFromDynamicLibrary() throws Exception {
-    var libPath = System.getenv("OS_ENVITEST");
+    var libPath = System.getenv("OS_ENVIRONMENT_LIB");
     var libFile = new File(libPath);
     assert libFile.isFile() : "Library file must exists at " + libPath;
     var nativeJvm = JVM.create(libFile);
     System.err.println("Native " + nativeJvm);
     var tmp = File.createTempFile("nativelib", ".msg");
     var hello = "Hello from native lib!";
-    nativeJvm.executeMain("org/enso/os/envitest/EnviMain", tmp.getAbsolutePath(), hello);
+    nativeJvm.executeMain("org/enso/os/environment/lib/HelloTitle", tmp.getAbsolutePath(), hello);
     var content = Files.readString(tmp.toPath());
     tmp.delete();
     assertEquals("Proper message has been written into " + tmp, hello, content);
@@ -162,14 +162,14 @@ public class LoadClassTest {
 
   @Test
   public void loadChannelFromDynamicLibrary() throws Exception {
-    var libPath = System.getenv("OS_ENVITEST");
+    var libPath = System.getenv("OS_ENVIRONMENT_LIB");
     var libFile = new File(libPath);
     assert libFile.isFile() : "Library file must exists at " + libPath;
     var nativeJvm = JVM.create(libFile);
     System.err.println("got jvm: " + nativeJvm);
-    var ch = Channel.create(nativeJvm, EnviMain.class);
+    var ch = Channel.create(nativeJvm, HelloTitle.class);
     System.err.println("got channel: " + ch);
-    var fac = ch.execute(EnviMain.Text.class, new EnviMain.Hello("Native"));
+    var fac = ch.execute(HelloTitle.Text.class, new HelloTitle.Hello("Native"));
     assertEquals("Hello Mr. Native!", fac.msg());
   }
 

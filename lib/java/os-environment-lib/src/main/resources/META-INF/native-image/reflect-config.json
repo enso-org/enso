@@ -1,6 +1,6 @@
 [
   {
-    "name": "org.enso.os.envitest.EnviMain",
+    "name": "org.enso.os.environment.lib.HelloTitle",
     "methods": [
       {
         "name": "<init>",

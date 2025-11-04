@@ -354,7 +354,7 @@ lazy val enso = (project in file("."))
     `netty-tc-native-wrapper`,
     `opencv-wrapper`,
     `os-environment`,
-    `os-envitest`,
+    `os-environment-lib`,
     `persistance`,
     `persistance-dsl`,
     pkg,
@@ -4509,9 +4509,9 @@ lazy val `jvm-interop` =
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`test-utils` % Test)
 
-lazy val `os-envitest` =
+lazy val `os-environment-lib` =
   project
-    .in(file("lib/java/os-envitest"))
+    .in(file("lib/java/os-environment-lib"))
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
@@ -4541,11 +4541,11 @@ lazy val `os-envitest` =
       Test / buildNativeImage := Def.taskDyn {
         val targetDir = (Test / target).value
         NativeImage.buildNativeImage(
-          "os-envitest",
+          "os-environment-lib",
           staticOnLinux = false,
           targetDir     = targetDir,
           symlink       = false,
-          mainClass     = Some("org.enso.os.envitest.EnviMain"),
+          mainClass     = Some("org.enso.os.environment.lib.HelloTitle"),
           shared        = true,
           additionalOptions = Seq(
             "-ea",
@@ -4646,15 +4646,15 @@ lazy val `os-environment` =
             Process(
               Seq(binPath),
               None,
-              "JAVA_TOOL_OPTIONS" -> "--enable-native-access=org.enso.jvm.channel",
-              "OS_ENVITEST"       -> ((`os-envitest` / Test / target).value / ("os-envitest" + libSuffix)).toString
+              "JAVA_TOOL_OPTIONS"  -> "--enable-native-access=org.enso.jvm.channel",
+              "OS_ENVIRONMENT_LIB" -> ((`os-environment-lib` / Test / target).value / ("os-environment-lib" + libSuffix)).toString
             ) ! logger
           if (res != 0) {
             logger.error("Some test in os-environment failed")
             throw new TestsFailedException()
           }
         }
-        .dependsOn(`os-envitest` / Test / buildNativeImage)
+        .dependsOn(`os-environment-lib` / Test / buildNativeImage)
         .dependsOn(Test / buildNativeImage)
         .value,
       Test / fork := true
@@ -4663,7 +4663,7 @@ lazy val `os-environment` =
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`engine-common`)
-    .dependsOn(`os-envitest`)
+    .dependsOn(`os-environment-lib`)
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .enablePlugins(JPMSPlugin)
