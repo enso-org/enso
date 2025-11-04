@@ -38,6 +38,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   dataCatalogQueryDebounceDelay: z.number().int().min(0),
   unsafeDarkTheme: z.boolean(),
   apiKeyLimit: z.number().int().min(0),
+  debugHoverAreas: z.boolean(),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA.partial() })
@@ -76,6 +77,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         dataCatalogQueryDebounceDelay: DEFAULT_DATA_CATALOG_QUERY_DEBOUNCE_DELAY_MS,
         unsafeDarkTheme: false,
         apiKeyLimit: 5,
+        debugHoverAreas: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

@@ -57,6 +57,28 @@ export class Rect {
     return this.FromBounds(left, top, right, bottom)
   }
 
+  /** Create a minimum rectangle that contains all passed-in points. */
+  static FromPoints(): undefined
+  /** Create a minimum rectangle that contains all passed-in points. */
+  static FromPoints(point: Vec2, ...points: Vec2[]): Rect
+  /** Create a minimum rectangle that contains all passed-in points. */
+  static FromPoints(...points: Vec2[]): Rect | undefined
+  /** Create a minimum rectangle that contains all passed-in points. */
+  static FromPoints(...points: Vec2[]): Rect | undefined {
+    if (points.length === 0) return
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const point of points) {
+      minX = Math.min(minX, point.x)
+      minY = Math.min(minY, point.y)
+      maxX = Math.max(maxX, point.x)
+      maxY = Math.max(maxY, point.y)
+    }
+    return this.FromBounds(minX, minY, maxX, maxY)
+  }
+
   /** TODO: Add docs */
   static Equal(a: Rect, b: Rect): boolean
   /** TODO: Add docs */
@@ -243,6 +265,23 @@ export class Rect {
   expand(padding: number): Rect {
     const padVector = new Vec2(padding, padding)
     return new Rect(this.pos.sub(padVector), this.size.add(padVector).add(padVector))
+  }
+
+  /** Get an SVG path representation of this rectangle, optionally with corner rounding. */
+  asSvgPath(r: number = 0): string {
+    const {
+      pos: { x, y },
+      size: { x: w, y: h },
+    } = this
+    if (r == 0) {
+      return `M${x} ${y} h${w} v${h} h${-w} z`
+    } else {
+      const ix = x + r
+      const iw = w - r * 2
+      const ih = h - r * 2
+      const arc = `a${r} ${r} 0 0 1`
+      return `M${ix},${y} h${iw} ${arc} ${r},${r} v${ih}  ${arc} ${-r},${r} h${-iw}  ${arc} ${-r},${-r} v${-ih}  ${arc} ${r},${-r} z`
+    }
   }
 }
 
