@@ -17,5 +17,5 @@ import project.Data.Pair.Pair
 send from:Text="" (to:Vector Text)=[] (cc:Vector Text)=[] (bcc:Vector Text)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)="" (provider:Email_Provider) =
     _ = [provider]
     email_object = Email_Object.Value from to cc bcc subject body attachments
-    ## provider.send email_object
-    Send_Response.Test email_object
+    provider.send email_object
+    
