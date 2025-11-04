@@ -12,11 +12,6 @@ import org.graalvm.word.PointerBase;
 
 @CContext(PosixJVM.Direct.class)
 final class PosixJVM {
-  static JNIBoot.JNICreateJavaVMPointer createImpl(File javaHome) {
-    var libJvmPath = findDynamicLibrary(javaHome).getPath();
-    return loadImpl(libJvmPath);
-  }
-
   static JNIBoot.JNICreateJavaVMPointer loadImpl(String libJvmPath) {
     try (var libPath = CTypeConversion.toCString(libJvmPath);
         var createJvm = CTypeConversion.toCString("JNI_CreateJavaVM")) {
@@ -34,11 +29,8 @@ final class PosixJVM {
     }
   }
 
-  private static File findDynamicLibrary(File javaHome) {
-    var libName =
-        Platform.includedIn(Platform.LINUX.class)
-            ? "libjvm.so"
-            : Platform.includedIn(Platform.MACOS.class) ? "libjvm.dylib" : null;
+  static File findDynamicLibrary(File javaHome) {
+    var libName = System.mapLibraryName("jvm");
     assert libName != null;
     var lib = new File(new File(new File(javaHome, "lib"), "server"), libName);
     if (!lib.exists()) {
