@@ -79,16 +79,19 @@ export class ProjectService {
   ) {}
 
   /** Creates a default ProjectService using the Enso executable found in the environment. */
-  static default(
-    workDir: string = '.',
-    extraArgs: Array<string> = ['--log-level', 'info'],
-  ): ProjectService {
+  static default(workDir: string = '.', extraArgs: Array<string> = []): ProjectService {
     const ensoPath = findEnsoExecutable(workDir)
     if (!ensoPath) {
       throw new Error('Enso executable not found')
     }
     const runner = new EnsoRunner(ensoPath)
-    return new ProjectService(runner, extraArgs)
+
+    // Read extra arguments from environment variable
+    const envArgs = process.env.ENSO_RUNNER_ARGS
+    const envArgsArray = envArgs ? envArgs.split(/\s+/).filter((arg) => arg.length > 0) : []
+    const allExtraArgs = [...envArgsArray, ...extraArgs]
+
+    return new ProjectService(runner, allExtraArgs)
   }
 
   /**

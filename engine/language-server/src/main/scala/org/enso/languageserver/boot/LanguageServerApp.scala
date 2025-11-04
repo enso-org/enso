@@ -70,7 +70,6 @@ object LanguageServerApp {
 
   /** Setup the logging server. */
   private def setupLogging(logLevel: Level, logMasking: Boolean): Unit = {
-    println(s"DEBUG setupLogging logLevel=$logLevel logMasking=$logMasking")
     Logging.setup(logLevel, logMasking)
     Logging.waitForSetup()
   }

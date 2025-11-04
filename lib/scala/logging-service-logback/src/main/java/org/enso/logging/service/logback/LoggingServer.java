@@ -23,7 +23,6 @@ class LoggingServer extends LoggingService<URI> {
     var lc = new LoggerContext();
 
     try {
-      System.out.println("DEBUG LoggingServer.start level=" + level);
       var setup = LogbackSetup.forContext(lc, config);
       logServer = new SocketServer(lc, port);
       logServer.start();

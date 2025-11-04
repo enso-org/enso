@@ -158,7 +158,6 @@ export class EnsoRunner implements Runner {
         const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
         const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
         const cwd = path.dirname(projectPath)
-        console.log('SPAWN', cmd, cmdArgs)
         const serverProcess = childProcess.spawn(cmd, cmdArgs, { env, detached: false, cwd })
 
         let stderr = ''
@@ -203,9 +202,6 @@ export class EnsoRunner implements Runner {
         // Start health check after initial delay
         setTimeout(startHealthCheck, 250)
 
-        serverProcess.stdout.on('data', (data) => {
-          console.log(data.toString())
-        })
         serverProcess.stderr.on('data', (data) => {
           const dataStr = data.toString()
           console.error(dataStr)
