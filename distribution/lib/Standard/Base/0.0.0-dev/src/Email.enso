@@ -18,4 +18,4 @@ send from:Text="" (to:Vector Text)=[] (cc:Vector Text)=[] (bcc:Vector Text)=[] (
     _ = [provider]
     email_object = Email_Object.Value from to cc bcc subject body attachments
     ## provider.send email_object
-    Pair.new Send_Response.Test email_object
+    Send_Response.Test email_object
