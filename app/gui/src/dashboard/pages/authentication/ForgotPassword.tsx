@@ -40,7 +40,7 @@ export default function ForgotPassword() {
       }
       supportsOffline={supportsOffline}
       onSubmit={({ email }) =>
-        forgotPassword(email).then(() => {
+        forgotPassword(email.toLowerCase()).then(() => {
           void router.push(LOGIN_PATH)
           toast.success(getText('forgotPasswordSuccess'))
         })

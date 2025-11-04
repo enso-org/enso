@@ -49,7 +49,7 @@ export default function Login() {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, @typescript-eslint/no-explicit-any
       const passwordOverride: string = (window as any).passwordOverride
       const { user, challenge } = await signInWithPassword(
-        email,
+        email.toLowerCase(),
         passwordOverride ? passwordOverride : password,
       )
 
