@@ -719,6 +719,14 @@ export default class LocalBackend extends Backend {
     return Promise.resolve(file)
   }
 
+  override uploadImage(
+    _parentDirectoryId: backend.DirectoryId,
+    _file: Blob,
+    _filename: string,
+  ): Promise<backend.UploadedImages> {
+    throw Error('Not implemented')
+  }
+
   /** Change the name of a file. */
   override async updateFile(
     fileId: backend.FileId,

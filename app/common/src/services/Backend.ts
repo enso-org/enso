@@ -630,7 +630,7 @@ export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPa
 
 /** Response from "assets/${assetId}" endpoint. */
 export type AssetDetailsResponse<Id extends AssetId> =
-  | (Omit<Asset<AssetTypeFromId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId })
+  | (Asset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId })
   | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
@@ -1370,6 +1370,10 @@ export interface UploadedProject {
 /** A large asset (file or project) that has finished uploading. */
 export type UploadedAsset = UploadedFile | UploadedArchive | UploadedProject
 
+export interface UploadedImages {
+  files: { assetId: AssetId; title: string }[]
+}
+
 /** URL query string parameters for the "upload profile picture" endpoint. */
 export interface UploadPictureRequestParams {
   readonly fileName: string | null
@@ -1862,6 +1866,11 @@ export default abstract class Backend {
     body: UploadFileEndRequestBody,
     abort?: AbortSignal,
   ): Promise<UploadedAsset>
+  abstract uploadImage(
+    parentDirectoryId: DirectoryId,
+    file: Blob,
+    filename: string,
+  ): Promise<UploadedImages>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
 
@@ -1998,6 +2007,16 @@ export default abstract class Backend {
   protected postBinary<T = void>(path: string, payload: Blob, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
       this.client.postBinary<T>(this.resolvePath(path), payload, options),
+    )
+  }
+
+  protected postFormData<T = void>(
+    path: string,
+    payload: FormData,
+    options?: HttpClientPostOptions,
+  ) {
+    return this.checkForAuthenticationError(() =>
+      this.client.postFormData<T>(this.resolvePath(path), payload, options),
     )
   }
 

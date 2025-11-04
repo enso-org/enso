@@ -935,6 +935,19 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  override async uploadImage(parentDirectoryId: backend.DirectoryId, file: Blob, filename: string) {
+    const path = remoteBackendPaths.UPLOAD_IMAGE_PATH
+    const query = new URLSearchParams({ parentDirectoryId })
+    const data = new FormData()
+    data.append('image', file, filename)
+    const response = await this.postFormData<backend.UploadedImages>(`${path}?${query}`, data)
+    if (!response.ok) {
+      return this.throw(response, 'uploadImageBackendError')
+    } else {
+      return response.json()
+    }
+  }
+
   /** Change the name of a file. */
   override async updateFile(): Promise<void> {
     await this.throw(null, 'updateFileNotImplementedBackendError')

@@ -60,6 +60,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'uploadFileChunk'
   | 'uploadFileEnd'
   | 'uploadFileStart'
+  | 'uploadImage'
   | 'uploadOrganizationPicture'
   | 'uploadUserPicture'
 >

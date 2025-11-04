@@ -2,15 +2,11 @@ import { type Asset, AssetType, DirectoryId } from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { unsafeKeys } from '#/utilities/object'
 import type { OpenedProject, OpenedProjectsStore } from '$/providers/openedProjects'
+import { getFolderPath, readUserSelectedFile } from '$/utils/file'
 import { backendMutationOptions, backendQueryOptions } from '@/composables/backend'
 import { useProjectFiles } from '@/stores/projectFiles'
 import { Err, mapOk, Ok, type Result } from '@/util/data/result'
 import { QueryClient, useMutation } from '@tanstack/vue-query'
-import {
-  basenameAndExtension,
-  getFolderPath,
-  readUserSelectedFile,
-} from 'enso-common/src/utilities/file'
 import type { FetchPartialProgress } from './AsyncResource'
 import type { ResourceContextSnapshot } from './context'
 
@@ -103,21 +99,14 @@ export function useResourceUpload(
     backendMutationOptions('createDirectory', backend),
     query,
   )
-  const uploadFileStartMutation = useMutation(
-    backendMutationOptions('uploadFileStart', backend),
-    query,
-  )
-  const uploadFileChunkMutation = useMutation(
-    backendMutationOptions('uploadFileChunk', backend),
-    query,
-  )
-  const uploadFileEndMutation = useMutation(backendMutationOptions('uploadFileEnd', backend), query)
+  const uploadImageMutation = useMutation(backendMutationOptions('uploadImage', backend), query)
 
   async function uploadResourceToProject(
     project: OpenedProject,
     upload: UploadDefinition,
   ): Promise<Result<UploadProgress>> {
     const api = useProjectFiles(project.store)
+
     const rootId = await api.projectRootId
     if (!rootId) return Err('Cannot upload image: unknown project file tree root')
 
@@ -136,23 +125,11 @@ export function useResourceUpload(
     })
   }
 
-  async function pickUniqueName(dir: DirectoryId, suggestedName: string) {
-    const existingAssets = await query.fetchQuery(
-      backendQueryOptions('listDirectory', [{ parentId: dir }, ''], backend),
-    )
-    const existingNames = new Set(existingAssets.assets.map((asset) => asset.title))
-    const { basename, extension } = basenameAndExtension(suggestedName)
-    let candidate = suggestedName
-    for (let i = 0; existingNames.has(candidate); i++) {
-      candidate = `${basename}_${i}.${extension}`
-    }
-    return candidate
-  }
-
   async function uploadResourceToCloud(
     data: UploadDefinition,
     asset: Asset,
   ): Promise<Result<UploadProgress>> {
+    const directory = getFolderPath(asset.ensoPath)
     try {
       const parentContents = await query.fetchQuery(
         backendQueryOptions('listDirectory', [{ parentId: asset.parentId }, ''], backend),
@@ -169,39 +146,17 @@ export function useResourceUpload(
         ).id
       }
 
-      const directory = getFolderPath(asset.ensoPath)
-      const fileName = await pickUniqueName(imagesDir, data.filename)
-
-      const doUpload = async () => {
-        try {
-          const contents = await data.data
-          const { sourcePath, uploadId, presignedUrls } = await uploadFileStartMutation.mutateAsync(
-            [{ fileId: null, fileName, parentDirectoryId: imagesDir }, contents],
-          )
-
-          const parts = await Promise.all(
-            presignedUrls.map((url, i) => uploadFileChunkMutation.mutateAsync([url, contents, i])),
-          )
-          await uploadFileEndMutation.mutateAsync([
-            {
-              parentDirectoryId: imagesDir,
-              parts,
-              sourcePath: sourcePath,
-              uploadId: uploadId,
-              assetId: null,
-              fileName,
-            },
-          ])
-          return Ok()
-        } catch (err) {
-          return Err(err)
-        }
-      }
+      const contents = await data.data
+      const uploadResult = await uploadImageMutation.mutateAsync([
+        imagesDir,
+        contents,
+        data.filename,
+      ])
 
       return Ok({
         uploadData: data.data,
-        resourceUrl: `${directory}/images/${fileName}`,
-        upload: doUpload(),
+        resourceUrl: `${directory}/images/${uploadResult.files[0]?.title}`,
+        upload: Promise.resolve(Ok()),
       })
     } catch (err) {
       return Err(err)

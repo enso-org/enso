@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ResourceContext } from '@/providers/asyncResources/context'
+import type { ResourceContext } from '@/providers/asyncResources/context'
 import type { Extension } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { defineAsyncComponent } from 'vue'

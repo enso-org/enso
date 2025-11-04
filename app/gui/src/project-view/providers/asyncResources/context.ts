@@ -1,4 +1,4 @@
-import { Asset, ProjectId } from '#/services/Backend'
+import { type Asset, ProjectId } from '#/services/Backend'
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { useRightPanelData } from '$/providers/rightPanel'
 import type { ToValue } from '@/util/reactivity'
