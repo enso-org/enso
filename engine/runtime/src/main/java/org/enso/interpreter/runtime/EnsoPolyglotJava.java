@@ -208,31 +208,11 @@ final class EnsoPolyglotJava {
    * This method ensure that hosted as well as guest classpath is the same. This is necessary until
    * real isolation between libraries is implemented.
    */
-  static void addToClassPath(EnsoContext ctx, Object whoIsIgnored, File path)
+  static void addToClassPath(
+      EnsoContext ctx, Object whoIsIgnored, File path, boolean polyglotContextEntered)
       throws InteropException {
     var data = KEY.get(ctx);
     data.classPath.add(path);
-  }
-
-  /**
-   * Modifies the classpath to use to lookup {@code polyglot java} imports.
-   *
-   * @param file the file to register
-   * @param polyglotContextEntered if true, any lock acquisition will be interruptable for Truffle's
-   *     Safepoints purposes
-   */
-  @CompilerDirectives.TruffleBoundary
-  private final void addToClassPath(File file) throws InteropException {
-    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
-    try {
-      if (polyglotJava == this) {
-        classPath.add(file);
-      } else {
-        InteropLibrary.getUncached().invokeMember(polyglotJava, "addPath", file.toString());
-      }
-    } finally {
-      lock.release();
-    }
   }
 
   @CompilerDirectives.TruffleBoundary

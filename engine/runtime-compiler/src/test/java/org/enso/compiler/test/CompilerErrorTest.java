@@ -37,4 +37,27 @@ public final class CompilerErrorTest {
       assertEquals("x", invalid.name().name());
     }
   }
+
+  @Test
+  public void cannotSpecifyTwoSelfArguments_InMethodCall() {
+    var modName = QualifiedName.fromString("local.Proj.Check");
+    var code =
+        """
+        type My_Type
+            Cons data
+            method self = 42
+
+        main =
+            obj = My_Type.Cons 23
+            My_Type.method self=My_Type self=obj
+        """;
+    var mod = compilerCtx.createModule(modName, code);
+    try {
+      var res = compilerCtx.getCompiler().run(mod);
+      fail("Compilation shall fail, but got: " + res);
+    } catch (DiagnosticException t) {
+      assertNotNull(t.diagnostic);
+      assertTrue(t.diagnostic instanceof Redefined.SelfArg);
+    }
+  }
 }

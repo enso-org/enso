@@ -354,6 +354,7 @@ lazy val enso = (project in file("."))
     `netty-tc-native-wrapper`,
     `opencv-wrapper`,
     `os-environment`,
+    `os-environment-lib`,
     `persistance`,
     `persistance-dsl`,
     pkg,
@@ -2095,21 +2096,24 @@ lazy val `ydoc-server` = project
     rebuildNativeImage := Def.taskDyn {
       NativeImage
         .buildNativeImage(
-          "ydoc",
+          "org.enso.ydoc.server",
           staticOnLinux = false,
-          targetDir     = target.value / "native-image",
-          mainClass     = Some("org.enso.ydoc.server.Main")
+          targetDir     = engineDistributionRoot.value / "component",
+          mainClass     = Some("org.enso.ydoc.server.Main"),
+          symlink       = false,
+          shared        = true
         )
     }.value,
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
         rebuildNativeImage,
-        "ydoc"
+        "org.enso.ydoc.server"
       )
       .value
   )
   .dependsOn(`ydoc-polyfill`)
   .dependsOn(`logging-service-logback`)
+  .dependsOn(`jvm-interop`)
 
 lazy val `ydoc-server-registration` = project
   .in(file("lib/java/ydoc-server-registration"))
@@ -2127,6 +2131,7 @@ lazy val `ydoc-server-registration` = project
       GraalVM.modules,
     Compile / internalModuleDependencies := Seq(
       (`engine-runner-common` / Compile / exportedModule).value,
+      (`jvm-channel` / Compile / exportedModule).value,
       (`jvm-interop` / Compile / exportedModule).value
     ),
     libraryDependencies ++= Seq(
@@ -2140,6 +2145,7 @@ lazy val `ydoc-server-registration` = project
     }
   )
   .dependsOn(`engine-runner-common`)
+  .dependsOn(`jvm-channel`)
   .dependsOn(`jvm-interop`)
 
 lazy val `persistance` = (project in file("lib/java/persistance"))
@@ -2860,7 +2866,8 @@ lazy val `runtime-test-instruments` =
 lazy val runtime = (project in file("engine/runtime"))
   .enablePlugins(JPMSPlugin)
   .settings(
-    frgaalJavaCompilerSetting,
+    // Needed for `java.lang.Foreign`.
+    customFrgaalJavaCompilerSettings("24"),
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
     annotationProcSetting,
@@ -2987,7 +2994,7 @@ lazy val `runtime-integration-tests` =
     .enablePlugins(JPMSPlugin)
     .enablePlugins(PackageListPlugin)
     .settings(
-      frgaalJavaCompilerSetting,
+      customFrgaalJavaCompilerSettings("24"),
       annotationProcSetting,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= GraalVM.modules ++ GraalVM.langsPkgs ++ GraalVM.insightPkgs ++ logbackPkg ++ helidon ++ slf4jApi ++ Seq(
@@ -3023,7 +3030,9 @@ lazy val `runtime-integration-tests` =
         "-Dtck.values=java-host,enso",
         "-Dtck.language=enso",
         "-Dtck.inlineVerifierInstrument=false",
-        "-Dpolyglot.engine.AllowExperimentalOptions=true"
+        "-Dpolyglot.engine.AllowExperimentalOptions=true",
+        "-XX:+HeapDumpOnOutOfMemoryError",
+        "-XX:HeapDumpPath=" + (Compile / packageBin).value.getParentFile
       ),
       Test / javaOptions ++= testLogProviderOptions,
       Test / moduleDependencies := {
@@ -4494,6 +4503,7 @@ lazy val `jvm-interop` =
       ),
       Compile / internalModuleDependencies ++= Seq(
         (`jvm-channel` / Compile / exportedModule).value,
+        (`engine-common` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value
       )
     )
@@ -4501,6 +4511,67 @@ lazy val `jvm-interop` =
     .dependsOn(`engine-common`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`test-utils` % Test)
+
+lazy val `os-environment-lib` =
+  project
+    .in(file("lib/java/os-environment-lib"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      libraryDependencies ++= slf4jApi ++ Seq(
+        "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
+        "junit"           % "junit"           % junitVersion              % Test,
+        "com.github.sbt"  % "junit-interface" % junitIfVersion            % Test
+      ),
+      Compile / moduleDependencies ++= slf4jApi ++ Seq(
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
+      ),
+      Compile / internalModuleDependencies ++= Seq(
+        (`engine-common` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value,
+        (`jvm-channel` / Compile / exportedModule).value,
+        (`logging-utils` / Compile / exportedModule).value,
+        (`logging-config` / Compile / exportedModule).value
+      ),
+      NativeImage.smallJdk := None,
+      NativeImage.additionalCp := {
+        val ourDeps = (Test / fullClasspath).value.map(_.data.getAbsolutePath)
+        ourDeps
+      },
+      Test / buildNativeImage := Def.taskDyn {
+        val targetDir = (Test / target).value
+        NativeImage.buildNativeImage(
+          "os-environment-lib",
+          staticOnLinux = false,
+          targetDir     = targetDir,
+          symlink       = false,
+          mainClass     = Some("org.enso.os.environment.lib.HelloTitle"),
+          shared        = true,
+          additionalOptions = Seq(
+            "-ea",
+            "-R:-InstallSegfaultHandler"
+          ) ++ (if (GraalVM.EnsoLauncher.debug) {
+                  // useful perf & debug switches:
+                  Seq(
+                    "-g",
+                    "-O0",
+                    "-H:+SourceLevelDebug",
+                    "-H:-DeleteLocalSymbols",
+                    "-Dnic=nic"
+                  )
+                } else {
+                  Seq()
+                })
+        )
+      }.value
+    )
+    .dependsOn(`jvm-channel`)
+    .dependsOn(`persistance`)
+    .dependsOn(`persistance-dsl` % "provided")
+    .dependsOn(`engine-common`)
 
 lazy val `os-environment` =
   project
@@ -4567,6 +4638,10 @@ lazy val `os-environment` =
         .task {
           val logger    = streams.value.log
           val exeSuffix = if (Platform.isWindows) ".exe" else ""
+          val libSuffix =
+            if (Platform.isWindows) ".dll"
+            else if (Platform.isLinux) ".so"
+            else ".dylib"
           val exeFile =
             (Test / target).value / ("test-os-env" + exeSuffix)
           val binPath = exeFile.getAbsolutePath
@@ -4574,13 +4649,15 @@ lazy val `os-environment` =
             Process(
               Seq(binPath),
               None,
-              "JAVA_TOOL_OPTIONS" -> "--enable-native-access=org.enso.jvm.channel"
+              "JAVA_TOOL_OPTIONS"  -> "--enable-native-access=org.enso.jvm.channel",
+              "OS_ENVIRONMENT_LIB" -> ((`os-environment-lib` / Test / target).value / ("os-environment-lib" + libSuffix)).toString
             ) ! logger
           if (res != 0) {
             logger.error("Some test in os-environment failed")
             throw new TestsFailedException()
           }
         }
+        .dependsOn(`os-environment-lib` / Test / buildNativeImage)
         .dependsOn(Test / buildNativeImage)
         .value,
       Test / fork := true
@@ -4589,6 +4666,7 @@ lazy val `os-environment` =
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`engine-common`)
+    .dependsOn(`os-environment-lib`)
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .enablePlugins(JPMSPlugin)
