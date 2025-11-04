@@ -1,5 +1,7 @@
+import project.Email.Email_Object.Email_Object
+
 type Send_Response
-    Test
-	Dry_Run
-	Sent
-	Failed
+    Test email:Email_Object
+	Dry_Run email:Email_Object
+	Sent email:Email_Object
+	Failed email:Email_Object
