@@ -73,7 +73,7 @@ export default function Registration(props: RegistrationProps) {
     onSubmit: async ({ email, password }) => {
       userAgreed()
 
-      await signUp(email.toLowerCase(), password, organizationId ?? null)
+      await signUp(email, password, organizationId ?? null)
 
       stepperState.nextStep()
     },

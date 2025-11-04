@@ -95,7 +95,7 @@ export default function ResetPassword() {
         />
       }
       onSubmit={({ email, verificationCode, newPassword }) =>
-        resetPassword(email.toLowerCase(), verificationCode, newPassword).then(() => {
+        resetPassword(email, verificationCode, newPassword).then(() => {
           toast.success(getText('resetPasswordSuccess'))
 
           stepperState.nextStep()
