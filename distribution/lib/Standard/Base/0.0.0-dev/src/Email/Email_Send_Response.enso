@@ -1,0 +1,5 @@
+type Send_Response
+    Test
+	Dry_Run
+	Sent
+	Failed

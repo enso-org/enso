@@ -1,0 +1,9 @@
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Email.Email_Body.Email_Body
+import project.Email.Email_Attachment.Email_Attachment
+
+import project.Data.Json.JS_Object
+
+type Email_Object
+    Value from:Text="" (to:Vector Text)=[] (cc:Vector Text)=[] (bcc:Vector Text)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)=""

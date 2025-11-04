@@ -1,0 +1,6 @@
+import project.Data.Text.Text
+
+type Email_Provider
+    TestProvider
+    SendGrid api_key:Text
+    SMTP server:Text port username:Text password:Text use_tls
