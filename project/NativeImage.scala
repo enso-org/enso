@@ -293,7 +293,9 @@ object NativeImage {
       if (retCode != 0 || !targetFile.exists()) {
         log.error(s"Native Image build of $targetFile failed, with output: ")
         println(sb.toString())
-        throw new RuntimeException("Native Image build failed")
+        throw new RuntimeException(
+          s"Native Image build failed to generate $targetFile"
+        )
       }
       var msg = s"$targetLoc native image build successful."
       if (targetDir != null && symlink) {
