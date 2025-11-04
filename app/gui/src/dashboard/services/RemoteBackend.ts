@@ -31,7 +31,6 @@ export default class RemoteBackend extends Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
   override readonly baseUrl = new URL($config.API_URL ?? '', location.href)
-  tokens: backend.ApiKey[] = []
   private user: objects.Mutable<backend.User> | null = null
 
   /** The path to the root directory of this {@link Backend}. */
