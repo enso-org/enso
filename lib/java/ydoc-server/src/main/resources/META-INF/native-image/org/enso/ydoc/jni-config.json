@@ -17,19 +17,5 @@
 {
   "name":"sun.management.VMManagementImpl",
   "fields":[{"name":"compTimeMonitoringSupport"}, {"name":"currentThreadCpuTimeSupport"}, {"name":"objectMonitorUsageSupport"}, {"name":"otherThreadCpuTimeSupport"}, {"name":"remoteDiagnosticCommandsSupport"}, {"name":"synchronizerUsageSupport"}, {"name":"threadAllocatedMemorySupport"}, {"name":"threadContentionMonitoringSupport"}]
-},
-  {
-    "name": "org.enso.jvm.channel.Channel",
-    "methods": [
-      {
-        "name": "createJvmPeerChannel",
-        "parameterTypes": ["long", "long", "long", "java.lang.String"]
-      },
-      {
-        "name": "handleJvmMessage",
-        "parameterTypes": ["long", "long", "long"]
-      }
-    ]
-  }
-
+}
 ]
