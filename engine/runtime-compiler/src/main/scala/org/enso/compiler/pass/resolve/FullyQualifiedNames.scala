@@ -128,7 +128,7 @@ case object FullyQualifiedNames extends IRPass {
         }
       }
     }
-    ir.copyWithBindings(bindings = new_bindings)
+    ir.copyWithBindings(new_bindings)
   }
 
   private def isMainModule(module: ModuleContext): Boolean = {

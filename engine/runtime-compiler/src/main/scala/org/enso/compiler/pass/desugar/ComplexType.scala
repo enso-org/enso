@@ -85,7 +85,7 @@ case object ComplexType extends IRPass {
     moduleContext: ModuleContext
   ): Module =
     ir.copyWithBindings(
-      bindings = ir.bindings.flatMap {
+      ir.bindings.flatMap {
         case typ: Definition.SugaredType => desugarComplexType(typ)
         case b                           => List(b)
       }

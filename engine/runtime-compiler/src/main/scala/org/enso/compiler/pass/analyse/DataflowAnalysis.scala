@@ -77,7 +77,7 @@ case object DataflowAnalysis extends IRPass {
   ): Module = {
     val dependencyInfo = new DependencyInfo
     ir.copyWithBindings(
-      bindings = ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
+      ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
     ).updateMetadata(new MetadataPair(this, dependencyInfo))
   }
 

@@ -222,7 +222,7 @@ case object DocumentationComments extends IRPass {
         resolveList(ir.bindings.drop(1))
       case _ => resolveList(ir.bindings)
     }).map(resolveDefinition)
-    ir.copyWithBindings(bindings = newBindings)
+    ir.copyWithBindings(newBindings)
   }
 
   /** Resolves documentation comments in an arbitrary IR.
