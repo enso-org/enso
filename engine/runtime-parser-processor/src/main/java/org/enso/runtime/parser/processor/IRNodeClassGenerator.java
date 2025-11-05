@@ -246,13 +246,10 @@ final class IRNodeClassGenerator {
         ${comment}
         ${userDefinedFields};
         // === End of user-defined fields ===
-        // The following meta fields cannot be private, as we are explicitly
-        // setting them in the `duplicate` method. Inheritor should not access
-        // these fields directly
-        protected DiagnosticStorage diagnostics;
-        protected MetadataStorage passData;
-        protected IdentifiedLocation location;
-        protected UUID id;
+        private DiagnosticStorage diagnostics;
+        private MetadataStorage passData;
+        private IdentifiedLocation location;
+        private UUID id;
         """
             .replace("${comment}", comment)
             .replace("${userDefinedFields}", userDefinedFields);

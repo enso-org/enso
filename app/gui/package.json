@@ -126,7 +126,7 @@
     "y-websocket": "^1.5.4",
     "ydoc-shared": "workspace:*",
     "yjs": "^13.6.21",
-    "zod": "^3.25.49",
+    "zod": "catalog:",
     "zustand": "^4.5.5"
   },
   "devDependencies": {

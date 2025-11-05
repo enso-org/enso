@@ -93,7 +93,7 @@ class GlobalNamesTest extends CompilerTest {
     val ir            = allPrecursors.analyse
 
     val bodyExprs = ir
-      .bindings(0)
+      .bindings()(0)
       .asInstanceOf[definition.Method.Explicit]
       .body
       .asInstanceOf[Function.Lambda]
@@ -168,7 +168,7 @@ class GlobalNamesTest extends CompilerTest {
           |    0
           |""".stripMargin.preprocessModule.analyse
       val mainMethodExprs = ir
-        .bindings(3)
+        .bindings()(3)
         .asInstanceOf[definition.Method.Explicit]
         .body
         .asInstanceOf[Function.Lambda]

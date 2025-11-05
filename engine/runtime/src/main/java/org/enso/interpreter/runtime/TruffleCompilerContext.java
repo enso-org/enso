@@ -408,9 +408,7 @@ final class TruffleCompilerContext implements CompilerContext {
     logSerializationManager(
         Level.FINE, "Requesting serialization for module [{0}].", module.getName());
     var ir = module.getIr();
-    var dupl =
-        ir.duplicate(
-            ir.duplicate$default$1(), ir.duplicate$default$2(), ir.duplicate$default$3(), true);
+    var dupl = ir.duplicate(true, true, true, true);
     var duplicatedIr = compiler.updateMetadata(ir, dupl);
     Source src;
     try {

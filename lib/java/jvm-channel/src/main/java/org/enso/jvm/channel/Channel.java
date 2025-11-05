@@ -20,6 +20,7 @@ import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.c.function.CEntryPoint;
 import org.graalvm.nativeimage.c.function.CEntryPointLiteral;
 import org.graalvm.nativeimage.c.function.CFunctionPointer;
+import org.graalvm.nativeimage.c.function.InvokeCFunctionPointer;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
 import org.graalvm.word.PointerBase;
@@ -69,7 +70,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   private final long id;
   private final JNI.JNIEnv env;
   private final long isolate;
-  private final MethodHandle callbackFn;
+  private final Object callbackFn;
   private final JNI.JClass channelClass;
   private final JNI.JMethodID channelHandle;
   private final Channel<Data> otherMockChannel;
@@ -88,28 +89,35 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     this.pool = data.createPool(this);
   }
 
-  /** The HotSpot JVM side of a channel. */
+  /**
+   * The other JVM side of a channel. This side can be executed either in HotSpot JVM or also loaded
+   * from an SVM compiled dynamic library.
+   */
   private Channel(long id, Data data, long isolate, long callbackFn) {
-    if (ImageInfo.inImageCode()) {
-      throw new IllegalStateException("Only usable in HotSpot");
-    }
     this.id = id;
     this.data = data;
     this.isolate = isolate;
-    this.env = null;
-    this.channelClass = null;
-    this.channelHandle = null;
     this.otherMockChannel = null;
 
-    var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
-    var fnDescriptor =
-        FunctionDescriptor.of(
-            ValueLayout.JAVA_LONG,
-            ValueLayout.ADDRESS,
-            ValueLayout.JAVA_LONG,
-            ValueLayout.ADDRESS,
-            ValueLayout.JAVA_LONG);
-    this.callbackFn = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
+    if (ImageInfo.inImageRuntimeCode()) {
+      this.env = WordFactory.nullPointer();
+      this.channelClass = WordFactory.nullPointer();
+      this.channelHandle = WordFactory.nullPointer();
+      this.callbackFn = callbackFn;
+    } else {
+      this.env = null;
+      this.channelClass = null;
+      this.channelHandle = null;
+      var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
+      var fnDescriptor =
+          FunctionDescriptor.of(
+              ValueLayout.JAVA_LONG,
+              ValueLayout.ADDRESS,
+              ValueLayout.JAVA_LONG,
+              ValueLayout.ADDRESS,
+              ValueLayout.JAVA_LONG);
+      this.callbackFn = Linker.nativeLinker().downcallHandle(fnCallbackAddress, fnDescriptor);
+    }
     this.pool = data.createPool(this);
   }
 
@@ -185,7 +193,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       arg.addressOf(2).setLong(CALLBACK_FN.getFunctionPointer().rawValue());
       arg.addressOf(3).setJObject(poolClassInHotSpot);
       var replyOk = fn.getCallStaticBooleanMethodA().call(e, channelClass, createMethod, arg);
-      channel.checkForException(e);
+      channel.checkForException(e, false);
       assert replyOk : "Failed to create peer in HotSpot JVM";
 
       ID_TO_CHANNEL.put(id, channel);
@@ -238,7 +246,8 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   @SuppressWarnings("unchecked")
   public final <C, R extends C> R execute(
       Class<C> resultType, Function<? super Channel<Data>, R> msg) {
-    return (R) executeImpl(pool, resultType, (Function) msg);
+    var r = (R) executeImpl(pool, resultType, (Function) msg);
+    return r;
   }
 
   //
@@ -326,15 +335,26 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     arg.addressOf(1).setLong(address);
     arg.addressOf(2).setLong(size);
     var replySize = fn.getCallStaticLongMethodA().call(env, channelClass, channelHandle, arg);
-    checkForException(env);
+    checkForException(env, true);
     return replySize;
+  }
+
+  interface CallbackFn extends CFunctionPointer {
+    @InvokeCFunctionPointer
+    long invoke(long isoRef, long id, long seg, long size);
   }
 
   private long toSubstrateMessage(MemorySegment seg) {
     try {
       var isoRef = MemorySegment.ofAddress(isolate);
-      var res = callbackFn.invoke(isoRef, id, seg, seg.byteSize());
-      return (long) res;
+      if (callbackFn instanceof MethodHandle handle) {
+        var res = handle.invoke(isoRef, id, seg, seg.byteSize());
+        return (long) res;
+      } else {
+        CallbackFn fn = WordFactory.pointer((Long) callbackFn);
+        var res = fn.invoke(isolate, id, seg.address(), seg.byteSize());
+        return res;
+      }
     } catch (Throwable ex) {
       printStackTrace(ex, false);
       return -1L;
@@ -349,12 +369,13 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     return len;
   }
 
-  private void checkForException(JNI.JNIEnv e) {
+  private void checkForException(JNI.JNIEnv e, boolean userCode) {
     var fn = e.getFunctions();
-    if (fn.getExceptionCheck().call(e)) {
+    var hasException = fn.getExceptionCheck().call(e);
+    if (hasException) {
       var throwable = fn.getExceptionOccurred().call(e);
       assert throwable.isNonNull() : "There must be a throwable";
-      if (printStackTrace(null, true)) {
+      if (printStackTrace(null, userCode)) {
         fn.getExceptionDescribe().call(e);
       }
       fn.getExceptionClear().call(e);
@@ -380,12 +401,13 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       Class<R> replyType,
       Function<Channel<? extends Data>, ? extends R> msg) {
     var address = 0L;
+    var useMalloc = isMaster() && !isDirect();
     try {
       var bytes = pool.write(msg);
       var size = Math.max(bytes.length, 4096);
       long len;
       ByteBuffer buffer;
-      if (ImageInfo.inImageRuntimeCode()) {
+      if (useMalloc) {
         var memory = UnmanagedMemory.malloc(size);
         buffer = asNativeByteBuffer(memory, size);
         buffer.put(0, bytes);
@@ -413,7 +435,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         len = buffer.getLong();
         // read address
         var addr = buffer.getLong();
-        if (ImageInfo.inImageRuntimeCode()) {
+        if (useMalloc) {
           var overflowPtr = WordFactory.pointer(addr);
           buffer =
               CTypeConversion.asByteBuffer(overflowPtr, Math.toIntExact(len))
@@ -431,7 +453,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     } catch (IOException ex) {
       throw new IllegalStateException(ex);
     } finally {
-      if (ImageInfo.inImageRuntimeCode()) {
+      if (useMalloc) {
         UnmanagedMemory.free(WordFactory.pointer(address));
       }
     }
@@ -445,7 +467,8 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   private static long handleJvmMessage(long id, long address, long size) throws Throwable {
     var channel = ID_TO_CHANNEL.get(id);
     var seg = MemorySegment.ofAddress(address).reinterpret(size);
-    return handleWithChannel(channel, seg.asByteBuffer());
+    var reply = handleWithChannel(channel, seg.asByteBuffer());
+    return reply;
   }
 
   @Override

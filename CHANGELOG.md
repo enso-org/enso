@@ -40,6 +40,9 @@
 - [Add Text_Column.upper and Text_Column.lower.][14179]
 - [Microsoft 365 OAuth support.][14135]
 - [Add Text_Column.proper and Rename Case.Title->Case.Proper.][14184]
+- [Snowflake stage support for reading and writing files.][14210]
+- [Snowflake file format and copy into support.][14221]
+- [Snowflake bulk load API.][14230]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -51,6 +54,9 @@
 [14157]: https://github.com/enso-org/enso/pull/14157
 [14179]: https://github.com/enso-org/enso/pull/14179
 [14184]: https://github.com/enso-org/enso/pull/14184
+[14210]: https://github.com/enso-org/enso/pull/14210
+[14221]: https://github.com/enso-org/enso/pull/14221
+[14230]: https://github.com/enso-org/enso/pull/14230
 
 #### Enso Language & Runtime
 
@@ -66,6 +72,7 @@
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
+- [Update to GraalVM 25.0.1][14233]
 
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
@@ -78,6 +85,7 @@
 [13178]: https://github.com/enso-org/enso/pull/13178
 [13914]: https://github.com/enso-org/enso/pull/13914
 [13917]: https://github.com/enso-org/enso/pull/13917
+[14233]: https://github.com/enso-org/enso/pull/14233
 
 # Enso 2025.2
 

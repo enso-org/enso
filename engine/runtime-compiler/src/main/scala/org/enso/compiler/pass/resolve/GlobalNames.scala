@@ -79,7 +79,7 @@ case object GlobalNames extends IRPass {
     )
     val new_bindings =
       ir.bindings.map(processModuleDefinition(_, scopeMap, freshNameSupply))
-    ir.copy(bindings = new_bindings)
+    ir.copyWithBindings(bindings = new_bindings)
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed

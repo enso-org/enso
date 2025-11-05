@@ -3248,7 +3248,6 @@ type Table
         self.implementation.row_count self.underlying
 
     ## ---
-       private: true
        icon: data_input
        ---
        Returns a materialized dataframe containing rows of this table.

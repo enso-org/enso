@@ -69,7 +69,7 @@ class PatternsTest extends CompilerTest {
 
     "attach resolved atoms to the method definitions" in {
       val patterns = ir
-        .bindings(1)
+        .bindings()(1)
         .asInstanceOf[definition.Method.Explicit]
         .body
         .asInstanceOf[Function.Lambda]
