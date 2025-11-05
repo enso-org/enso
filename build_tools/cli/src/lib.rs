@@ -856,16 +856,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             Action::DeployRuntime(args) => {
                 enso_build::release::deploy_runtime_to_ecr(&ctx, args.ecr_repository).await?;
             }
-            Action::DeployYdocPolyglot(args) => {
-                let config = enso_build::engine::BuildConfigurationFlags {
-                    build_native_ydoc: true,
-                    ..default()
-                };
-                let backend_context = ctx.prepare_backend_context(config).await?;
-                backend_context.build().await?;
-
-                enso_build::release::deploy_ydoc_polyglot_to_ecr(&ctx, args.ecr_repository).await?;
-            }
             Action::DispatchBuildImage => {
                 if !(&ctx.triple.versions.version.pre.to_string().starts_with("nightly")) {
                     enso_build::repo::cloud::build_image_workflow_dispatch_input(

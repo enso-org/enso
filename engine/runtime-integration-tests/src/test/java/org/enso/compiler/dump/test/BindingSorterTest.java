@@ -188,7 +188,6 @@ public final class BindingSorterTest {
         .bodyReference(bodyRef)
         .isStatic(isStatic)
         .isPrivate(isPrivate)
-        .isStaticWrapperForInstanceMethod(false)
         .build();
   }
 

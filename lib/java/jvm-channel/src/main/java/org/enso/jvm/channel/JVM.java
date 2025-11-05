@@ -22,23 +22,37 @@ public final class JVM {
   }
 
   /**
-   * Create new JVM.Use {@link #env()} to obtain reference to JNI interface and make calls into the
-   * JVM.
+   * Create new JVM. Either HotSpot JVM or natively compiled JVM. Use {@link #executeMain} to launch
+   * a main method inside of the JVM. Use {@link Channel#create} to establish a channel to send more
+   * intricate messages to the JVM.
    *
-   * @param javaHome path where the JDK is installed
+   * @param path path where the JDK is installed - either path to the HotSpot JVM directory or
+   *     direct path to the dynamic library that contains the {@code JNI_CreateJavaVM} entry point
    * @param options parameters to pass to the JVM
    * @return new instance of the JVM
    */
-  public static JVM create(File javaHome, String... options) {
-    var createJvmFn =
+  public static JVM create(File path, String... options) {
+    JNIBoot.JNICreateJavaVMPointer createJvmFn;
+    File libPath;
+    if (path.isDirectory()) {
+      // assume it is a root of `System.getProperty("java.home")`
+      libPath =
+          Platform.includedIn(Platform.WINDOWS.class)
+              ? WindowsJVM.findDynamicLibrary(path)
+              : PosixJVM.findDynamicLibrary(path);
+    } else {
+      libPath = path;
+    }
+    assert libPath.isFile();
+    createJvmFn =
         Platform.includedIn(Platform.WINDOWS.class)
-            ? WindowsJVM.createImpl(javaHome)
-            : PosixJVM.createImpl(javaHome);
+            ? WindowsJVM.loadImpl(libPath.getAbsolutePath())
+            : PosixJVM.loadImpl(libPath.getAbsolutePath());
 
     var jvmArgs = new ArrayList<String>();
 
     // java.home
-    jvmArgs.add("-Djava.home=" + javaHome);
+    jvmArgs.add("-Djava.home=" + path);
 
     jvmArgs.addAll(Arrays.asList(options));
     return new JVM(createJvmFn, jvmArgs.toArray(new String[0]));

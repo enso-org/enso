@@ -72,7 +72,7 @@
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
-- [Update to GraalVM 25][14019]
+- [Update to GraalVM 25.0.1][14233]
 
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
@@ -85,7 +85,7 @@
 [13178]: https://github.com/enso-org/enso/pull/13178
 [13914]: https://github.com/enso-org/enso/pull/13914
 [13917]: https://github.com/enso-org/enso/pull/13917
-[14019]: https://github.com/enso-org/enso/pull/14019
+[14233]: https://github.com/enso-org/enso/pull/14233
 
 # Enso 2025.2
 

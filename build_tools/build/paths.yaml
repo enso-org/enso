@@ -110,11 +110,6 @@
         engine/:
           docker-entrypoint.sh:
           Dockerfile:
-        ydoc-server-nodejs/:
-          Dockerfile:
-          ydoc-server-entrypoint.sh:
-        ydoc-server-polyglot/:
-          Dockerfile:
     simple-library-server/:
   std-bits/:
     benchmarks/:

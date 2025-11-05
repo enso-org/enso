@@ -42,20 +42,6 @@ public interface Function extends Expression {
     return args + " -> " + bodyStr;
   }
 
-  static boolean computeIsStaticWrapperForInstanceMethod(IR body) {
-    if (body instanceof Function.Lambda function) {
-      var argNames = function.arguments().map(DefinitionArgument::name);
-      if (argNames.size() >= 2
-          && argNames.apply(0) instanceof Name.Self self1
-          && argNames.apply(1) instanceof Name.Self self2
-          && self1.synthetic()
-          && !self2.synthetic()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   static boolean computeIsStatic(IR body) {
     if (body instanceof Function.Lambda function) {
       var firstArgName = function.arguments().headOption().map(DefinitionArgument::name);
