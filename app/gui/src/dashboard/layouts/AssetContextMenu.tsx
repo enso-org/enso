@@ -78,7 +78,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const copyAssets = useMutationCallback(copyAssetsMutationOptions(backend))
   const downloadAssets = useMutationCallback(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
-  const encodedEnsoPath = asset.ensoPath ? encodeURI(asset.ensoPath) : undefined
+  const encodedEnsoPath = encodeURI(asset.ensoPath)
   const copyMutation = useCopy()
   const uploadFileToCloud = useUploadFileToCloud()
   const uploadFileToLocal = useUploadFileToLocal(category)
@@ -116,12 +116,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   })
 
   const canPaste =
-    (
-      !pasteDataParent ||
-      !pasteData ||
-      !isCloud ||
-      (pasteDataParent.ensoPath != null && permissions.isTeamPath(pasteDataParent.ensoPath))
-    ) ?
+    !pasteDataParent || !pasteData || !isCloud || permissions.isTeamPath(pasteDataParent.ensoPath) ?
       true
     : pasteData.data.assets.every((pasteAsset) => {
         const otherAsset = getAsset(pasteAsset.id)
@@ -395,7 +390,6 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             },
           },
         !isCloud &&
-          encodedEnsoPath != null &&
           systemApi && {
             action: 'openInFileBrowser',
             doAction: () => {
@@ -403,7 +397,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               systemApi.showItemInFolder(encodedEnsoPath)
             },
           },
-        encodedEnsoPath != null && {
+        {
           action: 'copyAsPath',
           doAction: () => {
             void goToDrive()

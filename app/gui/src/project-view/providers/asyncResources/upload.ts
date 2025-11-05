@@ -149,8 +149,7 @@ export function useResourceUpload(
       const contents = await data.data
       const uploadResult = await uploadImageMutation.mutateAsync([
         imagesDir,
-        contents,
-        data.filename,
+        [{ data: contents, name: data.filename }],
       ])
 
       return Ok({

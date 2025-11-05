@@ -342,11 +342,11 @@ export default class RemoteBackend extends Backend {
     query: backend.ListDirectoryRequestParams,
     title: string,
   ): Promise<backend.ListDirectoryResponseBody> {
-    if (query.recentProjects && query.from) {
+    if (query.recentProjects === true && query.from) {
       return { assets: [], paginationToken: null }
     }
     const paramsString = new URLSearchParams(
-      query.recentProjects ?
+      query.recentProjects === true ?
         [['recent_projects', String(true)]]
       : [
           ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
@@ -935,11 +935,20 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  override async uploadImage(parentDirectoryId: backend.DirectoryId, file: Blob, filename: string) {
+  /**
+   * Upload set of Images, resoliving any possible conflicts. The sum of file sizes may not
+   * exceed could message limit.
+   */
+  override async uploadImage(
+    parentDirectoryId: backend.DirectoryId,
+    files: { data: Blob; name: string }[],
+  ) {
     const path = remoteBackendPaths.UPLOAD_IMAGE_PATH
     const query = new URLSearchParams({ parentDirectoryId })
     const data = new FormData()
-    data.append('image', file, filename)
+    for (const file of files) {
+      data.append('image', file.data, file.name)
+    }
     const response = await this.postFormData<backend.UploadedImages>(`${path}?${query}`, data)
     if (!response.ok) {
       return this.throw(response, 'uploadImageBackendError')

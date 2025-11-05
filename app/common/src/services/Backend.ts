@@ -1866,10 +1866,13 @@ export default abstract class Backend {
     body: UploadFileEndRequestBody,
     abort?: AbortSignal,
   ): Promise<UploadedAsset>
+  /**
+   * Upload set of Images, resoliving any possible conflicts. The sum of file sizes may not
+   * exceed could message limit.
+   */
   abstract uploadImage(
     parentDirectoryId: DirectoryId,
-    file: Blob,
-    filename: string,
+    files: { data: Blob; name: string }[],
   ): Promise<UploadedImages>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>

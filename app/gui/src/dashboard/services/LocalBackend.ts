@@ -719,12 +719,15 @@ export default class LocalBackend extends Backend {
     return Promise.resolve(file)
   }
 
+  /**
+   * Upload set of Images, resoliving any possible conflicts. The sum of file sizes may not
+   * exceed could message limit.
+   */
   override uploadImage(
     _parentDirectoryId: backend.DirectoryId,
-    _file: Blob,
-    _filename: string,
+    _files: { data: Blob; name: string }[],
   ): Promise<backend.UploadedImages> {
-    throw Error('Not implemented')
+    this.invalidOperation()
   }
 
   /** Change the name of a file. */
