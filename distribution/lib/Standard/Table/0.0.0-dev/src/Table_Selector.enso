@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Internal.Problem_Builder.Problem_Builder
 import project.Table.Table
 import project.Value_Type.By_Type
 from project.Errors import No_Output_Columns
@@ -30,9 +32,10 @@ type Table_Selector
                 Table_Selector.Regex r -> r
                 Table_Selector.By_Type bt -> bt
             if flatten.length == 0 then [] else
-                matched = table.select_columns flatten error_on_missing_columns=error_on_missing_columns on_problems=..Ignore . column_names
-                if error_on_missing_columns then matched else
-                    matched.catch No_Output_Columns _->[]
+                problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+                resolved_columns = table.columns_helper.select_columns_helper flatten Case_Sensitivity.Default reorder=True problem_builder=problem_builder
+                problem_builder.attach_problems_before ..Ignore <|
+                    resolved_columns.map .name
         _ -> Table_Selector.Vector [self] . resolve table error_on_missing_columns
 
     ## ---
@@ -53,7 +56,11 @@ Table_Selector.from (that:Regex) = Table_Selector.Regex that
 Table_Selector.from (that:By_Type) = Table_Selector.By_Type that
 
 Table_Selector.from (that:Function) =
-    Table_Selector.from (that:By_Type)
+    throw_type_error _ =
+        Error.throw (Illegal_Argument.Error "Unsupported value for a column selection.")
+    Panic.catch Any handler=throw_type_error <|
+        as_type = that:By_Type
+        Table_Selector.from as_type
 
 Table_Selector.from (that:Vector) =
     selectors = that.map v-> v.to Table_Selector

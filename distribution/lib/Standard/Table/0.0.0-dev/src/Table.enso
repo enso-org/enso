@@ -1960,7 +1960,7 @@ type Table
           reporting them as warnings by default.
         - `error_on_missing_columns`: If `True`, an error is raised if a
           specified column is not found. If `False`, the missing column is
-          ignored.
+          follows the `on_problems` behavior.
 
        ## Errors
         - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
