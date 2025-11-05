@@ -13,7 +13,8 @@ import scala.collection.immutable.List;
 public interface JName extends Expression, IRKind.Primitive {
   String name();
 
-  /** Checks whether a name is a call-site method name.
+  /**
+   * Checks whether a name is a call-site method name.
    *
    * @return `true` if the name was created through a method call
    */
@@ -28,9 +29,11 @@ public interface JName extends Expression, IRKind.Primitive {
   JName setLocation(Option<IdentifiedLocation> location);
 
   @Override
-  JName duplicate(boolean keepLocations, boolean keepMetadata, boolean keepDiagnostics,
+  JName duplicate(
+      boolean keepLocations,
+      boolean keepMetadata,
+      boolean keepDiagnostics,
       boolean keepIdentifiers);
-
 
   @GenerateIR(interfaces = {JName.class, IRKind.Sugar.class})
   final class MethodReference extends NameMethodReferenceGen {
@@ -40,15 +43,13 @@ public interface JName extends Expression, IRKind.Primitive {
         @IRChild JName methodName,
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData,
-        DiagnosticStorage diagnostics
-    ) {
+        DiagnosticStorage diagnostics) {
       super(typePointer, methodName, identifiedLocation, passData, diagnostics);
     }
 
     @Override
     public String showCode(int indent) {
-      var tPointer = typePointer().map(tp -> tp.showCode(indent) + ".")
-          .getOrElse(() -> "");
+      var tPointer = typePointer().map(tp -> tp.showCode(indent) + ".").getOrElse(() -> "");
       return tPointer + methodName().showCode(indent);
     }
 
@@ -67,9 +68,7 @@ public interface JName extends Expression, IRKind.Primitive {
     }
   }
 
-  /**
-   * A representation of a qualified (multi-part) name.
-   */
+  /** A representation of a qualified (multi-part) name. */
   @GenerateIR(interfaces = {JName.class, IRKind.Primitive.class})
   final class Qualified extends NameQualifiedGen {
 
@@ -83,8 +82,7 @@ public interface JName extends Expression, IRKind.Primitive {
         @IRChild List<JName> parts,
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData,
-        DiagnosticStorage diagnostics
-    ) {
+        DiagnosticStorage diagnostics) {
       super(parts, identifiedLocation, passData, diagnostics);
     }
 
@@ -99,17 +97,14 @@ public interface JName extends Expression, IRKind.Primitive {
     }
   }
 
-  /**
-   * Represents occurrences of blank (`_`) expressions.
-   */
+  /** Represents occurrences of blank (`_`) expressions. */
   @GenerateIR(interfaces = {JName.class, IRKind.Sugar.class})
   final class Blank extends NameBlankGen {
     @GenerateFields
     public Blank(
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData,
-        DiagnosticStorage diagnostics
-    ) {
+        DiagnosticStorage diagnostics) {
       super(identifiedLocation, passData, diagnostics);
     }
 
@@ -138,8 +133,7 @@ public interface JName extends Expression, IRKind.Primitive {
     public Special(
         @IRField Ident specialName,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(specialName, identifiedLocation, passData);
     }
 
@@ -163,8 +157,7 @@ public interface JName extends Expression, IRKind.Primitive {
         @IRField JName origName,
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData,
-        DiagnosticStorage diagnosticStorage
-    ) {
+        DiagnosticStorage diagnosticStorage) {
       super(name, isMethod, origName, identifiedLocation, passData, diagnosticStorage);
     }
 
@@ -182,7 +175,10 @@ public interface JName extends Expression, IRKind.Primitive {
     Annotation setLocation(Option<IdentifiedLocation> location);
 
     @Override
-    Annotation duplicate(boolean keepLocations, boolean keepMetadata, boolean keepDiagnostics,
+    Annotation duplicate(
+        boolean keepLocations,
+        boolean keepMetadata,
+        boolean keepDiagnostics,
         boolean keepIdentifiers);
 
     /**
@@ -213,10 +209,7 @@ public interface JName extends Expression, IRKind.Primitive {
   final class BuiltinAnnotation extends NameBuiltinAnnotationGen {
     @GenerateFields
     public BuiltinAnnotation(
-        @IRField String name,
-        IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        @IRField String name, IdentifiedLocation identifiedLocation, MetadataStorage passData) {
       super(name, identifiedLocation, passData);
     }
 
@@ -226,9 +219,7 @@ public interface JName extends Expression, IRKind.Primitive {
     }
   }
 
-  /**
-   * Common annotations of form {@code @name expression}
-   */
+  /** Common annotations of form {@code @name expression} */
   @GenerateIR(interfaces = {Annotation.class})
   final class GenericAnnotation extends NameGenericAnnotationGen {
 
@@ -241,8 +232,7 @@ public interface JName extends Expression, IRKind.Primitive {
         @IRField String name,
         @IRChild Expression expression,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(name, expression, identifiedLocation, passData);
     }
 
@@ -258,8 +248,7 @@ public interface JName extends Expression, IRKind.Primitive {
     public Self(
         @IRField boolean synthetic,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(synthetic, identifiedLocation, passData);
     }
 
@@ -274,16 +263,11 @@ public interface JName extends Expression, IRKind.Primitive {
     }
   }
 
-  /**
-   * A representation of the name `Self`, used to refer to the current type.
-   */
+  /** A representation of the name `Self`, used to refer to the current type. */
   @GenerateIR(interfaces = {JName.class})
   final class SelfType extends NameSelfTypeGen {
     @GenerateFields
-    public SelfType(
-        IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+    public SelfType(IdentifiedLocation identifiedLocation, MetadataStorage passData) {
       super(identifiedLocation, passData);
     }
 
