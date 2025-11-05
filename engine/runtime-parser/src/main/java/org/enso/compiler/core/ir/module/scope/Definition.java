@@ -58,6 +58,18 @@ public interface Definition extends Scope {
       super(name, params, members, identifiedLocation, passData);
     }
 
+    public static Builder builder() {
+      return builder();
+    }
+
+    public Builder copyBuilder() {
+      return builder(this);
+    }
+
+    public Type copyWithMembers(List<Data> members) {
+      return copyBuilder().members(members).build();
+    }
+
     @Override
     public String showCode(int indent) {
       var fields = members().map(m -> m.showCode(indent)).mkString(" | ");
@@ -85,6 +97,18 @@ public interface Definition extends Scope {
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData) {
       super(name, arguments, annotations, isPrivate, identifiedLocation, passData);
+    }
+
+    public Builder copyBuilder() {
+      return builder(this);
+    }
+
+    public Data copyWithAnnotations(List<Name.GenericAnnotation> annotations) {
+      return copyBuilder().annotations(annotations).build();
+    }
+
+    public Data copyWithArguments(List<DefinitionArgument> arguments) {
+      return copyBuilder().arguments(arguments).build();
     }
 
     @Override
@@ -115,6 +139,10 @@ public interface Definition extends Scope {
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData) {
       super(name, arguments, body, identifiedLocation, passData);
+    }
+
+    public SugaredType copyWithBody(List<IR> body) {
+      return builder(this).body(body).build();
     }
 
     @Override

@@ -124,7 +124,7 @@ case object GlobalNames extends IRPass {
           processExpression(_, bindings, List(), freshNameSupply, resolution)
         )
       case tp: Definition.Type =>
-        tp.copy(members =
+        tp.copyWithMembers(
           tp.members.map(
             _.mapExpressions { expr =>
               val selfTypeResolution =

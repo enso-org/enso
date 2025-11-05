@@ -181,7 +181,7 @@ case object DocumentationComments extends IRPass {
           )
           .build()
       case tpe: Definition.SugaredType =>
-        tpe.copy(body = resolveList(tpe.body).map(resolveIr))
+        tpe.copyWithBody(resolveList(tpe.body).map(resolveIr))
       case doc: Comment.Documentation  => doc
       case tySig: Type.Ascription      => tySig
       case err: Error                  => err
@@ -234,8 +234,8 @@ case object DocumentationComments extends IRPass {
     ir match {
       case module: Module          => resolveModule(module)
       case expr: Expression        => resolveExpression(expr)
-      case df: Definition          => resolveDefinition(df)
       case data: Definition.Data   => data
+      case df: Definition          => resolveDefinition(df)
       case imp: Import             => imp
       case exp: Export.Module      => exp
       case arg: CallArgument       => arg

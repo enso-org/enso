@@ -285,38 +285,48 @@ case object AliasAnalysis extends IRPass {
           "Method definition sugar should not occur during alias analysis."
         )
       case t: Definition.Type =>
-        val ct = t.copy(
-          params = analyseArgumentDefs(
-            t.params,
-            builder
-          ),
-          members = t.members.map(d => {
-            val graph = GraphBuilder.create()
-            val cd = d.copy(
-              arguments = analyseArgumentDefs(
-                d.arguments,
-                graph
-              ),
-              annotations = d.annotations.map { ann =>
-                val c = ann
-                  .copy(
-                    expression = analyseExpression(
-                      ann.expression,
-                      builder
-                    )
+        val ct = t
+          .copyBuilder()
+          .params(
+            analyseArgumentDefs(
+              t.params,
+              builder
+            )
+          )
+          .members(
+            t.members.map(d => {
+              val graph = GraphBuilder.create()
+              val cd = d
+                .copyBuilder()
+                .arguments(
+                  analyseArgumentDefs(
+                    d.arguments,
+                    graph
                   )
-                alias.AliasMetadata.updateMetadata(
-                  c,
-                  new alias.AliasMetadata.RootScope(builder.toGraph())
                 )
-              }
-            )
-            alias.AliasMetadata.updateMetadata(
-              cd,
-              new alias.AliasMetadata.RootScope(graph.toGraph())
-            )
-          })
-        )
+                .annotations(
+                  d.annotations.map { ann =>
+                    val c = ann
+                      .copy(
+                        expression = analyseExpression(
+                          ann.expression,
+                          builder
+                        )
+                      )
+                    alias.AliasMetadata.updateMetadata(
+                      c,
+                      new alias.AliasMetadata.RootScope(builder.toGraph())
+                    )
+                  }
+                )
+                .build()
+              alias.AliasMetadata.updateMetadata(
+                cd,
+                new alias.AliasMetadata.RootScope(graph.toGraph())
+              )
+            })
+          )
+          .build()
         alias.AliasMetadata.updateMetadata(
           ct,
           new alias.AliasMetadata.RootScope(builder.toGraph())

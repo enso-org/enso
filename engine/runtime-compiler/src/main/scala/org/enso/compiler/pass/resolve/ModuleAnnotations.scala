@@ -93,7 +93,7 @@ case object ModuleAnnotations extends IRPass {
         lastAnnotations = Seq()
         res
     }
-    typ.copy(body = newBodyElems)
+    typ.copyWithBody(newBodyElems)
   }
 
   /** Execute the pass on an expression.
