@@ -1,5 +1,6 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -103,6 +104,33 @@ public final class MethodResolutionTest {
     var symbol = UnresolvedSymbol.build("method", myType.getDefinitionScope());
     var func = methodResolverNode.executeResolution(myType, symbol);
     assertThat("method is found", func, is(notNullValue()));
+    assertSingleSelfArgument(func);
+  }
+
+  @Test
+  public void resolveExtensionMethod_FromSingletonType_OverriddenFromAny() {
+    var singletonTypeVal =
+        ctxRule.evalModule(
+            """
+            from Standard.Base import Any
+
+            Any.x self = 1
+
+            type Singleton_Type
+                x self = 2
+
+            main = Singleton_Type
+            """,
+            "Module",
+            "main");
+    var singletonType = unwrapType(singletonTypeVal);
+    var symbol = UnresolvedSymbol.build("x", singletonType.getDefinitionScope());
+    var func = methodResolverNode.executeResolution(singletonType, symbol);
+    assertThat("x method is found", func, is(notNullValue()));
+    assertThat(
+        "method resolved from Singleton_Type",
+        func.toDisplayString(false),
+        containsString("Singleton_Type.x"));
     assertSingleSelfArgument(func);
   }
 

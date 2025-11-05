@@ -9,5 +9,5 @@ public enum Case {
   UPPER,
 
   /* First letter of each word in upper case, rest in lower case. */
-  TITLE
+  PROPER
 }

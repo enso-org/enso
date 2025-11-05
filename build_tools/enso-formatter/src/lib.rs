@@ -37,8 +37,6 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
 use tokio as _;
 
-
-
 // =================
 // === Constants ===
 // =================
@@ -97,8 +95,6 @@ const STD_LINTER_ATTRIBS: &[&str] = &[
     "allow(clippy::let_and_return)",
 ];
 
-
-
 // =============
 // === Utils ===
 // =============
@@ -115,8 +111,6 @@ pub async fn read_file_with_hash(path: impl AsRef<Path>) -> Result<(u64, String)
         (hash, content)
     })
 }
-
-
 
 // ===================
 // === HeaderToken ===
@@ -159,8 +153,8 @@ pub enum HeaderToken {
 /// A header token with the matched string and possibly attached attributes.
 #[derive(Clone)]
 pub struct HeaderElement {
-    attrs:     Vec<String>,
-    token:     HeaderToken,
+    attrs: Vec<String>,
+    token: HeaderToken,
     reg_match: String,
 }
 
@@ -251,8 +245,6 @@ define_rules! {
     PubMod                   = r"pub +mod +[\w]+";
 }
 
-
-
 // =======================
 // === Pretty printing ===
 // =======================
@@ -284,7 +276,7 @@ fn print_h2(
 ) {
     use std::fmt::Write;
 
-    if tokens.iter().map(|tok| map.contains_key(tok)).any(|t| t) {
+    if tokens.iter().any(|tok| map.contains_key(tok)) {
         writeln!(out, "// === {str} ===").unwrap()
     }
 }
@@ -320,8 +312,6 @@ fn print_single(
     }
 }
 
-
-
 // ==============
 // === Action ===
 // ==============
@@ -335,8 +325,6 @@ pub enum Action {
     FormatAndCheck,
 }
 
-
-
 // ==================
 // === Processing ===
 // ==================
@@ -346,7 +334,7 @@ pub enum Action {
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct RustSourcePath {
-    path:    PathBuf,
+    path: PathBuf,
     is_main: bool,
 }
 
@@ -424,7 +412,7 @@ pub fn discover_paths_internal(
     } else if md.is_file() && path.extension().contains(&"rs") {
         let is_main_file = path
             .file_name()
-            .map_or(false, |file_name| file_name == "main.rs" || file_name == "lib.rs");
+            .is_some_and(|file_name| file_name == "main.rs" || file_name == "lib.rs");
         let is_main = is_main_file || is_main_dir;
         let path = path.into();
         vec.push(RustSourcePath { path, is_main });
@@ -527,19 +515,19 @@ pub fn process_file_content(input: String, is_main_file: bool) -> Result<String>
     // Remove standard linter configuration from the configuration found in the file.
     if is_main_file {
         let vec = map.entry(ModuleAttribAllow).or_default();
-        vec.retain(|t| !STD_LINTER_ATTRIBS.iter().map(|s| t.contains(s)).any(|b| b));
+        vec.retain(|t| !STD_LINTER_ATTRIBS.iter().any(|s| t.contains(s)));
         if vec.is_empty() {
             map.remove(&ModuleAttribAllow);
         }
 
         let vec = map.entry(ModuleAttribDeny).or_default();
-        vec.retain(|t| !STD_LINTER_ATTRIBS.iter().map(|s| t.contains(s)).any(|b| b));
+        vec.retain(|t| !STD_LINTER_ATTRIBS.iter().any(|s| t.contains(s)));
         if vec.is_empty() {
             map.remove(&ModuleAttribDeny);
         }
 
         let vec = map.entry(ModuleAttribWarn).or_default();
-        vec.retain(|t| !STD_LINTER_ATTRIBS.iter().map(|s| t.contains(s)).any(|b| b));
+        vec.retain(|t| !STD_LINTER_ATTRIBS.iter().any(|s| t.contains(s)));
         if vec.is_empty() {
             map.remove(&ModuleAttribWarn);
         }
@@ -578,20 +566,15 @@ pub fn process_file_content(input: String, is_main_file: bool) -> Result<String>
         "Export",
     );
     print_section(&mut out, &mut map, &[PubMod]);
-    print_section(&mut out, &mut map, &[
-        SuperPubUseStar,
-        CratePubUseStar,
-        PubUseStar,
-        SuperPubUse,
-        CratePubUse,
-        PubUse,
-    ]);
+    print_section(
+        &mut out,
+        &mut map,
+        &[SuperPubUseStar, CratePubUseStar, PubUseStar, SuperPubUse, CratePubUse, PubUse],
+    );
     out.push_str("\n\n");
     out.push_str(&input[total_len..]);
     Ok(out)
 }
-
-
 
 // =============
 // === Tests ===

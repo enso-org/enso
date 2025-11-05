@@ -91,7 +91,7 @@ case object Imports extends IRPass {
           )
       case other => other
     }
-    ir.copy(imports = newImports, exports = newExports)
+    ir.copyWithImportsAndExports(imports = newImports, exports = newExports)
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed

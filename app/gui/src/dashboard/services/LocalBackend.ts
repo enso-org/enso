@@ -13,6 +13,8 @@ import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import type { GetText } from '$/providers/text'
+import { fileExtension, getFileName, getFolderPath, normalizePath } from '$/utils/file'
+import { uniqueString } from '$/utils/uniqueString'
 import { PRODUCT_NAME } from 'enso-common'
 import {
   downloadProjectPath,
@@ -20,13 +22,6 @@ import {
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import {
-  fileExtension,
-  getFileName,
-  getFolderPath,
-  normalizePath,
-} from 'enso-common/src/utilities/file'
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 
@@ -94,11 +89,6 @@ export default class LocalBackend extends Backend {
     return (
       localRootDirectoryStore.getState().localRootDirectory ?? this.projectManager.rootDirectory
     )
-  }
-
-  /** Tell the {@link projectManager.ProjectManager} to reconnect. */
-  async reconnectProjectManager() {
-    await this.projectManager.reconnect()
   }
 
   /** Return the ID of the root directory. */
@@ -302,7 +292,7 @@ export default class LocalBackend extends Backend {
    * Return asset details.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  override async getAssetDetails<Id extends backend.RealAssetId>(
+  override async getAssetDetails<Id extends backend.AssetId>(
     assetId: Id,
     rootPath: backend.Path | undefined,
   ) {
@@ -375,7 +365,10 @@ export default class LocalBackend extends Backend {
         name: cachedProject.projectName,
         jsonAddress: ipWithSocketToAddress(cachedProject.languageServerJsonAddress),
         binaryAddress: ipWithSocketToAddress(cachedProject.languageServerBinaryAddress),
-        ydocAddress: null,
+        ydocAddress:
+          cachedProject.languageServerYdocAddress ?
+            ipWithSocketToAddress(cachedProject.languageServerYdocAddress)
+          : backend.Address('ws://localhost:5976'),
         organizationId: backend.OrganizationId('organization-'),
         packageName: cachedProject.projectNormalizedName,
         projectId,
@@ -681,7 +674,7 @@ export default class LocalBackend extends Backend {
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
-    const sourcePath = body.filePath ?? window.api?.system.getFilePath(file)
+    const sourcePath = body.filePath ?? window.api?.system?.getFilePath(file)
     const searchParams = new URLSearchParams([
       ['directory', newDirectoryId(parentPath)],
       ['file_name', body.fileName],
@@ -713,13 +706,13 @@ export default class LocalBackend extends Backend {
   }
 
   /** Upload a chunk of a large file. */
-  override uploadFileChunk(): Promise<backend.S3MultipartPart> {
+  override uploadFileChunk(): Promise<{ part: backend.S3MultipartPart; size: number }> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
-    return Promise.resolve({ eTag: '', partNumber: 0 })
+    return Promise.resolve({ part: { eTag: '', partNumber: 0 }, size: 0 })
   }
 
   /** Finish uploading a large file. */
-  override uploadFileEnd(body: backend.UploadFileEndRequestBody): Promise<backend.UploadedAsset> {
+  override uploadFileEnd(body: { uploadId: string }): Promise<backend.UploadedAsset> {
     // Do nothing, the entire file has already been uploaded in `uploadFileStart`.
     const file = this.uploadedFiles.get(body.uploadId)
     invariant(file, 'Uploaded file not found')
@@ -817,8 +810,7 @@ export default class LocalBackend extends Backend {
       }
       case backend.AssetType.datalink:
       case backend.AssetType.secret:
-      case backend.AssetType.directory:
-      case backend.AssetType.specialUp: {
+      case backend.AssetType.directory: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
       }

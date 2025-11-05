@@ -22,10 +22,10 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Response.Response
 import project.Network.Proxy.Proxy
 import project.Network.URI.URI
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
 import project.System.File.File
+from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json.Extensions import all
 from project.Data.Text.Extensions import all

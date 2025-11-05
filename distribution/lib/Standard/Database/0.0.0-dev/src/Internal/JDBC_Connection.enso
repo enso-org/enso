@@ -292,9 +292,11 @@ type JDBC_Connection
    ## Arguments
     - `url`: The URL to connect to.
     - `properties`: A vector of properties for the connection.
-create : Text -> Vector -> JDBC_Connection
-create url properties = handle_sql_errors <|
-    java_connection = JDBCProxy.getConnection url (properties_as_java_props properties)
+    - `database`: The database name to connect to.
+    - `schema`: The schema name to connect to.
+create : Text -> Vector -> Text -> Text -> JDBC_Connection
+create url properties database:Text="" schema:Text="" = handle_sql_errors <|
+    java_connection = JDBCProxy.getConnectionWithCatalogSchema url (properties_as_java_props properties) database schema
     from_java java_connection
 
 ## ---

@@ -16,8 +16,10 @@ import { AuthContext } from '$/providers/react/auth'
 import { BackendsContext } from '$/providers/react/backends'
 import { QueryParamsContext } from '$/providers/react/queryParams'
 import { RouterContext, type RouterForReact } from '$/providers/react/router'
+import { UploadsToCloudStoreContext } from '$/providers/react/upload'
 import { useSession, type SessionStore } from '$/providers/session'
 import { useText, type TextStore } from '$/providers/text'
+import { useUploadsToCloudStore, type UploadsToCloudStore } from '$/providers/upload'
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { reactComponent } from '@/util/react'
 import { proxyRefs } from '@/util/reactivity'
@@ -36,6 +38,7 @@ interface ContextsForReactProviderProps {
   auth: AuthStore
   queryParams: QueryParams
   actionsStore: ActionsStore
+  uploadsToCloudStore: UploadsToCloudStore
 }
 
 /**
@@ -58,6 +61,7 @@ export const ContextsForReactProvider = reactComponent(
       auth,
       queryParams,
       actionsStore,
+      uploadsToCloudStore,
     } = props
     return (
       <RouterContext.Provider value={router}>
@@ -70,7 +74,9 @@ export const ContextsForReactProvider = reactComponent(
                     <QueryParamsContext.Provider value={queryParams}>
                       <BackendsContext.Provider value={backends}>
                         <ActionsContext.Provider value={actionsStore}>
-                          {children}
+                          <UploadsToCloudStoreContext.Provider value={uploadsToCloudStore}>
+                            {children}
+                          </UploadsToCloudStoreContext.Provider>
                         </ActionsContext.Provider>
                       </BackendsContext.Provider>
                     </QueryParamsContext.Provider>
@@ -101,6 +107,7 @@ export const ContextsForReactProvider = reactComponent(
         auth: useAuth(),
         queryParams: useQueryParams(),
         actionsStore: useActionsStore(),
+        uploadsToCloudStore: useUploadsToCloudStore(),
       })
       // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
       // avoids the code path that assigns that property to overwrite a computed value with constant.

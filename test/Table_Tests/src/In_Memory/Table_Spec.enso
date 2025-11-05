@@ -161,9 +161,6 @@ add_specs suite_builder =
             r4.pretty . should_equal "Table.new [['foo', [1, 2, 3]], ['bar', [False, True, False]], ['date', [Date.new 2022 8 27, Date.new 1999 1 1, Date.new 2012 1 23]], ['time', [Time_Of_Day.new 18, Time_Of_Day.new 1 2 34, Time_Of_Day.new 12]]]"
             Debug.eval r4.pretty . should_equal r4
 
-        group_builder.specify "allows setting the column type" <|
-
-
         group_builder.specify "should handle error scenarios gracefully" <|
             Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
             Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument

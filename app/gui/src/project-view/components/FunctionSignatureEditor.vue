@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { documentationData } from '$/providers/openedProjects/suggestionDatabase/documentation'
+import {
+  applyWidgetUpdates,
+  WidgetInput,
+  type WidgetUpdate,
+} from '$/providers/openedProjects/widgetRegistry'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { syntheticPortId } from '@/providers/portInfo'
-import { applyWidgetUpdates, WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
-import { documentationData } from '@/stores/suggestionDatabase/documentation'
 import { assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { useYText } from '@/util/crdt'
@@ -28,26 +32,19 @@ const { functionAst, methodPointer } = defineProps<{
 const rootElement = useTemplateRef('rootElement')
 providePopoverRoot(rootElement)
 
-const currentProject = useCurrentProject()
+const { suggestionDb, module } = useCurrentProject()
 
 const docsString = useYText(() => functionAst.mutableDocumentationMarkdown())
 
 const docsData = computed(() => {
   const definedIn = methodPointer?.module
   return (
-    definedIn &&
-    documentationData(
-      docsString.value,
-      definedIn.project,
-      currentProject.ref.value?.suggestionDb.groups ?? [],
-    )
+    definedIn && documentationData(docsString.value, definedIn.project, suggestionDb.value.groups)
   )
 })
 
 function handleWidgetUpdates(update: WidgetUpdate) {
-  const graph = currentProject.ref.value?.graph
-  if (graph) applyWidgetUpdates(update, graph)
-  return Ok()
+  return applyWidgetUpdates(update, module.value)
 }
 
 const funcNameInput = computed(() => {
@@ -80,10 +77,10 @@ function handleAddItem() {
 }
 
 function doEdit(editFn: (ast: Ast.MutableFunctionDef, edit: Ast.MutableModule) => void) {
-  const edit = currentProject.ref.value?.graph.startEdit()
-  if (!edit) return
-  editFn(edit.getVersion(functionAst), edit)
-  handleWidgetUpdates({ edit, directInteraction: true })
+  module.value.edit((edit) => {
+    editFn(edit.getVersion(functionAst), edit)
+    return Ok()
+  })
 }
 
 const currentArgNames = (ast: Ast.FunctionDef) =>

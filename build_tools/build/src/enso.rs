@@ -18,8 +18,6 @@ use ide_ci::env::accessor::TypedVariable;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
 
-
-
 #[derive(Copy, Clone, Debug, strum::Display, strum::EnumString)]
 pub enum Boolean {
     True,
@@ -237,11 +235,11 @@ impl BuiltEnso {
                     format!("postgres-for-{runner_context_string}").replace(' ', "_");
                 let config = postgres::Configuration {
                     postgres_container: ContainerId(container_name),
-                    database_name:      "enso_test_db".to_string(),
-                    user:               "enso_test_user".to_string(),
-                    password:           "enso_test_password".to_string(),
-                    endpoint:           PostgresEndpointConfiguration::deduce()?,
-                    version:            "latest".to_string(),
+                    database_name: "enso_test_db".to_string(),
+                    user: "enso_test_user".to_string(),
+                    password: "enso_test_password".to_string(),
+                    endpoint: PostgresEndpointConfiguration::deduce()?,
+                    version: "latest".to_string(),
                 };
                 let postgres = Postgresql::start(config).await?;
                 Some(postgres)
@@ -261,11 +259,11 @@ impl BuiltEnso {
                     format!("sqlserver-for-{runner_context_string}").replace(' ', "_");
                 let config = sqlserver::Configuration {
                     sqlserver_container: ContainerId(container_name),
-                    database_name:       "tempdb".to_string(),
-                    user:                "sa".to_string(),
-                    password:            "enso_test_password_<YourStrong@Passw0rd>".to_string(),
-                    endpoint:            SQLServerEndpointConfiguration::deduce()?,
-                    version:             "2022-latest".to_string(),
+                    database_name: "tempdb".to_string(),
+                    user: "sa".to_string(),
+                    password: "enso_test_password_<YourStrong@Passw0rd>".to_string(),
+                    endpoint: SQLServerEndpointConfiguration::deduce()?,
+                    version: "2022-latest".to_string(),
                 };
                 let sqlserver = SQLServer::start(config).await?;
                 Some(sqlserver)

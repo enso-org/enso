@@ -1,9 +1,14 @@
 <script setup lang="ts">
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { ArgumentNameShownKey } from '@/components/GraphEditor/widgets/WidgetArgumentName.vue'
 import { useMounted } from '@/composables/events'
 import { injectSelectionArrow } from '@/providers/selectionArrow'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { computed, ref } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'

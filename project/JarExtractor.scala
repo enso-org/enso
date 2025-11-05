@@ -24,20 +24,35 @@ object JarExtractor {
   sealed trait NativeLibArch {
     // Path of the library inside the extracted files directory
     // Inspired by `org.enso.pkg.NativeLibraryFinder`
-    val path: String
+    def path: String
+    // An extension expected when loading libraries from the given architecture
+    def extension: String
+    // A prefix of the library expected when loading libraries from the given architecture.
+    // If None, arch makes no assumptions about the name of the file.
+    // If Some(a: Left), then a library must not have a prefix `a` in the file name.
+    // If Some(b: Right), then a library must have a prefix `b` in the file name.
+    def prefix: Option[Either[String, String]]
   }
 
   case object LinuxAMD64 extends NativeLibArch {
-    override val path: String = "amd64/linux"
+    override val path: String                           = "amd64/linux"
+    override val extension: String                      = "so"
+    override val prefix: Option[Either[String, String]] = Some(Right("lib"))
   }
   case object WindowsAMD64 extends NativeLibArch {
-    override val path: String = "amd64/windows"
+    override val path: String                           = "amd64/windows"
+    override val extension: String                      = "dll"
+    override val prefix: Option[Either[String, String]] = Some(Left("lib"))
   }
   case object MacOSAMD64 extends NativeLibArch {
-    override val path: String = "amd64/macos"
+    override val path: String                           = "amd64/macos"
+    override val extension: String                      = "dylib"
+    override val prefix: Option[Either[String, String]] = Some(Right("lib"))
   }
   case object MacOSArm64 extends NativeLibArch {
-    override val path: String = "aarch64/macos"
+    override val path: String                           = "aarch64/macos"
+    override val extension: String                      = "dylib"
+    override val prefix: Option[Either[String, String]] = Some(Right("lib"))
   }
 
   // What to do with the matching jar entries.
@@ -103,16 +118,33 @@ object JarExtractor {
                     copyEntry(outputJar, inputJar, entry, logger)
                   case PolyglotLib(arch) =>
                     // Silently rename the old `*.jnilib` files to `*.dylib`.
-                    val destPath = polyglotLibDir
-                      .resolve(arch.path)
-                      .resolve(
-                        entryPath.getFileName.toString.replace(
-                          ".jnilib",
-                          ".dylib"
-                        )
-                      )
-                    if (archMatchesCurPlatform(arch)) {
-                      copyEntry(destPath, inputJar, entry, logger)
+                    val fullPath = entryPath.getFileName.toString
+                    val idx      = fullPath.lastIndexOf('.')
+                    if (idx > 0) {
+                      val oldExtension = fullPath.substring(idx + 1)
+
+                      val fullPath1 =
+                        if (oldExtension != arch.extension)
+                          fullPath.replace(
+                            "." + oldExtension,
+                            "." + arch.extension
+                          )
+                        else fullPath
+                      val fullPath2 = arch.prefix
+                        .map {
+                          case Left(prohibited) =>
+                            fullPath1.stripPrefix(prohibited)
+                          case Right(required) =>
+                            if (fullPath1.startsWith(required)) fullPath1
+                            else required + fullPath1
+                        }
+                        .getOrElse(fullPath1)
+                      val destPath = polyglotLibDir
+                        .resolve(arch.path)
+                        .resolve(fullPath2)
+                      if (archMatchesCurPlatform(arch)) {
+                        copyEntry(destPath, inputJar, entry, logger)
+                      }
                     }
                 }
               }

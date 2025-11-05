@@ -123,6 +123,7 @@ public class AssertionsTest {
         ctxRule.evalModule(
             """
             from Standard.Base import Runtime
+            from Standard.Base.Nothing import all
             import Standard.Base.Runtime.Ref.Ref
 
             main =

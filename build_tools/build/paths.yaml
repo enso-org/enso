@@ -8,10 +8,8 @@
       changelog.yml:
       engine-benchmark.yml:
       engine-checks-nightly.yml:
-      engine-checks-optional.yml:
       engine-checks.yml:
       extra-nightly-tests.yml:
-      ide-packaging-optional.yml:
       ide-packaging.yml:
       nightly.yml:
       promote.yml:
@@ -37,7 +35,6 @@
       client/:
       common/:
       icons/:
-    ydoc-server-nodejs/:
   build/:
     prettier/:
   built-distribution/:
@@ -113,11 +110,6 @@
         engine/:
           docker-entrypoint.sh:
           Dockerfile:
-        ydoc-server-nodejs/:
-          Dockerfile:
-          ydoc-server-entrypoint.sh:
-        ydoc-server-polyglot/:
-          Dockerfile:
     simple-library-server/:
   std-bits/:
     benchmarks/:
@@ -166,4 +158,4 @@
   edition/:
     <edition>.yaml:
   runtime/:
-  .enso.portable:
+  .enso.bundle:

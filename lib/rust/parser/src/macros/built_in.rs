@@ -15,8 +15,6 @@ use crate::syntax::tree::SyntaxError;
 use crate::syntax::Item;
 use crate::syntax::Token;
 
-
-
 // =======================
 // === Built-in macros ===
 // =======================
@@ -340,7 +338,7 @@ fn parse_case_line<'s>(
         return (
             syntax::tree::CaseLine {
                 newline: newline.into(),
-                case:    Some(syntax::tree::Case { doc_line, ..default() }),
+                case: Some(syntax::tree::Case { doc_line, ..default() }),
             },
             default(),
         );
@@ -430,9 +428,9 @@ fn tuple_body<'s>(
 }
 
 struct GroupedSequence<'s> {
-    left:  token::OpenSymbol<'s>,
+    left: token::OpenSymbol<'s>,
     first: Option<syntax::Tree<'s>>,
-    rest:  Vec<syntax::tree::OperatorDelimitedTree<'s>>,
+    rest: Vec<syntax::tree::OperatorDelimitedTree<'s>>,
     right: token::CloseSymbol<'s>,
 }
 

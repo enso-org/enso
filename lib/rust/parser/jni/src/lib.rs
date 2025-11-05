@@ -18,8 +18,6 @@ use jni::sys::jobject;
 use jni::sys::jstring;
 use jni::JNIEnv;
 
-
-
 // ======================
 // === Java Interface ===
 // ======================
@@ -339,16 +337,14 @@ unsafe fn decode_utf8_buffer<'a>(env: &JNIEnv, buffer: &'a JByteBuffer) -> &'a s
     decode_utf8_unchecked(bytes)
 }
 
-
-
 // ====================
 // === Parser state ===
 // ====================
 
 #[derive(Default, Debug)]
 struct State {
-    base:     u64,
-    output:   Vec<u8>,
+    base: u64,
+    output: Vec<u8>,
     metadata: Option<enso_parser::metadata::Metadata>,
 }
 

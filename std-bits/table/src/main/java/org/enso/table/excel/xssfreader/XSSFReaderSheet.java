@@ -11,11 +11,11 @@ import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.util.XMLHelper;
 import org.enso.table.excel.ExcelRow;
-import org.enso.table.excel.ExcelSheet;
+import org.enso.table.excel.ExcelSheetReader;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-public class XSSFReaderSheet implements ExcelSheet {
+public class XSSFReaderSheet implements ExcelSheetReader {
   private final int sheetIdx;
   private final String sheetName;
   private final String relId;

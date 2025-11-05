@@ -30,6 +30,7 @@ export type ContextStore<Factory extends (...args: any[]) => any> = [
   injectFn: {
     (allowMissing?: false): ReturnType<Factory>
     (allowMissing: true): ReturnType<Factory> | undefined
+    (allowMissing?: boolean): ReturnType<Factory> | undefined
     (orProvideWith: () => Parameters<Factory>): ReturnType<Factory>
   },
 ]
@@ -72,6 +73,7 @@ export function createContextStore<F extends (...args: any[]) => any>(
 
   function injectFn(allowMissing: true): ReturnType<F> | undefined
   function injectFn(allowMissing?: false): ReturnType<F>
+  function injectFn(allowMissing?: boolean): ReturnType<F> | undefined
   function injectFn(orProvideWith: () => Parameters<F>): ReturnType<F>
   function injectFn(
     missingBehavior: boolean | (() => Parameters<F>) = false,

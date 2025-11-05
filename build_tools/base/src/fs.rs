@@ -7,7 +7,6 @@ use crate::prelude::*;
 
 use std::io::Write;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -15,8 +14,6 @@ use std::io::Write;
 pub mod wrappers;
 
 pub use wrappers::*;
-
-
 
 /// Like the standard version but will create any missing parent directories from the path.
 #[context("Failed to write path: {}", path.as_ref().display())]
@@ -150,7 +147,6 @@ pub fn expect_dir(path: impl AsRef<Path>) -> Result {
         bail!("File is not directory, its type is: {filetype:?}")
     }
 }
-
 
 /// Fail if the given path is not an existing file.
 #[context("Failed because the path does not point to a regular file: {}", path.as_ref().display())]

@@ -4,10 +4,10 @@
     - close self -> Standard.Base.Any.Any
     - database self -> Standard.Base.Any.Any
     - databases self -> Standard.Base.Any.Any
-    - from_stream stream:Standard.Base.Any.Any xls_format:Standard.Base.Data.Boolean.Boolean= file:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - from_stream stream:Standard.Base.Any.Any xl_format:Standard.Table.Excel.Excel_File_Format.Excel_File_Format= file:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - named_ranges self -> Standard.Base.Any.Any
     - named_ranges_count self -> Standard.Base.Any.Any
-    - new file:(Standard.Base.System.File.File|Standard.Base.System.File.Advanced.Temporary_File.Temporary_File) xls_format:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - new file:(Standard.Base.System.File.File|Standard.Base.System.File.Advanced.Temporary_File.Temporary_File) xl_format:Standard.Table.Excel.Excel_File_Format.Excel_File_Format= -> Standard.Base.Any.Any
     - query self query:Standard.Base.Data.Text.Text alias:Standard.Base.Data.Text.Text= headers:Standard.Table.Headers.Headers= -> Standard.Base.Any.Any
     - read self query:(Standard.Base.Data.Text.Text|Standard.Table.Excel.Excel_Range.Excel_Range|Standard.Base.Data.Numbers.Integer) headers:Standard.Table.Headers.Headers= limit:Standard.Table.Rows_To_Read.Rows_To_Read= skip_rows:Standard.Base.Data.Numbers.Integer= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - read_many self sheet_names:Standard.Base.Data.Vector.Vector= headers:Standard.Table.Headers.Headers= return:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any

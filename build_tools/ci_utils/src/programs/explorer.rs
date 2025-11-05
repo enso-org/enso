@@ -4,8 +4,6 @@
 
 use crate::prelude::*;
 
-
-
 #[derive(Debug, Clone, Copy)]
 pub struct Explorer;
 
@@ -17,7 +15,6 @@ impl Program for Explorer {
         "explorer"
     }
 }
-
 
 /// Open the parent folder of the given path in Windows File Explorer and select the given path.
 // Windows only, due to platform-specific `raw_arg` usage.

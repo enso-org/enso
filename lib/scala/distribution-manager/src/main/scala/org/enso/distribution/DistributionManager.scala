@@ -245,7 +245,7 @@ class DistributionManager(val env: Environment) {
     */
   private val BUNDLE_MARK_FILENAME = ".enso.bundle"
 
-  private def detectBundle(): Option[Bundle] = {
+  protected def detectBundle(): Option[Bundle] = {
     var curPath = env.getPathToRunningExecutable
     while (curPath != null) {
       if (Files.exists(curPath / BUNDLE_MARK_FILENAME)) {

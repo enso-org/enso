@@ -4,15 +4,15 @@
 //! installer and uninstaller binaries.
 
 use enso_install_config::prelude::*;
-use enso_install_config::sanitize_and_expose_electron_builder_config;
-use ide_ci::programs::cargo::build_env::OUT_DIR;
 
 #[cfg(windows)]
 use enso_install_config::embed_resource_from_file;
+use enso_install_config::sanitize_and_expose_electron_builder_config;
 #[cfg(windows)]
 use enso_install_config::ResourceType;
 #[cfg(windows)]
 use enso_install_config::ENSO_ICON_ID;
+use ide_ci::programs::cargo::build_env::OUT_DIR;
 
 fn main() {
     setup_logging().ok();

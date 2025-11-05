@@ -145,7 +145,7 @@ case object OverloadsResolution extends IRPass {
         )
     }
 
-    ir.copy(bindings = newBindings)
+    ir.copyWithBindings(bindings = newBindings)
   }
 
   /** This pass does nothing for the expression flow.

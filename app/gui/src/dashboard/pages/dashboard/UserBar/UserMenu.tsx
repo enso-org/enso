@@ -13,7 +13,7 @@ import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { SUBSCRIBE_PATH } from '$/appUtils'
 import { useBackends, useFullUserSession, useRouter, useSession, useText } from '$/providers/react'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { IS_DEV_MODE } from '$/utils/detect'
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {

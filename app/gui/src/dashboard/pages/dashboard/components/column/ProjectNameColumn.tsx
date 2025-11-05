@@ -11,7 +11,7 @@ import { isDoubleClick } from '#/utilities/event'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession } from '$/providers/react'
-import { isOnMacOS } from 'enso-common/src/detect'
+import { isOnMacOS } from '$/utils/detect'
 import { useStore } from 'zustand'
 
 /** Props for a {@link ProjectNameColumn}. */

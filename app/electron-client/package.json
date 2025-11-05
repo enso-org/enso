@@ -1,4 +1,7 @@
 {
+  "name": "enso",
+  "description": "Enso Data Processing Environment.",
+  "main": "index.mjs",
   "version": "0.0.0-dev",
   "type": "module",
   "author": {
@@ -13,9 +16,6 @@
   "bugs": {
     "url": "https://github.com/enso-org/ide/issues"
   },
-  "name": "enso",
-  "description": "Enso Data Processing Environment.",
-  "main": "index.mjs",
   "dependencies": {
     "chalk": "^5.4.1",
     "commander": "^14.0.1",
@@ -38,7 +38,6 @@
   },
   "devDependencies": {
     "@electron/notarize": "2.1.0",
-    "@playwright/test": "^1.50.1",
     "@types/gunzip-maybe": "^1.4.2",
     "@types/mime-types": "^2.1.4",
     "@types/node": "catalog:",

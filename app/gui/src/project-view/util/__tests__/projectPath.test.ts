@@ -1,4 +1,4 @@
-import { mockProjectNameStore } from '@/stores/projectNames'
+import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { unwrap } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'

@@ -1,7 +1,5 @@
-import { test, type Page } from 'playwright/test'
-import * as actions from './actions'
-import { expect } from './customExpect'
-import { CONTROL_KEY } from './keyboard'
+import type EditorPageActions from 'integration-test/actions/EditorPageActions'
+import { expect, test } from 'integration-test/base'
 import * as locate from './locate'
 import { edgesToNodeWithBinding, graphNodeByBinding, outputPortCoordinates } from './locate'
 
@@ -9,42 +7,35 @@ import { edgesToNodeWithBinding, graphNodeByBinding, outputPortCoordinates } fro
  * Prepare the graph for the tests. We drag the `ten` node to the right of the `sum` node for better access
  * to the edges.
  */
-async function initGraph(page: Page) {
-  await actions.goToGraph(page)
-  await actions.dragNodeByBinding(page, 'ten', 400, 0)
-  await actions.dragNodeByBinding(page, 'sum', -400, 0)
+async function initGraph(editorPage: EditorPageActions) {
+  await editorPage.dragNode('ten', { x: 400, y: 0 }).dragNode('sum', { x: -400, y: 0 })
 }
-
-// For each outgoing edge we expect two elements: an element for io and an element for the rendered edge itself.
-const EDGE_PARTS = 2
 
 /**
   Scenario: We disconnect the `sum` parameter in the `prod` node by clicking on the edge and clicking on the background.
  */
-test('Disconnect an edge from a port', async ({ page }) => {
-  await initGraph(page)
-  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3 * EDGE_PARTS)
-
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
-
+test('Disconnect an edge from a port', async ({ editorPage, page }) => {
+  await initGraph(editorPage)
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
+  const targetEdge = await locate.connectedEdgesFromNodeWithBinding(page, 'ten')
   // Hover over edge to the right of node with binding `ten`.
   await targetEdge.click({
-    position: { x: 250, y: 5.0 },
+    position: { x: 270, y: 25.0 },
     force: true,
   })
   await page.mouse.click(500, -500)
-  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2 * EDGE_PARTS)
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2)
 })
 
 /** Scenario: We replace the `sum` parameter in the `prod` node` with the `ten` node. */
-test('Connect an node to a port', async ({ page }) => {
-  await initGraph(page)
+test('Connect an node to a port', async ({ editorPage, page }) => {
+  await initGraph(editorPage)
 
-  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3 * EDGE_PARTS)
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
+  const targetEdge = await locate.connectedEdgesFromNodeWithBinding(page, 'ten')
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.click({
-    position: { x: 450, y: 5.0 },
+    position: { x: 470, y: 25.0 },
     force: true,
   })
   // Click the target port in the `prod` node.
@@ -57,22 +48,22 @@ test('Connect an node to a port', async ({ page }) => {
 })
 
 /** As above, but by dragging edge instead of clicking source and target separately. */
-test('Connect an node to a port via dragging the edge', async ({ page }) => {
-  await initGraph(page)
+test('Connect an node to a port via dragging the edge', async ({ editorPage, page }) => {
+  await initGraph(editorPage)
 
-  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3 * EDGE_PARTS)
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
+  const targetEdge = await locate.connectedEdgesFromNodeWithBinding(page, 'ten')
   const targetPort = page.locator('span').filter({ hasText: /^sum$/ })
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.dragTo(targetPort, {
-    sourcePosition: { x: 450, y: 5.0 },
+    sourcePosition: { x: 470, y: 25.0 },
     force: true,
   })
   await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
 })
 
-test('Conditional ports: Disabled', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Conditional ports: Disabled', async ({ editorPage, page }) => {
+  await editorPage
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
 
@@ -89,19 +80,19 @@ test('Conditional ports: Disabled', async ({ page }) => {
   // We need `force: true` because ComponentBrowser appears in event's capture phase, what
   // confuses playwright's actionability checks.
   await conditionalPort.click({ force: true })
-  await expect(locate.componentBrowser(page)).toExist()
-  await page.keyboard.press('Escape')
+  await expect(node.locator('.WidgetToken')).toHaveText(['filter'])
+  await editorPage.expectEdgesFromTo('final', 'filtered')
 })
 
-test('Conditional ports: Enabled', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Conditional ports: Enabled', async ({ editorPage, page }) => {
+  await editorPage
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
 
   const outputPort = await outputPortCoordinates(page, graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
 
-  await page.keyboard.down(CONTROL_KEY)
+  await page.keyboard.down('ControlOrMeta')
   await expect(conditionalPort).toHaveClass(/enabled/)
 
   await conditionalPort.hover()
@@ -110,20 +101,20 @@ test('Conditional ports: Enabled', async ({ page }) => {
   await conditionalPort.click({ force: true })
   await expect(node.locator('.WidgetToken')).toHaveText(['final'])
 
-  await page.keyboard.up(CONTROL_KEY)
+  await page.keyboard.up('ControlOrMeta')
 })
 
-test('Edge drop prevents further handling of event', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Edge drop prevents further handling of event', async ({ editorPage, page }) => {
+  await editorPage
 
   const outputPort = await locate.outputPortCoordinates(
     page,
     locate.graphNodeByBinding(page, 'five'),
   )
   await page.mouse.click(outputPort.x, outputPort.y - 25)
-  await expect(page.getByTestId('mouse-edited-edge')).toExist()
+  await expect(page.getByTestId('mouse-edited-edge')).toBeAttached()
   await page.waitForTimeout(300) // Avoid double clicks
   await page.mouse.click(outputPort.x, outputPort.y - 25)
-  await expect(page.getByTestId('mouse-edited-edge')).not.toExist()
+  await expect(page.getByTestId('mouse-edited-edge')).toBeAttached({ attached: false })
   await expect(locate.componentBrowser(page)).toExist()
 })

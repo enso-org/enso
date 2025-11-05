@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { type UpdateHandler, WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import { useResizeObserver } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
-import { WidgetInput, type UpdateHandler } from '@/providers/widgetRegistry'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { computed, ref, watch } from 'vue'

@@ -11,8 +11,8 @@ import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { download } from '#/utilities/download'
 import { getDownloadUrl, getLatestRelease } from '#/utilities/github'
 import { useBackends, useText } from '$/providers/react'
+import { IS_DEV_MODE } from '$/utils/detect'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { startTransition, useState } from 'react'
 
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers
