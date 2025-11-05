@@ -274,6 +274,37 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void directArgumentToASymbol() {
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            nums n =
+                f x = x * 2
+                f n
+            """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var result = run.execute(5);
+    assertEquals("Twice five", 10, result.asInt());
+  }
+
+  @Test
+  public void blockArgumentToASymbol() {
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            nums n =
+                f x = x * 2
+                f
+                    n
+            """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var result = run.execute(5);
+    assertEquals("Twice five", 10, result.asInt());
+  }
+
+  @Test
   public void inlineReturnSignature() {
     var module =
         ctxRule.eval(

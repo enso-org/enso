@@ -1085,7 +1085,15 @@ final class TreeToIr {
           }
           yield switch (fn) {
             case Application.Prefix pref -> patchPrefixWithBlock(pref, block, args);
-            default -> block;
+            default -> {
+              var arg = CallArgument.Specified.builder().name(Option.empty()).value(block).build();
+              var b =
+                  Application.Prefix.builder()
+                      .function(fn)
+                      .arguments(join(arg, nil()))
+                      .location(block.identifiedLocation());
+              yield b.build();
+            }
           };
         } else {
           yield block;
