@@ -184,6 +184,29 @@ public interface JName extends Expression, IRKind.Primitive {
     @Override
     Annotation duplicate(boolean keepLocations, boolean keepMetadata, boolean keepDiagnostics,
         boolean keepIdentifiers);
+
+    /**
+     * These {@code duplicate$default$N} default methods need to be here, otherwise {@code javac}
+     * would fail to compile with: "interface Annotation inherits unrelated defaults for {@code
+     * duplicate$default$N} from types Expression and Definition". The {@link Annotation} interface
+     * inherits from both {@link Expression} and {@link Definition} traits, and they both have their
+     * own {@code duplicate$default$N} methods.
+     */
+    default boolean duplicate$default$1() {
+      return true;
+    }
+
+    default boolean duplicate$default$2() {
+      return true;
+    }
+
+    default boolean duplicate$default$3() {
+      return true;
+    }
+
+    default boolean duplicate$default$4() {
+      return false;
+    }
   }
 
   @GenerateIR(interfaces = {Annotation.class, IRKind.Primitive.class})
