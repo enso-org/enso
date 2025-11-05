@@ -9,8 +9,9 @@ import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRField;
 import scala.Option;
 import scala.collection.immutable.List;
+import scala.jdk.javaapi.CollectionConverters;
 
-public interface JName extends Expression, IRKind.Primitive {
+public interface Name extends Expression, IRKind.Primitive {
   String name();
 
   /**
@@ -23,28 +24,61 @@ public interface JName extends Expression, IRKind.Primitive {
   }
 
   @Override
-  JName mapExpressions(Function<Expression, Expression> fn);
+  Name mapExpressions(Function<Expression, Expression> fn);
 
   @Override
-  JName setLocation(Option<IdentifiedLocation> location);
+  Name setLocation(Option<IdentifiedLocation> location);
 
   @Override
-  JName duplicate(
+  Name duplicate(
       boolean keepLocations,
       boolean keepMetadata,
       boolean keepDiagnostics,
       boolean keepIdentifiers);
 
-  @GenerateIR(interfaces = {JName.class, IRKind.Sugar.class})
+  @GenerateIR(interfaces = {Name.class, IRKind.Sugar.class})
   final class MethodReference extends NameMethodReferenceGen {
     @GenerateFields
     public MethodReference(
-        @IRChild Option<JName> typePointer,
-        @IRChild JName methodName,
+        @IRChild Option<Name> typePointer,
+        @IRChild Name methodName,
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData,
         DiagnosticStorage diagnostics) {
       super(typePointer, methodName, identifiedLocation, passData, diagnostics);
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    /** Generates a location for the reference from the segments.
+     *
+     * @param segments the reference segments
+     * @return a location for the method reference
+     */
+    public static IdentifiedLocation genLocation(List<Name> segments) {
+      int start = -1;
+      int end = -1;
+      for (var segment : CollectionConverters.asJava(segments)) {
+        var segmentLoc = segment.identifiedLocation();
+        if (start == -1) {
+          if (segmentLoc != null) {
+            start = segmentLoc.start();
+            end = segmentLoc.end();
+          }
+        } else {
+          // extend the accumulated location's end using this segment's end if present
+          if (segmentLoc != null) {
+            end = segmentLoc.end();
+          }
+        }
+      }
+      if (start != -1 && end != -1) {
+        return new IdentifiedLocation(new Location(start, end));
+      } else {
+        return null;
+      }
     }
 
     @Override
@@ -69,7 +103,7 @@ public interface JName extends Expression, IRKind.Primitive {
   }
 
   /** A representation of a qualified (multi-part) name. */
-  @GenerateIR(interfaces = {JName.class, IRKind.Primitive.class})
+  @GenerateIR(interfaces = {Name.class, IRKind.Primitive.class})
   final class Qualified extends NameQualifiedGen {
 
     /**
@@ -79,16 +113,20 @@ public interface JName extends Expression, IRKind.Primitive {
      */
     @GenerateFields
     public Qualified(
-        @IRChild List<JName> parts,
+        @IRChild List<Name> parts,
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData,
         DiagnosticStorage diagnostics) {
       super(parts, identifiedLocation, passData, diagnostics);
     }
 
+    public static Builder builder() {
+      return new Builder();
+    }
+
     @Override
     public String name() {
-      return parts().map(JName::name).mkString(".");
+      return parts().map(Name::name).mkString(".");
     }
 
     @Override
@@ -98,7 +136,7 @@ public interface JName extends Expression, IRKind.Primitive {
   }
 
   /** Represents occurrences of blank (`_`) expressions. */
-  @GenerateIR(interfaces = {JName.class, IRKind.Sugar.class})
+  @GenerateIR(interfaces = {Name.class, IRKind.Sugar.class})
   final class Blank extends NameBlankGen {
     @GenerateFields
     public Blank(
@@ -106,6 +144,10 @@ public interface JName extends Expression, IRKind.Primitive {
         MetadataStorage passData,
         DiagnosticStorage diagnostics) {
       super(identifiedLocation, passData, diagnostics);
+    }
+
+    public static Builder builder() {
+      return new Builder();
     }
 
     @Override
@@ -119,7 +161,7 @@ public interface JName extends Expression, IRKind.Primitive {
     }
   }
 
-  @GenerateIR(interfaces = {JName.class, IRKind.Sugar.class})
+  @GenerateIR(interfaces = {Name.class, IRKind.Sugar.class})
   final class Special extends NameSpecialGen {
     enum Ident {
       NewRef,
@@ -148,13 +190,13 @@ public interface JName extends Expression, IRKind.Primitive {
     }
   }
 
-  @GenerateIR(interfaces = {JName.class})
+  @GenerateIR(interfaces = {Name.class})
   final class Literal extends NameLiteralGen {
     @GenerateFields
     public Literal(
         @IRField String name,
         @IRField boolean isMethod,
-        @IRField JName origName,
+        @IRField Name origName,
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData,
         DiagnosticStorage diagnosticStorage) {
@@ -167,7 +209,7 @@ public interface JName extends Expression, IRKind.Primitive {
     }
   }
 
-  interface Annotation extends JName, Definition {
+  interface Annotation extends Name, Definition {
     @Override
     Annotation mapExpressions(Function<Expression, Expression> fn);
 
@@ -242,7 +284,7 @@ public interface JName extends Expression, IRKind.Primitive {
     }
   }
 
-  @GenerateIR(interfaces = {JName.class})
+  @GenerateIR(interfaces = {Name.class})
   final class Self extends NameSelfGen {
     @GenerateFields
     public Self(
@@ -264,7 +306,7 @@ public interface JName extends Expression, IRKind.Primitive {
   }
 
   /** A representation of the name `Self`, used to refer to the current type. */
-  @GenerateIR(interfaces = {JName.class})
+  @GenerateIR(interfaces = {Name.class})
   final class SelfType extends NameSelfTypeGen {
     @GenerateFields
     public SelfType(IdentifiedLocation identifiedLocation, MetadataStorage passData) {
