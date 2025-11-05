@@ -190,6 +190,21 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
   }
 
   private static JVM initializeJvm(String mainModule) throws IOException, URISyntaxException {
+    var loc = OtherJvmClassLoader.class.getProtectionDomain().getCodeSource().getLocation();
+    var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
+    if (!component.getName().equals("component")) {
+      component = new File(component, "component");
+    }
+    var libFile = findDynamicLibrary(component, mainModule);
+    if (libFile.exists()) {
+      return JVM.create(libFile);
+    } else {
+      return initializeHotSpotJVM(component, mainModule);
+    }
+  }
+
+  private static JVM initializeHotSpotJVM(File component, String mainModule)
+      throws IOException, URISyntaxException {
     var home = System.getProperty("java.home");
     if (home == null) {
       throw new IOException("No java.home specified");
@@ -197,11 +212,6 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     var javaHome = new File(home);
     if (!javaHome.exists()) {
       throw new IOException("JVM doesn't exists: " + javaHome);
-    }
-    var loc = OtherJvmClassLoader.class.getProtectionDomain().getCodeSource().getLocation();
-    var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
-    if (!component.getName().equals("component")) {
-      component = new File(component, "component");
     }
     var commandAndArgs = new ArrayList<String>();
     var assertsOn = false;
@@ -221,5 +231,16 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     commandAndArgs.add("--module-path=" + component.getPath());
     commandAndArgs.add("-Djdk.module.main=" + mainModule);
     return JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
+  }
+
+  private static File findDynamicLibrary(File dir, String name) {
+    var ext =
+        switch (org.enso.common.Platform.getOperatingSystem()) {
+          case LINUX -> ".so";
+          case MACOS -> ".dylib";
+          case WINDOWS -> ".dll";
+        };
+    var file = new File(dir, name + ext);
+    return file;
   }
 }

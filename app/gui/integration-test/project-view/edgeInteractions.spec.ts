@@ -17,12 +17,10 @@ async function initGraph(editorPage: EditorPageActions) {
 test('Disconnect an edge from a port', async ({ editorPage, page }) => {
   await initGraph(editorPage)
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
-
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
-
+  const targetEdge = await locate.connectedEdgesFromNodeWithBinding(page, 'ten')
   // Hover over edge to the right of node with binding `ten`.
   await targetEdge.click({
-    position: { x: 250, y: 5.0 },
+    position: { x: 270, y: 25.0 },
     force: true,
   })
   await page.mouse.click(500, -500)
@@ -34,10 +32,10 @@ test('Connect an node to a port', async ({ editorPage, page }) => {
   await initGraph(editorPage)
 
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
+  const targetEdge = await locate.connectedEdgesFromNodeWithBinding(page, 'ten')
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.click({
-    position: { x: 450, y: 5.0 },
+    position: { x: 470, y: 25.0 },
     force: true,
   })
   // Click the target port in the `prod` node.
@@ -54,11 +52,11 @@ test('Connect an node to a port via dragging the edge', async ({ editorPage, pag
   await initGraph(editorPage)
 
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
-  const targetEdge = page.locator('svg.behindNodes g:nth-child(2) path.edge.visible')
+  const targetEdge = await locate.connectedEdgesFromNodeWithBinding(page, 'ten')
   const targetPort = page.locator('span').filter({ hasText: /^sum$/ })
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.dragTo(targetPort, {
-    sourcePosition: { x: 450, y: 5.0 },
+    sourcePosition: { x: 470, y: 25.0 },
     force: true,
   })
   await expect(graphNodeByBinding(page, 'prod')).toContainText('ten')
@@ -82,8 +80,8 @@ test('Conditional ports: Disabled', async ({ editorPage, page }) => {
   // We need `force: true` because ComponentBrowser appears in event's capture phase, what
   // confuses playwright's actionability checks.
   await conditionalPort.click({ force: true })
-  await expect(locate.componentBrowser(page)).toExist()
-  await page.keyboard.press('Escape')
+  await expect(node.locator('.WidgetToken')).toHaveText(['filter'])
+  await editorPage.expectEdgesFromTo('final', 'filtered')
 })
 
 test('Conditional ports: Enabled', async ({ editorPage, page }) => {
@@ -114,9 +112,9 @@ test('Edge drop prevents further handling of event', async ({ editorPage, page }
     locate.graphNodeByBinding(page, 'five'),
   )
   await page.mouse.click(outputPort.x, outputPort.y - 25)
-  await expect(page.getByTestId('mouse-edited-edge')).toExist()
+  await expect(page.getByTestId('mouse-edited-edge')).toBeAttached()
   await page.waitForTimeout(300) // Avoid double clicks
   await page.mouse.click(outputPort.x, outputPort.y - 25)
-  await expect(page.getByTestId('mouse-edited-edge')).toBeHidden()
+  await expect(page.getByTestId('mouse-edited-edge')).toBeAttached({ attached: false })
   await expect(locate.componentBrowser(page)).toExist()
 })

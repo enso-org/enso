@@ -43,6 +43,7 @@
 - [Snowflake stage support for reading and writing files.][14210]
 - [Snowflake file format and copy into support.][14221]
 - [Snowflake bulk load API.][14230]
+- [Add error_on_missing_columns to more methods.][14236]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -57,6 +58,7 @@
 [14210]: https://github.com/enso-org/enso/pull/14210
 [14221]: https://github.com/enso-org/enso/pull/14221
 [14230]: https://github.com/enso-org/enso/pull/14230
+[14236]: https://github.com/enso-org/enso/pull/14236
 
 #### Enso Language & Runtime
 
@@ -72,7 +74,7 @@
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
-- [Update to GraalVM 25][14019]
+- [Update to GraalVM 25.0.1][14233]
 
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
@@ -85,7 +87,7 @@
 [13178]: https://github.com/enso-org/enso/pull/13178
 [13914]: https://github.com/enso-org/enso/pull/13914
 [13917]: https://github.com/enso-org/enso/pull/13917
-[14019]: https://github.com/enso-org/enso/pull/14019
+[14233]: https://github.com/enso-org/enso/pull/14233
 
 # Enso 2025.2
 

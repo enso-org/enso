@@ -1,3 +1,5 @@
+from Standard.Base import Text
+
 type Set_Mode
     ## Add a new column to the table.
        If already present an `Existing_Column` error is returned.
@@ -9,3 +11,34 @@ type Set_Mode
 
     ## Add the column to the table if not present, or update if present.
     Add_Or_Update
+
+type Set_Mode_Many
+    ## Update the column in the table.
+       If not present a `Missing_Column` error is returned.
+    Update
+
+    ## Add a new column to the table.
+       If already present an `Existing_Column` error is returned.
+    Add as:Text="New {{Column}}"
+
+    ## Add the column to the table if not present, or update if present.
+    Add_Or_Update as:Text="New {{Column}}"
+
+    ## ---
+       private: true
+       ---
+       Get the `as` value associated with the Set_Mode_Many variant.
+    as_value self = case self of
+        Set_Mode_Many.Update -> "{{Column}}"
+        Set_Mode_Many.Add as -> as
+        Set_Mode_Many.Add_Or_Update as -> as
+
+Set_Mode.from (that:Set_Mode_Many) = case that of
+    Set_Mode_Many.Update -> Set_Mode.Update
+    Set_Mode_Many.Add _ -> Set_Mode.Add
+    Set_Mode_Many.Add_Or_Update _ -> Set_Mode.Add_Or_Update
+
+Set_Mode_Many.from (that:Set_Mode) = case that of
+    Set_Mode.Add -> Set_Mode_Many.Add
+    Set_Mode.Update -> Set_Mode_Many.Update
+    Set_Mode.Add_Or_Update -> Set_Mode_Many.Add_Or_Update

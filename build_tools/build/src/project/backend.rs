@@ -146,19 +146,18 @@ impl IsTarget for Backend {
         async move {
             ensure!(
                 target_os == TARGET_OS,
-                "Enso Project Manager cannot be built on '{target_os}' for target '{TARGET_OS}'.",
+                "Enso Engine cannot be built on '{target_os}' for target '{TARGET_OS}'.",
             );
             let config = BuildConfigurationFlags {
-                build_project_manager_bundle: true,
+                build_engine_bundle: true,
                 build_small_jdk: true,
                 small_jdk_dir: Some(small_jdk_dir),
                 ..default()
             };
             let context = inner.prepare_context(context, config)?;
             let artifacts = context.build().await?;
-            let project_manager =
-                artifacts.project_manager_bundle.context("Missing project manager bundle!")?;
-            ide_ci::fs::mirror_directory(&project_manager, &destination).await?;
+            let engine_bundle = artifacts.engine_bundle.context("Missing engine bundle!")?;
+            ide_ci::fs::mirror_directory(&engine_bundle, &destination).await?;
             this.adapt_artifact(destination).await
         }
         .boxed()
@@ -169,7 +168,7 @@ impl IsTarget for Backend {
         let name = &asset.name;
         self.matches_platform(name)
             && is_archive_name(name)
-            && name.contains("project-manager")
+            && name.contains("engine-bundle")
             && (name.contains("bundle") || asset.size > 200_000_000)
     }
 }

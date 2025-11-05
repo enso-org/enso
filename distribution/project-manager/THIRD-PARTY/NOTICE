@@ -408,22 +408,22 @@ Copyright notices related to this dependency can be found in the directory `org.
 
 'polyglot', licensed under the Universal Permissive License, Version 1.0, is distributed with the project-manager.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-25.0.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-25.0.1`.
 
 
 'collections', licensed under the Universal Permissive License, Version 1.0, is distributed with the project-manager.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.collections-25.0.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.collections-25.0.1`.
 
 
 'nativeimage', licensed under the Universal Permissive License, Version 1.0, is distributed with the project-manager.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.nativeimage-25.0.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.nativeimage-25.0.1`.
 
 
 'word', licensed under the Universal Permissive License, Version 1.0, is distributed with the project-manager.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.word-25.0.0`.
+Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.word-25.0.1`.
 
 
 'reactive-streams', licensed under the CC0, is distributed with the project-manager.
