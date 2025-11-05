@@ -154,7 +154,7 @@ export function useResourceUpload(
 
       return Ok({
         uploadData: data.data,
-        resourceUrl: `${directory}/images/${uploadResult.files[0]?.title}`,
+        resourceUrl: encodeURI(`${directory}images/${uploadResult.files[0]?.title}`),
         upload: Promise.resolve(Ok()),
       })
     } catch (err) {
