@@ -14,6 +14,7 @@
   is included][14028]
 - [Function docs in autocomplete in table expressions][14059]
 - [Many CLI arguments removed][14069]
+- [Dragging edges from plus button on nodes is now possible][14246]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -26,6 +27,7 @@
 [13976]: https://github.com/enso-org/enso/pull/13976
 [14059]: https://github.com/enso-org/enso/pull/14059
 [14069]: https://github.com/enso-org/enso/pull/14069
+[14246]: https://github.com/enso-org/enso/pull/14246
 
 #### Enso Standard Library
 
