@@ -9,24 +9,12 @@ on:
         description: What version number this release should get.
         required: true
         type: string
-      ydoc:
-        description: What kind of Ydoc image to build.
-        required: false
-        type: choice
-        default: polyglot
-        options:
-          - polyglot
   workflow_call:
     inputs:
       version:
         description: What version number this release should get.
         required: true
         type: string
-      ydoc:
-        description: What kind of Ydoc image to build.
-        required: false
-        type: string
-        default: polyglot
 concurrency: release
 jobs:
   enso-build-ci-gen-draft-release-linux-amd64:
