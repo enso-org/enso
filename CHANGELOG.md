@@ -73,6 +73,7 @@
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
 - [Update to GraalVM 25.0.1][14233]
+- [Apply block argument to non-application expression][14249]
 
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
@@ -86,6 +87,7 @@
 [13914]: https://github.com/enso-org/enso/pull/13914
 [13917]: https://github.com/enso-org/enso/pull/13917
 [14233]: https://github.com/enso-org/enso/pull/14233
+[14249]: https://github.com/enso-org/enso/pull/14249
 
 # Enso 2025.2
 
