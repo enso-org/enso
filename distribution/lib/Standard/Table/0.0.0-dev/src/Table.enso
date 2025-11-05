@@ -1565,9 +1565,9 @@ type Table
           `Nothing` is provided, the default formatting settings of the backend
           will be used. `Nothing` is currently the only setting accepted by the
           Database backends.
-        - `error_on_missing_columns`: Specifies if a missing input column should
-          result in an error regardless of the `on_problems` settings. Defaults
-          to `True`.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
         - `on_problems`: Specifies how to handle if a problem occurs, raising as
           a warning by default.
 
@@ -1643,7 +1643,7 @@ type Table
        to work out the type of the column.
        The default parser only parse values where the process is reversible
        (e.g., 0123 would not be converted to an integer as there is a leading 0).
-       However, this can be overriden by providing a `Data_Formatter`.
+       However, this can be overridden by providing a `Data_Formatter`.
 
        ### In Database Support
        In the Database backends, the default formatting settings of the
@@ -1669,8 +1669,9 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @type Widget_Helpers.parse_type_selector
     @format Widget_Helpers.make_format_chooser_for_parse
-    parse self (columns : Vector (Text | Integer | Regex) | Text | Integer | Regex = self.columns . filter (c-> c.value_type.is_text) . map .name) (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = '') error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.parse self.underlying columns type format error_on_missing_columns on_problems
+    parse self (columns : Table_Selector = self.columns . filter (c-> c.value_type.is_text) . map .name) (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = '') error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.parse self.underlying selected type format error_on_missing_columns=True on_problems
 
     ## ---
        aliases: [to_text, to_string, to_char]
@@ -1691,9 +1692,9 @@ type Table
         - `locale`: The locale in which the format should be interpreted. If a
           `Date_Time_Formatter` is provided for `format`, then this locale will
           override the locale in the formatter (unless it is `default`).
-        - `error_on_missing_columns`: Specifies if a missing input column should
-          result in an error regardless of the `on_problems` settings. Defaults
-          to `True`.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
         - `on_problems`: Specifies how to handle if a problem occurs, raising as
           a warning by default.
 
@@ -1772,8 +1773,9 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @locale Locale.default_widget
     @format Widget_Helpers.make_format_chooser_for_selection
-    format self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Date_Time_Format_Parse_Error | Illegal_Argument =
-        self.implementation.format self.underlying columns format locale error_on_missing_columns on_problems
+    format self (columns : Table_Selector = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Date_Time_Format_Parse_Error | Illegal_Argument =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.format self.underlying selected format locale error_on_missing_columns=True on_problems
 
     ## ---
        group: Standard.Base.Conversions
@@ -1785,9 +1787,9 @@ type Table
        ## Arguments
         - `columns`: The selection of columns to cast.
         - `value_type`: The `Value_Type` to cast the column to.
-        - `error_on_missing_columns`: Specifies if a missing input column should
-          result in an error regardless of the `on_problems` settings. Defaults
-          to `True`.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
         - `on_problems`: Specifies how to handle problems if they occur,
           reporting them as warnings by default.
 
@@ -1836,8 +1838,9 @@ type Table
        Due to this, a Mixed column containing values `[2, "3"]` will actually be
        converted into `[2, Nothing]` when casting to Integer type.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    cast self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (value_type:Value_Type = Missing_Argument.throw "value_type") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
-        self.implementation.cast self.underlying columns value_type error_on_missing_columns on_problems
+    cast self (columns : Table_Selector = Missing_Argument.throw "columns") (value_type:Value_Type = Missing_Argument.throw "value_type") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.cast self.underlying selected value_type error_on_missing_columns=True on_problems
 
     ## ---
        aliases: [auto_value_types]
@@ -1859,9 +1862,9 @@ type Table
         - `shrink_types`: If set `True`, smaller types will be chosen if
           possible, according to the rules below. Defaults to `False`. For
           example, from a 64-bit integer to a 32-bit integer if all fit.
-        - `error_on_missing_columns`: Specifies if a missing input column should
-          result in an error regardless of the `on_problems` settings. Defaults
-          to `True`.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
         - `on_problems`: Specifies how to handle problems if they occur,
           reporting them as warnings by default.
 
@@ -1887,8 +1890,9 @@ type Table
        are no longer than 255 characters, the column will get a max length of
        255. Otherwise, the column size limit will stay unchanged.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    auto_cast self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = self.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.auto_cast self.underlying columns shrink_types error_on_missing_columns on_problems
+    auto_cast self (columns : Table_Selector = self.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.auto_cast self.underlying selected shrink_types error_on_missing_columns=True on_problems
 
     ## ---
        private: true
@@ -1905,9 +1909,9 @@ type Table
         - `columns`: The selection of columns to convert.
         - `shrink_types`: If set `True`, smaller types will be chosen if
           possible, according to the rules below. Defaults to `False`.
-        - `error_on_missing_columns`: Specifies if a missing input column should
-          result in an error regardless of the `on_problems` settings. Defaults
-          to `True`.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
         - `on_problems`: Specifies how to handle problems if they occur,
           reporting them as warnings by default.
 
@@ -1935,7 +1939,8 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     auto_value_types : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Boolean -> Problem_Behavior -> Table
     auto_value_types self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=self.column_names shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
-        self.implementation.auto_value_types self.underlying columns shrink_types error_on_missing_columns on_problems
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.auto_value_types self.underlying selected shrink_types error_on_missing_columns=True on_problems
 
     ## ---
        aliases: [parse, tokenize]
@@ -1960,7 +1965,7 @@ type Table
           reporting them as warnings by default.
         - `error_on_missing_columns`: If `True`, an error is raised if a
           specified column is not found. If `False`, the missing column is
-          follows the `on_problems` behavior.
+          ignored.
 
        ## Errors
         - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
