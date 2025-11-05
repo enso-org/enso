@@ -25,6 +25,7 @@
     "@internationalized/date": "3.7.0",
     "@types/node": "catalog:",
     "is-network-error": "^1.1.0",
+    "vite": "catalog:",
     "vue": "catalog:",
     "zod": "catalog:"
   },

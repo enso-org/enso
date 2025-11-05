@@ -130,6 +130,9 @@ importers:
       is-network-error:
         specifier: ^1.1.0
         version: 1.1.0
+      vite:
+        specifier: 'catalog:'
+        version: 7.1.2(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
       vue:
         specifier: 'catalog:'
         version: 3.5.13(typescript@5.7.2)
