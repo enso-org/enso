@@ -5,6 +5,7 @@
     - make_return self input:Standard.Base.Data.Read.Many_Files_List.Many_Files_List objects:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Data.Text.Text
     - to_text self -> Standard.Base.Data.Text.Text
+- Standard.Base.Data.Read.Return_As.Return_As.from that:Standard.Base.Data.Read.Return_As.Return_As_Base -> Standard.Base.Data.Read.Return_As.Return_As
 - type Return_As_Base
     - As_Vector
     - get_dropdown_options -> Standard.Base.Any.Any
@@ -15,4 +16,3 @@
     - _get_known_return_classes -> Standard.Base.Data.Vector.Vector
     - new typ:Standard.Base.Any.Any -> Standard.Base.Data.Read.Return_As.SPI
 - replace_with_nothing_and_propagate vector:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
-- Standard.Base.Data.Read.Return_As.Return_As.from that:Standard.Base.Data.Read.Return_As.Return_As_Base -> Standard.Base.Data.Read.Return_As.Return_As

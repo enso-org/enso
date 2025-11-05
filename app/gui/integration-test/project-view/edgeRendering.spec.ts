@@ -57,9 +57,9 @@ test('Hover behaviour of edges', async ({ editorPage, page }) => {
   await expect(hoveredEdgeElements).toHaveCount(1)
 
   // Expect the top edge part to be dimmed
-  const topEdge = page.locator('svg.behindNodes g:nth-child(2) path:nth-child(1)')
+  const topEdge = edgeElements.locator('path.edge').first()
   await expect(topEdge).toHaveClass('edge define-node-colors visible dimmed pending')
   // Expect the bottom edge part not to be dimmed
-  const bottomEdge = page.locator('svg.behindNodes g:nth-child(2) path:nth-child(3)')
+  const bottomEdge = edgeElements.locator('path.edge').last()
   await expect(bottomEdge).toHaveClass('edge define-node-colors visible pending')
 })

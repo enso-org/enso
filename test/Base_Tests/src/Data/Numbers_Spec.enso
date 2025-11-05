@@ -236,11 +236,18 @@ add_specs suite_builder =
             Integer.parse "123" 128 . should_fail_with Number_Parse_Error
 
         group_builder.specify "should be able to invoke methods on Integer via static method call" <|
+            # `Integer.+` in this case is resolved to the builtin method `Integer.type.+`
             Integer.+ 1 2 . should_equal 3
-            Test.expect_panic_with (Integer.+ 1 2.5)  Type_Error
+            Integer.+ 1 2.5 . should_equal 3.5
             Test.expect_panic_with (Integer.+ 1.5 1) Type_Error
-            Test.expect_panic_with (Integer.+ 1.5 2.5) Type_Error
+            Test.expect_panic_with (Integer.+ 0.5 0.5) Type_Error
             Test.expect_panic_with (Integer.+ 1 "hello") Type_Error
+            # `Integer.+  self=???` is resolved to standard `Integer.+` method
+            Integer.+ self=1 2 . should_equal 3
+            Integer.+ self=1 2.5 . should_equal 3.5
+            Test.expect_panic_with (Integer.+ self=1.5 1) Type_Error
+            Test.expect_panic_with (Integer.+ self=0.5 0.5) Type_Error
+            Test.expect_panic_with (Integer.+ self=1 "hello") Type_Error
 
         group_builder.specify "pow on huge" <|
             huge = 10 ^ 70

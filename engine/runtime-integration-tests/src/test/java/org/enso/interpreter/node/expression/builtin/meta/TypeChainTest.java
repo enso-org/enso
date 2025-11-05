@@ -9,9 +9,9 @@ import static org.junit.Assert.assertTrue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TypeChainTest {
@@ -44,6 +44,13 @@ public class TypeChainTest {
 
             main = Singleton_Type
             """);
+  }
+
+  @AfterClass
+  public static void releaseReferences() {
+    typeOf = null;
+    normalType = null;
+    singletonType = null;
   }
 
   /** {@code allTypes(Text) == [Text, Any]} */
@@ -125,7 +132,6 @@ public class TypeChainTest {
   }
 
   /** {@code allTypes(Any.type) == [Any.type, Any]} */
-  @Ignore("Will be addressed in #13939")
   @Test
   public void anyEigentypeChain() {
     var any = ctx.ensoContext().getBuiltins().any();
@@ -142,6 +148,17 @@ public class TypeChainTest {
         "allTypes(Any.type) == [Any.type, Any]", new Object[] {anyEigenType, anyTypeExpected}, all);
   }
 
+  /** {@code allTypes(Error) == [Error, Any]} */
+  @Test
+  public void errorChain() {
+    var errType = ctx.ensoContext().getBuiltins().dataflowError();
+    var all = errType.allTypes(ctx.ensoContext());
+
+    var exp1 = errType;
+    var exp2 = ctx.ensoContext().getBuiltins().any();
+    assertArrayEquals("allTypes(Error) == [Error, Any]", new Object[] {exp1, exp2}, all);
+  }
+
   /** {@code allTypes(Normal_Type) == [Normal_Type, Any]} */
   @Test
   public void normalTypeChain() {
@@ -153,6 +170,20 @@ public class TypeChainTest {
     var exp2 = ctx.ensoContext().getBuiltins().any();
     assertArrayEquals(
         "allTypes(Normal_Type) == [Normal_Type, Any]", new Object[] {exp1, exp2}, all);
+  }
+
+  /** {@code allTypes(Normal_Type.type) == [Normal_Type.type, Any]} */
+  @Test
+  public void normalEigenTypeChain() {
+    var normalTypeType = typeOf.execute(normalType);
+    var raw = (Type) ctx.unwrapValue(normalTypeType);
+    assertThat("Is eigen type", raw.isEigenType(), is(true));
+    var all = raw.allTypes(ctx.ensoContext());
+
+    var exp1 = raw;
+    var exp2 = ctx.ensoContext().getBuiltins().any();
+    assertArrayEquals(
+        "allTypes(Normal_Type.type) == [Normal_Type.type, Any]", new Object[] {exp1, exp2}, all);
   }
 
   @Test

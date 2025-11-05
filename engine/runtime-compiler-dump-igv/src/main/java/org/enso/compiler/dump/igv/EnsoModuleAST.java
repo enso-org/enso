@@ -429,8 +429,11 @@ final class EnsoModuleAST {
   private ASTNode buildTree(CallArgument argument) {
     return switch (argument) {
       case CallArgument.Specified specifiedArg -> {
-        Map<String, Object> props = Map.of("argName", specifiedArg.name());
-        var node = newNode(specifiedArg, props);
+        var node = newNode(specifiedArg);
+        if (specifiedArg.name().isDefined()) {
+          var nameNode = buildTree(specifiedArg.name().get());
+          createEdge(node, nameNode, "name");
+        }
         var valueNode = buildTree(specifiedArg.value());
         createEdge(node, valueNode, "value");
         yield node;
