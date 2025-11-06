@@ -49,20 +49,18 @@ function onClick(index: number, event: MouseEvent) {
           createProjectionCb && ((path) => createProjectionCb?.([[index], ...path]))
         "
       />{{
-        index === data.length - 1 ? ''
+        // This newline is needed for copying text.
+        index === data.length - 1 ? '\n'
         : block ? ','
         : ', '
       }}
     </span>
-    <span class="paren"><pre class="indent" v-text="indent" />]</span>
+    <span><pre class="indent" v-text="indent" />]</span>
   </span>
 </template>
 
 <style scoped>
 .block > .element {
-  display: block;
-}
-.block > .paren {
   display: block;
 }
 .indent {

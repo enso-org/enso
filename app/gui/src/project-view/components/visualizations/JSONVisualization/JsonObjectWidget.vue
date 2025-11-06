@@ -56,7 +56,8 @@ function onClick(key: string, event: MouseEvent) {
           createProjectionCb && ((path) => createProjectionCb?.([[key], ...path]))
         "
       />{{
-        index === entries.length - 1 ? ''
+        // This newline is needed for copying text.
+        index === entries.length - 1 ? '\n'
         : block ? ','
         : ', '
       }}
