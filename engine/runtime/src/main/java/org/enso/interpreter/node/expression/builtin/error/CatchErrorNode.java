@@ -12,16 +12,11 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 
-@BuiltinMethod(
-    type = "Error",
-    name = "catch_primitive",
-    description =
-        "If called on an error, executes the provided handler on the error's payload. Otherwise"
-            + " acts as identity.")
+@BuiltinMethod(type = "Error", name = "catch_primitive", autoRegister = false)
 public abstract class CatchErrorNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 
-  public abstract Object execute(VirtualFrame frame, Object self, Object handler);
+  abstract Object execute(VirtualFrame frame, Object self, Object handler);
 
   public static CatchErrorNode build() {
     return CatchErrorNodeGen.create();

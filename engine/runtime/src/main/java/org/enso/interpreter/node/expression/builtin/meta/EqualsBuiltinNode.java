@@ -8,11 +8,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 
-@BuiltinMethod(
-    type = "Any_Helpers",
-    name = "any_equals",
-    autoRegister=false
-)
+@BuiltinMethod(type = "Any_Helpers", name = "any_equals", autoRegister = false)
 public final class EqualsBuiltinNode extends Node {
   @Child private EqualsNode node;
   @Child private AppendWarningNode append;
