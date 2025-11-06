@@ -10,13 +10,12 @@ import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 
-@BuiltinMethod(type = "Error", name = "catch_primitive", autoRegister = false)
+@BuiltinMethod(type = "Any_Helpers", name = "catch_primitive", autoRegister = false)
 public abstract class CatchErrorNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 
-  abstract Object execute(VirtualFrame frame, Object self, Object handler);
+  abstract Object execute(VirtualFrame frame, Object error, Object handler);
 
   public static CatchErrorNode build() {
     return CatchErrorNodeGen.create();
@@ -32,15 +31,14 @@ public abstract class CatchErrorNode extends Node {
   }
 
   @Specialization
-  Object doDataflowError(VirtualFrame frame, DataflowError self, Object handler) {
+  Object doDataflowError(VirtualFrame frame, DataflowError error, Object handler) {
     return invokeCallableNode.execute(
-        handler, frame, EnsoContext.get(this).currentState(), new Object[] {self.getPayload()});
+        handler, frame, EnsoContext.get(this).currentState(), new Object[] {error.getPayload()});
   }
 
   @Fallback
-  Object doOther(VirtualFrame frame, Object self, Object handler) {
-    var builtins = EnsoContext.get(this).getBuiltins();
-    var typeErr = builtins.error().makeTypeError("Dataflow_Error", self, "self");
-    throw new PanicException(typeErr, this);
+  Object doOther(VirtualFrame frame, Object other, Object handler) {
+    assert !(other instanceof DataflowError);
+    return other;
   }
 }

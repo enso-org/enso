@@ -19,7 +19,7 @@ type Default_Comparator
     ## PRIVATE
     less_than_builtin left right = @Builtin_Method "Default_Comparator.less_than_builtin"
 
-any_to_text obj = @Builtin_Method "Any.to_text"
-any_to_display_text obj = @Builtin_Method "Any.to_display_text"
-any_catch_primitive obj handler = @Builtin_Method "Any.catch_primitive"
-any_equals o1 o2 = @Builtin_Method "Any.=="
+any_to_text obj = @Builtin_Method "Any_Helpers.to_text"
+any_to_display_text obj = @Builtin_Method "Any_Helpers.to_display_text"
+any_catch_primitive obj handler = @Builtin_Method "Any_Helpers.catch_primitive"
+any_equals o1 o2 = @Builtin_Method "Any_Helpers.any_equals"
