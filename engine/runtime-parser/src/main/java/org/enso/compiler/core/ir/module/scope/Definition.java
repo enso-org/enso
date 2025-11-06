@@ -59,11 +59,11 @@ public interface Definition extends Scope {
     }
 
     public static Builder builder() {
-      return builder();
+      return new Builder();
     }
 
     public Builder copyBuilder() {
-      return builder(this);
+      return new Builder(this);
     }
 
     public Type copyWithMembers(List<Data> members) {
@@ -100,7 +100,7 @@ public interface Definition extends Scope {
     }
 
     public Builder copyBuilder() {
-      return builder(this);
+      return new Builder(this);
     }
 
     public Data copyWithAnnotations(List<Name.GenericAnnotation> annotations) {
