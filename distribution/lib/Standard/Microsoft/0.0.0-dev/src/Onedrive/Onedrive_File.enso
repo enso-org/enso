@@ -30,8 +30,10 @@ type Onedrive_File
         - Throws `Illegal_Argument` if called on a no-folder.
     list : Text -> Boolean -> Vector Onedrive_File
     list self name_filter:Text="" recursive:Boolean=False -> Vector Onedrive_File =
-        _ = [name_filter, recursive]
-        _require_folder self <|
+        check_name_filter action = if name_filter != "" then Unimplemented.throw "Onedrive listing with name filter is not currently implemented." else action
+        check_recursion action = if recursive then Unimplemented.throw "Onedrive listing with recursion is not currently implemented." else action
+
+        check_name_filter <| check_recursion <| _check_directory self <|
             frag = self.path.to_human_readable_fragment_dir
             children = self.service.fetch_json self.service.base_url+frag
             names = children.at "value" . map (x-> x.at "name")
@@ -63,7 +65,7 @@ type Onedrive_File
     read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument
     read self format:(File_Format|Auto_Detect)=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) -> Any ! Illegal_Argument =
         _ = [format, on_problems]
-        _require_non_folder self <|
+        _check_not_directory self <|
             frag = self.path.to_human_readable_fragment_file
             self.service.fetch_text self.service.base_url+frag
 
@@ -72,11 +74,11 @@ type Onedrive_File
         entry = self.service.fetch_json self.service.base_url+frag
         entry.contains_key "folder"
 
-private _require_folder file:Onedrive_File ~action =
+private check_directory file:Onedrive_File ~action =
     if file.is_directory then action else
         Error.throw <| Illegal_Argument.Error "The Onedrive_File must represent a folder: "+file.path.path.to_text
 
-private _require_non_folder file:Onedrive_File ~action =
+private check_not_directory file:Onedrive_File ~action =
     if file.is_directory.not then action else
         Error.throw <| Illegal_Argument.Error "The Onedrive_File must represent a file, not a folder: "+file.path.path.to_text
 
