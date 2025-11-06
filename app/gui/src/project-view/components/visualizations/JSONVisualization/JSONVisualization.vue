@@ -63,12 +63,19 @@ function createProjection(path: (string | number)[][]) {
     ),
   )
 }
+
+function stopCopy(event: KeyboardEvent) {
+  if (event.ctrlKey && event.code === 'KeyC') {
+    event.stopPropagation()
+  }
+}
 </script>
 
 <template>
-  <div class="JSONVisualization" @wheel.stop.passive>
+  <div class="JSONVisualization" tabindex="-1" @wheel.stop.passive @keydown="stopCopy">
     <JsonValueWidget
       :data="data"
+      indent=""
       :createProjectionCb="projectionsEnabled ? createProjection : null"
     />
   </div>

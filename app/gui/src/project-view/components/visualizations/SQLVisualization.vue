@@ -117,10 +117,16 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
   html += '</div>'
   return html
 }
+
+function stopCopy(event: KeyboardEvent) {
+  if (event.ctrlKey && event.code === 'KeyC') {
+    event.stopPropagation()
+  }
+}
 </script>
 
 <template>
-  <div class="sql-visualization scrollable">
+  <div class="SQLVisualization scrollable" @keydown="stopCopy" tabindex="-1">
     <pre v-if="data.error" class="sql" v-text="data.error"></pre>
     <!-- eslint-disable-next-line vue/no-v-html This is SAFE, beause it is not user input. -->
     <pre v-else class="sql" v-html="formatted"></pre>
@@ -130,6 +136,7 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 <style scoped>
 .SQLVisualization {
   padding: 4px;
+  user-select: text;
 }
 
 :deep(.sql) {
