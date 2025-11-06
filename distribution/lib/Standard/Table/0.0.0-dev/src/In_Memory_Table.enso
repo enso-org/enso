@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Base.Logging import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -94,7 +95,12 @@ type In_Memory_Table
    Helper method for internal use to make a Table from a Java Table.
 from_java_table java_table =
     ## Trigger data quality metrics computation (conditionally on Output context).
-    if Context.Output.is_enabled.not then DataQualityMetrics.triggerTable java_table
+    if Context.Output.is_enabled.not then
+        case java_table of
+            _:Java_Table ->
+                DataQualityMetrics.triggerTable java_table
+            _ ->
+                In_Memory_Table.log_message "Cannot compute DataQualityMetrics for "+java_table.to_text
 
     Table_Refinements.refine_table <|
         In_Memory_Table.Value java_table
