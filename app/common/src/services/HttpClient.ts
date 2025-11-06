@@ -1,5 +1,5 @@
 /** @file HTTP client definition that includes default HTTP headers for all sent requests. */
-import { NetworkError, OfflineError, isNetworkError } from '../utilities/errors'
+import { NetworkError, OfflineError, isNetworkError } from '../utilities/errors.js'
 
 export const FETCH_SUCCESS_EVENT_NAME = 'fetch-success'
 export const FETCH_ERROR_EVENT_NAME = 'fetch-error'

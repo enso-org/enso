@@ -6,10 +6,10 @@
  * the API.
  */
 import { markRaw } from 'vue'
-import type { DownloadOptions } from '../download'
-import { PRODUCT_NAME } from '../index'
-import { toReadableIsoString } from '../utilities/data/dateTime'
-import { tryGetMessage } from '../utilities/errors'
+import type { DownloadOptions } from '../download.js'
+import { PRODUCT_NAME } from '../index.js'
+import { toReadableIsoString } from '../utilities/data/dateTime.js'
+import { tryGetMessage } from '../utilities/errors.js'
 import {
   fileExtension,
   getDirectoryAndName,
@@ -18,18 +18,18 @@ import {
   joinPath,
   normalizePath,
   normalizeSlashes,
-} from '../utilities/file'
-import { uniqueString } from '../utilities/uniqueString'
-import * as backend from './Backend'
-import { downloadProjectPath, EXPORT_ARCHIVE_PATH } from './Backend/remoteBackendPaths'
-import { HttpClient } from './HttpClient'
-import type { ProjectManager } from './ProjectManager/ProjectManager'
+} from '../utilities/file.js'
+import { uniqueString } from '../utilities/uniqueString.js'
+import * as backend from './Backend.js'
+import { downloadProjectPath, EXPORT_ARCHIVE_PATH } from './Backend/remoteBackendPaths.js'
+import { HttpClient } from './HttpClient.js'
+import type { ProjectManager } from './ProjectManager/ProjectManager.js'
 import {
   MissingComponentAction,
   Path,
   ProjectName,
   type IpWithSocket,
-} from './ProjectManager/types'
+} from './ProjectManager/types.js'
 
 const LOCAL_API_URL = '/api/'
 
