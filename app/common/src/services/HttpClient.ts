@@ -125,6 +125,7 @@ export class HttpClient {
   private async request<Method extends HttpMethod, T = void>(
     options: HttpClientRequestOptions<Method>,
   ) {
+    console.log(':3')
     const headers = new Headers(this.defaultHeaders)
     const payload = options.payload
     if (payload != null) {

@@ -1,41 +1,42 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
 import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
-import * as dateTime from '../utilities/data/dateTime.js'
-import * as newtype from '../utilities/data/newtype.js'
+import type { IanaTimeZone, Rfc3339DateTime } from '../utilities/data/dateTime.js'
+import type { Newtype } from '../utilities/data/newtype.js'
+import { isNetworkError } from '../utilities/errors.js'
 import * as permissions from '../utilities/permissions.js'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
-  DatalinkId,
-  DirectoryId,
-  EnsoPath,
-  FileId,
-  MetadataId,
-  PaginationToken,
-  ParentsPath,
   Path,
-  ProjectId,
-  SecretId,
-  VirtualParentsPath,
   type Address,
   type AssetId,
   type CredentialInput,
+  type DatalinkId,
+  type DirectoryId,
   type EmailAddress,
+  type EnsoPath,
+  type FileId,
   type HttpsUrl,
   type LabelName,
+  type MetadataId,
   type OrganizationId,
+  type PaginationToken,
+  type ParentsPath,
   type ProjectExecutionId,
+  type ProjectId,
   type ProjectSessionId,
   type S3FilePath,
   type S3ObjectVersionId,
+  type SecretId,
   type SubscriptionId,
   type TagId,
   type UnzipAssetsJobId,
   type UserGroupId,
   type UserId,
   type UserPermissionIdentifier,
+  type VirtualParentsPath,
 } from './Backend/types.js'
-import { HttpClient, type HttpClientPostOptions, type ResponseWithTypedJson } from './HttpClient.js'
+import type { HttpClient, HttpClientPostOptions, ResponseWithTypedJson } from './HttpClient.js'
 export { prettifyError } from 'zod/v4'
 
 export * from './Backend/types.js'
@@ -147,7 +148,7 @@ export interface User extends UserInfo {
    * @deprecated Use `groups` instead.
    */
   readonly userGroups: readonly UserGroupId[] | null
-  readonly removeAt?: dateTime.Rfc3339DateTime | null
+  readonly removeAt?: Rfc3339DateTime | null
   readonly plan: Plan
   /**
    * Contains the user groups that the user is a member of.
@@ -285,8 +286,8 @@ export interface BackendProject extends Project {
 export interface ProjectSession {
   readonly projectId: ProjectId
   readonly projectSessionId: ProjectSessionId
-  readonly createdAt: dateTime.Rfc3339DateTime
-  readonly closedAt?: dateTime.Rfc3339DateTime
+  readonly createdAt: Rfc3339DateTime
+  readonly closedAt?: Rfc3339DateTime
   readonly userEmail: EmailAddress
 }
 
@@ -401,9 +402,9 @@ export type ProjectExecutionRepeatInfo =
 export interface ProjectExecutionInfo {
   readonly projectId: ProjectId
   readonly repeat: ProjectExecutionRepeatInfo
-  readonly startDate: dateTime.Rfc3339DateTime
-  readonly endDate: dateTime.Rfc3339DateTime | null
-  readonly timeZone: dateTime.IanaTimeZone
+  readonly startDate: Rfc3339DateTime
+  readonly endDate: Rfc3339DateTime | null
+  readonly timeZone: IanaTimeZone
   readonly maxDurationMinutes: number
   readonly parallelMode: ProjectParallelMode
 }
@@ -413,7 +414,7 @@ export interface ProjectExecution extends ProjectExecutionInfo {
   readonly executionId: ProjectExecutionId
   readonly organizationId: OrganizationId
   readonly versionId: S3ObjectVersionId
-  readonly nextExecution: dateTime.Rfc3339DateTime
+  readonly nextExecution: Rfc3339DateTime
   readonly projectSessions?: readonly ProjectSession[]
 }
 
@@ -467,7 +468,7 @@ export interface SecretInfo {
 }
 
 /** A Datalink. */
-export type Datalink = newtype.Newtype<unknown, 'Datalink'>
+export type Datalink = Newtype<unknown, 'Datalink'>
 
 /** Metadata uniquely identifying a Datalink. */
 export interface DatalinkInfo {
@@ -501,7 +502,7 @@ export interface CognitoCredentials {
   readonly refreshToken: string
   readonly refreshUrl: string
   readonly clientId: string
-  readonly expireAt: dateTime.Rfc3339DateTime
+  readonly expireAt: Rfc3339DateTime
 }
 
 /** Subscription plans. */
@@ -544,8 +545,8 @@ export interface PaymentsConfig {
 export interface Subscription {
   readonly id?: SubscriptionId
   readonly plan?: Plan
-  readonly trialStart?: dateTime.Rfc3339DateTime | null
-  readonly trialEnd?: dateTime.Rfc3339DateTime | null
+  readonly trialStart?: Rfc3339DateTime | null
+  readonly trialEnd?: Rfc3339DateTime | null
   readonly isPaused?: boolean | null
 }
 
@@ -716,7 +717,7 @@ export enum FilterBy {
 export interface AuditLogEvent {
   readonly organizationId: OrganizationId
   readonly userEmail: EmailAddress
-  readonly timestamp: dateTime.Rfc3339DateTime | null
+  readonly timestamp: Rfc3339DateTime | null
   /** The type is called `EventType` in the backend. */
   readonly metadata: EventMetadata | null
   readonly message: string | null
@@ -917,7 +918,7 @@ export type CredentialSecretState = 'Expired' | 'Ready' | 'WaitingForAuthenticat
 /** Metadata associated with a credential asset. */
 export interface CredentialMetadata {
   readonly serviceName: string
-  readonly expirationDate?: dateTime.Rfc3339DateTime
+  readonly expirationDate?: Rfc3339DateTime
   readonly state: CredentialSecretState
 }
 
@@ -929,7 +930,7 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly type: Type
   readonly id: IdType[Type]
   readonly title: string
-  readonly modifiedAt: dateTime.Rfc3339DateTime
+  readonly modifiedAt: Rfc3339DateTime
   /**
    * This is defined as a generic {@link AssetId} in the backend, however it is more convenient
    * (and currently safe) to assume it is always a {@link DirectoryId}.
@@ -1024,7 +1025,7 @@ export const assetIsFile = assetIsType(AssetType.file)
 /** Metadata describing a specific version of an asset. */
 export interface S3ObjectVersion {
   readonly versionId: S3ObjectVersionId
-  readonly lastModified: dateTime.Rfc3339DateTime
+  readonly lastModified: Rfc3339DateTime
   readonly isLatest: boolean
   /** An archive containing the all the project files object in the S3 bucket. */
   readonly key: string
@@ -1113,7 +1114,7 @@ export interface Invitation {
   readonly organizationId: OrganizationId
   readonly organizationName: string
   readonly userEmail: EmailAddress
-  readonly expireAt: dateTime.Rfc3339DateTime
+  readonly expireAt: Rfc3339DateTime
 }
 
 /** HTTP request body for the "create permission" endpoint. */
@@ -1260,8 +1261,8 @@ export interface CreateCheckoutSessionRequestBody {
 export interface GetLogEventsRequestParams {
   readonly userEmail?: EmailAddress | null | undefined
   readonly lambdaKind?: string | null | undefined
-  readonly startDate?: dateTime.Rfc3339DateTime | null | undefined
-  readonly endDate?: dateTime.Rfc3339DateTime | null | undefined
+  readonly startDate?: Rfc3339DateTime | null | undefined
+  readonly endDate?: Rfc3339DateTime | null | undefined
   /** Pagination offset */
   readonly from?: number | null | undefined
   readonly pageSize?: number | null | undefined
@@ -1662,22 +1663,17 @@ export default abstract class Backend {
     textId: NetworkError | K,
     ...replacements: Replacements[K]
   ): Promise<never> {
-    if (textId instanceof NetworkError) {
+    if (isNetworkError(textId)) {
       console.error(textId.message)
-
       throw textId
     }
-
     const error =
       response == null || response.headers.get('Content-Type') !== 'application/json' ?
         { message: 'unknown error' }
       : await ((): Promise<Error> => response.json())()
-
     const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
     console.error(message)
-
     const status = response?.status
-
     throw new NetworkError(message, status)
   }
 

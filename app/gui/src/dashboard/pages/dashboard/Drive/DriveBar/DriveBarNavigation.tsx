@@ -19,7 +19,7 @@ import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
 import { AssetDoesNotExistError, BackendType, isDirectoryId } from '#/services/Backend'
 import type { PathItem } from '#/services/utilities'
 import { parseDirectoriesPath } from '#/services/utilities'
-import { NetworkError } from '#/utilities/error'
+import { isNetworkError, NetworkError } from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useRightPanelData, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -36,7 +36,7 @@ export function DriveBarNavigation() {
   const { getCategoryByDirectoryId } = useCategories()
   const { associatedBackend, category } = useCategoriesAPI()
   const localRootDirectory = useLocalRootDirectory() ?? undefined
-  const { rootDirectoryId, currentDirectoryId } = useDirectoryIds({ category })
+  const { rootDirectoryId, currentDirectoryId } = useDirectoryIds()
   const currentDirectoryIdRef = useSyncRef(currentDirectoryId)
   const rightPanel = useRightPanelData()
   const driveStore = useDriveStore()
@@ -69,13 +69,17 @@ export function DriveBarNavigation() {
       ),
     meta: { persist: false },
     retry: (count, error) => {
+      console.log(count, error)
       if (
         error instanceof AssetDoesNotExistError ||
         error instanceof NetworkError ||
-        error instanceof OtherNetworkError
+        error instanceof OtherNetworkError ||
+        isNetworkError(error)
       ) {
+        console.log(':0', currentDirectoryId, currentDirectoryIdRef.current)
         if (currentDirectoryId === currentDirectoryIdRef.current) {
           setDriveLocation(null, null)
+          console.log('ok?')
         }
         return false
       }

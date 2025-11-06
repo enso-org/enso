@@ -28,8 +28,7 @@ interface CurrentDirectoryIdStoreState {
   readonly directoryId: DirectoryId | null
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const driveLocationStore = createStore<CurrentDirectoryIdStoreState>()(
+const driveLocationStore = createStore<CurrentDirectoryIdStoreState>()(
   persist((): CurrentDirectoryIdStoreState => ({ categoryId: null, directoryId: null }), {
     name: 'enso-drive-location',
     version: 1,
@@ -45,8 +44,7 @@ export function useCategoryId() {
 }
 
 /** Return the full drive location. */
-// eslint-disable-next-line react-refresh/only-export-components
-export function getDriveLocation() {
+function getDriveLocation() {
   return driveLocationStore.getState()
 }
 

@@ -770,6 +770,7 @@ export default class RemoteBackend extends Backend {
    * @returns The asset details. Returns `null` if the asset is a root directory.
    */
   override async getAssetDetails<Id extends backend.AssetId>(assetId: Id) {
+    console.log('huh?')
     const path = remoteBackendPaths.getAssetDetailsPath(assetId)
     const response = await this.get<backend.AssetDetailsResponse<Id>>(path)
 

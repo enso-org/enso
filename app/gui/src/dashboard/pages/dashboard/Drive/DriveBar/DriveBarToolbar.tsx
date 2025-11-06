@@ -65,7 +65,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { isOffline } = useOffline()
   const canDownload = useCanDownload()
 
-  const { currentDirectoryId } = useDirectoryIds({ category })
+  const { currentDirectoryId } = useDirectoryIds()
 
   const shouldBeDisabled = isCloud && isOffline
 

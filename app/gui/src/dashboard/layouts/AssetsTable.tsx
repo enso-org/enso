@@ -208,9 +208,7 @@ function AssetsTable(props: AssetsTableProps) {
   const { data: users } = useQuery(backendQueryOptions(backend, 'listUsers', []))
   const { data: userGroups } = useQuery(backendQueryOptions(backend, 'listUserGroups', []))
 
-  const { queryDirectoryId: queryDirectoryIdRaw, currentDirectoryId } = useDirectoryIds({
-    category,
-  })
+  const { queryDirectoryId: queryDirectoryIdRaw, currentDirectoryId } = useDirectoryIds()
   const ownerLower = query.owners[0]?.toLowerCase()
   const queryDirectoryId = (() => {
     if (ownerLower == null) {
