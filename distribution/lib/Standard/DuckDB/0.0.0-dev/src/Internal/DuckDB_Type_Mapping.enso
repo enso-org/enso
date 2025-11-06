@@ -6,6 +6,7 @@ from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import Standard.Database.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.SQL.SQL_Type
@@ -150,6 +151,13 @@ type DuckDB_Type_Mapping
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         value_type1.is_same_type value_type2
 
+    ## ---
+       private: true
+       ---
+       Returns a helper for mapping database-specific SQL errors into our common
+       error types.
+    error_mapper : Postgres_Error_Mapper
+    error_mapper self = Postgres_Error_Mapper
 
 type DuckDB_Types
     ## BOOLEAN type
