@@ -157,13 +157,7 @@ export const ParentsPath = newtypeConstructor<ParentsPath>()
 export type VirtualParentsPath = Newtype<string, 'VirtualParentsPath'>
 export const VirtualParentsPath = newtypeConstructor<VirtualParentsPath>()
 
-/** The path of this asset, including the root directory. */
-export type EnsoPath = Newtype<string, 'EnsoPath'>
-export const EnsoPath = newtypeConstructor<EnsoPath>()
-
-/** The path string of this asset, including the root directory. */
-export type EnsoPathValue = Newtype<string, 'EnsoPathValue'>
-export const EnsoPathValue = newtypeConstructor<EnsoPathValue>()
+export { EnsoPath, EnsoPathValue } from './ensoPath'
 
 /** A pagination token for an arbitrary endpoint. */
 export type PaginationToken = Newtype<string, 'PaginationToken'>

@@ -179,10 +179,7 @@ onUnmounted(() => {
             <Drive v-if="tab === 'drive'" />
           </KeepAlive>
           <KeepAlive v-for="project in projectTabs" :key="project.state.info.id">
-            <ProjectView
-              v-if="tab === project.state.info.ensoPath"
-              :projectId="project.state.info.id"
-            />
+            <ProjectView v-if="project.shown.value" :projectId="project.state.info.id" />
           </KeepAlive>
           <KeepAlive>
             <Settings v-if="tab === 'settings'" />

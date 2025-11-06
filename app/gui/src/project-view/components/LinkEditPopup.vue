@@ -1,55 +1,33 @@
-<script lang="ts">
-import { setModal } from '#/providers/ModalProvider'
-import { AssetType } from '#/services/Backend'
-import { vueComponent } from '#/utilities/vue'
-import { useContainerData } from '$/providers/container'
-import { useRightPanelData } from '$/providers/rightPanel'
-import { textEditorsBindings } from '@/bindings'
-import OpenProjectModal from '@/components/OpenProjectModal.vue'
-import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
-import { EnsoPath } from 'enso-common/src/services/Backend'
-import { createElement } from 'react'
-import { computed, toRef, useTemplateRef } from 'vue'
-
-const OpenProjectModalReact = vueComponent(OpenProjectModal).default
-</script>
-
 <script setup lang="ts">
+import { textEditorsBindings } from '@/bindings'
+import { autoUpdate, flip, useFloating } from '@floating-ui/vue'
+import { computed, ref, toRef, useTemplateRef } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
 const props = defineProps<{
   referenceElement: HTMLElement
   href: string
   popOut: boolean
 }>()
 
-const containerData = useContainerData()
-const rightPanelData = useRightPanelData()
-const path = computed(() => EnsoPath(props.href))
+const route = useRoute()
+const router = useRouter()
+const navigating = ref(false)
 
-const openLinkAction = computed(() => {
-  if (rightPanelData.focusedAsset?.type !== AssetType.project) return 'default'
-  if (containerData.openedProjects.some((project) => project.ensoPath === path.value)) {
-    // The project is already opened.
-    return 'upsert-tab'
-  }
-  for (const [otherPath] of containerData.openingProjects.values()) {
-    // The project is in the process of being opened.
-    if (otherPath === path.value) return 'upsert-tab'
-  }
-  // Only require the modal if there is at least one project already opened or being opened.
-  return containerData.openedProjects.length > 0 || containerData.openingProjects.size > 0 ?
-      'open-modal'
-    : 'upsert-tab'
+const navigationType = computed(() => {
+  const url = URL.parse(props.href)
+  const isEnsoLink = url?.protocol === 'enso:'
+  return isEnsoLink ? ('internal' as const) : ('external' as const)
 })
 
+function navigateInternally() {
+  navigating.value = true
+  router
+    .push({ params: { path: props.href.split('/') }, query: route.query })
+    .finally(() => (navigating.value = false))
+}
+
 const floatingElement = useTemplateRef<HTMLElement>('floating')
-
-function openProjectModal() {
-  setModal(createElement(OpenProjectModalReact, { href: props.href }))
-}
-
-function upsertTab() {
-  containerData.tab = path.value
-}
 
 const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatingElement, {
   placement: 'top-start',
@@ -62,11 +40,15 @@ const { floatingStyles } = useFloating(toRef(props, 'referenceElement'), floatin
 <template>
   <teleport to="#floatingLayer">
     <div ref="floating" class="LinkEditPopup" :style="floatingStyles" @pointerdown.stop.prevent>
-      <a v-if="openLinkAction === 'open-modal'" class="link" @click="openProjectModal"
+      <a
+        v-if="navigationType === 'internal' && !navigating"
+        class="link"
+        @click="navigateInternally"
         >Follow link</a
       >
-      <a v-else-if="openLinkAction === 'upsert-tab'" class="link" @click="upsertTab">Follow link</a>
-      <a v-else class="link" :href="href" target="_blank" rel="noopener,noreferrer">Follow link</a>
+      <a v-else-if="!navigating" class="link" :href="href" target="_blank" rel="noopener,noreferrer"
+        >Follow link</a
+      >
       ({{ textEditorsBindings.bindings.openLink.humanReadable }})
     </div>
   </teleport>
