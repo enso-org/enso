@@ -626,4 +626,25 @@ public class ExecCompilerTest {
               containsString("to be resolved to a type")));
     }
   }
+
+  @Test
+  public void blockAppliedToUnknownSymbol() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        fn =
+            f
+                10
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+      var r = fn.execute();
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(containsString("The name `f`"), containsString("could not be found")));
+    }
+  }
 }
