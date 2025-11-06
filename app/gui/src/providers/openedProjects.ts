@@ -9,9 +9,9 @@ import {
   ProjectId,
   type ProjectAsset,
 } from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result, type ResultError } from 'enso-common/src/utilities/data/result'
 import { isOnElectron } from 'enso-common/src/utilities/detect'
 import { computed, ref, shallowReactive, watchEffect } from 'vue'
-import { Err, Ok, type Result, type ResultError } from 'ydoc-shared/util/data/result'
 import * as z from 'zod'
 import { useAuth } from './auth'
 import { useBackends } from './backends'
