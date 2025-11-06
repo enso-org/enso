@@ -8,30 +8,12 @@ def _flatc_toolchain_repo_impl(rctx):
         sha256 = rctx.attr.sha256,
     )
     flatc_binary = "flatc"
-    os_constraint = None
-    arch_constraint = None
     if rctx.attr.os == "windows":
         flatc_binary = "flatc.exe"
 
-    if rctx.attr.os == "macos":
-        os_constraint = '"@platforms//os:macos"'
-    elif rctx.attr.os == "linux":
-        os_constraint = '"@platforms//os:linux"'
-    elif rctx.attr.os == "windows":
-        os_constraint = '"@platforms//os:windows"'
-
-    if rctx.attr.arch == "aarch64":
-        arch_constraint = '"@platforms//cpu:aarch64"'
-    elif rctx.attr.arch == "x86_64":
-        arch_constraint = '"@platforms//cpu:x86_64"'
-
-    constraints = [os_constraint, arch_constraint]
-    constraints_str = ", ".join(constraints)
     substitutions = {
         "{flatc_binary}": str(rctx.path(flatc_binary)),
         "{flatc_path}": str(rctx.path(flatc_binary).dirname),
-        "{exec_constraints}": constraints_str,
-        "{target_constraints}": constraints_str,
     }
     rctx.template(
         "BUILD.bazel",

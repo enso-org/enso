@@ -16,9 +16,10 @@ bazel_dep(
 
 bazel_dep(name = "aspect_rules_js", version = "2.5.0")
 bazel_dep(name = "aspect_rules_ts", version = "3.7.0")
-bazel_dep(name = "rules_nodejs", version = "6.3.2")
-bazel_dep(name = "aspect_bazel_lib", version = "2.14.0")
+bazel_dep(name = "rules_nodejs", version = "6.6.0")
+bazel_dep(name = "aspect_bazel_lib", version = "2.21.2")
 bazel_dep(name = "bazel_skylib", version = "1.8.1")
+bazel_dep(name = "platforms", version = "1.0.0")
 
 ## Node.js
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
@@ -136,7 +137,7 @@ register_toolchains(
 ### JVM ###
 ###########
 
-bazel_dep(name = "rules_java", version = "8.11.0")
+bazel_dep(name = "rules_java", version = "8.16.1")
 bazel_dep(name = "rules_graalvm", version = "0.11.2")
 
 # The latest version of rules_graalvm does not support Java 24.
@@ -170,7 +171,7 @@ register_toolchains(
     "@graalvm//:bootstrap_runtime_toolchain",
 )
 
-bazel_dep(name = "rules_jvm_external", version = "6.3")
+bazel_dep(name = "rules_jvm_external", version = "6.7")
 
 sbt_ext = use_extension("//toolchains/sbt:extensions.bzl", "sbt_ext")
 use_repo(sbt_ext, "sbt_repo")
@@ -254,27 +255,6 @@ use_repo(
     "maven",
     "unpinned_maven",
 )
-
-#############
-### Scala ###
-#############
-
-### TODO: This setup is untested and probably does not work.
-
-bazel_dep(name = "platforms", version = "1.0.0")
-bazel_dep(name = "rules_scala", version = "7.0.0", repo_name = "io_bazel_rules_scala")
-
-scala_config = use_extension(
-    "@io_bazel_rules_scala//scala/extensions:config.bzl",
-    "scala_config",
-)
-scala_config.settings(scala_version = "2.13.16")
-
-scala_deps = use_extension(
-    "@io_bazel_rules_scala//scala/extensions:deps.bzl",
-    "scala_deps",
-)
-scala_deps.scala()
 
 ###################
 ### ENVIRONMENT ###
