@@ -48,6 +48,7 @@ public class WebSocketTest extends ExecutorSetup {
             .allowAccess(AtomicReference.class.getDeclaredMethod("set", Object.class))
             .allowAccess(
                 AtomicReferenceArray.class.getDeclaredMethod("set", int.class, Object.class))
+            .allowAccess(Semaphore.class.getDeclaredMethod("acquire"))
             .allowAccess(Semaphore.class.getDeclaredMethod("release"))
             .build();
     var contextBuilder = WebEnvironment.createContext(hostAccess);
@@ -232,6 +233,67 @@ public class WebSocketTest extends ExecutorSetup {
     CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
 
     lock.acquire();
+
+    Assert.assertTrue(res.get());
+  }
+
+  @Test
+  public void closeIdempotent() throws Exception {
+    var lock = new Semaphore(0);
+    var res = new AtomicBoolean(false);
+
+    var code =
+        """
+        var ws = new WebSocket('ws://localhost:22334');
+        ws.addEventListener('open', () => {
+          ws.close();
+          ws.close();
+          res.set(true);
+          lock.release();
+        });
+        """;
+
+    context.getBindings("js").putMember("lock", lock);
+    context.getBindings("js").putMember("res", res);
+
+    CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+
+    lock.acquire();
+
+    Assert.assertTrue(res.get());
+  }
+
+  @Test
+  public void handleSocketClosed() throws Exception {
+    var lock1 = new Semaphore(0);
+    var lock2 = new Semaphore(0);
+    var lock3 = new Semaphore(0);
+    var res = new AtomicBoolean(false);
+
+    var code =
+        """
+        var ws = new WebSocket('ws://localhost:22334');
+        ws.addEventListener('open', () => {
+          lock1.release();
+          lock2.acquire();
+          // Close WebSocket closed by the server
+          ws.close();
+          res.set(true);
+          lock3.release();
+        });
+        """;
+
+    context.getBindings("js").putMember("lock1", lock1);
+    context.getBindings("js").putMember("lock2", lock2);
+    context.getBindings("js").putMember("lock3", lock3);
+    context.getBindings("js").putMember("res", res);
+
+    CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
+
+    lock1.acquire();
+    ws.stop();
+    lock2.release();
+    lock3.acquire();
 
     Assert.assertTrue(res.get());
   }
