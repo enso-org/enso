@@ -22,7 +22,6 @@ import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useDerivedDebouncedState } from '#/hooks/debounceCallbackHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -61,13 +60,7 @@ import {
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import type Backend from '#/services/Backend'
-import type {
-  AssetId,
-  AssetSortExpression,
-  DirectoryId,
-  PaginationToken,
-  ProjectId,
-} from '#/services/Backend'
+import type { AssetId, AssetSortExpression, DirectoryId, PaginationToken } from '#/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -87,9 +80,10 @@ import { withPresence } from '#/utilities/set'
 import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useFullUserSession, useLocalStorage, useRightPanelData, useText } from '$/providers/react'
-import { useLaunchedProjects } from '$/providers/react/container'
+import { useFullUserSession, useLocalStorage, useText } from '$/providers/react'
+import { useRightPanelData } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import {
   Children,
@@ -165,8 +159,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const contextMenuRef = useRef<ContextMenuApi>(null)
   const { category, associatedBackend: backend } = useCategoriesAPI()
-  const openedProjects = useLaunchedProjects()
-  const openProjectLocally = useOpenProjectLocally()
+  const { openProjectLocally } = useOpenedProjects()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
 
@@ -687,18 +680,6 @@ function AssetsTable(props: AssetsTableProps) {
     }
   }, [setMostRecentlySelectedIndex])
 
-  const closeProject = useCloseProject()
-
-  const doOpenProject = useEventCallback((projectId: ProjectId) => {
-    const project = assets.find((asset) => asset.id === projectId)
-
-    if (project?.type !== AssetType.project) {
-      return Promise.resolve()
-    }
-
-    return openProjectLocally(project, backend.type)
-  })
-
   const doCopy = useEventCallback(() => {
     const { selectedIds } = driveStore.getState()
     setPasteData({
@@ -1092,15 +1073,11 @@ function AssetsTable(props: AssetsTableProps) {
 
         <tbody ref={bodyRef} className="isolate">
           {assets.map((item) => {
-            const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
-            const isOpenedOnTheBackend =
-              item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
             return (
               <AssetRow
                 key={item.id + item.virtualParentsPath}
                 contextMenuRef={contextMenuRef}
                 isPlaceholder={false}
-                isOpened={isOpenedByYou || isOpenedOnTheBackend}
                 columns={columns}
                 id={item.id}
                 type={item.type}
@@ -1117,8 +1094,6 @@ function AssetsTable(props: AssetsTableProps) {
                 onDragStart={onRowDragStart}
                 onDragEnd={endAutoScroll}
                 onDrop={onRowDrop}
-                closeProject={closeProject}
-                openProject={doOpenProject}
               />
             )
           })}

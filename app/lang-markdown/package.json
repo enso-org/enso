@@ -32,7 +32,8 @@
     "@codemirror/state": "catalog:",
     "@codemirror/view": "catalog:",
     "@lezer/markdown": "workspace:*",
-    "@lezer/common": "^1.2.1"
+    "@lezer/common": "catalog:",
+    "@lezer/highlight": "catalog:"
   },
   "devDependencies": {
     "@codemirror/buildhelper": "^1.0.0"

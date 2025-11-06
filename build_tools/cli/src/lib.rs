@@ -353,7 +353,7 @@ impl Processor {
                     let config = enso_build::engine::BuildConfigurationFlags {
                         build_engine_package: true,
                         build_launcher_bundle: true,
-                        build_project_manager_bundle: true,
+                        build_engine_bundle: true,
                         build_small_jdk: true,
                         small_jdk_dir: Some(small_jdk_dir),
                         verify_packages: true,

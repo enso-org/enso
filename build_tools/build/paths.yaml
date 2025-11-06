@@ -50,6 +50,10 @@
       ? path: enso/
         type: launcher_package
         var: launcher_package
+    engine-bundle-<triple>/:
+      ? path: enso/
+        type: engine_bundle
+        var: engine_bundle
     enso-bundle-<triple>/:
       ? path: enso/
         type: launcher_bundle
@@ -157,5 +161,13 @@
     <version>/:
   edition/:
     <edition>.yaml:
+  runtime/:
+  .enso.bundle:
+
+# Engine Bundle
+# https://enso.org/docs/developer/enso/distribution/distribution.html#portable-enso-distribution-layout
+{ path: enso/, var: engine_bundle }:
+  dist/:
+    <version>/:
   runtime/:
   .enso.bundle:

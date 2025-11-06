@@ -327,11 +327,15 @@ add_specs suite_builder =
             r2.should_fail_with Missing_Input_Columns
             r2.catch.criteria . should_equal [regex]
 
-            action = t1.parse columns=["A", "B", "C", "E"] error_on_missing_columns=False on_problems=_
-            tester table =
-                table.at "A" . to_vector . should_equal [1, 2, 3]
-            problems = [Missing_Input_Columns.Error ["B", "C", "E"]]
-            Problems.test_problem_handling action problems tester
+            r3e = t1.parse columns=["A", "B", "C", "E"] error_on_missing_columns=False on_problems=..Report_Error
+            r3e.at "A" . to_vector . should_equal [1, 2, 3]
+            Problems.assume_no_problems r3e
+            r3w = t1.parse columns=["A", "B", "C", "E"] error_on_missing_columns=False on_problems=..Report_Warning
+            r3w.at "A" . to_vector . should_equal [1, 2, 3]
+            Problems.assume_no_problems r3w
+            r3i = t1.parse columns=["A", "B", "C", "E"] error_on_missing_columns=False on_problems=..Ignore
+            r3i.at "A" . to_vector . should_equal [1, 2, 3]
+            Problems.assume_no_problems r3i
 
         group_builder.specify "should correctly handle problems: out of bounds indices" <|
             t1 = Table.new [["A", ["1", "2", "3"]]]
@@ -339,11 +343,15 @@ add_specs suite_builder =
             r1.should_fail_with Missing_Input_Columns
             r1.catch.criteria . should_equal [42, -5]
 
-            action = t1.parse columns=[0, -1, 42, -5] error_on_missing_columns=False on_problems=_
-            tester table =
-                table.at "A" . to_vector . should_equal [1, 2, 3]
-            problems = [Missing_Input_Columns.Error [42, -5]]
-            Problems.test_problem_handling action problems tester
+            r2e = t1.parse columns=[0, -1, 42, -5] error_on_missing_columns=False on_problems=..Report_Error
+            r2e.at "A" . to_vector . should_equal [1, 2, 3]
+            Problems.assume_no_problems r2e
+            r2w = t1.parse columns=[0, -1, 42, -5] error_on_missing_columns=False on_problems=..Report_Warning
+            r2w.at "A" . to_vector . should_equal [1, 2, 3]
+            Problems.assume_no_problems r2w
+            r2i = t1.parse columns=[0, -1, 42, -5] error_on_missing_columns=False on_problems=..Ignore
+            r2i.at "A" . to_vector . should_equal [1, 2, 3]
+            Problems.assume_no_problems r2i
 
         group_builder.specify "should allow mixed column selectors" <|
             t1 = Table.new [["Am", ["1", "2", "3"]], ["B", ["4", "5", "6"]], ["C", ["7", "8", "9"]], ["D", ["10", "11", "12"]]]
@@ -372,23 +380,15 @@ add_specs suite_builder =
             r1.catch.related_column . should_equal "A"
             r1.catch.expected.should_equal "Char"
 
-        group_builder.specify "should error if no input columns selected, unless error_on_missing_columns=False" <|
+        group_builder.specify "should not error if no input columns selected" <|
             t1 = Table.new [["A", ["1", "2", "3"]]]
             r1 = t1.parse columns=[]
-            r1.should_fail_with No_Input_Columns_Selected
+            r1 . should_equal t1
+            Problems.assume_no_problems r1
 
-            r2 = t1.parse columns=[] error_on_missing_columns=False
+            r2 = t1.parse columns=["nonexistent column :D", -42] error_on_missing_columns=False on_problems=..Report_Warning
             r2 . should_equal t1
-            Problems.expect_warning No_Input_Columns_Selected r2
-
-            r3 = t1.parse columns=[] error_on_missing_columns=False on_problems=..Ignore
-            r3 . should_equal t1
-            Problems.assume_no_problems r3
-
-            r4 = t1.parse columns=["nonexistent column :D", -42] error_on_missing_columns=False on_problems=..Report_Warning
-            r4 . should_equal t1
-            Problems.expect_warning No_Input_Columns_Selected r4
-            Problems.expect_warning (Missing_Input_Columns.Error ["nonexistent column :D", -42]) r4
+            Problems.assume_no_problems r2
 
     suite_builder.group "Column.parse" group_builder->
         group_builder.specify "should correctly parse integers" <|

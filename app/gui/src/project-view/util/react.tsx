@@ -1,4 +1,5 @@
-import { Dialog as DialogReact } from '#/components/Dialog'
+import { Dialog as DialogReact } from '#/components/Dialog/Dialog'
+import { Loader as LoaderReact } from '#/components/Loader'
 import { Result as ResultReact } from '#/components/Result'
 import { Suspense } from '#/components/Suspense'
 import type { ReactNode } from 'react'
@@ -43,5 +44,6 @@ export function suspendedReactComponent<Props extends object>(
 }
 
 // Common components
+export const Loader = reactComponent(LoaderReact)
 export const ResultComponent = reactComponent(ResultReact)
 export const Dialog = reactComponent(DialogReact)
